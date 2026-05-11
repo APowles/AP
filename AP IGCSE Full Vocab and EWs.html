@@ -696,6 +696,7 @@ main{max-width:none!important;margin:0!important;padding:0!important}
     <input id="igcseCustomInput" type="number" min="1" max="200" value="15" style="display:none;width:60px;padding:4px 8px;border-radius:8px;border:1px solid #ccc;font-size:0.8rem;">
   </div>
   <button onclick="generateIGCSETest()" style="padding:10px 24px;background:#c9a84c;color:#1a2744;border:none;border-radius:8px;font-weight:700;font-size:0.9rem;cursor:pointer;">Generate Test</button>
+  <button onclick="generateEWsSpotTest()" style="padding:9px 22px;background:transparent;color:var(--navy);border:1.5px solid var(--navy);border-radius:8px;font-weight:700;font-size:0.85rem;cursor:pointer;margin-left:8px;">&#128203; AP Spot Test</button>
   <div id="igcseTestOutput" style="margin-top:16px;"></div>
 </div>
 <!-- Vocab Editor Modal -->
@@ -5511,6 +5512,7 @@ function saveVocabField(el){
 
 // ── Generate Test ───────────────────────────────────────────
 let igcseTestCount = 10;
+let ewsSpotRows = [], ewsSpotLabel = '', ewsSpotQFlag = '', ewsSpotAFlag = '';
 let igcsePlainSheet = '', igcsePlainAnswers = '';
 let igcseTestSheetHtml = '', igcseTestAnswersHtml = '', igcseTestPdfMeta = {}, igcseTestItems = [];
 
@@ -5719,6 +5721,7 @@ function printIGCSETestPdf(which) {
 }
 // ── Edit Vocab Unlock ───────────────────────────────────────
 var editModeUnlocked = false;
+var _stRows=[],_stLabel='',_stQFlag='',_stAFlag='';
 let sessionEditCount = 0;
 (function(){
   // Apply stored card edits to ALL_PHRASES
@@ -6167,6 +6170,113 @@ function generateEWsPracticePdf() {
   w.document.close();
   w.focus();
   setTimeout(function(){ w.print(); }, 900);
+}
+
+// ── AP Spot Test ──────────────────────────────────────────────
+function generateEWsSpotTest() {
+  var phrases = getSelectedPhrases();
+  if (phrases.length < 15) { alert('Not enough items (need 15+).'); return; }
+  var f = getLangFrom(), t = getLangTo();
+  var items = [...phrases].sort(function(){ return Math.random()-0.5; }).slice(0,15);
+  var rows = []; for(var i=0;i<5;i++) rows.push(items.slice(i*3,i*3+3).map(function(p){ return {q:p[f]||'',a:p[t]||''}; }));
+  _stRows=rows; _stQFlag=LANG_FLAGS[f]||''; _stAFlag=LANG_FLAGS[t]||'';
+  var selEl=document.getElementById('sel-section');
+  var secKey=selEl?selEl.value:'';
+  _stLabel=(SECTION_TITLES&&SECTION_TITLES[secKey])||secKey||'All Sections';
+  var ic=['#1a2744','#b03a2e','#1a6b3a'];
+  var thS='padding:5px 8px;font-size:0.6rem;font-weight:700;text-transform:uppercase;letter-spacing:0.07em;color:#8899bb;background:#f0f3f8;border:1px solid #ddd;text-align:left;';
+  var tdN='padding:6px 8px;border:1px solid #ddd;text-align:center;font-weight:700;font-size:0.82rem;color:#1a2744;vertical-align:middle;width:32px;';
+  var tdSc='padding:6px 8px;border:1px solid #ddd;text-align:center;width:52px;';
+  var sr='',tr2='';
+  rows.forEach(function(grp,i){
+    grp.forEach(function(p,ci){
+      var on=ci===0,last=ci===2,col=ic[ci],bd=last?'':'border-bottom:1.5px dotted #bbb;';
+      var nc=on?'<td style="'+tdN+'" rowspan="3"><div style="font-size:1rem;font-weight:700;">'+(i+1)+'</div><div style="font-size:0.6rem;color:#aaa;">(2)</div></td>':'';
+      var sc=on?'<td style="'+tdSc+'" rowspan="3"></td>':'';
+      var qt='<td style="width:42%;padding:14px;font-size:0.82rem;line-height:1.45;vertical-align:middle;border:1px solid #ddd;border-top:none;border-left:none;'+bd+';color:'+col+'">'+p.q+'</td>';
+      var at='<td style="padding:14px;vertical-align:middle;border:1px solid #ddd;border-top:none;border-left:none;'+bd+'"></td>';
+      var att='<td style="padding:14px;font-size:0.82rem;line-height:1.45;vertical-align:middle;background:#fffef5;border:1px solid #ddd;border-top:none;border-left:none;'+bd+';color:'+col+'">'+p.a+'</td>';
+      sr+=  '<tr>'+nc+qt+at+sc+'</tr>';
+      tr2+= '<tr>'+nc+qt+att+sc+'</tr>';
+    });
+  });
+  var to='<table style="width:100%;border-collapse:collapse;table-layout:fixed;"><thead><tr>'
+    +'<th style="'+thS+'width:32px;border-right:2px solid #1a2744;"></th>'
+    +'<th style="'+thS+'width:42%;">'+_stQFlag+' AP will dictate all the <strong>questions</strong>: write them here</th>'
+    +'<th style="'+thS+'color:#b05000;">'+_stAFlag+' Only write answers AFTER all questions are dictated</th>'
+    +'<th style="'+thS+'width:52px;text-align:center;">0/1/2</th></tr></thead><tbody>';
+  document.getElementById('igcseTestOutput').innerHTML=
+    '<div style="display:flex;gap:8px;margin-bottom:10px;flex-wrap:wrap;">'
+    +'<button onclick="openEWsSpotTestPDF(\'student\')" style="padding:7px 14px;border-radius:8px;background:#1a2744;color:#c9a84c;border:none;font-size:0.82rem;cursor:pointer;font-weight:600;">🖨 Print Student Sheet</button>'
+    +'<button onclick="openEWsSpotTestPDF(\'teacher\')" style="padding:7px 14px;border-radius:8px;background:#c9a84c;color:#1a2744;border:none;font-size:0.82rem;cursor:pointer;font-weight:600;">🖨 Print Teacher Sheet</button>'
+    +'</div>'
+    +'<div style="font-size:0.68rem;color:#888;text-transform:uppercase;letter-spacing:0.06em;margin-bottom:8px;">'+_stQFlag+' → '+_stAFlag+' · '+_stLabel+' · 5 × 3 = 15 items</div>'
+    +'<div style="font-size:0.68rem;font-weight:700;color:#8899bb;text-transform:uppercase;letter-spacing:0.08em;margin-bottom:6px;">Student Sheet (preview)</div>'
+    +'<div style="background:#fff;border:1px solid #e2e6f0;border-radius:10px;padding:12px 16px;margin-bottom:16px;">'+to+sr+'</tbody></table></div>'
+    +'<div style="font-size:0.68rem;font-weight:700;color:#8899bb;text-transform:uppercase;letter-spacing:0.08em;margin-bottom:6px;">Teacher Sheet (answer key)</div>'
+    +'<div style="background:#fff;border:1px solid #e2e6f0;border-radius:10px;padding:12px 16px;">'+to+tr2+'</tbody></table></div>';
+  document.getElementById('igcseTestOutput').scrollIntoView({behavior:'smooth',block:'nearest'});
+}
+
+function openEWsSpotTestPDF(type) {
+  var rows=_stRows,label=_stLabel,qFlag=_stQFlag,aFlag=_stAFlag;
+  var isTeacher=type==='teacher';
+  var ic=['#1a2744','#b03a2e','#1a6b3a'];
+  var trows='';
+  rows.forEach(function(grp,i){
+    grp.forEach(function(p,ci){
+      var on=ci===0,last=ci===2,col=ic[ci],bd=last?'':'border-bottom:1.5px dotted #bbb;';
+      var nc=on?'<td class="num" rowspan="3"><div class="row-num">'+(i+1)+'</div><div class="marks">(2)</div></td>':'';
+      var sc=on?'<td class="score-col" rowspan="3"></td>':'';
+      trows+='<tr>'+nc+'<td class="q-item" style="color:'+col+';'+bd+'">'+p.q+'</td>'
+        +'<td class="a-item" style="'+bd+'">'+(isTeacher?'<span style="color:'+col+'">'+p.a+'</span>':'')+'</td>'+sc+'</tr>';
+    });
+  });
+  var st=isTeacher?'Teacher Sheet':'Student Sheet';
+  var html=['<!DOCTYPE html><html><head><meta charset="UTF-8">',
+    '<title>AP Spot Test — '+label+' — '+st+'</title>',
+    '<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;600;700&family=DM+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet">',
+    '<style>*{box-sizing:border-box;margin:0;padding:0;}html,body{width:210mm;height:297mm;}',
+    'body{font-family:"DM Sans",Arial,sans-serif;background:#fff;color:#1a2744;padding:0.9cm 1.1cm;display:flex;flex-direction:column;}',
+    '@page{size:A4;margin:0;}@media print{.no-print{display:none!important;}}',
+    '.ph{background:#1a2744;border-radius:4px;padding:10px 16px;display:flex;justify-content:space-between;align-items:center;margin-bottom:7px;flex-shrink:0;}',
+    '.pb{font-size:0.54rem;color:#c9a84c;text-transform:uppercase;letter-spacing:0.13em;font-weight:700;margin-bottom:3px;}',
+    '.pt{font-family:"Playfair Display",Georgia,serif;font-size:1.3rem;font-weight:700;color:#fff;line-height:1.1;}.pt span{color:#c9a84c;}',
+    '.ps{font-size:0.72rem;color:rgba(255,255,255,0.6);margin-top:3px;}',
+    '.badge{background:'+(isTeacher?'"#c9a84c"':'"rgba(255,255,255,0.12)"')+';color:'+(isTeacher?'"#1a2744"':'"#fff"')+';font-size:0.7rem;font-weight:700;padding:5px 14px;border-radius:20px;text-transform:uppercase;letter-spacing:0.08em;}',
+    '.pbtn{background:#c9a84c;color:#1a2744;border:none;padding:5px 12px;border-radius:4px;font-size:0.62rem;font-weight:700;cursor:pointer;margin-left:10px;}',
+    '.note{font-size:0.66rem;color:'+(isTeacher?'"#c9a84c"':'"#999"')+';'+(isTeacher?'font-weight:600;':'font-style:italic;')+'margin-bottom:6px;padding:0 2px;flex-shrink:0;}',
+    'table{width:100%;border-collapse:collapse;table-layout:fixed;flex:1;}',
+    'thead th{background:#f0f3f8;font-size:0.6rem;font-weight:700;text-transform:uppercase;letter-spacing:0.07em;color:#8899bb;padding:7px 10px;border:1.5px solid #ccc;text-align:left;}',
+    'thead th.sh{text-align:center;color:'+(isTeacher?'"#c9a84c"':'"#8899bb"')+'}',
+    'td{border:1.5px solid #ccc;vertical-align:middle;padding:0;}',
+    'td.num{width:32px;text-align:center;border-right:2px solid #1a2744;background:#f8f9fc;}',
+    '.row-num{font-size:1rem;font-weight:700;color:#1a2744;}.marks{font-size:0.6rem;color:#aaa;font-weight:400;margin-top:4px;}',
+    'td.q-item{width:42%;padding:14px;font-size:0.82rem;line-height:1.45;border-left:none;border-right:1.5px solid #ccc;border-top:none;}',
+    'td.a-item{padding:14px;font-size:0.82rem;line-height:1.45;'+(isTeacher?'background:#fffef5;':'')+'border-left:none;border-right:none;border-top:none;}',
+    'td.score-col{width:52px;text-align:center;border-left:2px solid #1a2744;}',
+    'tbody tr{height:calc((297mm - 4cm - 60px - 40px - 32px) / 15);}.footer{font-size:0.58rem;color:#ccc;text-align:right;padding-top:5px;flex-shrink:0;}',
+    '</style></head><body>',
+    '<div class="ph"><div>',
+    '<div class="pb">AP IGCSE · Full Vocab & EWs</div>',
+    '<div class="pt">AP <span>Spot Test</span></div>',
+    '<div class="ps">'+label+' · 5 questions · 3 items each · /10</div>',
+    '</div><div style="display:flex;align-items:center;">',
+    '<div class="badge">'+st+'</div>',
+    '<button class="pbtn no-print" onclick="window.print()">&#128424; Print / PDF</button>',
+    '</div></div>',
+    '<div class="note">Each question is out of 2 marks · 2 marks for perfection · 1 mark for 75% or more correct</div>',
+    '<table><colgroup><col style="width:32px"><col style="width:42%"><col><col style="width:52px"></colgroup>',
+    '<thead><tr><th style="border-right:2px solid #1a2744;"></th>',
+    '<th>'+qFlag+' AP will dictate all the <strong>questions</strong>: write them here</th>',
+    '<th style="color:'+(isTeacher?'"#b05000"':'"inherit"')+';">'+aFlag+' '+(isTeacher?'<strong>Answers (Teacher Sheet)</strong>':'Only write answers <strong>AFTER</strong> all questions are dictated')+'</th>',
+    '<th class="sh">0 / 1 / 2</th></tr></thead>',
+    '<tbody>'+trows+'</tbody></table>',
+    '<div class="footer">'+label+' · AP Spot Test · '+st+'</div>',
+    '</body></html>'].join('');
+  var blob=new Blob([html],{type:'text/html'});
+  var w=window.open(URL.createObjectURL(blob),'_blank');
+  if(!w) alert('Please allow pop-ups.');
 }
 
 </script>
