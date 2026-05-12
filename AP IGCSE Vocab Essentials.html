@@ -837,13 +837,13 @@ function natSort(a, b){
   return 0;
 }
 function getAvailableAreas(){
-  return [...new Set(ALL_PHRASES.map(p => p.sec[0]))].sort(natSort);
+  return [...new Set(getActivePhrases().map(p => p.sec[0]))].sort(natSort);
 }
 function getAvailableGroups(area){
-  return [...new Set(ALL_PHRASES.filter(p=>p.sec[0]===area).map(p=>p.sec.slice(0,2)))].sort(natSort);
+  return [...new Set(getActivePhrases().filter(p=>p.sec[0]===area).map(p=>p.sec.slice(0,2)))].sort(natSort);
 }
 function getAvailableSections(group){
-  return [...new Set(ALL_PHRASES.filter(p=>p.sec.startsWith(group)).map(p=>p.sec))].sort(natSort);
+  return [...new Set(getActivePhrases().filter(p=>p.sec.startsWith(group)).map(p=>p.sec))].sort(natSort);
 }
 
 
@@ -9437,7 +9437,7 @@ function renderVpPickers() {
 function generateVocabPracticePdf() {
   const l1 = vpLang1, l2 = vpLang2;
   const flagName = {en:'&#127468;&#127463; English',fr:'&#127467;&#127479; French',it:'&#127470;&#127481; Italian',es:'&#127466;&#127480; Spanish'};
-  const allSecs = [...new Set(ALL_PHRASES.map(function(p){ return p.sec; }))].sort(natSort);
+  const allSecs = [...new Set(getActivePhrases().map(function(p){ return p.sec; }))].sort(natSort);
   const areas   = [...new Set(allSecs.map(function(s){ return s[0]; }))].sort();
 
   function buildSheet(lang, sheetTitle, numRef) {
@@ -9719,17 +9719,32 @@ function renderSSPickers(){
   document.getElementById('ssToPicker').innerHTML   = picker(ssToLang,'to');
 
   // Section picker
-  var allSecs = [...new Set(ALL_PHRASES.map(function(p){ return p.sec; }))].sort(natSort);
-  var html = '<button onclick="ssSectionVal=\'ALL\';renderSSPickers()" style="padding:5px 11px;border-radius:20px;'
-    +'border:1.5px solid '+('ALL'===ssSectionVal?'var(--gold)':'var(--border)')+';'
-    +'background:'+('ALL'===ssSectionVal?'rgba(201,168,76,0.15)':'transparent')+';'
-    +'color:'+('ALL'===ssSectionVal?'var(--gold)':'var(--text3)')+';font-size:0.75rem;cursor:pointer;font-weight:600;margin:3px 2px;">All Sections</button>';
-  allSecs.forEach(function(s){
-    var on = s === ssSectionVal;
-    html += '<button onclick="ssSectionVal=\''+s+'\';renderSSPickers()" style="padding:5px 11px;border-radius:20px;'
+  var allSecs = [...new Set(getActivePhrases().map(function(p){ return p.sec; }))].sort(natSort);
+  var areas = [...new Set(allSecs.map(function(s){ return s[0]; }))].sort();
+
+  function btnStyle(on) {
+    return 'padding:5px 11px;border-radius:20px;'
       +'border:1.5px solid '+(on?'var(--gold)':'var(--border)')+';'
       +'background:'+(on?'rgba(201,168,76,0.15)':'transparent')+';'
-      +'color:'+(on?'var(--gold)':'var(--text3)')+';font-size:0.75rem;cursor:pointer;font-weight:600;margin:3px 2px;">'
+      +'color:'+(on?'var(--gold)':'var(--text3)')+';font-size:0.75rem;cursor:pointer;font-weight:600;margin:3px 2px;';
+  }
+
+  var html = '<button onclick="ssSectionVal=\'ALL\';renderSSPickers()" style="'+btnStyle('ALL'===ssSectionVal)+'">All Sections</button>';
+
+  // Area group buttons: All of A, All of B etc.
+  areas.forEach(function(a){
+    var aKey = 'AREA_'+a;
+    var on = ssSectionVal === aKey;
+    html += '<button onclick="ssSectionVal=\''+aKey+'\';renderSSPickers()" style="'+btnStyle(on)+'">All of '+a+'</button>';
+  });
+
+  // Divider
+  html += '<div style="width:100%;height:1px;background:var(--border);margin:6px 0;"></div>';
+
+  // Individual section buttons
+  allSecs.forEach(function(s){
+    var on = s === ssSectionVal;
+    html += '<button onclick="ssSectionVal=\''+s+'\';renderSSPickers()" style="'+btnStyle(on)+'">'
       +s+' — '+(SECTION_TITLES[s]||s)+'</button>';
   });
   document.getElementById('ssSectionPicker').innerHTML = html;
@@ -9738,8 +9753,12 @@ function renderSSPickers(){
 function generateIGCSEStudySheet(){
   document.getElementById('igcseStudySheetModal').style.display = 'none';
   var f = ssFromLang, t = ssToLang;
-  var phrases = ssSectionVal === 'ALL' ? ALL_PHRASES : ALL_PHRASES.filter(function(p){ return p.sec === ssSectionVal; });
-  var label = ssSectionVal === 'ALL' ? 'All Sections' : (ssSectionVal + ' — ' + (SECTION_TITLES[ssSectionVal]||ssSectionVal));
+  var phrases = ssSectionVal === 'ALL' ? getActivePhrases()
+    : ssSectionVal.startsWith('AREA_') ? getActivePhrases().filter(function(p){ return p.sec[0] === ssSectionVal[5]; })
+    : getActivePhrases().filter(function(p){ return p.sec === ssSectionVal; });
+  var label = ssSectionVal === 'ALL' ? 'All Sections'
+    : ssSectionVal.startsWith('AREA_') ? ('All of Area ' + ssSectionVal[5])
+    : (ssSectionVal + ' — ' + (SECTION_TITLES[ssSectionVal]||ssSectionVal));
 
   var rows = '';
   for(var i = 0; i < phrases.length; i += 2){
