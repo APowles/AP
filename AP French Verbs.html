@@ -28004,7 +28004,7 @@ function generateTest(){
   mode=savedMode;
   const n=testCount===0?(parseInt(document.getElementById('tcInput').value)||10):testCount;
   const items=pool.slice(0,Math.min(n,pool.length));
-  const TNAME={PRESENT:'Presente',FUTURE:'Futuro',PP:'Passé composé',IMPERFECT:'Imperfetto',PR:'Pass. Remoto',COND:'Condizionale',PRES_SUBJ:'Cong. Presente',IMP_SUBJ:'Cong. Imperfetto'};
+  const TNAME={PRESENT:'Présent',FUTURE:'Futur',PASSE_COMPOSE:'Passé composé',IMPERFECT:'Imparfait',CONDITIONNEL:'Conditionnel',SUBJONCTIF:'Subjonctif',INFINITIVE:'Infinitif'};
   let test='French Verb Test\n'+'─'.repeat(56)+'\n\n';
   let ans='Answer Sheet\n'+'─'.repeat(56)+'\n\n';
   items.forEach((item,i)=>{
@@ -29434,20 +29434,17 @@ function generateItalianSpotTest() {
   if (pool.length < 15) { alert('Not enough verbs (need 15+).'); return; }
   var items = [...pool].sort(function(){ return Math.random()-0.5; }).slice(0,15);
   // Use conjEn to generate a clean English question label for whatever tense is selected
-  var pi = (mode === 'single' && typeof selectedPerson !== 'undefined') ? selectedPerson : Math.floor(Math.random()*6);
+  var TNAME_SPOT={PRESENT:'Présent',FUTURE:'Futur',PASSE_COMPOSE:'Passé composé',IMPERFECT:'Imparfait',CONDITIONNEL:'Conditionnel',SUBJONCTIF:'Subjonctif',INFINITIVE:'Infinitif'};
   var rows = []; for(var i=0;i<5;i++) rows.push(items.slice(i*3,i*3+3).map(function(v){
-    var q = conjEn(v.en, pi, v.tense);
-    // PP: half the time show simple past ("I ate") instead of present perfect ("I have eaten")
-    // because in Italian the passato prossimo covers both
-    if(v.tense === 'PASSE_COMPOSE' && Math.random() < 0.5) {
-      var presEntry = VERBS.find(function(x){ return x.inf === v.inf && x.tense === 'PRESENT'; });
-      if(presEntry) q = conjEn(presEntry.en, pi, 'PR');
-    }
+    var pi = Math.floor(Math.random()*6);
     // For impersonal verbs (falloir, pleuvoir, y avoir) always use pi=2
-    var effectivePi = pi;
-    if(v.forms[0]==='---' && v.forms[1]==='---' && v.forms[2]!=='---') effectivePi = 2;
-    var ans = v.forms[effectivePi];
-    var q = conjEn(v.en, effectivePi, v.tense);
+    if(v.forms[0]==='---' && v.forms[1]==='---' && v.forms[2]!=='---') pi = 2;
+    var q = conjEn(v.en, pi, v.tense);
+    var tStr = testOpts.tense ? ' [' + (TNAME_SPOT[v.tense]||v.tense) + ']' : '';
+    var pStr = testOpts.person ? ' (' + PERSONS[pi].replace(/\s*\([^)]*\)/g,'') + ')' : '';
+    var iStr = testOpts.inf ? ' — inf: ' + v.inf : '';
+    q = q + tStr + pStr + iStr;
+    var ans = v.forms[pi];
     if(v.tense === 'SUBJONCTIF'){ var qa = ans; if(/^(il|ils|elle|elles)/.test(qa)) ans = "qu'" + qa; else ans = 'que ' + qa; }
     return {q: q, a: ans};
   }));

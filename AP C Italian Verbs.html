@@ -29013,8 +29013,9 @@ function generateItalianSpotTest() {
   if (pool.length < 15) { alert('Not enough verbs (need 15+).'); return; }
   var items = [...pool].sort(function(){ return Math.random()-0.5; }).slice(0,15);
   // Use conjEn to generate a clean English question label for whatever tense is selected
-  var pi = (mode === 'single' && typeof selectedPerson !== 'undefined') ? selectedPerson : Math.floor(Math.random()*6);
+  var TNAME_SPOT={PRESENT:'Presente',FUTURE:'Futuro',PP:'Pass. Prossimo',IMPERFECT:'Imperfetto',PR:'Pass. Remoto',COND:'Condizionale',PRES_SUBJ:'Cong. Presente',IMP_SUBJ:'Cong. Imperfetto'};
   var rows = []; for(var i=0;i<5;i++) rows.push(items.slice(i*3,i*3+3).map(function(v){
+    var pi = Math.floor(Math.random()*6);
     var q = conjEn(v.en, pi, v.tense);
     // PP: half the time show simple past ("I ate") instead of present perfect ("I have eaten")
     // because in Italian the passato prossimo covers both
@@ -29022,6 +29023,10 @@ function generateItalianSpotTest() {
       var presEntry = VERBS.find(function(x){ return x.inf === v.inf && x.tense === 'PRESENT'; });
       if(presEntry) q = conjEn(presEntry.en, pi, 'PR');
     }
+    var tStr = testOpts.tense ? ' [' + (TNAME_SPOT[v.tense]||v.tense) + ']' : '';
+    var pStr = testOpts.person ? ' (' + PERSONS[pi].replace(/\s*\([^)]*\)/g,'') + ')' : '';
+    var iStr = testOpts.inf ? ' — inf: ' + v.inf : '';
+    q = q + tStr + pStr + iStr;
     var ans = v.forms[pi];
     if(v.tense === 'PRES_SUBJ' || v.tense === 'IMP_SUBJ') ans = 'che ' + ans;
     return {q: q, a: ans};

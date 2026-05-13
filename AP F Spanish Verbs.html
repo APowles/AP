@@ -27562,6 +27562,7 @@ function makeEngPast(verb) {
 }
 
 function conjugateEnglish(en, personIdx, tense) {
+  en = _replaceReflexive(en, personIdx);
   const engPronouns = ['I','you','he (she)','we','you all','they'];
   const spanishPronouns = ['yo','tú','él (ella)','nosotros','vosotros','ellos (ellas)'];
   const pron = engPronouns[personIdx];
@@ -28151,11 +28152,14 @@ function generateSDSpotTest(){
   if(pool.length<15){alert('Not enough verbs for the current selection (need 15+).');return;}
   var shuffled=[...pool].sort(function(){return Math.random()-0.5;});
   var items=shuffled.slice(0,15);
-  var pi = Math.floor(Math.random()*6);
   var rows=[];for(var i=0;i<5;i++)rows.push(items.slice(i*3,i*3+3).map(function(v){
+    var pi = Math.floor(Math.random()*6);
     var ans = v.forms[pi];
     if(v.tense === 'PRESENT_SUBJ' || v.tense === 'IMP_SUBJ') ans = 'que ' + ans;
-    return {q: conjEnSpanish(v.en, v.tense, pi), a: ans};
+    var iStr = spTestOpts.inf ? ' — inf: ' + v.inf : '';
+    var pStr = spTestOpts.person ? ' (' + PERSONS[pi] + ')' : '';
+    var tStr = spTestOpts.tense ? ' [' + (TNAME_ES[v.tense]||v.tense) + ']' : '';
+    return {q: conjEnSpanish(v.en, v.tense, pi) + tStr + pStr + iStr, a: ans};
   }));
   var label='Spanish Verbs';
   var qFlag='&#127468;&#127463;',aFlag='&#127466;&#127480;';
@@ -28270,9 +28274,14 @@ document.addEventListener('DOMContentLoaded',()=>{
   if(spTestOpts.inf) document.getElementById('topt-inf')?.classList.add('active-reg');
 });
 
+function _replaceReflexive(str, pi){
+  const refl=['myself','yourself','oneself','ourselves','yourselves','themselves'];
+  return str.replace(/\boneself\b/g, refl[pi]);
+}
+
 function conjEnSpanish(en, tense, pi){
   const pr=EN_PR[pi];
-  const base=en.replace(/^to /,'');
+  const base=_replaceReflexive(en.replace(/^to /,''), pi);
   const beConj=['am','are','is','are','are','are'][pi];
   const wasConj=['was','were','was','were','were','were'][pi];
 
