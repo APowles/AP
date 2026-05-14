@@ -10097,6 +10097,32 @@ function updateHeaderCount() {
   if (el) el.textContent = getPool().length;
 }
 
+function updateOriginButtons() {
+  const originRow = document.getElementById('origin-filter-row');
+  if (!originRow) return;
+  originRow.innerHTML = '';
+  const cards2 = _lang === 'it' ? IGCSE_CARDS_IT : _lang === 'es' ? IGCSE_CARDS_ES : IGCSE_CARDS;
+  const basePool = _filter === 'real'
+    ? cards2.filter(c => c.year !== 'AI' && !String(c.year).startsWith('Translated'))
+    : _filter === 'translated' ? cards2.filter(c => c.year !== 'AI')
+    : _filter === 'ai' ? cards2.filter(c => !String(c.year).startsWith('Translated'))
+    : cards2;
+  ['all','fr','it','es'].forEach(src => {
+    const flag = src === 'all' ? '🌐' : src === 'fr' ? '🇫🇷' : src === 'it' ? '🇮🇹' : '🇪🇸';
+    const name = src === 'all' ? 'All' : src === 'fr' ? 'French' : src === 'it' ? 'Italian' : 'Spanish';
+    const cnt = src === 'all' ? basePool.length : basePool.filter(c => (c.origin||'fr') === src).length;
+    const active = _filterSource === src;
+    const empty = cnt === 0;
+    const btn = document.createElement('button');
+    btn.id = 'fsrc-' + src;
+    btn.className = active ? 'filter-btn active' : 'filter-btn inactive';
+    btn.innerHTML = flag + ' ' + name + (cnt > 0 ? ' <span style="font-size:0.7em;opacity:0.7">(' + cnt + ')</span>' : '');
+    if (empty && !active) { btn.style.opacity = '0.35'; btn.style.cursor = 'not-allowed'; }
+    else { btn.onclick = () => setFilterSource(src); }
+    originRow.appendChild(btn);
+  });
+}
+
 function setFilter(val) {
   _filter = val;
   ['filter-real','filter-trans','filter-ai','filter-all'].forEach(id => {
@@ -10106,6 +10132,7 @@ function setFilter(val) {
   const map = {real:'filter-real', translated:'filter-trans', ai:'filter-ai', all:'filter-all'};
   const active = document.getElementById(map[val]);
   if (active) active.className = 'filter-btn active';
+  updateOriginButtons();
   updateHeaderCount();
 }
 
@@ -10295,25 +10322,7 @@ function showOralHome() {
     </div>`;
 
   // Build origin buttons separately to avoid nested template literal issues
-  const originRow = document.getElementById('origin-filter-row');
-  if (originRow) {
-    ['all','fr','it','es'].forEach(src => {
-      const flag = src === 'all' ? '🌐' : src === 'fr' ? '🇫🇷' : src === 'it' ? '🇮🇹' : '🇪🇸';
-      const name = src === 'all' ? 'All' : src === 'fr' ? 'French' : src === 'it' ? 'Italian' : 'Spanish';
-      const cards2 = _lang === 'it' ? IGCSE_CARDS_IT : _lang === 'es' ? IGCSE_CARDS_ES : IGCSE_CARDS;
-      const realPool2 = cards2.filter(c => c.year !== 'AI' && !String(c.year).startsWith('Translated'));
-      const cnt = src === 'all' ? realPool2.length : realPool2.filter(c => (c.origin||'fr') === src).length;
-      const active = _filterSource === src;
-      const empty = cnt === 0;
-      const btn = document.createElement('button');
-      btn.id = 'fsrc-' + src;
-      btn.className = active ? 'filter-btn active' : 'filter-btn inactive';
-      btn.innerHTML = flag + ' ' + name + (cnt > 0 ? ' <span style="font-size:0.7em;opacity:0.7">(' + cnt + ')</span>' : '');
-      if (empty && !active) { btn.style.opacity = '0.35'; btn.style.cursor = 'not-allowed'; }
-      else { btn.onclick = () => setFilterSource(src); }
-      originRow.appendChild(btn);
-    });
-  }
+  updateOriginButtons();
   updateHeaderCount();
 }
 
