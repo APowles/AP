@@ -27223,11 +27223,16 @@ function buildPool() {
     verbPool = VERBS.filter(v => conjTenses.has(v.tense) && qualifyingInfs.has(v.inf));
   }
 
+  // Apply verb set filter
+  const _vsAllowed = VERB_SETS[verbSetFilter];
+  if (_vsAllowed) verbPool = verbPool.filter(v => _vsAllowed.has(v.inf));
+
   // Add infinitive cards if selected — always show ALL verbs (regularity doesn't apply to infinitives)
   let infCards = [];
   if (selectedTenses.has('INFINITIVE')) {
     const seen = new Set();
     VERBS.forEach(v => {
+      if (_vsAllowed && !_vsAllowed.has(v.inf)) return;
       if (!seen.has(v.inf)) {
         seen.add(v.inf);
         infCards.push({ en: v.en, tense: 'INFINITIVE', inf: v.inf, forms: [v.inf], note: '', usage_en: v.usage_en, usage_es: v.usage_es, isInfinitive: true });
@@ -27236,7 +27241,7 @@ function buildPool() {
   }
 
   if (mode === 'full') return [...verbPool, ...infCards];
-  const personFilter = document.getElementById('personFilter').value;
+  const personFilter = _personFilter;
   const cards = [];
   verbPool.forEach(v => {
     const personIdxs = personFilter === 'ALL' ? [0,1,2,3,4,5] : [parseInt(personFilter)];
@@ -27257,6 +27262,35 @@ function shuffle(arr) {
 
 let _selectedCount = 10;
 function setSelectedCount(n){ _selectedCount = n; renderIntro(); }
+
+let verbSetFilter = 'all';
+let _personFilter = 'ALL';
+const VERB_SETS = {
+  'all': null,
+  'AP F Verbs': new Set([
+    'aprender','vivir','trabajar','estudiar','beber','leer','escribir',
+    'llamarse','levantarse','poder','almorzar','jugar','querer','pensar',
+    'preferir','vestirse','poner','salir','hacer','saber','dar','ir',
+    'estar','ser','tener','decir','venir','ver','llevar','ponerse',
+    'acostarse','ducharse','nadar','desayunar','pasar','comer','leer',
+    'lavarse','llegar','pagar','sacar','practicar','tocar','buscar',
+    'empezar','cruzar','oír','caer','morir','pedir','dormir','servir',
+    'seguir','repetir','divertirse','sentir','mentir','reír','sonreír',
+    'andar','caber','estar','haber','poder','poner','querer','saber',
+    'suponer','tener','venir','hacer','decir','traer','conducir','ver',
+    'dar','ser','ir','llamar','levantarse','saber','querer','poder',
+    'caber','haber','poner','tener','valer','salir','venir','decir',
+    'hacer','vivir','comer','beber','creer','recibir','vender','abrir',
+    'decidir','escribir','aprender'
+  ])
+};
+function setVerbSetFilter(val){ verbSetFilter = val; renderIntro(); }
+function setPersonFilter(val){
+  _personFilter = val;
+  const sel = document.getElementById('personFilter');
+  if(sel) sel.value = val;
+  renderIntro();
+}
 
 function introSetMode(m){
   mode = m;
@@ -27293,7 +27327,7 @@ function adjustTimer(delta){
   const itd = document.getElementById('intro-timer-display'); if(itd) itd.textContent = timerSecs + 's';
 }
 function renderIntro(){
-  const tenses = ['PRESENT','PRETERITE','IMPERFECT','PERFECT','FUTURE','PRESENT_SUBJ','IMP_SUBJ','INFINITIVE'];
+  const tenses = ['PRESENT','PRETERITE','FUTURE','IMPERFECT','PERFECT','PRESENT_SUBJ','IMP_SUBJ','INFINITIVE'];
   const tenseLabels = {PRESENT:'Present',PRETERITE:'Preterite',IMPERFECT:'Imperfect',
     PERFECT:'Perfect',FUTURE:'Future',PRESENT_SUBJ:'Pres. Subj.',IMP_SUBJ:'Imp. Subj.',INFINITIVE:'Infinitive'};
   const tenseColors = {PRESENT:'#1a65c0',PRETERITE:'#9a1060',IMPERFECT:'#6020a0',
@@ -27302,11 +27336,11 @@ function renderIntro(){
   const modes = [{k:'full',l:'📋 Full (6 forms)'},{k:'single',l:'🎯 Single form'},{k:'inf',l:'🔤 Infinitives'}];
   const modeHtml = modes.map(m => {
     const active = mode === m.k;
-    return `<button onclick="introSetMode('${m.k}')" style="padding:10px 14px;border-radius:8px;border:2px solid ${active?'#1a2744':'#e2e6f0'};background:${active?'#1a2744':'#fff'};color:${active?'#c9a84c':'#4a5a7a'};font-size:0.85rem;font-weight:600;cursor:pointer">${m.l}</button>`;
+    return `<button onclick="introSetMode('${m.k}')" style="padding:7px 12px;border-radius:8px;border:2px solid ${active?'#1a2744':'#e2e6f0'};background:${active?'#1a2744':'#fff'};color:${active?'#c9a84c':'#4a5a7a'};font-size:0.8rem;font-weight:600;cursor:pointer">${m.l}</button>`;
   }).join('');
 
-  const visibleTenses = mode === 'inf' ? ['PRESENT','PRETERITE','IMPERFECT','PERFECT','FUTURE','PRESENT_SUBJ','IMP_SUBJ'] : tenses;
-  const ALL_SP_TENSES=['PRESENT','IMPERFECT','FUTURE','PRESENT_SUBJ','IMP_SUBJ','INFINITIVE','PERFECT','PRETERITE'];
+  const visibleTenses = mode === 'inf' ? ['PRESENT','PRETERITE','FUTURE','IMPERFECT','PERFECT','PRESENT_SUBJ','IMP_SUBJ'] : tenses;
+  const ALL_SP_TENSES=['PRESENT','PRETERITE','FUTURE','IMPERFECT','PERFECT','PRESENT_SUBJ','IMP_SUBJ','INFINITIVE'];
   const allSpSelected=ALL_SP_TENSES.every(t=>selectedTenses.has(t));
   const allTensesBtn=`<button onclick="selectAllTenses()" style="padding:5px 12px;border-radius:20px;border:1.5px solid ${allSpSelected?'#1a2744':'#e2e6f0'};background:${allSpSelected?'#1a274418':'transparent'};color:${allSpSelected?'#1a2744':'#8899bb'};font-size:0.72rem;font-weight:700;cursor:pointer">All Tenses</button>`;
   const tenseHtml = allTensesBtn+visibleTenses.map(t => {
@@ -27315,7 +27349,7 @@ function renderIntro(){
     return `<button onclick="introToggleTense('${t}')" style="padding:5px 12px;border-radius:20px;border:1.5px solid ${active?col:'#e2e6f0'};background:${active?col+'18':'transparent'};color:${active?col:'#8899bb'};font-size:0.72rem;font-weight:600;cursor:pointer">${tenseLabels[t]}</button>`;
   }).join('');
 
-  const regs = [{k:'all',l:'All'},{k:'regular',l:'Regular'},{k:'radical',l:'Radical/Spelling'},{k:'irregular',l:'Irregular only'}];
+  const regs = [{k:'all',l:'All'},{k:'regular',l:'Regular'},{k:'radical',l:'Radical'},{k:'irregular',l:'Irregular'}];
   const regHtml = regs.map(r => {
     const active = regFilter === r.k;
     return `<button onclick="introSetReg('${r.k}')" style="padding:4px 10px;border-radius:20px;border:1.5px solid ${active?'#1a2744':'#e2e6f0'};background:${active?'#1a2744':'transparent'};color:${active?'#c9a84c':'#8899bb'};font-size:0.7rem;font-weight:500;cursor:pointer">${r.l}</button>`;
@@ -27323,75 +27357,76 @@ function renderIntro(){
 
   const pool = selectedTenses.size > 0 && mode ? buildPool() : [];
   const cardCount = _selectedCount === -1 ? pool.length : Math.min(_selectedCount, pool.length);
-  const countHtml = [10,20,30,-1].map(n => {
+  const countHtml = [5,10,20,30,-1].map(n => {
     const active = _selectedCount === n;
     return `<button onclick="setSelectedCount(${n})" style="padding:6px 16px;border-radius:20px;border:1.5px solid ${active?'#1a2744':'#e2e6f0'};background:${active?'#1a2744':'#fff'};color:${active?'#fff':'#4a5a7a'};font-size:0.83rem;font-weight:500;cursor:pointer">${n===-1?'All':n}</button>`;
   }).join('');
 
+  const _personOpts = [['ALL','All persons'],['0','yo'],['1','tú'],['2','él/ella'],['3','nosotros'],['4','vosotros'],['5','ellos/as']];
   const personHtml = mode === 'single' ? `
-    <div style="margin:0 0 22px 0">
-      <div style="font-size:0.68rem;font-weight:600;color:#8899bb;text-transform:uppercase;letter-spacing:.07em;margin:0 0 10px 0">Person</div>
-      <select id="personFilter" style="font-size:0.82rem;padding:7px 10px;border:1.5px solid #e2e6f0;border-radius:8px;background:#fff;color:#1a2744;cursor:pointer">
-        <option value="ALL">All persons</option>
-        <option value="0">yo</option><option value="1">tú</option>
-        <option value="2">él (ella)</option><option value="3">nosotros</option>
-        <option value="4">vosotros</option><option value="5">ellos (ellas)</option>
-      </select>
+    <div style="margin:0 0 9px 0">
+      <div style="font-size:0.65rem;font-weight:600;color:#8899bb;text-transform:uppercase;letter-spacing:.07em;margin:0 0 5px 0">Person</div>
+      <div style="display:flex;gap:5px;flex-wrap:wrap">${_personOpts.map(([val,lbl])=>{const active=_personFilter===val;return`<button onclick="setPersonFilter('${val}')" style="padding:4px 10px;border-radius:20px;border:1.5px solid ${active?'#1a2744':'#e2e6f0'};background:${active?'#1a2744':'transparent'};color:${active?'#c9a84c':'#8899bb'};font-size:0.7rem;font-weight:600;cursor:pointer">${lbl}</button>`;}).join('')}</div>
     </div>` : '';
 
   document.getElementById('drill').innerHTML = `
-    <div style="display:flex;justify-content:center;padding:2.5rem 1.5rem">
-    <div style="background:#fff;border-radius:14px;border:1px solid #e2e6f0;padding:36px 32px;max-width:640px;width:100%;box-sizing:border-box;box-shadow:0 4px 28px rgba(26,39,68,0.09)">
-    <div style="font-family:Palatino,Georgia,serif;font-size:1.6rem;font-weight:700;color:#1a2744;margin:0 0 28px 0">Ready to conjugate? &#127466;&#127480;</div>
+    <div style="display:flex;justify-content:center;padding:0.6rem 1rem">
+    <div style="background:#fff;border-radius:14px;border:1px solid #e2e6f0;padding:14px 18px;max-width:560px;width:100%;box-sizing:border-box;box-shadow:0 4px 28px rgba(26,39,68,0.09)">
+    <div style="font-family:Palatino,Georgia,serif;font-size:1.15rem;font-weight:700;color:#1a2744;margin:0 0 10px 0">Ready to conjugate? &#127466;&#127480;</div>
 
-    <div style="margin:0 0 20px 0">
-      <div style="font-size:0.68rem;font-weight:600;color:#8899bb;text-transform:uppercase;letter-spacing:.07em;margin:0 0 10px 0">Mode</div>
-      <div style="display:flex;gap:8px;flex-wrap:wrap">${modeHtml}</div>
+    <div style="margin:0 0 9px 0">
+      <div style="font-size:0.65rem;font-weight:600;color:#8899bb;text-transform:uppercase;letter-spacing:.07em;margin:0 0 5px 0">Mode</div>
+      <div style="display:flex;gap:6px;flex-wrap:wrap">${modeHtml}</div>
     </div>
 
-    <div style="margin:0 0 20px 0">
-      <div style="font-size:0.68rem;font-weight:600;color:#8899bb;text-transform:uppercase;letter-spacing:.07em;margin:0 0 10px 0">Tenses <span style="font-weight:400">(tap to select)</span></div>
-      <div style="display:flex;gap:6px;flex-wrap:wrap">${tenseHtml}</div>
-      ${selectedTenses.size === 0 ? '<div style="margin-top:8px;padding:8px 12px;background:#fff3cd;border:1px solid #f0c040;border-radius:8px;font-size:0.8rem;color:#7a5c00;font-weight:500">👆 Select at least one tense above to begin</div>' : ''}
+    <div style="margin:0 0 9px 0">
+      <div style="font-size:0.65rem;font-weight:600;color:#8899bb;text-transform:uppercase;letter-spacing:.07em;margin:0 0 5px 0">Tenses <span style="font-weight:400">(tap to select)</span></div>
+      <div style="display:flex;gap:5px;flex-wrap:wrap">${tenseHtml}</div>
+      ${selectedTenses.size === 0 ? '<div style="margin-top:5px;padding:5px 10px;background:#fff3cd;border:1px solid #f0c040;border-radius:8px;font-size:0.75rem;color:#7a5c00;font-weight:500">👆 Select at least one tense above to begin</div>' : ''}
     </div>
 
-    <div style="margin:0 0 20px 0">
-      <div style="font-size:0.68rem;font-weight:600;color:#8899bb;text-transform:uppercase;letter-spacing:.07em;margin:0 0 10px 0">Regularity</div>
-      <div style="display:flex;gap:6px;flex-wrap:wrap">${regHtml}</div>
+    <div style="margin:0 0 9px 0">
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:9px;align-items:start">
+        <div>
+          <div style="font-size:0.65rem;font-weight:600;color:#8899bb;text-transform:uppercase;letter-spacing:.07em;margin:0 0 5px 0">Regularity</div>
+          <div style="display:flex;gap:5px;flex-wrap:wrap">${regHtml}</div>
+        </div>
+        <div>
+          <div style="font-size:0.65rem;font-weight:600;color:#8899bb;text-transform:uppercase;letter-spacing:.07em;margin:0 0 5px 0">Verb Set</div>
+          <div style="display:flex;gap:5px;flex-wrap:wrap">${Object.keys(VERB_SETS).map(k=>{const active=verbSetFilter===k;return`<button onclick="setVerbSetFilter('${k}')" style="padding:4px 10px;border-radius:20px;border:1.5px solid ${active?'#1a2744':'#e2e6f0'};background:${active?'#1a2744':'transparent'};color:${active?'#c9a84c':'#8899bb'};font-size:0.7rem;font-weight:600;cursor:pointer">${k==='all'?'All Verbs':k}</button>`;}).join('')}</div>
+        </div>
+      </div>
     </div>
 
     ${personHtml}
 
-    <div style="margin:0 0 20px 0">
-      <div style="font-size:0.68rem;font-weight:600;color:#8899bb;text-transform:uppercase;letter-spacing:.07em;margin:0 0 10px 0">Cards per session <span style="font-weight:400;color:#aab">(${pool.length} available)</span></div>
-      <div style="display:flex;gap:8px;flex-wrap:wrap">${countHtml}</div>
-    </div>
-
-    <div style="margin:0 0 32px 0">
-      <div style="font-size:0.68rem;font-weight:600;color:#8899bb;text-transform:uppercase;letter-spacing:.07em;margin:0 0 10px 0">Timer per card</div>
-      <div style="display:flex;align-items:center;gap:12px">
-        <button onclick="adjustTimer(-2)" style="width:34px;height:34px;border-radius:8px;border:1.5px solid #e2e6f0;background:#fff;color:#1a2744;font-size:1.2rem;cursor:pointer;font-weight:600;flex-shrink:0">&#8722;</button>
-        <span id="intro-timer-display" style="font-size:1.05rem;font-weight:600;color:#1a2744;min-width:44px;text-align:center">${timerSecs}s</span>
-        <button onclick="adjustTimer(2)" style="width:34px;height:34px;border-radius:8px;border:1.5px solid #e2e6f0;background:#fff;color:#1a2744;font-size:1.2rem;cursor:pointer;font-weight:600;flex-shrink:0">+</button>
+    <div style="display:grid;grid-template-columns:1fr auto;gap:9px;margin:0 0 9px 0;align-items:start">
+      <div>
+        <div style="font-size:0.65rem;font-weight:600;color:#8899bb;text-transform:uppercase;letter-spacing:.07em;margin:0 0 5px 0">Cards per session <span style="font-weight:700;color:#c0392b">(${pool.length} available)</span></div>
+        <div style="display:flex;gap:6px;flex-wrap:wrap">${countHtml}</div>
+      </div>
+      <div>
+        <div style="font-size:0.65rem;font-weight:600;color:#8899bb;text-transform:uppercase;letter-spacing:.07em;margin:0 0 5px 0">Timer</div>
+        <div style="display:flex;align-items:center;gap:8px">
+          <button onclick="adjustTimer(-2)" style="width:26px;height:26px;border-radius:6px;border:1.5px solid #e2e6f0;background:#fff;color:#1a2744;font-size:1rem;cursor:pointer;font-weight:600;flex-shrink:0">&#8722;</button>
+          <span id="intro-timer-display" style="font-size:0.95rem;font-weight:600;color:#1a2744;min-width:34px;text-align:center">${timerSecs}s</span>
+          <button onclick="adjustTimer(2)" style="width:26px;height:26px;border-radius:6px;border:1.5px solid #e2e6f0;background:#fff;color:#1a2744;font-size:1rem;cursor:pointer;font-weight:600;flex-shrink:0">+</button>
+        </div>
       </div>
     </div>
 
-    <div style="margin:0 0 20px 0">
-      <div style="font-size:0.68rem;font-weight:600;color:#8899bb;text-transform:uppercase;letter-spacing:.07em;margin:0 0 10px 0">Options</div>
-      <button onclick="showInfHint=!showInfHint;renderIntro()" style="padding:8px 16px;border-radius:8px;border:2px solid ${showInfHint?'#1a2744':'#e2e6f0'};background:${showInfHint?'#1a2744':'#fff'};color:${showInfHint?'#c9a84c':'#8899bb'};font-size:0.83rem;font-weight:600;cursor:pointer">
-        💡 Infinitive hint: ${showInfHint ? 'ON' : 'OFF'}
-      </button>
-      <span style="font-size:0.72rem;color:#aab;margin-left:8px">Shows the Spanish infinitive below each question</span>
+    <div style="margin:0 0 8px 0;display:flex;align-items:center;gap:6px;flex-wrap:wrap">
+      <button onclick="showInfHint=!showInfHint;renderIntro()" style="padding:5px 12px;border-radius:8px;border:2px solid ${showInfHint?'#1a2744':'#e2e6f0'};background:${showInfHint?'#1a2744':'#fff'};color:${showInfHint?'#c9a84c':'#8899bb'};font-size:0.75rem;font-weight:600;cursor:pointer">💡 Hint: ${showInfHint ? 'ON' : 'OFF'}</button>
+      <button onclick="showVerbList()" style="padding:5px 12px;border-radius:8px;border:1.5px solid #7ec8e3;background:transparent;color:#3a7a99;font-size:0.75rem;font-weight:600;cursor:pointer;">📋 List of Infinitives</button>
     </div>
-    <div style="margin:0 0 20px 0;"><button onclick="showVerbList()" style="padding:9px 18px;border-radius:8px;border:1.5px solid #7ec8e3;background:transparent;color:#3a7a99;font-size:0.85rem;font-weight:600;cursor:pointer;">📋 List of Infinitives</button><span style="font-size:0.72rem;color:#aab;margin-left:8px;">Browse &amp; search all infinitives</span></div>
-    <div style="border-top:1px solid #e2e6f0;margin:0 0 16px 0"></div>
-    ${'<button onclick="startQuickDrill(_selectedCount)" style="display:block;width:100%;padding:14px;background:#1a2744;color:#c9a84c;border:none;border-radius:8px;font-size:1rem;font-weight:700;cursor:pointer;text-align:center;margin:0 0 10px 0;box-sizing:border-box">&#9654; Start Drill &middot; '+cardCount+' card'+(cardCount!==1?'s':'')+' </button>'}
-    <button onclick="startLeisureMode()" style="display:block;width:100%;padding:10px;background:transparent;color:#555;border:1.5px solid #e2e6f0;border-radius:8px;font-size:0.85rem;font-weight:500;cursor:pointer;text-align:center;margin:0 0 12px 0">&#9749; Leisure Mode</button>
-    <div style="display:flex;gap:10px">
-      <button id="autotimeBtn" onclick="toggleAutotime()" style="flex:1;padding:9px 10px;background:${isAutotime?'#c9a84c':'transparent'};color:${isAutotime?'#1a2744':'#555'};border:1.5px solid ${isAutotime?'#c9a84c':'#e2e6f0'};border-radius:8px;font-size:0.8rem;font-weight:500;cursor:pointer">&#9654;&#9474; Autotime: ${isAutotime?'On':'Off'}</button>
-      <button onclick="const tp=document.getElementById('testPanel');tp.style.display='block';tp.scrollIntoView({behavior:'smooth'})" style="flex:1;padding:9px 10px;background:transparent;color:#555;border:1.5px solid #e2e6f0;border-radius:8px;font-size:0.8rem;font-weight:500;cursor:pointer">&#128203; Generate Test</button>
+    <div style="border-top:1px solid #e2e6f0;margin:0 0 8px 0"></div>
+    ${'<button onclick="startQuickDrill(_selectedCount)" style="display:block;width:100%;padding:10px;background:#1a2744;color:#c9a84c;border:none;border-radius:8px;font-size:0.95rem;font-weight:700;cursor:pointer;text-align:center;margin:0 0 6px 0;box-sizing:border-box">&#9654; Start Drill &middot; '+cardCount+' card'+(cardCount!==1?'s':'')+' </button>'}
+    <div style="display:flex;gap:6px">
+      <button onclick="startLeisureMode()" style="flex:1;padding:6px;background:transparent;color:#555;border:1.5px solid #e2e6f0;border-radius:8px;font-size:0.75rem;font-weight:500;cursor:pointer">&#9749; Leisure</button>
+      <button id="autotimeBtn" onclick="toggleAutotime()" style="flex:1;padding:6px;background:${isAutotime?'#c9a84c':'transparent'};color:${isAutotime?'#1a2744':'#555'};border:1.5px solid ${isAutotime?'#c9a84c':'#e2e6f0'};border-radius:8px;font-size:0.75rem;font-weight:500;cursor:pointer">&#9654;&#9474; Autotime: ${isAutotime?'On':'Off'}</button>
+      <button onclick="const tp=document.getElementById('testPanel');tp.style.display='block';tp.scrollIntoView({behavior:'smooth'})" style="flex:1;padding:6px;background:transparent;color:#555;border:1.5px solid #e2e6f0;border-radius:8px;font-size:0.75rem;font-weight:500;cursor:pointer">&#128203; Test</button>
     </div>
-    ${editModeUnlocked ? '<button onclick="openSDContentPDF()" style="display:block;width:100%;padding:9px 10px;background:transparent;color:#3a6a8a;border:1.5px solid #7ec8e3;border-radius:8px;font-size:0.78rem;font-weight:600;cursor:pointer;text-align:center;margin-top:10px;">&#128196; Print Content to PDF</button>' : ''}
+    ${editModeUnlocked ? '<button onclick="openSDContentPDF()" style="display:block;width:100%;padding:6px;background:transparent;color:#3a6a8a;border:1.5px solid #7ec8e3;border-radius:8px;font-size:0.75rem;font-weight:600;cursor:pointer;text-align:center;margin-top:6px;">&#128196; Print Content to PDF</button>' : ''}
     </div></div>`;
 }
 
@@ -28051,7 +28086,9 @@ function _spkGetVoice(langCode) {
 function speakEn(text, onEndCallback) {
   if (!_spkSynth) return;
   _spkSynth.cancel();
-  const utt = new SpeechSynthesisUtterance(text);
+  // Clean for TTS: remove parenthetical hints and slash alternatives (keep first option only)
+  let clean = text.replace(/\s*\([^)]*\)/g, '').replace(/\s*\/\s*.*/g, '').trim();
+  const utt = new SpeechSynthesisUtterance(clean);
   utt.lang = 'en-GB';
   utt.rate = 0.92;
   const v = _spkGetVoice('en-GB');
