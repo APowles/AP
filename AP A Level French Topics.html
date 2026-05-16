@@ -1442,11 +1442,105 @@ function showPhraseDrill() {
     + '<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:1.25rem;">' + btns + '</div>'
     + '<button onclick="startPhraseDrill(&quot;ALL&quot;)" style="display:block;width:100%;padding:13px;background:var(--navy);color:var(--gold);border:none;border-radius:8px;font-size:0.95rem;font-weight:700;cursor:pointer;font-family:inherit;margin-bottom:8px;">&#9654; Drill All ' + totalPhrases + ' Phrases</button>'
     + '<button onclick="startPhraseLeisure(&quot;ALL&quot;)" style="display:block;width:100%;padding:10px;background:transparent;color:var(--text2);border:1.5px solid var(--border);border-radius:8px;font-size:0.85rem;font-weight:500;cursor:pointer;font-family:inherit;">&#9749; Leisure Mode — listen through all phrases</button>'
+    + '<div style="display:flex;gap:6px;margin-top:8px;"><button onclick="printOralCyclePhrases(\'fr\')" style="flex:1;padding:9px 6px;background:transparent;color:#3a6a8a;border:1.5px solid #7ec8e3;border-radius:8px;font-size:0.75rem;font-weight:600;cursor:pointer;font-family:inherit;">&#128196; &#127467;&#127479; French only</button><button onclick="printOralCyclePhrases(\'en\')" style="flex:1;padding:9px 6px;background:transparent;color:#3a6a8a;border:1.5px solid #7ec8e3;border-radius:8px;font-size:0.75rem;font-weight:600;cursor:pointer;font-family:inherit;">&#128196; &#127468;&#127463; English only</button><button onclick="printOralCyclePhrases(\'both\')" style="flex:1;padding:9px 6px;background:transparent;color:#3a6a8a;border:1.5px solid #7ec8e3;border-radius:8px;font-size:0.75rem;font-weight:600;cursor:pointer;font-family:inherit;">&#128196; FR + EN</button></div>'
     + '</div>'
     + '<div style="font-size:0.68rem;color:var(--text3);text-align:center;margin-top:0.5rem;">&#8594; Show / Got it &nbsp;&middot;&nbsp; &#8595; Nearly &nbsp;&middot;&nbsp; &#8592; Again</div>'
     + '</div>';
 }
 
+
+function printOralCyclePhrases(mode) {
+  var COLOURS = {Q:'#1a2744',P:'#2c4a8c',S:'#1a5c5c',E:'#1e5c3a',A:'#4a2c6e',I:'#7a5c0a',O:'#8b2635',H:'#6d3c00',C:'#2e4a1e'};
+
+  // Build two balanced columns of section blocks
+  var sectionBlocks = [];
+  Object.keys(ORAL_CYCLE_EXPRS).forEach(function(k) {
+    var sec = ORAL_CYCLE_EXPRS[k];
+    var col = COLOURS[k] || '#1a2744';
+    var badge = '<span style="display:inline-flex;align-items:center;justify-content:center;width:16px;height:16px;border-radius:50%;background:#c9a84c;color:#1a2744;font-size:0.62rem;font-weight:900;flex-shrink:0;margin-right:6px;line-height:1;">'+k+'</span>';
+    var isBoth = (mode === 'both');
+    var block = '<div style="break-inside:avoid;page-break-inside:avoid;margin-bottom:8px;">';
+    block += '<div style="background:'+col+';padding:4px 8px;border-radius:3px 3px 0 0;display:flex;align-items:center;">'
+      + badge
+      + '<span style="font-size:0.58rem;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;color:#fff;flex:1;">'+sec.title+'</span>'
+      + '<span style="background:rgba(201,168,76,0.3);color:#c9a84c;font-size:0.52rem;font-weight:700;padding:1px 6px;border-radius:10px;margin-left:6px;">'+sec.phrases.length+'</span>'
+      + '</div>';
+    block += '<table style="width:100%;border-collapse:collapse;">';
+    if(isBoth){
+      block += '<tr>'
+        + '<td style="width:14px;background:#f0f3f8;border:1px solid #ddd;padding:3px 4px;"></td>'
+        + '<td style="background:#f0f3f8;border:1px solid #ddd;border-left:none;padding:3px 7px;font-size:0.58rem;font-weight:700;color:#1a2744;letter-spacing:0.05em;text-transform:uppercase;">&#127467;&#127479; French</td>'
+        + '<td style="background:#e8f0f8;border:1px solid #ddd;border-left:2px solid #c9a84c;padding:3px 7px;font-size:0.58rem;font-weight:700;color:#2c4a8c;letter-spacing:0.05em;text-transform:uppercase;">&#127468;&#127463; English</td>'
+        + '</tr>';
+    }
+    sec.phrases.forEach(function(p, i) {
+      var shade = (i % 2 === 1) ? 'background:#f8f9fc;' : '';
+      var txt = (mode === 'en') ? p.en : p.fr;
+      var txtCol = (mode === 'en') ? '#2c4a8c' : '#1a2744';
+      if(isBoth){
+        block += '<tr>'
+          + '<td style="'+shade+'padding:2px 4px;border:1px solid #e8eaf0;border-top:none;border-left:3px solid '+col+';font-size:0.5rem;color:#ccc;text-align:right;vertical-align:top;width:14px;">'+(i+1)+'</td>'
+          + '<td style="'+shade+'padding:2.5px 7px;border:1px solid #e8eaf0;border-top:none;border-left:none;font-size:0.67rem;line-height:1.4;color:#1a2744;vertical-align:top;width:47%;">'+p.fr+'</td>'
+          + '<td style="'+shade+'padding:2.5px 7px;border:1px solid #e8eaf0;border-top:none;border-left:2px solid #c9a84c;font-size:0.67rem;line-height:1.4;color:#2c4a8c;vertical-align:top;width:47%;">'+p.en+'</td>'
+          + '</tr>';
+      } else {
+        block += '<tr>'
+          + '<td style="'+shade+'padding:2px 4px;border:1px solid #e8eaf0;border-top:none;border-left:3px solid '+col+';font-size:0.5rem;color:#ccc;text-align:right;vertical-align:top;width:16px;">'+(i+1)+'</td>'
+          + '<td style="'+shade+'padding:2.5px 8px;border:1px solid #e8eaf0;border-top:none;border-left:none;font-size:0.68rem;line-height:1.42;color:'+txtCol+';vertical-align:top;">'+txt+'</td>'
+          + '</tr>';
+      }
+    });
+    block += '</table></div>';
+    sectionBlocks.push({html: block, weight: sec.phrases.length + 1});
+  });
+
+  // Split into two balanced columns
+  var totalWeight = sectionBlocks.reduce(function(a,s){return a+s.weight;},0);
+  var col1 = [], col2 = [], running = 0, half = totalWeight / 2, splitDone = false;
+  sectionBlocks.forEach(function(s){
+    if(!splitDone && running < half){ col1.push(s.html); running += s.weight; if(running >= half) splitDone = true; }
+    else { col2.push(s.html); }
+  });
+
+  var twoCol = '<div style="display:flex;gap:12px;align-items:flex-start;">'
+    + '<div style="flex:1;min-width:0;">'+col1.join('')+'</div>'
+    + '<div style="flex:1;min-width:0;">'+col2.join('')+'</div>'
+    + '</div>';
+
+  var pageHtml = '<!DOCTYPE html><html><head><meta charset="UTF-8">'
+    + '<title>AP Oral Cycle — French / English</title>'
+    + '<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;700&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">'
+    + '<style>*{box-sizing:border-box;margin:0;padding:0;}'
+    + 'body{font-family:"DM Sans",Arial,sans-serif;background:#fff;color:#1a2744;padding:0.7cm 0.9cm;}'
+    + '@media print{.no-print{display:none!important;}}'
+    + '.page-hdr{background:#1a2744;border-radius:4px;padding:7px 12px;display:flex;justify-content:space-between;align-items:center;margin-bottom:9px;}'
+    + '.hdr-brand{font-size:0.48rem;color:#c9a84c;text-transform:uppercase;letter-spacing:0.13em;font-weight:700;margin-bottom:2px;}'
+    + '.hdr-title{font-family:"Playfair Display",Georgia,serif;font-size:0.95rem;font-weight:700;color:#fff;line-height:1.15;}'
+    + '.hdr-sub{font-size:0.52rem;color:rgba(255,255,255,0.45);text-transform:uppercase;letter-spacing:0.08em;margin-top:2px;}'
+    + '.pbtn{background:#c9a84c;color:#1a2744;border:none;padding:4px 10px;border-radius:3px;font-size:0.56rem;font-weight:700;cursor:pointer;white-space:nowrap;}'
+    + '</style></head><body>'
+    + '<div class="page-hdr"><div>'
+    + '<div class="hdr-brand">AP A Level &nbsp;&middot;&nbsp; Oral Cycle Phrases</div>'
+    + '<div class="hdr-title">'+(mode==='fr'?'&#127467;&#127479; French':mode==='en'?'&#127468;&#127463; English':'&#127467;&#127479; French &nbsp;&harr;&nbsp; &#127468;&#127463; English')+'</div>'
+    + '<div class="hdr-sub">Q &rarr; P &rarr; S &rarr; E &rarr; A &rarr; I &rarr; O &rarr; H &rarr; C</div>'
+    + '</div><button class="pbtn no-print" onclick="window.print()">&#128424; Print / PDF</button></div>'
+    + twoCol
+    + '</body></html>';
+
+  var frame = document.getElementById('printFrame');
+  if(!frame){ alert('Print frame not found.'); return; }
+  var doc = frame.contentDocument || frame.contentWindow.document;
+  doc.open(); doc.write(pageHtml); doc.close();
+  setTimeout(function(){
+    try{ frame.contentWindow.focus(); frame.contentWindow.print(); }
+    catch(e){
+      var blob = new Blob([pageHtml],{type:'text/html'});
+      var url = URL.createObjectURL(blob);
+      var a = document.createElement('a'); a.href=url; a.target='_blank'; a.click();
+      setTimeout(function(){ URL.revokeObjectURL(url); },5000);
+    }
+  }, 800);
+}
 
 function buildPhraseDeck(section) {
   var deck = [];
@@ -5240,5 +5334,6 @@ function newRandomTopicCard(topicNum) {
     <button onclick="generateAPStudySheet()" style="display:block;width:100%;padding:12px;background:#1a2744;color:#c9a84c;border:none;border-radius:8px;font-size:0.9rem;font-weight:700;cursor:pointer;">&#128196; Generate PDF</button>
   </div>
 </div>
+<iframe id="printFrame" style="position:fixed;top:-9999px;left:-9999px;width:21cm;height:29.7cm;border:none;"></iframe>
 </body>
 </html>
