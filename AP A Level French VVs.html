@@ -27901,6 +27901,9 @@ document.addEventListener('keydown', (e) => {
 // Initialize — handled by DOMContentLoaded
 // ── Generate Test ───────────────────────────────────────────
 let vvTestCount = 10;
+let sdTestCount = 5;
+let sdPlainSheet = '', sdPlainAnswers = '';
+let sdTestItems = [], sdTestSetLabel = '';
 let vvPlainSheet = '', vvPlainAnswers = '';
 let vvTestItems = [], vvTestSectionLabel = '', vvTestLangFrom = '', vvTestLangTo = '';
 let vvSpotRows = [], vvSpotLabel = '', vvSpotQIdx = 0, vvSpotAIdx = 1, vvSpotQFlag = '🇬🇧', vvSpotAFlag = '🇫🇷';
@@ -27928,6 +27931,268 @@ function setVVCount(n) {
 
 function cleanVV(text) { return (text || '').trim(); }
 function cleanVVHtml(text) { return (text || '').trim(); }
+
+
+function toggleSDTestPanel() {
+  const p = document.getElementById('sdTestPanel');
+  if (!p) return;
+  p.style.display = p.style.display === 'none' ? 'block' : 'none';
+}
+
+function setSDCount(n) {
+  sdTestCount = n;
+  ['5','10','15','custom'].forEach(id => {
+    document.getElementById('sdtc-'+id)?.classList.toggle('active-vv', String(n) === id);
+  });
+  const ci = document.getElementById('sdCustomInput');
+  if (ci) ci.style.display = (n === 'custom') ? 'inline-block' : 'none';
+}
+
+function generateSDTest() {
+  const pool = getSdPool();
+  const setKey = sdState.currentSet;
+  if (!pool.length) { alert('No sentences for this set.'); return; }
+
+  const count = sdTestCount === 'custom'
+    ? (parseInt(document.getElementById('sdCustomInput').value) || 5)
+    : sdTestCount;
+
+  const isToFr = sdState.direction === 'fr';
+  const qIdx = isToFr ? 0 : 1;   // English prompt when →French; French prompt when →English
+  const aIdx = isToFr ? 1 : 0;
+  const dirLabel = isToFr ? '→ French' : '→ English';
+
+  const shuffled = [...pool].sort(() => Math.random() - 0.5);
+  const items = shuffled.slice(0, Math.min(count, shuffled.length));
+
+  const sep = '────────────────────────────────────────────────────────';
+  const title = 'Sentence Test — ' + setKey.replace(/_/g,' ') + ' (' + dirLabel + ')';
+  sdPlainSheet = title + '\n' + sep + '\n';
+  sdPlainAnswers = title + ' — Answer Sheet\n' + sep + '\n';
+
+  let sheet = '', answers = '';
+  items.forEach((pair, i) => {
+    const q = (pair[qIdx] || '').trim();
+    const a = (pair[aIdx] || '').trim();
+
+    sheet += '<div style="padding:8px 0;border-bottom:1px solid #e0e0e0;">'
+      + '<span style="color:#888;min-width:28px;display:inline-block;font-size:0.8rem;">' + (i+1) + '.</span>'
+      + '<span style="color:#1a2744;font-size:0.85rem;">' + q + '</span>'
+      + '</div>'
+      + '<div style="padding:4px 0 10px 28px;border-bottom:2px solid #bbb;margin-bottom:4px;">'
+      + '<span style="display:inline-block;width:100%;border-bottom:1.5px solid #ccc;min-height:22px;">&nbsp;</span>'
+      + '</div>';
+
+    answers += '<div style="padding:7px 0;border-bottom:1px solid #e0e0e0;font-size:0.82rem;">'
+      + '<span style="color:#888;min-width:28px;display:inline-block;font-size:0.8rem;">' + (i+1) + '.</span>'
+      + '<span style="color:#555;">' + q + '</span>'
+      + '<span style="color:#c9a84c;font-weight:700;"> → </span>'
+      + '<strong style="color:#1a2744;">' + a + '</strong>'
+      + '</div>';
+
+    sdPlainSheet += '\n' + (i+1) + '.  ' + q + '\n\n      ____________________________________\n';
+    sdPlainAnswers += '\n' + (i+1) + '.  ' + q + '  →  ' + a + '\n';
+  });
+
+  sdTestItems = items;
+  sdTestSetLabel = setKey;
+
+  document.getElementById('sdTestOutput').innerHTML =
+    '<div style="display:flex;gap:8px;margin-bottom:10px;flex-wrap:wrap;align-items:center;">'
+    + '<button onclick="copySDTest(\'sheet\')" style="padding:7px 14px;border-radius:8px;background:#fff;color:#1a2744;border:1.5px solid #1a2744;font-size:0.82rem;cursor:pointer;font-weight:600;">📋 Copy Test Sheet</button>'
+    + '<button onclick="copySDTest(\'answers\')" style="padding:7px 14px;border-radius:8px;background:#fff;color:#1a2744;border:1.5px solid #1a2744;font-size:0.82rem;cursor:pointer;font-weight:600;">📋 Copy Answer Sheet</button>'
+    + '<button onclick="printSDTest()" style="padding:7px 14px;border-radius:8px;background:var(--navy);color:var(--gold);border:none;font-size:0.82rem;cursor:pointer;font-weight:600;">🖨️ Print</button>'
+    + '</div>'
+    + sheet;
+}
+
+function copySDTest(which) {
+  const text = which === 'sheet' ? sdPlainSheet : sdPlainAnswers;
+  navigator.clipboard.writeText(text).then(() => {
+    const btn = event.target;
+    const orig = btn.textContent;
+    btn.textContent = '✓ Copied!';
+    setTimeout(() => btn.textContent = orig, 1500);
+  });
+}
+
+function printSDTest() {
+  if (!sdTestItems.length) return;
+  const isToFr = sdState.direction === 'fr';
+  const qIdx = isToFr ? 0 : 1;
+  const aIdx = isToFr ? 1 : 0;
+  const dirLabel = isToFr ? '→ French' : '→ English';
+  const title = 'Sentence Test — ' + sdTestSetLabel.replace(/_/g,' ') + ' (' + dirLabel + ')';
+
+  let rows = sdTestItems.map((pair,i) => {
+    const q = (pair[qIdx]||'').trim();
+    const a = (pair[aIdx]||'').trim();
+    return '<tr>'
+      + '<td style="padding:6px 8px;border:1px solid #ccc;font-weight:700;text-align:center;width:28px;color:#1a2744;">' + (i+1) + '</td>'
+      + '<td style="padding:8px;border:1px solid #ccc;font-size:10pt;">' + q + '</td>'
+      + '<td style="padding:8px;border:1px solid #ccc;min-height:28px;background:#fffef5;">&nbsp;</td>'
+      + '</tr>';
+  }).join('');
+
+  let answerRows = sdTestItems.map((pair,i) => {
+    const q = (pair[qIdx]||'').trim();
+    const a = (pair[aIdx]||'').trim();
+    return '<tr>'
+      + '<td style="padding:6px 8px;border:1px solid #ccc;font-weight:700;text-align:center;width:28px;color:#1a2744;">' + (i+1) + '</td>'
+      + '<td style="padding:8px;border:1px solid #ccc;font-size:10pt;color:#555;">' + q + '</td>'
+      + '<td style="padding:8px;border:1px solid #ccc;font-size:10pt;color:#1a2744;font-weight:600;">' + a + '</td>'
+      + '</tr>';
+  }).join('');
+
+  const html = `<!DOCTYPE html><html><head><meta charset="UTF-8">
+  <title>${title}</title>
+  <style>
+    body{font-family:'Segoe UI',Arial,sans-serif;margin:1.2cm 1.5cm;font-size:10.5pt;}
+    h2{font-size:13pt;color:#1a2744;margin-bottom:4px;}
+    .sub{font-size:8pt;color:#888;margin-bottom:16px;}
+    table{width:100%;border-collapse:collapse;margin-bottom:24px;}
+    th{background:#1a2744;color:#c9a84c;padding:6px 8px;font-size:8pt;text-align:left;border:1px solid #1a2744;}
+    @media print{.no-print{display:none}}
+  </style></head><body>
+  <h2>${title}</h2>
+  <div class="sub">Name: _________________________________ &nbsp;&nbsp; Date: _____________ &nbsp;&nbsp; Score: ______ / ${sdTestItems.length}</div>
+  <table>
+    <tr><th>#</th><th>${isToFr ? '🇬🇧 English' : '🇫🇷 French'}</th><th>${isToFr ? '🇫🇷 French translation' : '🇬🇧 English translation'}</th></tr>
+    ${rows}
+  </table>
+  <div style="page-break-before:always;">
+  <h2>${title} — Answer Sheet</h2>
+  <table>
+    <tr><th>#</th><th>${isToFr ? '🇬🇧 English' : '🇫🇷 French'}</th><th>${isToFr ? '🇫🇷 Answer' : '🇬🇧 Answer'}</th></tr>
+    ${answerRows}
+  </table></div>
+  <script>window.onload=function(){window.print();}<\/script>
+  </body></html>`;
+
+  const w = window.open('','_blank');
+  w.document.write(html);
+  w.document.close();
+}
+
+function generateSDSpotTest() {
+  const pool = getSdPool();
+  if (pool.length < 15) { alert('Need at least 15 sentences in this set for a spot test.'); return; }
+
+  const isToFr = sdState.direction === 'fr';
+  const qIdx = isToFr ? 0 : 1;
+  const aIdx = isToFr ? 1 : 0;
+  const setKey = sdState.currentSet;
+  const dirLabel = isToFr ? '→ French' : '→ English';
+
+  const shuffled = [...pool].sort(() => Math.random() - 0.5);
+  const items = shuffled.slice(0, 15);
+  const rows = [];
+  for (let i = 0; i < 5; i++) rows.push(items.slice(i * 3, i * 3 + 3));
+
+  const thStyle = 'padding:5px 8px;font-size:0.6rem;font-weight:700;text-transform:uppercase;letter-spacing:0.07em;color:#8899bb;background:#f0f3f8;border:1px solid #ddd;text-align:left;';
+  const tdNumStyle = 'padding:6px 8px;border:1px solid #ddd;text-align:center;font-weight:700;font-size:0.82rem;color:#1a2744;vertical-align:middle;width:28px;';
+  const tdQStyle = 'padding:6px 8px;border:1px solid #ddd;vertical-align:top;width:42%;font-size:0.78rem;';
+  const tdAStyle = 'padding:6px 8px;border:1px solid #ddd;vertical-align:top;width:42%;font-size:0.78rem;';
+  const tdScoreStyle = 'padding:6px 8px;border:1px solid #ddd;text-align:center;width:36px;';
+  const itemColours = ['#1a2744','#b03a2e','#1a6b3a'];
+
+  function buildLines(group, idx) {
+    return group.map((p,i) =>
+      '<div style="line-height:1.7;color:'+itemColours[i]+';border-bottom:1px dashed #e0e0e0;padding:2px 0;">'
+      + (p[idx]||'').trim() + '</div>'
+    ).join('');
+  }
+
+  let studentRows = '', teacherRows = '';
+  rows.forEach((group, i) => {
+    const trStyle = 'border-bottom:3px solid #1a2744;';
+    studentRows += '<tr style="'+trStyle+'">'
+      + '<td style="'+tdNumStyle+'">' + (i+1) + '<div style="font-size:0.58rem;color:#aaa;font-weight:400;">(2)</div></td>'
+      + '<td style="'+tdQStyle+'">' + buildLines(group, qIdx) + '</td>'
+      + '<td style="'+tdAStyle+'background:#f9f9f9;"><div style="height:72px;"></div></td>'
+      + '<td style="'+tdScoreStyle+'"></td>'
+      + '</tr>';
+    teacherRows += '<tr style="'+trStyle+'">'
+      + '<td style="'+tdNumStyle+'">' + (i+1) + '<div style="font-size:0.58rem;color:#aaa;font-weight:400;">(2)</div></td>'
+      + '<td style="'+tdQStyle+'">' + buildLines(group, qIdx) + '</td>'
+      + '<td style="'+tdAStyle+'">' + buildLines(group, aIdx) + '</td>'
+      + '<td style="'+tdScoreStyle+'"></td>'
+      + '</tr>';
+  });
+
+  const tableHeader = '<tr>'
+    + '<th style="'+thStyle+'width:28px;">#</th>'
+    + '<th style="'+thStyle+'">' + (isToFr ? '🇬🇧 English' : '🇫🇷 French') + '</th>'
+    + '<th style="'+thStyle+'">' + (isToFr ? '🇫🇷 French' : '🇬🇧 English') + '</th>'
+    + '<th style="'+thStyle+'width:36px;">/ 2</th>'
+    + '</tr>';
+
+  const previewStudent = '<table style="width:100%;border-collapse:collapse;margin-bottom:8px;">' + tableHeader + studentRows + '</table>';
+  const previewTeacher = '<table style="width:100%;border-collapse:collapse;">' + tableHeader + teacherRows + '</table>';
+
+  const setLabel = setKey.replace(/_/g,' ');
+  document.getElementById('sdTestOutput').innerHTML =
+    '<div style="font-size:0.75rem;font-weight:700;color:var(--navy);margin-bottom:6px;">📋 AP Spot Test — ' + setLabel + ' (' + dirLabel + ') — /10</div>'
+    + '<div style="font-size:0.7rem;color:var(--text3);margin-bottom:8px;">Student sheet (blank) · Teacher sheet (answers)</div>'
+    + previewStudent
+    + '<div style="font-size:0.72rem;font-weight:700;color:var(--navy);margin:10px 0 4px;">Answer Key</div>'
+    + previewTeacher
+    + '<div style="margin-top:10px;display:flex;gap:8px;flex-wrap:wrap;">'
+    + '<button onclick="printSDSpotTest('+JSON.stringify(rows)+','+JSON.stringify({isToFr,setLabel,dirLabel,qIdx,aIdx})+')" style="padding:7px 14px;border-radius:8px;background:var(--navy);color:var(--gold);border:none;font-size:0.82rem;cursor:pointer;font-weight:600;">🖨️ Print Spot Test</button>'
+    + '</div>';
+}
+
+function printSDSpotTest(rows, opts) {
+  const {isToFr, setLabel, dirLabel, qIdx, aIdx} = opts;
+  const itemColours = ['#1a2744','#b03a2e','#1a6b3a'];
+
+  function buildPrintLines(group, idx) {
+    return group.map((p,i) =>
+      '<div style="color:'+itemColours[i]+';padding:2px 0;line-height:1.6;font-size:10pt;">'+(p[idx]||'').trim()+'</div>'
+    ).join('');
+  }
+
+  let sRows = '', tRows = '';
+  rows.forEach((group, i) => {
+    sRows += '<tr>'
+      + '<td style="border:1px solid #ccc;text-align:center;font-weight:700;width:30px;vertical-align:middle;">'+(i+1)+'<div style="font-size:7pt;color:#aaa;font-weight:400">(2)</div></td>'
+      + '<td style="border:1px solid #ccc;padding:6px;width:45%;">'+buildPrintLines(group,qIdx)+'</td>'
+      + '<td style="border:1px solid #ccc;padding:6px;width:45%;background:#fffef5;min-height:50px;">&nbsp;</td>'
+      + '<td style="border:1px solid #ccc;text-align:center;width:32px;"></td>'
+      + '</tr>';
+    tRows += '<tr>'
+      + '<td style="border:1px solid #ccc;text-align:center;font-weight:700;width:30px;vertical-align:middle;">'+(i+1)+'<div style="font-size:7pt;color:#aaa;font-weight:400">(2)</div></td>'
+      + '<td style="border:1px solid #ccc;padding:6px;width:45%;">'+buildPrintLines(group,qIdx)+'</td>'
+      + '<td style="border:1px solid #ccc;padding:6px;width:45%;">'+buildPrintLines(group,aIdx)+'</td>'
+      + '<td style="border:1px solid #ccc;text-align:center;width:32px;"></td>'
+      + '</tr>';
+  });
+
+  const th = (t) => '<th style="background:#1a2744;color:#c9a84c;padding:5px 8px;font-size:8pt;text-align:left;border:1px solid #1a2744;">'+t+'</th>';
+  const header = '<tr>'+th('#')+th(isToFr?'🇬🇧 English':'🇫🇷 French')+th(isToFr?'🇫🇷 French':'🇬🇧 English')+th('/2')+'</tr>';
+
+  const html = `<!DOCTYPE html><html><head><meta charset="UTF-8">
+  <title>AP Spot Test — ${setLabel}</title>
+  <style>
+    body{font-family:'Segoe UI',Arial,sans-serif;margin:1.2cm 1.5cm;font-size:10.5pt;}
+    h2{font-size:12pt;color:#1a2744;margin-bottom:4px;}
+    .sub{font-size:8pt;color:#888;margin-bottom:12px;}
+    table{width:100%;border-collapse:collapse;margin-bottom:20px;}
+    @media print{.no-print{display:none}}
+  </style></head><body>
+  <h2>AP Spot Test — ${setLabel} (${dirLabel}) &nbsp; /10</h2>
+  <div class="sub">Name: _________________________________ &nbsp;&nbsp; Date: _____________</div>
+  <table>${header}${sRows}</table>
+  <div style="page-break-before:always;">
+  <h2>AP Spot Test — ${setLabel} (${dirLabel}) — Answer Key</h2>
+  <table>${header}${tRows}</table></div>
+  <script>window.onload=function(){window.print();}<\/script>
+  </body></html>`;
+
+  const w = window.open('','_blank');
+  w.document.write(html);
+  w.document.close();
+}
 
 function generateVVTest() {
   const key = currentVV;
@@ -53503,7 +53768,7 @@ function renderSD() {
         <span class="sd-filter-label">Set</span>
         <select class="tr-select" onchange="sdState.currentSet=this.value;sdState.idx=0;sdState.shuffled=[];renderSD()">
           ${Object.keys(SD_DATA).map(k=>`<option value="${k}" ${sdState.currentSet===k?'selected':''}>${k}</option>`).join('')}
-          ${['VV1','VV2','VV3','VV4','VV5','VV6'].map(v=>`<option value="${v}_Entire" ${sdState.currentSet===v+'_Entire'?'selected':''}>${v} Entire</option>`).join('')}
+          ${['VV1','VV2','VV3','VV4','VV5','VV6','VV7','VV8','VV9','VV10','VV11','VV12'].map(v=>`<option value="${v}_Entire" ${sdState.currentSet===v+'_Entire'?'selected':''}>${v} Entire</option>`).join('')}
         </select>
         <span style="font-size:0.7rem;color:var(--text3)">${pool.length} sentences</span>
       </div>
@@ -53518,8 +53783,26 @@ function renderSD() {
         <button class="tr-filter-btn ${sdState.leisure?'active':''}" onclick="sdState.leisure=!sdState.leisure;renderSD()" style="border-color:var(--gold);color:${sdState.leisure?'var(--navy)':'var(--gold)'};">☕ Leisure</button>
       </div>
     </div>
-    <div style="text-align:center;margin-bottom:1rem">
+    <div style="text-align:center;margin-bottom:1rem;display:flex;gap:10px;justify-content:center;flex-wrap:wrap">
       <button class="tr-btn primary" style="padding:12px 32px;font-size:0.95rem" onclick="startSD()">Start Drill →</button>
+      <button onclick="toggleSDTestPanel()" style="padding:12px 22px;border-radius:10px;background:transparent;color:var(--navy);border:1.5px solid var(--navy);font-weight:700;font-size:0.85rem;cursor:pointer;">⚙️ Generate Test</button>
+    </div>
+    <div id="sdTestPanel" style="display:none;background:var(--white);border:1.5px solid var(--border);border-radius:10px;padding:16px 20px;max-width:600px;margin:0 auto 1rem;">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">
+        <span style="font-size:0.88rem;font-weight:700;color:var(--navy);">⚙️ Generate Sentence Test</span>
+        <button onclick="toggleSDTestPanel()" style="padding:3px 10px;border-radius:6px;border:1px solid var(--border);background:none;color:var(--text2);font-size:0.78rem;cursor:pointer;">✕ Close</button>
+      </div>
+      <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:12px;">
+        <span style="font-size:0.68rem;color:var(--text3);text-transform:uppercase;letter-spacing:0.06em;font-weight:600;">Questions:</span>
+        <button class="vv-topt active-vv" onclick="setSDCount(5)" id="sdtc-5">5</button>
+        <button class="vv-topt" onclick="setSDCount(10)" id="sdtc-10">10</button>
+        <button class="vv-topt" onclick="setSDCount(15)" id="sdtc-15">15</button>
+        <button class="vv-topt" onclick="setSDCount('custom')" id="sdtc-custom">Custom</button>
+        <input id="sdCustomInput" type="number" min="1" max="45" value="8" style="display:none;width:60px;padding:4px 8px;border-radius:6px;border:1px solid var(--border);font-size:0.8rem;">
+      </div>
+      <button onclick="generateSDTest()" style="padding:9px 22px;background:var(--navy);color:var(--gold);border:none;border-radius:8px;font-weight:700;font-size:0.85rem;cursor:pointer;">Generate Test</button>
+      <button onclick="generateSDSpotTest()" style="padding:9px 22px;background:transparent;color:var(--navy);border:1.5px solid var(--navy);border-radius:8px;font-weight:700;font-size:0.85rem;cursor:pointer;margin-left:8px;">📋 AP Spot Test</button>
+      <div id="sdTestOutput" style="margin-top:14px;"></div>
     </div>
   `;
 }
