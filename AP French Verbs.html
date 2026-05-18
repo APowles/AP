@@ -125,6 +125,7 @@ select{background:var(--surface2);border:1px solid var(--border);color:var(--tex
 .er-actions{display:flex;gap:8px}
 .er-drill-btn{background:var(--navy);color:var(--white);border:none;border-radius:8px;padding:10px 20px;font-size:0.85rem;font-weight:600;cursor:pointer}
 .er-home-btn{background:none;border:1.5px solid var(--border);color:var(--text2);border-radius:8px;padding:10px 20px;font-size:0.85rem;cursor:pointer}
+.sp-topt{padding:4px 10px;border-radius:20px;border:1.5px solid #e2e6f0;background:transparent;color:#8899bb;font-size:0.72rem;font-weight:600;cursor:pointer;}
 </style>
 </head>
 <body tabindex="-1">
@@ -27941,50 +27942,85 @@ var italianSpotRows=[], italianSpotLabel='', italianSpotQFlag='', italianSpotAFl
 function renderTestPanel(){
   const tenses=[{k:'PRESENT',l:'Present',c:'#1a65c0'},{k:'FUTURE',l:'Future',c:'#0a7050'},{k:'PASSE_COMPOSE',l:'Passé composé',c:'#9a1060'},{k:'IMPERFECT',l:'Imparfait',c:'#6020a0'},{k:'CONDITIONNEL',l:'Conditionnel',c:'#1a4090'},{k:'SUBJONCTIF',l:'Subjonctif',c:'#805010'}];
   const vsModes=[{k:'quizlet',l:'📚 Quizlet',c:'#c9a84c'},{k:'specialist',l:'🎓 Specialist',c:'#805010'},{k:'both',l:'⚡ Both',c:'#c9a84c'}];
-  const verbSetHtmlTP=vsModes.map(function(m){const a=verbMode===m.k;return '<button onclick="setVerbMode(\''+m.k+'\')" style="padding:5px 12px;border-radius:20px;border:1.5px solid '+(a?m.c:'#e2e6f0')+';background:'+(a?'rgba(201,168,76,0.15)':'transparent')+';color:'+(a?m.c:'#8899bb')+';font-size:0.72rem;font-weight:600;cursor:pointer">'+m.l+'</button>';}).join('');
-    const allSelected2=['PRESENT','FUTURE','PASSE_COMPOSE','IMPERFECT','CONDITIONNEL','SUBJONCTIF'].every(t=>selectedTenses.has(t));
-  const allTensesBtn2='<button onclick="selectAllTenses()" style="padding:4px 10px;border-radius:20px;border:1.5px solid '+(allSelected2?'#1a2744':'#e2e6f0')+';background:'+(allSelected2?'rgba(26,39,68,0.1)':'transparent')+';color:'+(allSelected2?'#1a2744':'#8899bb')+';font-size:0.7rem;font-weight:500;cursor:pointer">All Tenses</button>';
-  const tenseHtml=allTensesBtn2+tenses.map(function(t){const a=selectedTenses.has(t.k);return '<button onclick="testToggleTense(\''+t.k+'\')" style="padding:5px 12px;border-radius:20px;border:1.5px solid '+(a?t.c:'#e2e6f0')+';background:'+(a?t.c+'18':'transparent')+';color:'+(a?t.c:'#8899bb')+';font-size:0.72rem;font-weight:600;cursor:pointer">'+t.l+'</button>';}).join('');
-  const regHtml=[{k:'all',l:'All'},{k:'regular',l:'Regular'},{k:'irregular',l:'Irregular'}].map(function(r){const a=regFilter===r.k;return '<button onclick="testSetReg(\''+r.k+'\')" style="padding:4px 10px;border-radius:20px;border:1.5px solid '+(a?'#1a2744':'#e2e6f0')+';background:'+(a?'#1a2744':'transparent')+';color:'+(a?'#c9a84c':'#8899bb')+';font-size:0.7rem;font-weight:500;cursor:pointer">'+r.l+'</button>';}).join('');
+  const verbSetHtmlTP=vsModes.map(function(m){const a=verbMode===m.k;return '<button onclick="setVerbMode(\''+m.k+'\');renderTestPanel();" style="padding:6px 14px;border-radius:20px;border:1.5px solid '+(a?'#1a2744':'#e2e6f0')+';background:'+(a?'#1a2744':'transparent')+';color:'+(a?'#c9a84c':'#8899bb')+';font-size:0.78rem;font-weight:600;cursor:pointer;">'+m.l+'</button>';}).join('');
+  const allSelected2=['PRESENT','FUTURE','PASSE_COMPOSE','IMPERFECT','CONDITIONNEL','SUBJONCTIF'].every(t=>selectedTenses.has(t));
+  const allTensesBtn2='<button onclick="selectAllTenses()" style="padding:4px 10px;border-radius:20px;border:1.5px solid '+(allSelected2?'#1a2744':'#e2e6f0')+';background:'+(allSelected2?'#1a2744':'transparent')+';color:'+(allSelected2?'#c9a84c':'#8899bb')+';font-size:0.7rem;font-weight:500;cursor:pointer">All Tenses</button>';
+  const tenseHtml=allTensesBtn2+tenses.map(function(t){const a=selectedTenses.has(t.k);return '<button onclick="testToggleTense(\''+t.k+'\');" style="padding:4px 10px;border-radius:20px;border:1.5px solid '+(a?t.c:'#e2e6f0')+';background:'+(a?t.c+'18':'transparent')+';color:'+(a?t.c:'#8899bb')+';font-size:0.7rem;font-weight:500;cursor:pointer">'+t.l+'</button>';}).join('');
+  const regHtml=[{k:'all',l:'All'},{k:'regular',l:'Regular'},{k:'irregular',l:'Irregular'}].map(function(r){const a=regFilter===r.k;return '<button class="reg-btn'+(a?' active-reg':'')+'" data-reg="'+r.k+'" onclick="setReg(\''+r.k+'\')">'+r.l+'</button>';}).join('');
   const savedMode=mode; mode='single';
   const available=buildPool().filter(function(c){return!c.isInfinitive;}).length;
   mode=savedMode;
-  document.getElementById('drill').innerHTML=
-    '<div id="testPanelMarker" style="max-width:640px;margin:0 auto;padding:2rem 1.5rem;">'
-    +'<div style="background:#fff;border-radius:14px;border:1px solid #e2e6f0;padding:28px 28px 20px;box-shadow:0 4px 28px rgba(26,39,68,0.09);">'
-    +'<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px;">'
-    +'<div style="font-family:Palatino,Georgia,serif;font-size:1.3rem;font-weight:700;color:#1a2744;">⚙️ Generate Test</div>'
-    +'<button onclick="renderIntro()" style="padding:5px 14px;border-radius:8px;border:1px solid #e2e6f0;background:none;color:#8899bb;font-size:0.78rem;cursor:pointer;">← Back</button>'
-    +'</div>'
-    
 
-    +'<div style="margin:0 0 18px 0"><div style="font-size:0.68rem;font-weight:600;color:#8899bb;text-transform:uppercase;letter-spacing:.07em;margin:0 0 8px 0">VERB SET</div><div style="display:flex;gap:6px;flex-wrap:wrap">'+verbSetHtmlTP+'</div></div>'
-    +'<div style="display:flex;gap:6px;flex-wrap:wrap">'+tenseHtml+'</div></div>'
-    +'<div style="margin:0 0 18px 0"><div style="font-size:0.68rem;font-weight:600;color:#8899bb;text-transform:uppercase;letter-spacing:.07em;margin:0 0 8px 0">Regularity</div>'
-    +'<div style="display:flex;gap:6px;flex-wrap:wrap">'+regHtml+'</div></div>'
-    +'<div style="margin:0 0 18px 0"><div style="font-size:0.68rem;font-weight:600;color:#8899bb;text-transform:uppercase;letter-spacing:.07em;margin:0 0 8px 0">Person</div>'
-    +'<select id="personFilter" onchange="renderTestPanel()" style="font-size:0.82rem;padding:7px 10px;border:1.5px solid #e2e6f0;border-radius:8px;background:#fff;color:#1a2744;cursor:pointer"><option value="ALL">All persons</option><option value="0">je</option><option value="1">tu</option><option value="2">il (elle)</option><option value="3">nous</option><option value="4">vous</option><option value="5">ils (elles)</option></select></div>'
-    +'<div style="margin:0 0 18px 0"><div style="font-size:0.68rem;font-weight:600;color:#8899bb;text-transform:uppercase;letter-spacing:.07em;margin:0 0 8px 0">Questions <span style="font-weight:700;color:#cc0000">('+available+' AVAILABLE)</span></div>'
-    +'<div style="display:flex;gap:8px;flex-wrap:wrap">'
-    +'<button class="reg-btn active-reg" id="tc10" onclick="setTestCount(10)">10</button>'
-    +'<button class="reg-btn" id="tc20" onclick="setTestCount(20)">20</button>'
-    +'<button class="reg-btn" id="tc25" onclick="setTestCount(25)">25</button>'
-    +'<button class="reg-btn" id="tcC" onclick="setTestCount(0)">Custom</button>'
-    +'<input type="number" id="tcInput" value="15" min="1" max="200" style="width:60px;display:none;background:#fff;border:1px solid #e2e6f0;color:#1a2744;padding:4px 8px;border-radius:6px;font-size:0.78rem;">'
-    +'</div></div>'
-    +'<div style="margin:0 0 20px 0"><div style="font-size:0.68rem;font-weight:600;color:#8899bb;text-transform:uppercase;letter-spacing:.07em;margin:0 0 8px 0">Show in question</div>'
-    +'<div style="display:flex;gap:8px;flex-wrap:wrap">'
-    +'<button class="reg-btn" id="topt-tense" onclick="toggleTestOpt(\'tense\')">Tense</button>'
-    +'<button class="reg-btn" id="topt-person" onclick="toggleTestOpt(\'person\')">Person</button>'
-    +'<button class="reg-btn" id="topt-inf" onclick="toggleTestOpt(\'inf\')">Infinitive</button>'
-    +'</div></div>'
-    +'<button class="start-btn" onclick="generateTest()">Generate Test</button>'
-    +'<button onclick="generateItalianSpotTest()" style="padding:9px 22px;background:transparent;color:#1a2744;border:1.5px solid #1a2744;border-radius:8px;font-weight:700;font-size:0.85rem;cursor:pointer;margin-left:8px;">&#128203; AP Spot Test</button>'
-    +'</div>'
-    +'<div id="testOut" style="display:none;margin-top:16px;"></div>'
-    +'</div>';
+  const isConj = (window._testTab||'conj')==='conj';
+
+  document.getElementById('drill').innerHTML=
+    '<div id="testPanelMarker" style="max-width:640px;margin:0 auto;padding:2rem 1.5rem;">'+
+    '<div style="background:#fff;border-radius:14px;border:1px solid #e2e6f0;padding:28px 28px 20px;box-shadow:0 4px 28px rgba(26,39,68,0.09);">'+
+    '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px;">'+
+    '<div style="display:flex;align-items:center;gap:12px;">'+
+    '<div style="font-family:Palatino,Georgia,serif;font-size:1.3rem;font-weight:700;color:#1a2744;">⚙️ Generate Test</div>'+
+    '<div style="display:flex;gap:6px;">'+
+    '<button id="ttab-conj" onclick="switchTestTab(\'conj\')" style="padding:5px 12px;border-radius:8px;border:2px solid '+(isConj?'#1a2744':'#e2e6f0')+';background:'+(isConj?'#1a2744':'transparent')+';color:'+(isConj?'#c9a84c':'#8899bb')+';font-size:0.78rem;font-weight:700;cursor:pointer;">Conjugation</button>'+
+    '<button id="ttab-sent" onclick="switchTestTab(\'sent\')" style="padding:5px 12px;border-radius:8px;border:2px solid '+(!isConj?'#1a2744':'#e2e6f0')+';background:'+(!isConj?'#1a2744':'transparent')+';color:'+(!isConj?'#c9a84c':'#8899bb')+';font-size:0.78rem;font-weight:700;cursor:pointer;">📝 Sentences</button>'+
+    '</div></div>'+
+    '<button onclick="renderIntro()" style="padding:5px 14px;border-radius:8px;border:1px solid #e2e6f0;background:none;color:#8899bb;font-size:0.78rem;cursor:pointer;">← Back</button>'+
+    '</div>'+
+
+    // ── CONJUGATION TAB ──
+    '<div id="testTabConj" style="display:'+(isConj?'block':'none')+';">'+
+    '<div style="margin:0 0 18px 0"><div style="font-size:0.68rem;font-weight:600;color:#8899bb;text-transform:uppercase;letter-spacing:.07em;margin:0 0 8px 0">VERB SET</div><div style="display:flex;gap:6px;flex-wrap:wrap">'+verbSetHtmlTP+'</div></div>'+
+    '<div style="margin:0 0 18px 0"><div style="font-size:0.68rem;font-weight:600;color:#8899bb;text-transform:uppercase;letter-spacing:.07em;margin:0 0 8px 0">TENSES</div><div style="display:flex;gap:6px;flex-wrap:wrap">'+tenseHtml+'</div></div>'+
+    '<div style="margin:0 0 18px 0"><div style="font-size:0.68rem;font-weight:600;color:#8899bb;text-transform:uppercase;letter-spacing:.07em;margin:0 0 8px 0">REGULARITY</div><div style="display:flex;gap:6px;flex-wrap:wrap">'+regHtml+'</div></div>'+
+    '<div style="margin:0 0 18px 0"><div style="font-size:0.68rem;font-weight:600;color:#8899bb;text-transform:uppercase;letter-spacing:.07em;margin:0 0 8px 0">PERSON</div>'+
+    '<select id="personFilter" onchange="renderTestPanel()" style="font-size:0.82rem;padding:7px 10px;border:1.5px solid #e2e6f0;border-radius:8px;background:#fff;color:#1a2744;cursor:pointer"><option value="ALL">All persons</option><option value="0">je</option><option value="1">tu</option><option value="2">il (elle)</option><option value="3">nous</option><option value="4">vous</option><option value="5">ils (elles)</option></select></div>'+
+    '<div style="margin:0 0 18px 0"><div style="font-size:0.68rem;font-weight:600;color:#8899bb;text-transform:uppercase;letter-spacing:.07em;margin:0 0 8px 0">QUESTIONS <span style="font-weight:700;color:#cc0000">('+available+' AVAILABLE)</span></div>'+
+    '<div style="display:flex;gap:8px;flex-wrap:wrap">'+
+    '<button class="reg-btn active-reg" id="tc10" onclick="setTestCount(10)">10</button>'+
+    '<button class="reg-btn" id="tc20" onclick="setTestCount(20)">20</button>'+
+    '<button class="reg-btn" id="tc25" onclick="setTestCount(25)">25</button>'+
+    '<button class="reg-btn" id="tcC" onclick="setTestCount(0)">Custom</button>'+
+    '<input type="number" id="tcInput" value="15" min="1" max="200" style="width:60px;display:none;background:#fff;border:1px solid #e2e6f0;color:#1a2744;padding:4px 8px;border-radius:6px;font-size:0.78rem;">'+
+    '</div></div>'+
+    '<div style="margin:0 0 20px 0"><div style="font-size:0.68rem;font-weight:600;color:#8899bb;text-transform:uppercase;letter-spacing:.07em;margin:0 0 8px 0">SHOW IN QUESTION</div>'+
+    '<div style="display:flex;gap:8px;flex-wrap:wrap">'+
+    '<button class="reg-btn" id="topt-tense" onclick="toggleTestOpt(\'tense\')">Tense</button>'+
+    '<button class="reg-btn" id="topt-person" onclick="toggleTestOpt(\'person\')">Person</button>'+
+    '<button class="reg-btn" id="topt-inf" onclick="toggleTestOpt(\'inf\')">Infinitive</button>'+
+    '</div></div>'+
+    '<button class="start-btn" onclick="generateTest()">Generate Test</button>'+
+    '<button onclick="generateItalianSpotTest()" style="padding:9px 22px;background:transparent;color:#1a2744;border:1.5px solid #1a2744;border-radius:8px;font-weight:700;font-size:0.85rem;cursor:pointer;margin-left:8px;">&#128203; AP Spot Test</button>'+
+    '<div id="testOut" style="display:none;margin-top:16px;"></div>'+
+    '</div>'+
+
+    // ── SENTENCE TAB ──
+    '<div id="testTabSent" style="display:'+(!isConj?'block':'none')+';">'+
+    '<div style="margin:0 0 12px 0"><div style="font-size:0.68rem;font-weight:600;color:#8899bb;text-transform:uppercase;letter-spacing:.07em;margin:0 0 8px 0">TENSES</div>'+
+    '<div style="display:flex;gap:6px;flex-wrap:wrap;">'+
+    '<button class="sp-topt" id="stt-PRESENT"      onclick="toggleSentTestTense(\'PRESENT\')"      style="color:#1a65c0;border-color:#1a65c0;background:rgba(26,101,192,.1);">Présent</button>'+
+    '<button class="sp-topt" id="stt-FUTURE"        onclick="toggleSentTestTense(\'FUTURE\')"        style="color:#0a7050;border-color:#0a7050;background:rgba(10,112,80,.1);">Futur</button>'+
+    '<button class="sp-topt" id="stt-PASSE_COMPOSE" onclick="toggleSentTestTense(\'PASSE_COMPOSE\')" style="color:#9a1060;border-color:#9a1060;background:rgba(154,16,96,.1);">Passé composé</button>'+
+    '<button class="sp-topt" id="stt-IMPERFECT"     onclick="toggleSentTestTense(\'IMPERFECT\')"     style="color:#6020a0;border-color:#6020a0;background:rgba(96,32,160,.1);">Imparfait</button>'+
+    '<button class="sp-topt" id="stt-CONDITIONNEL"  onclick="toggleSentTestTense(\'CONDITIONNEL\')"  style="color:#1a4090;border-color:#1a4090;background:rgba(26,64,144,.1);">Conditionnel</button>'+
+    '<button class="sp-topt" id="stt-SUBJONCTIF"    onclick="toggleSentTestTense(\'SUBJONCTIF\')"    style="color:#805010;border-color:#805010;background:rgba(128,80,16,.1);">Subjonctif</button>'+
+    '</div></div>'+
+    '<div style="margin:0 0 12px 0"><div style="font-size:0.68rem;font-weight:600;color:#8899bb;text-transform:uppercase;letter-spacing:.07em;margin:0 0 8px 0">VERB SET</div>'+
+    '<div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;">'+
+    '<button class="sp-topt" id="svs-quizlet"    onclick="setSentTestVerbSet(\'quizlet\')"    style="color:#1a2744;border-color:#1a2744;background:rgba(26,39,68,.1);">📚 Quizlet</button>'+
+    '<button class="sp-topt" id="svs-specialist" onclick="setSentTestVerbSet(\'specialist\')">🎓 Specialist</button>'+
+    '<button class="sp-topt" id="svs-both"       onclick="setSentTestVerbSet(\'both\')">⚡ Both</button>'+
+    '<span id="sentTestAvail" style="font-size:0.78rem;color:var(--text3);margin-left:4px;"></span>'+
+    '</div></div>'+
+    '<div style="margin:0 0 12px 0"><div style="font-size:0.68rem;font-weight:600;color:#8899bb;text-transform:uppercase;letter-spacing:.07em;margin:0 0 8px 0">QUESTIONS</div>'+'<div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;">'+'<button class="reg-btn active-reg" id="stc10"  onclick="setSentCount(10)">10</button>'+'<button class="reg-btn" id="stc20"  onclick="setSentCount(20)">20</button>'+'<button class="reg-btn" id="stc25"  onclick="setSentCount(25)">25</button>'+'<button class="reg-btn" id="stcAll" onclick="setSentCount(-1)">All</button>'+'<button class="reg-btn" id="stcC" onclick="setSentCount(0)">Custom</button>'+'<input type="number" id="stcInput" value="15" min="1" max="500" style="width:60px;display:none;background:#fff;border:1px solid #e2e6f0;color:#1a2744;padding:4px 8px;border-radius:6px;font-size:0.78rem;">'+'</div></div>'+'<button onclick="generateSentenceTest(document.getElementById(\'frSentTestOutput\'))" style="padding:9px 22px;background:#1a2744;color:#c9a84c;border:none;border-radius:8px;font-size:0.85rem;font-weight:700;cursor:pointer;margin-bottom:12px;">📝 Generate Sentence Test</button>'+
+    '<div id="frSentTestOutput"></div>'+
+    '</div>'+
+
+    '</div></div>';
+
   testCount=10; testOpts={tense:false,person:false,inf:false};
+  if(!isConj) setTimeout(_updateSentTestAvail, 0);
 }
+
+
 function testToggleTense(t){if(selectedTenses.has(t))selectedTenses.delete(t);else selectedTenses.add(t);renderTestPanel();}
 function showTestPanel(){renderTestPanel();}
 
@@ -29716,6 +29752,154 @@ function sentMark(result){
   showCard();
 }
 
+
+window._sentTestTenses = new Set(['PRESENT','FUTURE','PASSE_COMPOSE','IMPERFECT','CONDITIONNEL','SUBJONCTIF']);
+window._sentTestCount = 10;
+window._sentTestVerbSet = 'quizlet';
+
+function _sentTestPool() {
+  const vs = window._sentTestVerbSet;
+  return SENTENCES.filter(s =>
+    window._sentTestTenses.has(s.tense) &&
+    (vs === 'both' ? true : vs === 'specialist' ? s.group === 'specialist' : s.group !== 'specialist')
+  );
+}
+
+function _updateSentTestAvail() {
+  const el = document.getElementById('sentTestAvail');
+  if (el) el.textContent = _sentTestPool().length + ' available';
+}
+
+function toggleSentTestTense(t) {
+  const tenses = window._sentTestTenses;
+  if (tenses.has(t)) { if (tenses.size === 1) return; tenses.delete(t); }
+  else { tenses.add(t); }
+  const TCOL = {PRESENT:'#1a65c0',FUTURE:'#0a7050',PASSE_COMPOSE:'#9a1060',IMPERFECT:'#6020a0',CONDITIONNEL:'#1a4090',SUBJONCTIF:'#805010'};
+  Object.keys(TCOL).forEach(tt => {
+    const btn = document.getElementById('stt-'+tt);
+    if (!btn) return;
+    const on = tenses.has(tt);
+    btn.style.background  = on ? TCOL[tt]+'18' : '';
+    btn.style.color       = on ? TCOL[tt]      : '#8899bb';
+    btn.style.borderColor = on ? TCOL[tt]      : '#e2e6f0';
+  });
+  _updateSentTestAvail();
+}
+
+function setSentTestVerbSet(vs) {
+  window._sentTestVerbSet = vs;
+  ['quizlet','specialist','both'].forEach(v => {
+    const btn = document.getElementById('svs-'+v);
+    if (!btn) return;
+    const on = v === vs;
+    btn.style.background  = on ? '#1a274418' : '';
+    btn.style.color       = on ? '#1a2744'   : '#8899bb';
+    btn.style.borderColor = on ? '#1a2744'   : '#e2e6f0';
+  });
+  _updateSentTestAvail();
+}
+
+function setSentCount(n) {
+  window._sentTestCount = n;
+  ['10','20','25','All','C'].forEach(function(x) {
+    var id = 'stc' + x;
+    var btn = document.getElementById(id);
+    if (!btn) return;
+    var active = (n === -1 && x === 'All') || (n === 0 && x === 'C') || String(n) === x;
+    btn.classList.toggle('active-reg', active);
+  });
+  var inp = document.getElementById('stcInput');
+  if (inp) inp.style.display = n === 0 ? 'inline-block' : 'none';
+}
+
+function generateSentenceTest(container) {
+  if (!container) return;
+  const pool = shuffle(_sentTestPool());
+  if (!pool.length) { container.innerHTML = '<p style="color:#888;padding:10px;">No sentences match the current selection.</p>'; return; }
+  var sc = (window._sentTestCount === undefined || window._sentTestCount === null) ? 10 : window._sentTestCount;
+  if (sc === 0) { var ci = document.getElementById('stcInput'); sc = ci ? Math.max(1, Math.min(500, parseInt(ci.value)||15)) : 15; }
+  const n = sc === -1 ? pool.length : Math.min(sc, pool.length);
+  const items = pool.slice(0, n);
+  const TCOL = {PRESENT:'#1a65c0',FUTURE:'#0a7050',PASSE_COMPOSE:'#9a1060',IMPERFECT:'#6020a0',CONDITIONNEL:'#1a4090',SUBJONCTIF:'#805010'};
+  const TLAB = {PRESENT:'Présent',FUTURE:'Futur',PASSE_COMPOSE:'Passé composé',IMPERFECT:'Imparfait',CONDITIONNEL:'Conditionnel',SUBJONCTIF:'Subjonctif'};
+  let sRows='', tRows='';
+  items.forEach((item,i) => {
+    const col = TCOL[item.tense]||'#333', tlab = TLAB[item.tense]||item.tense;
+    const sent = item.pre + ' (' + item.inf + ') _______ ' + item.suf;
+    const n_td = '<td style="padding:6px 8px;border:1px solid #ddd;text-align:center;font-weight:700;font-size:0.82rem;width:28px;">'+(i+1)+'</td>';
+    const t_td = '<td style="padding:6px 8px;border:1px solid #ddd;font-size:0.68rem;font-weight:700;color:'+col+';text-transform:uppercase;width:90px;">'+tlab+'</td>';
+    const q_td = '<td style="padding:10px;border:1px solid #ddd;font-size:0.88rem;line-height:1.5;">'+sent+'</td>';
+    const blank = '<td style="padding:10px 8px;border:1px solid #ddd;min-width:100px;"></td>';
+    const ans   = '<td style="padding:10px 8px;border:1px solid #ddd;font-size:0.9rem;font-weight:600;color:'+col+';">'+item.answer+'</td>';
+    sRows += '<tr>'+n_td+t_td+q_td+blank+'</tr>';
+    tRows += '<tr>'+n_td+t_td+q_td+ans+'</tr>';
+  });
+  const thS = 'padding:6px 8px;font-size:0.63rem;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:#8899bb;background:#f0f3f8;border:1px solid #ddd;text-align:left;';
+  const hdr = '<thead><tr><th style="'+thS+'width:28px;">#</th><th style="'+thS+'width:90px;">Temps</th><th style="'+thS+'">Écrivez la bonne forme du verbe entre parenthèses</th><th style="'+thS+'min-width:100px;">Réponse</th></tr></thead>';
+  const tbl = '<table style="width:100%;border-collapse:collapse;">'+hdr;
+  window._sentTestItems = items;
+  container.innerHTML =
+    '<div style="display:flex;gap:8px;margin-bottom:10px;flex-wrap:wrap;">'
+    +'<button onclick="openSentTestPrint(\'student\')" style="padding:7px 14px;border-radius:8px;background:#1a2744;color:#c9a84c;border:none;font-size:0.82rem;cursor:pointer;font-weight:600;">🖨 Print Student Sheet</button>'
+    +'<button onclick="openSentTestPrint(\'teacher\')" style="padding:7px 14px;border-radius:8px;background:#c9a84c;color:#1a2744;border:none;font-size:0.82rem;cursor:pointer;font-weight:600;">🖨 Print Teacher Sheet</button>'
+    +'</div>'
+    +'<div style="font-size:0.68rem;font-weight:700;color:#8899bb;text-transform:uppercase;letter-spacing:.08em;margin-bottom:6px;">Student Sheet (preview)</div>'
+    +'<div style="background:#fff;border:1px solid #e2e6f0;border-radius:10px;padding:12px;margin-bottom:16px;overflow-x:auto;">'+tbl+'<tbody>'+sRows+'</tbody></table></div>'
+    +'<div style="font-size:0.68rem;font-weight:700;color:#8899bb;text-transform:uppercase;letter-spacing:.08em;margin-bottom:6px;">Teacher Sheet (answer key)</div>'
+    +'<div style="background:#fff;border:1px solid #e2e6f0;border-radius:10px;padding:12px;overflow-x:auto;">'+tbl+'<tbody>'+tRows+'</tbody></table></div>';
+  container.scrollIntoView({behavior:'smooth',block:'nearest'});
+}
+
+function openSentTestPrint(type) {
+  const items = window._sentTestItems; if (!items) return;
+  const TCOL = {PRESENT:'#1a65c0',FUTURE:'#0a7050',PASSE_COMPOSE:'#9a1060',IMPERFECT:'#6020a0',CONDITIONNEL:'#1a4090',SUBJONCTIF:'#805010'};
+  const TLAB = {PRESENT:'Présent',FUTURE:'Futur',PASSE_COMPOSE:'Passé composé',IMPERFECT:'Imparfait',CONDITIONNEL:'Conditionnel',SUBJONCTIF:'Subjonctif'};
+  let rows = '';
+  items.forEach((item,i) => {
+    const col = TCOL[item.tense]||'#333', tlab = TLAB[item.tense]||item.tense;
+    const sent = item.pre + ' (' + item.inf + ') _______ ' + item.suf;
+    const aCell = type==='teacher'
+      ? '<td style="padding:10px 8px;border:1px solid #ccc;font-weight:600;color:'+col+';">'+item.answer+'</td>'
+      : '<td style="padding:10px 8px;border:1px solid #ccc;min-width:120px;"></td>';
+    rows += '<tr><td style="padding:6px 8px;border:1px solid #ccc;text-align:center;font-weight:700;">'+(i+1)+'</td><td style="padding:6px 8px;border:1px solid #ccc;font-size:0.7rem;font-weight:700;color:'+col+';text-transform:uppercase;">'+tlab+'</td><td style="padding:10px;border:1px solid #ccc;font-size:0.88rem;line-height:1.5;">'+sent+'</td>'+aCell+'</tr>';
+  });
+  const w = window.open('', '_blank');
+  if (!w) { alert('Please allow pop-ups for this page.'); return; }
+  w.document.write('<!DOCTYPE html><html><head><meta charset="UTF-8"><title>Sentence Test — '+(type==='teacher'?'Answer Key':'Student Sheet')+'</title>'
+    +'<style>body{font-family:"Palatino Linotype",Palatino,Georgia,serif;padding:20px 28px;color:#1a2744;max-width:900px;margin:0 auto;}'
+    +'h2{font-size:1.05rem;margin-bottom:3px;}p{font-size:0.78rem;color:#888;margin-bottom:12px;}'
+    +'table{width:100%;border-collapse:collapse;}th{padding:6px 8px;font-size:0.63rem;font-weight:700;text-transform:uppercase;color:#888;background:#f5f5f5;border:1px solid #ccc;text-align:left;}'
+    +'@media print{button{display:none!important;}}</style></head>'
+    +'<body><h2>AP French Verb Conjugations — Sentence Test '+(type==='teacher'?'(Answer Key)':'(Student Sheet)')+'</h2>'
+    +'<p>Écrivez la bonne forme du verbe entre parenthèses dans le temps indiqué.</p>'
+    +'<table><thead><tr><th style="width:26px;">#</th><th style="width:100px;">Temps</th><th>Écrivez la bonne forme du verbe entre parenthèses</th><th style="min-width:110px;">'+(type==='teacher'?'Réponse':'')+'</th></tr></thead><tbody>'+rows+'</tbody></table>'
+    +'<br><button onclick="window.print()">🖨 Print / Save PDF</button></body></html>');
+  w.document.close();
+}
+
+
+function switchTestTab(tab) {
+  window._testTab = tab;
+  renderTestPanel();
+}
+
+function showTestTab(tab) {
+  var conj = document.getElementById('testTabConj');
+  var sent = document.getElementById('testTabSent');
+  var tc   = document.getElementById('ttab-conj');
+  var ts   = document.getElementById('ttab-sent');
+  if (!conj || !sent) return;
+  if (tab === 'sent') {
+    conj.style.display = 'none'; sent.style.display = '';
+    if (tc) { tc.style.background='transparent'; tc.style.color='#8899bb'; tc.style.borderColor='#e2e6f0'; }
+    if (ts) { ts.style.background='#1a2744';     ts.style.color='#c9a84c'; ts.style.borderColor='#1a2744'; }
+    _updateSentTestAvail();
+  } else {
+    conj.style.display = ''; sent.style.display = 'none';
+    if (tc) { tc.style.background='#1a2744';     tc.style.color='#c9a84c'; tc.style.borderColor='#1a2744'; }
+    if (ts) { ts.style.background='transparent'; ts.style.color='#8899bb'; ts.style.borderColor='#e2e6f0'; }
+  }
+}
 renderIntro();
 </script>
 
