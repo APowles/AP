@@ -30919,7 +30919,11 @@ function renderSD() {
       </div>
       <div class="sd-filter-row">
         <span class="sd-filter-label">Timer</span>
-        ${[10,15,20,30].map(s=>`<button class="tr-filter-btn ${!sdState.leisure&&sdState.timerSecs===s?'active':''}" onclick="sdState.timerSecs=${s};sdState.leisure=false;renderSD()">${s}s</button>`).join('')}
+        <div style="display:flex;align-items:center;gap:6px;">
+          <button onclick="adjustSDTimer(-5)" style="width:28px;height:28px;border-radius:6px;border:1.5px solid var(--border);background:var(--white);color:var(--text);font-size:1rem;cursor:pointer;display:flex;align-items:center;justify-content:center;font-weight:600;line-height:1;">−</button>
+          <span id="sd-timer-display" style="font-size:0.88rem;font-weight:600;color:var(--text);min-width:38px;text-align:center;">${sdState.timerSecs}s</span>
+          <button onclick="adjustSDTimer(5)" style="width:28px;height:28px;border-radius:6px;border:1.5px solid var(--border);background:var(--white);color:var(--text);font-size:1rem;cursor:pointer;display:flex;align-items:center;justify-content:center;font-weight:600;line-height:1;">+</button>
+        </div>
         <button class="tr-filter-btn ${sdState.leisure?'active':''}" onclick="sdState.leisure=!sdState.leisure;renderSD()" style="border-color:var(--gold);color:${sdState.leisure?'var(--navy)':'var(--gold)'};">☕ Leisure</button>
       </div>
     </div>
@@ -30952,6 +30956,12 @@ function renderSD() {
       <div id="sdTestOutput" style="margin-top:14px;"></div>
     </div>
   `;
+}
+
+function adjustSDTimer(delta) {
+  sdState.timerSecs = Math.min(60, Math.max(5, sdState.timerSecs + delta));
+  const el = document.getElementById('sd-timer-display');
+  if (el) el.textContent = sdState.timerSecs + 's';
 }
 
 function startSD() {
@@ -30991,7 +31001,7 @@ function renderSDCard() {
   if (sdState.idx >= pool.length) { renderSDSummary(); return; }
   
   const pair = pool[sdState.idx];
-  const prompt = sdState.direction === 'fr' ? pair[0] : pair[1];
+  const prompt = sdState.direction === 'fr' ? pair[1] : pair[0];
   const promptLang = sdState.direction === 'fr' ? 'en' : 'fr';
   const total = pool.length;
   const i = sdState.idx;
@@ -31027,7 +31037,7 @@ function renderSDCard() {
     </div>
 
     <div style="display:flex;justify-content:space-between;align-items:center;margin:0.5rem 0 0.25rem;padding:0 2px">
-      <button onclick="speak(sdState.shuffled[sdState.idx][sdState.direction==='fr'?0:1], sdState.direction==='fr'?'en':'fr')" style="background:none;border:none;color:var(--text3);font-size:0.75rem;cursor:pointer;font-family:'DM Sans',sans-serif;padding:0">🔊 Replay</button>
+      <button onclick="speak(sdState.shuffled[sdState.idx][sdState.direction==='fr'?1:0], sdState.direction==='fr'?'en':'fr')" style="background:none;border:none;color:var(--text3);font-size:0.75rem;cursor:pointer;font-family:'DM Sans',sans-serif;padding:0">🔊 Replay</button>
       <span style="font-size:0.65rem;color:var(--text3)">→ reveal &nbsp;·&nbsp; ← miss &nbsp;·&nbsp; ↓ nearly</span>
     </div>
     <div class="btn-row" id="sdBtnRow" style="display:flex;gap:8px;justify-content:center;flex-wrap:wrap;margin-top:0.25rem">
@@ -31054,7 +31064,7 @@ function revealSD() {
   
   const pool = sdState.shuffled;
   const pair = pool[sdState.idx];
-  const answer = sdState.direction === 'fr' ? pair[1] : pair[0];
+  const answer = sdState.direction === 'fr' ? pair[0] : pair[1];
 
   const area = document.getElementById('sdAnswerArea');
   if (area) area.innerHTML = `<div class="sd-answer">${answer}</div>`;
