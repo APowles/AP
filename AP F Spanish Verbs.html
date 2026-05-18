@@ -452,7 +452,7 @@ main { width:100%;max-width:none;margin:0;padding:0;box-sizing:border-box }
 #timerBar{transition:width 0.1s linear}
 </style>
 </head>
-<body>
+<body tabindex="-1">
 
 <div class="header">
   <div class="header-left">
@@ -27955,9 +27955,9 @@ function startQuickDrill(count){
   sessionEditCount = 0;
   isLeisureMode = false;
   if(mode === 'sentences'){
-    const _sentPool = SENTENCES.filter(s => selectedTenses.has(s.tense));
+    const _sentPool = shuffle(SENTENCES.filter(s => selectedTenses.has(s.tense)));
     if(!_sentPool.length){ alert('Select Present, Preterite or Future to drill sentences.'); return; }
-    deck = shuffle(count===-1 ? _sentPool : _sentPool.slice(0, Math.min(count, _sentPool.length)));
+    deck = count===-1 ? _sentPool : _sentPool.slice(0, Math.min(count, _sentPool.length));
     idx=0; got=0; nearly=0; errors=0; total=0; majorErrorDeck=[];
     revealed=false; showCard(); return;
   }
@@ -28139,44 +28139,33 @@ function speak(text, onEndCallback) {
 
 // Keyboard shortcuts
 document.addEventListener('keydown', function(e) {
-  const tag = document.activeElement.tagName;
-  const onInput = ['INPUT','SELECT','TEXTAREA'].includes(tag);
-
-  // ── Sentences mode shortcuts ──────────────────────────────────────────────
+  // ── Sentences mode ────────────────────────────────────────────────────────
   if (mode === 'sentences') {
-    const sentInput = document.getElementById('sentInput');
-    const sentFb    = document.getElementById('sentFeedback');
-    const markBtnsVisible = sentFb && sentFb.querySelector('button');
-
-    // Enter on the input → Check (handled by onkeydown on the input itself)
-    // Enter / → when mark buttons are showing → Got it
-    if ((e.key === 'ArrowRight' || e.key === 'Enter') && markBtnsVisible && !onInput) {
-      e.preventDefault(); sentMark('got'); return;
+    const tag = document.activeElement ? document.activeElement.tagName : '';
+    if (tag==='INPUT'||tag==='TEXTAREA'||tag==='SELECT') return;
+    const fb = document.getElementById('sentFeedback');
+    const hasBtns = document.querySelector('.btn-got[onclick]');
+    const rb = document.getElementById('sentRevealBtn');
+    const canReveal = rb && rb.style.display !== 'none';
+    if (hasBtns) {
+      if (e.key==='ArrowRight'||e.key==='Enter') { e.preventDefault(); sentMark('got'); return; }
+      if (e.key==='ArrowDown')  { e.preventDefault(); sentMark('nearly'); return; }
+      if (e.key==='ArrowLeft')  { e.preventDefault(); sentMark('error');  return; }
     }
-    if (e.key === 'ArrowDown' && markBtnsVisible && !onInput) {
-      e.preventDefault(); sentMark('nearly'); return;
-    }
-    if (e.key === 'ArrowLeft' && markBtnsVisible && !onInput) {
-      e.preventDefault(); sentMark('error'); return;
-    }
-    // Space / Enter when input is NOT focused and no mark buttons yet → focus input
-    if ((e.key === ' ' || e.key === 'Enter') && !onInput && !markBtnsVisible) {
-      e.preventDefault();
-      if (sentInput && !sentInput.disabled) sentInput.focus();
-    }
-    return; // don't fall through to normal mark() in sentences mode
+    if (canReveal && (e.key===' '||e.key==='Enter'||e.key==='ArrowRight')) { e.preventDefault(); sentReveal(); return; }
+    return;
   }
-
-  // ── Normal mode shortcuts ─────────────────────────────────────────────────
-  if (onInput) return;
-  if (e.key === 'ArrowRight' || e.key === ' ' || e.key === 'Enter') {
+  // ── Normal mode ───────────────────────────────────────────────────────────
+  const tag2 = document.activeElement ? document.activeElement.tagName : '';
+  if (tag2==='INPUT'||tag2==='TEXTAREA'||tag2==='SELECT') return;
+  if (e.key==='ArrowRight' || e.key===' ' || e.key==='Enter') {
     e.preventDefault();
     const revealBtn = document.getElementById('revealBtn');
     if (revealBtn && revealBtn.style.display !== 'none') { revealBtn.click(); return; }
     mark('got');
   }
-  if (e.key === 'ArrowDown')  { e.preventDefault(); mark('nearly'); }
-  if (e.key === 'ArrowLeft')  { e.preventDefault(); mark('error'); }
+  if (e.key==='ArrowDown')  { e.preventDefault(); mark('nearly'); }
+  if (e.key==='ArrowLeft')  { e.preventDefault(); mark('error'); }
 });
 // ── Print Content to PDF ─────────────────────────────────────
 function openSDContentPDF(){
@@ -28776,56 +28765,58 @@ const SENTENCES = [{"inf": "abrir", "tense": "FUTURE", "pi": 2, "pre": "Ella", "
 
 const SENT_TENSE_LABELS = {PRESENT:'Present tense', PRETERITE:'Preterite tense', FUTURE:'Future tense'};
 
-function normAcc(s){ return s.trim().toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/\s+/g,' '); }
-function normExact(s){ return s.trim().toLowerCase().replace(/\s+/g,' '); }
-function escH(s){ return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
 
 function showSentenceCard(item, progress) {
-  window._sentAutoMarked = false;
   const tenLabel = SENT_TENSE_LABELS[item.tense] || item.tense;
-  const badgeCol = {PRESENT:'#1a65c0',PRETERITE:'#9a1060',FUTURE:'#0a7050'}[item.tense] || '#555';
-  const bar = `<div class="drill-bar">
-    <span class="drill-bar-title">Sentences · ${tenLabel}</span>
-    <div class="drill-score"><span class="ds-got">✓${got}</span><span style="color:var(--nearly);font-weight:700;margin:0 4px;">~${nearly}</span><span class="ds-err">✗${errors}</span></div>
-    <div class="drill-btns">
-      <button class="db-btn db-home" onclick="goHome()">&#8962; Home</button>
-      <button class="db-btn db-err" ${majorErrorDeck.length?'onclick="goToErrorReview()"':'disabled'}>&#9654; Errors</button>
-    </div>
-  </div>`;
-
-  document.getElementById('drill').innerHTML = bar + `
-  <div class="progress-bar"><div class="progress-fill" style="width:${progress}%"></div></div>
-  <div class="counter">Card ${idx+1} of ${deck.length} &nbsp;·&nbsp; ✓${got} ~${nearly} ✗${errors}</div>
-  <div class="card" style="padding:20px 20px 16px;">
-    <span class="tense-badge" style="background:${badgeCol}18;color:${badgeCol};border:1px solid ${badgeCol}44;margin-bottom:14px;">${tenLabel}</span>
-    <div style="font-family:'Playfair Display',Georgia,serif;font-size:1.35rem;line-height:1.65;color:var(--text);margin-bottom:8px;">
-      ${escH(item.pre)} <span style="color:var(--gold);font-style:italic;font-size:0.86rem;font-family:'DM Sans',sans-serif;">(${escH(item.inf)})</span> <span style="color:#c8d4e8;letter-spacing:.18em;">_______</span> ${escH(item.suf)}
-    </div>
-    <div style="margin-bottom:14px;display:flex;align-items:center;gap:8px;">
-      <button onclick="sentReadAloud()" style="background:none;border:none;cursor:pointer;font-size:1.1rem;color:var(--text3);padding:0;" title="Listen">🔊</button>
-      <span style="font-size:0.74rem;color:var(--text3);">Click to hear the sentence</span>
-    </div>
-    <div style="display:flex;gap:8px;margin-bottom:10px;">
-      <input id="sentInput" type="text" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false"
-        placeholder="Type the conjugated verb…"
-        style="flex:1;padding:10px 13px;border:2px solid var(--border);border-radius:9px;font-size:1.05rem;font-family:'DM Sans',sans-serif;color:var(--text);outline:none;"
-        onkeydown="if(event.key==='Enter'){event.preventDefault(); const fb=document.getElementById('sentFeedback'); if(fb&&fb.querySelector('button')){sentMark('got');}else{sentCheck();}}"
-        onfocus="this.style.borderColor='var(--navy2)'"
-        onblur="if(!this.disabled)this.style.borderColor='var(--border)'">
-      <button onclick="sentCheck()" id="sentCheckBtn"
-        style="padding:10px 18px;border-radius:9px;border:none;background:var(--navy);color:#fff;font-weight:700;font-size:0.9rem;cursor:pointer;font-family:'DM Sans',sans-serif;white-space:nowrap;">
-        Check
-      </button>
-    </div>
-    <div id="sentFeedback"></div>
-    <div style="height:3px;background:var(--border);border-radius:2px;margin:10px 0 4px;">
-      <div id="sentTimerBar" style="height:3px;background:var(--gold);border-radius:2px;width:100%;transition:width 0.1s linear;"></div>
-    </div>
-  </div>`;
-
-  setTimeout(() => { const inp = document.getElementById('sentInput'); if(inp) inp.focus(); }, 60);
+  const badgeCol = {PRESENT:'#1a65c0',PRETERITE:'#9a1060',FUTURE:'#0a7050',IMPERFECT:'#6020a0',
+    COND:'#1a4090',PRES_SUBJ:'#805010',IMP_SUBJ:'#7a1818'}[item.tense] || '#555';
+  const bar = '<div class="drill-bar">' +
+    '<span class="drill-bar-title">Sentences · '+tenLabel+'</span>' +
+    '<div class="drill-score"><span class="ds-got">✓'+got+'</span><span style="color:var(--nearly);font-weight:700;margin:0 4px;">~'+nearly+'</span><span class="ds-err">✗'+errors+'</span></div>' +
+    '<div class="drill-btns">' +
+    '<button class="db-btn db-home" onclick="goHome()">⌂ Home</button>' +
+    '<button class="db-btn db-err" '+(majorErrorDeck.length?'onclick="goToErrorReview()"':'disabled')+'>▶ Errors</button>' +
+    '</div></div>';
+  document.getElementById('drill').innerHTML = bar +
+    '<div class="progress-bar"><div class="progress-fill" style="width:'+progress+'%"></div></div>' +
+    '<div class="counter">Card '+(idx+1)+' of '+deck.length+' &nbsp;·&nbsp; ✓'+got+' ~'+nearly+' ✗'+errors+'</div>' +
+    '<div class="card" style="padding:20px 20px 16px;">' +
+    '<span class="tense-badge" style="background:'+badgeCol+'18;color:'+badgeCol+';border:1px solid '+badgeCol+'44;margin-bottom:14px;">'+tenLabel+'</span>' +
+    '<div style="font-family:\'Playfair Display\',Georgia,serif;font-size:1.35rem;line-height:1.65;color:var(--text);margin-bottom:16px;">' +
+    item.pre+' <span style="color:var(--gold);font-style:italic;font-size:0.86rem;font-family:\'DM Sans\',sans-serif;">('+item.inf+')</span>' +
+    ' <span style="color:#c8d4e8;letter-spacing:.18em;">_______</span> '+item.suf+
+    '</div>' +
+    '<div style="display:flex;align-items:center;gap:10px;margin-bottom:16px;">' +
+    '<button onclick="sentReadAloud()" style="background:none;border:none;cursor:pointer;font-size:1.2rem;color:var(--text3);padding:0;" title="Listen">🔊</button>' +
+    '<span style="font-size:0.74rem;color:var(--text3);">Click to hear the sentence</span>' +
+    '</div>' +
+    '<button id="sentRevealBtn" onclick="sentReveal()"' +
+    ' style="width:100%;padding:12px;border-radius:9px;border:2px solid var(--navy);background:transparent;color:var(--navy);font-weight:700;font-size:0.95rem;cursor:pointer;margin-bottom:10px;">' +
+    '▶ Reveal answer</button>' +
+    '<div id="sentFeedback"></div>' +
+    '<div style="height:3px;background:var(--border);border-radius:2px;margin:10px 0 4px;">' +
+    '<div id="sentTimerBar" style="height:3px;background:var(--gold);border-radius:2px;width:100%;transition:width 0.1s linear;"></div>' +
+    '</div></div>';
   sentReadAloud();
   if(isAutotime) startSentTimer();
+}
+
+function sentReveal() {
+  if(timerInterval){ clearInterval(timerInterval); timerInterval = null; }
+  if(!deck[idx]) return;
+  const ans = deck[idx].answer;
+  const rb = document.getElementById('sentRevealBtn');
+  if(rb) { rb.style.display = 'none'; rb.blur(); }
+  const fb = document.getElementById('sentFeedback');
+  if(fb) {
+    fb.innerHTML = '<div style="padding:11px 14px;border-radius:9px;background:var(--correct-bg);color:var(--correct);font-weight:700;font-size:1.1rem;margin-bottom:10px;">'+ans+'</div>';
+    const hint=document.createElement('div');
+    hint.className='kbd-hint';
+    hint.textContent='← major error · ↓ nearly · → got it';
+    fb.appendChild(hint);
+    fb.appendChild(_makeSentMarkBtns());
+  }
+  speak(ans);
 }
 
 function sentReadAloud() {
@@ -28852,86 +28843,27 @@ function startSentTimer() {
   }, 80);
 }
 
-function sentReveal() {
-  if(timerInterval){ clearInterval(timerInterval); timerInterval = null; }
-  if(!deck[idx]) return;
-  const ans = deck[idx].answer;
-  const inp = document.getElementById('sentInput');
-  const cb = document.getElementById('sentCheckBtn');
-  if(inp){ inp.disabled=true; inp.value=ans; inp.style.borderColor='var(--border)'; inp.style.background=''; }
-  if(cb) cb.style.display='none';
-  const fb = document.getElementById('sentFeedback');
-  if(fb) {
-    fb.innerHTML = `<div style="padding:11px 14px;border-radius:9px;background:var(--correct-bg);color:var(--correct);font-weight:600;font-size:0.9rem;margin-bottom:8px;">
-      <div style="font-size:0.75rem;margin-bottom:2px;">Answer:</div>
-      <div style="font-size:1.1rem;">${escH(ans)}</div></div>`;
-    fb.appendChild(_makeSentMarkBtns());
-  }
-  speak(ans);
-}
 
-function sentCheck() {
-  if(timerInterval){ clearInterval(timerInterval); timerInterval = null; }
-  const inp = document.getElementById('sentInput');
-  if(!inp || !deck[idx]) return;
-  const user = inp.value;
-  const ans = deck[idx].answer;
-  const isExact   = normExact(user) === normExact(ans);
-  const isAccFree = normAcc(user)   === normAcc(ans);
-
-  inp.disabled = true;
-  const cb = document.getElementById('sentCheckBtn');
-  if(cb) cb.style.display = 'none';
-
-  const fb = document.getElementById('sentFeedback');
-  if(fb) {
-    let msg='', bgCol='', txtCol='';
-    if(isExact)        { msg='✓ Correct!';                         bgCol='var(--correct-bg)'; txtCol='var(--correct)';  }
-    else if(isAccFree) { msg='~ Right — check your accents';       bgCol='#fffbef';           txtCol='#8a6000';         }
-    else               { msg='✗ Not quite';                        bgCol='var(--wrong-bg)';   txtCol='var(--wrong)';    }
-    fb.innerHTML = `<div style="padding:10px 13px;border-radius:9px;background:${bgCol};color:${txtCol};font-weight:600;margin-bottom:8px;">
-      ${msg}${!isExact?`<div style="font-size:1rem;margin-top:3px;">${escH(ans)}</div>`:''}
-    </div>`;
-    fb.appendChild(_makeSentMarkBtns());
-  }
-
-  if(isExact)        { inp.style.borderColor='var(--correct)'; inp.style.background='var(--correct-bg)'; }
-  else if(isAccFree) { inp.style.borderColor='#c9a84c';        inp.style.background='#fffbef';            }
-  else               { inp.style.borderColor='var(--wrong)';   inp.style.background='var(--wrong-bg)';    }
-
-  window._sentAutoMarked = true;
-  total++;
-  if(isExact)        { got++;    }
-  else if(isAccFree) { nearly++; const r=Math.floor(Math.random()*2); const rem=deck.length-idx-1; deck.splice(idx+1+Math.min(2+r,Math.max(rem,0)),0,deck[idx]); }
-  else               { errors++; majorErrorDeck.push(deck[idx]); }
-
-  speak(ans);
-}
-
+// ── REPLACEMENT _makeSentMarkBtns for SPANISH ────────────────────────────────
 function _makeSentMarkBtns() {
   const d = document.createElement('div');
-  d.style.cssText = 'display:flex;gap:6px;flex-wrap:wrap;';
-  d.innerHTML = `
-    <button onclick="sentMark('got')"    style="flex:1;min-width:70px;padding:9px 6px;border-radius:8px;border:none;background:var(--correct);color:#fff;font-weight:700;cursor:pointer;font-size:0.82rem;">✓ Got it</button>
-    <button onclick="sentMark('nearly')" style="flex:1;min-width:70px;padding:9px 6px;border-radius:8px;border:none;background:#c9a84c;color:#111;font-weight:700;cursor:pointer;font-size:0.82rem;">~ Nearly</button>
-    <button onclick="sentMark('error')"  style="flex:1;min-width:70px;padding:9px 6px;border-radius:8px;border:none;background:var(--wrong);color:#fff;font-weight:700;cursor:pointer;font-size:0.82rem;">✗ Missed</button>
-    <button onclick="sentMark('skip')"   style="padding:9px 12px;border-radius:8px;border:1.5px solid var(--border);background:none;color:var(--text2);font-weight:600;cursor:pointer;font-size:0.82rem;">→ Next</button>`;
+  d.className = 'btn-row';
+  d.innerHTML =
+    '<button class="btn btn-error"  onclick="sentMark(\'error\')">&#10007; Major error</button>' +
+    '<button class="btn btn-nearly" onclick="sentMark(\'nearly\')">~ Nearly</button>' +
+    '<button class="btn btn-got"    onclick="sentMark(\'got\')">&#10003; Got it</button>';
   return d;
 }
 
-function sentMark(result) {
-  // Only count if not already auto-counted by sentCheck
-  if(!window._sentAutoMarked) {
-    total++;
-    if(result === 'got')    { got++; }
-    else if(result === 'nearly') { nearly++; const r=Math.floor(Math.random()*2); const rem=deck.length-idx-1; deck.splice(idx+1+Math.min(2+r,Math.max(rem,0)),0,deck[idx]); }
-    else if(result === 'error')  { errors++; majorErrorDeck.push(deck[idx]); }
-  }
-  window._sentAutoMarked = false;
-  idx++;
-  showCard();
-}
 
+
+function sentMark(result) {
+  total++;
+  if(result === 'got')    { got++; }
+  else if(result === 'nearly') { nearly++; const r=Math.floor(Math.random()*2); const rem=deck.length-idx-1; deck.splice(idx+1+Math.min(2+r,Math.max(rem,0)),0,deck[idx]); }
+  else if(result === 'error')  { errors++; majorErrorDeck.push(deck[idx]); }
+  idx++; showCard();
+}
 
 function generateSentenceTest(container) {
   if(!container) return;
