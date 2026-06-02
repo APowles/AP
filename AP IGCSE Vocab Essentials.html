@@ -265,7 +265,7 @@ main { max-width: 100%; margin: 0; padding: 0; }
   font-size: 0.78rem; padding: 5px 8px;
   border: 1px solid var(--border); border-radius: 6px;
   background: var(--white); color: var(--text); cursor: pointer;
-  max-width: 200px;
+  max-width: 320px;
 }
 .section-select option { background: #ffffff; color: #1a2744; }
 .section-count { font-size: 0.68rem; color: #c9a84c; font-weight: 500; margin-left: 4px; white-space: nowrap; flex-shrink: 0; }
@@ -8760,10 +8760,20 @@ function _spkGetVoice(langCode) {
   return _spkVoices.find(x => x.lang.startsWith(langBase)) || null;
 }
 
+const _spkPronunciationMap = {
+  "fr-FR": [
+    { pattern: /\ben plein air\b/gi, replacement: "en plenn-air" }
+  ]
+};
 function speak(text, langCode, onEndCallback) {
   if (!_spkSynth) return;
   _spkSynth.cancel();
-  const u = new SpeechSynthesisUtterance(text);
+  const substitutions = _spkPronunciationMap[langCode] || [];
+  let spokenText = text;
+  for (const { pattern, replacement } of substitutions) {
+    spokenText = spokenText.replace(pattern, replacement);
+  }
+  const u = new SpeechSynthesisUtterance(spokenText);
   u.lang = langCode;
   u.rate = 0.92;
   const v = _spkGetVoice(langCode);
