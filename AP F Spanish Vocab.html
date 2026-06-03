@@ -296,6 +296,32 @@ main{width:100%;max-width:none;margin:0;padding:0;box-sizing:border-box}
 .db-btn:hover{background:rgba(255,255,255,0.22)}
 .db-btn.active{background:var(--gold);color:var(--navy)}
 .db-btn:disabled{opacity:0.35;cursor:not-allowed}
+@keyframes topicPulse {
+  0%   { border-color: #c9a84c; box-shadow: 0 0 0 0 rgba(201,168,76,0.6), 0 0 0 0 rgba(180,20,20,0.4); }
+  40%  { border-color: #c0392b; box-shadow: 0 0 0 5px rgba(201,168,76,0.2), 0 0 0 9px rgba(180,20,20,0.15); }
+  70%  { border-color: #c9a84c; box-shadow: 0 0 0 8px rgba(201,168,76,0.05), 0 0 0 14px rgba(180,20,20,0.04); }
+  100% { border-color: #c9a84c; box-shadow: 0 0 0 0 rgba(201,168,76,0); }
+}
+.topic-overview-btn {
+  flex: 1;
+  padding: 10px 10px;
+  background: transparent;
+  color: #1a2744;
+  border: 3px solid #c9a84c;
+  border-radius: 8px;
+  font-size: 0.85rem;
+  font-weight: 700;
+  cursor: pointer;
+  text-align: center;
+  animation: topicPulse 2s ease-in-out infinite;
+  font-family: inherit;
+}
+.topic-overview-btn:hover {
+  background: #1a2744;
+  color: #c9a84c;
+  animation: none;
+  border-color: #c9a84c;
+}
 .adj-overlay{background:rgba(0,0,0,0.45);min-height:300px;display:flex;flex-direction:column}
 .adj-panel{background:var(--white);padding:18px}
 .adj-title{font-family:'Playfair Display',Georgia,serif;font-size:1rem;font-weight:700;color:var(--navy);margin-bottom:14px;display:flex;align-items:center;justify-content:space-between}
@@ -26893,9 +26919,9 @@ oor/2Q=="
     <span class="ctrl-label" style="margin-left:10px;">🔊 ES speed</span>
     <div class="timer-ctrl" style="align-items:center;gap:4px;">
       <button class="timer-btn" onclick="setEsRate(Math.max(0.5,esRate-0.1));document.getElementById('es-rate-slider').value=esRate">−</button>
-      <input id="es-rate-slider" type="range" min="0.5" max="1.3" step="0.05" value="0.92" oninput="setEsRate(parseFloat(this.value))" style="width:80px;height:4px;cursor:pointer;accent-color:#c9a84c;">
+      <input id="es-rate-slider" type="range" min="0.5" max="1.3" step="0.05" value="0.85" oninput="setEsRate(parseFloat(this.value))" style="width:80px;height:4px;cursor:pointer;accent-color:#c9a84c;">
       <button class="timer-btn" onclick="setEsRate(Math.min(1.3,esRate+0.1));document.getElementById('es-rate-slider').value=esRate">+</button>
-      <span class="timer-val" id="es-rate-label" style="min-width:38px;">92%</span>
+      <span class="timer-val" id="es-rate-label" style="min-width:38px;">85%</span>
     </div>
   </div>
   <div class="controls-row" style="display:none">
@@ -26953,7 +26979,7 @@ oor/2Q=="
 // ── STATE ─────────────────────────────────────────────────────────────────
 let deck = [], idx = 0, score = 0, majorErrors = [], allErrors = [], endQueue = [], inReview = false;
 var _stRows=[],_stLabel='',_stQFlag='',_stAFlag='';
-let timerSecs = 8, countdown = null, answered = false, isLeisureMode = false, isAutotime = true;
+let timerSecs = 14, countdown = null, answered = false, isLeisureMode = false, isAutotime = true;
 let editModeUnlocked = false;
 
 // ── SECTION STRUCTURE ─────────────────────────────────────────────────────
@@ -29099,11 +29125,30 @@ function _spkGetVoice(langCode) {
   return _spkVoices.find(x => x.lang.startsWith(langBase)) || null;
 }
 
-let esRate = 0.92;
+let esRate = 0.85;
 function setEsRate(val) {
   esRate = Math.round(val * 100) / 100;
   const label = document.getElementById('es-rate-label');
   if (label) label.textContent = Math.round(esRate * 100) + '%';
+  syncSpeedUI();
+}
+function syncSpeedUI() {
+  const pct = Math.round(esRate * 100) + '%';
+  // Header bar
+  const hSlider = document.getElementById('es-rate-slider');
+  const hLabel  = document.getElementById('es-rate-label');
+  if (hSlider) hSlider.value = esRate;
+  if (hLabel)  hLabel.textContent = pct;
+  // Drill bar
+  const dSlider = document.getElementById('drill-speed-slider');
+  const dLabel  = document.getElementById('drill-speed-label');
+  if (dSlider) dSlider.value = esRate;
+  if (dLabel)  dLabel.textContent = pct;
+  // Leisure bar
+  const lSlider = document.getElementById('drill-speed-slider-leisure');
+  const lLabel  = document.getElementById('drill-speed-label-leisure');
+  if (lSlider) lSlider.value = esRate;
+  if (lLabel)  lLabel.textContent = pct;
 }
 
 function speak(text, langCode, onEndCallback) {
@@ -29112,7 +29157,7 @@ function speak(text, langCode, onEndCallback) {
   const clean = langCode.startsWith('es') ? preprocessSpanish(cleanForSpeech(text, langCode)) : cleanForSpeech(text, langCode);
   const u = new SpeechSynthesisUtterance(clean);
   u.lang = langCode;
-  u.rate = langCode.startsWith('es') ? esRate : 0.92;
+  u.rate = langCode.startsWith('es') ? esRate : 1.0;
   const v = _spkGetVoice(langCode);
   if (v) u.voice = v;
   if (onEndCallback) u.onend = onEndCallback;
@@ -29143,6 +29188,13 @@ function renderCard(){
     <div class="drill-bar">
       <span class="drill-bar-title">${LANG_FLAGS[f]} ${LANG_NAMES[f]} → ${LANG_FLAGS[t]} ${LANG_NAMES[t]}</span>
       <div class="drill-score"><span class="ds-got">&#10003; ${score}</span><span class="ds-err">&#10007; ${majorErrors.length}</span></div>
+      <div style="display:flex;align-items:center;gap:4px;margin-right:4px;">
+        <button onclick="setEsRate(Math.max(0.5,esRate-0.05));syncSpeedUI()" style="background:rgba(255,255,255,0.12);color:#fff;border:none;border-radius:5px;width:22px;height:22px;font-size:0.9rem;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0;">−</button>
+        <span style="font-size:0.6rem;color:rgba(255,255,255,0.6);white-space:nowrap;">🔊 ES</span>
+        <input id="drill-speed-slider" type="range" min="0.5" max="1.3" step="0.05" value="${esRate}" oninput="setEsRate(parseFloat(this.value));syncSpeedUI()" style="width:60px;height:3px;cursor:pointer;accent-color:#c9a84c;">
+        <span id="drill-speed-label" style="font-size:0.68rem;font-weight:700;color:#c9a84c;min-width:30px;">${Math.round(esRate*100)}%</span>
+        <button onclick="setEsRate(Math.min(1.3,esRate+0.05));syncSpeedUI()" style="background:rgba(255,255,255,0.12);color:#fff;border:none;border-radius:5px;width:22px;height:22px;font-size:0.9rem;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0;">+</button>
+      </div>
       <div class="drill-btns">
         <button class="db-btn db-home" onclick="goHome()">&#8962; Home</button>
         <button class="db-btn db-adj" onclick="renderAdjust()">&#9881; Adjust</button>
@@ -29348,7 +29400,7 @@ function renderIntro(){
     <div style="display:flex;gap:10px">
       <button id="autotimeBtn" onclick="toggleAutotime()" style="flex:1;padding:9px 10px;background:${isAutotime?'#c9a84c':'transparent'};color:${isAutotime?'#1a2744':'#555'};border:1.5px solid ${isAutotime?'#c9a84c':'#e2e6f0'};border-radius:8px;font-size:0.8rem;font-weight:500;cursor:pointer;text-align:center">&#9654;&#9474; Autotime: ${isAutotime?'On':'Off'}</button>
       <button onclick="showSVTestPanel()" style="flex:1;padding:9px 10px;background:transparent;color:#555;border:1.5px solid #e2e6f0;border-radius:8px;font-size:0.8rem;font-weight:500;cursor:pointer;text-align:center">&#128203; Generate Test</button>
-      <button onclick="document.getElementById('svTopicOverviewModal').style.display='block'" style="flex:1;padding:9px 10px;background:transparent;color:#1a2744;border:1.5px solid #1a2744;border-radius:8px;font-size:0.8rem;font-weight:600;cursor:pointer;text-align:center">&#128203; Overview of Topics</button>
+      <button onclick="document.getElementById('svTopicOverviewModal').style.display='block'" class="topic-overview-btn">📋 Overview of Topics</button>
     </div>
     <div style="display:flex;gap:10px;margin-top:10px;">
       <button onclick="openChunksViewer('reg')" style="flex:1;padding:9px 10px;background:transparent;color:#4a5a7a;border:1.5px solid #4a5a7a;border-radius:8px;font-size:0.8rem;font-weight:600;cursor:pointer;text-align:center;">📝 View Basic Chunks</button>
@@ -29464,6 +29516,13 @@ function renderLeisureCard(){
       <div class="drill-btns">
         <button class="db-btn" onclick="speak(window._leisureQ,window._leisureLang)">&#128266; Replay</button>
         <button class="db-btn" onclick="toggleLeisureAutotime()" style="color:${isAutotime?'#c9a84c':'inherit'};border-color:${isAutotime?'#c9a84c':''};">⏱ Auto: ${isAutotime?'On':'Off'}</button>
+        <div style="display:flex;align-items:center;gap:4px;">
+          <button onclick="setEsRate(Math.max(0.5,esRate-0.05));syncSpeedUI()" style="background:rgba(255,255,255,0.12);color:#fff;border:none;border-radius:5px;width:22px;height:22px;font-size:0.9rem;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0;">−</button>
+          <span style="font-size:0.6rem;color:rgba(255,255,255,0.6);white-space:nowrap;">🔊 ES</span>
+          <input id="drill-speed-slider-leisure" type="range" min="0.5" max="1.3" step="0.05" value="${esRate}" oninput="setEsRate(parseFloat(this.value));syncSpeedUI()" style="width:60px;height:3px;cursor:pointer;accent-color:#c9a84c;">
+          <span id="drill-speed-label-leisure" style="font-size:0.68rem;font-weight:700;color:#c9a84c;min-width:30px;">${Math.round(esRate*100)}%</span>
+          <button onclick="setEsRate(Math.min(1.3,esRate+0.05));syncSpeedUI()" style="background:rgba(255,255,255,0.12);color:#fff;border:none;border-radius:5px;width:22px;height:22px;font-size:0.9rem;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0;">+</button>
+        </div>
         <button class="db-btn" onclick="exitLeisure()">&#10005; Exit Leisure</button>
       </div>
     </div>
