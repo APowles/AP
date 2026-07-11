@@ -26935,7 +26935,7 @@ oor/2Q=="
       <button class="quick-btn leisure" onclick="startLeisureMode()">☕ Leisure Mode</button>
       <button class="quick-btn autotime" id="autotimeBtn" onclick="toggleAutotime()">Autotime: On</button>
       <button onclick="toggleSVTestPanel()" style="padding:4px 10px;font-size:0.75rem;border-radius:6px;border:1px solid #1a2744;background:#1a2744;color:#c9a84c;cursor:pointer;font-weight:600;">📝 Generate Test</button>
-      <button onclick="document.getElementById('svTopicOverviewModal').style.display='block'" style="padding:4px 10px;font-size:0.75rem;border-radius:20px;border:1px solid #1a2744;background:none;color:#1a2744;cursor:pointer;font-weight:600;">📋 Overview of Topics</button>
+      <button onclick="openTopicOverview()" style="padding:4px 10px;font-size:0.75rem;border-radius:20px;border:1px solid #1a2744;background:none;color:#1a2744;cursor:pointer;font-weight:600;">📋 Overview of Topics</button>
       <button onclick="openStudyView()" style="padding:4px 10px;font-size:0.75rem;border-radius:20px;border:1px solid #1a2744;background:none;color:#1a2744;cursor:pointer;font-weight:600;">📖 Study View</button>
       
     </div>
@@ -29260,14 +29260,18 @@ function buildSectionSelector(unit) {
 }
 
 function onUnitChange() {
+  clearOverviewSelection();
   buildSectionSelector(document.getElementById('sel-unit').value);
 }
 
 function onSectionChange() {
+  clearOverviewSelection();
   updatePhraseCount();
 }
 
 function getSelectedPhrases() {
+  if (typeof selectedSections !== 'undefined' && selectedSections.size)
+    return ALL_PHRASES.filter(p => selectedSections.has(p.sec));
   const sec = document.getElementById('sel-section').value;
   const unit = document.getElementById('sel-unit').value;
   // Combo sets
@@ -29292,6 +29296,140 @@ function getSelectedPhrases() {
   if (sec.startsWith('ALL_')) return ALL_PHRASES.filter(p => getUnitFromSec(p.sec) === sec.slice(4));
   return ALL_PHRASES.filter(p => p.sec === sec);
 }
+
+/* ═══════════ MULTI-SELECT (checkbox) for Overview of Topics ═══════════ */
+var selectedSections = new Set();
+var ovWiredEls = [];
+var OV_COMBOS = { 'MICH':['0','1A','1B','2A'], 'LENT':['2B','3A','3B'], 'SUM':['3B','4A','4B','C'] };
+var OV_REG_CHUNKS   = ['0.6','1A.7','1B.5','2A.5','2B.7','3A.6','3B.6','4A.6','4B.6'];
+var OV_TRIAL_CHUNKS = ['1A.8','1B.6','2A.6','2B.8','3A.7','3B.7','4B.7'];
+
+function ovAllSecs(){ return [...new Set(ALL_PHRASES.map(function(p){ return p.sec; }))]; }
+function ovSecsFor(a1, a2){
+  if (a2 && a2.indexOf('.') !== -1) return [a2];                         // single section
+  if (a2 && a2.indexOf('ALL_') === 0) return getSectionsForUnit(a2.slice(4)); // unit header
+  // a2 === 'ALL'
+  if (a1 === 'ALL') return ovAllSecs();
+  if (a1 === 'ALL_CHUNKS') return OV_REG_CHUNKS.concat(OV_TRIAL_CHUNKS);
+  if (a1 === 'ALL_REG_CHUNKS') return OV_REG_CHUNKS.slice();
+  if (OV_COMBOS[a1]) return OV_COMBOS[a1].reduce(function(acc,u){ return acc.concat(getSectionsForUnit(u)); }, []);
+  return [];
+}
+
+function getSelectionLabel(fallback){
+  if (typeof selectedSections !== 'undefined' && selectedSections.size){
+    var codes = [...selectedSections].sort(natSort);
+    if (codes.length <= 4) return codes.join(', ');
+    return 'Custom selection \u2014 ' + codes.length + ' sections';
+  }
+  var s = document.getElementById('sel-section');
+  return s ? s.options[s.selectedIndex].text : (fallback || 'All Sections');
+}
+
+function clearOverviewSelection(){
+  if (typeof selectedSections === 'undefined') return;
+  selectedSections.clear();
+  refreshOverviewChecks();
+}
+
+function ovMakeCheck(){
+  var c = document.createElement('span');
+  c.style.cssText = 'flex-shrink:0;width:16px;height:16px;border:1.5px solid #c9a84c;border-radius:4px;margin-right:9px;display:inline-flex;align-items:center;justify-content:center;font-size:0.72rem;font-weight:800;line-height:1;color:#1a2744;background:#fff;';
+  return c;
+}
+
+function rewireOverviewRows(){
+  var modal = document.getElementById('svTopicOverviewModal');
+  if (!modal || modal.dataset.ovWired === '1') return;
+  ovWiredEls = [];
+  var els = modal.querySelectorAll('[onclick*="selectSpanishTopic"]');
+  els.forEach(function(el){
+    var m = /selectSpanishTopic\('([^']*)','([^']*)'\)/.exec(el.getAttribute('onclick') || '');
+    if (!m) return;
+    var secs = ovSecsFor(m[1], m[2]);
+    el.removeAttribute('onclick');
+    el._ovSecs = secs;
+    el._ovIsGroup = !(m[2] && m[2].indexOf('.') !== -1);
+    var ck = ovMakeCheck();
+    el.insertBefore(ck, el.firstChild);
+    if (el._ovIsGroup){ el.style.display = 'flex'; el.style.alignItems = 'center'; }
+    el._ovCk = ck;
+    el.addEventListener('click', function(ev){ ev.stopPropagation(); ovToggle(el); });
+    ovWiredEls.push(el);
+  });
+  // Build the sticky confirm footer once
+  var panel = modal.firstElementChild;
+  if (panel && !document.getElementById('ovConfirmBar')){
+    var footer = document.createElement('div');
+    footer.id = 'ovConfirmBar';
+    footer.style.cssText = 'position:sticky;bottom:0;background:#fff;border-top:2px solid #c9a84c;margin:18px -24px -24px -24px;padding:14px 24px;display:flex;align-items:center;gap:10px;flex-wrap:wrap;box-shadow:0 -4px 16px rgba(26,39,68,0.09);z-index:3;';
+    footer.innerHTML =
+      '<div style="flex:1;min-width:150px;">'
+      + '<div id="ovTally" style="font-size:0.82rem;font-weight:700;color:#1a2744;">Nothing selected yet</div>'
+      + '<div style="font-size:0.68rem;color:#8899bb;">Tick sections, units or groups above</div>'
+      + '</div>'
+      + '<button id="ovClearBtn" onclick="ovClearSelection()" style="padding:9px 14px;border-radius:8px;border:1.5px solid #e2e6f0;background:#fff;color:#4a5a7a;font-size:0.8rem;font-weight:600;cursor:pointer;">Clear</button>'
+      + '<button id="ovDrillBtn" onclick="ovDrill()" style="padding:10px 18px;border-radius:8px;border:none;background:#1a2744;color:#c9a84c;font-size:0.85rem;font-weight:700;cursor:pointer;">&#9654; Drill selection</button>'
+      + '<button id="ovTestBtn" onclick="ovGenerateTest()" style="padding:10px 16px;border-radius:8px;border:1.5px solid #1a2744;background:#fff;color:#1a2744;font-size:0.83rem;font-weight:700;cursor:pointer;">&#128203; Generate Test</button>'
+      + '<button id="ovSpotBtn" onclick="ovSpotTest()" style="padding:10px 16px;border-radius:8px;border:1.5px solid #1a2744;background:#fff;color:#1a2744;font-size:0.83rem;font-weight:700;cursor:pointer;">&#128203; AP Spot Test</button>'
+      + '<button id="ovStudyBtn" onclick="ovStudy()" style="padding:10px 16px;border-radius:8px;border:1.5px solid #1a6b3a;background:#fff;color:#1a6b3a;font-size:0.83rem;font-weight:700;cursor:pointer;">&#128214; Study View</button>';
+    panel.appendChild(footer);
+  }
+  modal.dataset.ovWired = '1';
+}
+
+function ovToggle(el){
+  var secs = el._ovSecs || [];
+  if (!secs.length) return;
+  var allOn = secs.every(function(s){ return selectedSections.has(s); });
+  if (allOn) secs.forEach(function(s){ selectedSections.delete(s); });
+  else       secs.forEach(function(s){ selectedSections.add(s); });
+  refreshOverviewChecks();
+}
+
+function refreshOverviewChecks(){
+  ovWiredEls.forEach(function(el){
+    var secs = el._ovSecs || [];
+    var on = 0, i;
+    for (i = 0; i < secs.length; i++){ if (selectedSections.has(secs[i])) on++; }
+    var state = on === 0 ? 'none' : (on === secs.length ? 'all' : 'some');
+    var ck = el._ovCk;
+    if (ck){
+      if (state === 'all'){ ck.textContent = '\u2713'; ck.style.background = '#c9a84c'; ck.style.color = '#1a2744'; }
+      else if (state === 'some'){ ck.textContent = '\u2013'; ck.style.background = '#f0d78c'; ck.style.color = '#1a2744'; }
+      else { ck.textContent = ''; ck.style.background = '#fff'; }
+    }
+    if (!el._ovIsGroup){ el.style.background = state === 'all' ? '#fbf6e7' : ''; }
+  });
+  var nSec = selectedSections.size;
+  var nWords = ALL_PHRASES.filter(function(p){ return selectedSections.has(p.sec); }).length;
+  var tally = document.getElementById('ovTally');
+  if (tally) tally.textContent = nSec
+    ? (nSec + ' section' + (nSec !== 1 ? 's' : '') + ' \u00b7 ' + nWords + ' words selected')
+    : 'Nothing selected yet';
+  ['ovDrillBtn','ovTestBtn','ovSpotBtn','ovStudyBtn','ovClearBtn'].forEach(function(id){
+    var b = document.getElementById(id);
+    if (!b) return;
+    var dis = nSec === 0;
+    b.disabled = dis;
+    b.style.opacity = dis ? '0.4' : '1';
+    b.style.cursor = dis ? 'not-allowed' : 'pointer';
+  });
+}
+
+function openTopicOverview(){
+  rewireOverviewRows();
+  document.getElementById('svTopicOverviewModal').style.display = 'block';
+  refreshOverviewChecks();
+}
+function ovCloseModal(){ document.getElementById('svTopicOverviewModal').style.display = 'none'; }
+function ovClearSelection(){ selectedSections.clear(); refreshOverviewChecks(); }
+function ovDrill(){ if (!selectedSections.size) return; ovCloseModal(); startDrill(_selectedCount); }
+function ovGenerateTest(){ if (!selectedSections.size) return; ovCloseModal(); showSVTestPanel(); }
+function ovSpotTest(){ if (!selectedSections.size) return; ovCloseModal(); generateSVSpotTest(); }
+function ovStudy(){ if (!selectedSections.size) return; ovCloseModal(); openStudyView(); }
+/* ═══════════════════════════════════════════════════════════════════════ */
+
 
 function updatePhraseCount() {
   document.getElementById('phrase-count').textContent = getSelectedPhrases().length + ' words';
@@ -29337,6 +29475,7 @@ function introUnitChange(){
 }
 function introSectionChange(){
   document.getElementById('sel-section').value=document.getElementById('intro-sel-section').value;
+  clearOverviewSelection();
   renderIntro();
 }
 function adjustTimer(delta){
@@ -29710,6 +29849,7 @@ function renderIntro(){
     </div>
     <div style="margin:0 0 22px 0">
       <div style="font-size:0.68rem;font-weight:600;color:#8899bb;text-transform:uppercase;letter-spacing:.07em;margin:0 0 10px 0">Unit &amp; Section <span style="font-weight:700;color:#cc0000">(${total} phrases)</span></div>
+      ${(typeof selectedSections!=='undefined'&&selectedSections.size)?`<div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin:0 0 10px 0"><span style="font-size:0.72rem;font-weight:700;color:#1a2744;background:#fbf6e7;border:1px solid #c9a84c;border-radius:20px;padding:4px 12px">⚡ Custom selection · ${selectedSections.size} section${selectedSections.size!==1?'s':''}</span><button onclick="openTopicOverview()" style="font-size:0.72rem;color:#1a2744;background:none;border:none;cursor:pointer;text-decoration:underline;padding:0">Edit</button><button onclick="clearOverviewSelection();renderIntro()" style="font-size:0.72rem;color:#c0392b;background:none;border:none;cursor:pointer;text-decoration:underline;padding:0">Clear</button></div>`:''}
       <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center">
         <select id="intro-sel-unit" onchange="introUnitChange()" style="font-size:0.82rem;padding:6px 10px;border:1.5px solid #e2e6f0;border-radius:8px;background:#fff;color:#1a2744;cursor:pointer">${unitOpts}</select>
         <select id="intro-sel-section" onchange="introSectionChange()" style="font-size:0.82rem;padding:6px 10px;border:1.5px solid #e2e6f0;border-radius:8px;background:#fff;color:#1a2744;cursor:pointer">${secOpts}</select>
@@ -29733,7 +29873,7 @@ function renderIntro(){
     <div style="display:flex;gap:10px">
       <button id="autotimeBtn" onclick="toggleAutotime()" style="flex:1;padding:9px 10px;background:${isAutotime?'#c9a84c':'transparent'};color:${isAutotime?'#1a2744':'#555'};border:1.5px solid ${isAutotime?'#c9a84c':'#e2e6f0'};border-radius:8px;font-size:0.8rem;font-weight:500;cursor:pointer;text-align:center">&#9654;&#9474; Autotime: ${isAutotime?'On':'Off'}</button>
       <button onclick="showSVTestPanel()" style="flex:1;padding:9px 10px;background:transparent;color:#555;border:1.5px solid #e2e6f0;border-radius:8px;font-size:0.8rem;font-weight:500;cursor:pointer;text-align:center">&#128203; Generate Test</button>
-      <button onclick="document.getElementById('svTopicOverviewModal').style.display='block'" class="topic-overview-btn">📋 Overview of Topics</button>
+      <button onclick="openTopicOverview()" class="topic-overview-btn">📋 Overview of Topics</button>
       <button onclick="openStudyView()" class="topic-overview-btn">📖 Study View</button>
     </div>
     <div style="display:flex;gap:10px;margin-top:10px;">
@@ -29931,7 +30071,7 @@ function openSVContentPDF(){
   const secVal = secEl ? secEl.value : 'ALL';
   const unitEl = document.getElementById('sel-unit');
   const phrases = getSelectedPhrases();
-  const label = secEl ? secEl.options[secEl.selectedIndex].text : 'All Sections';
+  const label = getSelectionLabel('All Sections');
 
   let rows = '';
   phrases.forEach(function(p, i){
@@ -29974,7 +30114,7 @@ function openSVContentPDF(){
 function openSVStudyPDF(){
   const phrases = getSelectedPhrases();
   const secEl = document.getElementById('sel-section');
-  const label = secEl ? secEl.options[secEl.selectedIndex].text : 'All Sections';
+  const label = getSelectionLabel('All Sections');
   const f = getLangFrom(), t = getLangTo();
 
   let rows = '';
@@ -30031,8 +30171,9 @@ function showSVTestPanel(){
   const f = getLangFrom(), t = getLangTo();
   const unitEl = document.getElementById('sel-unit');
   const secEl  = document.getElementById('sel-section');
-  const unitLabel = unitEl ? unitEl.options[unitEl.selectedIndex]?.text : '';
-  const secLabel  = secEl  ? secEl.options[secEl.selectedIndex]?.text  : '';
+  let unitLabel = unitEl ? unitEl.options[unitEl.selectedIndex]?.text : '';
+  let secLabel  = secEl  ? secEl.options[secEl.selectedIndex]?.text  : '';
+  if (typeof selectedSections !== 'undefined' && selectedSections.size){ unitLabel = ''; secLabel = getSelectionLabel('Custom selection'); }
   const fLabel = f==='en' ? '&#127468;&#127463; English' : '&#127466;&#127480; Spanish';
   const tLabel = t==='es' ? '&#127466;&#127480; Spanish' : '&#127468;&#127463; English';
   let strip = document.getElementById('svTestContextStrip');
@@ -30074,7 +30215,7 @@ function generateSVTest(){
   const count = svTestCount==='custom' ? (parseInt(document.getElementById('svCustomInput').value)||10) : svTestCount;
   const f = getLangFrom(), t = getLangTo();
   const secEl = document.getElementById('sel-section');
-  const secLabel = secEl ? secEl.options[secEl.selectedIndex].text : 'Vocab';
+  const secLabel = getSelectionLabel('Vocab');
 
   const shuffled = [...phrases].sort(()=>Math.random()-0.5);
   const items = shuffled.slice(0, Math.min(count, shuffled.length));
@@ -30293,7 +30434,7 @@ function generateSVSpotTest() {
   if (raw.length<15){alert('Not enough items for a spot test (need at least 15).');return;}
   var f=getLangFrom(), t=getLangTo();
   var qFlag=SV_FLAGS[getLangFrom()]||'', aFlag=SV_FLAGS[getLangTo()]||'';
-  var label=(function(){var s=document.getElementById('sel-section');return s?s.options[s.selectedIndex].text:'All Vocab';})();
+  var label=getSelectionLabel('All Vocab');
   var items=[].concat(raw).sort(function(){return Math.random()-0.5;}).slice(0,15);
   var rows=[]; for(var i=0;i<5;i++) rows.push(items.slice(i*3,i*3+3).map(function(p){ return {q:p[f]||'',a:p[t]||''}; }));
   svSpotRows=rows; svSpotLabel=label; svSpotQFlag=qFlag; svSpotAFlag=aFlag;
@@ -30560,7 +30701,7 @@ function renderErrorReview(){
       <div>
         <div style="font-size:0.65rem;font-weight:700;text-transform:uppercase;letter-spacing:0.1em;color:#c9a84c;margin-bottom:4px;">AP F Block Spanish Vocabulary</div>
         <h2 style="margin:0;font-size:1.1rem;font-weight:700;color:#1a2744;font-family:'Playfair Display',Georgia,serif;">📋 Overview of Topics</h2>
-        <div style="font-size:0.72rem;color:#888;margin-top:4px;">Click any section to start drilling it · Click a unit header to drill the whole unit</div>
+        <div style="font-size:0.72rem;color:#888;margin-top:4px;">Tick any sections, units or groups — then choose Drill, Generate Test or AP Spot Test below</div>
       </div>
       <button onclick="document.getElementById('svTopicOverviewModal').style.display='none'" style="padding:6px 16px;border-radius:8px;border:1px solid #e2e6f0;background:none;color:#666;font-size:0.82rem;cursor:pointer;">✕ Close</button>
     </div>
