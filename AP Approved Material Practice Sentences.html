@@ -26884,6 +26884,11 @@ oor/2Q==" style="width:44px;height:44px;border-radius:50%;border:2px solid #c9a8
   </div>
   <button onclick="generateAMTest()" style="padding:10px 24px;background:#c9a84c;color:#1a2744;border:none;border-radius:8px;font-weight:700;font-size:0.9rem;cursor:pointer;">Generate Test</button>
   <button onclick="generateAMSpotTest()" style="padding:9px 22px;background:transparent;color:#1a2744;border:1.5px solid #1a2744;border-radius:8px;font-weight:700;font-size:0.85rem;cursor:pointer;margin-left:8px;">📋 AP Spot Test</button>
+  <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-top:12px;">
+    <span style="font-size:0.72rem;color:#888;text-transform:uppercase;letter-spacing:0.06em;font-weight:600;">Spot test phrases per box:</span>
+    <button class="am-topt" onclick="setAMSpotPer(2)" id="amsp-2">2 (10 phrases)</button>
+    <button class="am-topt active-am" onclick="setAMSpotPer(3)" id="amsp-3">3 (15 phrases)</button>
+  </div>
   <div id="amTestOutput" style="margin-top:16px;"></div>
 </div>
 
@@ -28380,19 +28385,27 @@ function exitLeisure() {
 }
 
 
+// Treat curly and straight apostrophes as the same when matching topic names
+function normTopic(s) { return String(s == null ? '' : s).replace(/[\u2018\u2019\u02BC`]/g, "'").trim(); }
+function subMatches(item) { return currentSubsection === 'all' || normTopic(item.subsection_en) === normTopic(currentSubsection); }
+
+let amMultiTopics = [];   // topics ticked in the Overview of Topics
+
 function getPool() {
   let filtered;
   if (!currentSection) return [];
-  if (currentSection === '__ALL__') {
-    filtered = currentSubsection === 'all' ? allData : allData.filter(item => item.subsection_en === currentSubsection);
+  if (currentSection === '__MULTI__') {
+    filtered = allData.filter(item => amMultiTopics.indexOf(item.subsection_en) !== -1).filter(subMatches);
+  } else if (currentSection === '__ALL__') {
+    filtered = allData.filter(subMatches);
   } else if (currentSection.startsWith('__') && currentSection.endsWith('__')) {
     const letter = currentSection.slice(2, -2);
     filtered = allData.filter(item => item.section_en.toUpperCase().startsWith(letter + ':') || item.section_en.toUpperCase().startsWith(letter + ' :'));
-    if (currentSubsection !== 'all') filtered = filtered.filter(item => item.subsection_en === currentSubsection);
+    filtered = filtered.filter(subMatches);
   } else if (currentSubsection === 'all') {
     filtered = allData.filter(item => item.section_en === currentSection);
   } else {
-    filtered = allData.filter(item => item.section_en === currentSection && item.subsection_en === currentSubsection);
+    filtered = allData.filter(item => item.section_en === currentSection && subMatches(item));
   }
   const pool = [];
   filtered.forEach(sub => {
@@ -28453,7 +28466,8 @@ function populateSubsectionSelect() {
     select.appendChild(option);
   });
   
-  currentSubsection = 'all';
+  // Only default to 'all' on first load; never wipe a topic the user has chosen
+  if (currentSubsection == null) currentSubsection = 'all';
 }
 
 
@@ -28471,7 +28485,9 @@ function renderIntro() {
   const allSections = [...new Set(allData.map(d => d.section_en))];
   const letters = [...new Set(allSections.map(s => s.match(/^([A-E])/i)?.[1]?.toUpperCase()).filter(Boolean))].sort();
 
-  let sectionOptStr = `<option value="__ALL__"${currentSection==='__ALL__'?' selected':''}>★ ALL SECTIONS</option>`;
+  if (currentSection === '__MULTI__' && !amMultiTopics.length) currentSection = allSections[0];
+  let sectionOptStr = amMultiTopics.length ? `<option value="__MULTI__"${currentSection==='__MULTI__'?' selected':''}>✔ MY SELECTION (${amMultiTopics.length} topic${amMultiTopics.length===1?'':'s'})</option>` : '';
+  sectionOptStr += `<option value="__ALL__"${currentSection==='__ALL__'?' selected':''}>★ ALL SECTIONS</option>`;
   letters.forEach(letter => {
     const letterSections = allSections.filter(s => s.toUpperCase().startsWith(letter+':') || s.toUpperCase().startsWith(letter+' :'));
     const allKey = `__${letter}__`;
@@ -28483,7 +28499,9 @@ function renderIntro() {
 
   // Build subsection options for current section group
   let subFiltered;
-  if (currentSection === '__ALL__') {
+  if (currentSection === '__MULTI__') {
+    subFiltered = allData.filter(d => amMultiTopics.indexOf(d.subsection_en) !== -1);
+  } else if (currentSection === '__ALL__') {
     subFiltered = allData;
   } else if (currentSection && currentSection.startsWith('__') && currentSection.endsWith('__')) {
     const letter = currentSection.slice(2,-2);
@@ -28492,6 +28510,10 @@ function renderIntro() {
     subFiltered = allData.filter(d => d.section_en === currentSection);
   }
   const subsNames = [...new Set(subFiltered.map(d => d.subsection_en))];
+  if (currentSubsection !== 'all') {
+    const match = subsNames.find(n => normTopic(n) === normTopic(currentSubsection));
+    currentSubsection = match || 'all';
+  }
   const totalPhrases = subFiltered.reduce((a,s)=>a+Math.max(s.phrases_en.length,s.phrases_fr.length),0);
   const subsOpts = `<option value="all"${currentSubsection==='all'?' selected':''}>All topics (${totalPhrases} phrases)</option>` +
     subsNames.map(s => `<option value="${s}"${s===currentSubsection?' selected':''}>${s}</option>`).join('');
@@ -28551,7 +28573,7 @@ function renderIntro() {
       <div style="display:flex;gap:8px;margin-bottom:12px;">
         <button id="autotimeBtn" onclick="toggleAutotime()" class="intro-aux-btn${isAutotime?' active':''}">&#9654;&#9474; Autotime: ${isAutotime?'On':'Off'}</button>
         <button onclick="showAMTestPanel()" class="intro-aux-btn">&#128203; Generate Test</button>
-        <button onclick="document.getElementById('amTopicOverviewModal').style.display='block'" class="intro-aux-btn">&#128203; Overview of Topics</button>
+        <button onclick="openAMOverview()" class="intro-aux-btn">&#128203; Overview of Topics${amMultiTopics.length ? ' ('+amMultiTopics.length+' ticked)' : ''}</button>
       </div>
       ${editModeUnlocked ? '<div style="display:flex;gap:8px;margin-bottom:8px;"><button onclick="showAMPracticePdf()" style="flex:1;padding:9px 10px;background:transparent;color:#5a3a8a;border:1.5px solid #b08ce3;border-radius:8px;font-size:0.78rem;font-weight:600;cursor:pointer;text-align:center;">&#128196; Practice Sentences PDF</button><button onclick="openAMStudyPDF()" style="flex:1;padding:9px 10px;background:transparent;color:#2a6a3a;border:1.5px solid #7ec8a8;border-radius:8px;font-size:0.78rem;font-weight:600;cursor:pointer;text-align:center;">&#128196; Study Sheet PDF</button></div>' : ''}
     </div>`;
@@ -28561,10 +28583,12 @@ function onSectionChange() {
   const s = document.getElementById('intro-section');
   if (s) currentSection = s.value;
   currentSubsection = 'all';
+  clearAMTestOutput();
   renderIntro();
 }
 
 function getSectionLabel(val) {
+  if (val === '__MULTI__') return 'Selected topics (' + amMultiTopics.length + ')';
   if (val === '__ALL__') return 'All Sections';
   if (val && val.startsWith('__') && val.endsWith('__')) return 'All of ' + val.slice(2,-2);
   return val ? val.toUpperCase() : '';
@@ -28572,6 +28596,7 @@ function getSectionLabel(val) {
 function onSubChange() {
   const s = document.getElementById('intro-subsection');
   if (s) currentSubsection = s.value;
+  clearAMTestOutput();
   const pool = getPool();
   const pc = document.querySelector('.intro-phrase-count');
   if (pc) pc.textContent = pool.length + ' phrases';
@@ -28582,10 +28607,12 @@ function onDirChange() {
   if (f) fromLang = f.value;
   if (t) toLang = t.value;
   if (fromLang === toLang) { toLang = fromLang === 'en' ? 'fr' : 'en'; }
+  clearAMTestOutput();
   renderIntro();
 }
 function introSwapDir() {
   const tmp = fromLang; fromLang = toLang; toLang = tmp;
+  clearAMTestOutput();
   renderIntro();
 }
 function introStartDrill() {
@@ -29198,7 +29225,32 @@ function setAMCount(n){
   if(ci) ci.style.display = (n==='custom') ? 'inline-block' : 'none';
 }
 
+function clearAMTestOutput(){
+  // A test made for a previous topic must not linger on screen or be printed
+  if (typeof amTestItems !== 'undefined') amTestItems = [];
+  if (typeof amSpotRows !== 'undefined') amSpotRows = [];
+  const o = document.getElementById('amTestOutput'); if (o) o.innerHTML = '';
+}
+
+function amSelectionLabel(){
+  if (currentSubsection && currentSubsection !== 'all') return currentSubsection;
+  return getSectionLabel(currentSection);
+}
+
+function syncSelectionFromScreen(){
+  // Read exactly what is showing in the Section / Topic / Direction boxes (as Start Drill does)
+  const s = document.getElementById('intro-section');
+  const sub = document.getElementById('intro-subsection');
+  const f = document.getElementById('intro-from');
+  const t = document.getElementById('intro-to');
+  if (s && s.value) currentSection = s.value;
+  if (sub && sub.value) currentSubsection = sub.value;
+  if (f && f.value) fromLang = f.value;
+  if (t && t.value) toLang = t.value;
+}
+
 function getAMPhrases(){
+  syncSelectionFromScreen();
   // Reuse getPool() which already handles __ALL__, __A__ etc. special section values
   return getPool().map(card => {
     const sub = allData.find(s => s.subsection_en === card.subsection);
@@ -29215,7 +29267,7 @@ function generateAMTest(){
   if(!pairs.length){ alert('No phrases for this selection.'); return; }
   const count = amTestCount==='custom' ? (parseInt(document.getElementById('amCustomInput').value)||10) : amTestCount;
   const f = fromLang, t = toLang;
-  const secLabel = currentSubsection === 'all' ? currentSection : currentSubsection;
+  const secLabel = amSelectionLabel();
 
   const shuffled = [...pairs].sort(()=>Math.random()-0.5);
   const items = shuffled.slice(0, Math.min(count, shuffled.length));
@@ -29259,6 +29311,7 @@ function generateAMTest(){
       <button onclick="printAMTestPdf('answers')" style="padding:6px 14px;border-radius:8px;border:none;background:#1a2744;color:#c9a84c;font-size:0.78rem;cursor:pointer;font-family:inherit;font-weight:700;">&#128424; Print Answers to PDF</button>
     </div>
     <div style="font-size:0.7rem;color:#888;text-transform:uppercase;letter-spacing:0.06em;margin-bottom:6px;">${AM_FLAGS[f]} → ${AM_FLAGS[t]} · ${items.length} questions · TEST SHEET</div>
+    <div style="font-size:0.8rem;color:#1a2744;font-weight:600;margin-bottom:8px;">Topic: ${secLabel}</div>${currentSection === '__MULTI__' && currentSubsection === 'all' ? `<div style="font-size:0.72rem;color:#666;margin:-4px 0 10px;line-height:1.5;">${amMultiTopics.map(t=>'• '+t).join('<br>')}</div>` : ''}
     <div style="background:#f9f7f2;border-radius:8px;padding:12px;border:1px solid #e0e0e0;margin-bottom:20px;">${sheet}</div>
     <div style="font-size:0.7rem;color:#888;text-transform:uppercase;letter-spacing:0.06em;margin-bottom:6px;">ANSWER SHEET</div>
     <div style="background:#f9f7f2;border-radius:8px;padding:12px;border:1px solid #e0e0e0;">${answers}</div>`;
@@ -29367,24 +29420,14 @@ function printAMTestPdf(which) {
 
 // ── Study Sheet PDF ──────────────────────────────────────────
 function openAMStudyPDF(){
+  syncSelectionFromScreen();
   const f = fromLang, t = toLang;
   const fFlag = AM_FLAGS[f]||'', tFlag = AM_FLAGS[t]||'';
 
   // Build phrase pairs from current section/subsection
-  let phrases = [];
+  const phrases = getAMPhrases().map(function(p){ return {q: p[fromLang], a: p[toLang]}; });
   const secVal = currentSection;
-  allData.forEach(function(sub){
-    if(secVal && secVal !== '__ALL__' && sub.section_en !== secVal) return;
-    const fArr = sub['phrases_'+f] || [];
-    const tArr = sub['phrases_'+t] || [];
-    for(var i = 0; i < fArr.length; i++){
-      if(fArr[i] && tArr[i]) phrases.push({q: fArr[i], a: tArr[i]});
-    }
-  });
-
-  const secLabel = (secVal && secVal !== '__ALL__')
-    ? (allData.find(function(s){ return s.section_en === secVal; }) || {}).section_en || 'All Sections'
-    : 'All Sections';
+  const secLabel = currentSubsection && currentSubsection !== 'all' ? currentSubsection : getSectionLabel(secVal);
 
   let rows = '';
   for(var i = 0; i < phrases.length; i += 2){
@@ -29493,16 +29536,22 @@ function openAMSpotTestPDF(type) {
 
 
 // ── AP Spot Test ───────────────────────────────────────────────
-var amSpotRows=[], amSpotLabel='', amSpotQFlag='', amSpotAFlag='';
+var amSpotRows=[], amSpotLabel='', amSpotQFlag='', amSpotAFlag='', amSpotPer=3;
+function setAMSpotPer(n){
+  amSpotPer = n;
+  [2,3].forEach(function(k){ var b=document.getElementById('amsp-'+k); if(b) b.classList.toggle('active-am', k===n); });
+  var o=document.getElementById('amTestOutput'); if(o && amSpotRows.length){ o.innerHTML=''; amSpotRows=[]; }
+}
 
 function generateAMSpotTest() {
   var raw=getAMPhrases();
-  if (raw.length<15){alert('Not enough items for a spot test (need at least 15).');return;}
+  var per=amSpotPer||3, need=5*per;
+  if (raw.length<need){alert('Not enough phrases for a spot test with '+per+' per box (need at least '+need+', this selection has '+raw.length+').'+(per===3&&raw.length>=10?' Try 2 phrases per box.':''));return;}
   var f=fromLang, t=toLang;
   var qFlag=AM_FLAGS[fromLang]||'', aFlag=AM_FLAGS[toLang]||'';
-  var label=(currentSubsection&&currentSubsection!=='__ALL__'?currentSubsection:(currentSection&&currentSection!=='__ALL__'?currentSection:'All Sections'));
-  var items=[].concat(raw).sort(function(){return Math.random()-0.5;}).slice(0,15);
-  var rows=[]; for(var i=0;i<5;i++) rows.push(items.slice(i*3,i*3+3).map(function(p){ return {q:p[f]||'',a:p[t]||''}; }));
+  var label=amSelectionLabel();
+  var items=[].concat(raw).sort(function(){return Math.random()-0.5;}).slice(0,need);
+  var rows=[]; for(var i=0;i<5;i++) rows.push(items.slice(i*per,i*per+per).map(function(p){ return {q:p[f]||'',a:p[t]||''}; }));
   amSpotRows=rows; amSpotLabel=label; amSpotQFlag=qFlag; amSpotAFlag=aFlag;
   var ic=['#1a2744','#b03a2e','#1a6b3a'];
   var thS='padding:5px 8px;font-size:0.6rem;font-weight:700;text-transform:uppercase;letter-spacing:0.07em;color:#8899bb;background:#f0f3f8;border:1px solid #ddd;text-align:left;';
@@ -29511,10 +29560,10 @@ function generateAMSpotTest() {
   var sR='', tR='';
   rows.forEach(function(group,i){
     group.forEach(function(p,ci){
-      var isFirst=ci===0,isLast=ci===2,col=ic[ci];
+      var isFirst=ci===0,isLast=ci===per-1,col=ic[ci];
       var bdr=isLast?'border-bottom:3px solid #1a2744;':'border-bottom:1px dotted #ccc;';
-      var nC=isFirst?'<td style="'+tdN+'" rowspan="3"><div style="font-size:1rem;font-weight:700;">'+(i+1)+'</div><div style="font-size:0.6rem;color:#aaa;">(2)</div></td>':'';
-      var sC=isFirst?'<td style="'+tdSc+'" rowspan="3"></td>':'';
+      var nC=isFirst?'<td style="'+tdN+'" rowspan="'+per+'"><div style="font-size:1rem;font-weight:700;">'+(i+1)+'</div><div style="font-size:0.6rem;color:#aaa;">(2)</div></td>':'';
+      var sC=isFirst?'<td style="'+tdSc+'" rowspan="'+per+'"></td>':'';
       var q=p.q||'';
       var a=p.a||'';
       var qT='<td style="width:42%;padding:14px;font-size:0.82rem;line-height:1.45;vertical-align:middle;border:1px solid #ddd;border-top:none;border-left:none;'+bdr+';color:'+col+'">'+q+'</td>';
@@ -29534,7 +29583,7 @@ function generateAMSpotTest() {
     +'<button onclick="openAMSpotTestPDF(this,0)" data-t="student" style="padding:7px 14px;border-radius:8px;background:#1a2744;color:#c9a84c;border:none;font-size:0.82rem;cursor:pointer;font-weight:600;">&#128424; Print Student Sheet</button>'
     +'<button onclick="openAMSpotTestPDF(this,1)" data-t="teacher" style="padding:7px 14px;border-radius:8px;background:#c9a84c;color:#1a2744;border:none;font-size:0.82rem;cursor:pointer;font-weight:600;">&#128424; Print Teacher Sheet</button>'
     +'</div>'
-    +'<div style="font-size:0.68rem;color:#888;text-transform:uppercase;margin-bottom:8px;">'+qFlag+' &#x2192; '+aFlag+' &nbsp;&middot;&nbsp; '+label+' &nbsp;&middot;&nbsp; 5 x 3 = 15 items</div>'
+    +'<div style="font-size:0.68rem;color:#888;text-transform:uppercase;margin-bottom:8px;">'+qFlag+' &#x2192; '+aFlag+' &nbsp;&middot;&nbsp; '+label+' &nbsp;&middot;&nbsp; 5 x '+per+' = '+need+' items</div>'
     +'<div style="font-size:0.68rem;font-weight:700;color:#8899bb;text-transform:uppercase;margin-bottom:6px;">Student Sheet (preview)</div>'
     +'<div style="background:#fff;border:1px solid #e2e6f0;border-radius:10px;padding:12px 16px;margin-bottom:16px;">'+tO+sR+'</tbody></table></div>'
     +'<div style="font-size:0.68rem;font-weight:700;color:#8899bb;text-transform:uppercase;margin-bottom:6px;">Teacher Sheet (answer key)</div>'
@@ -29546,14 +29595,15 @@ function openAMSpotTestPDF(btn, isTeacherNum) {
   var type = btn ? btn.dataset.t : (isTeacherNum ? 'teacher' : 'student');
   var rows=amSpotRows,label=amSpotLabel,qFlag=amSpotQFlag,aFlag=amSpotAFlag;
   var isTeacher=type==='teacher';
+  var per=(rows[0]&&rows[0].length)||3, tot=rows.reduce(function(n,r){return n+r.length;},0);
   var ic=['#1a2744','#b03a2e','#1a6b3a'];
   var tableRows='';
   rows.forEach(function(group,i){
     group.forEach(function(p,ci){
-      var isFirst=ci===0,isLast=ci===2,col=ic[ci];
+      var isFirst=ci===0,isLast=ci===per-1,col=ic[ci];
       var bdr=isLast?'border-bottom:3px solid #1a2744;':'border-bottom:1px dotted #ccc;';
-      var nC=isFirst?'<td class="num" rowspan="3"><div class="row-num">'+(i+1)+'</div><div class="marks">(2)</div></td>':'';
-      var sC=isFirst?'<td class="score-col" rowspan="3"></td>':'';
+      var nC=isFirst?'<td class="num" rowspan="'+per+'"><div class="row-num">'+(i+1)+'</div><div class="marks">(2)</div></td>':'';
+      var sC=isFirst?'<td class="score-col" rowspan="'+per+'"></td>':'';
       var q=p.q||'';
       var a=p.a||'';
       tableRows+='<tr>'+nC+'<td class="q-item" style="color:'+col+';'+bdr+'">'+q+'</td>'
@@ -29587,7 +29637,7 @@ function openAMSpotTestPDF(btn, isTeacherNum) {
     +'td.q-item{width:42%;padding:14px;font-size:0.82rem;line-height:1.45;border-left:none;border-right:1.5px solid #ccc;border-top:none;}'
     +'td.a-item{padding:14px;font-size:0.82rem;line-height:1.45;'+aiBack+'border-left:none;border-right:none;border-top:none;}'
     +'td.score-col{width:52px;text-align:center;border-left:2px solid #1a2744;}'
-    +'tbody tr{height:calc((297mm - 4cm - 60px - 40px - 32px) / 15);}.footer{font-size:0.58rem;color:#ccc;text-align:right;padding-top:5px;flex-shrink:0;}';
+    +'tbody tr{height:calc((297mm - 4cm - 60px - 40px - 32px) / '+tot+');}.footer{font-size:0.58rem;color:#ccc;text-align:right;padding-top:5px;flex-shrink:0;}';
   var html='<!DOCTYPE html><html><head><meta charset="UTF-8">'
     +'<title>AP Spot Test - '+label+' - '+sT+'</title>'
     +'<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;600;700&family=DM+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet">'
@@ -29595,7 +29645,7 @@ function openAMSpotTestPDF(btn, isTeacherNum) {
     +'<div class="page-hdr"><div>'
     +'<div class="hdr-brand">AP IGCSE &middot; Approved Material</div>'
     +'<div class="hdr-title">AP <span>Spot Test</span></div>'
-    +'<div class="hdr-sub">'+label+' &middot; 5 questions &middot; 3 items each &middot; /10</div>'
+    +'<div class="hdr-sub">'+label+' &middot; 5 questions &middot; '+per+' items each &middot; /10</div>'
     +'</div><div style="display:flex;align-items:center;">'
     +'<div class="hdr-badge">'+sT+'</div>'
     +'<button class="pbtn no-print" onclick="window.print()">&#128424; Print / PDF</button>'
@@ -29877,11 +29927,127 @@ function generateAMPracticePdf() {
 </div>
 
 <script>
+// ── Overview of Topics: multi-select ────────────────────────
+let amOverviewTicks = [];   // working selection while the Overview is open
+
+function amParseOverviewCall(el){
+  const m = (el.getAttribute('data-am-call') || '').match(/^selectAMTopic\('((?:[^'\\]|\\.)*)','((?:[^'\\]|\\.)*)'\)$/);
+  if (!m) return null;
+  const un = x => x.replace(/\\'/g, "'");
+  const section = un(m[1]), sub = un(m[2]);
+  if (sub === 'all') return {section, sub: 'all'};
+  const hit = allData.find(d => normTopic(d.subsection_en) === normTopic(sub));
+  return hit ? {section: hit.section_en, sub: hit.subsection_en} : null;
+}
+
+function amEnhanceOverview(){
+  const modal = document.getElementById('amTopicOverviewModal');
+  if (!modal || modal.dataset.enhanced) return;
+  modal.dataset.enhanced = '1';
+  modal.querySelectorAll('div[onclick^="selectAMTopic("]').forEach(el => {
+    el.setAttribute('data-am-call', el.getAttribute('onclick'));
+    el.removeAttribute('onclick');
+    const info = amParseOverviewCall(el);
+    if (!info) return;
+    if (info.sub === 'all') {
+      el.setAttribute('data-am-section', info.section);
+      el.title = 'Tick or untick every topic in this section';
+      el.addEventListener('click', () => amToggleSection(info.section));
+    } else {
+      el.setAttribute('data-am-topic', info.sub);
+      el.style.alignItems = 'flex-start';
+      const cb = document.createElement('input');
+      cb.type = 'checkbox'; cb.tabIndex = -1;
+      cb.style.cssText = 'margin:2px 4px 0 0;accent-color:#1a2744;pointer-events:none;flex-shrink:0;';
+      el.insertBefore(cb, el.firstChild);
+      el.addEventListener('click', () => amToggleTopic(info.sub));
+    }
+  });
+  // Sticky action bar
+  const card = modal.firstElementChild;
+  const bar = document.createElement('div');
+  bar.id = 'amOverviewBar';
+  bar.style.cssText = 'position:sticky;bottom:-20px;margin:16px -24px -24px;padding:12px 24px;background:#1a2744;border-radius:0 0 12px 12px;display:flex;align-items:center;gap:10px;flex-wrap:wrap;';
+  bar.innerHTML = '<span id="amOverviewCount" style="color:#fff;font-size:0.85rem;flex:1;min-width:180px;"></span>'
+    + '<button onclick="amOverviewClear()" style="padding:7px 14px;border-radius:8px;border:1px solid rgba(255,255,255,0.35);background:none;color:#fff;font-size:0.8rem;cursor:pointer;">Clear ticks</button>'
+    + '<button id="amOverviewUse" onclick="amOverviewUse()" style="padding:7px 18px;border-radius:8px;border:none;background:#c9a84c;color:#1a2744;font-size:0.85rem;font-weight:700;cursor:pointer;">Use ticked topics</button>';
+  card.appendChild(bar);
+}
+
+function amRefreshOverview(){
+  const modal = document.getElementById('amTopicOverviewModal');
+  modal.querySelectorAll('[data-am-topic]').forEach(el => {
+    const on = amOverviewTicks.indexOf(el.getAttribute('data-am-topic')) !== -1;
+    el.firstChild.checked = on;
+    el.style.background = on ? '#fff4d6' : '';
+    el.onmouseout = () => { el.style.background = on ? '#fff4d6' : ''; };
+  });
+  modal.querySelectorAll('[data-am-section]').forEach(el => {
+    const topics = allData.filter(d => d.section_en === el.getAttribute('data-am-section')).map(d => d.subsection_en);
+    const n = topics.filter(t => amOverviewTicks.indexOf(t) !== -1).length;
+    let badge = el.querySelector('.am-sec-count');
+    if (!badge) { badge = document.createElement('span'); badge.className = 'am-sec-count'; badge.style.cssText = 'float:right;font-weight:700;color:#b07d10;letter-spacing:0;'; el.appendChild(badge); }
+    badge.textContent = n ? n + ' / ' + topics.length + ' ticked' : '';
+  });
+  const phrases = allData.filter(d => amOverviewTicks.indexOf(d.subsection_en) !== -1)
+    .reduce((a, d) => a + Math.max(d.phrases_en.length, d.phrases_fr.length), 0);
+  document.getElementById('amOverviewCount').textContent = amOverviewTicks.length
+    ? amOverviewTicks.length + ' topic' + (amOverviewTicks.length === 1 ? '' : 's') + ' ticked · ' + phrases + ' phrases'
+    : 'No topics ticked yet';
+  const use = document.getElementById('amOverviewUse');
+  use.disabled = !amOverviewTicks.length; use.style.opacity = amOverviewTicks.length ? '1' : '0.45';
+}
+
+function openAMOverview(){
+  amEnhanceOverview();
+  amOverviewTicks = amMultiTopics.slice();
+  if (!amOverviewTicks.length && currentSubsection && currentSubsection !== 'all' && currentSection !== '__MULTI__') amOverviewTicks = [currentSubsection];
+  amRefreshOverview();
+  document.getElementById('amTopicOverviewModal').style.display = 'block';
+}
+
+function amToggleTopic(t){
+  const i = amOverviewTicks.indexOf(t);
+  if (i === -1) amOverviewTicks.push(t); else amOverviewTicks.splice(i, 1);
+  amRefreshOverview();
+}
+
+function amToggleSection(section){
+  const topics = allData.filter(d => d.section_en === section).map(d => d.subsection_en);
+  const allOn = topics.every(t => amOverviewTicks.indexOf(t) !== -1);
+  if (allOn) amOverviewTicks = amOverviewTicks.filter(t => topics.indexOf(t) === -1);
+  else topics.forEach(t => { if (amOverviewTicks.indexOf(t) === -1) amOverviewTicks.push(t); });
+  amRefreshOverview();
+}
+
+function amOverviewClear(){ amOverviewTicks = []; amRefreshOverview(); }
+
+function amOverviewUse(){
+  if (!amOverviewTicks.length) return;
+  // keep Overview order so tests list topics sensibly
+  amMultiTopics = allData.map(d => d.subsection_en).filter(t => amOverviewTicks.indexOf(t) !== -1);
+  document.getElementById('amTopicOverviewModal').style.display = 'none';
+  if (amMultiTopics.length === 1) {
+    const hit = allData.find(d => d.subsection_en === amMultiTopics[0]);
+    currentSection = hit.section_en; currentSubsection = hit.subsection_en;
+  } else {
+    currentSection = '__MULTI__'; currentSubsection = 'all';
+  }
+  clearAMTestOutput();
+  renderIntro();
+}
+
 // ── Overview of Topics ──────────────────────────────────────
 function selectAMTopic(section, subsection) {
   document.getElementById('amTopicOverviewModal').style.display = 'none';
   currentSection = section;
-  currentSubsection = subsection || 'all';
+  if (!subsection || subsection === 'all') {
+    currentSubsection = 'all';
+  } else {
+    const hit = allData.find(d => normTopic(d.subsection_en) === normTopic(subsection));
+    currentSubsection = hit ? hit.subsection_en : 'all';
+  }
+  clearAMTestOutput();
   renderIntro();
 }
 </script>
@@ -29893,7 +30059,7 @@ function selectAMTopic(section, subsection) {
       <div>
         <div style="font-size:0.65rem;font-weight:700;text-transform:uppercase;letter-spacing:0.1em;color:#c9a84c;margin-bottom:4px;">AP Approved Material — Practice Sentences</div>
         <h2 style="margin:0;font-size:1.1rem;font-weight:700;color:#1a2744;font-family:'Playfair Display',Georgia,serif;">📋 Overview of Topics</h2>
-        <div style="font-size:0.72rem;color:#888;margin-top:4px;">Click any topic to drill it · Click a section header to drill the whole section</div>
+        <div style="font-size:0.72rem;color:#888;margin-top:4px;">Tick as many topics as you like, then press <strong>Use ticked topics</strong> · Click a section header to tick or untick every topic in it</div>
       </div>
       <button onclick="document.getElementById('amTopicOverviewModal').style.display='none'" style="padding:6px 16px;border-radius:8px;border:1px solid #e2e6f0;background:none;color:#666;font-size:0.82rem;cursor:pointer;">✕ Close</button>
     </div>
