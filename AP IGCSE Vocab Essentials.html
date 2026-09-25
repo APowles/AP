@@ -6640,6 +6640,7 @@ function generateIGCSEStudySheet(){
   document.getElementById('igcseStudySheetModal').style.display = 'none';
   var f = ssFromLang, t = ssToLang;
   var phrases = ssSectionVal === 'ALL' ? getActivePhrases()
+    : ssSectionVal === 'CUSTOM' ? getSelectedPhrases()
     : ssSectionVal.startsWith('AREA_') ? getActivePhrases().filter(function(p){ return p.sec[0] === ssSectionVal[5]; })
     : getActivePhrases().filter(function(p){ return p.sec === ssSectionVal; });
   var label = ssSectionVal === 'ALL' ? 'All Sections'
@@ -6756,7 +6757,7 @@ function selectTopic(area, group, section) {
       <div>
         <div style="font-size:0.65rem;font-weight:700;text-transform:uppercase;letter-spacing:0.1em;color:#c9a84c;margin-bottom:4px;">AP IGCSE Vocabulary Essentials</div>
         <h2 style="margin:0;font-size:1.1rem;font-weight:700;color:#1a2744;">📋 Overview of Topic Areas</h2>
-        <div style="font-size:0.72rem;color:#888;margin-top:4px;">Click any row to select that topic &nbsp;·&nbsp; Click a header to select the whole area</div>
+        <div style="font-size:0.72rem;color:#888;margin-top:4px;">Click any row to select that topic &nbsp;·&nbsp; Click a header to select the whole area &nbsp;·&nbsp; Tick boxes to combine several topics</div>
       </div>
       <button onclick="document.getElementById('igcseTopicModal').style.display='none'" style="padding:6px 16px;border-radius:8px;border:1px solid #e2e6f0;background:none;color:#666;font-size:0.82rem;cursor:pointer;">✕ Close</button>
     </div>
@@ -6768,5 +6769,77 @@ function selectTopic(area, group, section) {
 </div>
 
 
+
+<script id="tsMultiSelectScript">
+(function(){
+  var modal=document.getElementById('igcseTopicModal'); if(!modal) return;
+  var inner=modal.firstElementChild;
+  modal.querySelectorAll('.ts-cb').forEach(function(c){c.remove();});
+  var old=document.getElementById('tsBar'); if(old) old.remove();
+  if(!document.getElementById('tsStyle')){
+    var st=document.createElement('style'); st.id='tsStyle';
+    st.textContent='.ts-cb{width:16px;height:16px;margin:0 10px 0 0;flex-shrink:0;cursor:pointer;accent-color:#c9a84c;vertical-align:middle}'
+      +'#tsBar{position:sticky;bottom:0;background:#1a2744;color:#fff;margin:16px -24px -24px;padding:12px 24px;border-radius:0 0 12px 12px;display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;z-index:5;box-shadow:0 -4px 12px rgba(0,0,0,0.15)}'
+      +'#tsBar button{border-radius:8px;padding:8px 16px;font-weight:700;cursor:pointer;font-size:0.85rem}'
+      +'#tsClear{background:transparent;color:#fff;border:1.5px solid rgba(255,255,255,0.4)}'
+      +'#tsGo{background:#c9a84c;color:#1a2744;border:none}'
+      +'#tsGo:disabled{opacity:0.4;cursor:default}';
+    document.head.appendChild(st);
+  }
+  window.tsSelected=window.tsSelected||new Set();
+  var sectionBoxes={}, groupBoxes={};
+  function secsOf(g){return Object.keys(sectionBoxes).filter(function(s){return s.split('.')[0]===g;});}
+  modal.querySelectorAll('[onclick^="selectTopic"]').forEach(function(row){
+    var m=row.getAttribute('onclick').match(/selectTopic\('(\w)','(\w+)','([^']+)'\)/); if(!m) return;
+    if(row.textContent.indexOf('Topic Area')>=0) return;
+    var group=m[2], sec=m[3], cb=document.createElement('input'); cb.type='checkbox'; cb.className='ts-cb';
+    cb.title='Tick to add to a combined selection';
+    cb.addEventListener('click',function(e){e.stopPropagation();});
+    if(sec==='ALL'){ groupBoxes[group]=cb; cb.addEventListener('change',function(){secsOf(group).forEach(function(s){cb.checked?tsSelected.add(s):tsSelected.delete(s);});sync();}); }
+    else { sectionBoxes[sec]=cb; cb.addEventListener('change',function(){cb.checked?tsSelected.add(sec):tsSelected.delete(sec);sync();}); }
+    row.style.alignItems='center'; row.insertBefore(cb,row.firstChild);
+  });
+  var bar=document.createElement('div'); bar.id='tsBar';
+  bar.innerHTML='<span id="tsBarInfo"></span><span style="display:flex;gap:8px"><button id="tsClear" type="button">Clear</button><button id="tsGo" type="button">&#9654; Practise selected</button></span>';
+  inner.appendChild(bar);
+  document.getElementById('tsClear').onclick=function(){tsSelected.clear();sync();};
+  document.getElementById('tsGo').onclick=function(){applyCustomSelection();};
+  function sync(){
+    Object.keys(sectionBoxes).forEach(function(s){sectionBoxes[s].checked=tsSelected.has(s);});
+    Object.keys(groupBoxes).forEach(function(g){
+      var ss=secsOf(g), n=ss.filter(function(s){return tsSelected.has(s);}).length;
+      groupBoxes[g].checked=ss.length>0&&n===ss.length; groupBoxes[g].indeterminate=n>0&&n<ss.length;
+    });
+    var nP=getActivePhrases().filter(function(p){return tsSelected.has(p.sec);}).length;
+    document.getElementById('tsBarInfo').textContent=tsSelected.size
+      ? tsSelected.size+' section'+(tsSelected.size===1?'':'s')+' · '+nP+' phrases'
+      : 'Tick boxes to combine topics';
+    document.getElementById('tsGo').disabled=!tsSelected.size;
+  }
+  window.applyCustomSelection=function(){
+    var secs=Array.from(tsSelected).sort(natSort); if(!secs.length) return;
+    modal.style.display='none';
+    SECTION_TITLES.CUSTOM='Custom selection ('+(secs.length>6?secs.slice(0,6).join(', ')+'…':secs.join(', '))+')';
+    var a=document.getElementById('sel-area');
+    if(!a.querySelector('option[value="CUSTOM"]')){var o=document.createElement('option');o.value='CUSTOM';o.textContent='Custom';a.appendChild(o);}
+    a.value='CUSTOM';
+    document.getElementById('sel-group').innerHTML='<option value="CUSTOM">'+secs.length+' section'+(secs.length===1?'':'s')+'</option>';
+    document.getElementById('sel-section').innerHTML='<option value="CUSTOM">'+SECTION_TITLES.CUSTOM+'</option>';
+    updatePhraseCount(); restart();
+  };
+  var _g=getSelectedPhrases;
+  getSelectedPhrases=function(){
+    var a=document.getElementById('sel-area');
+    if(a&&a.value==='CUSTOM'&&tsSelected.size) return getActivePhrases().filter(function(p){return tsSelected.has(p.sec);});
+    return _g();
+  };
+  var _o=onAreaChange;
+  onAreaChange=function(){
+    if(document.getElementById('sel-area').value==='CUSTOM'){ if(tsSelected.size) applyCustomSelection(); else modal.style.display='block'; return; }
+    _o();
+  };
+  sync();
+})();
+</script>
 
 </body></html>
