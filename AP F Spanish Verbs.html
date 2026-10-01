@@ -27632,7 +27632,44 @@ function makeEngPast(verb) {
   return verb + 'ed';
 }
 
-function conjugateEnglish(en, personIdx, tense) {
+// Split "to carry, to take, to wear" into alternatives (ignoring commas inside brackets),
+// conjugate each one, then drop the words they share with the first: "he (she) carries, takes, wears"
+function _splitEnAlts(en){
+  const parts=[]; let depth=0, cur='';
+  for(const ch of en){
+    if(ch==='(') depth++; else if(ch===')') depth=Math.max(0,depth-1);
+    if(ch===',' && depth===0){ parts.push(cur.trim()); cur=''; } else cur+=ch;
+  }
+  parts.push(cur.trim());
+  return parts.filter(Boolean);
+}
+function _conjEnAlts(en, core){
+  const parts=_splitEnAlts(en);
+  if(parts.length<2) return core(en);
+  const m=parts[0].match(/^(to have |used to |that I |to )/);
+  const prefix=m?m[1]:'';
+  const outs=parts.map((p,i)=>{
+    if(i===0) return core(p);
+    let q=p.replace(/^(used to |to have |that I |to )/,'');
+    if(prefix==='to have '){ const w=q.split(' ')[0]; q=makeEngPast(w)+q.slice(w.length); }
+    return core(prefix+q);
+  });
+  const w0=outs[0].split(' ');
+  const rest=outs.slice(1).map(o=>{
+    const w=o.split(' '); let k=0;
+    while(k<w.length-1 && k<w0.length && w[k]===w0[k]) k++;
+    return w.slice(k).join(' ');
+  });
+  return [outs[0],...rest].join(', ');
+}
+function conjugateEnglish(en, personIdx, tense){
+  return _conjEnAlts(en, x=>_conjugateEnglishCore(x, personIdx, tense));
+}
+function conjEnSpanish(en, tense, pi){
+  return _conjEnAlts(en, x=>_conjEnSpanishCore(x, tense, pi));
+}
+
+function _conjugateEnglishCore(en, personIdx, tense) {
   en = _replaceReflexive(en, personIdx);
   const engPronouns = ['I','you','he (she)','we','you all','they'];
   const spanishPronouns = ['yo','tú','él (ella)','nosotros','vosotros','ellos (ellas)'];
@@ -27720,7 +27757,7 @@ function conjugateEnglish(en, personIdx, tense) {
         // he/she or they — they doesn't take -s but él (ella) does
         if (personIdx === 2) {
           // Add -s/-es
-          const verb = bare.split(' ')[0];
+          const verb = bare.split(/[\s,;\/(]/)[0];
           const rest = bare.slice(verb.length);
           let s;
           if (verb.endsWith('s') || verb.endsWith('sh') || verb.endsWith('ch') || verb.endsWith('x') || verb.endsWith('z')) s = verb + 'es';
@@ -28391,7 +28428,7 @@ function _replaceReflexive(str, pi){
   return str.replace(/\boneself\b/g, refl[pi]);
 }
 
-function conjEnSpanish(en, tense, pi){
+function _conjEnSpanishCore(en, tense, pi){
   const pr=EN_PR[pi];
   const base=_replaceReflexive(en.replace(/^to /,''), pi);
   const beConj=['am','are','is','are','are','are'][pi];
