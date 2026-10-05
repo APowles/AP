@@ -3437,6 +3437,26 @@ function _applyPhonetics(text, langCode){
   if(langCode&&langCode.startsWith('en'))text=text.replace(/\bread\b/g,'red');
   return text;
 }
+// Placeholders spoken by the French/Italian/Spanish voice with phonetic spellings close to the English label
+// (same table as the AP IGCSE Structures app, tuned by ear). SUBJ / INDIC / IMP are first guesses — to be tested.
+var PH_SAY = {
+  INF:   { fr: 'yinnf',   it: 'yinf',    es: 'hinf' },
+  ADJ:   { fr: 'adje',    it: 'edge',    es: 'ach' },
+  NOUN:  { fr: 'naoune',  it: 'naun',    es: 'naun' },
+  NOUNS: { fr: 'naounze', it: 'nauns',   es: 'nauns' },
+  X:     { fr: 'ixe',     it: 'ics',     es: 'equis' },
+  Y:     { fr: 'i grec',  it: 'ipsilon', es: 'i griega' },
+  SUBJ:  { fr: 'seubdje',  it: 'sabdge',     es: 'sabch' },
+  INDIC: { fr: 'yinndik', it: 'indic',   es: 'índic' },
+  IMP:   { fr: 'yimmp',   it: 'imp',     es: 'imp' }
+};
+function _phSay(text, langCode) {
+  var base = String(langCode || '').split('-')[0];
+  if (base !== 'fr' && base !== 'it' && base !== 'es') return null;
+  return String(text)
+    .replace(/\s*\+\s*(?=[A-Z])/g, base === 'fr' ? ' pluss ' : ' plus ')   // "que + SUBJ" → "que plus SUBJ" (French spelt pluss so the s is sounded)
+    .replace(/(^|[^A-Za-zÀ-ÿ])(INF|ADJ|NOUNS?|SUBJ|INDIC|IMP|X|Y)(?![A-Za-zÀ-ÿ])/g, function (a, pre, t) { return pre + PH_SAY[t][base]; });
+}
 function speak(text,langCode,onEndCallback){
   if(!_spkSynth)return;
   _spkSynth.cancel();
@@ -3445,6 +3465,8 @@ function speak(text,langCode,onEndCallback){
   // Remove bracketed alternatives silently
   text = text.replace(/\s*\([^)]*\)/g,'').replace(/\s{2,}/g,' ').trim();
 
+  // French / Italian / Spanish: placeholders via the phonetic table; English keeps the English spoken forms
+  var _ph = _phSay(text, langCode); if (_ph !== null) text = _ph;
   // Inline-replace grammar tags with English spoken forms (no segmentation = no pauses)
   text = text.replace(/\+\s*([A-Z]+)\b/g, (m, tag) => 'plus ' + (_GRAMMAR_TERMS[tag] || tag.toLowerCase()));
   text = text.replace(/\b(SUBJ|INDIC|INF|IMP|PLUP|NOUNS|NOUN|ADJ|VERBING|VERB)\b/g, (m, tag) => _GRAMMAR_TERMS[tag] || tag.toLowerCase());
@@ -4549,6 +4571,7 @@ function speakResolved(p, fromLang, toLang, callback){
       const s=segs[i];
       let stxt=s.txt;
       stxt = _applyPhonetics(stxt, s.lang);
+      var _ph2 = _phSay(stxt, s.lang); if (_ph2 !== null) stxt = _ph2;
       const u=new SpeechSynthesisUtterance(stxt);
       u.lang=s.lang; u.rate=0.92;
       const v=_spkGetVoice(s.lang); if(v)u.voice=v;
