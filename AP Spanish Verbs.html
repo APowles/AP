@@ -28239,10 +28239,22 @@ function speakEn(text, onEndCallback) {
   _spkSynth.speak(utt);
 }
 
+// Placeholders spoken by the Spanish voice with Andrew's approved phonetic spellings (same as the other AP apps).
+// PP and the tense labels (COND, PERF, PLUP, PRES, FUT) are said as the Spanish grammar word — first guesses, to be tested.
+var PH_SAY_ES = { INF: 'hinf', ADJ: 'ach', NOUN: 'naun', NOUNS: 'nauns', X: 'equis', Y: 'i griega', SUBJ: 'sabch', INDIC: 'índic',
+  PP: 'participio', COND: 'condicional', PERF: 'perfecto', PLUP: 'pluscuamperfecto', PRES: 'presente', FUT: 'futuro', VERBO: 'verbo' };
+function _phSayEs(text) {
+  return String(text)
+    .replace(/\s*\+\s*/g, ' plus ')
+    .replace(/(^|[^A-Za-zÀ-ÿ'’])(INF|ADJ|NOUNS?|SUBJ|INDIC|PP|COND|PERF|PLUP|PRES|FUT|VERBO|X|Y)(?![A-Za-zÀ-ÿ'’])/g, function (a, pre, t) { return pre + PH_SAY_ES[t]; });
+}
 function speak(text, onEndCallback) {
   if (!_spkSynth) return;
   _spkSynth.cancel();
-  const clean = text.replace(/[()]/g,'').trim();
+  // bracketed text is silent (hints, examples, alternatives), as in the other AP apps
+  let t = String(text), prev;
+  do { prev = t; t = t.replace(/\s*\([^()]*\)/g, ''); } while (t !== prev);
+  const clean = _phSayEs(t.replace(/\s{2,}/g, ' ').replace(/\s+([,.;:!?])/g, '$1').trim());
   const utt = new SpeechSynthesisUtterance(clean);
   utt.lang = 'es-ES';
   utt.rate = 0.9;
@@ -29060,7 +29072,7 @@ function sentReveal() {
   if (d.group === 'structures' && d.en) {
     var same = function(){ return idx === myIdx && mode === 'sentences'; };
     var enS = d.en.replace(/\bINF\b/g, 'infinitive');
-    var esS = (d.tense === 'SET' ? d.answer : d.inf).replace(/\s*\([^)]*\)/g, '').replace(/\bINF\b/g, 'infinitivo');
+    var esS = (d.tense === 'SET' ? d.answer : d.inf).replace(/\s*\([^)]*\)/g, '');
     speak(sentFull(d), function(){ if (same()) speakEn(enS, function(){ if (same()) speak(esS); }); });
   } else speak(sentFull(d));
 }
