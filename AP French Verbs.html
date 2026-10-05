@@ -29105,12 +29105,20 @@ function speakEn(text, onEnd){
   if(onEnd) u.onend = onEnd;
   _synth.speak(u);
 }
+// Placeholders spoken by the French voice with Andrew's approved phonetic spellings (same as the other AP apps)
+var PH_SAY_FR = { INF: 'yinnf', ADJ: 'adje', NOUN: 'naoune', NOUNS: 'naounze', X: 'ixe', Y: 'i grec', SUBJ: 'seubdje', INDIC: 'yinndik', IMP: 'yimmp', TEMPS: 'temps' };
+function _phSayFr(text) {
+  return String(text)
+    .replace(/\s*\+\s*(?=(?:INF|ADJ|NOUNS?|SUBJ|INDIC|IMP|X|Y)(?![A-Za-zÀ-ÿ]))/g, ' pluss ')
+    .replace(/(^|[^A-Za-zÀ-ÿ'’])(INF|ADJ|NOUNS?|SUBJ|INDIC|IMP|TEMPS|X|Y)(?![A-Za-zÀ-ÿ'’])/g, function (a, pre, t) { return pre + PH_SAY_FR[t]; });
+}
 function speakIt(text, onEnd){
   if(!_synth) return;
   _synth.cancel();
   let clean = text.replace(/\s*\([^)]*\)/g,'').replace(/\//g,'').trim();
   // Phonetic overrides: English loanwords that TTS mispronounces in French context
   clean = clean.replace(/\bclub\b/gi, 'klœb');
+  clean = _phSayFr(clean);
   const u = _makeUtterance(clean, 'fr-FR', 0.88);
   if(onEnd) u.onend = onEnd;
   _ttsDebugLog('speakIt called: "'+clean+'" → voice: '+(u.voice?u.voice.name:'none, lang='+u.lang));
@@ -30042,7 +30050,7 @@ function sentReveal(){
       // AP Structures: full sentence, then the structure in English, then in French
       var same=function(){ return idx===myIdx && mode==='sentences'; };
       var enS=d.en.replace(/\bINF\b/g,'infinitive');
-      var frS=(d.tense==='SET' ? d.answer : d.inf).replace(/\bINF\b/g,'infinitif');
+      var frS=(d.tense==='SET' ? d.answer : d.inf).replace(/\bINF\b/g,'INF');
       speakIt(sentFull(d), function(){ if(same()) speakEn(enS, function(){ if(same()) speakIt(frS); }); });
     } else speakIt(sentFull(d));
   }

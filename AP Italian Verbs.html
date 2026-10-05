@@ -28947,10 +28947,17 @@ function speakEn(text, onEnd){
   if(onEnd) u.onend = onEnd;
   _synth.speak(u);
 }
+// Placeholders spoken by the Italian voice with Andrew's approved phonetic spellings (same as the other AP apps)
+var PH_SAY_IT = { INF: 'yinf', ADJ: 'edge', NOUN: 'naun', NOUNS: 'nauns', X: 'ics', Y: 'ipsilon', SUBJ: 'sabdge' };
+function _phSayIt(text) {
+  return String(text)
+    .replace(/\s*\+\s*(?=(?:INF|ADJ|NOUNS?|SUBJ|X|Y)(?![A-Za-zÀ-ÿ]))/g, ' plus ')
+    .replace(/(^|[^A-Za-zÀ-ÿ'’])(INF|ADJ|NOUNS?|SUBJ|X|Y)(?![A-Za-zÀ-ÿ'’])/g, function (a, pre, t) { return pre + PH_SAY_IT[t]; });
+}
 function speakIt(text, onEnd){
   if(!_synth) return;
   _synth.cancel();
-  const clean = text.replace(/\s*\([^)]*\)/g,'').replace(/\//g,'').replace(/\bY\b/g,'ipsilon').trim();
+  const clean = _phSayIt(text.replace(/\s*\([^)]*\)/g,'').replace(/\//g,'').trim());
   const u = _makeUtterance(clean, 'it-IT', 0.88);
   if(onEnd) u.onend = onEnd;
   _ttsDebugLog('speakIt called: "'+clean+'" → voice: '+(u.voice?u.voice.name:'none, lang='+u.lang));
@@ -29987,7 +29994,7 @@ function sentReveal() {
     // AP structures: full sentence, then the structure in English, then in Italian
     var same = function(){ return idx===myIdx && mode==='sentences'; };
     var enS = d.en.replace(/\bINF\b/g,'infinitive');
-    var itS = (d.tense==='SET' ? d.answer : d.inf).replace(/\bINF\b/g,'infinito');
+    var itS = (d.tense==='SET' ? d.answer : d.inf).replace(/\bINF\b/g,'INF');
     speakIt(sentFull(d), function(){ if(same()) speakEn(enS, function(){ if(same()) speakIt(itS); }); });
   } else speakIt(sentFull(d));
   document.body.focus();
