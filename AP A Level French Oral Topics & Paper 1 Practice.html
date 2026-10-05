@@ -3463,9 +3463,18 @@ function _spkGetVoice(langCode) {
   return _spkVoices.find(x => x.lang.startsWith(langBase)) || null;
 }
 
+// Placeholders spoken by the French voice with Andrew's approved phonetic spellings (same as the other AP apps)
+var PH_SAY_FR = { INF: 'yinnf', ADJ: 'adje', NOUN: 'naoune', NOUNS: 'naounze', X: 'ixe', Y: 'i grec', SUBJ: 'seubdje', INDIC: 'yinndik', IMP: 'yimmp' };
+function _phSayFr(text) {
+  return String(text)
+    .replace(/<\/?strong>/g, '')
+    .replace(/\s*\+\s*(?=(?:INF|ADJ|NOUNS?|SUBJ|INDIC|IMP|X|Y)(?![A-Za-zÀ-ÿ]))/g, ' pluss ')   // "que + SUBJ" → "que pluss SUBJ"
+    .replace(/(^|[^A-Za-zÀ-ÿ'’])(INF|ADJ|NOUNS?|SUBJ|INDIC|IMP|X|Y)(?![A-Za-zÀ-ÿ'’])/g, function (a, pre, t) { return pre + PH_SAY_FR[t]; });
+}
 function speak(text, langCode, onEndCallback) {
   if (!_spkSynth) return;
   _spkSynth.cancel();
+  if (langCode && langCode.indexOf('fr') === 0) text = _phSayFr(text);
   const u = new SpeechSynthesisUtterance(text);
   u.lang = langCode;
   u.rate = langCode && langCode.startsWith('en') ? 1.0 : (window._spkRate || 0.9);
