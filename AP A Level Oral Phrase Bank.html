@@ -304,6 +304,12 @@ main{max-width:600px;margin:0 auto;padding:1rem 1rem 0}
     <button class="op-topt" onclick="setOPCount('custom')" id="optc-custom">Custom</button>
     <input id="opCustomInput" type="number" min="1" max="200" value="15" style="display:none;width:60px;padding:4px 8px;border-radius:6px;border:1px solid var(--border);font-size:0.8rem;">
   </div>
+  <div id="opSpotPerRow" style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:12px;">
+    <span style="font-size:0.68rem;color:var(--text3);text-transform:uppercase;letter-spacing:0.06em;font-weight:600;">AP Spot Test &middot; Items per box:</span>
+    <button class="op-topt" onclick="setOPSpotPer(1)" id="opsp-1">1</button>
+    <button class="op-topt" onclick="setOPSpotPer(2)" id="opsp-2">2</button>
+    <button class="op-topt active-op" onclick="setOPSpotPer(3)" id="opsp-3">3</button>
+  </div>
   <button onclick="generateOPTest()" style="padding:9px 22px;background:var(--navy);color:var(--gold);border:none;border-radius:8px;font-weight:700;font-size:0.85rem;cursor:pointer;">Generate Test</button>
       <button onclick="generateOPSpotTest()" style="padding:9px 22px;background:transparent;color:var(--navy,#1a2744);border:1.5px solid var(--navy,#1a2744);border-radius:8px;font-weight:700;font-size:0.85rem;cursor:pointer;margin-left:8px;">&#128203; AP Spot Test</button>
   <div id="opTestOutput" style="margin-top:14px;"></div>
@@ -3785,15 +3791,28 @@ function openOPStudyPDF(){
 
 // ── AP Spot Test ───────────────────────────────────────────────
 var opSpotRows=[], opSpotLabel='', opSpotQFlag='', opSpotAFlag='';
+// items per box (1 · 2 · 3), remembered on this device; default 3
+var opSpotPer=(function(){var v=3;try{v=parseInt(localStorage.getItem('opSpotPer'),10);}catch(e){}return (v===1||v===2||v===3)?v:3;})();
+function opSpotPerUI(){[1,2,3].forEach(function(n){var b=document.getElementById('opsp-'+n);if(b)b.classList.toggle('active-op',n===opSpotPer);});}
+function setOPSpotPer(n){
+  opSpotPer=n; try{localStorage.setItem('opSpotPer',String(n));}catch(e){}
+  opSpotPerUI();
+  // a spot test already on screen is regenerated with the new number of items per box
+  var out=document.getElementById('opTestOutput');
+  if(out&&out.querySelector('[onclick^="openOPSpotTestPDF"]')) generateOPSpotTest();
+}
+opSpotPerUI();
 
 function generateOPSpotTest() {
   var raw=getFiltered();
-  if (raw.length<15){alert('Not enough items for a spot test (need at least 15).');return;}
+  if (raw.length<5){alert('Not enough items for a spot test (need at least 5).');return;}
+  var per=opSpotPer; while(per>1&&raw.length<5*per) per--;
+  var perNote=per<opSpotPer?'Only '+raw.length+' items in this selection — using '+per+' per box':'';
   var f=getLangFrom(), t=getLangTo();
   var qFlag=({en:'&#127468;&#127463;',fr:'&#127467;&#127479;',it:'&#127470;&#127481;',es:'&#127466;&#127480;'})[getLangFrom()]||'', aFlag=({en:'&#127468;&#127463;',fr:'&#127467;&#127479;',it:'&#127470;&#127481;',es:'&#127466;&#127480;'})[getLangTo()]||'';
   var label=(function(){var el=document.getElementById('cat-select');return el?el.options[el.selectedIndex].text:'All Categories';})();
-  var items=[].concat(raw).sort(function(){return Math.random()-0.5;}).slice(0,15);
-  var rows=[]; for(var i=0;i<5;i++) rows.push(items.slice(i*3,i*3+3).map(function(p){
+  var items=[].concat(raw).sort(function(){return Math.random()-0.5;}).slice(0,5*per);
+  var rows=[]; for(var i=0;i<5;i++) rows.push(items.slice(i*per,i*per+per).map(function(p){
     var q=(p[f]||'').replace(/\{SRC\}/g,typeof p.src==='object'?(p.src[f]||''):(p.src||''));
     var a=(p[t]||'').replace(/\{SRC\}/g,typeof p.src==='object'?(p.src[t]||''):(p.src||''));
     return {q:q,a:a};
@@ -3806,10 +3825,10 @@ function generateOPSpotTest() {
   var sR='', tR='';
   rows.forEach(function(group,i){
     group.forEach(function(p,ci){
-      var isFirst=ci===0,isLast=ci===2,col=ic[ci];
+      var isFirst=ci===0,isLast=ci===group.length-1,col=ic[ci];
       var bdr=isLast?'border-bottom:3px solid #1a2744;':'border-bottom:1px dotted #ccc;';
-      var nC=isFirst?'<td style="'+tdN+'" rowspan="3"><div style="font-size:1rem;font-weight:700;">'+(i+1)+'</div><div style="font-size:0.6rem;color:#aaa;">(2)</div></td>':'';
-      var sC=isFirst?'<td style="'+tdSc+'" rowspan="3"></td>':'';
+      var nC=isFirst?'<td style="'+tdN+'" rowspan="'+group.length+'"><div style="font-size:1rem;font-weight:700;">'+(i+1)+'</div><div style="font-size:0.6rem;color:#aaa;">(2)</div></td>':'';
+      var sC=isFirst?'<td style="'+tdSc+'" rowspan="'+group.length+'"></td>':'';
       var q=p.q||'';
       var a=p.a||'';
       var qT='<td style="width:42%;padding:14px;font-size:0.82rem;line-height:1.45;vertical-align:middle;border:1px solid #ddd;border-top:none;border-left:none;'+bdr+';color:'+col+'">'+q+'</td>';
@@ -3829,7 +3848,8 @@ function generateOPSpotTest() {
     +'<button onclick="openOPSpotTestPDF(this,0)" data-t="student" style="padding:7px 14px;border-radius:8px;background:#1a2744;color:#c9a84c;border:none;font-size:0.82rem;cursor:pointer;font-weight:600;">&#128424; Print Student Sheet</button>'
     +'<button onclick="openOPSpotTestPDF(this,1)" data-t="teacher" style="padding:7px 14px;border-radius:8px;background:#c9a84c;color:#1a2744;border:none;font-size:0.82rem;cursor:pointer;font-weight:600;">&#128424; Print Teacher Sheet</button>'
     +'</div>'
-    +'<div style="font-size:0.68rem;color:#888;text-transform:uppercase;margin-bottom:8px;">'+qFlag+' &#x2192; '+aFlag+' &nbsp;&middot;&nbsp; '+label+' &nbsp;&middot;&nbsp; 5 x 3 = 15 items</div>'
+    +'<div style="font-size:0.68rem;color:#888;text-transform:uppercase;margin-bottom:8px;">'+qFlag+' &#x2192; '+aFlag+' &nbsp;&middot;&nbsp; '+label+' &nbsp;&middot;&nbsp; 5 x '+per+' = '+(5*per)+' item'+(5*per===1?'':'s')+'</div>'
+    +(perNote?'<div class="op-spot-note" style="font-size:0.72rem;color:#b05000;margin-bottom:8px;">'+perNote+'</div>':'')
     +'<div style="font-size:0.68rem;font-weight:700;color:#8899bb;text-transform:uppercase;margin-bottom:6px;">Student Sheet (preview)</div>'
     +'<div style="background:#fff;border:1px solid #e2e6f0;border-radius:10px;padding:12px 16px;margin-bottom:16px;">'+tO+sR+'</tbody></table></div>'
     +'<div style="font-size:0.68rem;font-weight:700;color:#8899bb;text-transform:uppercase;margin-bottom:6px;">Teacher Sheet (answer key)</div>'
@@ -3841,14 +3861,15 @@ function openOPSpotTestPDF(btn, isTeacherNum) {
   var type = btn ? btn.dataset.t : (isTeacherNum ? 'teacher' : 'student');
   var rows=opSpotRows,label=opSpotLabel,qFlag=opSpotQFlag,aFlag=opSpotAFlag;
   var isTeacher=type==='teacher';
+  var per=(rows[0]&&rows[0].length)||3;
   var ic=['#1a2744','#b03a2e','#1a6b3a'];
   var tableRows='';
   rows.forEach(function(group,i){
     group.forEach(function(p,ci){
-      var isFirst=ci===0,isLast=ci===2,col=ic[ci];
+      var isFirst=ci===0,isLast=ci===group.length-1,col=ic[ci];
       var bdr=isLast?'border-bottom:3px solid #1a2744;':'border-bottom:1px dotted #ccc;';
-      var nC=isFirst?'<td class="num" rowspan="3"><div class="row-num">'+(i+1)+'</div><div class="marks">(2)</div></td>':'';
-      var sC=isFirst?'<td class="score-col" rowspan="3"></td>':'';
+      var nC=isFirst?'<td class="num" rowspan="'+group.length+'"><div class="row-num">'+(i+1)+'</div><div class="marks">(2)</div></td>':'';
+      var sC=isFirst?'<td class="score-col" rowspan="'+group.length+'"></td>':'';
       var q=p.q||''; var a=p.a||'';
       tableRows+='<tr>'+nC+'<td class="q-item" style="color:'+col+';'+bdr+'">'+q+'</td>'
         +'<td class="a-item" style="'+bdr+'">'+(isTeacher?'<span style="color:'+col+'">'+a+'</span>':'')+'</td>'+sC+'</tr>';
@@ -3881,7 +3902,7 @@ function openOPSpotTestPDF(btn, isTeacherNum) {
     +'td.q-item{width:42%;padding:14px;font-size:0.82rem;line-height:1.45;border-left:none;border-right:1.5px solid #ccc;border-top:none;}'
     +'td.a-item{padding:14px;font-size:0.82rem;line-height:1.45;'+aiBack+'border-left:none;border-right:none;border-top:none;}'
     +'td.score-col{width:52px;text-align:center;border-left:2px solid #1a2744;}'
-    +'tbody tr{height:calc((297mm - 4cm - 60px - 40px - 32px) / 15);}.footer{font-size:0.58rem;color:#ccc;text-align:right;padding-top:5px;flex-shrink:0;}';
+    +'tbody tr{height:calc((297mm - 4cm - 60px - 40px - 32px) / '+(5*per)+');}.footer{font-size:0.58rem;color:#ccc;text-align:right;padding-top:5px;flex-shrink:0;}';
   var html='<!DOCTYPE html><html><head><meta charset="UTF-8">'
     +'<title>AP Spot Test - '+label+' - '+sT+'</title>'
     +'<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;600;700&family=DM+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet">'
@@ -3889,7 +3910,7 @@ function openOPSpotTestPDF(btn, isTeacherNum) {
     +'<div class="page-hdr"><div>'
     +'<div class="hdr-brand">AP A Level &middot; Oral Phrase Bank &middot; Multilingual</div>'
     +'<div class="hdr-title">AP <span>Spot Test</span></div>'
-    +'<div class="hdr-sub">'+label+' &middot; 5 questions &middot; 3 items each &middot; /10</div>'
+    +'<div class="hdr-sub">'+label+' &middot; 5 questions &middot; '+per+' item'+(per===1?'':'s')+' each &middot; /10</div>'
     +'</div><div style="display:flex;align-items:center;">'
     +'<div class="hdr-badge">'+sT+'</div>'
     +'<button class="pbtn no-print" onclick="window.print()">&#128424; Print / PDF</button>'

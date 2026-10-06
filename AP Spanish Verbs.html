@@ -27070,6 +27070,12 @@ oor/2Q==" alt="AP" class="header-photo" onclick="toggleSDEdit()" title="Toggle e
     <button class="sp-topt" onclick="toggleTestOpt('person')" id="topt-person">Person</button>
     <button class="sp-topt" onclick="toggleTestOpt('inf')" id="topt-inf">Infinitive</button>
   </div>
+  <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:16px;">
+    <span style="font-size:0.7rem;color:var(--text3);text-transform:uppercase;letter-spacing:0.06em;">AP Spot Test: items per box:</span>
+    <button class="sp-topt" onclick="setSpSpotPer(1)" id="spspp1">1</button>
+    <button class="sp-topt" onclick="setSpSpotPer(2)" id="spspp2">2</button>
+    <button class="sp-topt active-reg" onclick="setSpSpotPer(3)" id="spspp3">3</button>
+  </div>
   <button onclick="generateSpanishTest()" style="padding:10px 24px;background:var(--accent);color:#1a2744;border:none;border-radius:8px;font-weight:700;font-size:0.9rem;cursor:pointer;">Generate Test</button>
   <button onclick="generateSDSpotTest()" style="padding:9px 22px;background:transparent;color:#1a2744;border:1.5px solid #1a2744;border-radius:8px;font-weight:700;font-size:0.85rem;cursor:pointer;margin-left:8px;">&#128203; AP Spot Test</button>
   </div>
@@ -28351,6 +28357,14 @@ function openSDContentPDF(){
 }
 
 
+// AP Spot Test: items per box (1 · 2 · 3), default 3; falls back to the largest that fits when the selection is small
+var spSpotPer=3;
+function setSpSpotPer(n){
+  spSpotPer=n;
+  [1,2,3].forEach(function(x){var b=document.getElementById('spspp'+x);if(b)b.classList.toggle('active-reg',x===n);});
+  var out=document.getElementById('spTestOutput');
+  if(out && out.querySelector('[data-spotper]')) generateSDSpotTest();
+}
 function generateSDSpotTest(){
   var filtered = VERBS.filter(function(v){
     if(!selectedTenses.has(v.tense)) return false;
@@ -28370,10 +28384,12 @@ function generateSDSpotTest(){
     }
   });
   if(selectedTenses.has('INFINITIVE')) spInfItems().forEach(function(c){ if(!_spotExclude.has(c.inf)) expanded.push({inf:c}); });
-  if(expanded.length<15){alert('Not enough verbs for the current selection (need 15+).');return;}
+  if(expanded.length<5){alert('Not enough verbs for the current selection (need at least 5).');return;}
+  var per=Math.min(spSpotPer,Math.floor(expanded.length/5));
+  var perNote=per<spSpotPer?'Only '+expanded.length+' items in this selection — using '+per+' per box':'';
   var shuffled=[...expanded].sort(function(){return Math.random()-0.5;});
-  var items=shuffled.slice(0,15);
-  var rows=[];for(var i=0;i<5;i++)rows.push(items.slice(i*3,i*3+3).map(function(item){
+  var items=shuffled.slice(0,5*per);
+  var rows=[];for(var i=0;i<5;i++)rows.push(items.slice(i*per,i*per+per).map(function(item){
     if(item.inf){ var c=item.inf; return {q: c.en+(c.usage_en?' '+c.usage_en:'')+(spTestOpts.tense?' [Infinitive]':''), a: c.inf}; }
     var v = item.verb, pi = item.personIdx;
     var ans = v.forms[pi];
@@ -28393,9 +28409,9 @@ function generateSDSpotTest(){
   var sr='',tr2='';
   rows.forEach(function(grp,i){
     grp.forEach(function(p,ci){
-      var on=ci===0,last=ci===2,col=ic[ci],bd=last?'border-bottom:3px solid #1a2744;':'border-bottom:1px dotted #ccc;';
-      var nc=on?'<td style="'+tdN+'" rowspan="3"><div style="font-size:1rem;font-weight:700;">'+(i+1)+'</div><div style="font-size:0.6rem;color:#aaa;">(2)</div></td>':'';
-      var sc=on?'<td style="'+tdSc+'" rowspan="3"></td>':'';
+      var on=ci===0,last=ci===per-1,col=ic[ci],bd=last?'border-bottom:3px solid #1a2744;':'border-bottom:1px dotted #ccc;';
+      var nc=on?'<td style="'+tdN+'" rowspan="'+per+'"><div style="font-size:1rem;font-weight:700;">'+(i+1)+'</div><div style="font-size:0.6rem;color:#aaa;">(2)</div></td>':'';
+      var sc=on?'<td style="'+tdSc+'" rowspan="'+per+'"></td>':'';
       var qt='<td style="width:42%;padding:14px;font-size:0.82rem;line-height:1.45;vertical-align:middle;border:1px solid #ddd;border-top:none;border-left:none;'+bd+';color:'+col+'">'+grp[ci].q+'</td>';
       var at='<td style="padding:14px;font-size:0.82rem;vertical-align:middle;border:1px solid #ddd;border-top:none;border-left:none;'+bd+'"></td>';
       var att='<td style="padding:14px;font-size:0.82rem;line-height:1.45;vertical-align:middle;background:#fffef5;border:1px solid #ddd;border-top:none;border-left:none;'+bd+';color:'+col+'">'+grp[ci].a+'</td>';
@@ -28414,7 +28430,8 @@ function generateSDSpotTest(){
     +'<button onclick="openSDSpotTestPDF(\'student\')" style="padding:7px 14px;border-radius:8px;background:#1a2744;color:#c9a84c;border:none;font-size:0.82rem;cursor:pointer;font-weight:600;">🖨 Print Student Sheet</button>'
     +'<button onclick="openSDSpotTestPDF(\'teacher\')" style="padding:7px 14px;border-radius:8px;background:#c9a84c;color:#1a2744;border:none;font-size:0.82rem;cursor:pointer;font-weight:600;">🖨 Print Teacher Sheet</button>'
     +'</div>'
-    +'<div style="font-size:0.68rem;color:#888;text-transform:uppercase;letter-spacing:0.06em;margin-bottom:8px;">'+qfExpr+' → '+afExpr+' &nbsp;·&nbsp; '+label+' &nbsp;·&nbsp; 5 × 3 = 15 items</div>'
+    +'<div data-spotper="'+per+'" style="font-size:0.68rem;color:#888;text-transform:uppercase;letter-spacing:0.06em;margin-bottom:8px;">'+qfExpr+' → '+afExpr+' &nbsp;·&nbsp; '+label+' &nbsp;·&nbsp; 5 × '+per+' = '+(5*per)+' items</div>'
+    +(perNote?'<div style="font-size:0.78rem;color:#b05000;font-weight:600;margin-bottom:8px;">'+perNote+'</div>':'')
     +'<div style="font-size:0.68rem;font-weight:700;color:#8899bb;text-transform:uppercase;letter-spacing:0.08em;margin-bottom:6px;">Student Sheet (preview)</div>'
     +'<div style="background:#fff;border:1px solid #e2e6f0;border-radius:10px;padding:12px 16px;margin-bottom:16px;">'+to+sr+'</tbody></table></div>'
     +'<div style="font-size:0.68rem;font-weight:700;color:#8899bb;text-transform:uppercase;letter-spacing:0.08em;margin-bottom:6px;">Teacher Sheet (answer key)</div>'
@@ -28424,14 +28441,15 @@ function generateSDSpotTest(){
 
 function openSDSpotTestPDF(type){
   var rows=_stRows,label=_stLabel,qFlag=_stQFlag,aFlag=_stAFlag;
+  var per=(rows[0]||[]).length||3;
   var isTeacher=type==='teacher';
   var ic=['#1a2744','#b03a2e','#1a6b3a'];
   var trows='';
   rows.forEach(function(grp,i){
     grp.forEach(function(p,ci){
-      var on=ci===0,last=ci===2,col=ic[ci],bd=last?'border-bottom:3px solid #1a2744;':'border-bottom:1px dotted #ccc;';
-      var nc=on?'<td class="num" rowspan="3"><div class="row-num">'+(i+1)+'</div><div class="marks">(2)</div></td>':'';
-      var sc=on?'<td class="score-col" rowspan="3"></td>':'';
+      var on=ci===0,last=ci===per-1,col=ic[ci],bd=last?'border-bottom:3px solid #1a2744;':'border-bottom:1px dotted #ccc;';
+      var nc=on?'<td class="num" rowspan="'+per+'"><div class="row-num">'+(i+1)+'</div><div class="marks">(2)</div></td>':'';
+      var sc=on?'<td class="score-col" rowspan="'+per+'"></td>':'';
       trows+='<tr>'+nc+'<td class="q-item" style="color:'+col+';'+bd+'">'+grp[ci].q+'</td>'
         +'<td class="a-item" style="'+bd+'">'+(isTeacher?'<span style="color:'+col+'">'+grp[ci].a+'</span>':'')+'</td>'+sc+'</tr>';
     });
@@ -28459,12 +28477,12 @@ function openSDSpotTestPDF(type){
     'td.q-item{width:42%;padding:14px;font-size:0.82rem;line-height:1.45;border-left:none;border-right:1.5px solid #ccc;border-top:none;}',
     'td.a-item{padding:14px;font-size:0.82rem;line-height:1.45;'+(isTeacher?'background:#fffef5;':'')+'border-left:none;border-right:none;border-top:none;}',
     'td.score-col{width:52px;text-align:center;border-left:2px solid #1a2744;}',
-    'tbody tr{height:calc((297mm - 4cm - 60px - 40px - 32px) / 15);}.footer{font-size:0.58rem;color:#ccc;text-align:right;padding-top:5px;flex-shrink:0;}',
+    'tbody tr{height:calc((297mm - 4cm - 60px - 40px - 32px) / '+(5*per)+');}.footer{font-size:0.58rem;color:#ccc;text-align:right;padding-top:5px;flex-shrink:0;}',
     '</style></head><body>',
     '<div class="ph"><div>',
     '<div class="pb">AP F Block Spanish &nbsp;·&nbsp; Verb Conjugations</div>',
     '<div class="pt">AP <span>Spot Test</span></div>',
-    '<div class="ps">'+label+' &nbsp;·&nbsp; 5 questions &nbsp;·&nbsp; 3 items each &nbsp;·&nbsp; /10</div>',
+    '<div class="ps">'+label+' &nbsp;·&nbsp; 5 questions &nbsp;·&nbsp; '+per+' item'+(per===1?'':'s')+' each &nbsp;·&nbsp; /10</div>',
     '</div><div style="display:flex;align-items:center;">',
     '<div class="badge">'+st+'</div>',
     '<button class="pbtn no-print" onclick="window.print()">&#128424; Print / PDF</button>',

@@ -26945,6 +26945,13 @@ oor/2Q==" style="width:44px;height:44px;border-radius:50%;border:2px solid #c9a8
   </div>
   <button onclick="generateVVTest()" style="padding:9px 22px;background:var(--navy);color:var(--gold);border:none;border-radius:8px;font-weight:700;font-size:0.85rem;cursor:pointer;">Generate Test</button>
   <button onclick="generateVVSpotTest()" style="padding:9px 22px;background:transparent;color:var(--navy);border:1.5px solid var(--navy);border-radius:8px;font-weight:700;font-size:0.85rem;cursor:pointer;margin-left:8px;">📋 AP Spot Test</button>
+  <div style="display:flex;align-items:center;gap:6px;margin-top:10px;">
+    <span style="font-size:0.68rem;color:var(--text3);text-transform:uppercase;letter-spacing:0.06em;font-weight:600;">Items per box:</span>
+    <button class="vv-topt" onclick="setVVSpotItems(1)" id="vvspot-1">1</button>
+    <button class="vv-topt" onclick="setVVSpotItems(2)" id="vvspot-2">2</button>
+    <button class="vv-topt active-vv" onclick="setVVSpotItems(3)" id="vvspot-3">3</button>
+    <span style="font-size:0.65rem;color:var(--text3);margin-left:4px;" id="vvSpotInfo">5 boxes × 3 = 15 items</span>
+  </div>
   <div id="vvTestOutput" style="margin-top:14px;"></div>
 </div>
 
@@ -28170,6 +28177,15 @@ let sdTestItems = [], sdTestSetLabel = '';
 let vvPlainSheet = '', vvPlainAnswers = '';
 let vvTestItems = [], vvTestSectionLabel = '', vvTestLangFrom = '', vvTestLangTo = '';
 let vvSpotRows = [], vvSpotLabel = '', vvSpotQIdx = 0, vvSpotAIdx = 1, vvSpotQFlag = '🇬🇧', vvSpotAFlag = '🇫🇷';
+let vvSpotItemsPerRow = 3;
+function setVVSpotItems(n) {
+  vvSpotItemsPerRow = n;
+  document.querySelectorAll('[id^="vvspot-"]').forEach(b => b.classList.toggle('active-vv', b.id === 'vvspot-' + n));
+  document.querySelectorAll('#vvSpotInfo').forEach(i => { i.textContent = '5 boxes × ' + n + ' = ' + (5*n) + ' items'; });
+  // a spot test already on screen is regenerated with the new number
+  const out = document.getElementById('vvTestOutput');
+  if (out && out.querySelector('[data-vv-spot]')) generateVVSpotTest();
+}
 
 function showVVTestPanel() {
   const p = document.getElementById('vvTestPanel');
@@ -28403,6 +28419,9 @@ function setSDSpotItems(n) {
   });
   const info = document.getElementById('sdSpotInfo');
   if (info) info.textContent = '5 rows × ' + n + ' = ' + (5*n) + ' sentences';
+  // a spot test already on screen is regenerated with the new number
+  const out = document.getElementById('sdTestOutput');
+  if (out && out.querySelector('[data-sd-spot]')) generateSDSpotTest();
 }
 
 // ============================================================
@@ -28524,6 +28543,20 @@ function _buildSpotPrintHTML(opts) {
 // print dialog. document.write works reliably on both Safari/Mac and
 // Chrome/Windows, and the spot-test prints all auto-trigger window.print()
 // on load anyway.
+// AP Spot Test sizing: 5 boxes, `per` items each (1-3). If the selection is too
+// small for the chosen number, use the largest per-box that fits (min 1 per box);
+// returns null when there are fewer than 5 items (caller refuses).
+function apSpotFit(n, per) {
+  per = per || 3;
+  if (n < 5) return null;
+  const use = Math.max(1, Math.min(per, Math.floor(n / 5)));
+  return { per: use, note: use < per ? 'Only ' + n + ' items in this selection — using ' + use + ' per box' : '' };
+}
+function apSpotNoteHTML(note) {
+  return note ? '<div class="ap-spot-note" style="font-size:0.7rem;color:#b05000;font-weight:600;margin-bottom:6px;">⚠️ ' + note + '</div>' : '';
+}
+function apSpotAnsH(per) { return [0, 36, 48, 72][per] || 72; }   // preview answer space per box
+
 function _openSpotPrintWindow(html) {
   const w = window.open('', '_blank');
   if (!w) { alert('Pop-up blocked — please allow pop-ups for this page and try again.'); return; }
@@ -28538,9 +28571,10 @@ function generateSDSpotTest() {
   const setKey = sdState.currentSet;
   const dirLabel = isToFr ? '→ French' : '→ English';
 
-  const itemsPerRow = sdSpotItemsPerRow || 2;
+  const fit = apSpotFit(pool.length, sdSpotItemsPerRow || 2);
+  if (!fit) { alert('Need at least 5 sentences for a spot test (' + pool.length + ' available).'); return; }
+  const itemsPerRow = fit.per;
   const totalNeeded = 5 * itemsPerRow;
-  if (pool.length < totalNeeded) { alert('Need at least ' + totalNeeded + ' sentences for a spot test with ' + itemsPerRow + ' items per row.'); return; }
   const shuffled = [...pool].sort(() => Math.random() - 0.5);
   const items = shuffled.slice(0, totalNeeded);
   const rows = [];
@@ -28568,7 +28602,7 @@ function generateSDSpotTest() {
     studentRows += '<tr style="'+trStyle+'">'
       + '<td style="'+tdNumStyle+'">' + (i+1) + '<div style="font-size:0.58rem;color:#aaa;font-weight:400;">(2)</div></td>'
       + '<td style="'+tdQStyle+'">' + buildLines(group, 'q') + '</td>'
-      + '<td style="'+tdAStyle+'background:#f9f9f9;"><div style="height:72px;"></div></td>'
+      + '<td style="'+tdAStyle+'background:#f9f9f9;"><div style="height:'+apSpotAnsH(itemsPerRow)+'px;"></div></td>'
       + '<td style="'+tdScoreStyle+'"></td>'
       + '</tr>';
     teacherRows += '<tr style="'+trStyle+'">'
@@ -28595,7 +28629,7 @@ function generateSDSpotTest() {
   // JSON output contains double quotes. Route through a global instead.
   window._sdSpotData = { rows, opts: {isToFr, setLabel, dirLabel, itemsPerRow} };
   document.getElementById('sdTestOutput').innerHTML =
-    '<div style="font-size:0.75rem;font-weight:700;color:var(--navy);margin-bottom:6px;">📋 AP Spot Test — ' + setLabel + ' (' + dirLabel + ') — /' + (5 * itemsPerRow * 2) + '</div>'  + '<div style="font-size:0.7rem;color:var(--text3);margin-bottom:8px;">Student sheet (blank) · Teacher sheet (answers)</div>'
+    '<div data-sd-spot="' + itemsPerRow + '" style="font-size:0.75rem;font-weight:700;color:var(--navy);margin-bottom:6px;">📋 AP Spot Test — ' + setLabel + ' (' + dirLabel + ') — /' + (5 * itemsPerRow * 2) + '</div>'  + apSpotNoteHTML(fit.note) + '<div style="font-size:0.7rem;color:var(--text3);margin-bottom:8px;">Student sheet (blank) · Teacher sheet (answers) · 5 rows × ' + itemsPerRow + ' = ' + totalNeeded + ' sentences</div>'
     + previewStudent
     + '<div style="font-size:0.72rem;font-weight:700;color:var(--navy);margin:10px 0 4px;">Answer Key</div>'
     + previewTeacher
@@ -28815,7 +28849,9 @@ function generateVVSpotTest() {
   const introSel = document.getElementById('intro-vv-select');
   const setLabel = introSel ? introSel.options[introSel.selectedIndex].text : key.replace(/_/g,' ');
   const raw = VV_DATA[key] || [];
-  if (raw.length < 15) { alert('Not enough items in this VV set for a spot test (need at least 15).'); return; }
+  const fit = apSpotFit(raw.length, vvSpotItemsPerRow || 3);
+  if (!fit) { alert('Not enough items in this VV set for a spot test (need at least 5).'); return; }
+  const per = fit.per;
 
   const isEnToFr = fromLang === 'en';
   const qIdx = isEnToFr ? 0 : 1;
@@ -28824,9 +28860,9 @@ function generateVVSpotTest() {
   const aFlag = isEnToFr ? '🇫🇷' : '🇬🇧';
 
   const shuffled = [...raw].sort(() => Math.random() - 0.5);
-  const items = shuffled.slice(0, 15);
+  const items = shuffled.slice(0, 5 * per);
   const rows = [];
-  for (let i = 0; i < 5; i++) rows.push(items.slice(i * 3, i * 3 + 3));
+  for (let i = 0; i < 5; i++) rows.push(items.slice(i * per, i * per + per));
 
   // Store for PDF
   vvSpotRows  = rows;
@@ -28860,7 +28896,7 @@ function generateVVSpotTest() {
     studentRows += '<tr style="'+trBorder+'">'
       + '<td style="'+tdNumStyle+'">' + (i+1) + '<div style="font-size:0.58rem;color:#aaa;font-weight:400;">(2)</div></td>'
       + '<td style="'+tdQStyle+'">' + buildItemLines(group, qIdx, true) + '</td>'
-      + '<td style="'+tdAStyle+'background:#f9f9f9;"><div style="height:72px;"></div></td>'
+      + '<td style="'+tdAStyle+'background:#f9f9f9;"><div style="height:'+apSpotAnsH(per)+'px;"></div></td>'
       + '<td style="'+tdScoreStyle+'"></td>'
       + '</tr>';
     teacherRows += '<tr style="'+trBorder+'">'
@@ -28880,12 +28916,13 @@ function generateVVSpotTest() {
     + '</tr></thead><tbody>';
 
   document.getElementById('vvTestOutput').innerHTML =
-    '<div style="display:flex;gap:8px;margin-bottom:10px;flex-wrap:wrap;">'
+    '<div data-vv-spot="' + per + '" style="display:flex;gap:8px;margin-bottom:10px;flex-wrap:wrap;">'
     + '<button onclick="openVVSpotTestPDF(\'student\')" style="padding:7px 14px;border-radius:8px;background:#1a2744;color:#c9a84c;border:none;font-size:0.82rem;cursor:pointer;font-weight:600;">🖨 Print Student Sheet</button>'
     + '<button onclick="openVVSpotTestPDF(\'teacher\')" style="padding:7px 14px;border-radius:8px;background:#c9a84c;color:#1a2744;border:none;font-size:0.82rem;cursor:pointer;font-weight:600;">🖨 Print Teacher Sheet</button>'
     + '</div>'
     + '<div style="font-size:0.68rem;color:#888;text-transform:uppercase;letter-spacing:0.06em;margin-bottom:8px;">'
-    + qFlag + ' → ' + aFlag + ' &nbsp;·&nbsp; ' + setLabel + ' &nbsp;·&nbsp; 5 × 3 = 15 items</div>'
+    + qFlag + ' → ' + aFlag + ' &nbsp;·&nbsp; ' + setLabel + ' &nbsp;·&nbsp; 5 × ' + per + ' = ' + (5*per) + ' items</div>'
+    + apSpotNoteHTML(fit.note)
     + '<div style="font-size:0.68rem;font-weight:700;color:#8899bb;text-transform:uppercase;letter-spacing:0.08em;margin-bottom:6px;">Student Sheet (preview)</div>'
     + '<div style="background:#fff;border:1px solid #e2e6f0;border-radius:10px;padding:12px 16px;margin-bottom:16px;">'
     + tableOpen + studentRows + '</tbody></table>'
@@ -28908,23 +28945,24 @@ function openVVSpotTestPDF(type) {
   const aFlag = vvSpotAFlag;
   const isTeacher = type === 'teacher';
   const itemCols = ['#1a2744','#b03a2e','#1a6b3a'];
+  const per = (rows[0] || []).length || 3;
 
   let tableRows = '';
   rows.forEach(function(group, i) {
     const qLines = group.map(function(p) { return cleanVVHtml(p[qIdx]); });
     const aLines = group.map(function(p) { return cleanVVHtml(p[aIdx]); });
-    // 3 sub-rows per question — num and score cells span all 3
+    // one sub-row per item — num and score cells span them all
     group.forEach(function(p, ci) {
       const isFirst = ci === 0;
-      const isLast  = ci === 2;
+      const isLast  = ci === group.length - 1;
       const colour  = itemCols[ci];
       const borderBottom = isLast ? 'border-bottom:3px solid #1a2744;' : 'border-bottom:1px dotted #ccc;';
       // num cell only on first sub-row
       const numCell = isFirst
-        ? '<td class="num" rowspan="3"><div class="row-num">' + (i+1) + '</div><div class="marks">(2)</div></td>'
+        ? '<td class="num" rowspan="' + group.length + '"><div class="row-num">' + (i+1) + '</div><div class="marks">(2)</div></td>'
         : '';
       const scoreCell = isFirst
-        ? '<td class="score-col" rowspan="3"></td>'
+        ? '<td class="score-col" rowspan="' + group.length + '"></td>'
         : '';
       tableRows += '<tr>'
         + numCell
@@ -28997,7 +29035,7 @@ function openVVSpotTestPDF(type) {
        - The bottom spacer row absorbs any leftover vertical space. */
     'tbody tr.spacer{height:100%;}',
     'tbody tr.spacer td{border:none;padding:0;min-height:0;}',
-    'tbody tr:not(.spacer) td.q-item,tbody tr:not(.spacer) td.a-item{min-height:calc((297mm - 4cm - 60px - 40px - 32px) / 16);}',
+    'tbody tr:not(.spacer) td.q-item,tbody tr:not(.spacer) td.a-item{min-height:calc((297mm - 4cm - 60px - 40px - 32px) / ' + (5 * per + 1) + ');}',
 
     /* Footer */
     '.footer{font-size:0.58rem;color:#ccc;text-align:right;padding-top:5px;flex-shrink:0;}',
@@ -29008,7 +29046,7 @@ function openVVSpotTestPDF(type) {
     '  <div class="hdr-left">',
     '    <div class="hdr-brand">AP A Level &nbsp;·&nbsp; French VV Pairs</div>',
     '    <div class="hdr-title">AP <span>Spot Test</span></div>',
-    '    <div class="hdr-sub">' + label + ' &nbsp;·&nbsp; 5 questions &nbsp;·&nbsp; 3 items each &nbsp;·&nbsp; /10</div>',
+    '    <div class="hdr-sub">' + label + ' &nbsp;·&nbsp; 5 questions &nbsp;·&nbsp; ' + per + (per === 1 ? ' item' : ' items') + ' each &nbsp;·&nbsp; /10</div>',
     '  </div>',
     '  <div style="display:flex;align-items:center;">',
     '    <div class="hdr-badge">' + sheetTitle + '</div>',
@@ -63147,13 +63185,14 @@ function grOptionsSpotTest(setId) {
   const set = GR_SETS.find(s => s.id === setId);
   const out = document.getElementById('grOptionsTestOutput');
   if (!set || !out) return;
-  const itemsPerRow = grSpotItemsPerRow || 2;
-  const totalNeeded = 5 * itemsPerRow;
   const pool = grFilterSentences(set.sentences);
-  if (pool.length < totalNeeded) {
-    alert('Need at least ' + totalNeeded + ' sentences for a spot test (' + pool.length + ' available).');
+  const fit = apSpotFit(pool.length, grSpotItemsPerRow || 2);
+  if (!fit) {
+    alert('Need at least 5 sentences for a spot test (' + pool.length + ' available).');
     return;
   }
+  const itemsPerRow = fit.per;
+  const totalNeeded = 5 * itemsPerRow;
   const items = [...pool].sort(() => Math.random() - 0.5).slice(0, totalNeeded);
   const rows = [];
   for (let i = 0; i < 5; i++) rows.push(items.slice(i * itemsPerRow, i * itemsPerRow + itemsPerRow));
@@ -63170,7 +63209,7 @@ function grOptionsSpotTest(setId) {
   let studentRows = '', teacherRows = '';
   rows.forEach((group, i) => {
     const trStyle = 'border-bottom:3px solid #1a2744;';
-    studentRows += '<tr style="'+trStyle+'"><td style="'+tdNumStyle+'">'+(i+1)+'<div style="font-size:0.58rem;color:#aaa;font-weight:400;">(2)</div></td><td style="'+tdQStyle+'">'+buildLines(group,'en')+'</td><td style="'+tdAStyle+'background:#f9f9f9;"><div style="height:72px;"></div></td><td style="'+tdScoreStyle+'"></td></tr>';
+    studentRows += '<tr style="'+trStyle+'"><td style="'+tdNumStyle+'">'+(i+1)+'<div style="font-size:0.58rem;color:#aaa;font-weight:400;">(2)</div></td><td style="'+tdQStyle+'">'+buildLines(group,'en')+'</td><td style="'+tdAStyle+'background:#f9f9f9;"><div style="height:'+apSpotAnsH(itemsPerRow)+'px;"></div></td><td style="'+tdScoreStyle+'"></td></tr>';
     teacherRows += '<tr style="'+trStyle+'"><td style="'+tdNumStyle+'">'+(i+1)+'<div style="font-size:0.58rem;color:#aaa;font-weight:400;">(2)</div></td><td style="'+tdQStyle+'">'+buildLines(group,'en')+'</td><td style="'+tdAStyle+'">'+buildLines(group,'fr')+'</td><td style="'+tdScoreStyle+'"></td></tr>';
   });
   const tableHeader = '<tr><th style="'+thStyle+'width:28px;">#</th><th style="'+thStyle+'">English</th><th style="'+thStyle+'">French</th><th style="'+thStyle+'width:36px;">/ 2</th></tr>';
@@ -63184,7 +63223,9 @@ function grOptionsSpotTest(setId) {
     + '<div style="display:flex;align-items:center;gap:6px;margin-bottom:10px;">'
     + '<span style="font-size:0.68rem;color:var(--text3);text-transform:uppercase;letter-spacing:0.06em;font-weight:600;">Items per box:</span>'
     + [1,2,3].map(n=>'<button class="vv-topt'+(grSpotItemsPerRow===n?' active-vv':'')+'" onclick="grSpotItemsPerRow='+n+';grOptionsSpotTest(\''+setId+'\')">'+n+'</button>').join('')
+    + '<span style="font-size:0.65rem;color:var(--text3);margin-left:4px;">5 rows × '+itemsPerRow+' = '+totalNeeded+' sentences</span>'
     + '</div>'
+    + apSpotNoteHTML(fit.note)
     + '<table style="width:100%;border-collapse:collapse;margin-bottom:8px;">'+tableHeader+studentRows+'</table>'
     + '<div style="font-size:0.72rem;font-weight:700;color:var(--navy);margin:10px 0 4px;">Answer Key</div>'
     + '<table style="width:100%;border-collapse:collapse;">'+tableHeader+teacherRows+'</table>'
@@ -63936,6 +63977,9 @@ function setGrSpotItems(n) {
   document.querySelectorAll('#grSpotInfo').forEach(info => {
     info.textContent = '5 rows × ' + n + ' = ' + (5*n) + ' sentences';
   });
+  // a spot test already on screen is regenerated with the new number
+  const out = document.getElementById('grTestOutput');
+  if (out && out.querySelector('[data-gr-spot]')) generateGrammarSpotTestInline();
 }
 
 function generateGrammarTestInline() {
@@ -63977,20 +64021,21 @@ function generateGrammarTestInline() {
 function generateGrammarSpotTestInline() {
   const set = grState.setId === '__multi__' ? { emoji: '🎯', title: (grState.multiIds||[]).length + ' Grammar Sets', chip: 'Mixed', color: '#e8e0f0', textColor: '#5544aa', rules: '' } : GR_SETS.find(s => s.id === grState.setId);
   if (!set) return;
-  const itemsPerRow = grSpotItemsPerRow || 2;
-  const totalNeeded = 5 * itemsPerRow;
   const pool2 = grState.setId === '__multi__' ? [...grState.shuffled] : grFilterSentences([...set.sentences]);
-  if (pool2.length < totalNeeded) {
+  if (pool2.length < 5) {
     // Try falling back to unfiltered if topic filter is the problem
     const fallback = grState.setId === '__multi__' ? pool2 : [...set.sentences];
-    if (fallback.length >= totalNeeded) {
-      alert('Not enough sentences for ' + itemsPerRow + ' items per box with the current topic filter (' + pool2.length + ' available). Showing all topics instead.');
+    if (fallback.length >= 5) {
+      alert('Not enough sentences for a spot test with the current topic filter (' + pool2.length + ' available). Showing all topics instead.');
       pool2.length = 0; fallback.forEach(s => pool2.push(s));
     } else {
-      alert('Need at least ' + totalNeeded + ' sentences for a spot test with ' + itemsPerRow + ' items per box (only ' + pool2.length + ' available).');
+      alert('Need at least 5 sentences for a spot test (only ' + pool2.length + ' available).');
       return;
     }
   }
+  const fit = apSpotFit(pool2.length, grSpotItemsPerRow || 2);
+  const itemsPerRow = fit.per;
+  const totalNeeded = 5 * itemsPerRow;
 
   const shuffled = pool2.sort(() => Math.random() - 0.5);
   const items = shuffled.slice(0, totalNeeded);
@@ -64014,7 +64059,7 @@ function generateGrammarSpotTestInline() {
   let studentRows = '', teacherRows = '';
   rows.forEach((group, i) => {
     const trStyle = 'border-bottom:3px solid #1a2744;';
-    studentRows += '<tr style="'+trStyle+'"><td style="'+tdNumStyle+'">'+(i+1)+'<div style="font-size:0.58rem;color:#aaa;font-weight:400;">(2)</div></td><td style="'+tdQStyle+'">'+buildLines(group,'en')+'</td><td style="'+tdAStyle+'background:#f9f9f9;"><div style="height:72px;"></div></td><td style="'+tdScoreStyle+'"></td></tr>';
+    studentRows += '<tr style="'+trStyle+'"><td style="'+tdNumStyle+'">'+(i+1)+'<div style="font-size:0.58rem;color:#aaa;font-weight:400;">(2)</div></td><td style="'+tdQStyle+'">'+buildLines(group,'en')+'</td><td style="'+tdAStyle+'background:#f9f9f9;"><div style="height:'+apSpotAnsH(itemsPerRow)+'px;"></div></td><td style="'+tdScoreStyle+'"></td></tr>';
     teacherRows += '<tr style="'+trStyle+'"><td style="'+tdNumStyle+'">'+(i+1)+'<div style="font-size:0.58rem;color:#aaa;font-weight:400;">(2)</div></td><td style="'+tdQStyle+'">'+buildLines(group,'en')+'</td><td style="'+tdAStyle+'">'+buildLines(group,'fr')+'</td><td style="'+tdScoreStyle+'"></td></tr>';
   });
 
@@ -64028,8 +64073,9 @@ function generateGrammarSpotTestInline() {
   window._grSpotTestData = { rows: rows, opts: { setTitle: set.title, itemsPerRow: itemsPerRow } };
 
   document.getElementById('grTestOutput').innerHTML =
-    '<div style="font-size:0.75rem;font-weight:700;color:var(--navy);margin-bottom:6px;">📋 AP Spot Test — '+set.title+' — /'+(5*itemsPerRow*2)+'</div>'
-    + '<div style="font-size:0.7rem;color:var(--text3);margin-bottom:8px;">Student sheet (blank) · Answer key</div>'
+    '<div data-gr-spot="'+itemsPerRow+'" style="font-size:0.75rem;font-weight:700;color:var(--navy);margin-bottom:6px;">📋 AP Spot Test — '+set.title+' — /'+(5*itemsPerRow*2)+'</div>'
+    + apSpotNoteHTML(fit.note)
+    + '<div style="font-size:0.7rem;color:var(--text3);margin-bottom:8px;">Student sheet (blank) · Answer key · 5 rows × '+itemsPerRow+' = '+totalNeeded+' sentences</div>'
     + previewStudent
     + '<div style="font-size:0.72rem;font-weight:700;color:var(--navy);margin:10px 0 4px;">Answer Key</div>'
     + previewTeacher
@@ -67451,14 +67497,15 @@ function generateGrEwsSpotTestMenu() {
     pool = [...data.items];
     title = data.title;
   }
-  const itemsPerRow = grEwsSpotItemsPerRow || 2;
-  const totalNeeded = 5 * itemsPerRow;
   pool = grEwsApplyTypeFilter(pool);
   pool = pool.sort(() => Math.random() - 0.5);
-  if (pool.length < totalNeeded) {
-    alert('Need at least ' + totalNeeded + ' items for a spot test (' + pool.length + ' available with current filter "' + grEwsTypeFilter + '"). Try changing the filter to All.');
+  const fit = apSpotFit(pool.length, grEwsSpotItemsPerRow || 2);
+  if (!fit) {
+    alert('Need at least 5 items for a spot test (' + pool.length + ' available with current filter "' + grEwsTypeFilter + '"). Try changing the filter to All.');
     return;
   }
+  const itemsPerRow = fit.per;
+  const totalNeeded = 5 * itemsPerRow;
   const items = pool.slice(0, totalNeeded);
   const rows = [];
   for (let i = 0; i < 5; i++) rows.push(items.slice(i * itemsPerRow, i * itemsPerRow + itemsPerRow));
@@ -67480,7 +67527,7 @@ function generateGrEwsSpotTestMenu() {
   let studentRows = '', teacherRows = '';
   rows.forEach((group, i) => {
     const trStyle = 'border-bottom:3px solid #1a2744;';
-    studentRows += '<tr style="'+trStyle+'"><td style="'+tdNumStyle+'">'+(i+1)+'<div style="font-size:0.58rem;color:#aaa;font-weight:400;">(2)</div></td><td style="'+tdQStyle+'">'+buildLines(group,'en')+'</td><td style="'+tdAStyle+'background:#f9f9f9;"><div style="height:72px;"></div></td><td style="'+tdScoreStyle+'"></td></tr>';
+    studentRows += '<tr style="'+trStyle+'"><td style="'+tdNumStyle+'">'+(i+1)+'<div style="font-size:0.58rem;color:#aaa;font-weight:400;">(2)</div></td><td style="'+tdQStyle+'">'+buildLines(group,'en')+'</td><td style="'+tdAStyle+'background:#f9f9f9;"><div style="height:'+apSpotAnsH(itemsPerRow)+'px;"></div></td><td style="'+tdScoreStyle+'"></td></tr>';
     teacherRows += '<tr style="'+trStyle+'"><td style="'+tdNumStyle+'">'+(i+1)+'<div style="font-size:0.58rem;color:#aaa;font-weight:400;">(2)</div></td><td style="'+tdQStyle+'">'+buildLines(group,'en')+'</td><td style="'+tdAStyle+'">'+buildLines(group,'fr')+'</td><td style="'+tdScoreStyle+'"></td></tr>';
   });
   const tableHeader = '<tr><th style="'+thStyle+'width:28px;">#</th><th style="'+thStyle+'">English</th><th style="'+thStyle+'">French</th><th style="'+thStyle+'width:36px;">/ 2</th></tr>';
@@ -67496,7 +67543,9 @@ function generateGrEwsSpotTestMenu() {
     + '<div style="display:flex;align-items:center;gap:6px;margin-bottom:10px;">'
     + '<span style="font-size:0.68rem;color:var(--text3);text-transform:uppercase;letter-spacing:0.06em;font-weight:600;">Items per box:</span>'
     + [1,2,3].map(n=>'<button class="vv-topt'+(grEwsSpotItemsPerRow===n?' active-vv':'')+'" onclick="grEwsSpotItemsPerRow='+n+';generateGrEwsSpotTestMenu()">'+n+'</button>').join('')
+    + '<span style="font-size:0.65rem;color:var(--text3);margin-left:4px;">5 rows × '+itemsPerRow+' = '+totalNeeded+' items</span>'
     + '</div>'
+    + apSpotNoteHTML(fit.note)
     + '<div style="margin-bottom:8px;">'
     + '<div style="font-size:0.68rem;color:var(--text3);text-transform:uppercase;letter-spacing:0.06em;font-weight:600;margin-bottom:4px;">Item type:</div>'
     + '<div style="display:flex;flex-wrap:wrap;gap:4px;">'+grEwsBuildTypeFilterRow('generateGrEwsSpotTestMenu()')+'</div>'
@@ -68006,6 +68055,9 @@ function grEwsSetSpotItems(n) {
     const btn = document.getElementById('grewsspot-' + i);
     if (btn) btn.classList.toggle('active-vv', i === n);
   });
+  // a spot test already on screen is regenerated with the new number
+  const out = document.getElementById('grEwsTestOutput');
+  if (out && out.querySelector('[data-grews-spot]')) generateGrEwsSpotTestInline();
 }
 
 // ============================================================
@@ -68093,13 +68145,14 @@ function grEwsPrintTest(mode) {
 function generateGrEwsSpotTestInline() {
   const data = GR_EWS_DATA[grEwsState.grKey];
   if (!data) return;
-  const itemsPerRow = grEwsSpotItemsPerRow || 2;
-  const totalNeeded = 5 * itemsPerRow;
   const pool = [...data.items].sort(() => Math.random() - 0.5);
-  if (pool.length < totalNeeded) {
-    alert('Need at least ' + totalNeeded + ' items for a spot test with ' + itemsPerRow + ' per box (' + pool.length + ' available).');
+  const fit = apSpotFit(pool.length, grEwsSpotItemsPerRow || 2);
+  if (!fit) {
+    alert('Need at least 5 items for a spot test (' + pool.length + ' available).');
     return;
   }
+  const itemsPerRow = fit.per;
+  const totalNeeded = 5 * itemsPerRow;
   const items = pool.slice(0, totalNeeded);
   const rows = [];
   for (let i = 0; i < 5; i++) rows.push(items.slice(i * itemsPerRow, i * itemsPerRow + itemsPerRow));
@@ -68123,7 +68176,7 @@ function generateGrEwsSpotTestInline() {
   let studentRows = '', teacherRows = '';
   rows.forEach((group, i) => {
     const trStyle = 'border-bottom:3px solid #1a2744;';
-    studentRows += '<tr style="'+trStyle+'"><td style="'+tdNumStyle+'">'+(i+1)+'<div style="font-size:0.58rem;color:#aaa;font-weight:400;">(2)</div></td><td style="'+tdQStyle+'">'+buildLines(group,'en')+'</td><td style="'+tdAStyle+'background:#f9f9f9;"><div style="height:72px;"></div></td><td style="'+tdScoreStyle+'"></td></tr>';
+    studentRows += '<tr style="'+trStyle+'"><td style="'+tdNumStyle+'">'+(i+1)+'<div style="font-size:0.58rem;color:#aaa;font-weight:400;">(2)</div></td><td style="'+tdQStyle+'">'+buildLines(group,'en')+'</td><td style="'+tdAStyle+'background:#f9f9f9;"><div style="height:'+apSpotAnsH(itemsPerRow)+'px;"></div></td><td style="'+tdScoreStyle+'"></td></tr>';
     teacherRows += '<tr style="'+trStyle+'"><td style="'+tdNumStyle+'">'+(i+1)+'<div style="font-size:0.58rem;color:#aaa;font-weight:400;">(2)</div></td><td style="'+tdQStyle+'">'+buildLines(group,'en')+'</td><td style="'+tdAStyle+'">'+buildLines(group,'fr')+'</td><td style="'+tdScoreStyle+'"></td></tr>';
   });
 
@@ -68135,8 +68188,9 @@ function generateGrEwsSpotTestInline() {
   const out = document.getElementById('grEwsTestOutput');
   if (!out) return;
   out.innerHTML =
-    '<div style="font-size:0.75rem;font-weight:700;color:var(--navy);margin-bottom:6px;">📋 AP Spot Test — '+data.title+' — /'+(5*itemsPerRow*2)+'</div>'
-    + '<div style="font-size:0.7rem;color:var(--text3);margin-bottom:8px;">Student sheet · Answer key</div>'
+    '<div data-grews-spot="'+itemsPerRow+'" style="font-size:0.75rem;font-weight:700;color:var(--navy);margin-bottom:6px;">📋 AP Spot Test — '+data.title+' — /'+(5*itemsPerRow*2)+'</div>'
+    + apSpotNoteHTML(fit.note)
+    + '<div style="font-size:0.7rem;color:var(--text3);margin-bottom:8px;">Student sheet · Answer key · 5 rows × '+itemsPerRow+' = '+totalNeeded+' items</div>'
     + previewStudent
     + '<div style="font-size:0.72rem;font-weight:700;color:var(--navy);margin:10px 0 4px;">Answer Key</div>'
     + previewTeacher
@@ -68647,15 +68701,18 @@ function generateMlfTest() {
 // ==================== MLF SPOT TEST ====================
 
 let mlfSpotRows = [], mlfSpotFrom = 'en', mlfSpotTo = 'fr';
+let mlfSpotItemsPerRow = 3;
 
 function generateMlfSpotTest() {
   const pool = mlfGetPool();
-  const needed = 15;
-  if (pool.length < needed) { alert('Need at least 15 formulas for a spot test. Current pair has ' + pool.length + '.'); return; }
+  const fit = apSpotFit(pool.length, mlfSpotItemsPerRow || 3);
+  if (!fit) { alert('Need at least 5 formulas for a spot test. Current pair has ' + pool.length + '.'); return; }
+  const per = fit.per;
+  const needed = 5 * per;
 
   const items = [...pool].sort(() => Math.random() - 0.5).slice(0, needed);
   const rows = [];
-  for (let i = 0; i < 5; i++) rows.push(items.slice(i * 3, i * 3 + 3));
+  for (let i = 0; i < 5; i++) rows.push(items.slice(i * per, i * per + per));
 
   mlfSpotRows = rows;
   mlfSpotFrom = mlfState.fromLang;
@@ -68683,7 +68740,7 @@ function generateMlfSpotTest() {
     const trStyle = 'border-bottom:3px solid #2a1a5e;';
     studentRows += '<tr style="'+trStyle+'"><td style="'+tdNumStyle+'">'+(i+1)+'<div style="font-size:0.58rem;color:#aaa;font-weight:400;">(2)</div></td>'
       + '<td style="'+tdQStyle+'">'+buildLines(group, mlfState.fromLang, false)+'</td>'
-      + '<td style="'+tdAStyle+'background:#f9f9f9;"><div style="height:72px;"></div></td>'
+      + '<td style="'+tdAStyle+'background:#f9f9f9;"><div style="height:'+apSpotAnsH(per)+'px;"></div></td>'
       + '<td style="'+tdScoreStyle+'"></td></tr>';
     teacherRows += '<tr style="'+trStyle+'"><td style="'+tdNumStyle+'">'+(i+1)+'<div style="font-size:0.58rem;color:#aaa;font-weight:400;">(2)</div></td>'
       + '<td style="'+tdQStyle+'">'+buildLines(group, mlfState.fromLang, false)+'</td>'
@@ -68707,8 +68764,13 @@ function generateMlfSpotTest() {
     + '<button onclick="printMlfSpotTest(\'student\')" style="padding:7px 14px;border-radius:8px;background:#2a1a5e;color:#fff;border:none;font-size:0.82rem;cursor:pointer;font-weight:600;">🖨 Print Student Sheet</button>'
     + '<button onclick="printMlfSpotTest(\'teacher\')" style="padding:7px 14px;border-radius:8px;background:#5a2d8a;color:#fff;border:none;font-size:0.82rem;cursor:pointer;font-weight:600;">🖨 Print Teacher Sheet</button>'
     + '</div>'
+    + '<div style="display:flex;align-items:center;gap:6px;margin-bottom:10px;">'
+    + '<span style="font-size:0.68rem;color:var(--text3);text-transform:uppercase;letter-spacing:0.06em;font-weight:600;">Items per box:</span>'
+    + [1,2,3].map(n=>'<button class="vv-topt'+(mlfSpotItemsPerRow===n?' active-vv':'')+'" onclick="mlfSpotItemsPerRow='+n+';generateMlfSpotTest()">'+n+'</button>').join('')
+    + '</div>'
     + '<div style="font-size:0.68rem;color:#888;text-transform:uppercase;letter-spacing:0.06em;margin-bottom:8px;">'
-    + fromLabel + ' → ' + toLabel + ' &nbsp;·&nbsp; AP Metalanguage Formulae &nbsp;·&nbsp; 5 × 3 = 15 items</div>'
+    + fromLabel + ' → ' + toLabel + ' &nbsp;·&nbsp; AP Metalanguage Formulae &nbsp;·&nbsp; 5 × ' + per + ' = ' + needed + ' items</div>'
+    + apSpotNoteHTML(fit.note)
     + '<div style="font-size:0.68rem;font-weight:700;color:#8899bb;text-transform:uppercase;letter-spacing:0.08em;margin-bottom:6px;">Student Sheet (preview)</div>'
     + '<div style="background:#fff;border:1px solid #e2e6f0;border-radius:10px;padding:12px 16px;margin-bottom:16px;">'
     + tableOpen + studentRows + '</tbody></table>'
@@ -68728,7 +68790,8 @@ function printMlfSpotTest(type) {
   const toLabel = MLF_LANGS[toLang].flag + ' ' + MLF_LANGS[toLang].label;
   const isTeacher = type === 'teacher';
   const itemCols = ['#1a2744','#b03a2e','#1a6b3a'];
-  const spotTotal = 5 * 3 * 2;
+  const per = (rows[0] || []).length || 3;
+  const spotTotal = 5 * per * 2;
 
   function buildPrintLines(group, lang, blank) {
     return group.map((item, i) => {

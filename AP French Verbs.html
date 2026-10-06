@@ -28046,7 +28046,14 @@ function setMode(m){
 let testCount=10,testOpts={tense:false,person:false,inf:false},testSheet='',answerSheet='';
 let italianTestItems=[], italianTestLabel='';
 var italianSpotRows
-var _stRows=[],_stLabel='',_stQFlag='',_stAFlag='';
+var _stRows=[],_stLabel='',_stQFlag='',_stAFlag='',_stPer=3,_stShown=false;
+var apSpotPer=3; try{var _sp=parseInt(localStorage.getItem('apfv_spotPer'),10); if(_sp>=1&&_sp<=3) apSpotPer=_sp;}catch(e){}
+function setSpotPer(n){
+  apSpotPer=n; try{localStorage.setItem('apfv_spotPer',String(n));}catch(e){}
+  [1,2,3].forEach(function(x){var b=document.getElementById('sper'+x);if(b)b.classList.toggle('active-reg',x===n);});
+  var out=document.getElementById('testOut');
+  if(_stShown&&out&&out.style.display!=='none'&&out.getAttribute('data-spot')==='1') generateItalianSpotTest();
+}
 var italianSpotRows=[], italianSpotLabel='', italianSpotQFlag='', italianSpotAFlag='';
 
 function renderTestPanel(){
@@ -28096,6 +28103,10 @@ function renderTestPanel(){
     '<button class="reg-btn" id="topt-tense" onclick="toggleTestOpt(\'tense\')">Tense</button>'+
     '<button class="reg-btn" id="topt-person" onclick="toggleTestOpt(\'person\')">Person</button>'+
     '<button class="reg-btn" id="topt-inf" onclick="toggleTestOpt(\'inf\')">Infinitive</button>'+
+    '</div></div>'+
+    '<div style="margin:0 0 20px 0"><div style="font-size:0.68rem;font-weight:600;color:#8899bb;text-transform:uppercase;letter-spacing:.07em;margin:0 0 8px 0">AP SPOT TEST: ITEMS PER BOX</div>'+
+    '<div style="display:flex;gap:8px;flex-wrap:wrap">'+
+    [1,2,3].map(function(x){return '<button class="reg-btn'+(apSpotPer===x?' active-reg':'')+'" id="sper'+x+'" onclick="setSpotPer('+x+')">'+x+'</button>';}).join('')+
     '</div></div>'+
     '<button class="start-btn" onclick="generateTest()">Generate Test</button>'+
     '<button onclick="generateItalianSpotTest()" style="padding:9px 22px;background:transparent;color:#1a2744;border:1.5px solid #1a2744;border-radius:8px;font-weight:700;font-size:0.85rem;cursor:pointer;margin-left:8px;">&#128203; AP Spot Test</button>'+
@@ -28214,7 +28225,7 @@ function generateTest(){
       +'</div>';
   }).join('');
 
-  const out=document.getElementById('testOut');if(out)out.style.display='block';
+  const out=document.getElementById('testOut');if(out){out.style.display='block';out.removeAttribute('data-spot');}
   // Replace testOut with full output including PDF buttons
   if(out){
     out.innerHTML =
@@ -29743,11 +29754,13 @@ function generateItalianSpotTest() {
       expanded.push({inf:c});
     });
   }
-  if (expanded.length < 15) { alert('Not enough verbs (need 15+).'); return; }
-  var items = [...expanded].sort(function(){ return Math.random()-0.5; }).slice(0,15);
+  if (expanded.length < 5) { alert('Not enough verbs (need 5+).'); return; }
+  var per = Math.min(apSpotPer, Math.floor(expanded.length/5));
+  var spotNote = per < apSpotPer ? 'Only '+expanded.length+' items in this selection — using '+per+' per box' : '';
+  var items = [...expanded].sort(function(){ return Math.random()-0.5; }).slice(0,5*per);
   // Use conjEn to generate a clean English question label for whatever tense is selected
   var TNAME_SPOT={PRESENT:'Present',FUTURE:'Future',PASSE_COMPOSE:'Perfect (PC)',IMPERFECT:'Imperfect',CONDITIONNEL:'Conditional',SUBJONCTIF:'Subjunctive',INFINITIVE:'Infinitive'};
-  var rows = []; for(var i=0;i<5;i++) rows.push(items.slice(i*3,i*3+3).map(function(item){
+  var rows = []; for(var i=0;i<5;i++) rows.push(items.slice(i*per,i*per+per).map(function(item){
     if(item.inf){
       var c = item.inf, usage = c.usage_en && !c.usage_en.startsWith('that ') ? ' '+c.usage_en : '';
       return {q: c.en + usage + (testOpts.tense ? ' [Infinitive]' : ''), a: c.inf};
@@ -29764,7 +29777,7 @@ function generateItalianSpotTest() {
     if(v.tense === 'SUBJONCTIF'){ var qa = ans; if(/^(il|ils|elle|elles)/.test(qa)) ans = "qu'" + qa; else ans = 'que ' + qa; }
     return {q: q, a: ans};
   }));
-  _stRows=rows; _stLabel='French Verbs'; _stQFlag='&#127468;&#127463;'; _stAFlag='&#127467;&#127479;';
+  _stRows=rows; _stPer=per; _stShown=true; _stLabel='French Verbs'; _stQFlag='&#127468;&#127463;'; _stAFlag='&#127467;&#127479;';
   var ic=['#1a2744','#b03a2e','#1a6b3a'];
   var thS='padding:5px 8px;font-size:0.6rem;font-weight:700;text-transform:uppercase;letter-spacing:0.07em;color:#8899bb;background:#f0f3f8;border:1px solid #ddd;text-align:left;';
   var tdN='padding:6px 8px;border:1px solid #ddd;text-align:center;font-weight:700;font-size:0.82rem;color:#1a2744;vertical-align:middle;width:32px;';
@@ -29772,9 +29785,9 @@ function generateItalianSpotTest() {
   var sr='',tr2='';
   rows.forEach(function(grp,i){
     grp.forEach(function(p,ci){
-      var on=ci===0,last=ci===2,col=ic[ci],bd=last?'border-bottom:3px solid #1a2744;':'border-bottom:1px dotted #ccc;';
-      var nc=on?'<td style="'+tdN+'" rowspan="3"><div style="font-size:1rem;font-weight:700;">'+(i+1)+'</div><div style="font-size:0.6rem;color:#aaa;">(2)</div></td>':'';
-      var sc=on?'<td style="'+tdSc+'" rowspan="3"></td>':'';
+      var on=ci===0,last=ci===grp.length-1,col=ic[ci],bd=last?'border-bottom:3px solid #1a2744;':'border-bottom:1px dotted #ccc;';
+      var nc=on?'<td style="'+tdN+'" rowspan="'+grp.length+'"><div style="font-size:1rem;font-weight:700;">'+(i+1)+'</div><div style="font-size:0.6rem;color:#aaa;">(2)</div></td>':'';
+      var sc=on?'<td style="'+tdSc+'" rowspan="'+grp.length+'"></td>':'';
       var qt='<td style="width:42%;padding:14px;font-size:0.82rem;line-height:1.45;vertical-align:middle;border:1px solid #ddd;border-top:none;border-left:none;'+bd+';color:'+col+'">'+grp[ci].q+'</td>';
       var at='<td style="padding:14px;vertical-align:middle;border:1px solid #ddd;border-top:none;border-left:none;'+bd+'"></td>';
       var att='<td style="padding:14px;font-size:0.82rem;line-height:1.45;vertical-align:middle;background:#fffef5;border:1px solid #ddd;border-top:none;border-left:none;'+bd+';color:'+col+'">'+grp[ci].a+'</td>';
@@ -29787,12 +29800,13 @@ function generateItalianSpotTest() {
     +'<th style="'+thS+'color:#b05000;">&#127467;&#127479; Only write answers AFTER all questions are dictated</th>'
     +'<th style="'+thS+'width:52px;text-align:center;">0/1/2</th></tr></thead><tbody>';
   var out=document.getElementById('testOut');
-  if(out){out.style.display='block';
+  if(out){out.style.display='block'; out.setAttribute('data-spot','1');
     out.innerHTML='<div style="display:flex;gap:8px;margin-bottom:10px;flex-wrap:wrap;">'
       +'<button onclick="openItalianSpotTestPDF(\'student\')" style="padding:7px 14px;border-radius:8px;background:#1a2744;color:#c9a84c;border:none;font-size:0.82rem;cursor:pointer;font-weight:600;">&#128424; Print Student Sheet</button>'
       +'<button onclick="openItalianSpotTestPDF(\'teacher\')" style="padding:7px 14px;border-radius:8px;background:#c9a84c;color:#1a2744;border:none;font-size:0.82rem;cursor:pointer;font-weight:600;">&#128424; Print Teacher Sheet</button>'
       +'</div>'
-      +'<div style="font-size:0.68rem;color:#888;text-transform:uppercase;margin-bottom:8px;">&#127468;&#127463; &#x2192; &#127467;&#127479; &nbsp;·&nbsp; French Verbs &nbsp;·&nbsp; 5 × 3 = 15 items</div>'
+      +'<div style="font-size:0.68rem;color:#888;text-transform:uppercase;margin-bottom:8px;">&#127468;&#127463; &#x2192; &#127467;&#127479; &nbsp;·&nbsp; French Verbs &nbsp;·&nbsp; 5 × '+per+' = '+(5*per)+' items</div>'
+      +(spotNote?'<div class="ap-spot-note" style="font-size:0.78rem;color:#b05000;margin-bottom:8px;">'+spotNote+'</div>':'')
       +'<div style="font-size:0.68rem;font-weight:700;color:#8899bb;text-transform:uppercase;margin-bottom:6px;">Student Sheet (preview)</div>'
       +'<div style="background:#fff;border:1px solid #e2e6f0;border-radius:10px;padding:12px 16px;margin-bottom:16px;">'+to+sr+'</tbody></table></div>'
       +'<div style="font-size:0.68rem;font-weight:700;color:#8899bb;text-transform:uppercase;margin-bottom:6px;">Teacher Sheet (answer key)</div>'
@@ -29802,15 +29816,15 @@ function generateItalianSpotTest() {
 }
 
 function openItalianSpotTestPDF(type) {
-  var rows=_stRows,label=_stLabel,qFlag=_stQFlag,aFlag=_stAFlag;
+  var rows=_stRows,label=_stLabel,qFlag=_stQFlag,aFlag=_stAFlag,per=_stPer||3;
   var isTeacher=type==='teacher';
   var ic=['#1a2744','#b03a2e','#1a6b3a'];
   var trows='';
   rows.forEach(function(grp,i){
     grp.forEach(function(p,ci){
-      var on=ci===0,last=ci===2,col=ic[ci],bd=last?'border-bottom:3px solid #1a2744;':'border-bottom:1px dotted #ccc;';
-      var nc=on?'<td class="num" rowspan="3"><div class="row-num">'+(i+1)+'</div><div class="marks">(2)</div></td>':'';
-      var sc=on?'<td class="score-col" rowspan="3"></td>':'';
+      var on=ci===0,last=ci===grp.length-1,col=ic[ci],bd=last?'border-bottom:3px solid #1a2744;':'border-bottom:1px dotted #ccc;';
+      var nc=on?'<td class="num" rowspan="'+grp.length+'"><div class="row-num">'+(i+1)+'</div><div class="marks">(2)</div></td>':'';
+      var sc=on?'<td class="score-col" rowspan="'+grp.length+'"></td>':'';
       trows+='<tr>'+nc+'<td class="q-item" style="color:'+col+';'+bd+'">'+grp[ci].q+'</td>'
         +'<td class="a-item" style="'+bd+'">'+(isTeacher?'<span style="color:'+col+'">'+grp[ci].a+'</span>':'')+'</td>'+sc+'</tr>';
     });
@@ -29838,12 +29852,12 @@ function openItalianSpotTestPDF(type) {
     'td.q-item{width:42%;padding:14px;font-size:0.82rem;line-height:1.45;border-left:none;border-right:1.5px solid #ccc;border-top:none;}',
     'td.a-item{padding:14px;font-size:0.82rem;line-height:1.45;'+(isTeacher?'background:#fffef5;':'')+'border-left:none;border-right:none;border-top:none;}',
     'td.score-col{width:52px;text-align:center;border-left:2px solid #1a2744;}',
-    'tbody tr{height:calc((297mm - 4cm - 60px - 40px - 32px) / 15);}.footer{font-size:0.58rem;color:#ccc;text-align:right;padding-top:5px;flex-shrink:0;}',
+    'tbody tr{height:calc((297mm - 4cm - 60px - 40px - 32px) / '+(5*per)+');}.footer{font-size:0.58rem;color:#ccc;text-align:right;padding-top:5px;flex-shrink:0;}',
     '</style></head><body>',
     '<div class="ph"><div>',
     '<div class="pb">AP C French · Verb Conjugations</div>',
     '<div class="pt">AP <span>Spot Test</span></div>',
-    '<div class="ps">'+label+' · 5 questions · 3 items each · /10</div>',
+    '<div class="ps">'+label+' · 5 questions · '+per+' item'+(per===1?'':'s')+' each · /10</div>',
     '</div><div style="display:flex;align-items:center;">',
     '<div class="badge">'+st+'</div>',
     '<button class="pbtn no-print" onclick="window.print()">&#128424; Print / PDF</button>',

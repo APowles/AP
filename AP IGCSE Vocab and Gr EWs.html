@@ -846,6 +846,12 @@ main{max-width:none!important;margin:0!important;padding:0!important}
   </div>
   <button onclick="generateIGCSETest()" style="padding:10px 24px;background:#c9a84c;color:#1a2744;border:none;border-radius:8px;font-weight:700;font-size:0.9rem;cursor:pointer;">&#128221; Test</button>
   <button onclick="generateEWsSpotTest()" style="padding:9px 22px;background:transparent;color:var(--navy);border:1.5px solid var(--navy);border-radius:8px;font-weight:700;font-size:0.85rem;cursor:pointer;margin-left:8px;">&#128203; AP Spot Test</button>
+  <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-top:12px;">
+    <span style="font-size:0.72rem;color:#888;text-transform:uppercase;letter-spacing:0.06em;font-weight:600;">Spot test items per box:</span>
+    <button class="igcse-topt" onclick="setEWsSpotPer(1)" id="ewsp-1">1 (5 items)</button>
+    <button class="igcse-topt" onclick="setEWsSpotPer(2)" id="ewsp-2">2 (10 items)</button>
+    <button class="igcse-topt active-igcse" onclick="setEWsSpotPer(3)" id="ewsp-3">3 (15 items)</button>
+  </div>
   <div id="igcseTestOutput" style="margin-top:16px;"></div>
 </div>
 <!-- Vocab Editor Modal -->
@@ -6318,12 +6324,21 @@ function generateEWsPracticePdf() {
 }
 
 // ── AP Spot Test ──────────────────────────────────────────────
+var ewsSpotPer=3, _stShown=false;
+function setEWsSpotPer(n){
+  ewsSpotPer = n;
+  [1,2,3].forEach(function(k){ var b=document.getElementById('ewsp-'+k); if(b) b.classList.toggle('active-igcse', k===n); });
+  var o=document.getElementById('igcseTestOutput');
+  if(o && _stShown && o.innerHTML.trim()) generateEWsSpotTest();
+}
 function generateEWsSpotTest() {
   var phrases = getSelectedPhrases();
-  if (phrases.length < 15) { alert('Not enough items (need 15+).'); return; }
+  if (phrases.length < 5) { alert('Not enough items for a spot test (need at least 5, this selection has '+phrases.length+').'); return; }
+  var want = ewsSpotPer||3, per = Math.min(want, Math.floor(phrases.length/5)), need = 5*per;
+  var spNote = per<want ? '<div style="font-size:0.74rem;color:#8a6d00;background:#fff3cd;border:1px solid #e5c860;border-radius:6px;padding:5px 10px;margin-bottom:8px;">Only '+phrases.length+' items in this selection — using '+per+' per box</div>' : '';
   var f = getLangFrom(), t = getLangTo();
-  var items = [...phrases].sort(function(){ return Math.random()-0.5; }).slice(0,15);
-  var rows = []; for(var i=0;i<5;i++) rows.push(items.slice(i*3,i*3+3).map(function(p){ return {q:p[f]||'',a:p[t]||''}; }));
+  var items = [...phrases].sort(function(){ return Math.random()-0.5; }).slice(0,need);
+  var rows = []; for(var i=0;i<5;i++) rows.push(items.slice(i*per,i*per+per).map(function(p){ return {q:p[f]||'',a:p[t]||''}; }));
   _stRows=rows; _stQFlag=LANG_FLAGS[f]||''; _stAFlag=LANG_FLAGS[t]||'';
   var selEl=document.getElementById('sel-section');
   var secKey=selEl?selEl.value:'';
@@ -6335,9 +6350,9 @@ function generateEWsSpotTest() {
   var sr='',tr2='';
   rows.forEach(function(grp,i){
     grp.forEach(function(p,ci){
-      var on=ci===0,last=ci===2,col=ic[ci],bd=last?'border-bottom:3px solid #1a2744;':'border-bottom:1px dotted #ccc;';
-      var nc=on?'<td style="'+tdN+'" rowspan="3"><div style="font-size:1rem;font-weight:700;">'+(i+1)+'</div><div style="font-size:0.6rem;color:#aaa;">(2)</div></td>':'';
-      var sc=on?'<td style="'+tdSc+'" rowspan="3"></td>':'';
+      var on=ci===0,last=ci===per-1,col=ic[ci],bd=last?'border-bottom:3px solid #1a2744;':'border-bottom:1px dotted #ccc;';
+      var nc=on?'<td style="'+tdN+'" rowspan="'+per+'"><div style="font-size:1rem;font-weight:700;">'+(i+1)+'</div><div style="font-size:0.6rem;color:#aaa;">(2)</div></td>':'';
+      var sc=on?'<td style="'+tdSc+'" rowspan="'+per+'"></td>':'';
       var qt='<td style="width:42%;padding:14px;font-size:0.82rem;line-height:1.45;vertical-align:middle;border:1px solid #ddd;border-top:none;border-left:none;'+bd+';color:'+col+'">'+p.q+'</td>';
       var at='<td style="padding:14px;vertical-align:middle;border:1px solid #ddd;border-top:none;border-left:none;'+bd+'"></td>';
       var att='<td style="padding:14px;font-size:0.82rem;line-height:1.45;vertical-align:middle;background:#fffef5;border:1px solid #ddd;border-top:none;border-left:none;'+bd+';color:'+col+'">'+p.a+'</td>';
@@ -6355,24 +6370,27 @@ function generateEWsSpotTest() {
     +'<button onclick="openEWsSpotTestPDF(\'student\')" style="padding:7px 14px;border-radius:8px;background:#1a2744;color:#c9a84c;border:none;font-size:0.82rem;cursor:pointer;font-weight:600;">🖨 Print Student Sheet</button>'
     +'<button onclick="openEWsSpotTestPDF(\'teacher\')" style="padding:7px 14px;border-radius:8px;background:#c9a84c;color:#1a2744;border:none;font-size:0.82rem;cursor:pointer;font-weight:600;">🖨 Print Teacher Sheet</button>'
     +'</div>'
-    +'<div style="font-size:0.68rem;color:#888;text-transform:uppercase;letter-spacing:0.06em;margin-bottom:8px;">'+_stQFlag+' → '+_stAFlag+' · '+_stLabel+' · 5 × 3 = 15 items</div>'
+    +'<div style="font-size:0.68rem;color:#888;text-transform:uppercase;letter-spacing:0.06em;margin-bottom:8px;">'+_stQFlag+' → '+_stAFlag+' · '+_stLabel+' · 5 × '+per+' = '+need+' items</div>'
+    +spNote
     +'<div style="font-size:0.68rem;font-weight:700;color:#8899bb;text-transform:uppercase;letter-spacing:0.08em;margin-bottom:6px;">Student Sheet (preview)</div>'
     +'<div style="background:#fff;border:1px solid #e2e6f0;border-radius:10px;padding:12px 16px;margin-bottom:16px;">'+to+sr+'</tbody></table></div>'
     +'<div style="font-size:0.68rem;font-weight:700;color:#8899bb;text-transform:uppercase;letter-spacing:0.08em;margin-bottom:6px;">Teacher Sheet (answer key)</div>'
     +'<div style="background:#fff;border:1px solid #e2e6f0;border-radius:10px;padding:12px 16px;">'+to+tr2+'</tbody></table></div>';
+  _stShown=true;
   document.getElementById('igcseTestOutput').scrollIntoView({behavior:'smooth',block:'nearest'});
 }
 
 function openEWsSpotTestPDF(type) {
   var rows=_stRows,label=_stLabel,qFlag=_stQFlag,aFlag=_stAFlag;
   var isTeacher=type==='teacher';
+  var per=(rows[0]&&rows[0].length)||3, tot=rows.reduce(function(n,r){return n+r.length;},0);
   var ic=['#1a2744','#b03a2e','#1a6b3a'];
   var trows='';
   rows.forEach(function(grp,i){
     grp.forEach(function(p,ci){
-      var on=ci===0,last=ci===2,col=ic[ci],bd=last?'border-bottom:3px solid #1a2744;':'border-bottom:1px dotted #ccc;';
-      var nc=on?'<td class="num" rowspan="3"><div class="row-num">'+(i+1)+'</div><div class="marks">(2)</div></td>':'';
-      var sc=on?'<td class="score-col" rowspan="3"></td>':'';
+      var on=ci===0,last=ci===per-1,col=ic[ci],bd=last?'border-bottom:3px solid #1a2744;':'border-bottom:1px dotted #ccc;';
+      var nc=on?'<td class="num" rowspan="'+per+'"><div class="row-num">'+(i+1)+'</div><div class="marks">(2)</div></td>':'';
+      var sc=on?'<td class="score-col" rowspan="'+per+'"></td>':'';
       trows+='<tr>'+nc+'<td class="q-item" style="color:'+col+';'+bd+'">'+p.q+'</td>'
         +'<td class="a-item" style="'+bd+'">'+(isTeacher?'<span style="color:'+col+'">'+p.a+'</span>':'')+'</td>'+sc+'</tr>';
     });
@@ -6400,12 +6418,12 @@ function openEWsSpotTestPDF(type) {
     'td.q-item{width:42%;padding:14px;font-size:0.82rem;line-height:1.45;border-left:none;border-right:1.5px solid #ccc;border-top:none;}',
     'td.a-item{padding:14px;font-size:0.82rem;line-height:1.45;'+(isTeacher?'background:#fffef5;':'')+'border-left:none;border-right:none;border-top:none;}',
     'td.score-col{width:52px;text-align:center;border-left:2px solid #1a2744;}',
-    'tbody tr{height:calc((297mm - 4cm - 60px - 40px - 32px) / 15);}.footer{font-size:0.58rem;color:#ccc;text-align:right;padding-top:5px;flex-shrink:0;}',
+    'tbody tr{height:calc((297mm - 4cm - 60px - 40px - 32px) / '+tot+');}.footer{font-size:0.58rem;color:#ccc;text-align:right;padding-top:5px;flex-shrink:0;}',
     '</style></head><body>',
     '<div class="ph"><div>',
     '<div class="pb">AP IGCSE · Full Vocab & EWs</div>',
     '<div class="pt">AP <span>Spot Test</span></div>',
-    '<div class="ps">'+label+' · 5 questions · 3 items each · /10</div>',
+    '<div class="ps">'+label+' · 5 questions · '+per+' item'+(per===1?'':'s')+' each · /10</div>',
     '</div><div style="display:flex;align-items:center;">',
     '<div class="badge">'+st+'</div>',
     '<button class="pbtn no-print" onclick="window.print()">&#128424; Print / PDF</button>',
@@ -7185,8 +7203,8 @@ function ggPrintTest(mode) {
 // ── AP SPOT TEST: 5 boxes × 1–3 items, /2 each ──
 function ggSpotMenu() {
   const out = document.getElementById('ggTestOut'); if (!out) return;
-  const keys = ggSelKeys(), title = ggSelLabel(keys), per = ggS.spotPer, need = 5 * per, pool = ggShuffle(ggPool(keys));
-  if (pool.length < need) { out.innerHTML = '<div class="gg-warnbox">Need at least ' + need + ' items (' + pool.length + ' with this item type). Switch to All or choose fewer per box.</div>'; return; }
+  const keys = ggSelKeys(), title = ggSelLabel(keys), want = ggS.spotPer, pool = ggShuffle(ggPool(keys)), per = Math.min(want, Math.floor(pool.length / 5)), need = 5 * per;
+  if (pool.length < 5) { out.innerHTML = '<div class="gg-warnbox">Need at least 5 items for a spot test (' + pool.length + ' with this item type). Switch to All or choose more chapters.</div>'; return; }
   const items = pool.slice(0, need), rows = [];
   for (let i = 0; i < 5; i++) rows.push(items.slice(i * per, i * per + per));
   window._ggSpot = { rows: rows, title: title, per: per };
@@ -7196,7 +7214,8 @@ function ggSpotMenu() {
   const sR = rows.map((g, i) => '<tr><td class="n">' + (i + 1) + '</td><td>' + lines(g, 'en') + '</td><td class="blank" style="height:' + (26 * per + 20) + 'px">&nbsp;</td><td></td></tr>').join('');
   const tR = rows.map((g, i) => '<tr><td class="n">' + (i + 1) + '</td><td>' + lines(g, 'en') + '</td><td class="a">' + lines(g, 'fr') + '</td><td></td></tr>').join('');
   out.innerHTML = '<div class="gg-tpanel"><div class="gg-ph"><span>📋 AP Spot Test — ' + ggEsc(title) + ' — /10</span><button class="gg-mini" onclick="document.getElementById(\'ggTestOut\').innerHTML=\'\'">✕</button></div>'
-    + '<div class="gg-lab">Items per box</div><div class="gg-chips">' + [1, 2, 3].map(n => '<button class="gg-chip' + (per === n ? ' on' : '') + '" onclick="ggS.spotPer=' + n + ';ggSpotMenu()">' + n + '</button>').join('') + '</div>'
+    + '<div class="gg-lab">Items per box</div><div class="gg-chips">' + [1, 2, 3].map(n => '<button class="gg-chip' + (want === n ? ' on' : '') + '" onclick="ggS.spotPer=' + n + ';ggSpotMenu()">' + n + '</button>').join('') + '</div>'
+    + (per < want ? '<div class="gg-warnbox" style="padding:6px 10px;margin:6px 0 0">Only ' + pool.length + ' items in this selection — using ' + per + ' per box</div>' : '')
     + (ggHasLvl() ? '<div class="gg-lab">Level</div><div class="gg-chips">' + ggLvlRow('ggSpotMenu()') + '</div>' : '')
     + '<div class="gg-lab">Item type</div><div class="gg-chips">' + ggTypeRow('ggSpotMenu()') + '</div>'
     + '<div class="gg-print"><span>🖨️ Print:</span><button class="p1" onclick="ggPrintSpot(\'student\')">Student only</button><button class="p2" onclick="ggPrintSpot(\'teacher\')">Teacher (answers)</button><button class="p3" onclick="ggPrintSpot(\'both\')">Both</button></div>'

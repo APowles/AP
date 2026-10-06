@@ -808,6 +808,12 @@ main{padding:0!important;max-width:100%!important;margin:0!important;width:100%!
     <button class="igcse-topt" onclick="setIGCSECount('custom')" id="itc-custom">Custom</button>
     <input id="igcseCustomInput" type="number" min="1" max="200" value="15" style="display:none;width:60px;padding:4px 8px;border-radius:8px;border:1px solid #ccc;font-size:0.8rem;">
   </div>
+  <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:16px;">
+    <span style="font-size:0.72rem;color:#888;text-transform:uppercase;letter-spacing:0.06em;font-weight:600;">AP Spot Test · Items per box:</span>
+    <button class="igcse-topt" onclick="setIGCSESpotPer(1)" id="isp-1">1</button>
+    <button class="igcse-topt" onclick="setIGCSESpotPer(2)" id="isp-2">2</button>
+    <button class="igcse-topt active-igcse" onclick="setIGCSESpotPer(3)" id="isp-3">3</button>
+  </div>
   <button onclick="generateIGCSETest()" style="padding:10px 24px;background:#c9a84c;color:#1a2744;border:none;border-radius:8px;font-weight:700;font-size:0.9rem;cursor:pointer;">Generate Test</button>
   <button onclick="generateIGCSESpotTest()" style="padding:9px 22px;background:transparent;color:#1a2744;border:1.5px solid #1a2744;border-radius:8px;font-weight:700;font-size:0.85rem;cursor:pointer;margin-left:8px;">📋 AP Essential Phrases Spot Test</button>
   <div id="igcseTestOutput" style="margin-top:16px;"></div>
@@ -27020,10 +27026,10 @@ function openIGCSESpotTestPDF(type) {
   var tableRows='';
   rows.forEach(function(group,i){
     group.forEach(function(p,ci){
-      var isFirst=ci===0,isLast=ci===2,col=ic[ci];
+      var isFirst=ci===0,isLast=ci===group.length-1,col=ic[ci];
       var border=isLast?'border-bottom:3px solid #1a2744;':'border-bottom:1px dotted #ccc;';
-      var nC=isFirst?'<td class="num" rowspan="3"><div class="row-num">'+(i+1)+'</div><div class="marks">(2)</div></td>':'';
-      var sC=isFirst?'<td class="score-col" rowspan="3"></td>':'';
+      var nC=isFirst?'<td class="num" rowspan="'+group.length+'"><div class="row-num">'+(i+1)+'</div><div class="marks">(2)</div></td>':'';
+      var sC=isFirst?'<td class="score-col" rowspan="'+group.length+'"></td>':'';
       var q=p.q||'';
       var a=p.a||'';
       tableRows+='<tr>'+nC+'<td class="q-item" style="color:'+col+';'+border+'">'+q+'</td>'
@@ -27053,12 +27059,12 @@ function openIGCSESpotTestPDF(type) {
     'td.q-item{width:42%;padding:14px;font-size:0.82rem;line-height:1.45;border-left:none;border-right:1.5px solid #ccc;border-top:none;}',
     'td.a-item{padding:14px;font-size:0.82rem;line-height:1.45;'+(isTeacher?'background:#fffef5;':'')+'border-left:none;border-right:none;border-top:none;}',
     'td.score-col{width:52px;text-align:center;border-left:2px solid #1a2744;}',
-    'tbody tr{height:calc((297mm - 4cm - 60px - 40px - 32px) / 15);}.footer{font-size:0.58rem;color:#ccc;text-align:right;padding-top:5px;flex-shrink:0;}',
+    'tbody tr{height:calc((297mm - 4cm - 60px - 40px - 32px) / '+(5*(rows[0]||[]).length)+');}.footer{font-size:0.58rem;color:#ccc;text-align:right;padding-top:5px;flex-shrink:0;}',
     '</style></head><body>',
     '<div class="page-hdr"><div>',
     '<div class="hdr-brand">AP IGCSE &middot; Vocab Essentials</div>',
     '<div class="hdr-title">AP <span>Spot Test</span></div>',
-    '<div class="hdr-sub">'+label+' &nbsp;&middot;&nbsp; 5 questions &nbsp;&middot;&nbsp; 3 items each &nbsp;&middot;&nbsp; /10</div>',
+    '<div class="hdr-sub">'+label+' &nbsp;&middot;&nbsp; 5 questions &nbsp;&middot;&nbsp; '+(rows[0]||[]).length+' item'+((rows[0]||[]).length===1?'':'s')+' each &nbsp;&middot;&nbsp; /10</div>',
     '</div><div style="display:flex;align-items:center;">',
     '<div class="hdr-badge">'+sT+'</div>',
     '<button class="pbtn no-print" onclick="window.print()">&#128424; Print / PDF</button>',
@@ -27079,16 +27085,23 @@ function openIGCSESpotTestPDF(type) {
 
 
 // ── AP Essential Phrases Spot Test ───────────────────────────────────────────────
-var igcseSpotRows=[], igcseSpotLabel='', igcseSpotQFlag='', igcseSpotAFlag='';
+var igcseSpotRows=[], igcseSpotLabel='', igcseSpotQFlag='', igcseSpotAFlag='', igcseSpotPer=3;
+function setIGCSESpotPer(n) {
+  igcseSpotPer = n;
+  [1,2,3].forEach(function(k){ var b=document.getElementById('isp-'+k); if (b) b.classList.toggle('active-igcse', k===n); });
+  if (document.getElementById('igcseSpotOut')) generateIGCSESpotTest();   // a spot test is on screen: regenerate with the new number per box
+}
 
 function generateIGCSESpotTest() {
   var raw=getSelectedPhrases();
-  if (raw.length<15){alert('Not enough items for a spot test (need at least 15).');return;}
+  if (raw.length<5){alert('Not enough items for a spot test (need at least 5).');return;}
+  var per=Math.min(igcseSpotPer, Math.floor(raw.length/5));
+  var perNote=per<igcseSpotPer?'Only '+raw.length+' items in this selection — using '+per+' per box':'';
   var f=getLangFrom(), t=getLangTo();
   var qFlag=LANG_FLAGS[getLangFrom()]||'', aFlag=LANG_FLAGS[getLangTo()]||'';
   var label=(function(){var secs=getCheckedSections();return secs.length===0||secs.length===53?'All Sections':secs.length===1?(secs[0]+' — '+(SECTION_TITLES[secs[0]]||secs[0])):secs.length+' sections selected';})();
-  var items=[].concat(raw).sort(function(){return Math.random()-0.5;}).slice(0,15);
-  var rows=[]; for(var i=0;i<5;i++) rows.push(items.slice(i*3,i*3+3).map(function(p){ return {q:p[f]||'',a:p[t]||'',sec:p.sec||'',secTitle:SECTION_TITLES[p.sec]||''}; }));
+  var items=[].concat(raw).sort(function(){return Math.random()-0.5;}).slice(0,5*per);
+  var rows=[]; for(var i=0;i<5;i++) rows.push(items.slice(i*per,i*per+per).map(function(p){ return {q:p[f]||'',a:p[t]||'',sec:p.sec||'',secTitle:SECTION_TITLES[p.sec]||''}; }));
   igcseSpotRows=rows; igcseSpotLabel=label; igcseSpotQFlag=qFlag; igcseSpotAFlag=aFlag;
   var ic=['#1a2744','#b03a2e','#1a6b3a'];
   var thS='padding:5px 8px;font-size:0.6rem;font-weight:700;text-transform:uppercase;letter-spacing:0.07em;color:#8899bb;background:#f0f3f8;border:1px solid #ddd;text-align:left;';
@@ -27097,10 +27110,10 @@ function generateIGCSESpotTest() {
   var sR='', tR='';
   rows.forEach(function(group,i){
     group.forEach(function(p,ci){
-      var isFirst=ci===0,isLast=ci===2,col=ic[ci];
+      var isFirst=ci===0,isLast=ci===group.length-1,col=ic[ci];
       var bdr=isLast?'border-bottom:3px solid #1a2744;':'border-bottom:1px dotted #ccc;';
-      var nC=isFirst?'<td style="'+tdN+'" rowspan="3"><div style="font-size:1rem;font-weight:700;">'+(i+1)+'</div><div style="font-size:0.6rem;color:#aaa;">(2)</div></td>':'';
-      var sC=isFirst?'<td style="'+tdSc+'" rowspan="3"></td>':'';
+      var nC=isFirst?'<td style="'+tdN+'" rowspan="'+group.length+'"><div style="font-size:1rem;font-weight:700;">'+(i+1)+'</div><div style="font-size:0.6rem;color:#aaa;">(2)</div></td>':'';
+      var sC=isFirst?'<td style="'+tdSc+'" rowspan="'+group.length+'"></td>':'';
       var q=p.q||'';
       var a=p.a||'';
       var qT='<td style="width:42%;padding:14px;font-size:0.82rem;line-height:1.45;vertical-align:middle;border:1px solid #ddd;border-top:none;border-left:none;'+bdr+';color:'+col+'">'+q+'</td>';
@@ -27116,11 +27129,12 @@ function generateIGCSESpotTest() {
     +'<th style="'+thS+'width:52px;text-align:center;">0/1/2</th>'
     +'</tr></thead><tbody>';
   document.getElementById('igcseTestOutput').innerHTML=
-    '<div style="display:flex;gap:8px;margin-bottom:10px;flex-wrap:wrap;">'
+    '<div id="igcseSpotOut" style="display:flex;gap:8px;margin-bottom:10px;flex-wrap:wrap;">'
     +'<button onclick="openIGCSESpotTestPDF(this,0)" data-t="student" style="padding:7px 14px;border-radius:8px;background:#1a2744;color:#c9a84c;border:none;font-size:0.82rem;cursor:pointer;font-weight:600;">&#128424; Print Student Sheet</button>'
     +'<button onclick="openIGCSESpotTestPDF(this,1)" data-t="teacher" style="padding:7px 14px;border-radius:8px;background:#c9a84c;color:#1a2744;border:none;font-size:0.82rem;cursor:pointer;font-weight:600;">&#128424; Print Teacher Sheet</button>'
     +'</div>'
-    +'<div style="font-size:0.68rem;color:#888;text-transform:uppercase;margin-bottom:8px;">'+qFlag+' &#x2192; '+aFlag+' &nbsp;&middot;&nbsp; '+label+' &nbsp;&middot;&nbsp; 5 x 3 = 15 items</div>'
+    +'<div style="font-size:0.68rem;color:#888;text-transform:uppercase;margin-bottom:8px;">'+qFlag+' &#x2192; '+aFlag+' &nbsp;&middot;&nbsp; '+label+' &nbsp;&middot;&nbsp; 5 x '+per+' = '+(5*per)+' items</div>'
+    +(perNote?'<div style="font-size:0.75rem;color:#b05000;font-weight:600;margin-bottom:8px;">'+perNote+'</div>':'')
     +'<div style="font-size:0.68rem;font-weight:700;color:#8899bb;text-transform:uppercase;margin-bottom:6px;">Student Sheet (preview)</div>'
     +'<div style="background:#fff;border:1px solid #e2e6f0;border-radius:10px;padding:12px 16px;margin-bottom:16px;">'+tO+sR+'</tbody></table></div>'
     +'<div style="font-size:0.68rem;font-weight:700;color:#8899bb;text-transform:uppercase;margin-bottom:6px;">Teacher Sheet (answer key)</div>'
@@ -27136,10 +27150,10 @@ function openIGCSESpotTestPDF(btn, isTeacherNum) {
   var tableRows='';
   rows.forEach(function(group,i){
     group.forEach(function(p,ci){
-      var isFirst=ci===0,isLast=ci===2,col=ic[ci];
+      var isFirst=ci===0,isLast=ci===group.length-1,col=ic[ci];
       var bdr=isLast?'border-bottom:3px solid #1a2744;':'border-bottom:1px dotted #ccc;';
-      var nC=isFirst?'<td class="num" rowspan="3"><div class="row-num">'+(i+1)+'</div><div class="marks">(2)</div></td>':'';
-      var sC=isFirst?'<td class="score-col" rowspan="3"></td>':'';
+      var nC=isFirst?'<td class="num" rowspan="'+group.length+'"><div class="row-num">'+(i+1)+'</div><div class="marks">(2)</div></td>':'';
+      var sC=isFirst?'<td class="score-col" rowspan="'+group.length+'"></td>':'';
       var q=p.q||'';
       var a=p.a||'';
       tableRows+='<tr>'+nC+'<td class="q-item" style="color:'+col+';'+bdr+'">'+q+'</td>'
@@ -27173,7 +27187,7 @@ function openIGCSESpotTestPDF(btn, isTeacherNum) {
     +'td.q-item{width:42%;padding:14px;font-size:0.82rem;line-height:1.45;border-left:none;border-right:1.5px solid #ccc;border-top:none;}'
     +'td.a-item{padding:14px;font-size:0.82rem;line-height:1.45;'+aiBack+'border-left:none;border-right:none;border-top:none;}'
     +'td.score-col{width:52px;text-align:center;border-left:2px solid #1a2744;}'
-    +'tbody tr{height:calc((297mm - 4cm - 60px - 40px - 32px) / 15);}.footer{font-size:0.58rem;color:#ccc;text-align:right;padding-top:5px;flex-shrink:0;}';
+    +'tbody tr{height:calc((297mm - 4cm - 60px - 40px - 32px) / '+(5*(rows[0]||[]).length)+');}.footer{font-size:0.58rem;color:#ccc;text-align:right;padding-top:5px;flex-shrink:0;}';
   var html='<!DOCTYPE html><html><head><meta charset="UTF-8">'
     +'<title>AP Essential Phrases Spot Test - '+label+' - '+sT+'</title>'
     +'<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;600;700&family=DM+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet">'
@@ -27181,7 +27195,7 @@ function openIGCSESpotTestPDF(btn, isTeacherNum) {
     +'<div class="page-hdr"><div>'
     +'<div class="hdr-brand">AP IGCSE &middot; Vocab Essentials</div>'
     +'<div class="hdr-title">AP <span>Spot Test</span></div>'
-    +'<div class="hdr-sub">'+label+' &middot; 5 questions &middot; 3 items each &middot; /10</div>'
+    +'<div class="hdr-sub">'+label+' &middot; 5 questions &middot; '+(rows[0]||[]).length+' item'+((rows[0]||[]).length===1?'':'s')+' each &middot; /10</div>'
     +'</div><div style="display:flex;align-items:center;">'
     +'<div class="hdr-badge">'+sT+'</div>'
     +'<button class="pbtn no-print" onclick="window.print()">&#128424; Print / PDF</button>'
@@ -28505,6 +28519,12 @@ main{padding:0!important;max-width:100%!important;margin:0!important;width:100%!
     <button class=&quot;igcse-topt&quot; onclick=&quot;setIGCSECount(25)&quot; id=&quot;itc-25&quot;>25</button>
     <button class=&quot;igcse-topt&quot; onclick=&quot;setIGCSECount('custom')&quot; id=&quot;itc-custom&quot;>Custom</button>
     <input id=&quot;igcseCustomInput&quot; type=&quot;number&quot; min=&quot;1&quot; max=&quot;200&quot; value=&quot;15&quot; style=&quot;display:none;width:60px;padding:4px 8px;border-radius:8px;border:1px solid #ccc;font-size:0.8rem;&quot;>
+  </div>
+  <div style=&quot;display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:16px;&quot;>
+    <span style=&quot;font-size:0.72rem;color:#888;text-transform:uppercase;letter-spacing:0.06em;font-weight:600;&quot;>AP Spot Test · Items per box:</span>
+    <button class=&quot;igcse-topt&quot; onclick=&quot;setIGCSESpotPer(1)&quot; id=&quot;isp-1&quot;>1</button>
+    <button class=&quot;igcse-topt&quot; onclick=&quot;setIGCSESpotPer(2)&quot; id=&quot;isp-2&quot;>2</button>
+    <button class=&quot;igcse-topt active-igcse&quot; onclick=&quot;setIGCSESpotPer(3)&quot; id=&quot;isp-3&quot;>3</button>
   </div>
   <button onclick=&quot;generateIGCSETest()&quot; style=&quot;padding:10px 24px;background:#c9a84c;color:#1a2744;border:none;border-radius:8px;font-weight:700;font-size:0.9rem;cursor:pointer;&quot;>Generate Test</button>
   <button onclick=&quot;generateIGCSESpotTest()&quot; style=&quot;padding:9px 22px;background:transparent;color:#1a2744;border:1.5px solid #1a2744;border-radius:8px;font-weight:700;font-size:0.85rem;cursor:pointer;margin-left:8px;&quot;>📋 AP Essential Spanish Vocabulary Spot Test</button>
@@ -59920,10 +59940,10 @@ function openIGCSESpotTestPDF(type) {
   var tableRows='';
   rows.forEach(function(group,i){
     group.forEach(function(p,ci){
-      var isFirst=ci===0,isLast=ci===2,col=ic[ci];
+      var isFirst=ci===0,isLast=ci===group.length-1,col=ic[ci];
       var border=isLast?'border-bottom:3px solid #1a2744;':'border-bottom:1px dotted #ccc;';
-      var nC=isFirst?'<td class=&quot;num&quot; rowspan=&quot;3&quot;><div class=&quot;row-num&quot;>'+(i+1)+'</div><div class=&quot;marks&quot;>(2)</div></td>':'';
-      var sC=isFirst?'<td class=&quot;score-col&quot; rowspan=&quot;3&quot;></td>':'';
+      var nC=isFirst?'<td class=&quot;num&quot; rowspan=&quot;'+group.length+'&quot;><div class=&quot;row-num&quot;>'+(i+1)+'</div><div class=&quot;marks&quot;>(2)</div></td>':'';
+      var sC=isFirst?'<td class=&quot;score-col&quot; rowspan=&quot;'+group.length+'&quot;></td>':'';
       var q=p.q||'';
       var a=p.a||'';
       tableRows+='<tr>'+nC+'<td class=&quot;q-item&quot; style=&quot;color:'+col+';'+border+'&quot;>'+q+'</td>'
@@ -59953,12 +59973,12 @@ function openIGCSESpotTestPDF(type) {
     'td.q-item{width:42%;padding:14px;font-size:0.82rem;line-height:1.45;border-left:none;border-right:1.5px solid #ccc;border-top:none;}',
     'td.a-item{padding:14px;font-size:0.82rem;line-height:1.45;'+(isTeacher?'background:#fffef5;':'')+'border-left:none;border-right:none;border-top:none;}',
     'td.score-col{width:52px;text-align:center;border-left:2px solid #1a2744;}',
-    'tbody tr{height:calc((297mm - 4cm - 60px - 40px - 32px) / 15);}.footer{font-size:0.58rem;color:#ccc;text-align:right;padding-top:5px;flex-shrink:0;}',
+    'tbody tr{height:calc((297mm - 4cm - 60px - 40px - 32px) / '+(5*(rows[0]||[]).length)+');}.footer{font-size:0.58rem;color:#ccc;text-align:right;padding-top:5px;flex-shrink:0;}',
     '</style></head><body>',
     '<div class=&quot;page-hdr&quot;><div>',
     '<div class=&quot;hdr-brand&quot;>AP IGCSE &amp;middot; Vocab Essentials</div>',
     '<div class=&quot;hdr-title&quot;>AP <span>Spot Test</span></div>',
-    '<div class=&quot;hdr-sub&quot;>'+label+' &amp;nbsp;&amp;middot;&amp;nbsp; 5 questions &amp;nbsp;&amp;middot;&amp;nbsp; 3 items each &amp;nbsp;&amp;middot;&amp;nbsp; /10</div>',
+    '<div class=&quot;hdr-sub&quot;>'+label+' &amp;nbsp;&amp;middot;&amp;nbsp; 5 questions &amp;nbsp;&amp;middot;&amp;nbsp; '+(rows[0]||[]).length+' item'+((rows[0]||[]).length===1?'':'s')+' each &amp;nbsp;&amp;middot;&amp;nbsp; /10</div>',
     '</div><div style=&quot;display:flex;align-items:center;&quot;>',
     '<div class=&quot;hdr-badge&quot;>'+sT+'</div>',
     '<button class=&quot;pbtn no-print&quot; onclick=&quot;window.print()&quot;>&amp;#128424; Print / PDF</button>',
@@ -59979,16 +59999,23 @@ function openIGCSESpotTestPDF(type) {
 
 
 // ── AP Essential Spanish Vocabulary Spot Test ───────────────────────────────────────────────
-var igcseSpotRows=[], igcseSpotLabel='', igcseSpotQFlag='', igcseSpotAFlag='';
+var igcseSpotRows=[], igcseSpotLabel='', igcseSpotQFlag='', igcseSpotAFlag='', igcseSpotPer=3;
+function setIGCSESpotPer(n) {
+  igcseSpotPer = n;
+  [1,2,3].forEach(function(k){ var b=document.getElementById('isp-'+k); if (b) b.classList.toggle('active-igcse', k===n); });
+  if (document.getElementById('igcseSpotOut')) generateIGCSESpotTest();   // a spot test is on screen: regenerate with the new number per box
+}
 
 function generateIGCSESpotTest() {
   var raw=getSelectedPhrases();
-  if (raw.length<15){alert('Not enough items for a spot test (need at least 15).');return;}
+  if (raw.length<5){alert('Not enough items for a spot test (need at least 5).');return;}
+  var per=Math.min(igcseSpotPer, Math.floor(raw.length/5));
+  var perNote=per<igcseSpotPer?'Only '+raw.length+' items in this selection — using '+per+' per box':'';
   var f=getLangFrom(), t=getLangTo();
   var qFlag=LANG_FLAGS[getLangFrom()]||'', aFlag=LANG_FLAGS[getLangTo()]||'';
   var label=(function(){var secs=getCheckedSections();return secs.length===0||secs.length===document.querySelectorAll('.sec-checkbox').length?'All Sections':secs.length===1?(secs[0]+' — '+(SECTION_TITLES[secs[0]]||secs[0])):secs.length+' sections selected';})();
-  var items=[].concat(raw).sort(function(){return Math.random()-0.5;}).slice(0,15);
-  var rows=[]; for(var i=0;i<5;i++) rows.push(items.slice(i*3,i*3+3).map(function(p){ return {q:p[f]||'',a:p[t]||'',sec:p.sec||'',secTitle:SECTION_TITLES[p.sec]||''}; }));
+  var items=[].concat(raw).sort(function(){return Math.random()-0.5;}).slice(0,5*per);
+  var rows=[]; for(var i=0;i<5;i++) rows.push(items.slice(i*per,i*per+per).map(function(p){ return {q:p[f]||'',a:p[t]||'',sec:p.sec||'',secTitle:SECTION_TITLES[p.sec]||''}; }));
   igcseSpotRows=rows; igcseSpotLabel=label; igcseSpotQFlag=qFlag; igcseSpotAFlag=aFlag;
   var ic=['#1a2744','#b03a2e','#1a6b3a'];
   var thS='padding:5px 8px;font-size:0.6rem;font-weight:700;text-transform:uppercase;letter-spacing:0.07em;color:#8899bb;background:#f0f3f8;border:1px solid #ddd;text-align:left;';
@@ -59997,10 +60024,10 @@ function generateIGCSESpotTest() {
   var sR='', tR='';
   rows.forEach(function(group,i){
     group.forEach(function(p,ci){
-      var isFirst=ci===0,isLast=ci===2,col=ic[ci];
+      var isFirst=ci===0,isLast=ci===group.length-1,col=ic[ci];
       var bdr=isLast?'border-bottom:3px solid #1a2744;':'border-bottom:1px dotted #ccc;';
-      var nC=isFirst?'<td style=&quot;'+tdN+'&quot; rowspan=&quot;3&quot;><div style=&quot;font-size:1rem;font-weight:700;&quot;>'+(i+1)+'</div><div style=&quot;font-size:0.6rem;color:#aaa;&quot;>(2)</div></td>':'';
-      var sC=isFirst?'<td style=&quot;'+tdSc+'&quot; rowspan=&quot;3&quot;></td>':'';
+      var nC=isFirst?'<td style=&quot;'+tdN+'&quot; rowspan=&quot;'+group.length+'&quot;><div style=&quot;font-size:1rem;font-weight:700;&quot;>'+(i+1)+'</div><div style=&quot;font-size:0.6rem;color:#aaa;&quot;>(2)</div></td>':'';
+      var sC=isFirst?'<td style=&quot;'+tdSc+'&quot; rowspan=&quot;'+group.length+'&quot;></td>':'';
       var q=p.q||'';
       var a=p.a||'';
       var qT='<td style=&quot;width:42%;padding:14px;font-size:0.82rem;line-height:1.45;vertical-align:middle;border:1px solid #ddd;border-top:none;border-left:none;'+bdr+';color:'+col+'&quot;>'+q+'</td>';
@@ -60016,11 +60043,12 @@ function generateIGCSESpotTest() {
     +'<th style=&quot;'+thS+'width:52px;text-align:center;&quot;>0/1/2</th>'
     +'</tr></thead><tbody>';
   document.getElementById('igcseTestOutput').innerHTML=
-    '<div style=&quot;display:flex;gap:8px;margin-bottom:10px;flex-wrap:wrap;&quot;>'
+    '<div id=&quot;igcseSpotOut&quot; style=&quot;display:flex;gap:8px;margin-bottom:10px;flex-wrap:wrap;&quot;>'
     +'<button onclick=&quot;openIGCSESpotTestPDF(this,0)&quot; data-t=&quot;student&quot; style=&quot;padding:7px 14px;border-radius:8px;background:#1a2744;color:#c9a84c;border:none;font-size:0.82rem;cursor:pointer;font-weight:600;&quot;>&amp;#128424; Print Student Sheet</button>'
     +'<button onclick=&quot;openIGCSESpotTestPDF(this,1)&quot; data-t=&quot;teacher&quot; style=&quot;padding:7px 14px;border-radius:8px;background:#c9a84c;color:#1a2744;border:none;font-size:0.82rem;cursor:pointer;font-weight:600;&quot;>&amp;#128424; Print Teacher Sheet</button>'
     +'</div>'
-    +'<div style=&quot;font-size:0.68rem;color:#888;text-transform:uppercase;margin-bottom:8px;&quot;>'+qFlag+' &amp;#x2192; '+aFlag+' &amp;nbsp;&amp;middot;&amp;nbsp; '+label+' &amp;nbsp;&amp;middot;&amp;nbsp; 5 x 3 = 15 items</div>'
+    +'<div style=&quot;font-size:0.68rem;color:#888;text-transform:uppercase;margin-bottom:8px;&quot;>'+qFlag+' &amp;#x2192; '+aFlag+' &amp;nbsp;&amp;middot;&amp;nbsp; '+label+' &amp;nbsp;&amp;middot;&amp;nbsp; 5 x '+per+' = '+(5*per)+' items</div>'
+    +(perNote?'<div style=&quot;font-size:0.75rem;color:#b05000;font-weight:600;margin-bottom:8px;&quot;>'+perNote+'</div>':'')
     +'<div style=&quot;font-size:0.68rem;font-weight:700;color:#8899bb;text-transform:uppercase;margin-bottom:6px;&quot;>Student Sheet (preview)</div>'
     +'<div style=&quot;background:#fff;border:1px solid #e2e6f0;border-radius:10px;padding:12px 16px;margin-bottom:16px;&quot;>'+tO+sR+'</tbody></table></div>'
     +'<div style=&quot;font-size:0.68rem;font-weight:700;color:#8899bb;text-transform:uppercase;margin-bottom:6px;&quot;>Teacher Sheet (answer key)</div>'
@@ -60036,10 +60064,10 @@ function openIGCSESpotTestPDF(btn, isTeacherNum) {
   var tableRows='';
   rows.forEach(function(group,i){
     group.forEach(function(p,ci){
-      var isFirst=ci===0,isLast=ci===2,col=ic[ci];
+      var isFirst=ci===0,isLast=ci===group.length-1,col=ic[ci];
       var bdr=isLast?'border-bottom:3px solid #1a2744;':'border-bottom:1px dotted #ccc;';
-      var nC=isFirst?'<td class=&quot;num&quot; rowspan=&quot;3&quot;><div class=&quot;row-num&quot;>'+(i+1)+'</div><div class=&quot;marks&quot;>(2)</div></td>':'';
-      var sC=isFirst?'<td class=&quot;score-col&quot; rowspan=&quot;3&quot;></td>':'';
+      var nC=isFirst?'<td class=&quot;num&quot; rowspan=&quot;'+group.length+'&quot;><div class=&quot;row-num&quot;>'+(i+1)+'</div><div class=&quot;marks&quot;>(2)</div></td>':'';
+      var sC=isFirst?'<td class=&quot;score-col&quot; rowspan=&quot;'+group.length+'&quot;></td>':'';
       var q=p.q||'';
       var a=p.a||'';
       tableRows+='<tr>'+nC+'<td class=&quot;q-item&quot; style=&quot;color:'+col+';'+bdr+'&quot;>'+q+'</td>'
@@ -60073,7 +60101,7 @@ function openIGCSESpotTestPDF(btn, isTeacherNum) {
     +'td.q-item{width:42%;padding:14px;font-size:0.82rem;line-height:1.45;border-left:none;border-right:1.5px solid #ccc;border-top:none;}'
     +'td.a-item{padding:14px;font-size:0.82rem;line-height:1.45;'+aiBack+'border-left:none;border-right:none;border-top:none;}'
     +'td.score-col{width:52px;text-align:center;border-left:2px solid #1a2744;}'
-    +'tbody tr{height:calc((297mm - 4cm - 60px - 40px - 32px) / 15);}.footer{font-size:0.58rem;color:#ccc;text-align:right;padding-top:5px;flex-shrink:0;}';
+    +'tbody tr{height:calc((297mm - 4cm - 60px - 40px - 32px) / '+(5*(rows[0]||[]).length)+');}.footer{font-size:0.58rem;color:#ccc;text-align:right;padding-top:5px;flex-shrink:0;}';
   var html='<!DOCTYPE html><html><head><meta charset=&quot;UTF-8&quot;>'
     +'<title>AP Essential Spanish Vocabulary Spot Test - '+label+' - '+sT+'</title>'
     +'<link href=&quot;https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;600;700&amp;family=DM+Sans:wght@300;400;500;600;700&amp;display=swap&quot; rel=&quot;stylesheet&quot;>'
@@ -60081,7 +60109,7 @@ function openIGCSESpotTestPDF(btn, isTeacherNum) {
     +'<div class=&quot;page-hdr&quot;><div>'
     +'<div class=&quot;hdr-brand&quot;>AP IGCSE &amp;middot; Vocab Essentials</div>'
     +'<div class=&quot;hdr-title&quot;>AP <span>Spot Test</span></div>'
-    +'<div class=&quot;hdr-sub&quot;>'+label+' &amp;middot; 5 questions &amp;middot; 3 items each &amp;middot; /10</div>'
+    +'<div class=&quot;hdr-sub&quot;>'+label+' &amp;middot; 5 questions &amp;middot; '+(rows[0]||[]).length+' item'+((rows[0]||[]).length===1?'':'s')+' each &amp;middot; /10</div>'
     +'</div><div style=&quot;display:flex;align-items:center;&quot;>'
     +'<div class=&quot;hdr-badge&quot;>'+sT+'</div>'
     +'<button class=&quot;pbtn no-print&quot; onclick=&quot;window.print()&quot;>&amp;#128424; Print / PDF</button>'

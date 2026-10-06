@@ -26886,6 +26886,7 @@ oor/2Q==" style="width:44px;height:44px;border-radius:50%;border:2px solid #c9a8
   <button onclick="generateAMSpotTest()" style="padding:9px 22px;background:transparent;color:#1a2744;border:1.5px solid #1a2744;border-radius:8px;font-weight:700;font-size:0.85rem;cursor:pointer;margin-left:8px;">📋 AP Spot Test</button>
   <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-top:12px;">
     <span style="font-size:0.72rem;color:#888;text-transform:uppercase;letter-spacing:0.06em;font-weight:600;">Spot test phrases per box:</span>
+    <button class="am-topt" onclick="setAMSpotPer(1)" id="amsp-1">1 (5 phrases)</button>
     <button class="am-topt" onclick="setAMSpotPer(2)" id="amsp-2">2 (10 phrases)</button>
     <button class="am-topt active-am" onclick="setAMSpotPer(3)" id="amsp-3">3 (15 phrases)</button>
   </div>
@@ -29539,14 +29540,15 @@ function openAMSpotTestPDF(type) {
 var amSpotRows=[], amSpotLabel='', amSpotQFlag='', amSpotAFlag='', amSpotPer=3;
 function setAMSpotPer(n){
   amSpotPer = n;
-  [2,3].forEach(function(k){ var b=document.getElementById('amsp-'+k); if(b) b.classList.toggle('active-am', k===n); });
+  [1,2,3].forEach(function(k){ var b=document.getElementById('amsp-'+k); if(b) b.classList.toggle('active-am', k===n); });
   var o=document.getElementById('amTestOutput'); if(o && amSpotRows.length){ o.innerHTML=''; amSpotRows=[]; }
 }
 
 function generateAMSpotTest() {
   var raw=getAMPhrases();
-  var per=amSpotPer||3, need=5*per;
-  if (raw.length<need){alert('Not enough phrases for a spot test with '+per+' per box (need at least '+need+', this selection has '+raw.length+').'+(per===3&&raw.length>=10?' Try 2 phrases per box.':''));return;}
+  if (raw.length<5){alert('Not enough phrases for a spot test (need at least 5, this selection has '+raw.length+').');return;}
+  var want=amSpotPer||3, per=Math.min(want, Math.floor(raw.length/5)), need=5*per;
+  var spNote=per<want?'<div style="font-size:0.74rem;color:#8a6d00;background:#fff3cd;border:1px solid #e5c860;border-radius:6px;padding:5px 10px;margin-bottom:8px;">Only '+raw.length+' phrases in this selection — using '+per+' per box</div>':'';
   var f=fromLang, t=toLang;
   var qFlag=AM_FLAGS[fromLang]||'', aFlag=AM_FLAGS[toLang]||'';
   var label=amSelectionLabel();
@@ -29584,6 +29586,7 @@ function generateAMSpotTest() {
     +'<button onclick="openAMSpotTestPDF(this,1)" data-t="teacher" style="padding:7px 14px;border-radius:8px;background:#c9a84c;color:#1a2744;border:none;font-size:0.82rem;cursor:pointer;font-weight:600;">&#128424; Print Teacher Sheet</button>'
     +'</div>'
     +'<div style="font-size:0.68rem;color:#888;text-transform:uppercase;margin-bottom:8px;">'+qFlag+' &#x2192; '+aFlag+' &nbsp;&middot;&nbsp; '+label+' &nbsp;&middot;&nbsp; 5 x '+per+' = '+need+' items</div>'
+    +spNote
     +'<div style="font-size:0.68rem;font-weight:700;color:#8899bb;text-transform:uppercase;margin-bottom:6px;">Student Sheet (preview)</div>'
     +'<div style="background:#fff;border:1px solid #e2e6f0;border-radius:10px;padding:12px 16px;margin-bottom:16px;">'+tO+sR+'</tbody></table></div>'
     +'<div style="font-size:0.68rem;font-weight:700;color:#8899bb;text-transform:uppercase;margin-bottom:6px;">Teacher Sheet (answer key)</div>'
@@ -29645,7 +29648,7 @@ function openAMSpotTestPDF(btn, isTeacherNum) {
     +'<div class="page-hdr"><div>'
     +'<div class="hdr-brand">AP IGCSE &middot; Approved Material</div>'
     +'<div class="hdr-title">AP <span>Spot Test</span></div>'
-    +'<div class="hdr-sub">'+label+' &middot; 5 questions &middot; '+per+' items each &middot; /10</div>'
+    +'<div class="hdr-sub">'+label+' &middot; 5 questions &middot; '+per+' item'+(per===1?'':'s')+' each &middot; /10</div>'
     +'</div><div style="display:flex;align-items:center;">'
     +'<div class="hdr-badge">'+sT+'</div>'
     +'<button class="pbtn no-print" onclick="window.print()">&#128424; Print / PDF</button>'

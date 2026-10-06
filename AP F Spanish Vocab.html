@@ -26953,6 +26953,12 @@ oor/2Q=="
   </div>
   <button onclick="generateSVTest()" style="padding:10px 24px;background:#c9a84c;color:#1a2744;border:none;border-radius:8px;font-weight:700;font-size:0.9rem;cursor:pointer;">Generate Test</button>
   <button onclick="generateSVSpotTest()" style="padding:9px 22px;background:transparent;color:#1a2744;border:1.5px solid #1a2744;border-radius:8px;font-weight:700;font-size:0.85rem;cursor:pointer;margin-left:8px;">📋 AP Spot Test</button>
+  <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-top:12px;">
+    <span style="font-size:0.72rem;color:#888;text-transform:uppercase;letter-spacing:0.06em;font-weight:600;">AP Spot Test &middot; Items per box:</span>
+    <button class="sv-topt" onclick="setSVSpotPer(1)" id="svsp-1">1</button>
+    <button class="sv-topt" onclick="setSVSpotPer(2)" id="svsp-2">2</button>
+    <button class="sv-topt active-sv" onclick="setSVSpotPer(3)" id="svsp-3">3</button>
+  </div>
   <div id="svTestOutput" style="margin-top:16px;"></div>
 </div>
 
@@ -30429,16 +30435,29 @@ function saveSVField(el){
 }
 
 // ── AP Spot Test ───────────────────────────────────────────────
-var svSpotRows=[], svSpotLabel='', svSpotQFlag='', svSpotAFlag='';
+var svSpotRows=[], svSpotLabel='', svSpotQFlag='', svSpotAFlag='', svSpotPer=3, svSpotUsedPer=3, svSpotPool=null, svSpotShown=false;
 
-function generateSVSpotTest() {
+// Items per box (1 / 2 / 3): changing it re-deals the test on screen from the same shuffled words
+function setSVSpotPer(n){
+  svSpotPer=n;
+  [1,2,3].forEach(function(k){ var b=document.getElementById('svsp-'+k); if(b) b.classList.toggle('active-sv', k===n); });
+  var out=document.getElementById('svTestOutput');
+  if(svSpotShown && svSpotPool && out && out.querySelector('[data-sv-spot]')) generateSVSpotTest(true);
+}
+
+function generateSVSpotTest(keepPool) {
   var raw=getSelectedPhrases();
-  if (raw.length<15){alert('Not enough items for a spot test (need at least 15).');return;}
+  if (raw.length<5){alert('Not enough items for a spot test (need at least 5).');return;}
   var f=getLangFrom(), t=getLangTo();
   var qFlag=SV_FLAGS[getLangFrom()]||'', aFlag=SV_FLAGS[getLangTo()]||'';
   var label=getSelectionLabel('All Vocab');
-  var items=[].concat(raw).sort(function(){return Math.random()-0.5;}).slice(0,15);
-  var rows=[]; for(var i=0;i<5;i++) rows.push(items.slice(i*3,i*3+3).map(function(p){ return {q:p[f]||'',a:p[t]||''}; }));
+  if(keepPool===true && svSpotPool && (svSpotPool.length!==raw.length || svSpotPool.some(function(p){ return raw.indexOf(p)<0; }))) keepPool=false;
+  if(keepPool!==true || !svSpotPool) svSpotPool=[].concat(raw).sort(function(){return Math.random()-0.5;});
+  var per=Math.max(1,Math.min(svSpotPer,Math.floor(svSpotPool.length/5)));
+  var fbNote=per<svSpotPer?'<div style="font-size:0.75rem;color:#b05000;background:#fff6e8;border:1px solid #f0d9b5;border-radius:6px;padding:6px 10px;margin-bottom:8px;">Only '+svSpotPool.length+' items in this selection &mdash; using '+per+' per box.</div>':'';
+  var items=svSpotPool.slice(0,5*per);
+  var rows=[]; for(var i=0;i<5;i++) rows.push(items.slice(i*per,i*per+per).map(function(p){ return {q:p[f]||'',a:p[t]||''}; }));
+  svSpotUsedPer=per; svSpotShown=true;
   svSpotRows=rows; svSpotLabel=label; svSpotQFlag=qFlag; svSpotAFlag=aFlag;
   var ic=['#1a2744','#b03a2e','#1a6b3a'];
   var thS='padding:5px 8px;font-size:0.6rem;font-weight:700;text-transform:uppercase;letter-spacing:0.07em;color:#8899bb;background:#f0f3f8;border:1px solid #ddd;text-align:left;';
@@ -30447,10 +30466,10 @@ function generateSVSpotTest() {
   var sR='', tR='';
   rows.forEach(function(group,i){
     group.forEach(function(p,ci){
-      var isFirst=ci===0,isLast=ci===2,col=ic[ci];
+      var isFirst=ci===0,isLast=ci===group.length-1,col=ic[ci];
       var bdr=isLast?'border-bottom:3px solid #1a2744;':'border-bottom:1px dotted #ccc;';
-      var nC=isFirst?'<td style="'+tdN+'" rowspan="3"><div style="font-size:1rem;font-weight:700;">'+(i+1)+'</div><div style="font-size:0.6rem;color:#aaa;">(2)</div></td>':'';
-      var sC=isFirst?'<td style="'+tdSc+'" rowspan="3"></td>':'';
+      var nC=isFirst?'<td style="'+tdN+'" rowspan="'+group.length+'"><div style="font-size:1rem;font-weight:700;">'+(i+1)+'</div><div style="font-size:0.6rem;color:#aaa;">(2)</div></td>':'';
+      var sC=isFirst?'<td style="'+tdSc+'" rowspan="'+group.length+'"></td>':'';
       var q=p.q||'';
       var a=p.a||'';
       var qT='<td style="width:42%;padding:14px;font-size:0.82rem;line-height:1.45;vertical-align:middle;border:1px solid #ddd;border-top:none;border-left:none;'+bdr+';color:'+col+'">'+q+'</td>';
@@ -30466,11 +30485,12 @@ function generateSVSpotTest() {
     +'<th style="'+thS+'width:52px;text-align:center;">0/1/2</th>'
     +'</tr></thead><tbody>';
   document.getElementById('svTestOutput').innerHTML=
-    '<div style="display:flex;gap:8px;margin-bottom:10px;flex-wrap:wrap;">'
+    '<div data-sv-spot="'+per+'" style="display:flex;gap:8px;margin-bottom:10px;flex-wrap:wrap;">'
     +'<button onclick="openSVSpotTestPDF(this,0)" data-t="student" style="padding:7px 14px;border-radius:8px;background:#1a2744;color:#c9a84c;border:none;font-size:0.82rem;cursor:pointer;font-weight:600;">&#128424; Print Student Sheet</button>'
     +'<button onclick="openSVSpotTestPDF(this,1)" data-t="teacher" style="padding:7px 14px;border-radius:8px;background:#c9a84c;color:#1a2744;border:none;font-size:0.82rem;cursor:pointer;font-weight:600;">&#128424; Print Teacher Sheet</button>'
     +'</div>'
-    +'<div style="font-size:0.68rem;color:#888;text-transform:uppercase;margin-bottom:8px;">'+qFlag+' &#x2192; '+aFlag+' &nbsp;&middot;&nbsp; '+label+' &nbsp;&middot;&nbsp; 5 x 3 = 15 items</div>'
+    +'<div style="font-size:0.68rem;color:#888;text-transform:uppercase;margin-bottom:8px;">'+qFlag+' &#x2192; '+aFlag+' &nbsp;&middot;&nbsp; '+label+' &nbsp;&middot;&nbsp; 5 x '+per+' = '+(5*per)+' items</div>'
+    +fbNote
     +'<div style="font-size:0.68rem;font-weight:700;color:#8899bb;text-transform:uppercase;margin-bottom:6px;">Student Sheet (preview)</div>'
     +'<div style="background:#fff;border:1px solid #e2e6f0;border-radius:10px;padding:12px 16px;margin-bottom:16px;">'+tO+sR+'</tbody></table></div>'
     +'<div style="font-size:0.68rem;font-weight:700;color:#8899bb;text-transform:uppercase;margin-bottom:6px;">Teacher Sheet (answer key)</div>'
@@ -30481,15 +30501,16 @@ function generateSVSpotTest() {
 function openSVSpotTestPDF(btn, isTeacherNum) {
   var type = btn ? btn.dataset.t : (isTeacherNum ? 'teacher' : 'student');
   var rows=svSpotRows,label=svSpotLabel,qFlag=svSpotQFlag,aFlag=svSpotAFlag;
+  var per=svSpotUsedPer, nItems=5*per;
   var isTeacher=type==='teacher';
   var ic=['#1a2744','#b03a2e','#1a6b3a'];
   var tableRows='';
   rows.forEach(function(group,i){
     group.forEach(function(p,ci){
-      var isFirst=ci===0,isLast=ci===2,col=ic[ci];
+      var isFirst=ci===0,isLast=ci===group.length-1,col=ic[ci];
       var bdr=isLast?'border-bottom:3px solid #1a2744;':'border-bottom:1px dotted #ccc;';
-      var nC=isFirst?'<td class="num" rowspan="3"><div class="row-num">'+(i+1)+'</div><div class="marks">(2)</div></td>':'';
-      var sC=isFirst?'<td class="score-col" rowspan="3"></td>':'';
+      var nC=isFirst?'<td class="num" rowspan="'+group.length+'"><div class="row-num">'+(i+1)+'</div><div class="marks">(2)</div></td>':'';
+      var sC=isFirst?'<td class="score-col" rowspan="'+group.length+'"></td>':'';
       var q=p.q||'';
       var a=p.a||'';
       tableRows+='<tr>'+nC+'<td class="q-item" style="color:'+col+';'+bdr+'">'+q+'</td>'
@@ -30523,7 +30544,7 @@ function openSVSpotTestPDF(btn, isTeacherNum) {
     +'td.q-item{width:42%;padding:14px;font-size:0.82rem;line-height:1.45;border-left:none;border-right:1.5px solid #ccc;border-top:none;}'
     +'td.a-item{padding:14px;font-size:0.82rem;line-height:1.45;'+aiBack+'border-left:none;border-right:none;border-top:none;}'
     +'td.score-col{width:52px;text-align:center;border-left:2px solid #1a2744;}'
-    +'tbody tr{height:calc((297mm - 4cm - 60px - 40px - 32px) / 15);}.footer{font-size:0.58rem;color:#ccc;text-align:right;padding-top:5px;flex-shrink:0;}';
+    +'tbody tr{height:calc((297mm - 4cm - 60px - 40px - 32px) / '+nItems+');}.footer{font-size:0.58rem;color:#ccc;text-align:right;padding-top:5px;flex-shrink:0;}';
   var html='<!DOCTYPE html><html><head><meta charset="UTF-8">'
     +'<title>AP Spot Test - '+label+' - '+sT+'</title>'
     +'<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;600;700&family=DM+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet">'
@@ -30531,7 +30552,7 @@ function openSVSpotTestPDF(btn, isTeacherNum) {
     +'<div class="page-hdr"><div>'
     +'<div class="hdr-brand">AP F Block &middot; Spanish Vocabulary</div>'
     +'<div class="hdr-title">AP <span>Spot Test</span></div>'
-    +'<div class="hdr-sub">'+label+' &middot; 5 questions &middot; 3 items each &middot; /10</div>'
+    +'<div class="hdr-sub">'+label+' &middot; 5 questions &middot; '+per+' item'+(per===1?'':'s')+' each &middot; /10</div>'
     +'</div><div style="display:flex;align-items:center;">'
     +'<div class="hdr-badge">'+sT+'</div>'
     +'<button class="pbtn no-print" onclick="window.print()">&#128424; Print / PDF</button>'

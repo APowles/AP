@@ -839,6 +839,12 @@ main{width:100%;max-width:none;margin:0;padding:0;box-sizing:border-box}
     <button class="ms-topt" onclick="setMSCount('custom')" id="mstc-custom">Custom</button>
     <input id="msCustomInput" type="number" min="1" max="200" value="15" style="display:none;width:60px;padding:4px 8px;border-radius:8px;border:1px solid #ccc;font-size:0.8rem;">
   </div>
+  <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:16px;">
+    <span style="font-size:0.72rem;color:#888;text-transform:uppercase;letter-spacing:0.06em;font-weight:600;">AP Spot Test &middot; Items per box:</span>
+    <button class="ms-topt" onclick="setMSSpotPer(1)" id="msper-1">1</button>
+    <button class="ms-topt" onclick="setMSSpotPer(2)" id="msper-2">2</button>
+    <button class="ms-topt active-ms" onclick="setMSSpotPer(3)" id="msper-3">3</button>
+  </div>
   <button onclick="generateMSTest()" style="padding:10px 24px;background:#c9a84c;color:#1a2744;border:none;border-radius:8px;font-weight:700;font-size:0.9rem;cursor:pointer;">Generate Test</button>
   <button onclick="generateMSSpotTest()" style="padding:9px 22px;background:transparent;color:#1a2744;border:1.5px solid #1a2744;border-radius:8px;font-weight:700;font-size:0.85rem;cursor:pointer;margin-left:8px;">📋 AP Spot Test</button>
   <div id="msTestOutput" style="margin-top:16px;"></div>
@@ -4364,17 +4370,26 @@ function openMSSpotTestPDF(type) {
 
 
 // ── AP Spot Test ───────────────────────────────────────────────
-var msSpotRows=[], msSpotLabel='', msSpotQFlag='', msSpotAFlag='';
+var msSpotRows=[], msSpotLabel='', msSpotQFlag='', msSpotAFlag='', msSpotPer=3, msSpotUsed=3;
+
+// AP Spot Test: items per box (1 · 2 · 3); changing it regenerates a spot test already on screen
+function setMSSpotPer(n){
+  msSpotPer=n;
+  [1,2,3].forEach(function(k){ var b=document.getElementById('msper-'+k); if(b) b.classList.toggle('active-ms', k===n); });
+  if (document.querySelector('#msTestOutput [data-ms-spot]')) generateMSSpotTest();
+}
 
 function generateMSSpotTest() {
   var raw=getMSPhrases();
-  if (raw.length<15){alert('Not enough items for a spot test (need at least 15).');return;}
+  if (raw.length<5){alert('Not enough items for a spot test (need at least 5).');return;}
+  var per=Math.min(msSpotPer, Math.floor(raw.length/5)), n=5*per;
+  var perNote=per<msSpotPer?'<div style="font-size:0.78rem;color:#b05000;font-weight:600;margin-bottom:8px;">Only '+raw.length+' items in this selection — using '+per+' per box</div>':'';
   var f=getLangFrom(), t=getLangTo();
   var qFlag=({en:'&#127468;&#127463;',fr:'&#127467;&#127479;',it:'&#127470;&#127481;',es:'&#127466;&#127480;'})[getLangFrom()]||'', aFlag=({en:'&#127468;&#127463;',fr:'&#127467;&#127479;',it:'&#127470;&#127481;',es:'&#127466;&#127480;'})[getLangTo()]||'';
   var label=_secLabel(currentSection);
-  var items=[].concat(raw).sort(function(){return Math.random()-0.5;}).slice(0,15);
-  var rows=[]; for(var i=0;i<5;i++) rows.push(items.slice(i*3,i*3+3).map(function(p){ return {q:p[f]||'',a:p[t]||''}; }));
-  msSpotRows=rows; msSpotLabel=label; msSpotQFlag=qFlag; msSpotAFlag=aFlag;
+  var items=[].concat(raw).sort(function(){return Math.random()-0.5;}).slice(0,n);
+  var rows=[]; for(var i=0;i<5;i++) rows.push(items.slice(i*per,i*per+per).map(function(p){ return {q:p[f]||'',a:p[t]||''}; }));
+  msSpotRows=rows; msSpotLabel=label; msSpotQFlag=qFlag; msSpotAFlag=aFlag; msSpotUsed=per;
   var ic=['#1a2744','#b03a2e','#1a6b3a'];
   var thS='padding:5px 8px;font-size:0.6rem;font-weight:700;text-transform:uppercase;letter-spacing:0.07em;color:#8899bb;background:#f0f3f8;border:1px solid #ddd;text-align:left;';
   var tdN='padding:6px 8px;border:1px solid #ddd;text-align:center;font-weight:700;font-size:0.82rem;color:#1a2744;vertical-align:middle;width:32px;';
@@ -4382,10 +4397,10 @@ function generateMSSpotTest() {
   var sR='', tR='';
   rows.forEach(function(group,i){
     group.forEach(function(p,ci){
-      var isFirst=ci===0,isLast=ci===2,col=ic[ci];
+      var isFirst=ci===0,isLast=ci===per-1,col=ic[ci];
       var bdr=isLast?'border-bottom:3px solid #1a2744;':'border-bottom:1px dotted #ccc;';
-      var nC=isFirst?'<td style="'+tdN+'" rowspan="3"><div style="font-size:1rem;font-weight:700;">'+(i+1)+'</div><div style="font-size:0.6rem;color:#aaa;">(2)</div></td>':'';
-      var sC=isFirst?'<td style="'+tdSc+'" rowspan="3"></td>':'';
+      var nC=isFirst?'<td style="'+tdN+'" rowspan="'+per+'"><div style="font-size:1rem;font-weight:700;">'+(i+1)+'</div><div style="font-size:0.6rem;color:#aaa;">(2)</div></td>':'';
+      var sC=isFirst?'<td style="'+tdSc+'" rowspan="'+per+'"></td>':'';
       var q=p.q||'';
       var a=p.a||'';
       var qT='<td style="width:42%;padding:14px;font-size:0.82rem;line-height:1.45;vertical-align:middle;border:1px solid #ddd;border-top:none;border-left:none;'+bdr+';color:'+col+'">'+q+'</td>';
@@ -4401,11 +4416,12 @@ function generateMSSpotTest() {
     +'<th style="'+thS+'width:52px;text-align:center;">0/1/2</th>'
     +'</tr></thead><tbody>';
   document.getElementById('msTestOutput').innerHTML=
-    '<div style="display:flex;gap:8px;margin-bottom:10px;flex-wrap:wrap;">'
+    '<div data-ms-spot="1" style="display:flex;gap:8px;margin-bottom:10px;flex-wrap:wrap;">'
     +'<button onclick="openMSSpotTestPDF(this,0)" data-t="student" style="padding:7px 14px;border-radius:8px;background:#1a2744;color:#c9a84c;border:none;font-size:0.82rem;cursor:pointer;font-weight:600;">&#128424; Print Student Sheet</button>'
     +'<button onclick="openMSSpotTestPDF(this,1)" data-t="teacher" style="padding:7px 14px;border-radius:8px;background:#c9a84c;color:#1a2744;border:none;font-size:0.82rem;cursor:pointer;font-weight:600;">&#128424; Print Teacher Sheet</button>'
     +'</div>'
-    +'<div style="font-size:0.68rem;color:#888;text-transform:uppercase;margin-bottom:8px;">'+qFlag+' &#x2192; '+aFlag+' &nbsp;&middot;&nbsp; '+label+' &nbsp;&middot;&nbsp; 5 x 3 = 15 items</div>'
+    +'<div style="font-size:0.68rem;color:#888;text-transform:uppercase;margin-bottom:8px;">'+qFlag+' &#x2192; '+aFlag+' &nbsp;&middot;&nbsp; '+label+' &nbsp;&middot;&nbsp; 5 x '+per+' = '+n+' items</div>'
+    +perNote
     +'<div style="font-size:0.68rem;font-weight:700;color:#8899bb;text-transform:uppercase;margin-bottom:6px;">Student Sheet (preview)</div>'
     +'<div style="background:#fff;border:1px solid #e2e6f0;border-radius:10px;padding:12px 16px;margin-bottom:16px;">'+tO+sR+'</tbody></table></div>'
     +'<div style="font-size:0.68rem;font-weight:700;color:#8899bb;text-transform:uppercase;margin-bottom:6px;">Teacher Sheet (answer key)</div>'
@@ -4416,15 +4432,15 @@ function generateMSSpotTest() {
 function openMSSpotTestPDF(btn, isTeacherNum) {
   var type = btn ? btn.dataset.t : (isTeacherNum ? 'teacher' : 'student');
   var rows=msSpotRows,label=msSpotLabel,qFlag=msSpotQFlag,aFlag=msSpotAFlag;
-  var isTeacher=type==='teacher';
+  var isTeacher=type==='teacher', per=msSpotUsed||3;
   var ic=['#1a2744','#b03a2e','#1a6b3a'];
   var tableRows='';
   rows.forEach(function(group,i){
     group.forEach(function(p,ci){
-      var isFirst=ci===0,isLast=ci===2,col=ic[ci];
+      var isFirst=ci===0,isLast=ci===per-1,col=ic[ci];
       var bdr=isLast?'border-bottom:3px solid #1a2744;':'border-bottom:1px dotted #ccc;';
-      var nC=isFirst?'<td class="num" rowspan="3"><div class="row-num">'+(i+1)+'</div><div class="marks">(2)</div></td>':'';
-      var sC=isFirst?'<td class="score-col" rowspan="3"></td>':'';
+      var nC=isFirst?'<td class="num" rowspan="'+per+'"><div class="row-num">'+(i+1)+'</div><div class="marks">(2)</div></td>':'';
+      var sC=isFirst?'<td class="score-col" rowspan="'+per+'"></td>':'';
       var q=p.q||'';
       var a=p.a||'';
       tableRows+='<tr>'+nC+'<td class="q-item" style="color:'+col+';'+bdr+'">'+q+'</td>'
@@ -4458,7 +4474,7 @@ function openMSSpotTestPDF(btn, isTeacherNum) {
     +'td.q-item{width:42%;padding:14px;font-size:0.82rem;line-height:1.45;border-left:none;border-right:1.5px solid #ccc;border-top:none;}'
     +'td.a-item{padding:14px;font-size:0.82rem;line-height:1.45;'+aiBack+'border-left:none;border-right:none;border-top:none;}'
     +'td.score-col{width:52px;text-align:center;border-left:2px solid #1a2744;}'
-    +'tbody tr{height:calc((297mm - 4cm - 60px - 40px - 32px) / 15);}.footer{font-size:0.58rem;color:#ccc;text-align:right;padding-top:5px;flex-shrink:0;}';
+    +'tbody tr{height:calc((297mm - 4cm - 60px - 40px - 32px) / '+(5*per)+');}.footer{font-size:0.58rem;color:#ccc;text-align:right;padding-top:5px;flex-shrink:0;}';
   var html='<!DOCTYPE html><html><head><meta charset="UTF-8">'
     +'<title>AP Spot Test - '+label+' - '+sT+'</title>'
     +'<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;600;700&family=DM+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet">'
@@ -4466,7 +4482,7 @@ function openMSSpotTestPDF(btn, isTeacherNum) {
     +'<div class="page-hdr"><div>'
     +'<div class="hdr-brand">AP IGCSE &middot; Master Structures</div>'
     +'<div class="hdr-title">AP <span>Spot Test</span></div>'
-    +'<div class="hdr-sub">'+label+' &middot; 5 questions &middot; 3 items each &middot; /10</div>'
+    +'<div class="hdr-sub">'+label+' &middot; 5 questions &middot; '+per+(per===1?' item':' items')+' each &middot; /10</div>'
     +'</div><div style="display:flex;align-items:center;">'
     +'<div class="hdr-badge">'+sT+'</div>'
     +'<button class="pbtn no-print" onclick="window.print()">&#128424; Print / PDF</button>'
