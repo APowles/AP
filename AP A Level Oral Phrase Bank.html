@@ -3754,8 +3754,7 @@ function openOPContentPDF(){
   function resolveText(p, lang) {
     let text = p[lang]||'';
     if(text.includes('{SRC}') && p.src) {
-      const src = typeof p.src === 'object' ? (p.src[lang]||p.src['fr']||'') : (p.src||'');
-      text = text.replace('{SRC}', src);
+      text = text.replace(/\{SRC\}/g, apSrc(p, lang, apStudyLang()));
     }
     return text;
   }
@@ -3816,8 +3815,7 @@ function openOPStudyPDF(){
   function resolveText(p, lang) {
     let text = p[lang]||'';
     if(text.includes('{SRC}') && p.src) {
-      const src = typeof p.src === 'object' ? (p.src[lang]||p.src['fr']||'') : (p.src||'');
-      text = text.replace('{SRC}', src);
+      text = text.replace(/\{SRC\}/g, apSrc(p, lang, apStudyLang()));
     }
     return text;
   }
@@ -3887,8 +3885,8 @@ function generateOPSpotTest() {
   var label=(function(){var el=document.getElementById('cat-select');return el?el.options[el.selectedIndex].text:'All Categories';})()+apLevelTxt();
   var items=[].concat(raw).sort(function(){return Math.random()-0.5;}).slice(0,5*per);
   var rows=[]; for(var i=0;i<5;i++) rows.push(items.slice(i*per,i*per+per).map(function(p){
-    var q=(p[f]||'').replace(/\{SRC\}/g,typeof p.src==='object'?(p.src[f]||''):(p.src||''));
-    var a=(p[t]||'').replace(/\{SRC\}/g,typeof p.src==='object'?(p.src[t]||''):(p.src||''));
+    var q=(p[f]||'').replace(/\{SRC\}/g,apSrc(p,f,apStudyLang()));
+    var a=(p[t]||'').replace(/\{SRC\}/g,apSrc(p,t,apStudyLang()));
     return {q:q,a:a};
   }));
   opSpotRows=rows; opSpotLabel=label; opSpotQFlag=qFlag; opSpotAFlag=aFlag;
@@ -4526,13 +4524,7 @@ function openOralCyclePDF(){
   function resolveTxt(p, l){
     var t = p[l]||'';
     if(t.includes('{SRC}') && p.src){
-      var s = p.src;
-      var sub = '';
-      if(typeof s === 'object'){
-        var inner = s[l];
-        sub = (inner && typeof inner === 'object') ? (inner[l]||'') : (inner||s['fr']||'');
-      } else { sub = s||''; }
-      t = t.replace('{SRC}', sub);
+      t = t.replace(/\{SRC\}/g, apSrc(p, l, l === 'en' ? apStudyLang() : l));
     }
     return t;
   }
@@ -4659,6 +4651,15 @@ function openOralCyclePDF(){
   printViaFrame(pageHtml);
 }
 // ── Media source helpers ────────────────────────────────────
+// {SRC} = the source / people a phrase refers to. Flat src (n:24-33): one per studied language (Le Monde / La Repubblica / El País).
+// Nested src (n:36): by text language, then studied language ("French people" / "les Français" …).
+function apSrc(p, textLang, studyLang) {
+  var s = p && p.src; if (!s) return ''; if (typeof s !== 'object') return String(s);
+  var o = s[textLang]; if (o && typeof o === 'object') return o[studyLang] || o.fr || '';
+  var v = s[studyLang]; if (typeof v === 'string') return v; if (v && typeof v === 'object') return v[studyLang] || v.fr || '';
+  return typeof s.fr === 'string' ? s.fr : '';
+}
+function apStudyLang() { try { var t = getLangTo(), f = getLangFrom(), L = ['fr', 'it', 'es']; return L.indexOf(t) >= 0 ? t : (L.indexOf(f) >= 0 ? f : 'fr'); } catch (e) { return 'fr'; } }
 function resolveDisplay(p, fromLang, toLang){
   const text = p[fromLang] || '';
   if(p.src && text.includes('{SRC}')){
@@ -4747,8 +4748,8 @@ window.__voc = {
     var L = 'fr'; try { L = document.getElementById('apvoc-frame').contentWindow.VC.lang || 'fr'; } catch (e) {}
     if (_apvS !== ALL_PHRASES || !_apvC || _apvC.length !== ALL_PHRASES.length || _apvC._l !== L) {
       _apvS = ALL_PHRASES;
-      var sub = function (t, p, l) { return String(t || '').replace(/\{SRC\}/g, p.src ? (p.src[l] || p.src.fr || '') : ''); };
-      _apvC = ALL_PHRASES.map(function (p) { return { sec: p.cat, en: sub(p.en, p, L), fr: sub(p.fr, p, 'fr'), it: sub(p.it, p, 'it'), es: sub(p.es, p, 'es') }; });
+      var sub = function (t, p, l) { return String(t || '').replace(/\{SRC\}/g, apSrc(p, l, L)); };   // studied language L, text language l
+      _apvC = ALL_PHRASES.map(function (p) { return { sec: p.cat, en: sub(p.en, p, 'en'), fr: sub(p.fr, p, 'fr'), it: sub(p.it, p, 'it'), es: sub(p.es, p, 'es') }; });
       _apvC._l = L;
     }
     return _apvC; },
@@ -4782,7 +4783,7 @@ var APVOC_TPL = "<!doctype html>\n<html lang=\"en\"><head><meta charset=\"utf-8\
   function txt(p, l) {
     var t = String(p[l] || '');
     var srcL = l === 'en' ? (st.langs.filter(function (x) { return x !== 'en'; })[0] || 'fr') : l;
-    if (p.src) t = t.replace(/\{SRC\}/g, p.src[srcL] || p.src.fr || '');
+    if (p.src) t = t.replace(/\{SRC\}/g, apSrc(p, l, srcL));
     return t;
   }
   function fmt(t) {
