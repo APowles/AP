@@ -945,7 +945,7 @@ function aphWatchHome(el, sel) {
 .apmp-ov{position:fixed;inset:0;z-index:20000;background:rgba(8,13,28,.62);display:flex;align-items:flex-start;justify-content:center;padding:12vh 16px 16px;box-sizing:border-box;font-family:var(--aph-body)}
 .apmp-box{width:100%;max-width:420px;background:#fff;border-radius:14px;box-shadow:0 30px 80px rgba(0,0,0,.45);padding:20px 20px 18px;color:var(--navy);box-sizing:border-box}
 .apmp-box h3{font:700 1.15rem/1.25 var(--aph-body);margin:0 0 4px;color:var(--navy)}
-.apmp-box p{font-size:.875rem;line-height:1.45;color:var(--text2);margin:0 0 12px}
+.apmp-box p{font-size:.875rem;line-height:1.45;color:var(--text2);margin:0 0 12px}.apmp-box p.apmp-next{background:#fff4d6;border-left:4px solid #c9a84c;padding:8px 10px;border-radius:6px;color:#1a2744}
 .apmp-box label{display:block;font-size:.75rem;font-weight:700;letter-spacing:.09em;text-transform:uppercase;color:var(--text3);margin:0 0 6px}
 .apmp-box input{width:100%;box-sizing:border-box;font:500 16px/1.2 var(--aph-body);color:var(--text);border:1.5px solid var(--border);border-radius:8px;padding:10px 12px;min-height:44px}
 .apmp-box input:focus{outline:none;border-color:var(--gold);box-shadow:0 0 0 3px rgba(201,168,76,.25)}
@@ -977,12 +977,27 @@ var APMP = (function () {
     return day + ' · ' + t;
   }
   function closeAsk() { var o = document.getElementById('apmp-ask'); if (o) o.remove(); }
+  function apmpPad() { var ua = navigator.userAgent || ''; return /iPad|iPhone|iPod/.test(ua) || (/Macintosh/.test(ua) && navigator.maxTouchPoints > 1); }
+  function howTo() {
+    if (apmpPad()) return '<div class="apmp-how"><div class="apmp-how-h">&#128242; How to send this to AP (iPad)</div><ol>'
+      + '<li>If the print screen has not opened by itself, tap <button type="button" onclick="window.print()">&#128424; Print / Save as PDF</button></li>'
+      + '<li>In <b>Print Options</b>, do <b>not</b> choose a printer and do <b>not</b> tap Print. Tap the <b>Share button</b> at the top <span class="apmp-ico">(the square with an arrow &#11014;&#65038;)</span>.</li>'
+      + '<li>Tap <b>OneNote</b> (swipe the row of apps if you cannot see it). Choose <b>AP&rsquo;s notebook</b> and the <b>page with today&rsquo;s date</b>. <i>Or</i> tap <b>Save to Files</b> and add the PDF to that OneNote page afterwards.</li>'
+      + '<li>Open that OneNote page and check your PDF is there, with your name and red score at the top.</li></ol>'
+      + '<div class="apmp-how-s">Print screen never appears in Prisma? Tell AP, or do the paper in Safari.</div></div>';
+    return '<div class="apmp-how"><div class="apmp-how-h">&#128187; How to send this to AP</div><ol>'
+      + '<li>If the print window has not opened by itself, click <button type="button" onclick="window.print()">&#128424; Print / Save as PDF</button></li>'
+      + '<li>Set <b>Destination</b> (or Printer) to <b>Save as PDF</b> (or <i>Microsoft Print to PDF</i>), then <b>Save</b>. Your computer remembers this choice next time.</li>'
+      + '<li>Upload the PDF to <b>OneNote</b>, on the <b>dated page AP has set</b> for this work.</li></ol></div>';
+  }
   function ask(cb) {
     closeAsk();
     var o = document.createElement('div'); o.id = 'apmp-ask'; o.className = 'apmp-ov';
     o.innerHTML = '<div class="apmp-box" role="dialog" aria-modal="true" aria-labelledby="apmp-ask-h">'
       + '<h3 id="apmp-ask-h">&#128196; Save marked paper as PDF</h3>'
-      + '<p>Your answers, the mark scheme and your score go on one printable page. In the print window choose <b>Save as PDF</b>.</p>'
+      + '<p>Your answers, the mark scheme and your score go on one page.</p>'
+      + (apmpPad() ? '<p class="apmp-next">Next, the print screen opens. <b>Do not print.</b> Tap the <b>Share button &#11014;&#65038;</b> at the top, then <b>OneNote</b>. Step-by-step help is at the top of the next page.</p>'
+                   : '<p class="apmp-next">Next, the print window opens: choose <b>Save as PDF</b>, then upload the PDF to <b>OneNote</b>.</p>')
       + '<label for="apmp-name">Your name (printed at the top)</label>'
       + '<input id="apmp-name" type="text" autocomplete="name" autocapitalize="words" spellcheck="false" maxlength="60" placeholder="e.g. A. Smith">'
       + '<div class="apmp-acts"><button type="button" class="aph-btn" id="apmp-skip">Skip</button>'
@@ -1039,8 +1054,8 @@ var APMP = (function () {
   }
   var CSS = '@page{size:A4;margin:12mm 12mm 15mm;@bottom-right{content:"Page " counter(page) " of " counter(pages);font:8pt "DM Sans",sans-serif;color:#8a93a8}}'
     + '*{box-sizing:border-box}html,body{background:#fff}body{margin:0;font-family:var(--aph-body);color:#1a2744;font-size:10pt;line-height:1.42;-webkit-print-color-adjust:exact;print-color-adjust:exact;-webkit-text-size-adjust:100%}'
-    + '.apmp-bar{position:sticky;top:0;z-index:5;display:flex;flex-wrap:wrap;gap:8px 12px;align-items:center;background:#1a2744;color:#dfe5f3;padding:10px 16px;font-size:13px;border-bottom:3px solid #c9a84c}'
-    + '.apmp-bar button{background:#c9a84c;color:#1a2744;border:0;border-radius:6px;padding:9px 14px;font:700 14px var(--aph-body);cursor:pointer;min-height:40px}.apmp-bar span{flex:1;min-width:180px}'
+    + '.apmp-bar{display:block;background:#1a2744;color:#eef2fa;padding:14px 18px;font-size:16px;line-height:1.45;border-bottom:4px solid #c9a84c}.apmp-how{max-width:760px;margin:0 auto}.apmp-how-h{font-weight:800;font-size:18px;color:#f3dc9a;margin:0 0 6px}.apmp-how ol{margin:0;padding-left:1.4em}.apmp-how li{margin:6px 0}.apmp-how b{color:#fff}.apmp-ico{color:#f3dc9a;white-space:nowrap}.apmp-how-s{font-size:13px;color:#b9c3da;margin-top:8px}'
+    + '.apmp-bar button{background:#c9a84c;color:#1a2744;border:0;border-radius:6px;padding:9px 14px;font:700 14px var(--aph-body);cursor:pointer;min-height:40px}'
     + '.apmp-page{max-width:186mm;margin:0 auto;padding:8mm 16px 10mm}'
     + '.aph-pband{margin-top:0}'
     + '.apmp-res{display:flex;align-items:center;gap:6mm;border:1px solid #e3e3e3;border-top:0;border-radius:0 0 6px 6px;padding:4mm 5mm;margin-bottom:4mm;background:#fafafa}'
@@ -1089,7 +1104,7 @@ var APMP = (function () {
       + 'if(document.readyState==="complete")ready();else window.addEventListener("load",ready);})();</scr' + 'ipt>';
     return '<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>' + esc(o.docTitle + (o.name ? ' — ' + o.name : '')) + '</title>'
       + '<style>' + aphCSS() + '</style><style>' + CSS + '</style></head><body>'
-      + '<div class="apmp-bar aph-noprint"><button type="button" onclick="window.print()">&#128424; Print / Save as PDF</button><span>Choose <b>Save as PDF</b> as the printer. On iPad: tap Print, then the Share button &rsaquo; Save to Files. Then upload the PDF to <b>OneNote</b>, on the <b>dated page AP has set</b> for this work.</span></div>'
+      + '<div class="apmp-bar aph-noprint">' + howTo() + '</div>'
       + '<div class="apmp-page">' + head
       + '<div class="apmp-res"><div class="apmp-who">' + who + '<div class="apmp-when">Completed ' + stamp + (o.lang ? ' &middot; ' + o.lang : '') + '</div>'
       + (o.summary ? '<div class="apmp-sum">' + o.summary + '</div>' : '')
