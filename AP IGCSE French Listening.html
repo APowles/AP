@@ -116,9 +116,11 @@
     // verb sentir/ressentir/pressentir/consentir, je/tu form: final s is silent (je me sens = « je me sent »); the noun « le sens » is untouched
     [/\b(je|tu|ne|me|te|m['’]y|t['’]y|m['’]en|t['’]en|j['’]y|j['’]en)(\s+)((?:res|pres|con)?sen)s\b/gi, '$1$2$3t']
   ] };
-  function fixText(text, lang) { var L = FIXES[base(lang)]; if (!L || !text) return text; for (var i = 0; i < L.length; i++) text = String(text).replace(L[i][0], L[i][1]); return text; }
+  // every language: a slash between words (portugués/portuguesa, il/elle) is spoken as a short pause, never « barra / slash »
+  var FIXES_ALL = [[/([A-Za-zÀ-ÖØ-öø-ÿ’'.)])\s*\/\s*(?=[A-Za-zÀ-ÖØ-öø-ÿ(¿¡])/g, '$1, ']];
+  function fixText(text, lang) { if (!text) return text; text = String(text); var i; for (i = 0; i < FIXES_ALL.length; i++) text = text.replace(FIXES_ALL[i][0], FIXES_ALL[i][1]); var L = FIXES[base(lang)]; if (!L) return text; for (i = 0; i < L.length; i++) text = text.replace(L[i][0], L[i][1]); return text; }
   if (S && !S.__apFix) {
-    try { var _speak = S.speak.bind(S); S.speak = function (u) { try { if (u && u.text) { var l = u.lang || (u.voice && u.voice.lang) || ''; if (FIXES[base(l)]) u.text = fixText(u.text, l); } } catch (e) { } return _speak(u); }; S.__apFix = true; } catch (e) { }
+    try { var _speak = S.speak.bind(S); S.speak = function (u) { try { if (u && u.text) { var l = u.lang || (u.voice && u.voice.lang) || ''; u.text = fixText(u.text, l); } } catch (e) { } return _speak(u); }; S.__apFix = true; } catch (e) { }
   }
   W.AP_VOICE = { fixes: FIXES, fixText: fixText, prefs: PREFS, pick: pick, quality: quality, isNovelty: novelty, usable: usable, load: load, unlock: unlock, check: check, platform: platform, tier: tierOf, region: function (l) { return REGION[base(l)] || l; } };
 })(window);
