@@ -1122,6 +1122,468 @@ var APMP = (function () {
 })();
 /* ===== END AP MARKED PAPER ===== */
 </script>
+<style id="appen-style">
+/* ===== AP PEN v1 · answer pad: ✍️ Handwrite (Apple Pencil) / ⌨️ Type (shared; identical in every AP app with written answers) ===== */
+.appen{margin:8px 0 4px;font-family:var(--aph-body);clear:both}
+.appen-bar{display:flex;flex-wrap:wrap;align-items:center;gap:6px 8px;margin:0 0 6px}
+.appen-tabs{display:inline-flex;flex:none;border:1.5px solid var(--navy);border-radius:9px;overflow:hidden;background:#fff}
+.appen-tab{font:700 .9375rem/1.1 var(--aph-body);background:#fff;color:var(--navy);border:0;padding:8px 12px;min-height:40px;cursor:pointer;white-space:nowrap;-webkit-tap-highlight-color:transparent}
+.appen-tab+.appen-tab{border-left:1.5px solid var(--navy)}
+.appen-tab.ty{font-weight:600}
+.appen-tab[aria-selected="true"]{background:var(--navy);color:var(--gold2)}
+.appen-tab:focus-visible,.appen-tb:focus-visible{outline:3px solid rgba(201,168,76,.6);outline-offset:1px}
+.appen-tools{display:flex;flex-wrap:wrap;align-items:center;gap:6px;flex:1 1 auto;justify-content:flex-end;min-width:0}
+.appen-tb{font:600 .9375rem/1.1 var(--aph-body);background:#fff;color:var(--text);border:1.5px solid var(--border);border-radius:8px;padding:6px 10px;min-height:38px;cursor:pointer;white-space:nowrap;-webkit-tap-highlight-color:transparent}
+.appen-tb:hover:not(:disabled){border-color:var(--navy);color:var(--navy)}
+.appen-tb[aria-pressed="true"]{border-color:var(--navy);background:#eef1f8;color:var(--navy);font-weight:700}
+.appen-tb.red{color:#b71c1c}
+.appen-tb.red[aria-pressed="true"]{border-color:#c62828;background:#fdecea;color:#b71c1c}
+.appen-tb:disabled{opacity:.4;cursor:default}
+.appen-seg{display:inline-flex;border:1.5px solid var(--border);border-radius:8px;overflow:hidden}
+.appen-seg .appen-tb{border:0;border-radius:0;min-height:35px}
+.appen-seg .appen-tb+.appen-tb{border-left:1.5px solid var(--border)}
+.appen-lock{font:700 .8125rem/1.2 var(--aph-body);color:#b71c1c;background:#fdecea;border:1px solid #f3c2bd;border-radius:6px;padding:5px 8px;white-space:nowrap}
+.appen-padwrap{position:relative;border:1px solid #d9d4c9;border-radius:8px;overflow:hidden;background:#fffef8;-webkit-user-select:none;user-select:none;-webkit-touch-callout:none}
+.appen.locked .appen-padwrap{border-color:#e9a9a3;box-shadow:0 0 0 2px rgba(198,40,40,.08)}
+.appen-cv{display:block;width:100%;height:100px;touch-action:none;cursor:crosshair;-webkit-user-select:none;user-select:none;-webkit-touch-callout:none}
+html.appen-pen .appen-cv{touch-action:manipulation}
+html.appen-pen .appen-cv.drawing{touch-action:none}
+.appen.erasing .appen-cv{cursor:cell}
+.appen-foot{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:4px 12px;margin-top:5px}
+.appen-hint{font-size:.8125rem;line-height:1.35;color:var(--text2);flex:1 1 220px}
+.appen.locked .appen-hint{color:#b71c1c}
+.appen-foot:has(.appen-hint:empty){display:none}
+.appen-confirm{display:flex;flex-wrap:wrap;align-items:center;gap:8px;background:#fdf6e3;border:1px solid #e6cf8f;border-radius:8px;padding:8px 10px;margin:0 0 6px;font-size:.9375rem;color:var(--navy)}
+.appen-confirm span{flex:1 1 200px}
+.appen-confirm .go{background:var(--navy);color:var(--gold2);border-color:var(--navy)}
+.appen-panel[hidden]{display:none!important}
+.appen-note{font-size:.8125rem;color:var(--text2);font-style:italic;margin:0 0 6px}
+.appen-ta{display:block;width:100%;box-sizing:border-box;font:500 1rem/1.55 var(--aph-body);color:var(--text);border:1px solid #bbb;border-radius:6px;padding:10px 12px;min-height:120px;background:#fffef8;resize:vertical}
+.appen-ta:focus{outline:none;border-color:var(--gold);box-shadow:0 0 0 3px rgba(201,168,76,.22)}
+.appen-ty input[readonly],.appen-ty textarea[readonly]{background:#f3f4f7;color:#2a2a2a}
+.appen-corr-wrap{margin-top:8px}
+.appen-corr-wrap label{display:block;font:800 .75rem/1.2 var(--aph-body);letter-spacing:.08em;text-transform:uppercase;color:#c62828;margin:0 0 4px}
+.appen-corr{display:block;width:100%;box-sizing:border-box;font:600 1rem/1.45 var(--aph-body);color:#c62828;border:1.5px solid #e9a9a3;border-radius:6px;padding:8px 10px;min-height:60px;background:#fff8f7;resize:vertical}
+.appen-corr:focus{outline:none;border-color:#c62828;box-shadow:0 0 0 3px rgba(198,40,40,.15)}
+.appen-restore{display:flex;flex-wrap:wrap;align-items:center;gap:8px 12px;background:#eef1f8;border:1px solid #cdd5e6;border-left:4px solid var(--gold);border-radius:8px;padding:10px 12px;margin:0 0 14px;font:500 .9375rem/1.4 var(--aph-body);color:var(--navy)}
+.appen-restore>span:first-child{flex:1 1 260px}
+.appen-restore-acts{display:flex;flex-wrap:wrap;gap:8px}
+.appen-restore .go{background:var(--navy);color:var(--gold2);border-color:var(--navy)}
+@media (max-width:560px){.appen-tools{justify-content:flex-start}.appen-tab{padding:8px 10px}}
+/* ===== END AP PEN ===== */
+</style>
+<script id="appen-script">
+/* ===== AP PEN v1 · answer pad (shared; identical in every AP app with written answers) =====
+   APPEN.html({key, lines, nums, label, typed}) → markup with two tabs: ✍️ Handwrite (default, selected) and ⌨️ Type
+   (the app's own input/textarea goes in `typed`). APPEN.mount(root) wires every pad in root and returns the states that
+   already held work (to offer "Start afresh"). APPEN.lock(key) / lockIn(el) once the answer is marked: black ink is
+   kept as written (no undo / erase / clear of black), the pen turns red for corrections, typed answers go read-only
+   and a red Corrections box appears. Strokes are vectors in logical units (800 wide), saved per pad in localStorage.
+   Palm rejection: once an Apple Pencil ('pen') is seen, touch never draws (a finger scrolls the page).
+   APPEN.pdf(key[, typedHtml]) → HTML for the marked-paper PDF (typed text, handwriting PNG, red corrections). */
+var APPEN = (function () {
+  var LW = 800, LH = 46, TOP = 12, PADB = 12, ML = 34, MAXL = 80;
+  var SIZES = { thin: 2.2, med: 3.4 }, COL = { k: '#111111', r: '#c62828' };
+  var SKEY = 'appen:', IDX = 'appen:idx', KEEP_DAYS = 60;
+  var REG = {}, RO = null;
+  var penSeen = false;
+  try { penSeen = localStorage.getItem('appenPen') === '1'; } catch (e) { }
+  if (penSeen) document.documentElement.classList.add('appen-pen');
+  function markPen() {
+    if (penSeen) return; penSeen = true; document.documentElement.classList.add('appen-pen');
+    try { localStorage.setItem('appenPen', '1'); } catch (e) { }
+    Object.keys(REG).forEach(function (k) { if (REG[k].el) hint(REG[k]); });
+  }
+  function esc(s) { return String(s == null ? '' : s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;'); }
+  function uid(k) { return 'appen-' + String(k).replace(/[^A-Za-z0-9_-]/g, '_'); }
+  function when(t) {
+    var d = new Date(t);
+    try { return d.toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short' }) + ', ' + d.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' }); } catch (e) { return ''; }
+  }
+  // ── storage (every access wrapped: private mode / blocked storage must never break the page) ──
+  function lsGet(k) { try { return localStorage.getItem(k); } catch (e) { return null; } }
+  function lsSet(k, v) { try { localStorage.setItem(k, v); return true; } catch (e) { return false; } }
+  function lsDel(k) { try { localStorage.removeItem(k); } catch (e) { } }
+  function idx() { try { return JSON.parse(lsGet(IDX) || '{}') || {}; } catch (e) { return {}; } }
+  function prune(half) {
+    var o = idx(), now = Date.now(), ks = Object.keys(o).sort(function (a, b) { return o[a] - o[b]; }), cut = half ? Math.ceil(ks.length / 2) : 0;
+    ks.forEach(function (k, i) { if (i < cut || now - o[k] > KEEP_DAYS * 864e5) { lsDel(SKEY + k); delete o[k]; } });
+    lsSet(IDX, JSON.stringify(o));
+  }
+  function hasContent(st) { return !!(st && (st.strokes.length || (st.typed && st.typed.join('').replace(/\s+/g, '')) || (st.corr && st.corr.replace(/\s+/g, '')))); }
+  function save(st) {
+    clearTimeout(st.tm); st.tm = null;
+    var o = idx();
+    if (!hasContent(st)) { lsDel(SKEY + st.key); delete o[st.key]; lsSet(IDX, JSON.stringify(o)); return; }
+    var data = JSON.stringify({ v: 1, t: st.ts, l: st.lines, tab: st.tab, lk: st.locked ? 1 : 0, sz: st.size, ty: st.typed, c: st.corr,
+      s: st.strokes.map(function (s) { var q = []; for (var i = 0; i < s.p.length; i += 3) q.push(Math.round(s.p[i] * 10), Math.round(s.p[i + 1] * 10), Math.round(s.p[i + 2] * 100)); return [s.c, s.w, q]; }) });
+    o[st.key] = st.ts || Date.now();
+    if (!lsSet(SKEY + st.key, data)) { prune(true); o = idx(); o[st.key] = st.ts || Date.now(); if (!lsSet(SKEY + st.key, data)) return; }
+    lsSet(IDX, JSON.stringify(o));
+  }
+  function touch(st) { st.ts = Date.now(); clearTimeout(st.tm); st.tm = setTimeout(function () { save(st); }, 250); }
+  function flush() { Object.keys(REG).forEach(function (k) { if (REG[k].tm) save(REG[k]); }); }
+  try { window.addEventListener('pagehide', flush); document.addEventListener('visibilitychange', function () { if (document.visibilityState === 'hidden') flush(); }); } catch (e) { }
+  function blank(key) { return { key: key, lines: 3, min: 3, nums: 0, label: '', strokes: [], hist: [], typed: null, corr: '', locked: false, tab: 'hw', size: 'med', tool: 'pen', ts: 0, el: null, cv: null, act: null, cur: null, fromStore: false }; }
+  function load(key) {
+    var raw = lsGet(SKEY + key); if (!raw) return null;
+    try {
+      var d = JSON.parse(raw), st = blank(key);
+      st.ts = d.t || 0; st.lines = Math.min(MAXL, d.l || 3); st.tab = d.tab === 'ty' ? 'ty' : 'hw'; st.locked = !!d.lk; st.size = d.sz === 'thin' ? 'thin' : 'med';
+      st.typed = Array.isArray(d.ty) ? d.ty : null; st.corr = d.c || ''; st.tool = 'pen'; st.fromStore = true;
+      st.strokes = (d.s || []).map(function (a) { var p = [], q = a[2] || []; for (var i = 0; i + 2 < q.length; i += 3) p.push(q[i] / 10, q[i + 1] / 10, q[i + 2] / 100); return { c: a[0] === 'r' ? 'r' : 'k', w: +a[1] || SIZES.med, p: p }; }).filter(function (s) { return s.p.length >= 3; });
+      return st;
+    } catch (e) { return null; }
+  }
+  try { prune(false); } catch (e) { }
+  // ── markup ──
+  function html(o) {
+    var id = uid(o.key), lab = esc(o.label || 'Your answer');
+    return '<div class="appen" data-appen="' + esc(o.key) + '" data-lines="' + (o.lines || 3) + '" data-nums="' + (o.nums || 0) + '" data-label="' + lab + '">'
+      + '<div class="appen-bar"><div class="appen-tabs" role="tablist" aria-label="' + lab + ': how you answer">'
+      + '<button type="button" role="tab" class="appen-tab hw" id="' + id + '-thw" aria-selected="true" aria-controls="' + id + '-hw" data-t="hw">&#9997;&#65039; Handwrite</button>'
+      + '<button type="button" role="tab" class="appen-tab ty" id="' + id + '-tty" aria-selected="false" aria-controls="' + id + '-ty" data-t="ty" tabindex="-1">&#9000;&#65039; Type</button></div>'
+      + '<div class="appen-tools" role="toolbar" aria-label="Pen tools"></div></div>'
+      + '<div class="appen-panel appen-hw" role="tabpanel" id="' + id + '-hw" aria-labelledby="' + id + '-thw"><div class="appen-cslot"></div>'
+      + '<div class="appen-padwrap"><canvas class="appen-cv" role="img" aria-label="' + lab + ': handwriting area. Write with Apple Pencil, or with a finger or mouse."></canvas></div>'
+      + '<div class="appen-foot"><span class="appen-hint" aria-live="polite"></span></div></div>'
+      + '<div class="appen-panel appen-ty" role="tabpanel" id="' + id + '-ty" aria-labelledby="' + id + '-tty" hidden><div class="appen-note">Type only if you type in exams or have no Apple Pencil.</div>'
+      + (o.typed || '')
+      + '<div class="appen-corr-wrap" hidden><label for="' + id + '-corr">Corrections</label><textarea class="appen-corr" id="' + id + '-corr" rows="2" spellcheck="false" autocomplete="off" placeholder="Your corrections (they print in red)"></textarea></div></div></div>';
+  }
+  // ── geometry & drawing ──
+  function wAt(s, pr) { pr = pr < 0.05 ? 0.05 : pr > 1 ? 1 : pr; return s.w * (0.55 + 0.9 * pr); }
+  function seg(c, s, i) {   // the piece of stroke s that ends around point i (smoothed through midpoints)
+    var p = s.p, a = 3 * (i - 1), b = 3 * i;
+    c.beginPath(); c.lineWidth = wAt(s, (p[a + 2] + p[b + 2]) / 2);
+    if (i === 1) { c.moveTo(p[0], p[1]); c.lineTo((p[0] + p[3]) / 2, (p[1] + p[4]) / 2); }
+    else { var z = 3 * (i - 2); c.moveTo((p[z] + p[a]) / 2, (p[z + 1] + p[a + 1]) / 2); c.quadraticCurveTo(p[a], p[a + 1], (p[a] + p[b]) / 2, (p[a + 1] + p[b + 1]) / 2); }
+    c.stroke();
+  }
+  function tail(c, s) {
+    var p = s.p, n = p.length / 3; if (n < 2) return;
+    var a = 3 * (n - 2), b = 3 * (n - 1);
+    c.beginPath(); c.lineWidth = wAt(s, p[b + 2]); c.moveTo((p[a] + p[b]) / 2, (p[a + 1] + p[b + 1]) / 2); c.lineTo(p[b], p[b + 1]); c.stroke();
+  }
+  function pen(c, s) { c.strokeStyle = c.fillStyle = COL[s.c] || COL.k; c.lineCap = 'round'; c.lineJoin = 'round'; }
+  function dot(c, s) { c.beginPath(); c.arc(s.p[0], s.p[1], wAt(s, s.p[2]) / 2, 0, Math.PI * 2); c.fill(); }
+  function drawStroke(c, s) {
+    pen(c, s); var n = s.p.length / 3;
+    if (n === 1) { dot(c, s); return; }
+    for (var i = 1; i < n; i++) seg(c, s, i);
+    tail(c, s);
+  }
+  function paper(c, st, lines, white) {
+    var h = TOP + lines * LH + PADB;
+    c.fillStyle = white ? '#ffffff' : '#fffef8'; c.fillRect(0, 0, LW, h);
+    c.strokeStyle = white ? 'rgba(26,39,68,.13)' : 'rgba(26,39,68,.17)'; c.lineWidth = 1.2;
+    for (var k = 1; k <= lines; k++) { var y = TOP + k * LH; c.beginPath(); c.moveTo(0, y); c.lineTo(LW, y); c.stroke(); }
+    c.strokeStyle = 'rgba(201,168,76,.55)'; c.lineWidth = 1.5; c.beginPath(); c.moveTo(ML, 0); c.lineTo(ML, h); c.stroke();
+    if (st.nums) {
+      c.fillStyle = '#8899bb'; c.font = '700 17px "DM Sans", sans-serif'; c.textAlign = 'center';
+      for (var j = 1; j <= Math.min(st.nums, lines); j++) c.fillText(String(j), ML / 2, TOP + j * LH - 10);
+    }
+  }
+  function layout(st) {
+    if (!st.cv || !st.wrap) return;
+    var w = st.wrap.clientWidth; if (!w) { st.lastW = 0; return; }
+    st.lastW = w; st.scale = w / LW;
+    var hL = TOP + st.lines * LH + PADB, h = Math.round(hL * st.scale), dpr = Math.min(window.devicePixelRatio || 1, 3);
+    while (dpr > 1 && w * h * dpr * dpr > 12e6) dpr -= 0.5;   // stay inside iOS canvas limits
+    st.dpr = dpr; st.cv.style.height = h + 'px';
+    st.cv.width = Math.round(w * dpr); st.cv.height = Math.round(h * dpr);
+    render(st);
+  }
+  function render(st) {
+    if (!st.cv || !st.lastW) return;
+    var c = st.ctx, k = st.scale * st.dpr;
+    c.setTransform(1, 0, 0, 1, 0, 0); c.clearRect(0, 0, st.cv.width, st.cv.height);
+    c.setTransform(k, 0, 0, k, 0, 0);
+    paper(c, st, st.lines, false);
+    st.strokes.forEach(function (s) { drawStroke(c, s); });
+    if (st.cur) drawStroke(c, st.cur);
+  }
+  function pos(st, e) {
+    var r = st.rect, pr = (e.pointerType === 'pen' && e.pressure > 0) ? e.pressure : 0.5;
+    return { x: (e.clientX - r.left) / st.scale, y: (e.clientY - r.top) / st.scale, p: pr };
+  }
+  function allowed(st, s) { return !st.locked || s.c === 'r'; }
+  function distSeg(px, py, ax, ay, bx, by) {
+    var dx = bx - ax, dy = by - ay, l = dx * dx + dy * dy, t = l ? ((px - ax) * dx + (py - ay) * dy) / l : 0;
+    t = t < 0 ? 0 : t > 1 ? 1 : t; var x = ax + t * dx - px, y = ay + t * dy - py; return Math.sqrt(x * x + y * y);
+  }
+  function eraseAt(st, pt) {
+    var R = 10, hit = false;
+    for (var j = st.strokes.length - 1; j >= 0; j--) {
+      var s = st.strokes[j]; if (!allowed(st, s)) continue;
+      var p = s.p, n = p.length / 3, on = false;
+      if (n === 1) on = Math.hypot(p[0] - pt.x, p[1] - pt.y) < R + s.w;
+      for (var i = 1; i < n && !on; i++) if (distSeg(pt.x, pt.y, p[3 * i - 3], p[3 * i - 2], p[3 * i], p[3 * i + 1]) < R + s.w / 2) on = true;
+      if (on) { st.strokes.splice(j, 1); st.hist.push({ t: 'e', s: s, i: j }); hit = true; }
+    }
+    if (hit) { render(st); touch(st); tools(st); }
+  }
+  function grow(st, n) {
+    var nl = Math.min(MAXL, st.lines + n); if (nl === st.lines) return; st.lines = nl; layout(st); touch(st);
+  }
+  function autoGrow(st, s) {
+    var my = 0; for (var i = 1; i < s.p.length; i += 3) if (s.p[i] > my) my = s.p[i];
+    if (my > TOP + (st.lines - 1) * LH + LH * 0.25) grow(st, 2);
+  }
+  function finish(st) {
+    var s = st.cur; st.cur = null;
+    if (s) {
+      var c = st.ctx; pen(c, s); tail(c, s);
+      st.strokes.push(s); st.hist.push({ t: 'a', s: s });
+      autoGrow(st, s); touch(st); tools(st);
+    }
+    try { if (st.act != null) st.cv.releasePointerCapture(st.act); } catch (e) { }
+    st.act = null; st.actType = null; st.erasing = false; st.cv.classList.remove('drawing');
+  }
+  function abort(st) { st.cur = null; st.act = null; st.actType = null; render(st); }
+  function bindCanvas(st) {
+    var cv = st.cv;
+    function down(e) {
+      if (e.pointerType === 'pen') markPen();
+      else if (e.pointerType === 'touch' && penSeen) return;        // palm rejection: with a Pencil around, touch only scrolls
+      if (e.pointerType === 'mouse' && e.button !== 0) return;
+      if (st.act != null) {
+        if (e.pointerType === 'pen' && st.actType === 'touch') abort(st);   // a palm got there first: drop it, the Pencil wins
+        else return;
+      }
+      e.preventDefault();
+      if (e.pointerType === 'pen') cv.classList.add('drawing');
+      try { cv.setPointerCapture(e.pointerId); } catch (x) { }
+      st.act = e.pointerId; st.actType = e.pointerType; st.rect = cv.getBoundingClientRect();
+      var pt = pos(st, e);
+      if (st.tool === 'eraser') { st.erasing = true; eraseAt(st, pt); return; }
+      st.cur = { c: st.locked ? 'r' : 'k', w: SIZES[st.size] || SIZES.med, p: [pt.x, pt.y, pt.p] };
+      var c = st.ctx; pen(c, st.cur); dot(c, st.cur);
+    }
+    function move(e) {
+      if (e.pointerId !== st.act) return;
+      e.preventDefault();
+      var evs = (e.getCoalescedEvents && e.getCoalescedEvents()) || []; if (!evs.length) evs = [e];
+      for (var k = 0; k < evs.length; k++) {
+        var pt = pos(st, evs[k]);
+        if (st.erasing) { eraseAt(st, pt); continue; }
+        var s = st.cur; if (!s) return;
+        var p = s.p, n = p.length / 3, lx = p[3 * n - 3], ly = p[3 * n - 2];
+        if (Math.abs(pt.x - lx) + Math.abs(pt.y - ly) < 0.8) continue;
+        p.push(pt.x, pt.y, pt.p); pen(st.ctx, s); seg(st.ctx, s, n);
+      }
+    }
+    function up(e) { if (e.pointerId !== st.act) return; finish(st); }
+    cv.addEventListener('pointerdown', down);
+    cv.addEventListener('pointermove', move);
+    cv.addEventListener('pointerup', up);
+    cv.addEventListener('pointercancel', up);
+    cv.addEventListener('lostpointercapture', up);
+    // a hovering Pencil (iPad M2+, Windows pens): lock the canvas against scrolling before it touches down
+    cv.addEventListener('pointerover', function (e) { if (e.pointerType === 'pen') cv.classList.add('drawing'); });
+    cv.addEventListener('pointerleave', function (e) { if (e.pointerType === 'pen' && st.act == null) cv.classList.remove('drawing'); });
+    // iPad Safari: a Pencil touch is a touch with touchType 'stylus' — stop it from scrolling; a finger scrolls once a Pencil has been used
+    function tch(e) {
+      var t = e.touches || [];
+      for (var i = 0; i < t.length; i++) if (t[i].touchType === 'stylus') { markPen(); if (e.cancelable) e.preventDefault(); return; }
+      if (!penSeen && e.cancelable) e.preventDefault();
+    }
+    cv.addEventListener('touchstart', tch, { passive: false });
+    cv.addEventListener('touchmove', tch, { passive: false });
+    cv.addEventListener('contextmenu', function (e) { e.preventDefault(); });
+  }
+  // ── toolbar ──
+  function canUndo(st) {
+    for (var j = st.hist.length - 1; j >= 0; j--) { var h = st.hist[j]; if (h.t === 'c' ? (h.col === 'r' || !st.locked) : allowed(st, h.s)) return true; }
+    for (var i = st.strokes.length - 1; i >= 0; i--) if (allowed(st, st.strokes[i])) return true;
+    return false;
+  }
+  function hasAllowed(st) { for (var i = 0; i < st.strokes.length; i++) if (allowed(st, st.strokes[i])) return true; return false; }
+  function tools(st) {
+    if (!st.el) return;
+    var t = st.el.querySelector('.appen-tools');
+    if (st.tab !== 'hw') { t.innerHTML = ''; return; }
+    var pr = function (b) { return ' aria-pressed="' + (b ? 'true' : 'false') + '"'; };
+    var h = st.locked
+      ? '<span class="appen-lock" title="Marked: your answer stays exactly as you wrote it">&#128274; Locked</span><button type="button" class="appen-tb red" data-a="pen"' + pr(st.tool === 'pen') + '>&#128397; Red pen: corrections</button>'
+      : '<button type="button" class="appen-tb" data-a="pen"' + pr(st.tool === 'pen') + ' title="Black ink">&#9999;&#65039; Pen</button>';
+    h += '<span class="appen-seg" role="group" aria-label="Pen thickness"><button type="button" class="appen-tb" data-a="thin"' + pr(st.size === 'thin') + '>Thin</button><button type="button" class="appen-tb" data-a="med"' + pr(st.size === 'med') + '>Medium</button></span>';
+    h += '<button type="button" class="appen-tb" data-a="eraser"' + pr(st.tool === 'eraser') + ' title="' + (st.locked ? 'Rubs out red corrections only' : 'Rubs out a whole stroke') + '"' + (hasAllowed(st) || st.tool === 'eraser' ? '' : ' disabled') + '>&#9003; Eraser</button>';
+    h += '<button type="button" class="appen-tb" data-a="undo"' + (canUndo(st) ? '' : ' disabled') + ' title="' + (st.locked ? 'Undo your last correction' : 'Undo') + '">&#8630; Undo</button>';
+    h += '<button type="button" class="appen-tb" data-a="clear"' + (hasAllowed(st) ? '' : ' disabled') + '>&#128465; ' + (st.locked ? 'Clear corrections' : 'Clear') + '</button>'
+      + '<button type="button" class="appen-tb" data-a="more" aria-label="More space: add lines to this pad">+ space</button>';
+    t.innerHTML = h;
+    st.el.classList.toggle('erasing', st.tool === 'eraser');
+  }
+  function hint(st) {
+    if (!st.el) return;
+    var big = st.min >= 5, x = st.el.querySelector('.appen-hint');
+    x.parentNode.hidden = false;
+    x.textContent = st.locked ? 'Marked: your answer is locked as written. Corrections go in red on top.'
+      : !big ? '' : penSeen ? 'Black ink. Write with your Apple Pencil; a finger scrolls the page.' : 'Black ink. Write with Apple Pencil (or a finger / mouse).';
+  }
+  function confirmBox(st, text, yes, fn) {
+    var slot = st.el.querySelector('.appen-cslot');
+    slot.innerHTML = '<div class="appen-confirm" role="alertdialog" aria-label="' + esc(text) + '"><span>' + esc(text) + '</span><button type="button" class="appen-tb" data-c="no">Cancel</button><button type="button" class="appen-tb go" data-c="yes">' + yes + '</button></div>';
+    slot.querySelector('[data-c="no"]').onclick = function () { slot.innerHTML = ''; };
+    slot.querySelector('[data-c="yes"]').onclick = function () { slot.innerHTML = ''; fn(); };
+    try { slot.querySelector('[data-c="no"]').focus(); } catch (e) { }
+  }
+  function undo(st) {
+    for (var j = st.hist.length - 1; j >= 0; j--) {
+      var h = st.hist[j];
+      if (h.t === 'c' ? !(h.col === 'r' || !st.locked) : !allowed(st, h.s)) continue;
+      st.hist.splice(j, 1);
+      if (h.t === 'a') { var i = st.strokes.indexOf(h.s); if (i >= 0) st.strokes.splice(i, 1); }
+      else if (h.t === 'e') st.strokes.splice(Math.min(h.i, st.strokes.length), 0, h.s);
+      else st.strokes = st.strokes.concat(h.rm);
+      render(st); touch(st); tools(st); return;
+    }
+    for (var k = st.strokes.length - 1; k >= 0; k--) if (allowed(st, st.strokes[k])) { st.strokes.splice(k, 1); render(st); touch(st); tools(st); return; }
+  }
+  function clear(st) {
+    var rm = st.strokes.filter(function (s) { return allowed(st, s); }); if (!rm.length) return;
+    st.strokes = st.strokes.filter(function (s) { return !allowed(st, s); });
+    st.hist.push({ t: 'c', col: st.locked ? 'r' : 'all', rm: rm });
+    render(st); touch(st); tools(st);
+  }
+  function act(st, a) {
+    if (a === 'pen' || a === 'eraser') st.tool = a;
+    else if (a === 'thin' || a === 'med') { st.size = a; st.tool = 'pen'; touch(st); }
+    else if (a === 'undo') undo(st);
+    else if (a === 'more') grow(st, 3);
+    else if (a === 'clear') confirmBox(st, st.locked ? 'Clear all your red corrections on this pad?' : 'Clear all your writing on this pad?', '&#128465; Clear', function () { clear(st); });
+    tools(st);
+  }
+  function setTab(st, t, quiet) {
+    st.tab = t === 'ty' ? 'ty' : 'hw';
+    var el = st.el;
+    el.querySelectorAll('.appen-tab').forEach(function (b) { var on = b.getAttribute('data-t') === st.tab; b.setAttribute('aria-selected', on ? 'true' : 'false'); b.tabIndex = on ? 0 : -1; });
+    el.querySelector('.appen-hw').hidden = st.tab !== 'hw';
+    el.querySelector('.appen-ty').hidden = st.tab !== 'ty';
+    tools(st);
+    if (st.tab === 'hw') layout(st);
+    if (!quiet) touch(st);
+  }
+  function applyLock(st) {
+    if (!st.el) return;
+    st.el.classList.toggle('locked', !!st.locked);
+    (st.tyEls || []).forEach(function (x) { if (st.locked) x.readOnly = true; });
+    var cw = st.el.querySelector('.appen-corr-wrap'), ca = st.el.querySelector('.appen-corr');
+    cw.hidden = !st.locked; ca.readOnly = !st.locked; ca.value = st.corr || '';
+    hint(st); tools(st);
+  }
+  function sweep() {   // let iPad Safari free the canvases of pads that are no longer on the page
+    Object.keys(REG).forEach(function (k) { var st = REG[k]; if (st.cv && !document.body.contains(st.cv)) { try { st.cv.width = st.cv.height = 0; } catch (e) { } if (RO && st.wrap) try { RO.unobserve(st.wrap); } catch (e) { } st.cv = st.el = st.wrap = null; st.act = null; st.cur = null; } });
+  }
+  function bind(st, el) {
+    st.el = el; st.wrap = el.querySelector('.appen-padwrap'); st.cv = el.querySelector('canvas'); st.ctx = st.cv.getContext('2d'); st.act = null; st.cur = null; st.lastW = 0;
+    st.wrap.__appen = st;
+    st.min = Math.max(1, +el.getAttribute('data-lines') || 3); st.nums = +el.getAttribute('data-nums') || 0; st.label = el.getAttribute('data-label') || '';
+    if (st.lines < st.min) st.lines = st.min;
+    el.querySelectorAll('.appen-tab').forEach(function (b) {
+      b.onclick = function () { setTab(st, b.getAttribute('data-t')); };
+      b.onkeydown = function (e) { if (e.key === 'ArrowLeft' || e.key === 'ArrowRight') { e.preventDefault(); var t = st.tab === 'hw' ? 'ty' : 'hw'; setTab(st, t); try { el.querySelector('.appen-tab[data-t="' + t + '"]').focus(); } catch (x) { } } };
+    });
+    el.querySelector('.appen-tools').onclick = function (e) { var b = e.target.closest('[data-a]'); if (b && !b.disabled) act(st, b.getAttribute('data-a')); };
+    st.tyEls = [].slice.call(el.querySelectorAll('.appen-ty input:not([type=radio]):not([type=checkbox]), .appen-ty textarea:not(.appen-corr)'));
+    if (st.typed) st.tyEls.forEach(function (x, i) { if (st.typed[i] != null && !x.value) x.value = st.typed[i]; });
+    st.tyEls.forEach(function (x) { x.addEventListener('input', function () { st.typed = st.tyEls.map(function (y) { return y.value; }); touch(st); }); });
+    var ca = el.querySelector('.appen-corr');
+    ca.addEventListener('input', function () { st.corr = ca.value; touch(st); });
+    bindCanvas(st);
+    if (RO) RO.observe(st.wrap);
+    applyLock(st); hint(st);
+    setTab(st, st.tab, true);
+  }
+  try {
+    if (window.ResizeObserver) RO = new ResizeObserver(function (en) { en.forEach(function (x) { var st = x.target.__appen; if (st && st.wrap === x.target && st.wrap.clientWidth !== st.lastW) layout(st); }); });
+    else window.addEventListener('resize', function () { Object.keys(REG).forEach(function (k) { var st = REG[k]; if (st.wrap && st.wrap.clientWidth !== st.lastW) layout(st); }); });
+  } catch (e) { }
+  function mount(root) {
+    sweep();
+    var back = [];
+    (root || document).querySelectorAll('.appen[data-appen]:not([data-on])').forEach(function (el) {
+      el.setAttribute('data-on', '1');
+      var key = el.getAttribute('data-appen'), st = REG[key];
+      if (!st) { st = load(key) || blank(key); REG[key] = st; }
+      if (hasContent(st)) back.push(st);
+      bind(st, el);
+    });
+    return back;
+  }
+  function get(key) { return REG[key] || (REG[key] = load(key) || blank(key)); }
+  function lock(key) { var st = get(key); if (st.locked) return; st.locked = true; st.tool = 'pen'; touch(st); applyLock(st); }
+  function lockIn(root) { if (!root) return; root.querySelectorAll('.appen[data-appen]').forEach(function (el) { lock(el.getAttribute('data-appen')); }); }
+  function reset(keys) {
+    (keys || []).forEach(function (k) { var st = REG[k]; if (st) { clearTimeout(st.tm); if (st.cv) try { st.cv.width = st.cv.height = 0; } catch (e) { } } delete REG[k]; lsDel(SKEY + k); });
+    var o = idx(); (keys || []).forEach(function (k) { delete o[k]; }); lsSet(IDX, JSON.stringify(o));
+  }
+  function offerAfresh(anchor, states, again) {
+    if (!anchor || !states || !states.length) return;
+    var t = 0, lk = false; states.forEach(function (s) { if (s.ts > t) t = s.ts; if (s.locked) lk = true; });
+    var d = document.createElement('div'); d.className = 'appen-restore'; d.setAttribute('role', 'status');
+    function show() {
+      d.innerHTML = '<span>&#8634; <b>Your earlier answers are back</b>' + (t ? ' (last written ' + esc(when(t)) + ')' : '') + '.' + (lk ? ' Answers that were already marked stay locked: correct them in red.' : '') + '</span>'
+        + '<span class="appen-restore-acts"><button type="button" class="appen-tb" data-r="keep">Keep them</button><button type="button" class="appen-tb" data-r="afresh">&#128465; Start afresh</button></span>';
+      d.querySelector('[data-r="keep"]').onclick = function () { d.remove(); };
+      d.querySelector('[data-r="afresh"]').onclick = function () {
+        d.innerHTML = '<span>Delete these earlier answers (handwriting and typing) and start again?</span><span class="appen-restore-acts"><button type="button" class="appen-tb" data-r="no">Cancel</button><button type="button" class="appen-tb go" data-r="yes">&#128465; Yes, start afresh</button></span>';
+        d.querySelector('[data-r="no"]').onclick = show;
+        d.querySelector('[data-r="yes"]').onclick = function () { reset(states.map(function (s) { return s.key; })); if (again) again(); };
+      };
+    }
+    show();
+    anchor.insertAdjacentElement('afterend', d);
+  }
+  // ── output ──
+  function inkBottom(st) { var my = 0; st.strokes.forEach(function (s) { for (var i = 1; i < s.p.length; i += 3) if (s.p[i] > my) my = s.p[i]; }); return my; }
+  function png(key) {
+    var st = REG[key] || load(key); if (!st || !st.strokes.length) return '';
+    var lines = Math.max(1, Math.min(MAXL, Math.ceil((inkBottom(st) - TOP - 4) / LH)));
+    var S = 1.5, cv = document.createElement('canvas'), hL = TOP + lines * LH + PADB;
+    cv.width = Math.round(LW * S); cv.height = Math.round(hL * S);
+    var c = cv.getContext('2d'); c.setTransform(S, 0, 0, S, 0, 0);
+    paper(c, st, lines, true);
+    st.strokes.forEach(function (s) { drawStroke(c, s); });
+    var url = ''; try { url = cv.toDataURL('image/png'); } catch (e) { }
+    cv.width = cv.height = 0; return url;
+  }
+  function info(key) {
+    var st = REG[key] || load(key) || blank(key);
+    return { ink: st.strokes.filter(function (s) { return s.c === 'k'; }).length, red: st.strokes.filter(function (s) { return s.c === 'r'; }).length,
+      typed: (st.typed || []).slice(), corr: st.corr || '', locked: !!st.locked, tab: st.tab, lines: st.lines, any: hasContent(st) };
+  }
+  // typedHtml: the app's own rendering of the typed answer ('' = nothing typed); omitted → the pad's own typed text
+  function pdf(key, typedHtml) {
+    var st = REG[key] || load(key); if (!st) return '';
+    if (typedHtml === undefined) { var tx = (st.typed || []).join('\n'); typedHtml = tx.replace(/\s+/g, '') ? '<div class="appen-ptyped">' + esc(tx).replace(/\n/g, '<br>') + '</div>' : ''; }
+    var img = png(key), red = st.strokes.some(function (s) { return s.c === 'r'; }), out = '';
+    if (typedHtml) out += (img ? '<div class="appen-plab">Typed</div>' : '') + typedHtml;
+    if (img) out += (typedHtml ? '<div class="appen-plab">Handwritten</div>' : '') + '<img class="appen-pimg" alt="Handwritten answer" src="' + img + '">'
+      + (red ? '<div class="appen-pkey"><b style="color:#111">Black</b>: answer as written &middot; <b style="color:#c62828">red</b>: corrections after marking</div>' : '');
+    if (st.corr && st.corr.replace(/\s+/g, '')) out += '<div class="appen-pcorr"><b>Corrections</b> ' + esc(st.corr).replace(/\n/g, '<br>') + '</div>';
+    return out;
+  }
+  var PDF_CSS = '.appen-pimg{display:block;width:100%;max-width:100%;height:auto;max-height:250mm;object-fit:contain;object-position:left top;border:1px solid #dfe3ec;border-radius:1mm;margin:1mm 0;break-inside:avoid;page-break-inside:avoid}'
+    + '.appen-plab{font-size:7pt;font-weight:800;letter-spacing:.06em;text-transform:uppercase;color:#8a93a8;margin:1.2mm 0 .4mm}'
+    + '.appen-ptyped{font-weight:600;color:#1a2744;background:#f4f6fb;border-radius:1mm;padding:1mm 2mm;white-space:normal}'
+    + '.appen-pcorr{color:#c62828;font-weight:600;margin-top:1.2mm;border-left:1mm solid #c62828;padding-left:2mm}.appen-pcorr b{font-size:7.5pt;letter-spacing:.06em;text-transform:uppercase;margin-right:1.5mm}'
+    + '.appen-pkey{font-size:7.5pt;color:#6b7590}.appen-pbox{border:1px solid #dfe3ec;border-radius:1.5mm;padding:2mm 3mm;margin:0 0 3mm}';
+  return { html: html, mount: mount, lock: lock, lockIn: lockIn, reset: reset, offerAfresh: offerAfresh, pdf: pdf, png: png, info: info, PDF_CSS: PDF_CSS,
+    _reg: REG, penSeen: function () { return penSeen; } };
+})();
+/* ===== END AP PEN ===== */
+</script>
+
+<style id="vvpen-style">
+/* Translation Practice: the boy's translation (AP PEN pad) */
+.vv-tr-pen{margin:0 0 1rem;padding:18px 18px 14px}
+.vv-tr-pen-h{font:800 1rem/1.3 var(--aph-body);color:var(--navy);margin:0 0 2px}
+.vv-tr-pen-sub{font-size:.875rem;line-height:1.4;color:var(--text2);margin:0 0 8px}
+.vv-tr-pen.locked .vv-tr-pen-sub{color:#b71c1c}
+@media (max-width:560px){.vv-tr-pen{padding:14px 12px 12px}}
+</style>
 
 <script>
 /* ── VVs app: house UI pieces shared by the drill tabs (drill bar, key legend, marking row) ── */
@@ -33769,10 +34231,12 @@ function getFilteredPassages() {
 }
 
 // ==================== ATTEMPT PHASE ====================
-function startTrPassage(id) {
+function startTrPassage(id, fresh) {
   const p = TR_PASSAGES.find(x => x.id === id);
   if (!p) return;
   trState.currentPassage = p;
+  if (fresh) APPEN.reset([trPenKey(p)]);
+  trState.penVisit = true;
   trState.chunkMarks = new Array(p.chunks.length).fill(null);
   trState.phase = 'attempt';
   trState.allRevealed = false;
@@ -33804,6 +34268,8 @@ function renderTrAttempt() {
       <div class="tr-passage-text">${p.text}</div>
     </div>
 
+    ${trPenHtml(p, false)}
+
     <div class="tr-guide" id="trGuide">
       <div class="tr-guide-header" onclick="toggleGuide()">
         <div class="tr-guide-header-left">
@@ -33815,7 +34281,7 @@ function renderTrAttempt() {
       <div class="tr-guide-body" id="trGuideBody">
         <div class="tr-guide-step">
           <div class="tr-guide-num">1</div>
-          <div class="tr-guide-text"><strong>Translate on paper first — no exceptions.</strong> Read the full passage, then write your complete translation before touching anything on screen. Use the 🖨 Print / PDF button to get a clean exam-style answer sheet if you prefer to work on paper.</div>
+          <div class="tr-guide-text"><strong>Write your translation first — no exceptions.</strong> Read the full passage, then write your complete translation (✍️ in the box above with your Apple Pencil, or on paper) before revealing anything. Use the 🖨 Print / PDF button to get a clean exam-style answer sheet if you prefer to work on paper.</div>
         </div>
         <div class="tr-guide-step">
           <div class="tr-guide-num">2</div>
@@ -33880,6 +34346,7 @@ function renderTrAttempt() {
     </div>
     </div>
   `;
+  trPenMount(el, true);
 }
 
 function toggleTrTimer() {
@@ -34157,6 +34624,7 @@ function beginReveal() {
   trState.timerRunning = false;
   clearInterval(trState.timerInterval);
   trState.phase = 'reveal';
+  if (trState.currentPassage) APPEN.lock(trPenKey(trState.currentPassage));
   renderTrReveal();
 }
 
@@ -34187,6 +34655,8 @@ function renderTrReveal() {
       </div>
     </div>
 
+    ${trPenHtml(p, true)}
+
     <div class="tr-chunks" id="trChunks">
       ${p.chunks.map((c, i) => renderChunkHTML(c, i)).join('')}
     </div>
@@ -34197,6 +34667,7 @@ function renderTrReveal() {
     </div>`:''}
     </div>
   `;
+  trPenMount(el, false);
 }
 
 function renderChunkHTML(c, i) {
@@ -34286,6 +34757,23 @@ function revealAllChunks() {
 }
 
 
+// ==================== ✍️ THE BOY'S TRANSLATION (AP PEN pad: ✍️ Handwrite / ⌨️ Type) ====================
+function trPenKey(p) { return 'tr:' + p.id; }
+function trPenHtml(p, rev) {
+  return `<div class="vv-tr-pen aph-card${rev ? ' locked' : ''}">
+      <div class="vv-tr-pen-h">✍️ Your translation</div>
+      <div class="vv-tr-pen-sub">${rev ? 'Locked now that the mark scheme is showing: correct it in red as you go through the chunks.' : 'Write your ' + (p.direction === 'en' ? 'English' : 'French') + ' translation here, then reveal the mark scheme.'}</div>
+      ${APPEN.html({ key: trPenKey(p), lines: 16, label: 'Your translation', typed: '<textarea class="appen-ta" rows="10" spellcheck="false" autocomplete="off" autocorrect="off" placeholder="Type your translation here…"></textarea>' })}
+    </div>`;
+}
+function trPenMount(el, visit) {
+  const back = APPEN.mount(el);
+  if (visit && trState.penVisit) {
+    trState.penVisit = false;
+    if (back.length) APPEN.offerAfresh(el.querySelector('.vv-tr-pen-sub'), back, () => { trState.penVisit = false; renderTrAttempt(); });
+  }
+}
+
 // ==================== 📄 SAVE MARKED PAPER AS PDF (passage, mark scheme chunk by chunk, the boy's own marks) ====================
 function trSavePDF() {
   const p = trState.currentPassage;
@@ -34309,7 +34797,9 @@ function trSavePDF() {
     let body = APMP.sec(toFr ? 'Translation into French' : 'Translation into English', ok, partial ? marked : total, true);
     body += '<div class="apmp-info"><b>Passage</b> &middot; ' + p.label + ' &middot; Card ' + p.topic + ': ' + p.topicName + (p.type === 'ai' ? ' &middot; AI-generated' : '') + '</div>';
     body += '<div class="apmp-text">' + p.text + '</div>';
-    body += '<div class="apmp-info">Translation written on paper, then self-marked chunk by chunk against the mark scheme (1 mark per chunk).</div>';
+    const pen = APPEN.pdf(trPenKey(p));
+    body += '<style>' + APPEN.PDF_CSS + '</style><div class="apmp-sub">Your translation</div>' + (pen ? '<div class="appen-pbox">' + pen + '</div>' : '<div class="apmp-info">Not written in the app (translation done on paper).</div>');
+    body += '<div class="apmp-info">' + (pen ? 'Self-marked chunk by chunk against the mark scheme (1 mark per chunk).' : 'Translation written on paper, then self-marked chunk by chunk against the mark scheme (1 mark per chunk).') + '</div>';
     body += '<table class="apmp-t"><thead><tr><th>#</th><th>' + (toFr ? 'English' : 'French') + '</th><th>Model answer / also accepted</th><th>Reject &middot; notes</th><th>Your mark</th></tr></thead><tbody>' + rows + '</tbody></table>';
     return {
       kicker: 'AP A Level &middot; VVs, Gr EWs &amp; Translation &middot; Translation',
@@ -34361,7 +34851,7 @@ function showTrSummary() {
       ` : `<div class="aph-clean">Perfect score! 🎉</div>`}
       <div class="aph-res-actions">
         <div class="aph-res-row">
-          <button class="aph-btn aph-btn-primary" onclick="startTrPassage('${p.id}')">&#8635; Do same passage again</button>
+          <button class="aph-btn aph-btn-primary" onclick="startTrPassage('${p.id}', true)">&#8635; Do same passage again</button>
           <button class="aph-btn" onclick="renderTrSelect()">&#8592; Back</button>
         </div>
       </div>
