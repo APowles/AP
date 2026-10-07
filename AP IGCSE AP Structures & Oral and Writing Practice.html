@@ -3,7 +3,7 @@
 <script id="ap-update">
 /* AP auto-update: if this copy is older than the published version, reload once with the new one (saved answers are kept) */
 (function () {
-  var B = 'ae7e6f2bd4'; window.AP_BUILD = B;
+  var B = 'cc20478b11'; window.AP_BUILD = B;
   function check() {
     if (!/^https?:$/.test(location.protocol) || !window.fetch) return;
     var f = decodeURIComponent(location.pathname.split('/').pop() || '');
@@ -11179,6 +11179,16 @@ html.tm-open,html.tm-open body{overflow:hidden}
 .tm-mode-f{background:#eaf5ef;color:#1d3a2a;border:2px solid #2e7d52}
 .tm-mode-n{font-size:.8125rem;color:var(--text2);margin-top:8px}
 #tm-ov.tm-nomode #tm-items,#tm-ov.tm-nomode .tm-steps,#tm-ov.tm-nomode #tm-lockn{display:none}
+.tm-key-row{margin-top:12px;text-align:right}
+.tm-key-btn{background:#fff;border:1.5px dashed var(--border);color:var(--text2);border-radius:8px;padding:8px 12px;font:600 .875rem/1.2 var(--aph-body);cursor:pointer}
+#tm-key{position:fixed;inset:0;z-index:13100;background:var(--cream,#f8f6f1);overflow-y:auto;font-family:var(--aph-body)}
+.tm-key-bar{position:sticky;top:0;display:flex;justify-content:space-between;align-items:center;gap:10px;background:var(--navy);color:var(--gold2);padding:10px 16px;font-weight:800;font-size:1.125rem;border-bottom:3px solid var(--gold)}
+.tm-key-bar button{background:var(--gold);color:var(--navy);border:0;border-radius:8px;padding:8px 14px;font:800 1rem var(--aph-body);cursor:pointer}
+.tm-key-list{max-width:1100px;margin:0 auto;padding:16px}
+.tm-key-it{display:flex;gap:14px;background:#fff;border:1px solid var(--border);border-radius:12px;padding:14px 16px;margin:0 0 12px}
+.tm-key-en{font-size:clamp(1.05rem,1.6vw,1.6rem);font-weight:600;color:var(--navy);line-height:1.35}
+.tm-key-fr{margin-top:8px;font-size:clamp(1.15rem,1.8vw,1.8rem);color:#14532d;background:#eaf5ef;border-left:5px solid #2e7d52;border-radius:8px;padding:8px 12px;line-height:1.35}
+.tm-key-fr b{font-weight:800}
 .tm-clock.done{background:#eef1f7;color:var(--navy);border-color:var(--border);font-size:.9375rem}
 .tm-tban{background:#fdecea;border:2px solid #c0392b;color:#7a1b12;border-radius:10px;padding:10px 14px;margin:0 0 12px;font-size:1rem;line-height:1.45}
 .tm-tban.done{background:#fff8e6;border-color:var(--gold);color:var(--navy)}
@@ -11239,14 +11249,14 @@ function _tmBase(card) { return 'tm:' + _tmLang() + ':' + card.id; }
 function _tmLoad(card) {
   var s = null; try { s = JSON.parse(localStorage.getItem('tmState:' + _tmLang() + ':' + card.id) || 'null'); } catch (e) { s = null; }
   s = s || {};
-  return { card: card, base: _tmBase(card), items: tmItems(card), locked: !!s.locked, shown: !!s.shown, marks: Array.isArray(s.marks) ? s.marks : [], tAns: +s.tAns || 0, tMark: +s.tMark || 0, t0: +s.t0 || 0, lockAt: +s.lockAt || 0, auto: !!s.auto, na: Array.isArray(s.na) ? s.na : [], mode: s.mode || (s.t0 ? 'timed' : (s.locked ? 'free' : '')), endAt: +s.endAt || 0, pick: Array.isArray(s.pick) ? s.pick : null, m0: +s.m0 || 0, markDone: !!s.markDone, unm: Array.isArray(s.unm) ? s.unm : [] };
+  return { card: card, base: _tmBase(card), items: tmItems(card), locked: !!s.locked, shown: !!s.shown, marks: Array.isArray(s.marks) ? s.marks : [], tAns: +s.tAns || 0, tMark: +s.tMark || 0, t0: +s.t0 || 0, lockAt: +s.lockAt || 0, auto: !!s.auto, na: Array.isArray(s.na) ? s.na : [], mode: s.mode || (s.t0 ? 'timed' : (s.locked ? 'free' : '')), endAt: +s.endAt || 0, pick: Array.isArray(s.pick) ? s.pick : null, m0: +s.m0 || 0, markDone: !!s.markDone, unm: Array.isArray(s.unm) ? s.unm : [], att: +s.att || 0 };
 }
 function _tmPickItems(S) { if (S.mode === 'quick' && S.pick) S.items = S.items.filter(function (it) { return S.pick.indexOf(it.n) >= 0; }); return S; }
 function _tmMax() { return 4; }
 function _tmLim() { return _tmS && _tmS.mode === 'quick' ? 360 : 600; }
 function _tmSave() {
   var S = _tmS; if (!S) return;
-  try { localStorage.setItem('tmState:' + _tmLang() + ':' + S.card.id, JSON.stringify({ locked: S.locked, shown: S.shown, marks: S.marks, tAns: S.tAns, tMark: S.tMark, t0: S.t0, lockAt: S.lockAt, auto: S.auto, na: S.na, mode: S.mode, endAt: S.endAt, pick: S.pick, m0: S.m0, markDone: S.markDone, unm: S.unm || [] })); } catch (e) { }
+  try { localStorage.setItem('tmState:' + _tmLang() + ':' + S.card.id, JSON.stringify({ locked: S.locked, shown: S.shown, marks: S.marks, tAns: S.tAns, tMark: S.tMark, t0: S.t0, lockAt: S.lockAt, auto: S.auto, na: S.na, mode: S.mode, endAt: S.endAt, pick: S.pick, m0: S.m0, markDone: S.markDone, unm: S.unm || [], att: S.att || 0 })); } catch (e) { }
 }
 function _tmClearSaved(card) { try { localStorage.removeItem('tmState:' + _tmLang() + ':' + card.id); } catch (e) { } }
 function _tmFr(it) {
@@ -11279,6 +11289,19 @@ function tmOpen() {
     if ((_tmS.tAns + _tmS.tMark) % 5 === 0) _tmSave();
   }, 1000);
 }
+function tmKey() {
+  var card = _currentCard, its = card && tmItems(card); if (!its) return;
+  if (!window.confirm('Show all 10 sentences WITH their answers?\n\nThis is for the teacher to go through on the board after the class has finished.')) return;
+  var L = TM_LANGS[_tmLang()] || 'French', k = document.getElementById('tm-key'); if (k) k.remove();
+  k = document.createElement('div'); k.id = 'tm-key';
+  k.innerHTML = '<div class="tm-key-bar"><span>👩‍🏫 Answers · ' + _tmEsc(card.code || '') + ' · ' + _tmEsc(card.theme || '') + ' · ' + L + '</span><button type="button" onclick="document.getElementById(\'tm-key\').remove()">✕ Close</button></div><div class="tm-key-list">'
+    + its.map(function (it) {
+      return '<div class="tm-key-it"><span class="tm-n">' + it.n + '</span><div><div class="tm-key-en">' + _tmEsc(it.en) + '</div>'
+        + '<div class="tm-meta"><span class="tm-chip">' + _tmEsc(_tmLabel(it)) + '</span>' + (it.chg ? '<span class="tm-chg">🔁 changed: ' + _tmEsc(it.chg) + '</span>' : '') + '</div>'
+        + '<div class="tm-key-fr" lang="' + _tmLang() + '">' + _tmFr(it) + '</div></div></div>';
+    }).join('') + '</div>';
+  document.body.appendChild(k);
+}
 function tmClose() {
   clearInterval(_tmTick); _tmTick = null; _tmSave();
   var ov = document.getElementById('tm-ov'); if (ov) ov.remove();
@@ -11310,7 +11333,8 @@ function _tmRender() {
     + '<button type="button" class="tm-mode-q" onclick="tmMode(\'quick\')"><b>⚡ Quick 5: 6 minutes</b><span>In class. 5 random sentences from this card. 6 minutes + 30 seconds, then your answers lock in. Then 2 minutes to mark yourself (usual 4–0 marks, out of 20): anything not marked in time scores 0.</span></button>'
     + '<button type="button" class="tm-mode-t" onclick="tmMode(\'timed\')"><b>⏱ Timed: 10 minutes</b><span>In class. The clock starts as soon as you tap. Do as much as you can: at 10:00 you get 30 more seconds, then your answers lock in by themselves. Sentences left blank score 0.</span></button>'
     + '<button type="button" class="tm-mode-f" onclick="tmMode(\'free\')"><b>🏠 Untimed</b><span>Homework. Take as long as you need, but you must have a go at all 10 before you can lock in.</span></button>'
-    + '</div><div class="tm-mode-n">Your choice and your times are printed on your PDF. You cannot change mode once you start.</div></div>'
+    + '</div><div class="tm-mode-n">Your choice, your times and your attempt number are printed on your PDF. You cannot change mode once you start.</div>'
+    + '<div class="tm-key-row"><button type="button" class="tm-key-btn" onclick="tmKey()">👩‍🏫 Teacher: show all 10 answers (projector)</button></div></div>'
     + '<div id="tm-items">'
     + (first.length ? '<div class="tm-sec">From the demo</div>' + first.map(row).join('') : '')
     + (mine.length ? '<div class="tm-sec">Make it your own <small>one thing is changed from the demo</small></div>' + mine.map(row).join('') : '')
@@ -11418,6 +11442,7 @@ function tmMode(m) {
   if (m === 'timed' && !window.confirm('Start the 10-minute timer now?\n\nThe clock starts as soon as you tap OK and cannot be paused.')) return;
   if (m === 'quick' && !window.confirm('Start Quick 5 now?\n\nYou get 5 random sentences and 6 minutes. The clock starts as soon as you tap OK and cannot be paused.')) return;
   S.mode = m; S.t0 = Date.now();
+  try { var ak = 'tmAttempts:' + _tmLang() + ':' + S.card.id, A = JSON.parse(localStorage.getItem(ak) || '{}'); A[m] = (A[m] || 0) + 1; localStorage.setItem(ak, JSON.stringify(A)); S.att = A[m]; } catch (e) { S.att = 0; }
   if (m === 'quick') {   // 3 from the demo + 2 "make it your own", different for every boy
     var sh = function (a) { a = a.slice(); for (var i = a.length - 1; i > 0; i--) { var j = Math.floor(Math.random() * (i + 1)), t = a[i]; a[i] = a[j]; a[j] = t; } return a; };
     var A = S.items.filter(function (it) { return it.n <= 6; }).map(function (it) { return it.n; }), B = S.items.filter(function (it) { return it.n > 6; }).map(function (it) { return it.n; });
@@ -11540,7 +11565,7 @@ function tmPDF() {
       meta: L + ' · ' + S.items.length + ' sentences',
       got: Q ? r.sum : r.sum / 2, max: Q ? tot : tot / 2, partial: r.n < S.items.length, partNote: r.n + ' of ' + S.items.length + ' sentences marked',
       summary: 'Self-marked: <b>' + r.sum + ' / ' + tot + '</b>' + (Q ? '' : ' (= ' + _tmHalf(r.sum) + ' / ' + (tot / 2) + ')') + ' &middot; ' + r.n + ' of ' + S.items.length + ' sentences marked' + (Q && S.unm && S.unm.length ? ' &middot; <span class="apmp-bad">not marked in time: sentence ' + S.unm.join(', ') + '</span>' : '')
-        + '<br>' + (S.mode === 'free' ? '🏠 <b>Untimed (homework)</b>' : Q ? '⚡ <b>Quick 5: 6 minutes (class)</b> &middot; sentences ' + S.items.map(function (it) { return it.n; }).join(', ') + ' of 10' : '⏱ <b>Timed: 10 minutes (class)</b>') + (S.t0 ? ' &middot; started ' + _tmClockTime(S.t0) + (S.endAt ? ', locked in ' + _tmClockTime(S.endAt) : '') + ' on ' + new Date(S.t0).toLocaleDateString('en-GB') : '')
+        + '<br>' + (S.mode === 'free' ? '🏠 <b>Untimed (homework)</b>' : Q ? '⚡ <b>Quick 5: 6 minutes (class)</b> &middot; sentences ' + S.items.map(function (it) { return it.n; }).join(', ') + ' of 10' : '⏱ <b>Timed: 10 minutes (class)</b>') + (S.t0 ? (S.att ? ' &middot; <b' + (S.att > 1 ? ' class="apmp-bad"' : '') + '>attempt ' + S.att + ' on this card</b>' : '') + ' &middot; started ' + _tmClockTime(S.t0) + (S.endAt ? ', locked in ' + _tmClockTime(S.endAt) : '') + ' on ' + new Date(S.t0).toLocaleDateString('en-GB') : '')
         + '<br>⏱ ' + (S.auto ? '<b class="apmp-bad">Locked automatically at ' + _tmTime(S.lockAt) + '</b> (time limit ' + (Q ? 6 : 10) + ' min + 30 s)' + (S.na && S.na.length ? ' &middot; not attempted: sentence ' + S.na.join(', ') : '') : 'Translating: <b>' + _tmTime(S.lockAt || S.tAns) + '</b>' + (S.mode === 'free' ? ' (no time limit)' : ' (limit ' + (Q ? 6 : 10) + ' min)')) + ' &middot; Marking: <b>' + _tmTime(S.tMark) + '</b>',
       body: body, foot: 'AP IGCSE Structures &amp; Oral &middot; Translate 10 sentences &middot; ' + _tmEsc(card.code || ''),
       docTitle: 'AP IGCSE Structures & Oral — Translation ' + (card.code || ''), lang: L
