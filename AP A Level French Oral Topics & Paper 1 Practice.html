@@ -537,6 +537,10 @@ textarea.p1-in{border:1px solid #bbb;border-radius:4px;min-height:44px}
 .p1-ms .k.ok{color:var(--correct)}.p1-ms .k.no{color:var(--wrong)}.p1-ms .k.ans{color:#1a2744}
 .p1-ms ul{margin:2px 0 2px;padding-left:18px}
 .p1-ms .gist{color:#666;font-style:italic;margin-top:4px}
+.p1-gist{margin:8px 0 10px;padding:10px 14px;background:#e8f1fb;border:1.5px solid #9cc0e6;border-left:6px solid #1f5fa8;border-radius:8px}
+.p1-gist-h{font-size:.75rem;font-weight:800;letter-spacing:.06em;text-transform:uppercase;color:#1f5fa8;margin:0 0 3px}
+.p1-gist-t{font-size:1.0625rem;font-weight:700;color:#0f2f57;line-height:1.4}
+.p1-gist-w{font-size:.8125rem;color:#3d5a7a;margin-top:5px;line-height:1.4}
 .p1-self{display:flex;gap:6px;align-items:center;margin-top:8px;flex-wrap:wrap}
 .p1-self span{font-size:0.8125rem;font-weight:700;color:#555}
 .p1-self button{border:1.5px solid var(--border);background:#fff;border-radius:20px;padding:4px 12px;min-height:32px;font-weight:700;cursor:pointer;font-family:inherit;font-size:0.875rem;color:var(--text2)}
@@ -2132,7 +2136,7 @@ var APMP = (function () {
       + 'if(document.readyState==="complete")ready();else window.addEventListener("load",ready);})();</scr' + 'ipt>';
     return '<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>' + esc(o.docTitle + (o.name ? ' — ' + o.name : '')) + '</title>'
       + '<style>' + aphCSS() + '</style><style>' + CSS + '</style></head><body>'
-      + '<div class="apmp-bar aph-noprint"><button type="button" onclick="window.print()">&#128424; Print / Save as PDF</button><span>Choose <b>Save as PDF</b> as the printer. On iPad: tap Print, then the Share button &rsaquo; Save to Files.</span></div>'
+      + '<div class="apmp-bar aph-noprint"><button type="button" onclick="window.print()">&#128424; Print / Save as PDF</button><span>Choose <b>Save as PDF</b> as the printer. On iPad: tap Print, then the Share button &rsaquo; Save to Files. Then upload the PDF to <b>OneNote</b>, on the <b>dated page AP has set</b> for this work.</span></div>'
       + '<div class="apmp-page">' + head
       + '<div class="apmp-res"><div class="apmp-who">' + who + '<div class="apmp-when">Completed ' + stamp + (o.lang ? ' &middot; ' + o.lang : '') + '</div>'
       + (o.summary ? '<div class="apmp-sum">' + o.summary + '</div>' : '')
@@ -2634,6 +2638,16 @@ var APPEN = (function () {
 @keyframes p1tPulse{0%,100%{box-shadow:0 0 0 0 rgba(192,57,43,.7);border-color:#c0392b}50%{box-shadow:0 0 0 6px rgba(192,57,43,.45);border-color:#ff3b2f}}
 @media print{.p1t-btn{animation:none!important;box-shadow:none!important}}
 .p1t-btn.on{background:var(--navy);color:var(--gold2);border-color:var(--navy)}
+.p1-fin{margin:16px 0 4px;padding:16px 18px;border:2px solid var(--gold);border-radius:12px;background:#fffaf0;text-align:center}
+.p1-fin[hidden]{display:none}
+.p1-fin-h{font:800 1.0625rem/1.3 var(--aph-body);color:var(--navy);margin:0 0 10px}
+.p1-fin-b{display:flex;flex-wrap:wrap;gap:10px;justify-content:center}
+.p1-fin-n{font-size:.875rem;color:var(--text2);margin-top:10px;line-height:1.45}
+.p1-kept{display:flex;flex-wrap:wrap;align-items:center;gap:10px 14px;justify-content:space-between;background:#fffaf0;border:2px solid var(--gold);border-radius:12px;padding:12px 16px;margin:0 0 16px;font-size:.9375rem;color:var(--navy)}
+.p1-kept-t{flex:1 1 260px;line-height:1.45}.p1-kept-t small{font-size:.8125rem;color:var(--text2)}
+.p1-kept-b{display:flex;flex-wrap:wrap;gap:8px}
+#p1-toast{position:fixed;left:50%;bottom:calc(24px + env(safe-area-inset-bottom,0px));transform:translate(-50%,20px);opacity:0;pointer-events:none;transition:.25s;z-index:9500;background:var(--navy);color:#fff;border:2px solid var(--gold);border-radius:12px;padding:12px 16px;max-width:calc(100vw - 32px);font:500 .9375rem/1.4 var(--aph-body);box-shadow:0 8px 24px rgba(8,13,28,.3)}
+#p1-toast.show{opacity:1;transform:translate(-50%,0)}
 .p1t-secnote{font-weight:600;font-size:.8125rem;letter-spacing:0;color:#c0392b;margin-top:5px}
 .p1t-msg{display:flex;flex-wrap:wrap;align-items:center;gap:8px 12px;background:#fdecea;border:1.5px solid #e9a9a3;border-left:5px solid #c0392b;border-radius:8px;padding:10px 12px;margin:0 0 12px;color:#7a1b12;font-size:.9375rem;line-height:1.4}
 .p1t-msg>div{flex:1 1 240px}
@@ -8783,11 +8797,12 @@ function stopAudio(){ try{ window.speechSynthesis && speechSynthesis.cancel(); }
 
 /* ---------- HOME ---------- */
 function renderP1Home(){
-  stopAudio(); P1B=[];
+  p1BasketCapture(); stopAudio(); P1B=[];
   var s = p1Sel, h = '';
   h += '<div class="p1-wrap"><div class="p1-inner">';
   h += '<div class="p1-h">Paper 1 – Listening, Reading &amp; Translation</div>';
   h += '<div class="p1-sub">Edexcel 9FR0/01 style · 360 questions · 12 sub-themes · 3 versions each</div>';
+  h += p1BasketBar();
 
   h += '<div class="p1-card gold"><h3>Practise one question</h3><p class="p1-note">Choose a section, a question type and a sub-theme. Answer in the boxes, press <b>Check</b>, then mark the open answers yourself against the mark scheme. The pitfall tips appear after checking, or press <b>Hint</b> first if you are stuck.</p>';
   h += '<div class="p1-lbl">Section</div><div class="p1-seg">';
@@ -8880,16 +8895,17 @@ function topBar(extra){
   return '<div class="p1-top"><button class="p1-btn ghost sm" onclick="showPaper1()">← Back</button>'+(extra||'')+'<span class="sp"></span><button class="apmp-btn" id="p1-pdf" style="display:none" onclick="p1SavePDF()">📄 Save marked paper as PDF</button><span class="p1-score" id="p1-total">–</span></div>';
 }
 function renderP1Single(id){
-  stopAudio(); p1TimerStop(); p1Mode='single'; P1B=[]; P1A.p={}; p1Ctx={kind:'single'}; p1NotesCtx='';
+  p1BasketCapture(); stopAudio(); p1TimerStop(); p1Mode='single'; P1B=[]; P1A.p={}; p1Ctx={kind:'single'}; p1NotesCtx='';
   var q = P1Q[id], T = P1_TYPES[q.type];
   var h = '<div class="p1-wrap"><div class="p1-inner">' + topBar('<button class="p1-btn sm" onclick="p1Another()">↻ Another question</button><button class="p1-btn ghost sm" onclick="p1Print(\'q\')">🖨 Print / PDF · Question</button><button class="p1-btn ghost sm" onclick="p1Print(\'ms\')">🖨 Print / PDF · Mark scheme</button>');
+  h += p1BasketBar();
   h += '<div class="p1-paper"><div class="p1-sechead">'+P1_SECS[T.sec].title+p1SecNote(T.sec)+'</div>' + p1Block(q,0) + '</div>';
   h += '<div class="p1-card" id="p1-pdf-foot" style="display:none;text-align:center"><button class="apmp-btn lg" onclick="p1SavePDF()">📄 Save marked paper as PDF</button><div class="p1-note" style="margin:8px 0 0">Your answers, the mark scheme and your score on one printable page.</div></div>';
   h += '</div></div>';
   app().innerHTML = h; window.scrollTo(0,0); p1Total(); p1VoicesInit(); p1PenMount(function(){ renderP1Single(id); });
 }
 function renderP1Mock(ids){
-  stopAudio(); p1TimerStop(); p1Mode='mock'; P1B=[]; P1A.p={}; p1Ctx={kind:'mock', scope:p1Sel.mock}; p1NotesCtx=p1HashIds(ids);
+  p1BasketCapture(); stopAudio(); p1TimerStop(); p1Mode='mock'; P1B=[]; P1A.p={}; p1Ctx={kind:'mock', scope:p1Sel.mock}; p1NotesCtx=p1HashIds(ids);
   var h = '<div class="p1-wrap"><div class="p1-inner">' + topBar('<button class="p1-btn sm" onclick="p1StartMock()">↻ New mock</button><button class="p1-btn ghost sm" onclick="p1Print(\'q\')">🖨 Print / PDF · Paper</button><button class="p1-btn ghost sm" onclick="p1Print(\'ms\')">🖨 Print / PDF · Mark scheme</button>');
   h += '<div class="p1-h">Mock Paper 1</div><div class="p1-sub">'+(p1Sel.mock==='all'?'All themes':'Thème '+p1Sel.mock)+' · 80 marks · 2 hours · <span id="p1-timer">00:00</span></div>';
   var lastSec='';
@@ -8948,6 +8964,7 @@ function p1Block(q, bi){
   h += '<div class="p1-actions"><button class="p1-btn sm" id="'+P+'chk" onclick="p1Check('+bi+')">✔ Show answers &amp; mark scheme</button>';
   if(T.sec==='A') h += '<button class="p1-btn ghost sm" id="'+P+'trb" style="display:none" onclick="p1ToggleTrans('+bi+')">📄 Show transcript</button>';
   h += '</div><div id="'+P+'trans"></div>';
+  h += '<div class="p1-fin" id="'+P+'fin" hidden></div>';
   h += '<div class="p1-src" id="'+P+'src" style="display:none">'+esc(q.sourceNote||'')+'</div>';
   h += '</div>';
   return h;
@@ -9009,9 +9026,14 @@ window.p1Self = function(bi,key,v,el){
 };
 function disableInputs(P){ document.querySelectorAll('[id^="'+P+'"] input, [id^="'+P+'"] textarea').forEach(function(x){ if(x.type==='radio'||x.type==='checkbox') x.disabled=true; else x.readOnly=true; }); }
 function showTip(id){ var t=document.getElementById(id+'_tip'), hb=document.getElementById(id+'_hb'); if(t) t.style.display='block'; if(hb) hb.style.display='none'; }
+var P1_GIST_WHY = 'This is the idea in English. Whatever you wrote in French must get this across: judge your answer by its meaning, whatever the quality of your French.';
+function p1GistBox(g){
+  if(!g) return '';
+  return '<div class="p1-gist"><div class="p1-gist-h">🎯 Your answer must convey this</div><div class="p1-gist-t">'+esc(g)+'</div><div class="p1-gist-w">'+P1_GIST_WHY+'</div></div>';
+}
 function openMS(it, id, bi, key){
   var el=document.getElementById(id+'_ms'); if(!el) return;
-  el.innerHTML = '<div class="p1-ms"><div class="k ans">Mark scheme</div><div>'+br(it.answer)+'</div>'+msList(it.accept,'ok','Accept')+msList(it.reject,'no','Reject')+(it.gist?'<div class="gist">'+esc(it.gist)+'</div>':'')+selfHtml(bi,key,it.marks||1)+'</div>';
+  el.innerHTML = '<div class="p1-ms"><div class="k ans">Mark scheme</div><div>'+br(it.answer)+'</div>'+p1GistBox(it.gist)+msList(it.accept,'ok','Accept')+msList(it.reject,'no','Reject')+selfHtml(bi,key,it.marks||1)+'</div>';
   showTip(id);
 }
 window.p1Check = function(bi){
@@ -9055,7 +9077,7 @@ window.p1Check = function(bi){
   var cb=document.getElementById(P+'chk'); if(cb){ cb.disabled=true; cb.textContent='✔ Checked – now self-mark the open answers'; if(q.type==='l1'||q.type==='q5'||q.type==='q6') cb.textContent='✔ Checked'; }
   var tb=document.getElementById(P+'trb'); if(tb) tb.style.display='';
   var sr=document.getElementById(P+'src'); if(sr) sr.style.display='';
-  p1BlockScore(bi); p1Total();
+  p1BlockScore(bi); p1Total(); p1FinShow(bi);
 };
 window.p1CheckAll = function(){ P1B.forEach(function(b,i){ if(b && !b.checked) p1Check(i); }); };
 function p1BlockScore(bi){
@@ -9260,10 +9282,11 @@ function qTitle(q){
 }
 function paperIds(topic, v){ return Object.keys(P1_TYPES).map(function(t){ return tcode(topic)+'_'+t+'_'+v; }).filter(function(id){ return P1Q[id]; }); }
 function renderP1List(){
-  stopAudio(); p1TimerStop(); P1B=[];
+  p1BasketCapture(); stopAudio(); p1TimerStop(); P1B=[];
   var h='<div class="p1-wrap"><div class="p1-inner">';
   h+='<div class="p1-h">Paper 1 Practice Papers</div>';
   h+='<div class="p1-sub">36 papers · 3 per sub-theme · each paper Q1–Q10 · Listening 30 + Reading 30 + Translation 20 = 80 marks</div>';
+  h+=p1BasketBar();
   P1_THEMES.forEach(function(th){
     h+='<div class="p1-card"><h3>Thème '+th.n+' · '+esc(th.name)+'</h3><table class="p1-list">';
     th.subs.forEach(function(st){
@@ -9280,7 +9303,7 @@ function renderP1List(){
 }
 var p1Paper=null;
 window.p1OpenPaper = function(st, v){
-  stopAudio(); p1TimerStop(); p1Mode='mock'; P1B=[]; P1A.p={}; p1Paper={st:st,v:v}; p1Ctx={kind:'paper', st:st, v:v}; p1NotesCtx='paper'+st+'-'+v;
+  p1BasketCapture(); stopAudio(); p1TimerStop(); p1Mode='mock'; P1B=[]; P1A.p={}; p1Paper={st:st,v:v}; p1Ctx={kind:'paper', st:st, v:v}; p1NotesCtx='paper'+st+'-'+v;
   var ids=paperIds(st,v), code=st+'-'+'ABC'[v-1];
   var h='<div class="p1-wrap"><div class="p1-inner">';
   h+='<div class="p1-top"><button class="p1-btn ghost sm" onclick="showPaper1()">← Back</button><button class="p1-btn ghost sm" onclick="p1Print(\'q\')">🖨 Print / PDF · Paper</button><button class="p1-btn ghost sm" onclick="p1Print(\'ms\')">🖨 Print / PDF · Mark scheme</button><span class="sp"></span><button class="apmp-btn" id="p1-pdf" style="display:none" onclick="p1SavePDF()">📄 Save marked paper as PDF</button><span class="p1-score" id="p1-total">–</span></div>';
@@ -9304,16 +9327,16 @@ window.p1OpenPaper = function(st, v){
 var p1Ctx = {kind:'single'};
 function apmpSyncP1(chk){
   var a=document.getElementById('p1-pdf'), b=document.getElementById('p1-pdf-foot');
-  if(a) a.style.display = chk ? '' : 'none';
-  if(b) b.style.display = chk ? '' : 'none';
+  if(a) a.style.display = '';
+  if(b) b.style.display = (chk || (p1Mode==='single' && P1BASKET.items.length)) ? '' : 'none';
 }
 function p1Val(id){ var el=document.getElementById(id); return el ? el.value : ''; }
 function p1Lines(arr){ return '<span class="apmp-small">'+arr.map(function(x){ return br(x); }).join(' <b class="apmp-dot">&middot;</b> ')+'</span>'; }
 function p1MsRows(it){
   var r=[['Mark scheme', br(it.answer), 'ms']];
+  if(it.gist) r.push(['🎯 Must convey', '<b>'+esc(it.gist)+'</b><div class="apmp-small" style="margin-top:2px">The idea in English: the French answer must get this across.</div>', 'gist']);
   if(it.accept&&it.accept.length) r.push(['Accept', p1Lines(it.accept), 'ok']);
   if(it.reject&&it.reject.length) r.push(['Reject', p1Lines(it.reject), 'bad']);
-  if(it.gist) r.push(['Note', esc(it.gist)]);
   if(it.tip) r.push(['Tip', '<span class="apmp-tip">'+esc(it.tip)+'</span>']);
   return r;
 }
@@ -9405,7 +9428,8 @@ function p1PdfBlock(b){
   return h;
 }
 window.p1SavePDF = function(){
-  if(!P1B.some(function(b){ return b && b.checked; })){ alert('Mark at least one question first (✔ Show answers & mark scheme).'); return; }
+  if(p1Mode==='single' && P1BASKET.items.length) return p1SaveBasket();
+  if(!P1B.some(function(b){ return b && b.checked; })){ p1Toast('First press <b>✔ Show answers &amp; mark scheme</b> and mark your answers; then save your PDF.'); return; }
   APMP.save(function(){
     var got=0, max=0, mMax=0, nChk=0, nAll=0, unself=0, body='', lastSec='', secs={};
     P1B.forEach(function(b){ if(!b) return; var T=P1_TYPES[b.q.type], s=secs[T.sec]||(secs[T.sec]={got:0,max:0,mmax:0,chk:0,n:0});
@@ -9440,7 +9464,7 @@ window.p1SavePDF = function(){
       got:got, max: partial ? mMax : max, partial:partial,
       partNote: nChk+' of '+nAll+' questions ('+mMax+' of '+max+' marks)',
       summary: 'Score <b>'+got+' / '+(partial?mMax:max)+'</b>'+(partial?' on the questions marked so far (paper total '+max+' marks)':'')+(unself?' &middot; <span class="apmp-bad">'+unself+' answer'+(unself>1?'s':'')+' not self-marked yet (counted as 0)</span>':''),
-      body: '<style>'+APPEN.PDF_CSS+'</style>'+body,
+      body: '<style>'+APPEN.PDF_CSS+'.apmp-row.gist{background:#e8f1fb;border-left:4px solid #1f5fa8;-webkit-print-color-adjust:exact;print-color-adjust:exact}.apmp-row.gist .apmp-lab{color:#1f5fa8}.apmp-row.gist .apmp-val{color:#0f2f57}</style>'+body,
       foot: 'AP A Level Oral Topics &amp; Paper 1 &middot; Paper 1 &middot; Marked paper',
       docTitle: docTitle
     };
@@ -9582,6 +9606,81 @@ function p1tUp(){
     m.hidden = false;
   }
   p1tBeep();
+}
+
+/* ---------- 📄 FINISHED? card under each marked question + ➕ keep questions for one PDF (single questions) ---------- */
+var P1BASKET = {active:false, items:[]};
+function p1UnselfOf(b){
+  var n=0, q=b.q; if(!b.checked) return 0;
+  if(q.type==='q10'){ q.sections.forEach(function(s,i){ if(!b.self.hasOwnProperty('s'+i)) n++; }); }
+  else if(q.type!=='l1'&&q.type!=='q5'&&q.type!=='q6'){
+    var items = q.type==='l4' ? q.partA.items : q.items, pre = q.type==='l4' ? 'a' : 'o';
+    items.forEach(function(it,i){ if(!b.self.hasOwnProperty(pre+i)) n++; });
+    if(q.type==='l4') q.partB.summary.forEach(function(sm,si){ sm.bullets.forEach(function(bu,bj){ if(!b.self.hasOwnProperty('s'+si+'_'+bj)) n++; }); });
+  }
+  return n;
+}
+function p1BasketCapture(force){
+  if(p1Mode!=='single' || !(P1BASKET.active || force)) return;
+  var b=P1B[0]; if(!b || !b.checked || !document.getElementById('p1b0_wrap')) return;
+  b.bi=0; var T=P1_TYPES[b.q.type], html;
+  try { html = p1PdfBlock(b); } catch(e) { return; }
+  var e = {id:b.q.id, sec:T.sec, num:T.num, got:b.score||0, max:T.marks, unself:p1UnselfOf(b), html:html};
+  for(var i=0;i<P1BASKET.items.length;i++){ if(P1BASKET.items[i].id===e.id){ P1BASKET.items[i]=e; return; } }
+  P1BASKET.items.push(e);
+}
+function p1BasketBar(){
+  var it=P1BASKET.items; if(!it.length) return '';
+  var got=0,max=0; it.forEach(function(e){ got+=e.got; max+=e.max; });
+  return '<div class="p1-kept" role="status"><div class="p1-kept-t">📎 <b>'+it.length+' question'+(it.length>1?'s':'')+' kept for your PDF</b> ('+it.map(function(e){return 'Q'+e.num;}).join(', ')+' &middot; '+got+' / '+max+')<br><small>Do the next question, then press <b>📄 Save my work as PDF</b>: everything goes into one PDF.</small></div>'
+    + '<div class="p1-kept-b"><button class="apmp-btn" onclick="p1SavePDF()">📄 Save my work as PDF</button><button class="p1-btn ghost sm" onclick="p1BasketClear()">✕ Start a fresh PDF</button></div></div>';
+}
+window.p1BasketClear = function(){
+  if(!window.confirm('Remove the kept questions and start a fresh PDF?')) return;
+  P1BASKET.items=[]; P1BASKET.active=false; document.querySelectorAll('.p1-kept').forEach(function(x){ x.remove(); }); p1Total();
+};
+window.p1MoreQs = function(){ P1BASKET.active=true; p1BasketCapture(true); p1PickOpen=true; renderP1List(); window.scrollTo(0,0); };
+window.p1MorePaper = function(bi){
+  var n=document.getElementById('p1b'+(bi+1)+'_wrap') || document.getElementById('p1-pdf-foot');
+  if(n) n.scrollIntoView({behavior:'smooth', block:'start'});
+};
+function p1FinShow(bi){
+  var el=document.getElementById('p1b'+bi+'_fin'); if(!el) return;
+  var single = p1Mode==='single';
+  var last = !single && !document.getElementById('p1b'+(bi+1)+'_wrap');
+  el.innerHTML = '<div class="p1-fin-h">Finished? Send your work to AP</div>'
+    + '<div class="p1-fin-b"><button class="apmp-btn lg" onclick="p1SavePDF()">📄 Save my work as PDF</button>'
+    + (single ? '<button class="p1-btn ghost" onclick="p1MoreQs()">➕ I\'m doing more questions first</button>'
+              : (last ? '' : '<button class="p1-btn ghost" onclick="p1MorePaper('+bi+')">⬇ I\'m doing more of the paper first</button>'))
+    + '</div><div class="p1-fin-n">Self-mark your open answers first. Then save the PDF and upload it to <b>OneNote</b>, on the <b>dated page AP has set</b> for this work.'
+    + (single ? ' With <b>➕</b>, this question is kept and all your questions go into <b>one</b> PDF at the end.' : ' The PDF always includes every question you have marked so far.')
+    + '</div>';
+  el.hidden = false;
+}
+function p1Toast(html){
+  var t=document.getElementById('p1-toast'); if(!t){ t=document.createElement('div'); t.id='p1-toast'; t.setAttribute('role','alert'); document.body.appendChild(t); }
+  t.innerHTML=html; t.className='show'; clearTimeout(p1Toast._t); p1Toast._t=setTimeout(function(){ t.className=''; }, 4500);
+}
+function p1SaveBasket(){
+  p1BasketCapture(true);
+  var it=P1BASKET.items.slice(); if(!it.length){ p1Toast('First mark a question, then save your PDF.'); return; }
+  APMP.save(function(){
+    var got=0, max=0, unself=0, secs={}, order=[], body='';
+    it.forEach(function(e){ got+=e.got; max+=e.max; unself+=e.unself;
+      var s=secs[e.sec]; if(!s){ s=secs[e.sec]={got:0,max:0,html:''}; order.push(e.sec); }
+      s.got+=e.got; s.max+=e.max; s.html+=e.html; });
+    order.sort().forEach(function(sec){ var s=secs[sec]; body += APMP.sec(P1_SECS[sec].title, s.got, s.max, true) + s.html; });
+    var nums=it.map(function(e){ return 'Q'+e.num; }).join(' &middot; ');
+    return {
+      kicker:'AP A Level &middot; Oral Topics &amp; Paper 1 &middot; Paper 1', title:'Paper 1 practice &mdash; <em>'+it.length+' question'+(it.length>1?'s':'')+'</em>',
+      meta:'Edexcel 9FR0/01 style &middot; '+nums+' &middot; '+max+' marks', lang:'French',
+      got:got, max:max, partial:false,
+      summary:'Score <b>'+got+' / '+max+'</b> over '+it.length+' question'+(it.length>1?'s':'')+(unself?' &middot; <span class="apmp-bad">'+unself+' answer'+(unself>1?'s':'')+' not self-marked yet (counted as 0)</span>':''),
+      body:'<style>'+APPEN.PDF_CSS+'.apmp-row.gist{background:#e8f1fb;border-left:4px solid #1f5fa8;-webkit-print-color-adjust:exact;print-color-adjust:exact}.apmp-row.gist .apmp-lab{color:#1f5fa8}.apmp-row.gist .apmp-val{color:#0f2f57}</style>'+body,
+      foot:'AP A Level Oral Topics &amp; Paper 1 &middot; Paper 1 &middot; Marked questions',
+      docTitle:'Paper 1 practice – '+it.length+' questions – marked'
+    };
+  });
 }
 
 window.showPaper1 = renderP1List;
