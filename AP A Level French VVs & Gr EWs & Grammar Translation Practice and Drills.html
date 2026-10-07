@@ -3,7 +3,7 @@
 <script id="ap-update">
 /* AP auto-update: if this copy is older than the published version, reload once with the new one (saved answers are kept) */
 (function () {
-  var B = 'f87e373730'; window.AP_BUILD = B;
+  var B = '60794b48b4'; window.AP_BUILD = B;
   function check() {
     if (!/^https?:$/.test(location.protocol) || !window.fetch) return;
     var f = decodeURIComponent(location.pathname.split('/').pop() || '');
@@ -1804,8 +1804,9 @@ var APTT = (function () {
   function noun(n) { var sen = S.items.every(function (it) { return it.kind === 'sentence'; }); return (sen ? 'sentence' : 'item') + (n === 1 ? '' : 's'); }
   function Noun(n) { var s = noun(n); return s.charAt(0).toUpperCase() + s.slice(1); }
   function nWords(h) { return String(h || '').replace(/<[^>]+>/g, ' ').replace(/&[a-z#0-9]+;/gi, ' ').replace(/[(),;:!?.«»"]/g, ' ').split(/\s+/).filter(function (w) { return w && w !== '/' && w !== '-'; }).length; }
-  // time follows the length of what he has to write: words 8 s + 3 s a word, sentences 15 s + 3 s a word; rounded up to 30 s, at least 2 min
-  function limit() { var t = 0; S.items.forEach(function (it) { t += (it.kind === 'sentence' ? 15 : 8) + 3 * Math.max(1, nWords(it.answer)); }); return Math.max(120, Math.ceil(t / 30) * 30); }
+  // AP's own classroom timings: a VV Spot Test (15 items) 5 minutes, an average Spot Test (10 items) 4 minutes
+  // → 20 s a word/phrase item, 24 s a sentence item; rounded up to 30 s, at least 2 min
+  function limit() { var t = 0; S.items.forEach(function (it) { t += it.kind === 'sentence' ? 24 : 20; }); return Math.max(120, Math.ceil(t / 30) * 30); }
   function minsTxt(sec) { var m = Math.floor(sec / 60); return m + (sec % 60 ? '½' : ''); }
   function markLimit() { var t = 0; S.items.forEach(function (it) { t += it.kind === 'sentence' ? 20 : 10; }); return Math.max(120, t); }
   function r1(x) { var r = Math.round(x * 10) / 10; return String(r); }
