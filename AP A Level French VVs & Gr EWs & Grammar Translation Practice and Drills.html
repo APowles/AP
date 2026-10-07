@@ -3,7 +3,7 @@
 <script id="ap-update">
 /* AP auto-update: if this copy is older than the published version, reload once with the new one (saved answers are kept) */
 (function () {
-  var B = '1704728b50'; window.AP_BUILD = B;
+  var B = 'f87e373730'; window.AP_BUILD = B;
   function check() {
     if (!/^https?:$/.test(location.protocol) || !window.fetch) return;
     var f = decodeURIComponent(location.pathname.split('/').pop() || '');
@@ -811,7 +811,7 @@ main{max-width:600px;margin:0 auto;padding:1rem 1rem 0}
   <div class="aph-row" style="margin-top:20px;">
     <button class="aph-btn aph-btn-primary" onclick="generateVVTest()">&#128221; Generate Test</button>
     <button class="aph-btn" onclick="generateVVSpotTest()">&#128203; AP Spot Test</button>
-    <button class="aph-btn aptt-btn" onclick="generateVVSpotTest(true)">⏱ AP Spot Test: timed &amp; submitted</button>
+    <button class="aph-btn aptt-btn" onclick="apttLevel('vv',function(){generateVVSpotTest(true)})">⏱ AP Spot Test: timed &amp; submitted</button>
   </div>
   <div id="vvTestOutput" class="aph-out"></div>
 </div>
@@ -1616,6 +1616,16 @@ var APPEN = (function () {
 /* ===== END AP PEN ===== */
 </script>
 <style id="aptt-style">
+.aptt-level{display:inline-block;margin:6px 0 4px;font:800 1.0625rem/1 var(--aph-body);letter-spacing:.05em;color:#fff;background:#c0392b;border-radius:8px;padding:7px 12px}
+.aptt-lv-E{background:#2e7d52}.aptt-lv-M{background:#b9770e}.aptt-lv-H{background:#c0392b}.aptt-lv-X{background:var(--navy)}
+#aptt-lvask{position:fixed;inset:0;z-index:14000;background:rgba(8,13,28,.6);display:flex;align-items:center;justify-content:center;padding:16px}
+.aptt-lvbox{background:#fff;border-radius:14px;padding:18px;max-width:440px;width:100%;box-shadow:0 20px 60px rgba(0,0,0,.4);font-family:var(--aph-body);text-align:center}
+.aptt-lvh{font:700 1.35rem/1.2 var(--aph-display);color:var(--navy)}
+.aptt-lvs{font-size:.875rem;color:var(--text2);margin:6px 0 12px}
+.aptt-lvb{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.aptt-lvb button{border:0;border-radius:10px;padding:14px 10px;font:800 1.0625rem var(--aph-body);color:#fff;cursor:pointer}
+.aptt-lvb button.on{outline:3px solid var(--gold);outline-offset:2px}
+.aptt-lvx{margin-top:12px;background:none;border:0;color:var(--text2);font:600 .9375rem var(--aph-body);cursor:pointer}
 /* ===== AP TIMED TEST ===== */
 /* ⏱ AP Spot Test: timed & submitted — the printed AP Spot Test done on screen (Apple Pencil), timed or untimed, self-marked, handed in as a PDF.
    Shared and app-agnostic: paste this <style> + <script> pair unchanged into any AP app that has AP PEN (appen-) and AP MARKED PAPER (apmp-).
@@ -1793,7 +1803,10 @@ var APTT = (function () {
   function val() { return (S.m.total || 10) / S.items.length; }
   function noun(n) { var sen = S.items.every(function (it) { return it.kind === 'sentence'; }); return (sen ? 'sentence' : 'item') + (n === 1 ? '' : 's'); }
   function Noun(n) { var s = noun(n); return s.charAt(0).toUpperCase() + s.slice(1); }
-  function limit() { var t = 0; S.items.forEach(function (it) { t += it.kind === 'sentence' ? 60 : 30; }); return Math.max(3, Math.round(t / 60)) * 60; }
+  function nWords(h) { return String(h || '').replace(/<[^>]+>/g, ' ').replace(/&[a-z#0-9]+;/gi, ' ').replace(/[(),;:!?.«»"]/g, ' ').split(/\s+/).filter(function (w) { return w && w !== '/' && w !== '-'; }).length; }
+  // time follows the length of what he has to write: words 8 s + 3 s a word, sentences 15 s + 3 s a word; rounded up to 30 s, at least 2 min
+  function limit() { var t = 0; S.items.forEach(function (it) { t += (it.kind === 'sentence' ? 15 : 8) + 3 * Math.max(1, nWords(it.answer)); }); return Math.max(120, Math.ceil(t / 30) * 30); }
+  function minsTxt(sec) { var m = Math.floor(sec / 60); return m + (sec % 60 ? '½' : ''); }
   function markLimit() { var t = 0; S.items.forEach(function (it) { t += it.kind === 'sentence' ? 20 : 10; }); return Math.max(120, t); }
   function r1(x) { var r = Math.round(x * 10) / 10; return String(r); }
   function mmss(x) { x = Math.max(0, Math.ceil(x)); return Math.floor(x / 60) + ':' + ('0' + x % 60).slice(-2); }
@@ -1815,7 +1828,7 @@ var APTT = (function () {
   function open(o) {
     if (!o || !o.items || !o.items.length || typeof APPEN === 'undefined' || typeof APMP === 'undefined') return;
     var items = o.items.map(norm);
-    var m = { id: String(o.id || ''), app: o.app || '', kicker: o.kicker || '', title: o.title || '', meta: o.meta || '', lang: o.lang || '', code: o.langCode || LCODE[o.lang] || '', total: +o.total || 10 };
+    var m = { id: String(o.id || ''), app: o.app || '', kicker: o.kicker || '', title: o.title || '', meta: o.meta || '', lang: o.lang || '', code: o.langCode || LCODE[o.lang] || '', total: +o.total || 10, level: o.level || '' };
     var sel = h32(m.app + '|' + m.id), key = 'aptt' + sel + h32(items.map(function (it) { return it.prompt + '\u0001' + it.answer; }).sort().join('\u0002'));
     try { if (window.speechSynthesis) speechSynthesis.cancel(); } catch (e) { }
     var cur = lsGet('apttCur:' + sel), st = cur ? load(cur) : null;
@@ -1884,16 +1897,17 @@ var APTT = (function () {
       + '<div class="aptt-mk" role="group" aria-label="Your mark for ' + noun(1) + ' ' + n + '"><span class="aptt-mk-l">Compare with the answer, then tap your mark:</span>' + mk + '<span class="aptt-mk-v" id="aptt-mv-' + n + '">' + (m != null && m !== '' ? m + ' / ' + maxOf(it) : '') + '</span></div></div></div>';
   }
   function render() {
-    var ov = $('aptt-ov'), N = S.items.length, L = S.m.lang || '', mins = limit() / 60;
+    var ov = $('aptt-ov'), N = S.items.length, L = S.m.lang || '', mins = minsTxt(limit());
     var h = '<div class="aptt-bar"><button type="button" class="aph-home" onclick="APTT.close()">⌂ Back</button><span class="aptt-bar-t">' + LBL + '</span></div>'
       + '<div class="aptt-wrap"><div id="aptt-top"><div class="aptt-kick">AP Spot Test · ' + S.m.title + '</div>'
+      + (S.m.level ? '<div class="aptt-level aptt-lv-' + S.m.level.charAt(0) + '">LEVEL: ' + S.m.level.toUpperCase() + '</div>' : '')
       + '<h2 class="aph-h">' + (L ? 'Translate into ' + esc(L) : 'Write your answers') + '</h2>'
       + (S.m.meta ? '<div class="aptt-meta">' + S.m.meta + '</div>' : '')
       + '<p class="aptt-instr">' + (L ? 'Translate' : 'Answer') + ' all ' + N + ' ' + noun(N) + (L ? ' into ' + esc(L) : '') + ' with your Apple Pencil (black ink). Have a go at every one, then lock in, open the answers, correct your work in red and give each ' + noun(1) + ' a mark. Your score is out of ' + (S.m.total || 10) + '.</p>'
       + '<div class="aptt-score" id="aptt-score1"' + (S.shown ? '' : ' hidden') + '></div>'
       + '<div class="aptt-legend" id="aptt-legend"' + (S.shown ? '' : ' hidden') + '>' + legend() + '</div></div>'
       + '<div class="aptt-mode" id="aptt-mode"><div class="aptt-mode-h">Choose how you are doing this:</div><div class="aptt-mode-b">'
-      + '<button type="button" class="aptt-mode-t" onclick="APTT.mode(\'timed\')"><b>⏱ Timed: ' + mins + ' minutes</b><span>In class. The clock starts as soon as you tap. Do as much as you can: at ' + mins + ':00 you get 30 more seconds, then your answers lock in by themselves. ' + Noun(2) + ' left blank score 0. Then ' + dur(markLimit()) + ' to mark yourself: anything not marked in time scores 0.</span></button>'
+      + '<button type="button" class="aptt-mode-t" onclick="APTT.mode(\'timed\')"><b>⏱ Timed: ' + mins + ' minutes</b><span>In class. The clock starts as soon as you tap. Do as much as you can: at the end you get 30 more seconds, then your answers lock in by themselves. ' + Noun(2) + ' left blank score 0. Then ' + dur(markLimit()) + ' to mark yourself: anything not marked in time scores 0.</span></button>'
       + '<button type="button" class="aptt-mode-f" onclick="APTT.mode(\'free\')"><b>🏠 Untimed</b><span>Homework. Take as long as you need, but you must have a go at all ' + N + ' before you can lock in.</span></button>'
       + '</div><div class="aptt-mode-n">Your choice, your times and your attempt number are printed on your PDF. You cannot change mode once you start.</div>'
       + '<div class="aptt-key-row"><button type="button" class="aptt-key-btn" onclick="APTT.teacher()">👩‍🏫 Teacher: show all answers (projector)</button></div></div>'
@@ -2059,7 +2073,7 @@ var APTT = (function () {
       return;
     }
     APMP.save(function () {
-      var r = sum(), T = S.m.total || 10, timed = S.mode === 'timed', mins = limit() / 60, ml = markLimit();
+      var r = sum(), T = S.m.total || 10, timed = S.mode === 'timed', mins = minsTxt(limit()), ml = markLimit();
       var q = function (it, i) {
         var m = S.marks[i], has = m != null && m !== '', mx = maxOf(it);
         var txt = (it.label ? '<span class="aptt-plab">' + (it.html ? it.label : esc(it.label)) + '</span> ' : '') + show(it, 'prompt');
@@ -2081,7 +2095,7 @@ var APTT = (function () {
         app: plain(S.m.app), kicker: S.m.kicker + ' &middot; AP Spot Test: timed &amp; submitted',
         title: 'AP Spot Test &mdash; <em>' + S.m.title + '</em>', meta: S.m.meta,
         got: r.score, max: T, partial: r.left > 0, partNote: (S.items.length - r.left) + ' of ' + S.items.length + ' ' + noun(2) + ' marked',
-        summary: 'Self-marked: <b>' + r1(r.score) + ' / ' + T + '</b> (' + r.raw + ' / ' + r.rmax + ' marks) &middot; ' + r.n + ' of ' + S.items.length + ' ' + noun(2) + ' marked by him'
+        summary: (S.m.level ? '<span style="display:inline-block;font-size:13pt;font-weight:800;letter-spacing:.04em;color:#c0392b;border:2px solid #c0392b;border-radius:2mm;padding:.5mm 3mm;margin:0 0 1.5mm">LEVEL: ' + S.m.level.toUpperCase() + '</span><br>' : '') + 'Self-marked: <b>' + r1(r.score) + ' / ' + T + '</b> (' + r.raw + ' / ' + r.rmax + ' marks) &middot; ' + r.n + ' of ' + S.items.length + ' ' + noun(2) + ' marked by him'
           + (S.unm && S.unm.length ? ' &middot; <span class="apmp-bad">not marked in time: ' + noun(S.unm.length) + ' ' + S.unm.join(', ') + '</span>' : '')
           + '<br>' + (timed ? '⏱ <b>Timed: ' + mins + ' minutes (class)</b>' : '🏠 <b>Untimed (homework)</b>')
           + (S.t0 ? (S.att ? ' &middot; <b' + (S.att > 1 ? ' class="apmp-bad"' : '') + '>attempt ' + S.att + ' on this test</b>' : '') + ' &middot; started ' + hhmm(S.t0) + (S.endAt ? ', locked in ' + hhmm(S.endAt) : '') + ' on ' + new Date(S.t0).toLocaleDateString('en-GB') : '')
@@ -2107,7 +2121,24 @@ var APTT_APP = 'AP A Level VVs, Gr EWs &amp; Translation', APTT_KICK = 'AP A Lev
 function apttSpot(o) {
   var items = [];
   o.rows.forEach(function (g) { g.forEach(function (x) { items.push({ prompt: o.q(x), answer: o.a(x), kind: o.kind, label: o.label ? o.label(x) : '', html: true }); }); });
-  APTT.open({ id: o.id, app: APTT_APP, kicker: APTT_KICK, title: o.title, meta: o.meta, lang: o.lang, items: items, total: 10 });
+  var sc = String(o.id || '').split('|')[0];
+  APTT.open({ id: o.id, app: APTT_APP, kicker: APTT_KICK, title: o.title, meta: o.meta, lang: o.lang, items: items, total: 10, level: AP_LEVEL.NAMES[apLv(sc)] || '' });
+}
+// the boy must choose his level (Easy / Medium / Hard / Mixed) before a timed & submitted Spot Test is drawn
+function apttLevel(sc, run) {
+  var d = document.getElementById('aptt-lvask'); if (d) d.remove();
+  d = document.createElement('div'); d.id = 'aptt-lvask';
+  d.innerHTML = '<div class="aptt-lvbox" role="dialog" aria-modal="true"><div class="aptt-lvh">Choose your level</div>'
+    + '<div class="aptt-lvs">Your level is printed in big letters at the top of your PDF.</div><div class="aptt-lvb">'
+    + ['E', 'M', 'H', 'X'].map(function (v) { return '<button type="button" data-v="' + v + '" class="aptt-lv-' + v + (apLv(sc) === v ? ' on' : '') + '">' + AP_LEVEL.NAMES[v] + '</button>'; }).join('')
+    + '</div><button type="button" class="aptt-lvx">Cancel</button></div>';
+  d.addEventListener('click', function (e) {
+    var b = e.target.closest('button'); if (!b) { if (e.target === d) d.remove(); return; }
+    if (b.classList.contains('aptt-lvx')) { d.remove(); return; }
+    var v = b.getAttribute('data-v'); if (!v) return;
+    AP_TLV[sc] = v; apLvPaint(sc); d.remove(); run();
+  });
+  document.body.appendChild(d);
 }
 </script>
 
@@ -36252,7 +36283,7 @@ que nous pensons (neutral le)</textarea><div style="font-size:0.68rem;color:var(
     <div style="display:flex;gap:8px;margin-top:10px;flex-wrap:wrap;">
       <button onclick="generateMlfTest()" style="flex:1;padding:10px;background:transparent;color:var(--navy);border:1.5px solid var(--navy);border-radius:8px;font-family:'DM Sans',sans-serif;font-size:0.82rem;font-weight:700;cursor:pointer">📄 Generate Test</button>
       <button onclick="generateMlfSpotTest()" style="flex:1;padding:10px;background:transparent;color:var(--navy);border:1.5px solid var(--navy);border-radius:8px;font-family:'DM Sans',sans-serif;font-size:0.82rem;font-weight:700;cursor:pointer">📋 AP Spot Test</button>
-      <button onclick="generateMlfSpotTest(true)" style="flex:1;padding:10px;background:#fffaf0;color:var(--navy);border:2px solid var(--gold);border-radius:8px;font-family:'DM Sans',sans-serif;font-size:0.82rem;font-weight:700;cursor:pointer">⏱ AP Spot Test: timed &amp; submitted</button>
+      <button onclick="apttLevel('mlf',function(){generateMlfSpotTest(true)})" style="flex:1;padding:10px;background:#fffaf0;color:var(--navy);border:2px solid var(--gold);border-radius:8px;font-family:'DM Sans',sans-serif;font-size:0.82rem;font-weight:700;cursor:pointer">⏱ AP Spot Test: timed &amp; submitted</button>
       <button onclick="openMlfEdit()" style="padding:10px 14px;background:transparent;color:#5a2d8a;border:1.5px solid #5a2d8a;border-radius:8px;font-family:'DM Sans',sans-serif;font-size:0.82rem;font-weight:700;cursor:pointer">✏️ Edit</button>
     </div>
     <div id="mlfTestOutput" style="margin-top:14px;"></div>
@@ -36417,7 +36448,7 @@ que nous pensons (neutral le)</textarea><div style="font-size:0.68rem;color:var(
       </div>
       <button onclick="generateSDTest()" style="padding:9px 22px;background:var(--navy);color:var(--gold);border:none;border-radius:8px;font-weight:700;font-size:0.85rem;cursor:pointer;">Generate Test</button>
       <button onclick="generateSDSpotTest()" style="padding:9px 22px;background:transparent;color:var(--navy);border:1.5px solid var(--navy);border-radius:8px;font-weight:700;font-size:0.85rem;cursor:pointer;margin-left:8px;">📋 AP Spot Test</button>
-      <button onclick="generateSDSpotTest(true)" style="padding:9px 22px;background:#fffaf0;color:var(--navy);border:2px solid var(--gold);border-radius:8px;font-weight:700;font-size:0.85rem;cursor:pointer;margin-left:8px;">⏱ AP Spot Test: timed &amp; submitted</button>
+      <button onclick="apttLevel('sd',function(){generateSDSpotTest(true)})" style="padding:9px 22px;background:#fffaf0;color:var(--navy);border:2px solid var(--gold);border-radius:8px;font-weight:700;font-size:0.85rem;cursor:pointer;margin-left:8px;">⏱ AP Spot Test: timed &amp; submitted</button>
       <div style="display:flex;align-items:center;gap:6px;margin-top:10px;">
         <span class="aph-label vv-inl">Items per box</span>
         <button class="vv-topt" onclick="setSDSpotItems(1)" id="sdspot-1">1</button>
@@ -36521,7 +36552,7 @@ function renderSD() {
       <div class="aph-row" style="margin-top:20px;">
         <button class="aph-btn aph-btn-primary" onclick="generateSDTest()">&#128221; Generate Test</button>
         <button class="aph-btn" onclick="generateSDSpotTest()">&#128203; AP Spot Test</button>
-        <button class="aph-btn aptt-btn" onclick="generateSDSpotTest(true)">⏱ AP Spot Test: timed &amp; submitted</button>
+        <button class="aph-btn aptt-btn" onclick="apttLevel('sd',function(){generateSDSpotTest(true)})">⏱ AP Spot Test: timed &amp; submitted</button>
       </div>
       <div id="sdTestOutput" class="aph-out"></div>
     </div>
@@ -38301,7 +38332,7 @@ function vvhGrPanelBody() {
     + '<span class="aph-note" id="grSpotInfo">5 rows × 2 = 10 sentences</span></div>'
     + '<div class="aph-row" style="margin-top:20px;"><button class="aph-btn aph-btn-primary" onclick="generateGrammarTestInline()">&#128221; Generate Test</button>'
     + '<button class="aph-btn" onclick="generateGrammarSpotTestInline()">&#128203; AP Spot Test</button>'
-    + '<button class="aph-btn aptt-btn" onclick="generateGrammarSpotTestInline(true)">⏱ AP Spot Test: timed &amp; submitted</button></div>'
+    + '<button class="aph-btn aptt-btn" onclick="apttLevel(\'gr\',function(){generateGrammarSpotTestInline(true)})">⏱ AP Spot Test: timed &amp; submitted</button></div>'
     + '<div id="grTestOutput" class="aph-out"></div>';
 }
 
@@ -38589,7 +38620,7 @@ function renderGrammarOptions(setId) {
       <div class="aph-tools">
         <button class="aph-btn" onclick="grOptionsGenerateTest('${setId}')">&#128221; Generate Test</button>
         <button class="aph-btn" onclick="grOptionsSpotTest('${setId}')">&#128203; AP Spot Test</button>
-        <button class="aph-btn aptt-btn" onclick="grOptionsSpotTest('${setId}', true)">⏱ AP Spot Test: timed &amp; submitted</button>
+        <button class="aph-btn aptt-btn" onclick="apttLevel('gr',function(){grOptionsSpotTest('${setId}', true)})">⏱ AP Spot Test: timed &amp; submitted</button>
       </div>
       <div class="vv-lv">
         <div class="aph-label">Level <span class="aph-note" style="text-transform:none;letter-spacing:0;font-weight:500">(for tests)</span></div>
@@ -42667,7 +42698,7 @@ function vvhGrEwsPanel() {
     + '<button class="vv-topt" onclick="grEwsSetSpotItems(3)" id="grewsspot-3">3</button></div>'
     + '<div class="aph-row" style="margin-top:20px;"><button class="aph-btn aph-btn-primary" onclick="generateGrEwsTestInline()">&#128221; Generate Test</button>'
     + '<button class="aph-btn" onclick="generateGrEwsSpotTestInline()">&#128203; AP Spot Test</button>'
-    + '<button class="aph-btn aptt-btn" onclick="generateGrEwsSpotTestInline(true)">⏱ AP Spot Test: timed &amp; submitted</button></div>'
+    + '<button class="aph-btn aptt-btn" onclick="apttLevel(\'grews\',function(){generateGrEwsSpotTestInline(true)})">⏱ AP Spot Test: timed &amp; submitted</button></div>'
     + '<div id="grEwsTestOutput" class="aph-out"></div>'
     + '</div>';
 }
@@ -42750,7 +42781,7 @@ function renderGrEws() {
       <div class="aph-tools">
         <button class="aph-btn" onclick="grEwsOpenTestPanel()">&#128221; Generate Test${comboActive?' (combo)':''}</button>
         <button class="aph-btn" onclick="grEwsOpenSpotTestPanel()">&#128203; AP Spot Test${comboActive?' (combo)':''}</button>
-        <button class="aph-btn aptt-btn" onclick="grEwsOpenSpotTestPanel(true)">⏱ AP Spot Test: timed &amp; submitted${comboActive?' (combo)':''}</button>
+        <button class="aph-btn aptt-btn" onclick="apttLevel('grews',function(){grEwsOpenSpotTestPanel(true)})">⏱ AP Spot Test: timed &amp; submitted${comboActive?' (combo)':''}</button>
       </div>
       ${vvhKeys(true)}
       <div id="grEwsMenuTestOutput" class="aph-out"></div>
@@ -43701,7 +43732,7 @@ function renderMLF() {
       <div class="aph-tools">
         <button class="aph-btn" onclick="generateMlfTest()">&#128221; Generate Test</button>
         <button class="aph-btn" onclick="generateMlfSpotTest()">&#128203; AP Spot Test</button>
-        <button class="aph-btn aptt-btn" onclick="generateMlfSpotTest(true)">⏱ AP Spot Test: timed &amp; submitted</button>
+        <button class="aph-btn aptt-btn" onclick="apttLevel('mlf',function(){generateMlfSpotTest(true)})">⏱ AP Spot Test: timed &amp; submitted</button>
         <button class="aph-btn" onclick="openMlfEdit()">✏️ Edit</button>
       </div>
       <div class="vv-lv">
@@ -44868,7 +44899,7 @@ if (window.__mlf) window.__mlf.speedTest = function (kind, from, to, rev, lv) {
   var wrap = document.createElement('div');
   wrap.innerHTML = '<h2 class="aph-panel-title">🌐 AP Metalanguage Formulae</h2>'
     + '<p class="aph-note" style="margin:4px 0 12px">' + A.flag + ' ' + A.label + ' → ' + B.flag + ' ' + B.label + ' · ' + mlfGetPool().length + ' formulae</p>'
-    + '<div class="aph-row"><button class="aph-btn" style="flex:1" onclick="generateMlfTest()">&#128221; Generate Test</button><button class="aph-btn" style="flex:1" onclick="generateMlfSpotTest()">&#128203; AP Spot Test</button><button class="aph-btn aptt-btn" style="flex:1" onclick="generateMlfSpotTest(true)">⏱ AP Spot Test: timed &amp; submitted</button></div>'
+    + '<div class="aph-row"><button class="aph-btn" style="flex:1" onclick="generateMlfTest()">&#128221; Generate Test</button><button class="aph-btn" style="flex:1" onclick="generateMlfSpotTest()">&#128203; AP Spot Test</button><button class="aph-btn aptt-btn" style="flex:1" onclick="apttLevel(\'mlf\',function(){generateMlfSpotTest(true)})">⏱ AP Spot Test: timed &amp; submitted</button></div>'
     + apLvRow('mlf', 'mlfTestOutput', { style: 'margin:12px 0 0;' })
     + '<div id="mlfTestOutput" style="margin-top:14px;"></div>';
   box.appendChild(wrap);
