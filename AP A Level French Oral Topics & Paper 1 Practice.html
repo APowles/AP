@@ -8924,7 +8924,7 @@ function topBar(extra){
   return '<div class="p1-top"><button class="p1-btn ghost sm" onclick="showPaper1()">← Back</button>'+(extra||'')+'<span class="sp"></span><button class="apmp-btn" id="p1-pdf" style="display:none" onclick="p1SavePDF()">📄 Save marked paper as PDF</button><span class="p1-score" id="p1-total">–</span></div>';
 }
 function renderP1Single(id){
-  p1BasketCapture(); stopAudio(); p1TimerStop(); p1Mode='single'; P1B=[]; P1A.p={}; p1Ctx={kind:'single'}; p1NotesCtx='';
+  p1BasketCapture(); P1SESS.page=0; stopAudio(); p1TimerStop(); p1Mode='single'; P1B=[]; P1A.p={}; p1Ctx={kind:'single'}; p1NotesCtx='';
   var q = P1Q[id], T = P1_TYPES[q.type];
   var h = '<div class="p1-wrap"><div class="p1-inner">' + topBar('<button class="p1-btn sm" onclick="p1Another()">↻ Another question</button><button class="p1-btn ghost sm" onclick="p1Print(\'q\')">🖨 Print / PDF · Question</button><button class="p1-btn ghost sm" onclick="p1Print(\'ms\')">🖨 Print / PDF · Mark scheme</button>');
   h += p1BasketBar();
@@ -8934,7 +8934,7 @@ function renderP1Single(id){
   app().innerHTML = h; window.scrollTo(0,0); p1Total(); p1VoicesInit(); p1PenMount(function(){ renderP1Single(id); });
 }
 function renderP1Mock(ids){
-  p1BasketCapture(); stopAudio(); p1TimerStop(); p1Mode='mock'; P1B=[]; P1A.p={}; p1Ctx={kind:'mock', scope:p1Sel.mock}; p1NotesCtx=p1HashIds(ids);
+  p1BasketCapture(); P1SESS.page=0; stopAudio(); p1TimerStop(); p1Mode='mock'; P1B=[]; P1A.p={}; p1Ctx={kind:'mock', scope:p1Sel.mock}; p1NotesCtx=p1HashIds(ids);
   var h = '<div class="p1-wrap"><div class="p1-inner">' + topBar('<button class="p1-btn sm" onclick="p1StartMock()">↻ New mock</button><button class="p1-btn ghost sm" onclick="p1Print(\'q\')">🖨 Print / PDF · Paper</button><button class="p1-btn ghost sm" onclick="p1Print(\'ms\')">🖨 Print / PDF · Mark scheme</button>');
   h += '<div class="p1-h">Mock Paper 1</div><div class="p1-sub">'+(p1Sel.mock==='all'?'All themes':'Thème '+p1Sel.mock)+' · 80 marks · 2 hours · <span id="p1-timer">00:00</span></div>';
   var lastSec='';
@@ -9352,7 +9352,7 @@ function renderP1List(){
 }
 var p1Paper=null;
 window.p1OpenPaper = function(st, v){
-  p1BasketCapture(); stopAudio(); p1TimerStop(); p1Mode='mock'; P1B=[]; P1A.p={}; p1Paper={st:st,v:v}; p1Ctx={kind:'paper', st:st, v:v}; p1NotesCtx='paper'+st+'-'+v;
+  p1BasketCapture(); P1SESS.page=0; stopAudio(); p1TimerStop(); p1Mode='mock'; P1B=[]; P1A.p={}; p1Paper={st:st,v:v}; p1Ctx={kind:'paper', st:st, v:v}; p1NotesCtx='paper'+st+'-'+v;
   var ids=paperIds(st,v), code=st+'-'+'ABC'[v-1];
   var h='<div class="p1-wrap"><div class="p1-inner">';
   h+='<div class="p1-top"><button class="p1-btn ghost sm" onclick="showPaper1()">← Back</button><button class="p1-btn ghost sm" onclick="p1Print(\'q\')">🖨 Print / PDF · Paper</button><button class="p1-btn ghost sm" onclick="p1Print(\'ms\')">🖨 Print / PDF · Mark scheme</button><span class="sp"></span><button class="apmp-btn" id="p1-pdf" style="display:none" onclick="p1SavePDF()">📄 Save marked paper as PDF</button><span class="p1-score" id="p1-total">–</span></div>';
@@ -9487,7 +9487,7 @@ window.p1SavePDF = function(){
     });
     P1B.forEach(function(b,i){ if(!b) return; b.bi=i; var T=P1_TYPES[b.q.type];
       if(T.sec!==lastSec){ if(lastSec) body += p1PdfNotes(lastSec); var s=secs[T.sec]; body += APMP.sec(P1_SECS[T.sec].title, s.got, s.chk ? s.mmax : s.max, !!s.chk) + (s.chk && s.chk < s.n ? '<div class="apmp-tip">Score over the questions marked so far in this section.</div>' : ''); lastSec=T.sec; }
-      body += p1PdfBlock(b);
+      body += p1PdfTime(b) + p1PdfBlock(b);
     });
     if(lastSec) body += p1PdfNotes(lastSec);
     // open answers still waiting for a self-mark
@@ -9512,8 +9512,8 @@ window.p1SavePDF = function(){
       kicker:'AP A Level &middot; Oral Topics &amp; Paper 1 &middot; Paper 1', title:title, meta:meta, lang:'French',
       got:got, max: partial ? mMax : max, partial:partial,
       partNote: nChk+' of '+nAll+' questions ('+mMax+' of '+max+' marks)',
-      summary: 'Score <b>'+got+' / '+(partial?mMax:max)+'</b>'+(partial?' on the questions marked so far (paper total '+max+' marks)':'')+(unself?' &middot; <span class="apmp-bad">'+unself+' answer'+(unself>1?'s':'')+' not self-marked yet (counted as 0)</span>':''),
-      body: '<style>'+APPEN.PDF_CSS+'.apmp-row.gist{background:#e8f1fb;border-left:4px solid #1f5fa8;-webkit-print-color-adjust:exact;print-color-adjust:exact}.apmp-row.gist .apmp-lab{color:#1f5fa8}.apmp-row.gist .apmp-val{color:#0f2f57}</style>'+body,
+      summary: p1TimeSummary(P1B.reduce(function(a,b){ return a+((b&&b.tAns)||0); },0), P1B.reduce(function(a,b){ return a+((b&&b.tMark)||0); },0), P1SESS.page) + 'Score <b>'+got+' / '+(partial?mMax:max)+'</b>'+(partial?' on the questions marked so far (paper total '+max+' marks)':'')+(unself?' &middot; <span class="apmp-bad">'+unself+' answer'+(unself>1?'s':'')+' not self-marked yet (counted as 0)</span>':''),
+      body: '<style>'+APPEN.PDF_CSS+'.apmp-tlog{font-size:9pt;color:#4a5368;margin:6px 0 2px}.apmp-row.gist{background:#e8f1fb;border-left:4px solid #1f5fa8;-webkit-print-color-adjust:exact;print-color-adjust:exact}.apmp-row.gist .apmp-lab{color:#1f5fa8}.apmp-row.gist .apmp-val{color:#0f2f57}</style>'+body,
       foot: 'AP A Level Oral Topics &amp; Paper 1 &middot; Paper 1 &middot; Marked paper',
       docTitle: docTitle
     };
@@ -9673,8 +9673,8 @@ function p1BasketCapture(force){
   if(p1Mode!=='single' || !(P1BASKET.active || force)) return;
   var b=P1B[0]; if(!b || !b.checked || !document.getElementById('p1b0_wrap')) return;
   b.bi=0; var T=P1_TYPES[b.q.type], html;
-  try { html = p1PdfBlock(b); } catch(e) { return; }
-  var e = {id:b.q.id, sec:T.sec, num:T.num, got:b.score||0, max:T.marks, unself:p1UnselfOf(b), html:html};
+  try { html = p1PdfTime(b) + p1PdfBlock(b); } catch(e) { return; }
+  var e = {id:b.q.id, sec:T.sec, num:T.num, got:b.score||0, max:T.marks, unself:p1UnselfOf(b), html:html, tA:b.tAns||0, tM:b.tMark||0};
   for(var i=0;i<P1BASKET.items.length;i++){ if(P1BASKET.items[i].id===e.id){ P1BASKET.items[i]=e; return; } }
   P1BASKET.items.push(e);
 }
@@ -9724,13 +9724,34 @@ function p1SaveBasket(){
       kicker:'AP A Level &middot; Oral Topics &amp; Paper 1 &middot; Paper 1', title:'Paper 1 practice &mdash; <em>'+it.length+' question'+(it.length>1?'s':'')+'</em>',
       meta:'Edexcel 9FR0/01 style &middot; '+nums+' &middot; '+max+' marks', lang:'French',
       got:got, max:max, partial:false,
-      summary:'Score <b>'+got+' / '+max+'</b> over '+it.length+' question'+(it.length>1?'s':'')+(unself?' &middot; <span class="apmp-bad">'+unself+' answer'+(unself>1?'s':'')+' not self-marked yet (counted as 0)</span>':''),
-      body:'<style>'+APPEN.PDF_CSS+'.apmp-row.gist{background:#e8f1fb;border-left:4px solid #1f5fa8;-webkit-print-color-adjust:exact;print-color-adjust:exact}.apmp-row.gist .apmp-lab{color:#1f5fa8}.apmp-row.gist .apmp-val{color:#0f2f57}</style>'+body,
+      summary: p1TimeSummary(it.reduce(function(a,e){ return a+e.tA; },0), it.reduce(function(a,e){ return a+e.tM; },0), 0) + 'Score <b>'+got+' / '+max+'</b> over '+it.length+' question'+(it.length>1?'s':'')+(unself?' &middot; <span class="apmp-bad">'+unself+' answer'+(unself>1?'s':'')+' not self-marked yet (counted as 0)</span>':''),
+      body:'<style>'+APPEN.PDF_CSS+'.apmp-tlog{font-size:9pt;color:#4a5368;margin:6px 0 2px}.apmp-row.gist{background:#e8f1fb;border-left:4px solid #1f5fa8;-webkit-print-color-adjust:exact;print-color-adjust:exact}.apmp-row.gist .apmp-lab{color:#1f5fa8}.apmp-row.gist .apmp-val{color:#0f2f57}</style>'+body,
       foot:'AP A Level Oral Topics &amp; Paper 1 &middot; Paper 1 &middot; Marked questions',
       docTitle:'Paper 1 practice – '+it.length+' questions – marked'
     };
   });
 }
+
+/* ---------- ⏱ TIME LOG: seconds spent answering (before lock-in) and marking, per question, only while the page is on screen ---------- */
+var P1SESS = {page:0};
+function p1Dur(sec){ sec=Math.round(sec||0); var m=Math.floor(sec/60), r=sec%60; return m ? (m+' min'+(r?' '+r+' s':'')) : (r+' s'); }
+function p1PdfTime(b){
+  var rec=P1T_REC[b.q.type], a=b.tAns||0, over = rec && a > rec*60;
+  return '<div class="apmp-tlog">&#9201; Time answering: <b'+(over?' class="apmp-bad"':'')+'>'+p1Dur(a)+'</b>'+(rec?' (recommended '+rec+' min)':'')+(b.tMark?' &middot; marking: '+p1Dur(b.tMark):'')+'</div>';
+}
+function p1TimeSummary(ans, mark, page){
+  if(!ans && !mark) return '';
+  return '&#9201; Time answering <b>'+p1Dur(ans)+'</b>'+(mark?' &middot; marking '+p1Dur(mark):'')+(page?' &middot; on this page '+p1Dur(page):'')+'<br>';
+}
+setInterval(function(){
+  if(document.hidden || !P1B.length || !document.getElementById('p1b0_wrap')) return;
+  P1SESS.page++;
+  var mid = window.innerHeight/2, best=-1;
+  for(var i=0;i<P1B.length;i++){ var w=document.getElementById('p1b'+i+'_wrap'); if(!w) continue; var r=w.getBoundingClientRect(); if(r.top<=mid && r.bottom>=mid){ best=i; break; } }
+  if(best<0 && P1B.length===1) best=0;
+  var b=P1B[best]; if(!b) return;
+  if(!b.locked) b.tAns=(b.tAns||0)+1; else if(b.checked) b.tMark=(b.tMark||0)+1;
+}, 1000);
 
 window.showPaper1 = renderP1List;
 })();
