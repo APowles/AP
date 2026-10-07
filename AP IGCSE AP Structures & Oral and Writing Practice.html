@@ -3,7 +3,7 @@
 <script id="ap-update">
 /* AP auto-update: if this copy is older than the published version, reload once with the new one (saved answers are kept) */
 (function () {
-  var B = 'e1ef62617b'; window.AP_BUILD = B;
+  var B = '693e7e2ebc'; window.AP_BUILD = B;
   function check() {
     if (!/^https?:$/.test(location.protocol) || !window.fetch) return;
     var f = decodeURIComponent(location.pathname.split('/').pop() || '');
@@ -11136,7 +11136,13 @@ html.tm-open,html.tm-open body{overflow:hidden}
 .tm-fr b{font-weight:800}
 .tm-mk{display:flex;flex-wrap:wrap;align-items:center;gap:6px;margin-top:8px}
 .tm-mk-l{font-size:.75rem;font-weight:800;letter-spacing:.08em;text-transform:uppercase;color:var(--text2);margin-right:4px}
-.tm-mb{width:48px;height:44px;border-radius:8px;border:1.5px solid var(--border);background:#fff;color:var(--navy);font:800 1.125rem/1 var(--aph-body);cursor:pointer;-webkit-tap-highlight-color:transparent}
+.tm-mb{display:inline-flex;align-items:center;gap:7px;min-height:44px;padding:6px 12px 6px 6px;border-radius:10px;border:1.5px solid var(--border);background:#fff;color:var(--navy);font:600 .9375rem/1.2 var(--aph-body);cursor:pointer;-webkit-tap-highlight-color:transparent;text-align:left}
+.tm-mb b{display:inline-flex;align-items:center;justify-content:center;width:30px;height:30px;border-radius:7px;background:#eef1f7;font-size:1.0625rem;font-weight:800;flex:none}
+.tm-mb.on b{background:var(--gold);color:var(--navy)}
+.tm-mk-l{flex-basis:100%}
+.tm-lh{font-weight:800;margin-bottom:4px}
+.tm-lrow{display:flex;flex-wrap:wrap;gap:6px 14px;margin:8px 0}
+.tm-legend{text-align:left}
 .tm-mb:hover{border-color:var(--navy)}
 .tm-mb.on{background:var(--navy);border-color:var(--navy);color:var(--gold2)}
 .tm-mk-v{font-size:.875rem;font-weight:700;color:var(--text2);margin-left:4px}
@@ -11240,17 +11246,18 @@ function tmClose() {
   var ov = document.getElementById('tm-ov'); if (ov) ov.remove();
   document.documentElement.classList.remove('tm-open');
 }
+var TM_MARKW = { 4: 'Perfect', 3: 'Mostly right', 2: 'About half right', 1: 'Only a word or two right', 0: 'Nothing right' };
 function _tmRender() {
   var S = _tmS, card = S.card, its = S.items, L = TM_LANGS[_tmLang()] || 'French', ov = document.getElementById('tm-ov');
   var row = function (it) {
     var k = S.base + ':' + it.n, m = S.marks[it.n - 1];
-    var mk = [4, 3, 2, 1, 0].map(function (v) { return '<button type="button" class="tm-mb' + (m === v ? ' on' : '') + '" data-n="' + it.n + '" data-v="' + v + '" aria-pressed="' + (m === v) + '" title="' + v + ' / 4">' + v + '</button>'; }).join('');
+    var mk = [4, 3, 2, 1, 0].map(function (v) { return '<button type="button" class="tm-mb' + (m === v ? ' on' : '') + '" data-n="' + it.n + '" data-v="' + v + '" aria-pressed="' + (m === v) + '"><b>' + v + '</b><span>' + TM_MARKW[v] + '</span></button>'; }).join('');
     return '<div class="tm-item" id="tm-it-' + it.n + '" data-n="' + it.n + '"><div class="tm-ih"><span class="tm-n">' + it.n + '</span><div class="tm-ib">'
       + '<div class="tm-en">' + _tmEsc(it.en) + '</div><div class="tm-meta"><span class="tm-chip" title="Structure to use">' + _tmEsc(_tmLabel(it)) + '</span>'
       + (it.chg ? '<span class="tm-chg">🔁 changed: ' + _tmEsc(it.chg) + '</span>' : '') + '</div></div></div>'
       + APPEN.html({ key: k, lines: 2, label: 'Sentence ' + it.n, typed: '<textarea class="appen-ta" rows="2" spellcheck="false" autocomplete="off" autocorrect="off" autocapitalize="sentences" placeholder="Type your ' + L + ' translation"></textarea>' })
       + '<div class="tm-ans"' + (S.shown ? '' : ' hidden') + '><div class="tm-al">Answer</div><div class="tm-fr" lang="' + _tmLang() + '">' + _tmFr(it) + '</div>'
-      + '<div class="tm-mk" role="group" aria-label="Your mark for sentence ' + it.n + '"><span class="tm-mk-l">Your mark</span>' + mk + '<span class="tm-mk-v" id="tm-mv-' + it.n + '">' + (m != null ? m + ' / 4' : '') + '</span></div></div></div>';
+      + '<div class="tm-mk" role="group" aria-label="Your mark for sentence ' + it.n + '"><span class="tm-mk-l">Compare with the answer, then tap your mark:</span>' + mk + '<span class="tm-mk-v" id="tm-mv-' + it.n + '">' + (m != null ? m + ' / 4' : '') + '</span></div></div></div>';
   };
   var first = its.filter(function (it) { return it.n <= 6; }), mine = its.filter(function (it) { return it.n > 6; });
   var h = '<div class="tm-bar"><button type="button" class="aph-home" onclick="tmClose()">⌂ Back to the card</button><span class="tm-bar-t">✍️ Translate &amp; mark</span></div>'
@@ -11258,7 +11265,7 @@ function _tmRender() {
     + '<h2 class="aph-h">Translate into ' + L + '</h2>'
     + '<p class="tm-instr">Translate all 10 sentences into ' + L + ' with your Apple Pencil (black ink). Each sentence must use one of this card\'s structures: it is shown in the small gold box under the English. Have a go at all 10, then lock in, open the answers, correct your work in red and give each sentence a mark.</p>'
     + '<div class="tm-score" id="tm-score1"' + (S.shown ? '' : ' hidden') + '></div>'
-    + '<div class="tm-legend" id="tm-legend"' + (S.shown ? '' : ' hidden') + '><b>4</b> perfect · <b>3</b> more right than wrong · <b>2</b> about half right · <b>1</b> the odd correct word or two · <b>0</b> nothing</div></div>'
+    + '<div class="tm-legend" id="tm-legend"' + (S.shown ? '' : ' hidden') + '><div class="tm-lh">How to mark yourself</div>Compare your sentence with the answer, word by word, then tap the mark that fits:<div class="tm-lrow"><span><b>4</b> Perfect (a tiny slip like a missing accent is OK)</span><span><b>3</b> Mostly right: more right than wrong</span><span><b>2</b> About half right</span><span><b>1</b> Only a word or two right</span><span><b>0</b> Nothing right</span></div>Your 10 marks add up to 40; your score is shown out of 20.</div></div>'
     + '<div id="tm-items">'
     + (first.length ? '<div class="tm-sec">From the demo</div>' + first.map(row).join('') : '')
     + (mine.length ? '<div class="tm-sec">Make it your own <small>one thing is changed from the demo</small></div>' + mine.map(row).join('') : '')
@@ -11366,7 +11373,7 @@ function tmPDF() {
       + '.tm-pchip{display:inline-block;font-size:8pt;font-weight:500;font-style:italic;color:#4a5a7a;background:#f7f3e8;border:1px solid #e6d8ad;border-radius:3mm;padding:0 2mm;margin-left:1mm}'
       + '.tm-pchg{display:inline-block;font-size:8pt;font-weight:700;color:#8a5c00;background:#fdf6e3;border:1px solid #e6cf8f;border-radius:3mm;padding:0 2mm;margin-left:1mm}'
       + '.tm-pfr{color:#1a2744}.tm-pfr b{font-weight:800}.tm-plegend{font-size:8.5pt;color:#4a5a7a;margin:0 0 2mm}.tm-plegend b{color:#1a2744}</style>'
-      + '<div class="tm-plegend">Marks: <b>4</b> perfect · <b>3</b> more right than wrong · <b>2</b> about half right · <b>1</b> the odd correct word or two · <b>0</b> nothing</div>'
+      + '<div class="tm-plegend">Marks: <b>4</b> perfect · <b>3</b> mostly right · <b>2</b> about half right · <b>1</b> only a word or two right · <b>0</b> nothing right</div>'
       + part('From the demo', S.items.filter(function (it) { return it.n <= 6; }))
       + part('Make it your own', S.items.filter(function (it) { return it.n > 6; }))
       + '<div class="apmp-sec"><span>📝 What I learned</span></div><div class="appen-pbox">' + (learn || '<span class="apmp-blank">(nothing written)</span>') + '</div>';
