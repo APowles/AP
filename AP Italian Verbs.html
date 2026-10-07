@@ -2,6 +2,24 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
+<script id="ap-update">
+/* AP auto-update: if this copy is older than the published version, reload once with the new one (saved answers are kept) */
+(function () {
+  var B = '37481d28cf'; window.AP_BUILD = B;
+  function check() {
+    if (!/^https?:$/.test(location.protocol) || !window.fetch) return;
+    var f = decodeURIComponent(location.pathname.split('/').pop() || '');
+    fetch('versions.json?t=' + Date.now(), { cache: 'no-store' }).then(function (r) { return r.json(); }).then(function (v) {
+      var n = v && v[f]; if (!n || n === B) return;
+      try { if (sessionStorage.getItem('apUpdTo:' + f) === n) return; sessionStorage.setItem('apUpdTo:' + f, n); } catch (e) { }
+      var u = location.href.replace(/([?&])v=[^&#]*&?/, '$1').replace(/[?&]$/, '').replace(/#.*$/, '');
+      location.replace(u + (u.indexOf('?') < 0 ? '?' : '&') + 'v=' + n + location.hash);
+    }).catch(function () { });
+  }
+  check();
+  window.addEventListener('pageshow', function (e) { if (e.persisted) check(); });   // iPad restoring a saved copy of the page
+})();
+</script>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <script id="ap-voice">
 /* ===== AP VOICE v1 — shared voice picker, iPad/Prisma unlock and 🔊 Voice check (identical in every AP app) ===== */
