@@ -3,7 +3,7 @@
 <script id="ap-update">
 /* AP auto-update: if this copy is older than the published version, reload once with the new one (saved answers are kept) */
 (function () {
-  var B = 'ab70fa5420'; window.AP_BUILD = B;
+  var B = 'f721545607'; window.AP_BUILD = B;
   function check() {
     if (!/^https?:$/.test(location.protocol) || !window.fetch) return;
     var f = decodeURIComponent(location.pathname.split('/').pop() || '');
@@ -6282,9 +6282,9 @@ function showCard(card, mode) {
         <button class="btn-new" onclick="launchCards()" style="padding:8px 10px;font-size:0.8rem;">🎲 New Card</button>
         <button class="btn-sim" onclick="startIGCSESim()" style="padding:9px 10px;font-size:0.8rem;">▶ Begin oral practice session</button>
         ${card.demo ? `<button onclick="startDemoMode()" id="demo-mode-btn" style="background:#eaf5ef;color:#2e7d52;border:1.5px solid #2e7d52;cursor:pointer;text-align:center;">🎧 Demo Mode</button>` : ''}
-        ${card.demo && card.demoEn ? `<button onclick="openTranslationSheetDialog()" id="ts-btn" style="background:#fff;color:#1a2744;border:1.5px solid #e2e6f0;cursor:pointer;text-align:center;">🖨 Translation sheet</button>` : ''}
-        ${card.demo ? `<button onclick="openChallengeFromCard()" id="apc-btn" style="background:#1a2744;color:#ffd76a;border:1.5px solid #1a2744;cursor:pointer;text-align:center;">🃏 AP Structures Challenge</button>` : ''}
         ${card.demo && typeof tmBtnHTML === 'function' ? tmBtnHTML(card, 'side') : ''}
+        ${card.demo ? `<button onclick="openChallengeFromCard()" id="apc-btn" style="background:#1a2744;color:#ffd76a;border:1.5px solid #1a2744;cursor:pointer;text-align:center;">🃏 AP Structures Challenge</button>` : ''}
+        ${card.demo && card.demoEn ? `<button onclick="openTranslationSheetDialog()" id="ts-btn" style="background:#fff;color:#1a2744;border:1.5px solid #e2e6f0;cursor:pointer;text-align:center;">🖨 Print: translate the whole demo</button>` : ''}
         <div id="igcse-exam-wrap" style="flex:1;margin-top:0;"></div>
       </div>
 
@@ -10120,7 +10120,7 @@ function openTranslationSheetDialog() {
     return '<label style="display:inline-flex;align-items:center;gap:4px;margin-right:12px;font-size:0.9375rem;cursor:pointer;"><input type="checkbox" class="ts-q" value="' + i + '" checked> Q' + (i + 1) + '</label>';
   }).join('');
   d.innerHTML = '<div class="aph-card" style="max-width:420px;width:100%;padding:20px 22px;box-shadow:0 20px 50px rgba(0,0,0,0.3);">' +
-    '<h2 class="aph-panel-title" style="margin-bottom:2px;">🖨 Translation sheet</h2>' +
+    '<h2 class="aph-panel-title" style="margin-bottom:2px;">🖨 Print: translate the whole demo</h2>' +
     '<div style="font-size:0.875rem;color:#8899bb;margin-bottom:14px;">' + card.code + ' · ' + card.theme + '</div>' +
     '<div class="aph-label" style="margin:0 0 4px;">Direction</div>' +
     '<label style="' + lab + '"><input type="radio" name="ts-dir" value="en-fr" checked> English → ' + tgt + '</label>' +
@@ -11207,7 +11207,7 @@ function tmBtnHTML(card, where) {
   var ok = !!tmItems(card), demo = where === 'demo';
   return '<button type="button" ' + (demo ? 'class="st-demo-btn tm-btn' : 'id="tm-btn" class="tm-btn') + (ok ? '"' : ' tm-off" aria-disabled="true"')
     + ' title="' + (ok ? 'Translate 10 short sentences with your Apple Pencil, then mark yourself' : 'Coming soon for this card') + '"'
-    + ' onclick="' + (ok ? 'tmOpen()' : 'return false') + '">✍️ Translate &amp; mark</button>';
+    + ' onclick="' + (ok ? 'tmOpen()' : 'return false') + '">✍️ Translate 10 sentences</button>';
 }
 function _tmBase(card) { return 'tm:' + _tmLang() + ':' + card.id; }
 function _tmLoad(card) {
@@ -11268,7 +11268,7 @@ function _tmRender() {
       + '<div class="tm-mk" role="group" aria-label="Your mark for sentence ' + it.n + '"><span class="tm-mk-l">Compare with the answer, then tap your mark:</span>' + mk + '<span class="tm-mk-v" id="tm-mv-' + it.n + '">' + (m != null ? m + ' / 4' : '') + '</span></div></div></div>';
   };
   var first = its.filter(function (it) { return it.n <= 6; }), mine = its.filter(function (it) { return it.n > 6; });
-  var h = '<div class="tm-bar"><button type="button" class="aph-home" onclick="tmClose()">⌂ Back to the card</button><span class="tm-bar-t">✍️ Translate &amp; mark</span></div>'
+  var h = '<div class="tm-bar"><button type="button" class="aph-home" onclick="tmClose()">⌂ Back to the card</button><span class="tm-bar-t">✍️ Translate 10 sentences</span></div>'
     + '<div class="tm-wrap"><div id="tm-top"><div class="tm-kick">' + _tmEsc(card.code || '') + ' · ' + _tmEsc(card.theme || '') + '</div>'
     + '<h2 class="aph-h">Translate into ' + L + '</h2>'
     + '<p class="tm-instr">Translate all 10 sentences into ' + L + ' with your Apple Pencil (black ink). Each sentence must use one of this card\'s structures: it is shown in the small gold box under the English. Have a go at all 10, then lock in, open the answers, correct your work in red and give each sentence a mark.</p>'
@@ -11397,13 +11397,13 @@ function tmPDF() {
       + part('Make it your own', S.items.filter(function (it) { return it.n > 6; }))
       + '<div class="apmp-sec"><span>📝 What I learned</span></div><div class="appen-pbox">' + (learn || '<span class="apmp-blank">(nothing written)</span>') + '</div>';
     return {
-      app: 'AP IGCSE Structures & Oral', kicker: 'AP IGCSE &middot; Structures &amp; Oral &middot; Translate &amp; mark',
+      app: 'AP IGCSE Structures & Oral', kicker: 'AP IGCSE &middot; Structures &amp; Oral &middot; Translate 10 sentences',
       title: 'Translation — ' + _tmEsc(card.code || '') + ' · <em>' + _tmEsc(card.theme || '') + '</em>',
       meta: L + ' · ' + S.items.length + ' sentences',
       got: r.sum / 2, max: tot / 2, partial: r.n < S.items.length, partNote: r.n + ' of ' + S.items.length + ' sentences marked',
       summary: 'Self-marked: <b>' + r.sum + ' / ' + tot + '</b> (= ' + _tmHalf(r.sum) + ' / ' + (tot / 2) + ') &middot; ' + r.n + ' of ' + S.items.length + ' sentences marked'
         + '<br>Time answering: <b>' + _tmTime(S.tAns) + '</b> &middot; Marking: <b>' + _tmTime(S.tMark) + '</b>',
-      body: body, foot: 'AP IGCSE Structures &amp; Oral &middot; Translate &amp; mark &middot; ' + _tmEsc(card.code || ''),
+      body: body, foot: 'AP IGCSE Structures &amp; Oral &middot; Translate 10 sentences &middot; ' + _tmEsc(card.code || ''),
       docTitle: 'AP IGCSE Structures & Oral — Translation ' + (card.code || ''), lang: L
     };
   });
