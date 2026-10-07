@@ -231,6 +231,18 @@ body{min-height:100vh}
 @media (max-width:700px){.am-ov-grid{grid-template-columns:1fr}#amOverviewBar{margin:16px -16px -18px;padding:12px 16px}.am-modal{padding:12px 16px}}
 @media (max-width:600px){.aph-dbar #sessionEditBadge{display:none}}
 </style>
+<style id="aph-leisure">
+/* ☕ Leisure Mode (hands-free): countdown bar, Pace row (− Ns +, Autotime) with a one-line hint. DM Sans only. */
+.lz-track{height:5px;background:var(--border);border-radius:4px;margin:8px 0;overflow:hidden}
+.lz-bar{height:100%;width:100%;background:var(--gold);border-radius:4px}
+.lz-panel{margin:12px auto 0;max-width:560px;background:var(--white,#fff);border:1px solid var(--border);border-radius:12px;padding:10px 12px;text-align:center}
+.lz-pace{display:flex;flex-wrap:wrap;align-items:center;justify-content:center;gap:8px}
+.lz-pace-l{font-size:.75rem;font-weight:700;letter-spacing:.09em;text-transform:uppercase;color:var(--text3)}
+.lz-pace .aph-btn-sm{margin-left:6px}
+.lz-hint{font-size:.8125rem;color:var(--text3);margin-top:6px;line-height:1.4}
+.lz-keys{justify-content:center;margin-top:10px}
+@media (max-width:480px){.lz-pace .aph-btn-sm{margin-left:0;flex-basis:100%;max-width:220px}}
+</style>
 </head>
 <body>
 
@@ -1715,6 +1727,48 @@ let isLeisureMode = false;
 let isAutotime = true;
 
 // Audio settings
+// ── Voice choice (all speech in this app) ──
+// Never a novelty / joke voice, in any language (macOS/iOS: Eddy, Flo, Grandma… Albert, Bad News, Zarvox…).
+// Spanish: Microsoft Online (Natural) es-ES → Google español (es-ES) → Apple Mónica, Jorge, Paulina… ((Enhanced)/(Premium)
+// first) → any other es-ES → any es-*. Other languages keep their own preferences (novelty voices removed).
+var AP_NOVELTY_VOICES = ['eddy', 'flo', 'grandma', 'grandpa', 'reed', 'rocko', 'sandy', 'shelley', 'albert', 'bad news', 'bahh',
+  'bells', 'boing', 'bubbles', 'cellos', 'good news', 'jester', 'organ', 'superstar', 'trinoids', 'whisper', 'wobble', 'zarvox',
+  'fred', 'junior', 'kathy', 'ralph'];
+var AP_ES_APPLE = ['monica', 'jorge', 'paulina', 'juan', 'marisol', 'diego', 'francisca', 'angelica', 'isabela'];
+function apFoldName(s) { s = String(s || ''); try { s = s.normalize('NFD').replace(/[̀-ͯ]/g, ''); } catch (e) {} return s.toLowerCase(); }
+function apIsNoveltyVoice(v) {
+  if (!v) return true;
+  if (/eloquence|novelty/i.test(String(v.voiceURI || ''))) return true;
+  var n = apFoldName(v.name).replace(/\s*\(.*$/, '').replace(/\s+/g, ' ').trim();
+  return AP_NOVELTY_VOICES.indexOf(n) >= 0;
+}
+function apUsableVoices(list) { return (list || []).filter(function (v) { return !apIsNoveltyVoice(v); }); }
+function apSpanishVoice(list) {
+  var es = apUsableVoices(list).filter(function (v) { return /^es([-_]|$)/i.test(String(v.lang || '')); });
+  if (!es.length) return null;
+  function nm(v) { return apFoldName(v.name); }
+  function isES(v) { return /^es[-_]es$/i.test(String(v.lang || '')); }
+  function multi(v) { return nm(v).indexOf('multilingual') >= 0; }
+  function good(v) { return /\b(enhanced|premium)\b/.test(nm(v)); }
+  function named(v, n) { return new RegExp('(^|[^a-z])' + n + '([^a-z]|$)').test(nm(v)); }
+  function msNatural(v) { return isES(v) && !multi(v) && /microsoft/.test(nm(v)) && /online/.test(nm(v)) && /natural/.test(nm(v)); }
+  function pick(f) { for (var i = 0; i < es.length; i++) if (f(es[i])) return es[i]; return null; }
+  var v = pick(function (v) { return msNatural(v) && named(v, 'alvaro'); })
+       || pick(function (v) { return msNatural(v) && named(v, 'elvira'); })
+       || pick(msNatural)
+       || pick(function (v) { return isES(v) && /google/.test(nm(v)); });
+  if (v) return v;
+  var i;
+  for (i = 0; i < AP_ES_APPLE.length; i++) { v = pick(function (x) { return named(x, AP_ES_APPLE[i]) && good(x) && !multi(x); }); if (v) return v; }
+  for (i = 0; i < AP_ES_APPLE.length; i++) { v = pick(function (x) { return named(x, AP_ES_APPLE[i]) && !multi(x); }); if (v) return v; }
+  return pick(function (x) { return isES(x) && !multi(x); }) || pick(isES) || pick(function (x) { return !multi(x); }) || es[0];
+}
+// listen for the voice list arriving without taking over speechSynthesis.onvoiceschanged (other code may set it)
+function apOnVoices(fn) {
+  var ss = window.speechSynthesis; if (!ss) return;
+  if (ss.addEventListener) ss.addEventListener('voiceschanged', fn);
+  else if (ss.onvoiceschanged !== undefined) ss.onvoiceschanged = fn;
+}
 const synth = window.speechSynthesis;
 let voices = [];
 
@@ -1722,9 +1776,7 @@ function loadVoices() {
   voices = synth.getVoices();
 }
 
-if (synth.onvoiceschanged !== undefined) {
-  synth.onvoiceschanged = loadVoices;
-}
+apOnVoices(loadVoices);
 loadVoices();
 
 function cleanForSpeech(text, lang) {
@@ -1781,9 +1833,11 @@ function speak(text, lang, onEndCallback) {
   synth.cancel();
   const langCode = lang === 'en' ? 'en-GB' : lang === 'fr' ? 'fr-FR' : lang === 'it' ? 'it-IT' : 'es-ES';
   const u = new SpeechSynthesisUtterance(cleanForSpeech(text, lang));
-  u.rate = 0.92;
+  u.rate = langCode === 'es-ES' ? 0.75 : 0.92;
   u.lang = langCode;
   const langBase = langCode.split('-')[0];
+  if (!voices.length) loadVoices();                 // voices not loaded yet: ask again right now
+  const _vs = apUsableVoices(voices);               // never a novelty voice
   const isMulti = v => v.name.toLowerCase().includes('multilingual');
   let selectedVoice = null;
   const maleNames = {
@@ -1794,26 +1848,208 @@ function speak(text, lang, onEndCallback) {
     'de':['Conrad','Bernd']
   }[langBase] || [];
   for (const name of maleNames) {
-    selectedVoice = voices.find(v => v.lang.startsWith(langBase) && !isMulti(v) && v.name.includes(name));
+    selectedVoice = _vs.find(v => v.lang.startsWith(langBase) && !isMulti(v) && v.name.includes(name));
     if (selectedVoice) break;
   }
-  if (!selectedVoice) selectedVoice = voices.find(v => v.lang.startsWith(langBase) && !isMulti(v) && (v.name.toLowerCase().includes('natural')||v.name.toLowerCase().includes('premium')||v.name.toLowerCase().includes('enhanced')));
-  if (!selectedVoice) selectedVoice = voices.find(v => v.lang.startsWith(langBase) && !isMulti(v));
-  if (!selectedVoice) selectedVoice = voices.find(v => v.lang === langCode);
-  if (!selectedVoice) selectedVoice = voices.find(v => v.lang.startsWith(langBase));
+  if (!selectedVoice) selectedVoice = _vs.find(v => v.lang.startsWith(langBase) && !isMulti(v) && (v.name.toLowerCase().includes('natural')||v.name.toLowerCase().includes('premium')||v.name.toLowerCase().includes('enhanced')));
+  if (!selectedVoice) selectedVoice = _vs.find(v => v.lang.startsWith(langBase) && !isMulti(v));
+  if (!selectedVoice) selectedVoice = _vs.find(v => v.lang === langCode);
+  if (!selectedVoice) selectedVoice = _vs.find(v => v.lang.startsWith(langBase));
+  if (langBase === 'es') selectedVoice = apSpanishVoice(voices);   // Spanish: see apSpanishVoice
   if (selectedVoice) u.voice = selectedVoice;
   if (onEndCallback) u.onend = onEndCallback;
   synth.speak(u);
 }
 
-function startLeisureMode() {
-  const pool = getPool();
-  if (!pool.length) { showMessage('No phrases available for this language pair in this selection.'); return; }
-  deck = pool.slice().sort(() => Math.random() - 0.5);
-  currentIndex = 0; correctCount = 0; totalCount = 0;
-  majorErrors = []; isMajorErrorRound = false; isDrilling = true; isLeisureMode = true;
-  showLeisureCard();
+// Leisure Mode adapter for Approved Material (cards = the chosen section / topic(s), in the chosen direction)
+var LZ = {
+  key: 'igcse_am',
+  stopDrill: function () { if (timerInterval) { clearInterval(timerInterval); timerInterval = null; } },   // a drill timer left running must not fire on the Leisure screen
+  mount: function () { return document.getElementById('drillContainer'); },
+  deck: function () { return { cards: getPool(), f: fromLang, t: toLang }; },
+  empty: function () { showMessage('No phrases available for this language pair in this selection.'); },
+  flag: function (l) { return ({ en: '🇬🇧', fr: '🇫🇷', it: '🇮🇹', es: '🇪🇸' })[l]; },
+  promptCls: 'card-content',
+  chip: function (card) { return '<span class="am-topic">' + card.subsection + '</span>'; },
+  qHtml: function (card) { return card.question; },
+  qText: function (card) { return card.question; },
+  aHtml: function (card) {
+    var flags = { en: '🇬🇧', fr: '🇫🇷', it: '🇮🇹', es: '🇪🇸' };
+    return '<div class="answer">' + (card[_lz.t] || card.answer) + '</div>'
+      + '<div class="am-others">' + ['en', 'fr', 'it', 'es'].filter(function (l) { return l !== card.fromLang && l !== card.toLang; }).map(function (l) {
+          return '<span>' + flags[l] + ' ' + card[l] + '</span>'; }).join('') + '</div>';
+  },
+  aText: function (card) { return card.answer; },
+  speak: function (text, l, cb) { speak(text, l, cb); }
+};
+// ─────────────────────────────────────────────────────────────────
+// ☕ LEISURE MODE — hands-free: question shown + read aloud → pause → answer shown + read aloud → next card,
+// round and round the chosen selection (reshuffled each round) until ⌂ Home. No marking, no score, no error log:
+// it uses its own deck and never touches the drill's deck, score or major errors.
+// Pace (− Ns +) = seconds before the answer appears, and again before the next card; changes apply from the next step.
+// Autotime On = the same gap, counted from the moment the audio finishes. Space = pause / resume.
+// Progression never depends on speech 'end' events alone: a fallback timer moves on if the audio is silent.
+// ─────────────────────────────────────────────────────────────────
+var _lz = { deck: [], i: 0, round: 1, phase: '', paused: false, gen: 0, timers: [], f: '', t: '', last: null };
+var _lzPaceSecs = (function () { try { var v = parseInt(localStorage.getItem('apLeisurePace_' + LZ.key), 10); if (v >= 1 && v <= 30) return v; } catch (e) {} return 4; })();
+function _lzShuffle(a) { a = a.slice(); for (var i = a.length - 1; i > 0; i--) { var j = Math.floor(Math.random() * (i + 1)); var x = a[i]; a[i] = a[j]; a[j] = x; } return a; }
+function _lzClear() { _lz.gen++; _lz.timers.forEach(function (id) { clearTimeout(id); clearInterval(id); }); _lz.timers = []; }
+function _lzAlive(g) {
+  if (g !== _lz.gen || !isLeisureMode || _lz.paused) return false;
+  var card = document.getElementById('lz-card');
+  if (!card) return false;
+  if (!card.offsetParent) { _lzStop(); return false; }   // the app was left another way (e.g. the header ⌂): stop quietly
+  return true;
 }
+function _lzStop() { _lzClear(); _lz.paused = false; isLeisureMode = false; try { window.speechSynthesis && window.speechSynthesis.cancel(); } catch (e) {} }
+function _lzLater(fn, ms) { var g = _lz.gen; _lz.timers.push(setTimeout(function () { if (_lzAlive(g)) fn(); }, ms)); }
+// read text aloud, then call next() once the audio has finished — or after a safe fallback if no audio ever ends
+function _lzSay(text, lang, next) {
+  var g = _lz.gen, done = false, t0 = Date.now();
+  function fin() { if (done) return; done = true; if (next && _lzAlive(g)) next(); }
+  try { LZ.speak(text, lang, fin); } catch (e) {}
+  // generous safety net (slow Spanish voice ≈ 0.75×): only matters if the browser never reports the end of the audio
+  _lz.timers.push(setTimeout(fin, Math.min(45000, 3000 + String(text || '').length * 160)));
+  var poll = setInterval(function () {
+    if (done || g !== _lz.gen) { clearInterval(poll); return; }
+    var ss = window.speechSynthesis;
+    if (Date.now() - t0 > 1500 && (!ss || (!ss.speaking && !ss.pending))) { clearInterval(poll); fin(); }
+  }, 250);
+  _lz.timers.push(poll);
+}
+function _lzBar(ms) {
+  var b = document.getElementById('lz-bar'); if (!b) return;
+  b.style.transition = 'none'; b.style.width = '100%'; void b.offsetWidth;
+  if (ms > 0) { b.style.transition = 'width ' + ms + 'ms linear'; b.style.width = '0%'; }
+}
+function _lzHint() {
+  return isAutotime ? 'Autotime on: the pace gap starts when the audio finishes.'
+                    : 'Pace = seconds before the answer appears, and again before the next card.';
+}
+function startLeisureMode() {
+  var made = LZ.deck();
+  if (!made || !made.cards || !made.cards.length) { LZ.empty(); return; }
+  _lzClear();
+  if (LZ.stopDrill) { try { LZ.stopDrill(); } catch (e) {} }
+  window.speechSynthesis && window.speechSynthesis.cancel();
+  _lz.deck = _lzShuffle(made.cards); _lz.f = made.f; _lz.t = made.t;
+  _lz.i = 0; _lz.round = 1; _lz.paused = false; _lz.phase = ''; _lz.last = null;
+  isLeisureMode = true;
+  _lzCard();
+}
+function _lzCard() {
+  _lzClear();
+  if (!isLeisureMode) return;
+  if (_lz.i >= _lz.deck.length) {           // end of the selection: reshuffle and keep going
+    _lz.deck = _lzShuffle(_lz.deck);
+    if (_lz.deck.length > 1 && _lz.deck[0] === _lz.last) { var x = _lz.deck[0]; _lz.deck[0] = _lz.deck[1]; _lz.deck[1] = x; }
+    _lz.i = 0; _lz.round++;
+  }
+  var c = _lz.deck[_lz.i], f = _lz.f, t = _lz.t, n = _lz.deck.length;
+  _lz.phase = 'q'; _lz.last = c;
+  var mount = LZ.mount(); if (!mount) return;
+  mount.innerHTML =
+    '<div class="aph-drill lz-screen"><div class="aph-drill-main" id="lz-card">'
+    + '<div class="aph-qcard">'
+    + LZ.chip(c)
+    + '<div class="aph-qmeta">&#9749; Leisure Mode &middot; Card ' + (_lz.i + 1) + ' of ' + n + (_lz.round > 1 ? ' &middot; Round ' + _lz.round : '') + (LZ.dirInMeta === false ? '' : ' &middot; ' + LZ.flag(f) + ' &rarr; ' + LZ.flag(t)) + '</div>'
+    + '<div class="aph-prompt' + (LZ.promptCls ? ' ' + LZ.promptCls : '') + '">' + LZ.qHtml(c) + '</div>'
+    + '<div class="lz-track"><div class="lz-bar" id="lz-bar"></div></div>'
+    + '<div id="lz-ans"></div>'
+    + '</div>'
+    + '<div class="lz-panel">'
+    + '<div class="lz-pace"><span class="lz-pace-l">Pace · seconds</span>'
+    + '<button class="aph-step" onclick="lzPace(-1)" aria-label="Fewer seconds per step (faster)" title="Faster">&#8722;</button>'
+    + '<span class="aph-step-val" id="lz-pace-v">' + _lzPaceSecs + 's</span>'
+    + '<button class="aph-step" onclick="lzPace(1)" aria-label="More seconds per step (slower)" title="Slower">+</button>'
+    + '<button class="aph-btn aph-btn-sm' + (isAutotime ? ' on' : '') + '" id="lz-auto" onclick="lzAutotime()">&#9201; Autotime: ' + (isAutotime ? 'On' : 'Off') + '</button>'
+    + '</div>'
+    + '<div class="lz-hint" id="lz-hint">' + _lzHint() + '</div>'
+    + '</div>'
+    + '<div class="aph-under">'
+    + '<button class="aph-btn' + (_lz.paused ? ' on' : '') + '" id="lz-pause" onclick="lzPause()">' + (_lz.paused ? '&#9654; Resume' : '&#9208; Pause') + '</button>'
+    + '<button class="aph-btn" onclick="lzReplay()">&#128266; Replay</button>'
+    + '<button class="aph-btn" onclick="exitLeisure()">&#8962; Home</button>'
+    + '</div>'
+    + '<div class="aph-keys lz-keys"><span><span class="aph-key">Space</span>pause / resume</span></div>'
+    + '</div></div>';
+  if (_lz.paused) return;
+  var ms = _lzPaceSecs * 1000;
+  if (isAutotime) {
+    _lzBar(0);
+    _lzSay(LZ.qText(c), f, function () { _lzBar(ms); _lzLater(_lzReveal, ms); });
+  } else {
+    _lzBar(ms);
+    _lzSay(LZ.qText(c), f, null);
+    _lzLater(_lzReveal, ms);
+  }
+}
+function _lzReveal() {
+  _lzClear();
+  if (!isLeisureMode) return;
+  var c = _lz.deck[_lz.i], t = _lz.t;
+  _lz.phase = 'a';
+  var box = document.getElementById('lz-ans'); if (!box) return;
+  box.innerHTML = LZ.aHtml(c);
+  if (_lz.paused) return;
+  var ms = _lzPaceSecs * 1000, t0 = Date.now();
+  function next() { _lz.i++; _lzCard(); }
+  if (isAutotime) {
+    _lzBar(0);
+    _lzSay(LZ.aText(c), t, function () { _lzBar(ms); _lzLater(next, ms); });
+  } else {
+    _lzBar(ms);
+    // fixed clock, but never cut the answer audio off: wait for it to end (plus a beat) if it runs longer
+    _lzSay(LZ.aText(c), t, function () { var rest = ms - (Date.now() - t0); _lzLater(next, Math.max(rest, 800)); });
+  }
+}
+function lzPace(d) {
+  _lzPaceSecs = Math.min(30, Math.max(1, _lzPaceSecs + d));
+  try { localStorage.setItem('apLeisurePace_' + LZ.key, String(_lzPaceSecs)); } catch (e) {}
+  var v = document.getElementById('lz-pace-v'); if (v) v.textContent = _lzPaceSecs + 's';
+}
+function lzAutotime() {
+  isAutotime = !isAutotime;
+  var b = document.getElementById('lz-auto');
+  if (b) { b.innerHTML = '&#9201; Autotime: ' + (isAutotime ? 'On' : 'Off'); b.classList.toggle('on', isAutotime); }
+  var h = document.getElementById('lz-hint'); if (h) h.textContent = _lzHint();
+}
+function lzPause() {
+  if (!isLeisureMode || !document.getElementById('lz-card')) return;
+  var b = document.getElementById('lz-pause');
+  if (!_lz.paused) {
+    _lz.paused = true; _lzClear();
+    window.speechSynthesis && window.speechSynthesis.cancel();
+    var bar = document.getElementById('lz-bar');
+    if (bar) { var w = getComputedStyle(bar).width; bar.style.transition = 'none'; bar.style.width = w; }
+    if (b) { b.innerHTML = '&#9654; Resume'; b.classList.add('on'); }
+  } else {
+    _lz.paused = false;
+    if (b) { b.innerHTML = '&#9208; Pause'; b.classList.remove('on'); }
+    if (_lz.phase === 'a') _lzReveal(); else _lzCard();   // resume the current step from its start
+  }
+}
+function lzReplay() {
+  var c = _lz.deck[_lz.i]; if (!c) return;
+  try { LZ.speak(LZ.qText(c), _lz.f); } catch (e) {}
+}
+function exitLeisure() {
+  _lzStop();
+  goHome();
+}
+// keys while Leisure is on screen: Space = pause / resume; the drill's marking keys are switched off
+window.addEventListener('keydown', function (e) {
+  if (!isLeisureMode || !document.getElementById('lz-card')) return;
+  var tg = (document.activeElement && document.activeElement.tagName) || '';
+  if (tg === 'INPUT' || tg === 'TEXTAREA' || tg === 'SELECT') return;
+  if (e.key === ' ' || e.code === 'Space') {
+    e.preventDefault(); e.stopImmediatePropagation();
+    if (document.activeElement && document.activeElement.blur) document.activeElement.blur();
+    if (!e.repeat) lzPause();
+    return;
+  }
+  if (['ArrowLeft', 'ArrowRight', 'ArrowDown', 'ArrowUp', 'Enter'].indexOf(e.key) >= 0) { e.preventDefault(); e.stopImmediatePropagation(); }
+}, true);
 
 function toggleAutotime() {
   isAutotime = !isAutotime;
@@ -1821,95 +2057,6 @@ function toggleAutotime() {
   if (!btn) return;
   if (isAutotime) { btn.textContent = '⏱ Autotime: On'; btn.classList.add('on'); }
   else             { btn.textContent = '⏱ Autotime: Off'; btn.classList.remove('on'); }
-}
-
-function toggleLeisureAutotime(){
-  if(timerInterval){clearInterval(timerInterval);timerInterval=null;}
-  window.speechSynthesis&&window.speechSynthesis.cancel();
-  isAutotime=!isAutotime;
-  showLeisureCard();
-}
-
-function adjustLeisureTimer(d){
-  timerSeconds=Math.min(30,Math.max(2,timerSeconds+d));
-  const val=document.getElementById('leisureTimerVal');
-  if(val)val.textContent=timerSeconds+'s';
-  if(timerInterval){clearInterval(timerInterval);timerInterval=null;}
-  showLeisureCard();
-}
-
-function showLeisureCard() {
-  if (!isLeisureMode) return;
-  if (timerInterval) clearInterval(timerInterval);
-  if (currentIndex >= deck.length) { isLeisureMode = false; showSummary(); return; }
-  isRevealed = false;
-  const card = deck[currentIndex];
-  const flags = {en:'🇬🇧',fr:'🇫🇷',it:'🇮🇹',es:'🇪🇸'};
-  const pct = Math.round((currentIndex / deck.length) * 100);
-
-  const container = document.getElementById('drillContainer');
-  container.innerHTML = `
-    <div class="aph-drill">
-      <div class="aph-drill-main">
-        <div class="aph-qcard">
-          <span class="am-topic">${card.subsection}</span>
-          <div class="aph-qmeta">Card ${currentIndex + 1} of ${deck.length} · ${flags[fromLang]} → ${flags[toLang]}</div>
-          ${!isAutotime?`<div class="am-ltimer"><button class="aph-step" onclick="adjustLeisureTimer(-2)">&#8722;</button><span id="leisureTimerVal" class="aph-step-val">${timerSeconds}s</span><button class="aph-step" onclick="adjustLeisureTimer(2)">+</button></div>`:''}
-          <div class="timer-bar"><div class="timer-bar-fill" id="timerBarFill"></div></div>
-          <div class="aph-prompt card-content">${card.question}</div>
-          <div id="answer"></div>
-        </div>
-        <div id="leftBtns" style="display:none"></div>
-        <div class="aph-under">
-          <button class="aph-btn" onclick="speak(deck[currentIndex].question,'${fromLang}')">&#128266; Replay</button>
-          <button class="aph-btn${isAutotime?' on':''}" onclick="toggleLeisureAutotime()">⏱ Autotime: ${isAutotime?'On':'Off'}</button>
-          <button class="aph-btn" onclick="exitLeisure()">&#8962; Home</button>
-        </div>
-      </div>
-    </div>`;
-
-  if (isAutotime) {
-    speak(card.question, fromLang, () => setTimeout(revealLeisure, 3000));
-  } else {
-    speak(card.question, fromLang);
-    timeRemaining = timerSeconds;
-    updateTimerBar();
-    if (timerInterval) clearInterval(timerInterval);
-    timerInterval = setInterval(() => {
-      timeRemaining -= 0.1;
-      if (timeRemaining <= 0) { timeRemaining = 0; clearInterval(timerInterval); if (!isRevealed) revealLeisure(); }
-      updateTimerBar();
-    }, 100);
-  }
-}
-
-
-function revealLeisure() {
-  if (!isLeisureMode) return;
-  if (isRevealed) return;
-  isRevealed = true;
-  if (timerInterval) clearInterval(timerInterval);
-  const card = deck[currentIndex];
-  const flags = {en:'🇬🇧',fr:'🇫🇷',it:'🇮🇹',es:'🇪🇸'};
-
-  const answerDiv = document.getElementById('answer');
-  if (answerDiv) {
-    answerDiv.innerHTML = `
-      <div class="answer">${card[toLang] || card.answer}</div>
-      <div class="am-others">${
-        ['en','fr','it','es'].filter(l => l !== card.fromLang && l !== card.toLang).map(l =>
-          `<span>${flags[l]} ${card[l]}</span>`
-        ).join('')
-      }</div>`;
-  }
-  speak(card.answer, toLang, () => setTimeout(() => { if (isLeisureMode) { currentIndex++; showLeisureCard(); } }, 1500));
-}
-
-function exitLeisure() {
-  isLeisureMode = false;
-  if (timerInterval) { clearInterval(timerInterval); timerInterval = null; }
-  window.speechSynthesis && window.speechSynthesis.cancel();
-  goHome();
 }
 
 

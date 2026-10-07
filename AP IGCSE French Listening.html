@@ -833,10 +833,12 @@ function toggleTeacherMode(){
 function cleanForSpeech(t){let p;do{p=t;t=t.replace(/\([^()]*\)/g,'');}while(t!==p);return t.replace(/\s*,\s*$/,'').replace(/\s+/g,' ').trim();}
 const _ss=window.speechSynthesis;
 let _sv=[];
-function _sl(){_sv=_ss.getVoices();}
-if(_ss.onvoiceschanged!==undefined){_ss.onvoiceschanged=_sl;}_sl();
+const _NOV=/^(Eddy|Flo|Grandma|Grandpa|Reed|Rocko|Sandy|Shelley|Albert|Bad News|Bahh|Bells|Boing|Bubbles|Cellos|Good News|Jester|Organ|Superstar|Trinoids|Whisper|Wobble|Zarvox|Fred|Junior|Kathy|Ralph)\b/i; // never use Apple novelty voices
+function _sl(){_sv=_ss.getVoices().filter(x=>!_NOV.test(x.name));}
+if(_ss.addEventListener){_ss.addEventListener('voiceschanged',_sl);}else if(_ss.onvoiceschanged!==undefined){_ss.onvoiceschanged=_sl;}_sl();
 
 function _sgv(lc, female){
+  if(!_sv.length)_sl();
   const lb=lc.split('-')[0], im=v=>v.name.toLowerCase().includes('multilingual');
   let v=null;
   if(female){
