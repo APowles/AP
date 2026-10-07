@@ -111,7 +111,11 @@
   }
   // Speech-only pronunciation fixes (the text on screen is untouched). Same length as the original where possible, so
   // word highlighting (karaoke) stays in step. Add more pairs here as Andrew spots them.
-  var FIXES = { fr: [[/\b([Tt])ransports en commun\b/g, '$1ransport zan commun']] };
+  var FIXES = { fr: [
+    [/\b([Tt])ransports en commun\b/g, '$1ransport zan commun'],
+    // verb sentir/ressentir/pressentir/consentir, je/tu form: final s is silent (je me sens = « je me sent »); the noun « le sens » is untouched
+    [/\b(je|tu|ne|me|te|m['’]y|t['’]y|m['’]en|t['’]en|j['’]y|j['’]en)(\s+)((?:res|pres|con)?sen)s\b/gi, '$1$2$3t']
+  ] };
   function fixText(text, lang) { var L = FIXES[base(lang)]; if (!L || !text) return text; for (var i = 0; i < L.length; i++) text = String(text).replace(L[i][0], L[i][1]); return text; }
   if (S && !S.__apFix) {
     try { var _speak = S.speak.bind(S); S.speak = function (u) { try { if (u && u.text) { var l = u.lang || (u.voice && u.voice.lang) || ''; if (FIXES[base(l)]) u.text = fixText(u.text, l); } } catch (e) { } return _speak(u); }; S.__apFix = true; } catch (e) { }
