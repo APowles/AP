@@ -3,7 +3,7 @@
 <script id="ap-update">
 /* AP auto-update: if this copy is older than the published version, reload once with the new one (saved answers are kept) */
 (function () {
-  var B = '693e7e2ebc'; window.AP_BUILD = B;
+  var B = 'ab70fa5420'; window.AP_BUILD = B;
   function check() {
     if (!/^https?:$/.test(location.protocol) || !window.fetch) return;
     var f = decodeURIComponent(location.pathname.split('/').pop() || '');
@@ -11159,7 +11159,15 @@ html.tm-open,html.tm-open body{overflow:hidden}
 @keyframes tmPulse{0%,100%{box-shadow:0 0 0 0 rgba(192,57,43,.7);border-color:#c0392b}50%{box-shadow:0 0 0 6px rgba(192,57,43,.45);border-color:#ff3b2f}}
 .tm-lock-n{text-align:center;font-size:.875rem;font-weight:600;color:#a32116;margin-top:10px;line-height:1.4}
 .tm-after[hidden]{display:none}
-.tm-learn{background:#fff;border:2px solid var(--gold);border-radius:12px;padding:12px 14px;margin:18px 0 0}
+.tm-learn{background:#fff;border:3px solid #c0392b;border-radius:12px;padding:12px 14px;margin:18px 0 0;animation:tmGlow 1.3s ease-in-out infinite}
+.tm-learn.done{border-color:#2e7d52;animation:none;box-shadow:none}
+@keyframes tmGlow{0%,100%{box-shadow:0 0 0 0 rgba(192,57,43,.6)}50%{box-shadow:0 0 0 8px rgba(192,57,43,.12),0 0 18px 4px rgba(192,57,43,.35)}}
+@keyframes tmShake{0%,100%{transform:none}20%,60%{transform:translateX(-6px)}40%,80%{transform:translateX(6px)}}
+.tm-learn.tm-shake{animation:tmShake .45s ease, tmGlow 1.3s ease-in-out infinite}
+.tm-learn-must{font-size:.9375rem;font-weight:700;color:#a32116;margin:2px 0 8px}
+.tm-learn-must.now{background:#fdecea;border-radius:8px;padding:6px 10px}
+.tm-learn.done .tm-learn-must{display:none}
+@media print{.tm-learn{animation:none!important;box-shadow:none!important}}
 .tm-learn-h{font-size:1rem;font-weight:800;color:var(--navy);margin:0 0 2px}
 .tm-learn-q{font-size:.9375rem;color:var(--text2);margin:0 0 4px}
 .tm-save{text-align:center;margin:20px 0 0;padding:16px;border:2px solid var(--gold);border-radius:12px;background:#fffaf0}
@@ -11276,7 +11284,8 @@ function _tmRender() {
     + '<div class="tm-lock-n" id="tm-lockn">① Lock in when you have attempted every sentence (you cannot change them afterwards). ② Then open the answers and mark yourself in red.</div>'
     + '<div class="tm-after" id="tm-after"' + (S.shown ? '' : ' hidden') + '>'
     + '<div class="tm-score" id="tm-score2"></div>'
-    + '<div class="tm-learn"><div class="tm-learn-h">📝 What I learned</div><div class="tm-learn-q">What did you learn? Which structures or words caught you out?</div>'
+    + '<div class="tm-learn" id="tm-learn"><div class="tm-learn-h">📝 What I learned</div><div class="tm-learn-q">What did you learn? Which structures or words caught you out?</div>'
+    + '<div class="tm-learn-must" id="tm-learn-must">✋ Think about this and write something here: you cannot save your PDF until you have.</div>'
     + APPEN.html({ key: S.base + ':learn', lines: 4, label: 'What I learned', typed: '<textarea class="appen-ta" rows="4" spellcheck="false" autocomplete="off" placeholder="What did you learn? Which structures or words caught you out?"></textarea>' }) + '</div>'
     + '<div class="tm-save"><button type="button" class="apmp-btn lg" onclick="tmPDF()">📄 Save my work as PDF</button>'
     + '<div class="tm-save-n">then put it on the dated page AP has set in OneNote as a Printout</div></div></div>'
@@ -11308,6 +11317,10 @@ function _tmMsgRefresh() {
   var e = _tmEmpty(); if (!e.length) { m.hidden = true; return; }
   m.textContent = _tmEmptyText(e);
 }
+setInterval(function () {
+  var lb = document.getElementById('tm-learn'); if (!lb || !_tmS) return;
+  try { lb.classList.toggle('done', _tmFilled('learn')); } catch (e) { }
+}, 800);
 function _tmEmptyText(e) { return 'Have a go at every sentence first: sentence ' + e.join(', ') + (e.length > 1 ? ' are' : ' is') + ' empty. A rough attempt is fine.'; }
 function _tmSteps() {
   var S = _tmS, l = document.getElementById('tm-lock'), c = document.getElementById('tm-chk'), n = document.getElementById('tm-lockn');
@@ -11356,6 +11369,12 @@ function _tmScore() {
 function tmPDF() {
   var S = _tmS; if (!S) return;
   _tmSave();
+  if (!_tmFilled('learn')) {   // the boy must reflect before he can submit
+    var lb = document.getElementById('tm-learn'), mu = document.getElementById('tm-learn-must');
+    if (mu) { mu.textContent = '✋ Before you can save your PDF, write what you learned here: which structures or words caught you out?'; mu.classList.add('now'); }
+    if (lb) { lb.scrollIntoView({ behavior: 'smooth', block: 'center' }); lb.classList.remove('tm-shake'); void lb.offsetWidth; lb.classList.add('tm-shake'); }
+    return;
+  }
   APMP.save(function () {
     var card = S.card, L = TM_LANGS[_tmLang()] || 'French', r = _tmSum(), tot = S.items.length * 4;
     var q = function (it) {
