@@ -571,6 +571,8 @@ textarea.p1-in{border:1px solid #bbb;border-radius:4px;min-height:44px}
 @media (max-width:640px){ .p1-sec-tbl, .p1-sec-tbl tbody, .p1-sec-tbl tr, .p1-sec-tbl td{display:block;width:auto !important} .p1-sec-tbl thead{display:none} .p1-sec-tbl tr{border-bottom:2px solid #1a2744;padding:6px 0} }
 /* audio player */
 .p1-player{background:#1a2744;color:#fff;border-radius:10px;padding:12px 14px;margin:8px 0 14px;font-family:var(--aph-body)}
+/* the audio controls float with the boy as he scrolls down that question's items (stuck under any fixed header) */
+.p1-player{position:-webkit-sticky;position:sticky;top:calc(var(--p1-stick,0px) + 8px);z-index:50;box-shadow:0 6px 18px rgba(8,13,28,.28)}
 .p1-player .row{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
 .p1-player button{background:transparent;color:#dfe5f3;border:1px solid rgba(255,255,255,.3);border-radius:7px;padding:7px 11px;font-size:0.9375rem;font-weight:600;cursor:pointer;font-family:inherit}
 .p1-player button:hover{border-color:var(--gold);color:var(--gold2)}
@@ -9192,7 +9194,7 @@ function splitSent(t){
 }
 function p1ListenPart(part, pid, label){
   var segs=[]; (part.transcript||[]).forEach(function(s){ splitSent(s.text).forEach(function(x){ segs.push({sp:s.sp, text:x}); }); });
-  P1A.p[pid]={segs:segs, idx:0, playing:false};
+  P1A.p[pid]={segs:segs, idx:0, playing:false}; setTimeout(p1StickTop,0);
   var h = '<div class="p1-passage">'+esc(label)+(part.passageTitle?' – '+esc(part.passageTitle):'')+(part.duration?' <span style="font-weight:400;color:#666">('+esc(part.duration)+')</span>':'')+'</div>';
   h += '<div class="p1-player" id="'+pid+'_pl"><div class="row">'
     + '<button class="play" id="'+pid+'_pb" onclick="p1Play(\''+pid+'\')">▶ Play</button>'
@@ -9205,6 +9207,12 @@ function p1ListenPart(part, pid, label){
     + '<div class="bar"><div id="'+pid+'_bar"></div></div><div id="'+pid+'_vp"></div></div>';
   return h;
 }
+function p1StickTop(){
+  // height of whatever stays fixed/sticky at the top of the screen (app header), so the floating player sits just below it
+  var h=0; document.querySelectorAll('body > *, header, [class*="header"], [class*="topbar"], [class*="-bar"]').forEach(function(el){ if(el.closest && el.closest('.p1-player')) return; var cs=getComputedStyle(el); if((cs.position==='fixed'||cs.position==='sticky') && el.offsetHeight>0 && el.offsetHeight<200){ var r=el.getBoundingClientRect(); if(r.top<=1 && r.width>window.innerWidth*0.6) h=Math.max(h, r.bottom); } });
+  document.documentElement.style.setProperty('--p1-stick', Math.round(h)+'px');
+}
+window.addEventListener('resize', function(){ if(document.querySelector('.p1-player')) p1StickTop(); });
 function p1PUpd(pid){
   var p=P1A.p[pid]; if(!p) return;
   var pb=document.getElementById(pid+'_pb'), st=document.getElementById(pid+'_st'), bar=document.getElementById(pid+'_bar');
