@@ -933,6 +933,196 @@ function aphWatchHome(el, sel) {
 }
 /* ===== END AP HOUSE STYLE helpers ===== */
 </script>
+<style id="apmp-style">
+/* ===== AP MARKED PAPER → PDF v1 · in-app pieces (shared; identical in every AP app with marked papers) ===== */
+.apmp-btn{display:inline-flex;align-items:center;justify-content:center;gap:6px;font:700 .9375rem/1.2 var(--aph-body);color:var(--gold2);background:var(--navy);border:2px solid var(--gold);border-radius:8px;padding:8px 14px;min-height:40px;cursor:pointer;white-space:nowrap;-webkit-tap-highlight-color:transparent}
+.apmp-btn:hover{background:var(--navy2);color:#fff}
+.apmp-btn.lg{font-size:1.0625rem;padding:12px 20px;min-height:50px}
+.apmp-btn.on-dark{background:var(--gold);color:var(--navy);border-color:var(--gold)}
+.apmp-btn.on-dark:hover{background:var(--gold2);color:var(--navy)}
+.apmp-ov{position:fixed;inset:0;z-index:20000;background:rgba(8,13,28,.62);display:flex;align-items:flex-start;justify-content:center;padding:12vh 16px 16px;box-sizing:border-box;font-family:var(--aph-body)}
+.apmp-box{width:100%;max-width:420px;background:#fff;border-radius:14px;box-shadow:0 30px 80px rgba(0,0,0,.45);padding:20px 20px 18px;color:var(--navy);box-sizing:border-box}
+.apmp-box h3{font:700 1.15rem/1.25 var(--aph-body);margin:0 0 4px;color:var(--navy)}
+.apmp-box p{font-size:.875rem;line-height:1.45;color:var(--text2);margin:0 0 12px}
+.apmp-box label{display:block;font-size:.75rem;font-weight:700;letter-spacing:.09em;text-transform:uppercase;color:var(--text3);margin:0 0 6px}
+.apmp-box input{width:100%;box-sizing:border-box;font:500 16px/1.2 var(--aph-body);color:var(--text);border:1.5px solid var(--border);border-radius:8px;padding:10px 12px;min-height:44px}
+.apmp-box input:focus{outline:none;border-color:var(--gold);box-shadow:0 0 0 3px rgba(201,168,76,.25)}
+.apmp-acts{display:flex;gap:8px;margin-top:14px}
+.apmp-acts .aph-btn{flex:1 1 0;min-width:0}
+.apmp-acts .aph-btn-primary{flex:2 1 0}
+.apmp-frame{position:fixed;inset:0;z-index:20000;background:#525a6e;display:flex;flex-direction:column}
+.apmp-frame-bar{display:flex;flex-wrap:wrap;gap:8px;align-items:center;background:var(--navy);border-bottom:3px solid var(--gold);padding:8px 12px;color:#dfe5f3;font:500 .8125rem/1.3 var(--aph-body)}
+.apmp-frame-bar span{flex:1;min-width:160px}
+.apmp-frame iframe{flex:1;width:100%;border:0;background:#fff}
+/* ===== END AP MARKED PAPER ===== */
+</style>
+<script id="apmp-script">
+/* ===== AP MARKED PAPER → PDF v1 (shared; identical in every AP app with marked papers) =====
+   APMP.save(build): asks once for the boy's name (in-page; remembered in localStorage 'apStudentName'; Skip allowed),
+   then build() returns { app, kicker, title, meta, got, max, partial, partNote, summary, body, foot, docTitle }
+   and the marked paper opens as a print-ready page with the print dialog (Save as PDF). If pop-ups are blocked,
+   the same page opens in an in-page overlay with its own Print button. Nothing here marks anything: the app's own
+   score is passed in. */
+var APMP = (function () {
+  var KEY = 'apStudentName';
+  function esc(s) { return String(s == null ? '' : s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;'); }
+  function getName() { try { return localStorage.getItem(KEY) || ''; } catch (e) { return ''; } }
+  function setName(n) { try { localStorage.setItem(KEY, n); } catch (e) { } }
+  function when(d) {
+    d = d || new Date();
+    var day = d.toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'long', year: 'numeric' });
+    var t = d.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' });
+    return day + ' · ' + t;
+  }
+  function closeAsk() { var o = document.getElementById('apmp-ask'); if (o) o.remove(); }
+  function ask(cb) {
+    closeAsk();
+    var o = document.createElement('div'); o.id = 'apmp-ask'; o.className = 'apmp-ov';
+    o.innerHTML = '<div class="apmp-box" role="dialog" aria-modal="true" aria-labelledby="apmp-ask-h">'
+      + '<h3 id="apmp-ask-h">&#128196; Save marked paper as PDF</h3>'
+      + '<p>Your answers, the mark scheme and your score go on one printable page. In the print window choose <b>Save as PDF</b>.</p>'
+      + '<label for="apmp-name">Your name (printed at the top)</label>'
+      + '<input id="apmp-name" type="text" autocomplete="name" autocapitalize="words" spellcheck="false" maxlength="60" placeholder="e.g. A. Smith">'
+      + '<div class="apmp-acts"><button type="button" class="aph-btn" id="apmp-skip">Skip</button>'
+      + '<button type="button" class="aph-btn aph-btn-primary" id="apmp-go">&#128196; Continue</button></div></div>';
+    document.body.appendChild(o);
+    var inp = o.querySelector('#apmp-name'); inp.value = getName();
+    function go(skip) {
+      var n = skip ? '' : inp.value.replace(/\s+/g, ' ').trim();
+      if (!skip && n) setName(n);
+      closeAsk(); cb(n);
+    }
+    o.querySelector('#apmp-go').onclick = function () { go(false); };
+    o.querySelector('#apmp-skip').onclick = function () { go(true); };
+    inp.onkeydown = function (e) { if (e.key === 'Enter') { e.preventDefault(); go(false); } else if (e.key === 'Escape') closeAsk(); };
+    o.onclick = function (e) { if (e.target === o) closeAsk(); };
+    setTimeout(function () { try { inp.focus(); inp.select(); } catch (e) { } }, 30);
+  }
+  // ── pieces the apps use to build the body ──
+  var SYM = { ok: '✓', bad: '✗', part: '~', none: '—', open: '…' };
+  function verdict(got, max, marked, answered) {
+    if (!marked) return 'open';
+    if (got == null) return 'none';
+    if (got >= max && max > 0) return 'ok';
+    if (got > 0) return 'part';
+    return 'bad';
+  }
+  function sec(title, got, max, marked) {
+    return '<div class="apmp-sec"><span>' + title + '</span><span class="apmp-secmk">' + (marked ? got + ' / ' + max : 'not marked yet · ' + max + ' marks') + '</span></div>';
+  }
+  // o = { num, text, got, max, v ('ok'|'bad'|'part'|'none'|'open'), rows: [[label, html, cls]], extra, note, big }
+  function q(o) {
+    var v = o.v || 'open';
+    var mk = v === 'open' ? '<span class="apmp-mk open">not marked</span>'
+      : v === 'none' ? '<span class="apmp-mk none">— / ' + o.max + ' <small>not self-marked</small></span>'
+      : '<span class="apmp-mk ' + v + '"><i>' + SYM[v] + '</i> ' + o.got + ' / ' + o.max + '</span>';
+    var h = '<div class="apmp-q v-' + v + (o.big ? ' big' : '') + '"><div class="apmp-qh"><span class="apmp-qn">' + o.num + '</span><span class="apmp-qt">' + (o.text || '') + '</span>' + mk + '</div>';
+    (o.rows || []).forEach(function (r) { if (r) h += '<div class="apmp-row ' + (r[2] || '') + '"><span class="apmp-lab">' + r[0] + '</span><div class="apmp-val">' + r[1] + '</div></div>'; });
+    return h + (o.extra || '') + '</div>';
+  }
+  // options: [{ l, t, chosen, correct, why }] ; marked = show which is right
+  function opts(list, marked) {
+    return '<div class="apmp-opts">' + list.map(function (x) {
+      var cls = x.chosen ? (marked ? (x.correct ? 'ok' : 'bad') : 'mine') : (marked && x.correct ? 'right' : '');
+      var tag = x.chosen ? (marked ? (x.correct ? '<b class="apmp-tag ok">✓ your answer</b>' : '<b class="apmp-tag bad">✗ your answer</b>') : '<b class="apmp-tag mine">your answer</b>')
+        : (marked && x.correct ? '<b class="apmp-tag ok">✓ correct answer</b>' : '');
+      return '<div class="apmp-opt ' + cls + '"><span class="apmp-box">' + (x.chosen ? '✕' : '') + '</span><b class="apmp-l">' + x.l + '</b><span class="apmp-ot">' + x.t + tag + (x.why ? '<span class="apmp-why">' + x.why + '</span>' : '') + '</span></div>';
+    }).join('') + '</div>';
+  }
+  function answer(s) { s = String(s == null ? '' : s); return s.replace(/\s+/g, '') === '' ? '<span class="apmp-blank">(no answer)</span>' : '<span class="apmp-yours">' + esc(s).replace(/\n/g, '<br>') + '</span>'; }
+  function circle(got, max, partial) {
+    var pct = max ? Math.round(got / max * 100) : 0;
+    return '<div class="apmp-score"><div class="apmp-ring"><div class="apmp-frac"><b>' + got + '</b><span>/' + max + '</span></div><div class="apmp-pct">' + pct + '%</div></div>'
+      + (partial ? '<div class="apmp-part">marked so far</div>' : '') + '</div>';
+  }
+  var CSS = '@page{size:A4;margin:12mm 12mm 15mm;@bottom-right{content:"Page " counter(page) " of " counter(pages);font:8pt "DM Sans",sans-serif;color:#8a93a8}}'
+    + '*{box-sizing:border-box}html,body{background:#fff}body{margin:0;font-family:var(--aph-body);color:#1a2744;font-size:10pt;line-height:1.42;-webkit-print-color-adjust:exact;print-color-adjust:exact;-webkit-text-size-adjust:100%}'
+    + '.apmp-bar{position:sticky;top:0;z-index:5;display:flex;flex-wrap:wrap;gap:8px 12px;align-items:center;background:#1a2744;color:#dfe5f3;padding:10px 16px;font-size:13px;border-bottom:3px solid #c9a84c}'
+    + '.apmp-bar button{background:#c9a84c;color:#1a2744;border:0;border-radius:6px;padding:9px 14px;font:700 14px var(--aph-body);cursor:pointer;min-height:40px}.apmp-bar span{flex:1;min-width:180px}'
+    + '.apmp-page{max-width:186mm;margin:0 auto;padding:8mm 16px 10mm}'
+    + '.aph-pband{margin-top:0}'
+    + '.apmp-res{display:flex;align-items:center;gap:6mm;border:1px solid #e3e3e3;border-top:0;border-radius:0 0 6px 6px;padding:4mm 5mm;margin-bottom:4mm;background:#fafafa}'
+    + '.apmp-who{flex:1;min-width:0}.apmp-name{font-size:13pt;color:#1a2744}.apmp-name b{font-weight:700}.apmp-name .ln{display:inline-block;width:60mm;border-bottom:1px solid #9aa3b8;height:5mm;vertical-align:-1mm}'
+    + '.apmp-when{font-size:9pt;color:#4a5a7a;margin-top:1.2mm}.apmp-sum{font-size:9pt;color:#4a5a7a;margin-top:1.2mm}.apmp-sum b{color:#1a2744}'
+    + '.apmp-pnote{display:inline-block;margin-top:2mm;font-size:8.5pt;font-weight:700;color:#8a5c00;background:#fdf6e3;border:1px solid #e6cf8f;border-radius:4px;padding:1mm 2.5mm}'
+    + '.apmp-score{flex:none;text-align:center}.apmp-ring{width:34mm;height:34mm;border:1.1mm solid #c0392b;border-radius:50%;display:flex;flex-direction:column;align-items:center;justify-content:center;color:#c0392b;background:#fff;transform:rotate(-4deg)}'
+    + '.apmp-frac{font-weight:800;line-height:1;white-space:nowrap}.apmp-frac b{font-size:25pt}.apmp-frac span{font-size:16pt;font-weight:800}.apmp-pct{font-size:9pt;font-weight:700;margin-top:1.5mm}'
+    + '.apmp-part{font-size:7.5pt;font-weight:800;letter-spacing:.08em;text-transform:uppercase;color:#c0392b;margin-top:1.5mm}'
+    + '.apmp-key{font-size:8pt;color:#6b7590;margin:0 0 3mm;display:flex;flex-wrap:wrap;gap:2mm 5mm}.apmp-key i{font-style:normal;font-weight:800}'
+    + '.apmp-sec{display:flex;justify-content:space-between;gap:4mm;align-items:baseline;font-weight:800;font-size:10.5pt;letter-spacing:.05em;text-transform:uppercase;color:#1a2744;border-bottom:2px solid #c9a84c;padding:2mm 0 1mm;margin:5mm 0 2.5mm;break-after:avoid;page-break-after:avoid}'
+    + '.apmp-secmk{font-size:10.5pt;letter-spacing:0;text-transform:none;white-space:nowrap}'
+    + '.apmp-sub{font-weight:700;font-size:10pt;margin:3mm 0 1.5mm;color:#1a2744;break-after:avoid;page-break-after:avoid}'
+    + '.apmp-info{font-size:9pt;color:#4a5a7a;margin:0 0 2mm}'
+    + '.apmp-q{border:1px solid #dfe3ec;border-left:1.2mm solid #b9c0d0;border-radius:1.5mm;padding:2mm 3mm 2mm;margin:0 0 2.5mm;break-inside:avoid;page-break-inside:avoid}'
+    + '.apmp-q.big{break-inside:auto;page-break-inside:auto}.apmp-qh{break-after:avoid;page-break-after:avoid}.apmp-row{break-inside:avoid;page-break-inside:avoid}'
+    + '.apmp-small{font-size:8.5pt;color:#33405e}.apmp-dot{color:#b9c0d0;margin:0 .6mm}'
+    + '.apmp-q.v-ok{border-left-color:#2e7d52}.apmp-q.v-bad{border-left-color:#c0392b}.apmp-q.v-part{border-left-color:#b8922a}'
+    + '.apmp-qh{display:flex;gap:2.5mm;align-items:baseline}.apmp-qn{font-weight:800;color:#a8862e;flex:none;min-width:8mm}.apmp-qt{flex:1;min-width:0;font-weight:600}'
+    + '.apmp-mk{flex:none;font-weight:800;white-space:nowrap;font-size:10pt}.apmp-mk i{font-style:normal;font-size:12pt}.apmp-mk.ok{color:#2e7d52}.apmp-mk.bad{color:#c0392b}.apmp-mk.part{color:#8a5c00}.apmp-mk.none,.apmp-mk.open{color:#8a93a8;font-weight:600}.apmp-mk small{font-weight:600;font-size:8pt}'
+    + '.apmp-row{display:flex;gap:3mm;margin-top:1.2mm;font-size:9.5pt}.apmp-lab{flex:none;width:30mm;white-space:nowrap;font-size:7.5pt;font-weight:800;letter-spacing:.06em;text-transform:uppercase;color:#8a93a8;padding-top:.5mm}.apmp-val{flex:1;min-width:0}'
+    + '.apmp-row.ms .apmp-val{color:#1a2744}.apmp-row.ok .apmp-lab{color:#2e7d52}.apmp-row.bad .apmp-lab{color:#c0392b}.apmp-row.mine .apmp-val{font-weight:600}'
+    + '.apmp-yours{font-weight:600;color:#1a2744;background:#f4f6fb;border-radius:1mm;padding:0 1mm;-webkit-box-decoration-break:clone;box-decoration-break:clone}.apmp-blank{color:#c0392b;font-style:italic}'
+    + '.apmp-list{margin:0;padding-left:4mm}.apmp-list li{margin:0}'
+    + '.apmp-tip{font-size:8.5pt;color:#4a5a7a;font-style:italic;margin-top:1mm}'
+    + '.apmp-opts{margin-top:1mm}.apmp-opt{display:flex;gap:2mm;align-items:baseline;font-size:9.5pt;padding:.4mm 1mm;border-radius:1mm}'
+    + '.apmp-opt .apmp-box{flex:none;display:inline-flex;align-items:center;justify-content:center;width:3.6mm;height:3.6mm;border:1px solid #1a2744;font-size:7pt;font-weight:800;vertical-align:-.5mm}'
+    + '.apmp-l{flex:none;width:4mm}.apmp-ot{flex:1;min-width:0}.apmp-opt.ok{background:#eaf5ef}.apmp-opt.bad{background:#fdecea}.apmp-opt.right{background:#eaf5ef}.apmp-opt.mine{background:#f4f6fb}'
+    + '.apmp-tag{font-size:7.5pt;font-weight:800;letter-spacing:.04em;text-transform:uppercase;margin-left:2mm;white-space:nowrap}.apmp-tag.ok{color:#2e7d52}.apmp-tag.bad{color:#c0392b}.apmp-tag.mine{color:#4a5a7a}'
+    + '.apmp-why{display:block;font-size:8.5pt;color:#4a5a7a}'
+    + '.apmp-text{border:1px solid #c9ced9;border-radius:1.5mm;padding:2.5mm 3.5mm;margin:1mm 0 3mm;font-size:9.5pt;background:#fff}.apmp-text p{margin:0 0 1.6mm}.apmp-text p:last-child{margin:0}.apmp-text .ttl{text-align:center;font-weight:700;margin-bottom:1.5mm}'
+    + '.apmp-trans{border:1px dashed #9aa3b8;border-radius:1.5mm;padding:2mm 3mm;margin:1mm 0 3mm;font-size:8.5pt;color:#333;break-inside:auto}.apmp-trans>b{display:block;font-size:7.5pt;letter-spacing:.06em;text-transform:uppercase;color:#8a93a8;margin-bottom:1mm}'
+    + 'table.apmp-t{width:100%;border-collapse:collapse;font-size:8.8pt;margin:1.5mm 0}table.apmp-t th,table.apmp-t td{border:1px solid #d3d8e3;padding:1mm 1.5mm;vertical-align:top;text-align:left}table.apmp-t th{background:#f1f3f8;font-size:7.5pt;letter-spacing:.05em;text-transform:uppercase;color:#4a5a7a}'
+    + 'table.apmp-t tr{break-inside:avoid;page-break-inside:avoid}table.apmp-t td.mk{white-space:nowrap;font-weight:800;text-align:center;width:13mm}table.apmp-t td.mk.ok{color:#2e7d52}table.apmp-t td.mk.bad{color:#c0392b}table.apmp-t td.mk.none{color:#8a93a8;font-weight:600}table.apmp-t td.n{width:7mm;font-weight:800;color:#a8862e}'
+    + '.apmp-ok{color:#2e7d52}.apmp-bad{color:#c0392b}'
+    + '.apmp-foot{display:flex;justify-content:space-between;gap:4mm;border-top:1px solid #e3e3e3;margin-top:5mm;padding-top:1.5mm;font-size:7.5pt;color:#8a93a8}'
+    + '@media print{.apmp-bar{display:none!important}.apmp-page{padding:0;max-width:none}}'
+    + '.apmp-sep{color:#8a93a8;font-size:7.5pt;font-weight:800;letter-spacing:.06em;text-transform:uppercase;margin:0 1.5mm 0 4mm}'
+    + '@media (max-width:560px){.apmp-res{flex-direction:column-reverse;align-items:flex-start}.apmp-lab{width:24mm;white-space:normal}}';
+  function doc(o) {
+    var d = new Date(), stamp = when(d);
+    var who = o.name ? '<div class="apmp-name">Name: <b>' + esc(o.name) + '</b></div>' : '<div class="apmp-name">Name: <span class="ln"></span></div>';
+    var head = aphPrintHead({ kicker: o.kicker, title: o.title, meta: o.meta, strip: false, print: false }).replace('aph-pband aph-solo', 'aph-pband');
+    var auto = '<scr' + 'ipt>(function(){if(window.parent!==window)return;var done=false;function go(){if(done)return;done=true;setTimeout(function(){try{window.focus();window.print();}catch(e){}},200);}'
+      + 'function ready(){if(document.fonts&&document.fonts.ready){document.fonts.ready.then(go,go);}setTimeout(go,1800);}'
+      + 'if(document.readyState==="complete")ready();else window.addEventListener("load",ready);})();</scr' + 'ipt>';
+    return '<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>' + esc(o.docTitle + (o.name ? ' — ' + o.name : '')) + '</title>'
+      + '<style>' + aphCSS() + '</style><style>' + CSS + '</style></head><body>'
+      + '<div class="apmp-bar aph-noprint"><button type="button" onclick="window.print()">&#128424; Print / Save as PDF</button><span>Choose <b>Save as PDF</b> as the printer. On iPad: tap Print, then the Share button &rsaquo; Save to Files.</span></div>'
+      + '<div class="apmp-page">' + head
+      + '<div class="apmp-res"><div class="apmp-who">' + who + '<div class="apmp-when">Completed ' + stamp + (o.lang ? ' &middot; ' + o.lang : '') + '</div>'
+      + (o.summary ? '<div class="apmp-sum">' + o.summary + '</div>' : '')
+      + (o.partial ? '<div class="apmp-pnote">Marked so far: ' + (o.partNote || '') + '</div>' : '') + '</div>'
+      + circle(o.got, o.max, o.partial) + '</div>'
+      + '<div class="apmp-key"><span><i class="apmp-ok">✓</i> correct</span><span><i class="apmp-bad">✗</i> wrong</span><span><i style="color:#8a5c00">~</i> partly right</span><span><i style="color:#8a93a8">—</i> no mark given</span><span>&#9746; = your choice</span></div>'
+      + o.body
+      + '<div class="apmp-foot"><span>' + o.foot + '</span><span>Generated ' + stamp + '</span></div>'
+      + '</div>' + auto + '</body></html>';
+  }
+  function overlay(html) {
+    var old = document.getElementById('apmp-frame'); if (old) old.remove();
+    var o = document.createElement('div'); o.id = 'apmp-frame'; o.className = 'apmp-frame';
+    o.innerHTML = '<div class="apmp-frame-bar"><button type="button" class="apmp-btn on-dark" id="apmp-fprint">&#128424; Print / Save as PDF</button><span>Pop-ups are blocked, so your marked paper is shown here.</span><button type="button" class="aph-btn aph-btn-sm" id="apmp-fclose">&#10005; Close</button></div>';
+    var f = document.createElement('iframe'); f.title = 'Marked paper'; f.srcdoc = html; o.appendChild(f); document.body.appendChild(o);
+    o.querySelector('#apmp-fclose').onclick = function () { o.remove(); };
+    o.querySelector('#apmp-fprint').onclick = function () { try { f.contentWindow.focus(); f.contentWindow.print(); } catch (e) { window.print(); } };
+  }
+  function open(html) {
+    var w = null; try { w = window.open('', '_blank'); } catch (e) { w = null; }
+    if (w && w.document) { w.document.open(); w.document.write(html); w.document.close(); try { w.focus(); } catch (e) { } return 'window'; }
+    overlay(html); return 'overlay';
+  }
+  function save(build) {
+    ask(function (name) {
+      var o; try { o = build(); } catch (e) { alert('Sorry, the marked paper could not be built.'); if (window.console) console.error(e); return; }
+      if (!o) return;
+      o.name = name; APMP.last = o; open(doc(o));
+    });
+  }
+  return { save: save, esc: esc, q: q, sec: sec, opts: opts, answer: answer, verdict: verdict, when: when, doc: doc, SYM: SYM };
+})();
+/* ===== END AP MARKED PAPER ===== */
+</script>
+
 <script>
 /* ── VVs app: house UI pieces shared by the drill tabs (drill bar, key legend, marking row) ── */
 function vvhBar(title, ok, near, bad, btns) {
@@ -33990,6 +34180,7 @@ function renderTrReveal() {
       <div class="aph-row" style="justify-content:space-between;margin-top:0.8rem">
         <span class="vv-tr-score">Score: ${ok} / ${total}</span>
         <div class="aph-row">
+          ${marked>0?`<button class="apmp-btn" onclick="trSavePDF()">📄 Save marked paper as PDF</button>`:''}
           <button class="aph-btn aph-btn-sm" onclick="revealAllChunks()">Reveal All</button>
           ${marked===total?`<button class="aph-btn aph-btn-sm aph-btn-primary" onclick="showTrSummary()">&#9654; See Results</button>`:''}
         </div>
@@ -34094,6 +34285,47 @@ function revealAllChunks() {
   });
 }
 
+
+// ==================== 📄 SAVE MARKED PAPER AS PDF (passage, mark scheme chunk by chunk, the boy's own marks) ====================
+function trSavePDF() {
+  const p = trState.currentPassage;
+  if (!p) return;
+  const marks = trState.chunkMarks;
+  if (!marks.some(m => m !== null)) { alert('Mark at least one chunk first (✓ Got it / ✗ Major error).'); return; }
+  APMP.save(function () {
+    const total = p.chunks.length;
+    const marked = marks.filter(m => m !== null).length;
+    const ok = marks.filter(m => m === 'ok').length;
+    const miss = marks.filter(m => m === 'miss').length;
+    const partial = marked < total;
+    const toFr = p.direction !== 'en';
+    const rows = p.chunks.map((c, i) => {
+      const m = marks[i];
+      const mk = m === 'ok' ? '<td class="mk ok">✓ 1</td>' : m === 'miss' ? '<td class="mk bad">✗ 0</td>' : m === 'nearly' ? '<td class="mk" style="color:#8a5c00">~ 0</td>' : '<td class="mk none">not marked</td>';
+      return '<tr><td class="n">' + (i + 1) + '</td><td>' + c.en + '</td><td><b>' + c.main + '</b>'
+        + (c.alts.length ? '<div class="apmp-ok">' + c.alts.map(a => '✓ ' + a).join('<br>') + '</div>' : '') + '</td>'
+        + '<td>' + c.rejects.map(r => '<div class="apmp-bad">✗ ' + r + '</div>').join('') + c.notes.map(n => '<div class="apmp-tip">' + n + '</div>').join('') + '</td>' + mk + '</tr>';
+    }).join('');
+    let body = APMP.sec(toFr ? 'Translation into French' : 'Translation into English', ok, partial ? marked : total, true);
+    body += '<div class="apmp-info"><b>Passage</b> &middot; ' + p.label + ' &middot; Card ' + p.topic + ': ' + p.topicName + (p.type === 'ai' ? ' &middot; AI-generated' : '') + '</div>';
+    body += '<div class="apmp-text">' + p.text + '</div>';
+    body += '<div class="apmp-info">Translation written on paper, then self-marked chunk by chunk against the mark scheme (1 mark per chunk).</div>';
+    body += '<table class="apmp-t"><thead><tr><th>#</th><th>' + (toFr ? 'English' : 'French') + '</th><th>Model answer / also accepted</th><th>Reject &middot; notes</th><th>Your mark</th></tr></thead><tbody>' + rows + '</tbody></table>';
+    return {
+      kicker: 'AP A Level &middot; VVs, Gr EWs &amp; Translation &middot; Translation',
+      title: 'Translation Practice &mdash; <em>' + (p.ref || p.label) + '</em>',
+      meta: p.label + ' &middot; Card ' + p.topic + ': ' + p.topicName + ' &middot; ' + (toFr ? '→ French' : '→ English'),
+      lang: toFr ? 'English → French' : 'French → English',
+      got: ok, max: partial ? marked : total, partial: partial,
+      partNote: marked + ' of ' + total + ' chunks',
+      summary: '<b>' + ok + '</b> ✓ got it &middot; <b>' + miss + '</b> ✗ major error' + (partial ? ' &middot; <b>' + (total - marked) + '</b> chunks not marked yet' : ''),
+      body: body,
+      foot: 'AP A Level VVs, Gr EWs &amp; Translation &middot; Translation &middot; ' + (p.ref ? p.ref + ' &middot; ' : '') + p.label + ' &middot; Marked paper',
+      docTitle: 'Translation ' + (p.ref || p.label) + ' – marked'
+    };
+  });
+}
+
 // ==================== SUMMARY ====================
 function showTrSummary() {
   const p = trState.currentPassage;
@@ -34110,6 +34342,7 @@ function showTrSummary() {
       <h2 class="aph-h" style="margin-bottom:6px">${p.label} — Results</h2>
       <div class="aph-res-score">${score} / ${total}</div>
       <div class="aph-res-pct">${pct}%</div>
+      <div style="margin:10px 0 4px"><button class="apmp-btn lg" onclick="trSavePDF()">📄 Save marked paper as PDF</button></div>
       <div class="aph-res-bar"><div style="width:${pct}%;background:${miss ? 'var(--gold)' : 'var(--correct)'}"></div></div>
       <div class="vv-segs"><span class="ok">✓ ${ok} correct</span><span class="near">~ ${nearly} nearly</span><span class="bad">✗ ${miss} major errors</span></div>
       ${miss+nearly > 0 ? `
