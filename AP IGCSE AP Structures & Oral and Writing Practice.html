@@ -3,7 +3,7 @@
 <script id="ap-update">
 /* AP auto-update: if this copy is older than the published version, reload once with the new one (saved answers are kept) */
 (function () {
-  var B = '858af81bc8'; window.AP_BUILD = B;
+  var B = '36e6120f10'; window.AP_BUILD = B;
   function check() {
     if (!/^https?:$/.test(location.protocol) || !window.fetch) return;
     var f = decodeURIComponent(location.pathname.split('/').pop() || '');
@@ -11164,6 +11164,19 @@ html.tm-open,html.tm-open body{overflow:hidden}
 .tm-clock.amber{background:#b9770e;color:#fff;border-color:#f5c26b}
 .tm-clock.red{background:#c0392b;color:#fff;border-color:#ff8a7a}
 .tm-clock.pulse{animation:tmGlow 1s ease-in-out infinite}
+.tm-clock[hidden]{display:none}
+.tm-clock.free{background:#eaf5ef;color:#1d5c3a;border-color:#2e7d52}
+.tm-mode{background:#fff;border:3px solid var(--gold);border-radius:14px;padding:16px;margin:0 0 16px}
+.tm-mode[hidden]{display:none}
+.tm-mode-h{font-weight:800;font-size:1.0625rem;color:var(--navy);margin:0 0 10px}
+.tm-mode-b{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:12px}
+.tm-mode-b button{display:flex;flex-direction:column;gap:6px;text-align:left;border-radius:12px;padding:14px 16px;cursor:pointer;font:500 .9375rem/1.4 var(--aph-body);-webkit-tap-highlight-color:transparent}
+.tm-mode-b button b{font-size:1.125rem;font-weight:800}
+.tm-mode-t{background:var(--navy);color:#fff;border:3px solid #c0392b}
+.tm-mode-t b{color:var(--gold2)}
+.tm-mode-f{background:#eaf5ef;color:#1d3a2a;border:2px solid #2e7d52}
+.tm-mode-n{font-size:.8125rem;color:var(--text2);margin-top:8px}
+#tm-ov.tm-nomode #tm-items,#tm-ov.tm-nomode .tm-steps,#tm-ov.tm-nomode #tm-lockn{display:none}
 .tm-clock.done{background:#eef1f7;color:var(--navy);border-color:var(--border);font-size:.9375rem}
 .tm-tban{background:#fdecea;border:2px solid #c0392b;color:#7a1b12;border-radius:10px;padding:10px 14px;margin:0 0 12px;font-size:1rem;line-height:1.45}
 .tm-tban.done{background:#fff8e6;border-color:var(--gold);color:var(--navy)}
@@ -11224,11 +11237,11 @@ function _tmBase(card) { return 'tm:' + _tmLang() + ':' + card.id; }
 function _tmLoad(card) {
   var s = null; try { s = JSON.parse(localStorage.getItem('tmState:' + _tmLang() + ':' + card.id) || 'null'); } catch (e) { s = null; }
   s = s || {};
-  return { card: card, base: _tmBase(card), items: tmItems(card), locked: !!s.locked, shown: !!s.shown, marks: Array.isArray(s.marks) ? s.marks : [], tAns: +s.tAns || 0, tMark: +s.tMark || 0, t0: +s.t0 || 0, lockAt: +s.lockAt || 0, auto: !!s.auto, na: Array.isArray(s.na) ? s.na : [] };
+  return { card: card, base: _tmBase(card), items: tmItems(card), locked: !!s.locked, shown: !!s.shown, marks: Array.isArray(s.marks) ? s.marks : [], tAns: +s.tAns || 0, tMark: +s.tMark || 0, t0: +s.t0 || 0, lockAt: +s.lockAt || 0, auto: !!s.auto, na: Array.isArray(s.na) ? s.na : [], mode: s.mode || (s.t0 ? 'timed' : (s.locked ? 'free' : '')), endAt: +s.endAt || 0 };
 }
 function _tmSave() {
   var S = _tmS; if (!S) return;
-  try { localStorage.setItem('tmState:' + _tmLang() + ':' + S.card.id, JSON.stringify({ locked: S.locked, shown: S.shown, marks: S.marks, tAns: S.tAns, tMark: S.tMark, t0: S.t0, lockAt: S.lockAt, auto: S.auto, na: S.na })); } catch (e) { }
+  try { localStorage.setItem('tmState:' + _tmLang() + ':' + S.card.id, JSON.stringify({ locked: S.locked, shown: S.shown, marks: S.marks, tAns: S.tAns, tMark: S.tMark, t0: S.t0, lockAt: S.lockAt, auto: S.auto, na: S.na, mode: S.mode, endAt: S.endAt })); } catch (e) { }
 }
 function _tmClearSaved(card) { try { localStorage.removeItem('tmState:' + _tmLang() + ':' + card.id); } catch (e) { } }
 function _tmFr(it) {
@@ -11283,9 +11296,13 @@ function _tmRender() {
   var h = '<div class="tm-bar"><button type="button" class="aph-home" onclick="tmClose()">⌂ Back to the card</button><span class="tm-bar-t">✍️ Translate 10 sentences</span></div>'
     + '<div class="tm-wrap"><div id="tm-top"><div class="tm-kick">' + _tmEsc(card.code || '') + ' · ' + _tmEsc(card.theme || '') + '</div>'
     + '<h2 class="aph-h">Translate into ' + L + '</h2>'
-    + '<p class="tm-instr">Translate all 10 sentences into ' + L + ' with your Apple Pencil (black ink). Each sentence must use one of this card\'s structures: it is shown in the small gold box under the English. You have <b>10 minutes</b> (the clock starts when you begin writing). Have a go at all 10, then lock in, open the answers, correct your work in red and give each sentence a mark.</p>'
+    + '<p class="tm-instr">Translate all 10 sentences into ' + L + ' with your Apple Pencil (black ink). Each sentence must use one of this card\'s structures: it is shown in the small gold box under the English. Have a go at all 10, then lock in, open the answers, correct your work in red and give each sentence a mark.</p>'
     + '<div class="tm-score" id="tm-score1"' + (S.shown ? '' : ' hidden') + '></div>'
     + '<div class="tm-legend" id="tm-legend"' + (S.shown ? '' : ' hidden') + '><div class="tm-lh">How to mark yourself</div>Compare your sentence with the answer, word by word, then tap the mark that fits:<div class="tm-lrow"><span><b>4</b> Perfect (a tiny slip like a missing accent is OK)</span><span><b>3</b> Mostly right: more right than wrong</span><span><b>2</b> About half right</span><span><b>1</b> Only a word or two right</span><span><b>0</b> Nothing right</span></div>Your 10 marks add up to 40; your score is shown out of 20.</div></div>'
+    + '<div class="tm-mode" id="tm-mode"><div class="tm-mode-h">Choose how you are doing this:</div><div class="tm-mode-b">'
+    + '<button type="button" class="tm-mode-t" onclick="tmMode(\'timed\')"><b>⏱ Timed: 10 minutes</b><span>In class. The clock starts as soon as you tap. Do as much as you can: at 10:00 you get 30 more seconds, then your answers lock in by themselves. Sentences left blank score 0.</span></button>'
+    + '<button type="button" class="tm-mode-f" onclick="tmMode(\'free\')"><b>🏠 Untimed</b><span>Homework. Take as long as you need, but you must have a go at all 10 before you can lock in.</span></button>'
+    + '</div><div class="tm-mode-n">Your choice and your times are printed on your PDF. You cannot change mode once you start.</div></div>'
     + '<div id="tm-items">'
     + (first.length ? '<div class="tm-sec">From the demo</div>' + first.map(row).join('') : '')
     + (mine.length ? '<div class="tm-sec">Make it your own <small>one thing is changed from the demo</small></div>' + mine.map(row).join('') : '')
@@ -11312,7 +11329,7 @@ function _tmRender() {
   itemsEl.addEventListener('input', _tmStart, true);
   itemsEl.addEventListener('keydown', function (e) { if (e.target.matches && e.target.matches('textarea')) _tmStart(); }, true);
   if (S.locked) _tmNA();
-  _tmClock();
+  _tmModeUI(); _tmClock();
   ov.querySelector('#tm-items').addEventListener('click', function (e) {
     var b = e.target.closest('.tm-mb'); if (!b) return;
     tmMark(+b.getAttribute('data-n'), +b.getAttribute('data-v'));
@@ -11347,7 +11364,7 @@ function _tmEmptyText(e) { return 'Have a go at every sentence first: sentence '
 function _tmSteps() {
   var S = _tmS, l = document.getElementById('tm-lock'), c = document.getElementById('tm-chk'), n = document.getElementById('tm-lockn');
   if (!l) return;
-  l.disabled = S.locked; l.textContent = S.locked ? '🔒 Locked in' : '🔒 I\'ve attempted all ' + S.items.length + ': lock in';
+  l.disabled = S.locked || !S.mode; l.textContent = S.locked ? '🔒 Locked in' : S.mode === 'timed' ? '🔒 I\'ve finished: lock in' : '🔒 I\'ve attempted all ' + S.items.length + ': lock in';
   c.disabled = !S.locked; c.classList.toggle('ready', S.locked && !S.shown);
   if (S.shown) c.textContent = '✔ Answers shown: mark yourself above';
   n.textContent = !S.locked ? '① Lock in when you have attempted every sentence (you cannot change them afterwards). ② Then open the answers and mark yourself in red.'
@@ -11355,7 +11372,15 @@ function _tmSteps() {
 }
 function tmLock() {
   var S = _tmS; if (!S || S.locked) return;
+  if (!S.mode) return;
   var e = _tmEmpty(), msg = document.getElementById('tm-msg');
+  if (S.mode === 'timed' && e.length) {
+    if (!window.confirm(_tmList(e) + (e.length > 1 ? ' are' : ' is') + ' still empty and will score 0.\n\nLock in now anyway?')) return;
+    S.na = e; e.forEach(function (n) { S.marks[n - 1] = 0; });
+    S.locked = true; S.lockAt = _tmElapsed(); S.endAt = Date.now(); _tmSave();
+    if (msg) msg.hidden = true;
+    APPEN.lockIn(document.getElementById('tm-items')); _tmNA(); _tmSteps(); _tmClock(); return;
+  }
   document.querySelectorAll('#tm-items .tm-item').forEach(function (r) { r.classList.toggle('tm-empty', e.indexOf(+r.getAttribute('data-n')) >= 0); });
   if (e.length) {
     msg.textContent = _tmEmptyText(e); msg.hidden = false;
@@ -11364,25 +11389,40 @@ function tmLock() {
   }
   msg.hidden = true;
   if (!window.confirm('Lock in your ' + S.items.length + ' translations?\n\nYou will not be able to change them afterwards. Corrections after the answers go in red.')) return;
-  S.locked = true; S.lockAt = _tmElapsed(); _tmSave();
+  S.locked = true; S.lockAt = _tmElapsed(); S.endAt = Date.now(); _tmSave();
   APPEN.lockIn(document.getElementById('tm-items'));
   _tmSteps(); _tmClock();
 }
 /* ⏱ 10 minutes for the translations: starts at his first stroke or key; at 10:00 a 30-second warning; at 10:30 the answers lock in by themselves
    (blank sentences: not attempted · 0). Wall-clock time, so leaving the page does not stop it. */
 var TM_LIMIT = 600, TM_GRACE = 30, _tmPen = false;
+function tmMode(m) {
+  var S = _tmS; if (!S || S.mode) return;
+  if (m === 'timed' && !window.confirm('Start the 10-minute timer now?\n\nThe clock starts as soon as you tap OK and cannot be paused.')) return;
+  S.mode = m; if (m === 'timed') S.t0 = Date.now(); else S.t0 = Date.now();
+  _tmSave(); _tmModeUI(); _tmClock(); _tmSteps();
+  var f = document.getElementById('tm-it-1'); if (f && f.scrollIntoView) try { f.scrollIntoView({ behavior: 'smooth', block: 'start' }); } catch (e) { }
+}
+function _tmModeUI() {
+  var ov = document.getElementById('tm-ov'); if (!ov || !_tmS) return;
+  ov.classList.toggle('tm-nomode', !_tmS.mode);
+  var p = document.getElementById('tm-mode'); if (p) p.hidden = !!_tmS.mode;
+}
+function _tmClockTime(ms) { if (!ms) return ''; var d = new Date(ms); return ('0' + d.getHours()).slice(-2) + ':' + ('0' + d.getMinutes()).slice(-2); }
 function _tmElapsed() { return _tmS && _tmS.t0 ? Math.max(0, Math.round((Date.now() - _tmS.t0) / 1000)) : 0; }
-function _tmStart() { if (_tmS && !_tmS.t0 && !_tmS.locked) { _tmS.t0 = Date.now(); _tmSave(); _tmClock(); } }
+function _tmStart() { }   // the clock is started by the mode choice
 function _tmList(a) { return (a.length > 1 ? 'Sentences ' + a.slice(0, -1).join(', ') + ' and ' + a[a.length - 1] : 'Sentence ' + a[0]); }
 function _tmMMSS(x) { x = Math.max(0, Math.ceil(x)); return Math.floor(x / 60) + ':' + ('0' + x % 60).slice(-2); }
 function _tmClock() {
   var S = _tmS, c = document.getElementById('tm-clock'), b = document.getElementById('tm-tban'); if (!S || !c) return;
   if (S.locked) {
     var t = S.lockAt || 0;
-    c.className = 'tm-clock done'; c.innerHTML = '⏱ ' + (S.auto ? 'Locked automatically at ' : 'Translated in ') + _tmMMSS(t);
+    c.hidden = false; c.className = 'tm-clock done'; c.innerHTML = (S.mode === 'free' ? '🏠 Untimed · translated in ' : S.auto ? '⏱ Locked automatically at ' : '⏱ Timed · translated in ') + _tmMMSS(t);
     if (b) b.hidden = true; return;
   }
-  if (!S.t0) { c.className = 'tm-clock'; c.innerHTML = '⏱ 10:00 <small>starts when you begin writing</small>'; if (b) b.hidden = true; return; }
+  if (!S.mode) { c.className = 'tm-clock'; c.hidden = true; if (b) b.hidden = true; return; }
+  c.hidden = false;
+  if (S.mode === 'free') { c.className = 'tm-clock free'; c.innerHTML = '🏠 Untimed · ' + _tmMMSS(_tmElapsed()); if (b) b.hidden = true; return; }
   var e = _tmElapsed(), left = TM_LIMIT - e;
   if (left > 0) {
     c.className = 'tm-clock' + (left <= 30 ? ' red' : left <= 120 ? ' amber' : ''); c.innerHTML = '⏱ ' + _tmMMSS(left);
@@ -11391,12 +11431,12 @@ function _tmClock() {
   var g = TM_LIMIT + TM_GRACE - e;
   c.className = 'tm-clock red pulse'; c.innerHTML = '⏱ 0:' + ('0' + Math.max(0, Math.ceil(g))).slice(-2);
   if (b) { b.hidden = false; b.className = 'tm-tban live'; b.innerHTML = '⏱ <b>Time\'s up!</b> You have <b>' + Math.max(0, Math.ceil(g)) + ' seconds</b> to finish. Your answers will lock in automatically at 0:00.' + (_tmEmpty().length ? ' ' + _tmList(_tmEmpty()) + (_tmEmpty().length > 1 ? ' are' : ' is') + ' still empty: have a quick go!' : ''); }
-  if (g <= 0 && !_tmPen) _tmAutoLock();
+  if (g <= 0 && !_tmPen && S.mode === 'timed') _tmAutoLock();
 }
 function _tmAutoLock() {
   var S = _tmS; if (!S || S.locked) return;
   S.na = _tmEmpty(); S.na.forEach(function (n) { S.marks[n - 1] = 0; });
-  S.locked = true; S.auto = true; S.lockAt = TM_LIMIT + TM_GRACE; _tmSave();
+  S.locked = true; S.auto = true; S.lockAt = TM_LIMIT + TM_GRACE; S.endAt = S.t0 + (TM_LIMIT + TM_GRACE) * 1000; _tmSave();
   var msg = document.getElementById('tm-msg'); if (msg) msg.hidden = true;
   document.querySelectorAll('#tm-items .tm-item').forEach(function (r) { r.classList.remove('tm-empty'); });
   APPEN.lockIn(document.getElementById('tm-items'));
@@ -11467,7 +11507,8 @@ function tmPDF() {
       meta: L + ' · ' + S.items.length + ' sentences',
       got: r.sum / 2, max: tot / 2, partial: r.n < S.items.length, partNote: r.n + ' of ' + S.items.length + ' sentences marked',
       summary: 'Self-marked: <b>' + r.sum + ' / ' + tot + '</b> (= ' + _tmHalf(r.sum) + ' / ' + (tot / 2) + ') &middot; ' + r.n + ' of ' + S.items.length + ' sentences marked'
-        + '<br>⏱ ' + (S.auto ? '<b class="apmp-bad">Locked automatically at ' + _tmTime(S.lockAt) + '</b> (time limit 10 min + 30 s)' + (S.na && S.na.length ? ' &middot; not attempted: sentence ' + S.na.join(', ') : '') : 'Translating: <b>' + _tmTime(S.lockAt || S.tAns) + '</b> (limit 10 min)') + ' &middot; Marking: <b>' + _tmTime(S.tMark) + '</b>',
+        + '<br>' + (S.mode === 'free' ? '🏠 <b>Untimed (homework)</b>' : '⏱ <b>Timed: 10 minutes (class)</b>') + (S.t0 ? ' &middot; started ' + _tmClockTime(S.t0) + (S.endAt ? ', locked in ' + _tmClockTime(S.endAt) : '') + ' on ' + new Date(S.t0).toLocaleDateString('en-GB') : '')
+        + '<br>⏱ ' + (S.auto ? '<b class="apmp-bad">Locked automatically at ' + _tmTime(S.lockAt) + '</b> (time limit 10 min + 30 s)' + (S.na && S.na.length ? ' &middot; not attempted: sentence ' + S.na.join(', ') : '') : 'Translating: <b>' + _tmTime(S.lockAt || S.tAns) + '</b>' + (S.mode === 'free' ? ' (no time limit)' : ' (limit 10 min)')) + ' &middot; Marking: <b>' + _tmTime(S.tMark) + '</b>',
       body: body, foot: 'AP IGCSE Structures &amp; Oral &middot; Translate 10 sentences &middot; ' + _tmEsc(card.code || ''),
       docTitle: 'AP IGCSE Structures & Oral — Translation ' + (card.code || ''), lang: L
     };
