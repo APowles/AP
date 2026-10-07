@@ -2,6 +2,117 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>AP IGCSE Approved Material</title>
+<script id="ap-voice">
+/* ===== AP VOICE v1 — shared voice picker, iPad/Prisma unlock and 🔊 Voice check (identical in every AP app) ===== */
+(function (W) {
+  if (W.AP_VOICE) return;
+  var S = W.speechSynthesis || null;
+  var NOVELTY = /^(Eddy|Flo|Grandma|Grandpa|Reed|Rocko|Sandy|Shelley|Albert|Bad News|Bahh|Bells|Boing|Bubbles|Cellos|Good News|Jester|Organ|Superstar|Trinoids|Whisper|Wobble|Zarvox|Fred|Junior|Kathy|Ralph)\b/i;
+  var NOVELTY_ID = /com\.apple\.eloquence\./i;   // Apple Eloquence voices (Eddy, Flo, Grandma… in every language)
+  var REGION = { fr: 'fr-FR', es: 'es-ES', it: 'it-IT', en: 'en-GB', de: 'de-DE' };
+  // Good voices per language, best first, by platform family
+  var APPLE = { fr: ['Thomas', 'Amélie', 'Amelie', 'Audrey', 'Aurélie', 'Marie'], es: ['Mónica', 'Monica', 'Jorge', 'Marisol', 'Paulina', 'Juan', 'Diego', 'Francisca', 'Angélica', 'Isabela'],
+                it: ['Alice', 'Luca', 'Federica', 'Paola', 'Emma'], en: ['Daniel', 'Serena', 'Kate', 'Oliver', 'Arthur', 'Martha', 'Stephanie', 'Jamie', 'Samantha'], de: ['Anna', 'Markus', 'Petra', 'Yannick'] };
+  var MS_DESKTOP = { fr: ['Hortense', 'Julie', 'Paul'], es: ['Helena', 'Laura', 'Pablo'], it: ['Elsa', 'Cosimo'], en: ['Hazel', 'George', 'Susan'], de: ['Hedda', 'Katja', 'Stefan'] };
+  var voices = [];
+  function load() { try { voices = (S && S.getVoices()) || []; } catch (e) { voices = []; } return voices; }
+  if (S) { load(); try { S.addEventListener('voiceschanged', load); } catch (e) { } }
+  function base(l) { return String(l || '').toLowerCase().split(/[-_]/)[0]; }
+  function lname(v) { return String(v && v.name || ''); }
+  function novelty(v) { return NOVELTY.test(lname(v)) || NOVELTY_ID.test(String(v && v.voiceURI || '')); }
+  function usable() { if (!voices.length) load(); return voices.filter(function (v) { return !novelty(v) && !/multilingual/i.test(lname(v)); }); }
+  function tierOf(v) {
+    var n = lname(v);
+    if (/online \(natural\)|neural/i.test(n)) return 'natural';
+    if (/\((enhanced|premium)\)|enhanced|premium/i.test(n) || /premium|enhanced/i.test(String(v.voiceURI || ''))) return 'enhanced';
+    if (/^google/i.test(n)) return 'google';
+    if (/^microsoft/i.test(n)) return 'desktop';
+    return 'basic';
+  }
+  function hasName(v, list) { var n = lname(v); for (var i = 0; i < list.length; i++) if (n.indexOf(list[i]) >= 0) return i; return -1; }
+  // pick(lang, {names:[preferred names, app's own order], gender:'female'|'male', exclude:[names]})
+  var PREFS = {}, DEFPREF = { fr: ['Henri', 'Remy', 'Thomas'], es: ['Alvaro', 'Jorge'], it: ['Diego', 'Luca'], en: ['Ryan', 'George', 'Daniel'] };   // most AP apps prefer these   // each app's preferred names per language, remembered from its own calls (used by the Voice check)
+  function pick(lang, o) {
+    o = o || {}; var b = base(lang), reg = REGION[b] || lang;
+    if (o.names && o.names.length && !PREFS[b]) PREFS[b] = o.names;
+    var L = usable().filter(function (v) { return base(v.lang) === b; });
+    if (o.exclude && o.exclude.length) { var L2 = L.filter(function (v) { return hasName(v, o.exclude) < 0; }); if (L2.length) L = L2; }
+    if (!L.length) return null;
+    var pref = (o.names && o.names.length) ? o.names : (DEFPREF[b] || []), apple = APPLE[b] || [], ms = MS_DESKTOP[b] || [];
+    var rank = { natural: 0, enhanced: 1, google: 2, desktop: 3, basic: 4 };
+    function score(v) {
+      var t = tierOf(v), s = rank[t] * 1000;
+      var pn = hasName(v, pref); s += pn >= 0 ? pn : 200;                      // app's own preferred names first within a tier
+      if (t === 'enhanced' || t === 'basic') { var an = hasName(v, apple); s += an >= 0 ? an : 100; }
+      if (t === 'desktop') { var mn = hasName(v, ms); s += mn >= 0 ? mn : 100; }
+      if (String(v.lang).replace('_', '-').toLowerCase() !== reg.toLowerCase()) s += 50;   // home region first (es-ES, fr-FR…)
+      if (v.localService === false && t === 'basic') s += 10;
+      return s;
+    }
+    return L.slice().sort(function (a, c) { return score(a) - score(c); })[0] || null;
+  }
+  function quality(v) { if (!v) return 'none'; var t = tierOf(v); return t === 'natural' || t === 'enhanced' || t === 'google' ? 'good' : t === 'desktop' ? 'ok' : 'basic'; }
+  // iPad / Prisma: speech only starts after a tap — prime it on the first touch or click
+  var unlocked = false;
+  function unlock() {
+    if (unlocked || !S) return; unlocked = true; load();
+    try { var u = new SpeechSynthesisUtterance(' '); u.volume = 0; u.rate = 1; S.speak(u); } catch (e) { }
+  }
+  ['pointerdown', 'touchend', 'keydown', 'click'].forEach(function (ev) { try { W.addEventListener(ev, unlock, { once: true, capture: true }); } catch (e) { } });
+  function platform() {
+    var ua = navigator.userAgent || '', ipad = /iPad|iPhone|iPod/.test(ua) || (/Macintosh/.test(ua) && navigator.maxTouchPoints > 1);
+    return ipad ? 'ipad' : /Mac OS X/.test(ua) ? 'mac' : /Windows/.test(ua) ? 'windows' : /CrOS/.test(ua) ? 'chromebook' : 'other';
+  }
+  var NAMES = { fr: 'French', es: 'Spanish', it: 'Italian', en: 'English', de: 'German' };
+  var SAMPLE = { fr: 'Bonjour, je m’appelle Thomas et j’aime apprendre le français.', es: 'Hola, en mi opinión es muy importante aprender idiomas.', it: 'Ciao, secondo me è molto importante imparare le lingue.', en: 'Hello, this is the English voice.', de: 'Hallo, ich lerne gern Deutsch.' };
+  function advice(b, v, plat) {
+    var q = quality(v), name = NAMES[b] || b;
+    if (q === 'good') return '';
+    var seen = {}, better = (APPLE[b] || []).filter(function (n) { var k = n.normalize('NFD').replace(/[\u0300-\u036f]/g, ''); if (seen[k]) return false; seen[k] = 1; return true; }).slice(0, 2).join(' or ');
+    if (plat === 'ipad' || plat === 'mac') return (v ? 'This is a basic voice. ' : 'No ' + name + ' voice found. ') + 'For a much better one: Settings → Accessibility → Spoken Content → Voices → ' + name + ' → download ' + better + ' (Enhanced). Then reload this page.';
+    if (plat === 'windows') return (v ? 'This is a basic Windows voice. ' : 'No ' + name + ' voice on this computer. ') + 'Best: open this app in Microsoft Edge. Otherwise ask IT to add the ' + name + ' speech pack (Settings → Time & language → Speech).';
+    return v ? 'This is a basic voice; another browser or device may sound better.' : 'No ' + name + ' voice on this device.';
+  }
+  function say(text, lang, rate) {
+    if (!S) return; try { S.cancel(); } catch (e) { }
+    var u = new SpeechSynthesisUtterance(text), b = base(lang); u.lang = REGION[b] || lang;
+    var nm = PREFS[b] || (typeof W._apvNames === 'function' ? W._apvNames(b) : DEFPREF[b]), v = pick(lang, nm ? { names: nm } : {}); if (v) u.voice = v; u.rate = rate || (b === 'es' ? 0.75 : 0.9); S.speak(u);
+  }
+  // 🔊 Voice check panel (house style)
+  function check(langs) {
+    langs = (langs && langs.length ? langs : ['fr', 'es', 'it']).map(base);
+    var old = document.getElementById('apv-check'); if (old) old.remove();
+    var plat = platform(), d = document.createElement('div'); d.id = 'apv-check';
+    d.setAttribute('role', 'dialog'); d.setAttribute('aria-label', 'Voice check');
+    d.style.cssText = 'position:fixed;inset:0;z-index:20000;background:rgba(15,23,42,.55);display:flex;align-items:flex-start;justify-content:center;padding:6vh 16px;overflow:auto;font-family:"DM Sans",system-ui,-apple-system,"Segoe UI",sans-serif';
+    function row(b) {
+      var nm = PREFS[b] || (typeof W._apvNames === 'function' ? W._apvNames(b) : DEFPREF[b]), v = pick(b, nm ? { names: nm } : {}), q = quality(v), col = q === 'good' ? '#2e7d52' : q === 'ok' ? '#b8922a' : '#c0392b', bg = q === 'good' ? '#eaf5ef' : q === 'ok' ? '#fdf6e3' : '#fdecea';
+      var lbl = q === 'good' ? 'Good' : q === 'ok' ? 'OK' : q === 'none' ? 'Missing' : 'Basic', adv = advice(b, v, plat);
+      return '<div style="border:1px solid #e2e6f0;border-radius:10px;padding:12px 14px;display:grid;gap:6px">'
+        + '<div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap"><b style="font-size:1rem;color:#1a2744;min-width:70px">' + (NAMES[b] || b) + '</b>'
+        + '<span style="font-size:.9rem;color:#4a5a7a;flex:1;min-width:0">' + (v ? v.name.replace(/</g, '&lt;') + ' · ' + v.lang : 'no voice') + '</span>'
+        + '<span style="font-size:.75rem;font-weight:800;letter-spacing:.06em;text-transform:uppercase;color:' + col + ';background:' + bg + ';border-radius:6px;padding:2px 8px">' + lbl + '</span>'
+        + '<button type="button" data-apv-test="' + b + '" style="font:700 .9rem inherit;font-family:inherit;border:1.5px solid #e2e6f0;background:#fff;color:#1a2744;border-radius:8px;padding:6px 12px;cursor:pointer"' + (v ? '' : ' disabled') + '>▶ Test</button></div>'
+        + (adv ? '<div style="font-size:.85rem;color:#4a5a7a;line-height:1.45">' + adv + '</div>' : '') + '</div>';
+    }
+    d.innerHTML = '<div style="background:#fff;border-radius:14px;box-shadow:0 10px 40px rgba(0,0,0,.25);max-width:560px;width:100%;padding:20px;display:grid;gap:12px">'
+      + '<div style="display:flex;align-items:center;gap:10px"><div style="font:700 1.35rem \'Playfair Display\',Georgia,serif;color:#1a2744;flex:1">🔊 Voice check</div>'
+      + '<button type="button" data-apv-close style="font:700 .9rem inherit;font-family:inherit;border:1.5px solid #e2e6f0;background:#fff;color:#1a2744;border-radius:8px;padding:6px 12px;cursor:pointer">✕ Close</button></div>'
+      + '<div style="font-size:.9rem;color:#4a5a7a;line-height:1.45">The voice this app uses on this ' + (plat === 'ipad' ? 'iPad' : 'device') + ' for each language. Press ▶ Test to hear it.</div>'
+      + (S ? langs.map(row).join('') : '<div style="color:#c0392b">This browser has no speech at all.</div>')
+      + '</div>';
+    d.addEventListener('click', function (e) {
+      var t = e.target.closest ? e.target.closest('[data-apv-test],[data-apv-close]') : null;
+      if (e.target === d || (t && t.hasAttribute('data-apv-close'))) { try { S && S.cancel(); } catch (x) { } d.remove(); return; }
+      if (t && t.hasAttribute('data-apv-test')) { var b = t.getAttribute('data-apv-test'); say(SAMPLE[b] || 'Test', b); }
+    });
+    document.body.appendChild(d);
+    if (!voices.length && S && !check._retried) { check._retried = true; setTimeout(function () { if (document.getElementById('apv-check')) check(langs); }, 800); }   // voices still loading: try once more
+  }
+  W.AP_VOICE = { prefs: PREFS, pick: pick, quality: quality, isNovelty: novelty, usable: usable, load: load, unlock: unlock, check: check, platform: platform, tier: tierOf, region: function (l) { return REGION[base(l)] || l; } };
+})(window);
+/* ===== END AP VOICE ===== */
+</script>
 <style id="aph-style">
 /* ===== AP HOUSE STYLE v1 ===== */
 /* One shared look for every AP app. Paste this block unchanged into each app (inside <style id="aph-style">);
@@ -243,6 +354,11 @@ body{min-height:100vh}
 .lz-keys{justify-content:center;margin-top:10px}
 @media (max-width:480px){.lz-pace .aph-btn-sm{margin-left:0;flex-basis:100%;max-width:220px}}
 </style>
+<style id="ap-voice-btn">
+/* 🔊 Voices — header button (AP VOICE v1): same gold-outline style as ⌂ Home, shown on every screen incl. home */
+.aph-header .aph-home.aph-voice{display:inline-block!important}
+@media (max-width:420px){.aph-header .aph-voice .aph-voice-t{display:none}.aph-header .aph-home.aph-voice{padding:7px 8px}}
+</style>
 </head>
 <body>
 
@@ -253,6 +369,7 @@ body{min-height:100vh}
       <div class="aph-sub">Practice sentences · 1,440 phrases · 🇬🇧 🇫🇷 🇮🇹 🇪🇸 · Audio</div>
     </div>
     <button id="amEditBtn" class="am-edit-btn" onclick="showAMVocabEditor()" style="display: none;">✏️ Edit Vocab</button>
+    <button type="button" class="aph-home aph-voice" onclick="AP_VOICE.check(['fr','it','es','en'])" title="Voice check: which voice speaks each language" aria-label="Voice check">🔊<span class="aph-voice-t"> Voices</span></button>
     <button class="aph-home" onclick="goHome()">&#8962; Home</button>
     <img class="aph-avatar" onclick="toggleAMEdit()" title="Toggle edit mode" src="data:image/jpeg;base64,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" alt="AP" style="cursor:pointer">
   </div>
@@ -1837,25 +1954,15 @@ function speak(text, lang, onEndCallback) {
   u.lang = langCode;
   const langBase = langCode.split('-')[0];
   if (!voices.length) loadVoices();                 // voices not loaded yet: ask again right now
-  const _vs = apUsableVoices(voices);               // never a novelty voice
-  const isMulti = v => v.name.toLowerCase().includes('multilingual');
-  let selectedVoice = null;
-  const maleNames = {
+  // AP VOICE v1: best voice available (Edge Natural → Apple Enhanced/Premium → Google → Windows desktop → Apple basic), never a novelty voice; the names below keep this app's own preferences first
+  const names = {
     'en':['Ryan','George','Oliver','Thomas','Arthur','Guy','Andrew','Brian','Davis','Tony'],
     'fr':['Henri','Remy','Guillaume','Antoine'],
-    'es':['Alvaro','Jorge','Pablo'],
+    'es':['Alvaro','Elvira'],   // Spanish as before (apSpanishVoice): Microsoft Álvaro, then Elvira
     'it':['Diego','Cosimo'],
     'de':['Conrad','Bernd']
   }[langBase] || [];
-  for (const name of maleNames) {
-    selectedVoice = _vs.find(v => v.lang.startsWith(langBase) && !isMulti(v) && v.name.includes(name));
-    if (selectedVoice) break;
-  }
-  if (!selectedVoice) selectedVoice = _vs.find(v => v.lang.startsWith(langBase) && !isMulti(v) && (v.name.toLowerCase().includes('natural')||v.name.toLowerCase().includes('premium')||v.name.toLowerCase().includes('enhanced')));
-  if (!selectedVoice) selectedVoice = _vs.find(v => v.lang.startsWith(langBase) && !isMulti(v));
-  if (!selectedVoice) selectedVoice = _vs.find(v => v.lang === langCode);
-  if (!selectedVoice) selectedVoice = _vs.find(v => v.lang.startsWith(langBase));
-  if (langBase === 'es') selectedVoice = apSpanishVoice(voices);   // Spanish: see apSpanishVoice
+  const selectedVoice = AP_VOICE.pick(langCode, { names: names });
   if (selectedVoice) u.voice = selectedVoice;
   if (onEndCallback) u.onend = onEndCallback;
   synth.speak(u);
