@@ -548,6 +548,15 @@ textarea.p1-in{border:1px solid #bbb;border-radius:4px;min-height:44px}
 .p1-verdict{font-weight:700;font-size:0.875rem;margin-left:6px}
 .p1-verdict.ok{color:var(--correct)}.p1-verdict.no{color:var(--wrong)}
 .p1-total{font-weight:700;text-align:right;margin-top:14px;font-size:0.9rem}
+.p1-steps{display:flex;flex-wrap:wrap;gap:12px;align-items:center}
+.p1-lock,.p1-chk{font:800 1.0625rem/1.2 var(--aph-body);border-radius:10px;padding:12px 20px;min-height:52px;cursor:pointer;-webkit-tap-highlight-color:transparent}
+.p1-lock{background:var(--gold);color:var(--navy);border:2px solid var(--navy);box-shadow:0 3px 0 var(--navy)}
+.p1-lock:hover:not(:disabled){filter:brightness(1.05)}
+.p1-lock:disabled{background:#eef0f4;color:#4a5368;border-color:#c9cfdb;box-shadow:none;cursor:default}
+.p1-chk{background:var(--navy);color:var(--gold2);border:3px solid var(--navy)}
+.p1-chk:disabled{background:#e4e7ee;color:#7a8299;border-color:#e4e7ee;cursor:not-allowed}
+.p1-chk.ready{border-color:#c0392b;animation:p1tPulse 1.2s ease-in-out infinite}
+.p1-lock-n{flex-basis:100%;font-size:.875rem;font-weight:600;color:#a32116;margin-top:8px;line-height:1.4}
 .p1-actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:16px;padding-top:12px;border-top:1px solid #e3e3e3;font-family:var(--aph-body)}
 .p1-q6 td{padding:5px 6px;vertical-align:top;font-size:0.92rem}
 .p1-q6 td.box{width:30px;text-align:center}
@@ -8916,7 +8925,7 @@ function renderP1Mock(ids){
     h += p1Block(q,i);
   });
   h += p1NotesHtml(lastSec)+'</div>';
-  h += '<div class="p1-card" style="text-align:center"><button class="p1-btn" onclick="p1CheckAll()">✔ Check the whole paper</button><div class="p1-note" style="margin-top:8px">Then self-mark the open answers; the total at the top updates as you go.</div></div>';
+  h += '<div class="p1-card" style="text-align:center"><div class="p1-steps" style="justify-content:center"><button type="button" class="p1-lock" onclick="p1LockAll()">🔒 I\'ve finished: lock in the whole paper</button><button type="button" class="p1-chk" id="p1-chkall" disabled onclick="p1CheckAll()">✔ Check the whole paper</button></div><div class="p1-note" style="margin-top:8px">Lock in first (you cannot change your answers afterwards). Then self-mark the open answers; the total at the top updates as you go.</div></div>';
   h += '<div class="p1-card" id="p1-pdf-foot" style="display:none;text-align:center"><button class="apmp-btn lg" onclick="p1SavePDF()">📄 Save marked paper as PDF</button><div class="p1-note" style="margin:8px 0 0">Your answers, the mark scheme and your score on one printable page.</div></div>';
   h += '</div></div>';
   app().innerHTML = h; window.scrollTo(0,0); p1Total(); p1VoicesInit(); p1PenMount(function(){ renderP1Mock(ids); });
@@ -8961,7 +8970,9 @@ function p1Block(q, bi){
     else { h += '<div class="p1-instr">Répondez aux questions en français.</div>'; q.items.forEach(function(it,i){ h += p1Open(it, P+'o'+i, b, 'o'+i); }); }
   }
   h += '<div class="p1-total">(Total for Question '+T.num+' = '+T.marks+' marks)</div>';
-  h += '<div class="p1-actions"><button class="p1-btn sm" id="'+P+'chk" onclick="p1Check('+bi+')">✔ Show answers &amp; mark scheme</button>';
+  h += '<div class="p1-actions"><div class="p1-steps"><button type="button" class="p1-lock" id="'+P+'lock" onclick="p1Lock('+bi+')">🔒 I\'ve finished: lock in my answers</button>'
+     + '<button type="button" class="p1-chk" id="'+P+'chk" disabled onclick="p1Check('+bi+')">✔ Show answers &amp; mark scheme</button></div>'
+     + '<div class="p1-lock-n" id="'+P+'lockn">① Lock in your answers when you have finished (you cannot change them afterwards). ② Then the mark scheme opens.</div>';
   if(T.sec==='A') h += '<button class="p1-btn ghost sm" id="'+P+'trb" style="display:none" onclick="p1ToggleTrans('+bi+')">📄 Show transcript</button>';
   h += '</div><div id="'+P+'trans"></div>';
   h += '<div class="p1-fin" id="'+P+'fin" hidden></div>';
@@ -9036,8 +9047,25 @@ function openMS(it, id, bi, key){
   el.innerHTML = '<div class="p1-ms"><div class="k ans">Mark scheme</div><div>'+br(it.answer)+'</div>'+p1GistBox(it.gist)+msList(it.accept,'ok','Accept')+msList(it.reject,'no','Reject')+selfHtml(bi,key,it.marks||1)+'</div>';
   showTip(id);
 }
+window.p1Lock = function(bi, quiet){
+  var b=P1B[bi]; if(!b||b.locked) return;
+  if(!quiet && !window.confirm('Lock in your answers to this question?\n\nYou will not be able to change them afterwards. Corrections after marking go in red.')) return;
+  var P='p1b'+bi+'_'; b.locked=true;
+  disableInputs(P); APPEN.lockIn(document.getElementById(P+'wrap'));
+  if(P1T && P1T.bi===bi) p1TimerStop();
+  var lb=document.getElementById(P+'lock'); if(lb){ lb.disabled=true; lb.textContent='🔒 Answers locked'; }
+  var cb=document.getElementById(P+'chk'); if(cb){ cb.disabled=false; cb.classList.add('ready'); }
+  var n=document.getElementById(P+'lockn'); if(n) n.textContent='Your answers are locked. Now open the mark scheme and mark yourself honestly.';
+};
+window.p1LockAll = function(){
+  var open=P1B.filter(function(b){ return b && !b.locked; }); if(!open.length) return;
+  if(!window.confirm('Lock in your answers to the whole paper?\n\nYou will not be able to change them afterwards. Corrections after marking go in red.')) return;
+  P1B.forEach(function(b,i){ if(b && !b.locked) p1Lock(i, true); });
+  var c=document.getElementById('p1-chkall'); if(c){ c.disabled=false; c.classList.add('ready'); }
+};
 window.p1Check = function(bi){
   var b=P1B[bi]; if(!b||b.checked) return;
+  if(!b.locked){ p1Toast('First press <b>🔒 I\'ve finished: lock in my answers</b>. Then the mark scheme opens.'); var l=document.getElementById('p1b'+bi+'_lock'); if(l) l.scrollIntoView({behavior:'smooth',block:'center'}); return; }
   var q=b.q, P='p1b'+bi+'_'; b.checked=true; b.auto=0; b.maxSelf=0;
   if(q.type==='l1'||q.type==='q5'){
     q.items.forEach(function(it,i){
@@ -9074,12 +9102,13 @@ window.p1Check = function(bi){
   }
   disableInputs(P);
   APPEN.lockIn(document.getElementById(P+'wrap'));
-  var cb=document.getElementById(P+'chk'); if(cb){ cb.disabled=true; cb.textContent='✔ Checked – now self-mark the open answers'; if(q.type==='l1'||q.type==='q5'||q.type==='q6') cb.textContent='✔ Checked'; }
+  var ln=document.getElementById(P+'lockn'); if(ln) ln.remove();
+  var cb=document.getElementById(P+'chk'); if(cb){ cb.classList.remove('ready'); cb.disabled=true; cb.textContent='✔ Checked – now self-mark the open answers'; if(q.type==='l1'||q.type==='q5'||q.type==='q6') cb.textContent='✔ Checked'; }
   var tb=document.getElementById(P+'trb'); if(tb) tb.style.display='';
   var sr=document.getElementById(P+'src'); if(sr) sr.style.display='';
   p1BlockScore(bi); p1Total(); p1FinShow(bi);
 };
-window.p1CheckAll = function(){ P1B.forEach(function(b,i){ if(b && !b.checked) p1Check(i); }); };
+window.p1CheckAll = function(){ if(!P1B.some(function(b){ return b && b.locked; })){ p1Toast('First lock in your answers to the whole paper.'); return; } P1B.forEach(function(b,i){ if(b && b.locked && !b.checked) p1Check(i); }); var c=document.getElementById('p1-chkall'); if(c) c.classList.remove('ready'); };
 function p1BlockScore(bi){
   var b=P1B[bi], T=P1_TYPES[b.q.type], s=b.auto; Object.keys(b.self).forEach(function(k){ s+=b.self[k]; });
   b.score=Math.min(s,T.marks);
@@ -9429,7 +9458,7 @@ function p1PdfBlock(b){
 }
 window.p1SavePDF = function(){
   if(p1Mode==='single' && P1BASKET.items.length) return p1SaveBasket();
-  if(!P1B.some(function(b){ return b && b.checked; })){ p1Toast('First press <b>✔ Show answers &amp; mark scheme</b> and mark your answers; then save your PDF.'); return; }
+  if(!P1B.some(function(b){ return b && b.checked; })){ p1Toast('First lock in your answers (<b>🔒 I\'ve finished</b>), open the mark scheme and mark yourself; then save your PDF.'); return; }
   APMP.save(function(){
     var got=0, max=0, mMax=0, nChk=0, nAll=0, unself=0, body='', lastSec='', secs={};
     P1B.forEach(function(b){ if(!b) return; var T=P1_TYPES[b.q.type], s=secs[T.sec]||(secs[T.sec]={got:0,max:0,mmax:0,chk:0,n:0});
