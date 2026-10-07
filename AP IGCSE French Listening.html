@@ -109,7 +109,14 @@
     document.body.appendChild(d);
     if (!voices.length && S && !check._retried) { check._retried = true; setTimeout(function () { if (document.getElementById('apv-check')) check(langs); }, 800); }   // voices still loading: try once more
   }
-  W.AP_VOICE = { prefs: PREFS, pick: pick, quality: quality, isNovelty: novelty, usable: usable, load: load, unlock: unlock, check: check, platform: platform, tier: tierOf, region: function (l) { return REGION[base(l)] || l; } };
+  // Speech-only pronunciation fixes (the text on screen is untouched). Same length as the original where possible, so
+  // word highlighting (karaoke) stays in step. Add more pairs here as Andrew spots them.
+  var FIXES = { fr: [[/\b([Tt])ransports en commun\b/g, '$1ransport zan commun']] };
+  function fixText(text, lang) { var L = FIXES[base(lang)]; if (!L || !text) return text; for (var i = 0; i < L.length; i++) text = String(text).replace(L[i][0], L[i][1]); return text; }
+  if (S && !S.__apFix) {
+    try { var _speak = S.speak.bind(S); S.speak = function (u) { try { if (u && u.text) { var l = u.lang || (u.voice && u.voice.lang) || ''; if (FIXES[base(l)]) u.text = fixText(u.text, l); } } catch (e) { } return _speak(u); }; S.__apFix = true; } catch (e) { }
+  }
+  W.AP_VOICE = { fixes: FIXES, fixText: fixText, prefs: PREFS, pick: pick, quality: quality, isNovelty: novelty, usable: usable, load: load, unlock: unlock, check: check, platform: platform, tier: tierOf, region: function (l) { return REGION[base(l)] || l; } };
 })(window);
 /* ===== END AP VOICE ===== */
 </script>
