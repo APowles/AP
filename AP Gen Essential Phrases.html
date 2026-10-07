@@ -3,7 +3,7 @@
 <script id="ap-update">
 /* AP auto-update: if this copy is older than the published version, reload once with the new one (saved answers are kept) */
 (function () {
-  var B = '2e92f3fd2a'; window.AP_BUILD = B;
+  var B = 'f0bf97d8f7'; window.AP_BUILD = B;
   function check() {
     if (!/^https?:$/.test(location.protocol) || !window.fetch) return;
     var f = decodeURIComponent(location.pathname.split('/').pop() || '');
@@ -1271,7 +1271,7 @@ aphWatchHome(document.getElementById('app'), '.ep-home');
 .apmp-btn.lg{font-size:1.0625rem;padding:12px 20px;min-height:50px}
 .apmp-btn.on-dark{background:var(--gold);color:var(--navy);border-color:var(--gold)}
 .apmp-btn.on-dark:hover{background:var(--gold2);color:var(--navy)}
-.apmp-ov{position:fixed;inset:0;z-index:20000;background:rgba(8,13,28,.62);display:flex;align-items:flex-start;justify-content:center;padding:12vh 16px 16px;box-sizing:border-box;font-family:var(--aph-body)}
+.apmp-ov{position:fixed;inset:0;z-index:20000;background:rgba(8,13,28,.62);display:flex;align-items:flex-start;justify-content:center;padding:8vh 16px 16px;overflow-y:auto;-webkit-overflow-scrolling:touch;box-sizing:border-box;font-family:var(--aph-body)}
 .apmp-box{width:100%;max-width:420px;background:#fff;border-radius:14px;box-shadow:0 30px 80px rgba(0,0,0,.45);padding:20px 20px 18px;color:var(--navy);box-sizing:border-box}
 .apmp-box h3{font:700 1.15rem/1.25 var(--aph-body);margin:0 0 4px;color:var(--navy)}
 .apmp-box p{font-size:.875rem;line-height:1.45;color:var(--text2);margin:0 0 12px}.apmp-box p.apmp-next{background:#fff4d6;border-left:4px solid #c9a84c;padding:8px 10px;border-radius:6px;color:#1a2744}
@@ -1285,13 +1285,21 @@ aphWatchHome(document.getElementById('app'), '.ep-home');
 .apmp-frame-bar{display:flex;flex-wrap:wrap;gap:8px;align-items:center;background:var(--navy);border-bottom:3px solid var(--gold);padding:8px 12px;color:#dfe5f3;font:500 .8125rem/1.3 var(--aph-body)}
 .apmp-frame-bar span{flex:1;min-width:160px}
 .apmp-frame iframe{flex:1;width:100%;border:0;background:#fff}
+.apmp-pt{background:#eef3fb;border:2px solid var(--navy);border-radius:10px;padding:10px 12px;margin:0 0 14px}
+.apmp-box .apmp-pt label{color:var(--navy);margin:0 0 4px}
+.apmp-pt-f{font-size:.8125rem;line-height:1.4;color:var(--navy);margin:0 0 8px}
+.apmp-pt-row{display:flex;gap:6px;align-items:stretch}
+.apmp-box .apmp-pt-row input{flex:1 1 auto;min-width:0;font-weight:700;font-size:15px;background:#fff;color:var(--navy)}
+.apmp-pt-row button{flex:none;font:700 .9375rem/1.2 var(--aph-body);color:var(--navy);background:var(--gold);border:0;border-radius:8px;padding:0 12px;min-height:44px;cursor:pointer;white-space:nowrap}
+.apmp-pt-row button.ok{background:#2e7d52;color:#fff}
 /* ===== END AP MARKED PAPER ===== */
 </style>
 <script id="apmp-script">
 /* ===== AP MARKED PAPER → PDF v1 (shared; identical in every AP app with marked papers) =====
    APMP.save(build): asks once for the boy's name (in-page; remembered in localStorage 'apStudentName'; Skip allowed),
-   then build() returns { app, kicker, title, meta, got, max, partial, partNote, summary, body, foot, docTitle }
-   and the marked paper opens as a print-ready page with the print dialog (Save as PDF). If pop-ups are blocked,
+   then build() returns { app, kicker, title, meta, got, max, partial, partNote, summary, body, foot, docTitle, pageTitle? }
+   (pageTitle: the OneNote page title after today's date dd/mm/yyyy; default = docTitle without '– marked'; a Copy
+   button for it is shown in the name dialog and on the PDF page) and the marked paper opens as a print-ready page with the print dialog (Save as PDF). If pop-ups are blocked,
    the same page opens in an in-page overlay with its own Print button. Nothing here marks anything: the app's own
    score is passed in. */
 var APMP = (function () {
@@ -1307,10 +1315,36 @@ var APMP = (function () {
   }
   function closeAsk() { var o = document.getElementById('apmp-ask'); if (o) o.remove(); }
   function apmpPad() { var ua = navigator.userAgent || ''; return /iPad|iPhone|iPod/.test(ua) || (/Macintosh/.test(ua) && navigator.maxTouchPoints > 1); }
-  function howTo() {
-    var po = '<li>In <b>OneNote</b>, open <b>AP&rsquo;s notebook</b> and the <b>page with today&rsquo;s date</b>. Tap the <b>Insert</b> tab at the top, then <b>File</b> <span class="apmp-ico">(the paper-clip &#128206;)</span>. In Files, open <b>Recents</b> (or <i>Downloads</i>) and tap your PDF. When OneNote asks how to insert it, tap <b>Insert as Printout</b>. <span class="apmp-warn">Not &ldquo;Attachment&rdquo;: an attachment is just a small PDF box that AP has to open. A printout puts every page of your work on the OneNote page.</span></li>'
+  // OneNote page title: today's date (dd/mm/yyyy) + what the work was, e.g. "07/10/2026 AP Spot Test on VV10a (Medium)"
+  function dmy(d) { d = d || new Date(); function p(n) { return (n < 10 ? '0' : '') + n; } return p(d.getDate()) + '/' + p(d.getMonth() + 1) + '/' + d.getFullYear(); }
+  function pageTitle(o) {
+    var t = (o && (o.pageTitle || o.docTitle)) || 'AP work';
+    t = String(t).replace(/<[^>]*>/g, '').replace(/&nbsp;/g, ' ').replace(/&middot;/g, '·').replace(/&amp;/g, '&').replace(/\s*[–—-]\s*marked\s*$/i, '').replace(/\s+/g, ' ').trim();
+    return dmy() + ' ' + t;
+  }
+  var FOLDER = 'Done in class (<b>Birley 12</b>)? &rarr; put it in <b>Class Work</b>. Done in your <b>House</b> (EW)? &rarr; put it in <b>EW</b>.';
+  // copy button: works in Prisma / Safari (clipboard API) with a select-and-copy fallback
+  var COPY = "var i=this.parentNode.querySelector('input'),b=this,v=i.value;function ok(){b.textContent='\u2713 Copied';b.className='ok';setTimeout(function(){b.textContent='\ud83d\udccb Copy';b.className='';},2500);}"
+    + "function fb(){try{i.removeAttribute('readonly');i.focus();i.select();i.setSelectionRange(0,v.length);var r=document.execCommand('copy');i.setAttribute('readonly','');i.blur();if(r)ok();else alert('Hold your finger on the title, then tap Select All and Copy.');}catch(e){alert('Hold your finger on the title, then tap Select All and Copy.');}}"
+    + "try{if(navigator.clipboard&&navigator.clipboard.writeText){navigator.clipboard.writeText(v).then(ok,fb);}else fb();}catch(e){fb();}";
+  function copyRow(t, id) {
+    return '<div class="apmp-pt-row"><input id="' + id + '" type="text" readonly value="' + esc(t) + '" onclick="this.select()" aria-label="OneNote page title">'
+      + '<button type="button" onclick="' + esc(COPY) + '">&#128203; Copy</button></div>';
+  }
+  function ptBox(t, id) {
+    return '<div class="apmp-pt"><label for="' + id + '">&#128221; Your OneNote page title</label>'
+      + '<div class="apmp-pt-f">' + (apmpPad() ? 'Tap' : 'Click') + ' <b>Copy</b> now. In OneNote, make a <b>new page</b> and paste this as its title. ' + FOLDER + '</div>' + copyRow(t, id) + '</div>';
+  }
+  function howTo(pt) {
+    var pad = apmpPad(), T = pad ? 'tap' : 'click';
+    var po = (pt ? '<li>Tap <b>&#128203; Copy</b> to copy your <b>OneNote page title</b>:' + copyRow(pt, 'apmp-ptd') + '</li>'
+        + '<li>In <b>OneNote</b>, open <b>AP&rsquo;s notebook</b>. ' + FOLDER + ' Make a <b>new page</b> and paste the title into the page&rsquo;s <b>title line</b> (at the top, above the date).</li>' : '')
+      + '<li>' + (pt ? 'On that new page, ' + T : 'In <b>OneNote</b>, open <b>AP&rsquo;s notebook</b> and the <b>page with today&rsquo;s date</b>. ' + (pad ? 'Tap' : 'Click'))
+      + (pad ? ' the <b>Insert</b> tab at the top, then <b>File</b> <span class="apmp-ico">(the paper-clip &#128206;)</span>. In Files, open <b>Recents</b> (or <i>Downloads</i>) and tap your PDF. When OneNote asks how to insert it, tap <b>Insert as Printout</b>.'
+             : ' <b>Insert</b> &rsaquo; <b>File Printout</b> (or <b>File</b> &rsaquo; <b>Insert Printout</b>) and choose your PDF.')
+      + ' <span class="apmp-warn">Not &ldquo;Attachment&rdquo;: an attachment is just a small PDF box that AP has to open. A printout puts every page of your work on the OneNote page.</span></li>'
       + '<li>Check the OneNote page shows your pages, with your name and red score at the top.</li>';
-    if (apmpPad()) return '<div class="apmp-how"><div class="apmp-how-h">&#128242; How to send this to AP (iPad)</div><ol>'
+    if (pad) return '<div class="apmp-how"><div class="apmp-how-h">&#128242; How to send this to AP (iPad)</div><ol>'
       + '<li>If the print screen has not opened by itself, tap <button type="button" onclick="window.print()">&#128424; Print / Save as PDF</button></li>'
       + '<li>In <b>Print Options</b>, do <b>not</b> choose a printer and do <b>not</b> tap Print. Tap the <b>Share button</b> at the top <span class="apmp-ico">(the square with an arrow &#11014;&#65038;)</span>, then <b>Save to Files</b> and save it (e.g. in <i>Downloads</i>).</li>'
       + po + '</ol>'
@@ -1318,14 +1352,15 @@ var APMP = (function () {
     return '<div class="apmp-how"><div class="apmp-how-h">&#128187; How to send this to AP</div><ol>'
       + '<li>If the print window has not opened by itself, click <button type="button" onclick="window.print()">&#128424; Print / Save as PDF</button></li>'
       + '<li>Set <b>Destination</b> (or Printer) to <b>Save as PDF</b> (or <i>Microsoft Print to PDF</i>), then <b>Save</b>. Your computer remembers this choice next time.</li>'
-      + po.replace('Tap the <b>Insert</b> tab at the top, then <b>File</b> <span class=\"apmp-ico\">(the paper-clip &#128206;)</span>. In Files, open <b>Recents</b> (or <i>Downloads</i>) and tap your PDF. When OneNote asks how to insert it, tap <b>Insert as Printout</b>.', 'Click <b>Insert</b> &rsaquo; <b>File Printout</b> (or <b>File</b> &rsaquo; <b>Insert Printout</b>) and choose your PDF').replace('Tap the','Click the') + '</ol></div>';
+      + po.replace('<li>Tap <b>', '<li>Click <b>') + '</ol></div>';
   }
-  function ask(cb) {
+  function ask(cb, pt) {
     closeAsk();
     var o = document.createElement('div'); o.id = 'apmp-ask'; o.className = 'apmp-ov';
     o.innerHTML = '<div class="apmp-box" role="dialog" aria-modal="true" aria-labelledby="apmp-ask-h">'
       + '<h3 id="apmp-ask-h">&#128196; Save marked paper as PDF</h3>'
       + '<p>Your answers, the mark scheme and your score go on one page.</p>'
+      + (pt ? ptBox(pt, 'apmp-pta') : '')
       + (apmpPad() ? '<p class="apmp-next">Next, the print screen opens. <b>Do not print.</b> Tap the <b>Share button &#11014;&#65038;</b> at the top, then <b>Save to Files</b>. Then put it into OneNote <b>as a Printout</b>. Step-by-step help is at the top of the next page.</p>'
                    : '<p class="apmp-next">Next, the print window opens: choose <b>Save as PDF</b>, then put it into <b>OneNote</b> with <b>Insert &rsaquo; File Printout</b> (not as an attachment).</p>')
       + '<label for="apmp-name">Your name (printed at the top)</label>'
@@ -1386,6 +1421,7 @@ var APMP = (function () {
     + '*{box-sizing:border-box}html,body{background:#fff}body{margin:0;font-family:var(--aph-body);color:#1a2744;font-size:10pt;line-height:1.42;-webkit-print-color-adjust:exact;print-color-adjust:exact;-webkit-text-size-adjust:100%}'
     + '.apmp-bar{display:block;background:#1a2744;color:#eef2fa;padding:14px 18px;font-size:16px;line-height:1.45;border-bottom:4px solid #c9a84c}.apmp-how{max-width:760px;margin:0 auto}.apmp-how-h{font-weight:800;font-size:18px;color:#f3dc9a;margin:0 0 6px}.apmp-how ol{margin:0;padding-left:1.4em}.apmp-how li{margin:6px 0}.apmp-how b{color:#fff}.apmp-ico{color:#f3dc9a;white-space:nowrap}.apmp-warn{display:block;margin-top:4px;color:#ffd0c9;font-size:14px}.apmp-how-s{font-size:13px;color:#b9c3da;margin-top:8px}'
     + '.apmp-bar button{background:#c9a84c;color:#1a2744;border:0;border-radius:6px;padding:9px 14px;font:700 14px var(--aph-body);cursor:pointer;min-height:40px}'
+    + '.apmp-pt-row{display:flex;gap:6px;margin:6px 0 2px;max-width:600px}.apmp-pt-row input{flex:1 1 auto;min-width:0;font:700 16px/1.2 var(--aph-body);padding:8px 10px;border-radius:6px;border:2px solid #c9a84c;color:#1a2744;background:#fff;min-height:40px}.apmp-pt-row button{flex:none;white-space:nowrap}.apmp-bar .apmp-pt-row button.ok{background:#2e7d52;color:#fff}'
     + '.apmp-page{max-width:186mm;margin:0 auto;padding:8mm 16px 10mm}'
     + '.aph-pband{margin-top:0}'
     + '.apmp-res{display:flex;align-items:center;gap:6mm;border:1px solid #e3e3e3;border-top:0;border-radius:0 0 6px 6px;padding:4mm 5mm;margin-bottom:4mm;background:#fafafa}'
@@ -1434,7 +1470,7 @@ var APMP = (function () {
       + 'if(document.readyState==="complete")ready();else window.addEventListener("load",ready);})();</scr' + 'ipt>';
     return '<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>' + esc(o.docTitle + (o.name ? ' — ' + o.name : '')) + '</title>'
       + '<style>' + aphCSS() + '</style><style>' + CSS + '</style></head><body>'
-      + '<div class="apmp-bar aph-noprint">' + howTo() + '</div>'
+      + '<div class="apmp-bar aph-noprint">' + howTo(o.pt || pageTitle(o)) + '</div>'
       + '<div class="apmp-page">' + head
       + '<div class="apmp-res"><div class="apmp-who">' + who + '<div class="apmp-when">Completed ' + stamp + (o.lang ? ' &middot; ' + o.lang : '') + '</div>'
       + (o.summary ? '<div class="apmp-sum">' + o.summary + '</div>' : '')
@@ -1459,13 +1495,12 @@ var APMP = (function () {
     overlay(html); return 'overlay';
   }
   function save(build) {
-    ask(function (name) {
-      var o; try { o = build(); } catch (e) { alert('Sorry, the marked paper could not be built.'); if (window.console) console.error(e); return; }
-      if (!o) return;
-      o.name = name; APMP.last = o; open(doc(o));
-    });
+    var o; try { o = build(); } catch (e) { alert('Sorry, the marked paper could not be built.'); if (window.console) console.error(e); return; }
+    if (!o) return;
+    o.pt = pageTitle(o);
+    ask(function (name) { o.name = name; APMP.last = o; open(doc(o)); }, o.pt);
   }
-  return { save: save, esc: esc, q: q, sec: sec, opts: opts, answer: answer, verdict: verdict, when: when, doc: doc, SYM: SYM };
+  return { save: save, pageTitle: pageTitle, esc: esc, q: q, sec: sec, opts: opts, answer: answer, verdict: verdict, when: when, doc: doc, SYM: SYM };
 })();
 /* ===== END AP MARKED PAPER ===== */
 </script>
@@ -2423,7 +2458,8 @@ var APTT = (function () {
           + (S.na && S.na.length ? ' &middot; <span class="apmp-bad">not attempted: ' + noun(S.na.length) + ' ' + S.na.join(', ') + '</span>' : '')
           + ' &middot; Marking: <b>' + dur(S.tMark) + '</b>' + (timed ? ' (limit ' + dur(ml) + ')' : ''),
         body: body, foot: S.m.app + ' &middot; AP Spot Test: timed &amp; submitted',
-        docTitle: 'AP Spot Test — ' + plain(S.m.title), lang: S.m.lang
+        docTitle: 'AP Spot Test — ' + plain(S.m.title), lang: S.m.lang,
+        pageTitle: 'AP Spot Test on ' + plain(S.m.title) + (S.m.level && plain(S.m.title).toLowerCase().indexOf(S.m.level.toLowerCase()) < 0 ? ' (' + S.m.level + ')' : '')
       };
     });
   }
@@ -30095,7 +30131,7 @@ aphWatchHome(document.getElementById('app'), '.ep-home');
 .apmp-btn.lg{font-size:1.0625rem;padding:12px 20px;min-height:50px}
 .apmp-btn.on-dark{background:var(--gold);color:var(--navy);border-color:var(--gold)}
 .apmp-btn.on-dark:hover{background:var(--gold2);color:var(--navy)}
-.apmp-ov{position:fixed;inset:0;z-index:20000;background:rgba(8,13,28,.62);display:flex;align-items:flex-start;justify-content:center;padding:12vh 16px 16px;box-sizing:border-box;font-family:var(--aph-body)}
+.apmp-ov{position:fixed;inset:0;z-index:20000;background:rgba(8,13,28,.62);display:flex;align-items:flex-start;justify-content:center;padding:8vh 16px 16px;overflow-y:auto;-webkit-overflow-scrolling:touch;box-sizing:border-box;font-family:var(--aph-body)}
 .apmp-box{width:100%;max-width:420px;background:#fff;border-radius:14px;box-shadow:0 30px 80px rgba(0,0,0,.45);padding:20px 20px 18px;color:var(--navy);box-sizing:border-box}
 .apmp-box h3{font:700 1.15rem/1.25 var(--aph-body);margin:0 0 4px;color:var(--navy)}
 .apmp-box p{font-size:.875rem;line-height:1.45;color:var(--text2);margin:0 0 12px}.apmp-box p.apmp-next{background:#fff4d6;border-left:4px solid #c9a84c;padding:8px 10px;border-radius:6px;color:#1a2744}
@@ -30109,13 +30145,21 @@ aphWatchHome(document.getElementById('app'), '.ep-home');
 .apmp-frame-bar{display:flex;flex-wrap:wrap;gap:8px;align-items:center;background:var(--navy);border-bottom:3px solid var(--gold);padding:8px 12px;color:#dfe5f3;font:500 .8125rem/1.3 var(--aph-body)}
 .apmp-frame-bar span{flex:1;min-width:160px}
 .apmp-frame iframe{flex:1;width:100%;border:0;background:#fff}
+.apmp-pt{background:#eef3fb;border:2px solid var(--navy);border-radius:10px;padding:10px 12px;margin:0 0 14px}
+.apmp-box .apmp-pt label{color:var(--navy);margin:0 0 4px}
+.apmp-pt-f{font-size:.8125rem;line-height:1.4;color:var(--navy);margin:0 0 8px}
+.apmp-pt-row{display:flex;gap:6px;align-items:stretch}
+.apmp-box .apmp-pt-row input{flex:1 1 auto;min-width:0;font-weight:700;font-size:15px;background:#fff;color:var(--navy)}
+.apmp-pt-row button{flex:none;font:700 .9375rem/1.2 var(--aph-body);color:var(--navy);background:var(--gold);border:0;border-radius:8px;padding:0 12px;min-height:44px;cursor:pointer;white-space:nowrap}
+.apmp-pt-row button.ok{background:#2e7d52;color:#fff}
 /* ===== END AP MARKED PAPER ===== */
 </style>
 <script id=&quot;apmp-script&quot;>
 /* ===== AP MARKED PAPER → PDF v1 (shared; identical in every AP app with marked papers) =====
    APMP.save(build): asks once for the boy's name (in-page; remembered in localStorage 'apStudentName'; Skip allowed),
-   then build() returns { app, kicker, title, meta, got, max, partial, partNote, summary, body, foot, docTitle }
-   and the marked paper opens as a print-ready page with the print dialog (Save as PDF). If pop-ups are blocked,
+   then build() returns { app, kicker, title, meta, got, max, partial, partNote, summary, body, foot, docTitle, pageTitle? }
+   (pageTitle: the OneNote page title after today's date dd/mm/yyyy; default = docTitle without '– marked'; a Copy
+   button for it is shown in the name dialog and on the PDF page) and the marked paper opens as a print-ready page with the print dialog (Save as PDF). If pop-ups are blocked,
    the same page opens in an in-page overlay with its own Print button. Nothing here marks anything: the app's own
    score is passed in. */
 var APMP = (function () {
@@ -30131,10 +30175,36 @@ var APMP = (function () {
   }
   function closeAsk() { var o = document.getElementById('apmp-ask'); if (o) o.remove(); }
   function apmpPad() { var ua = navigator.userAgent || ''; return /iPad|iPhone|iPod/.test(ua) || (/Macintosh/.test(ua) &amp;&amp; navigator.maxTouchPoints > 1); }
-  function howTo() {
-    var po = '<li>In <b>OneNote</b>, open <b>AP&amp;rsquo;s notebook</b> and the <b>page with today&amp;rsquo;s date</b>. Tap the <b>Insert</b> tab at the top, then <b>File</b> <span class=&quot;apmp-ico&quot;>(the paper-clip &amp;#128206;)</span>. In Files, open <b>Recents</b> (or <i>Downloads</i>) and tap your PDF. When OneNote asks how to insert it, tap <b>Insert as Printout</b>. <span class=&quot;apmp-warn&quot;>Not &amp;ldquo;Attachment&amp;rdquo;: an attachment is just a small PDF box that AP has to open. A printout puts every page of your work on the OneNote page.</span></li>'
+  // OneNote page title: today's date (dd/mm/yyyy) + what the work was, e.g. &quot;07/10/2026 AP Spot Test on VV10a (Medium)&quot;
+  function dmy(d) { d = d || new Date(); function p(n) { return (n < 10 ? '0' : '') + n; } return p(d.getDate()) + '/' + p(d.getMonth() + 1) + '/' + d.getFullYear(); }
+  function pageTitle(o) {
+    var t = (o &amp;&amp; (o.pageTitle || o.docTitle)) || 'AP work';
+    t = String(t).replace(/<[^>]*>/g, '').replace(/&amp;nbsp;/g, ' ').replace(/&amp;middot;/g, '·').replace(/&amp;amp;/g, '&amp;').replace(/\s*[–—-]\s*marked\s*$/i, '').replace(/\s+/g, ' ').trim();
+    return dmy() + ' ' + t;
+  }
+  var FOLDER = 'Done in class (<b>Birley 12</b>)? &amp;rarr; put it in <b>Class Work</b>. Done in your <b>House</b> (EW)? &amp;rarr; put it in <b>EW</b>.';
+  // copy button: works in Prisma / Safari (clipboard API) with a select-and-copy fallback
+  var COPY = &quot;var i=this.parentNode.querySelector('input'),b=this,v=i.value;function ok(){b.textContent='\u2713 Copied';b.className='ok';setTimeout(function(){b.textContent='\ud83d\udccb Copy';b.className='';},2500);}&quot;
+    + &quot;function fb(){try{i.removeAttribute('readonly');i.focus();i.select();i.setSelectionRange(0,v.length);var r=document.execCommand('copy');i.setAttribute('readonly','');i.blur();if(r)ok();else alert('Hold your finger on the title, then tap Select All and Copy.');}catch(e){alert('Hold your finger on the title, then tap Select All and Copy.');}}&quot;
+    + &quot;try{if(navigator.clipboard&amp;&amp;navigator.clipboard.writeText){navigator.clipboard.writeText(v).then(ok,fb);}else fb();}catch(e){fb();}&quot;;
+  function copyRow(t, id) {
+    return '<div class=&quot;apmp-pt-row&quot;><input id=&quot;' + id + '&quot; type=&quot;text&quot; readonly value=&quot;' + esc(t) + '&quot; onclick=&quot;this.select()&quot; aria-label=&quot;OneNote page title&quot;>'
+      + '<button type=&quot;button&quot; onclick=&quot;' + esc(COPY) + '&quot;>&amp;#128203; Copy</button></div>';
+  }
+  function ptBox(t, id) {
+    return '<div class=&quot;apmp-pt&quot;><label for=&quot;' + id + '&quot;>&amp;#128221; Your OneNote page title</label>'
+      + '<div class=&quot;apmp-pt-f&quot;>' + (apmpPad() ? 'Tap' : 'Click') + ' <b>Copy</b> now. In OneNote, make a <b>new page</b> and paste this as its title. ' + FOLDER + '</div>' + copyRow(t, id) + '</div>';
+  }
+  function howTo(pt) {
+    var pad = apmpPad(), T = pad ? 'tap' : 'click';
+    var po = (pt ? '<li>Tap <b>&amp;#128203; Copy</b> to copy your <b>OneNote page title</b>:' + copyRow(pt, 'apmp-ptd') + '</li>'
+        + '<li>In <b>OneNote</b>, open <b>AP&amp;rsquo;s notebook</b>. ' + FOLDER + ' Make a <b>new page</b> and paste the title into the page&amp;rsquo;s <b>title line</b> (at the top, above the date).</li>' : '')
+      + '<li>' + (pt ? 'On that new page, ' + T : 'In <b>OneNote</b>, open <b>AP&amp;rsquo;s notebook</b> and the <b>page with today&amp;rsquo;s date</b>. ' + (pad ? 'Tap' : 'Click'))
+      + (pad ? ' the <b>Insert</b> tab at the top, then <b>File</b> <span class=&quot;apmp-ico&quot;>(the paper-clip &amp;#128206;)</span>. In Files, open <b>Recents</b> (or <i>Downloads</i>) and tap your PDF. When OneNote asks how to insert it, tap <b>Insert as Printout</b>.'
+             : ' <b>Insert</b> &amp;rsaquo; <b>File Printout</b> (or <b>File</b> &amp;rsaquo; <b>Insert Printout</b>) and choose your PDF.')
+      + ' <span class=&quot;apmp-warn&quot;>Not &amp;ldquo;Attachment&amp;rdquo;: an attachment is just a small PDF box that AP has to open. A printout puts every page of your work on the OneNote page.</span></li>'
       + '<li>Check the OneNote page shows your pages, with your name and red score at the top.</li>';
-    if (apmpPad()) return '<div class=&quot;apmp-how&quot;><div class=&quot;apmp-how-h&quot;>&amp;#128242; How to send this to AP (iPad)</div><ol>'
+    if (pad) return '<div class=&quot;apmp-how&quot;><div class=&quot;apmp-how-h&quot;>&amp;#128242; How to send this to AP (iPad)</div><ol>'
       + '<li>If the print screen has not opened by itself, tap <button type=&quot;button&quot; onclick=&quot;window.print()&quot;>&amp;#128424; Print / Save as PDF</button></li>'
       + '<li>In <b>Print Options</b>, do <b>not</b> choose a printer and do <b>not</b> tap Print. Tap the <b>Share button</b> at the top <span class=&quot;apmp-ico&quot;>(the square with an arrow &amp;#11014;&amp;#65038;)</span>, then <b>Save to Files</b> and save it (e.g. in <i>Downloads</i>).</li>'
       + po + '</ol>'
@@ -30142,14 +30212,15 @@ var APMP = (function () {
     return '<div class=&quot;apmp-how&quot;><div class=&quot;apmp-how-h&quot;>&amp;#128187; How to send this to AP</div><ol>'
       + '<li>If the print window has not opened by itself, click <button type=&quot;button&quot; onclick=&quot;window.print()&quot;>&amp;#128424; Print / Save as PDF</button></li>'
       + '<li>Set <b>Destination</b> (or Printer) to <b>Save as PDF</b> (or <i>Microsoft Print to PDF</i>), then <b>Save</b>. Your computer remembers this choice next time.</li>'
-      + po.replace('Tap the <b>Insert</b> tab at the top, then <b>File</b> <span class=\&quot;apmp-ico\&quot;>(the paper-clip &amp;#128206;)</span>. In Files, open <b>Recents</b> (or <i>Downloads</i>) and tap your PDF. When OneNote asks how to insert it, tap <b>Insert as Printout</b>.', 'Click <b>Insert</b> &amp;rsaquo; <b>File Printout</b> (or <b>File</b> &amp;rsaquo; <b>Insert Printout</b>) and choose your PDF').replace('Tap the','Click the') + '</ol></div>';
+      + po.replace('<li>Tap <b>', '<li>Click <b>') + '</ol></div>';
   }
-  function ask(cb) {
+  function ask(cb, pt) {
     closeAsk();
     var o = document.createElement('div'); o.id = 'apmp-ask'; o.className = 'apmp-ov';
     o.innerHTML = '<div class=&quot;apmp-box&quot; role=&quot;dialog&quot; aria-modal=&quot;true&quot; aria-labelledby=&quot;apmp-ask-h&quot;>'
       + '<h3 id=&quot;apmp-ask-h&quot;>&amp;#128196; Save marked paper as PDF</h3>'
       + '<p>Your answers, the mark scheme and your score go on one page.</p>'
+      + (pt ? ptBox(pt, 'apmp-pta') : '')
       + (apmpPad() ? '<p class=&quot;apmp-next&quot;>Next, the print screen opens. <b>Do not print.</b> Tap the <b>Share button &amp;#11014;&amp;#65038;</b> at the top, then <b>Save to Files</b>. Then put it into OneNote <b>as a Printout</b>. Step-by-step help is at the top of the next page.</p>'
                    : '<p class=&quot;apmp-next&quot;>Next, the print window opens: choose <b>Save as PDF</b>, then put it into <b>OneNote</b> with <b>Insert &amp;rsaquo; File Printout</b> (not as an attachment).</p>')
       + '<label for=&quot;apmp-name&quot;>Your name (printed at the top)</label>'
@@ -30210,6 +30281,7 @@ var APMP = (function () {
     + '*{box-sizing:border-box}html,body{background:#fff}body{margin:0;font-family:var(--aph-body);color:#1a2744;font-size:10pt;line-height:1.42;-webkit-print-color-adjust:exact;print-color-adjust:exact;-webkit-text-size-adjust:100%}'
     + '.apmp-bar{display:block;background:#1a2744;color:#eef2fa;padding:14px 18px;font-size:16px;line-height:1.45;border-bottom:4px solid #c9a84c}.apmp-how{max-width:760px;margin:0 auto}.apmp-how-h{font-weight:800;font-size:18px;color:#f3dc9a;margin:0 0 6px}.apmp-how ol{margin:0;padding-left:1.4em}.apmp-how li{margin:6px 0}.apmp-how b{color:#fff}.apmp-ico{color:#f3dc9a;white-space:nowrap}.apmp-warn{display:block;margin-top:4px;color:#ffd0c9;font-size:14px}.apmp-how-s{font-size:13px;color:#b9c3da;margin-top:8px}'
     + '.apmp-bar button{background:#c9a84c;color:#1a2744;border:0;border-radius:6px;padding:9px 14px;font:700 14px var(--aph-body);cursor:pointer;min-height:40px}'
+    + '.apmp-pt-row{display:flex;gap:6px;margin:6px 0 2px;max-width:600px}.apmp-pt-row input{flex:1 1 auto;min-width:0;font:700 16px/1.2 var(--aph-body);padding:8px 10px;border-radius:6px;border:2px solid #c9a84c;color:#1a2744;background:#fff;min-height:40px}.apmp-pt-row button{flex:none;white-space:nowrap}.apmp-bar .apmp-pt-row button.ok{background:#2e7d52;color:#fff}'
     + '.apmp-page{max-width:186mm;margin:0 auto;padding:8mm 16px 10mm}'
     + '.aph-pband{margin-top:0}'
     + '.apmp-res{display:flex;align-items:center;gap:6mm;border:1px solid #e3e3e3;border-top:0;border-radius:0 0 6px 6px;padding:4mm 5mm;margin-bottom:4mm;background:#fafafa}'
@@ -30258,7 +30330,7 @@ var APMP = (function () {
       + 'if(document.readyState===&quot;complete&quot;)ready();else window.addEventListener(&quot;load&quot;,ready);})();</scr' + 'ipt>';
     return '<!doctype html><html lang=&quot;en&quot;><head><meta charset=&quot;utf-8&quot;><meta name=&quot;viewport&quot; content=&quot;width=device-width,initial-scale=1&quot;><title>' + esc(o.docTitle + (o.name ? ' — ' + o.name : '')) + '</title>'
       + '<style>' + aphCSS() + '</style><style>' + CSS + '</style></head><body>'
-      + '<div class=&quot;apmp-bar aph-noprint&quot;>' + howTo() + '</div>'
+      + '<div class=&quot;apmp-bar aph-noprint&quot;>' + howTo(o.pt || pageTitle(o)) + '</div>'
       + '<div class=&quot;apmp-page&quot;>' + head
       + '<div class=&quot;apmp-res&quot;><div class=&quot;apmp-who&quot;>' + who + '<div class=&quot;apmp-when&quot;>Completed ' + stamp + (o.lang ? ' &amp;middot; ' + o.lang : '') + '</div>'
       + (o.summary ? '<div class=&quot;apmp-sum&quot;>' + o.summary + '</div>' : '')
@@ -30283,13 +30355,12 @@ var APMP = (function () {
     overlay(html); return 'overlay';
   }
   function save(build) {
-    ask(function (name) {
-      var o; try { o = build(); } catch (e) { alert('Sorry, the marked paper could not be built.'); if (window.console) console.error(e); return; }
-      if (!o) return;
-      o.name = name; APMP.last = o; open(doc(o));
-    });
+    var o; try { o = build(); } catch (e) { alert('Sorry, the marked paper could not be built.'); if (window.console) console.error(e); return; }
+    if (!o) return;
+    o.pt = pageTitle(o);
+    ask(function (name) { o.name = name; APMP.last = o; open(doc(o)); }, o.pt);
   }
-  return { save: save, esc: esc, q: q, sec: sec, opts: opts, answer: answer, verdict: verdict, when: when, doc: doc, SYM: SYM };
+  return { save: save, pageTitle: pageTitle, esc: esc, q: q, sec: sec, opts: opts, answer: answer, verdict: verdict, when: when, doc: doc, SYM: SYM };
 })();
 /* ===== END AP MARKED PAPER ===== */
 </script>
@@ -31247,7 +31318,8 @@ var APTT = (function () {
           + (S.na &amp;&amp; S.na.length ? ' &amp;middot; <span class=&quot;apmp-bad&quot;>not attempted: ' + noun(S.na.length) + ' ' + S.na.join(', ') + '</span>' : '')
           + ' &amp;middot; Marking: <b>' + dur(S.tMark) + '</b>' + (timed ? ' (limit ' + dur(ml) + ')' : ''),
         body: body, foot: S.m.app + ' &amp;middot; AP Spot Test: timed &amp;amp; submitted',
-        docTitle: 'AP Spot Test — ' + plain(S.m.title), lang: S.m.lang
+        docTitle: 'AP Spot Test — ' + plain(S.m.title), lang: S.m.lang,
+        pageTitle: 'AP Spot Test on ' + plain(S.m.title) + (S.m.level &amp;&amp; plain(S.m.title).toLowerCase().indexOf(S.m.level.toLowerCase()) < 0 ? ' (' + S.m.level + ')' : '')
       };
     });
   }
