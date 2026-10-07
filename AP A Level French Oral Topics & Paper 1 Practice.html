@@ -571,8 +571,10 @@ textarea.p1-in{border:1px solid #bbb;border-radius:4px;min-height:44px}
 @media (max-width:640px){ .p1-sec-tbl, .p1-sec-tbl tbody, .p1-sec-tbl tr, .p1-sec-tbl td{display:block;width:auto !important} .p1-sec-tbl thead{display:none} .p1-sec-tbl tr{border-bottom:2px solid #1a2744;padding:6px 0} }
 /* audio player */
 .p1-player{background:#1a2744;color:#fff;border-radius:10px;padding:12px 14px;margin:8px 0 14px;font-family:var(--aph-body)}
-/* the audio controls float with the boy as he scrolls down that question's items (stuck under any fixed header) */
-.p1-player{position:-webkit-sticky;position:sticky;top:calc(var(--p1-stick,0px) + 8px);z-index:50;box-shadow:0 6px 18px rgba(8,13,28,.28)}
+/* the audio controls float with the boy as he scrolls down that question's items (AP FLOAT) */
+.ap-floating{position:fixed!important;z-index:60!important;margin:0!important;box-sizing:border-box;box-shadow:0 8px 22px rgba(8,13,28,.3)!important}
+.ap-float-ph{height:0}
+
 .p1-player .row{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
 .p1-player button{background:transparent;color:#dfe5f3;border:1px solid rgba(255,255,255,.3);border-radius:7px;padding:7px 11px;font-size:0.9375rem;font-weight:600;cursor:pointer;font-family:inherit}
 .p1-player button:hover{border-color:var(--gold);color:var(--gold2)}
@@ -9194,7 +9196,7 @@ function splitSent(t){
 }
 function p1ListenPart(part, pid, label){
   var segs=[]; (part.transcript||[]).forEach(function(s){ splitSent(s.text).forEach(function(x){ segs.push({sp:s.sp, text:x}); }); });
-  P1A.p[pid]={segs:segs, idx:0, playing:false}; setTimeout(p1StickTop,0);
+  P1A.p[pid]={segs:segs, idx:0, playing:false}; setTimeout(function(){ p1StickTop(); if(window.apFloatUpdate) apFloatUpdate(); },0);
   var h = '<div class="p1-passage">'+esc(label)+(part.passageTitle?' – '+esc(part.passageTitle):'')+(part.duration?' <span style="font-weight:400;color:#666">('+esc(part.duration)+')</span>':'')+'</div>';
   h += '<div class="p1-player" id="'+pid+'_pl"><div class="row">'
     + '<button class="play" id="'+pid+'_pb" onclick="p1Play(\''+pid+'\')">▶ Play</button>'
@@ -9213,6 +9215,32 @@ function p1StickTop(){
   document.documentElement.style.setProperty('--p1-stick', Math.round(h)+'px');
 }
 window.addEventListener('resize', function(){ if(document.querySelector('.p1-player')) p1StickTop(); });
+/* ===== AP FLOAT: keeps the audio controls on screen while scrolling (position:fixed, works on iPad Safari/Prisma) ===== */
+(function(){
+  if (window.apFloat) return;
+  var items=[];
+  function upd(){
+    items.forEach(function(it){
+      document.querySelectorAll(it.sel).forEach(function(el){
+        if(!el.offsetParent && !el.classList.contains('ap-floating')) return;
+        var ph=el.__apPh; if(!ph || !ph.parentNode){ ph=document.createElement('div'); ph.className='ap-float-ph'; el.parentNode.insertBefore(ph,el); el.__apPh=ph; }
+        var cont=it.cont(el)||el.parentNode, top=(it.top?it.top():0)+8;
+        var r=ph.getBoundingClientRect(), cr=cont.getBoundingClientRect(), h=el.offsetHeight;
+        var on = r.top < top && cr.bottom > top + h + 30;
+        if(on){
+          if(!el.classList.contains('ap-floating')){ ph.style.height=h+'px'; el.classList.add('ap-floating'); }
+          el.style.top=top+'px'; el.style.left=r.left+'px'; el.style.width=r.width+'px';
+        } else if(el.classList.contains('ap-floating')){ el.classList.remove('ap-floating'); ph.style.height='0px'; el.style.top=el.style.left=el.style.width=''; }
+      });
+    });
+  }
+  window.apFloat=function(sel, cont, top){ items.push({sel:sel, cont:cont||function(){return null;}, top:top}); upd(); };
+  window.apFloatUpdate=upd;
+  document.addEventListener('scroll',upd,{passive:true,capture:true}); window.addEventListener('scroll',upd,{passive:true}); window.addEventListener('resize',upd); window.addEventListener('orientationchange',function(){ setTimeout(upd,300); });
+  document.addEventListener('touchmove',upd,{passive:true});
+})();
+apFloat('.p1-player', function(el){ return el.closest('.p1-q'); }, function(){ return parseInt(getComputedStyle(document.documentElement).getPropertyValue('--p1-stick'))||0; });
+
 function p1PUpd(pid){
   var p=P1A.p[pid]; if(!p) return;
   var pb=document.getElementById(pid+'_pb'), st=document.getElementById(pid+'_st'), bar=document.getElementById(pid+'_bar');

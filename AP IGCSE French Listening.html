@@ -330,8 +330,10 @@ main{max-width:100%;margin:0;padding:0.5rem 1rem 1.5rem;}
 .score-row{display:flex;gap:8px;margin-bottom:0.75rem;flex-wrap:wrap;}
 .section-intro-box{font-size:0.85rem;color:var(--text2);line-height:1.6;background:#f0f4fc;border-left:3px solid var(--navy);border-radius:0 8px 8px 0;padding:0.75rem 1rem;margin-bottom:1.25rem;}
 .audio-panel{display:flex;flex-direction:column;gap:8px;background:#f0f4fc;border:1px solid var(--border);border-radius:10px;padding:12px 16px;margin-bottom:1.5rem;}
-/* the audio controls float with the boy as he scrolls down the questions */
-.audio-panel{position:-webkit-sticky;position:sticky;top:8px;z-index:50;box-shadow:0 6px 18px rgba(8,13,28,.18)}
+/* the audio controls float with the boy as he scrolls down the questions (AP FLOAT) */
+.ap-floating{position:fixed!important;z-index:60!important;margin:0!important;box-sizing:border-box;box-shadow:0 8px 22px rgba(8,13,28,.3)!important}
+.ap-float-ph{height:0}
+
 .audio-panel-top{display:flex;align-items:center;gap:12px;}
 .audio-btn{background:var(--navy);border:none;color:var(--white);font-family:var(--aph-body);font-size:0.85rem;font-weight:500;padding:8px 20px;border-radius:7px;cursor:pointer;white-space:nowrap;transition:background 0.15s;display:flex;align-items:center;gap:7px;}
 .audio-btn:hover{background:var(--navy2);}
@@ -33068,5 +33070,32 @@ function printAnswerSheet(idx,key){
   w.document.open();w.document.write(html);w.document.close();
 }
 
+</script>
+<script>
+/* ===== AP FLOAT: keeps the audio controls on screen while scrolling (position:fixed, works on iPad Safari/Prisma) ===== */
+(function(){
+  if (window.apFloat) return;
+  var items=[];
+  function upd(){
+    items.forEach(function(it){
+      document.querySelectorAll(it.sel).forEach(function(el){
+        if(!el.offsetParent && !el.classList.contains('ap-floating')) return;
+        var ph=el.__apPh; if(!ph || !ph.parentNode){ ph=document.createElement('div'); ph.className='ap-float-ph'; el.parentNode.insertBefore(ph,el); el.__apPh=ph; }
+        var cont=it.cont(el)||el.parentNode, top=(it.top?it.top():0)+8;
+        var r=ph.getBoundingClientRect(), cr=cont.getBoundingClientRect(), h=el.offsetHeight;
+        var on = r.top < top && cr.bottom > top + h + 30;
+        if(on){
+          if(!el.classList.contains('ap-floating')){ ph.style.height=h+'px'; el.classList.add('ap-floating'); }
+          el.style.top=top+'px'; el.style.left=r.left+'px'; el.style.width=r.width+'px';
+        } else if(el.classList.contains('ap-floating')){ el.classList.remove('ap-floating'); ph.style.height='0px'; el.style.top=el.style.left=el.style.width=''; }
+      });
+    });
+  }
+  window.apFloat=function(sel, cont, top){ items.push({sel:sel, cont:cont||function(){return null;}, top:top}); upd(); };
+  window.apFloatUpdate=upd;
+  document.addEventListener('scroll',upd,{passive:true,capture:true}); window.addEventListener('scroll',upd,{passive:true}); window.addEventListener('resize',upd); window.addEventListener('orientationchange',function(){ setTimeout(upd,300); });
+  document.addEventListener('touchmove',upd,{passive:true});
+})();
+apFloat('.audio-panel', function(el){ return document.getElementById('section-card'); });
 </script>
 </body></html>
