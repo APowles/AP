@@ -3,7 +3,7 @@
 <script id="ap-update">
 /* AP auto-update: if this copy is older than the published version, reload once with the new one (saved answers are kept) */
 (function () {
-  var B = '60794b48b4'; window.AP_BUILD = B;
+  var B = '083b2a7021'; window.AP_BUILD = B;
   function check() {
     if (!/^https?:$/.test(location.protocol) || !window.fetch) return;
     var f = decodeURIComponent(location.pathname.split('/').pop() || '');
@@ -1616,6 +1616,9 @@ var APPEN = (function () {
 /* ===== END AP PEN ===== */
 </script>
 <style id="aptt-style">
+.aptt-ul{background:#fdecea;border:1.5px solid #c0392b;color:#7a1b12;border-radius:8px;padding:7px 10px;margin:8px 0 0;font-size:.9375rem}
+@keyframes tmShake{0%,100%{transform:none}20%,60%{transform:translateX(-6px)}40%,80%{transform:translateX(6px)}}
+.aptt-ul.tm-shake{animation:tmShake .45s ease}
 .aptt-level{display:inline-block;margin:6px 0 4px;font:800 1.0625rem/1 var(--aph-body);letter-spacing:.05em;color:#fff;background:#c0392b;border-radius:8px;padding:7px 12px}
 .aptt-lv-E{background:#2e7d52}.aptt-lv-M{background:#b9770e}.aptt-lv-H{background:#c0392b}.aptt-lv-X{background:var(--navy)}
 #aptt-lvask{position:fixed;inset:0;z-index:14000;background:rgba(8,13,28,.6);display:flex;align-items:center;justify-content:center;padding:16px}
@@ -1883,7 +1886,7 @@ var APTT = (function () {
   // ── screen ──
   function legend() {
     var w = S.items.some(function (it) { return it.kind === 'word'; }), s = S.items.some(function (it) { return it.kind === 'sentence'; });
-    return '<div class="aptt-lh">How to mark yourself' + (S.mode === 'timed' ? ': you have ' + dur(markLimit()) : '') + '</div>Compare each answer with the correct one, word by word, then tap the mark that fits:'
+    return '<div class="aptt-lh">How to mark yourself' + (S.mode === 'timed' ? ': you have ' + dur(markLimit()) : '') + '</div><b>Underline your errors in red</b> on your answer (compare it with the correct one, word by word), then tap the mark that fits. You cannot give less than full marks until you have underlined the errors:'
       + (w ? '<div class="aptt-lrow">' + (s ? '<span><i>Words and phrases:</i></span>' : '') + '<span><b>2</b> Right (a tiny slip like a missing accent is OK)</span><span><b>1</b> Nearly</span><span><b>0</b> Wrong</span></div>' : '')
       + (s ? '<div class="aptt-lrow">' + (w ? '<span><i>Sentences:</i></span>' : '') + '<span><b>4</b> Perfect (a tiny slip like a missing accent is OK)</span><span><b>3</b> Mostly right: more right than wrong</span><span><b>2</b> About half right</span><span><b>1</b> Only a word or two right</span><span><b>0</b> Nothing right</span></div>' : '')
       + 'Each ' + noun(1) + ' is worth ' + r1(val()) + ' of the ' + (S.m.total || 10) + ' marks.' + (S.mode === 'timed' ? ' Anything you have not marked when the marking time runs out scores 0.' : '');
@@ -1895,7 +1898,7 @@ var APTT = (function () {
       + (it.label ? '<div class="aptt-chip">' + (it.html ? it.label : esc(it.label)) + '</div>' : '') + '<div class="aptt-q">' + show(it, 'prompt') + '</div></div></div>'
       + APPEN.html({ key: S.key + ':' + n, lines: it.kind === 'sentence' ? 3 : 2, label: Noun(1) + ' ' + n, typed: '<textarea class="appen-ta" rows="' + (it.kind === 'sentence' ? 2 : 1) + '" spellcheck="false" autocomplete="off" autocorrect="off" autocapitalize="off" placeholder="Type your ' + (S.m.lang ? esc(S.m.lang) + ' ' : '') + 'answer"></textarea>' })
       + '<div class="aptt-ans"' + (S.shown ? '' : ' hidden') + '><div class="aptt-al">Answer</div><div class="aptt-a"' + (S.m.code ? ' lang="' + esc(S.m.code) + '"' : '') + '>' + show(it, 'answer') + '</div>'
-      + '<div class="aptt-mk" role="group" aria-label="Your mark for ' + noun(1) + ' ' + n + '"><span class="aptt-mk-l">Compare with the answer, then tap your mark:</span>' + mk + '<span class="aptt-mk-v" id="aptt-mv-' + n + '">' + (m != null && m !== '' ? m + ' / ' + maxOf(it) : '') + '</span></div></div></div>';
+      + '<div class="aptt-mk" role="group" aria-label="Your mark for ' + noun(1) + ' ' + n + '"><span class="aptt-mk-l">Underline your errors in red, then tap your mark:</span>' + mk + '<span class="aptt-mk-v" id="aptt-mv-' + n + '">' + (m != null && m !== '' ? m + ' / ' + maxOf(it) : '') + '</span></div></div></div>';
   }
   function render() {
     var ov = $('aptt-ov'), N = S.items.length, L = S.m.lang || '', mins = minsTxt(limit());
@@ -2053,8 +2056,17 @@ var APTT = (function () {
     steps(); score(); clock();
     var t = $('aptt-top'); if (t && t.scrollIntoView) try { t.scrollIntoView({ behavior: 'smooth', block: 'start' }); } catch (x) { t.scrollIntoView(); }
   }
+  function corrected(n) { var inf = APPEN.info(S.key + ':' + n); return inf.red > 0 || String(inf.corr || '').replace(/\s+/g, '') !== ''; }
   function mark(n, v) {
     if (!S || !S.shown || S.markDone || (S.na || []).indexOf(n) >= 0) return;
+    var row = $('aptt-it-' + n), w = row && row.querySelector('.aptt-ul');
+    if (v < maxOf(S.items[n - 1]) && !corrected(n)) {   // anything less than full marks: underline the errors in red first
+      if (!w && row) { w = document.createElement('div'); w.className = 'aptt-ul'; w.setAttribute('role', 'alert'); var mk = row.querySelector('.aptt-mk'); if (mk) mk.parentNode.insertBefore(w, mk); }
+      if (w) { w.innerHTML = '✋ First <b>underline your errors in red</b> on your answer, then choose your mark.'; w.classList.remove('tm-shake'); void w.offsetWidth; w.classList.add('tm-shake'); }
+      var pad = row && row.querySelector('.appen'); if (pad && pad.scrollIntoView) try { pad.scrollIntoView({ behavior: 'smooth', block: 'center' }); } catch (e) { }
+      return;
+    }
+    if (w) w.remove();
     S.marks[n - 1] = v; save();
     document.querySelectorAll('#aptt-it-' + n + ' .aptt-mb').forEach(function (b) { var on = +b.getAttribute('data-v') === v; b.classList.toggle('on', on); b.setAttribute('aria-pressed', on ? 'true' : 'false'); });
     var mv = $('aptt-mv-' + n); if (mv) mv.textContent = v + ' / ' + maxOf(S.items[n - 1]);
