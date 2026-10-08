@@ -5,7 +5,7 @@
 <script id="ap-update">
 /* AP auto-update: if this copy is older than the published version, reload once with the new one (saved answers are kept) */
 (function () {
-  var B = '8e1bf8415a'; window.AP_BUILD = B;
+  var B = '05ca1a9c28'; window.AP_BUILD = B;
   function check() {
     if (!/^https?:$/.test(location.protocol) || !window.fetch) return;
     var f = decodeURIComponent(location.pathname.split('/').pop() || '');
@@ -1369,10 +1369,9 @@ html.aptt-open,html.aptt-open body{overflow:hidden}
 .aptt-lock:disabled{background:#eef0f4;color:#4a5368;border-color:#c9cfdb;box-shadow:none;cursor:default}
 .aptt-chk{background:var(--navy);color:var(--gold2);border:3px solid var(--navy)}
 .aptt-chk:disabled{background:#e4e7ee;color:#7a8299;border-color:#e4e7ee;cursor:not-allowed}
-.aptt-chk.ready{position:fixed;left:50%;top:50%;transform:translate(-50%,-50%);z-index:50;width:min(560px,calc(100vw - 32px));font-size:1.75rem;line-height:1.2;padding:26px 22px;min-height:120px;background:#ffe94d;color:#1a2744;border:6px solid #d0021b;border-radius:18px;animation:apttBig 1.4s ease-in-out infinite}
+.aptt-chk.ready{position:fixed;left:50%;top:50%;transform:translate(-50%,-50%);z-index:50;width:min(560px,calc(100vw - 32px));font-size:1.75rem;line-height:1.2;padding:26px 22px;min-height:120px;background:#ffe94d;color:#1a2744;border:6px solid #d0021b;border-radius:18px;;box-shadow:0 0 0 5px rgba(208,2,27,.35),0 6px 24px rgba(0,0,0,.35)}
 .aptt-chk.ready::after{content:"Tap here to see the answers and mark yourself";display:block;font-size:1rem;font-weight:700;margin-top:8px;color:#a3001a}
-@keyframes apttBig{0%,100%{box-shadow:0 0 0 100vmax rgba(8,13,28,.55),0 0 12px 3px rgba(208,2,27,.6)}50%{box-shadow:0 0 0 100vmax rgba(8,13,28,.55),0 0 30px 10px rgba(208,2,27,.85)}}
-@media (prefers-reduced-motion:reduce){.aptt-chk.ready{animation:none;box-shadow:0 0 0 100vmax rgba(8,13,28,.55),0 0 20px 6px rgba(208,2,27,.7)}}
+/* no full-screen backdrop: on iPads a screen-sized layer behind this button could stay painted black after it was tapped */
 @keyframes apttPulse{0%,100%{box-shadow:0 0 0 0 rgba(192,57,43,.7);border-color:#c0392b}50%{box-shadow:0 0 0 6px rgba(192,57,43,.45);border-color:#ff3b2f}}
 .aptt-lock-n{text-align:center;font-size:.875rem;font-weight:600;color:#a32116;margin-top:10px;line-height:1.4}
 .aptt-after[hidden]{display:none}
@@ -1667,6 +1666,7 @@ var APTT = (function () {
     var l = $('aptt-lock'), c = $('aptt-chk'), n = $('aptt-lockn'); if (!l) return;
     l.disabled = S.locked || !S.mode; l.textContent = S.locked ? '🔒 Locked in' : S.mode === 'timed' ? '🔒 I\'ve finished: lock in' : '🔒 I\'ve attempted all ' + S.items.length + ': lock in';
     c.disabled = !S.locked; c.classList.toggle('ready', S.locked && !S.shown);
+    var ovw = $('aptt-ov'); if (ovw) ovw.classList.toggle('aptt-await', !!(S.locked && !S.shown));
     if (S.shown) c.textContent = '✔ Answers shown: mark yourself above';
     n.textContent = !S.locked ? '① Lock in when you have attempted every ' + noun(1) + ' (you cannot change them afterwards). ② Then open the answers and mark yourself in red.'
       : !S.shown ? '② Now open the answers, correct your work in red and mark each ' + noun(1) + '.' : 'Correct each ' + noun(1) + ' in red, choose a mark for each, then save your work as a PDF.';
@@ -2059,16 +2059,23 @@ var APTT = (function () {
       }).catch(function (e) { b.disabled = false; b.textContent = '🔑 Make link'; alert('Sorry, the link could not be made (' + (e && e.message || e) + '). Is your teacher key set on this device?'); });
     };
   }
+  // set tests started on this device and not yet handed in (last 12 hours), newest first: so a boy can carry on after the page reloads
+  function inProgress() {
+    var out = [];
+    try { for (var i = 0; i < localStorage.length; i++) { var k = localStorage.key(i); if (k && k.indexOf('apttState:') === 0) { var st = JSON.parse(localStorage.getItem(k) || 'null'); if (st && st.m && st.m.set && st.mode && !st.done && Date.now() - (st.t0 || 0) < RESUME_MS) out.push({ key: st.key, code: st.m.set.code || '', name: st.m.set.name || plain(st.m.title), at: st.at || st.t0 }); } } } catch (e) { }
+    return out.sort(function (a, b) { return b.at - a.at; });
+  }
+  function resume(key) { var st = load(key); if (!st) return false; S = st; S.resumed = true; RUN = null; build(); return true; }
   // open a test from a signed token (the AP Tests page); version: which draw (own-draw links), chosen at random if not given
   function openSet(o, code) {
     var V = o.V || [], k = o.q === 'draw' ? Math.floor(Math.random() * V.length) : 0, its = V[k] || [];
-    open({ id: 'set|' + (code || o.c || h32(o.tok || '')) + '|' + (o.q === 'draw' ? 'v' + k : 'same'), app: o.a, kicker: o.k, title: o.t, meta: o.m, detail: o.d, lang: o.l, langCode: o.lc, level: o.lv, total: 10,
+    open({ id: 'set|' + (code || o.c || h32(o.tok || '')) + '|' + (o.q || 'same'), app: o.a, kicker: o.k, title: o.t, meta: o.m, detail: o.d, lang: o.l, langCode: o.lc, level: o.lv, total: 10,
       items: its.map(function (r) { return { prompt: r[0], answer: r[1], kind: r[2] ? 'sentence' : 'word', label: r[3], html: !!r[4] }; }),
       set: { code: code || o.c || '', secs: +o.s || 0, name: o.n || '', q: o.q, ver: k + 1, of: V.length } });
   }
   // pen-up anywhere ends a stroke (the automatic lock waits for it)
   try { ['pointerup', 'pointercancel'].forEach(function (t) { document.addEventListener(t, function () { PEN = false; }, true); }); } catch (e) { }
-  return { open: open, close: close, mode: mode, lock: lock, show: showAns, mark: mark, next: next, verbDetail: verbDetail, pdf: pdf, teacher: teacher, maker: maker, openSet: openSet, copyLink: copyLink, copyHTML: copyHTML, checkGit: checkGit, ghRemove: ghRemove, catOf: catOf, CATS: CATS, unpack: unpack, checkKey: checkKey, list: listGet, linkFor: linkFor, copy: copyText, lastRun: null, capturing: null, LABEL: LBL, state: function () { return S; } };
+  return { open: open, close: close, mode: mode, lock: lock, show: showAns, mark: mark, next: next, verbDetail: verbDetail, pdf: pdf, teacher: teacher, maker: maker, openSet: openSet, inProgress: inProgress, resume: resume, copyLink: copyLink, copyHTML: copyHTML, checkGit: checkGit, ghRemove: ghRemove, catOf: catOf, CATS: CATS, unpack: unpack, checkKey: checkKey, list: listGet, linkFor: linkFor, copy: copyText, lastRun: null, capturing: null, LABEL: LBL, state: function () { return S; } };
 })();
 /* ===== END AP TIMED TEST ===== */
 </script>
