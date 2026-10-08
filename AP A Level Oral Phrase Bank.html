@@ -3,7 +3,7 @@
 <script id="ap-update">
 /* AP auto-update: if this copy is older than the published version, reload once with the new one (saved answers are kept) */
 (function () {
-  var B = '062a9c9f1e'; window.AP_BUILD = B;
+  var B = 'e9343cdb87'; window.AP_BUILD = B;
   function check() {
     if (!/^https?:$/.test(location.protocol) || !window.fetch) return;
     var f = decodeURIComponent(location.pathname.split('/').pop() || '');
@@ -6417,6 +6417,14 @@ var APTT = (function () {
         .then(function (r) { if (!r.ok) throw new Error('GitHub ' + r.status); return true; });
     });
   }
+  function ghRemove(code) {   // take a code off the AP Tests page (its link keeps working)
+    return ghGet().then(function (f) {
+      var L = f.text.split(/\r?\n/), keep = L.filter(function (l) { return l.split('|')[0].trim().toUpperCase() !== code; });
+      if (keep.length === L.length) throw new Error('not found');
+      return fetch(GH, { method: 'PUT', headers: ghHead(), body: JSON.stringify({ message: 'Remove test code ' + code, content: btoa(String.fromCharCode.apply(null, Array.from(utf8(keep.join('\n'))))), sha: f.sha, branch: 'main' }) })
+        .then(function (r) { if (!r.ok) throw new Error('GitHub ' + r.status); return true; });
+    });
+  }
   function checkGit(k) { return ghGet(k).then(function () { return true; }).catch(function () { return false; }); }
   // code prefix by language: STF French, STS Spanish, STI Italian (the language of the answers, or of the test if the answers are English)
   function langLetter() { return langOf(S.m); }
@@ -6527,7 +6535,7 @@ var APTT = (function () {
   }
   // pen-up anywhere ends a stroke (the automatic lock waits for it)
   try { ['pointerup', 'pointercancel'].forEach(function (t) { document.addEventListener(t, function () { PEN = false; }, true); }); } catch (e) { }
-  return { open: open, close: close, mode: mode, lock: lock, show: showAns, mark: mark, next: next, verbDetail: verbDetail, pdf: pdf, teacher: teacher, maker: maker, openSet: openSet, copyLink: copyLink, copyHTML: copyHTML, checkGit: checkGit, catOf: catOf, CATS: CATS, unpack: unpack, checkKey: checkKey, list: listGet, linkFor: linkFor, copy: copyText, lastRun: null, capturing: null, LABEL: LBL, state: function () { return S; } };
+  return { open: open, close: close, mode: mode, lock: lock, show: showAns, mark: mark, next: next, verbDetail: verbDetail, pdf: pdf, teacher: teacher, maker: maker, openSet: openSet, copyLink: copyLink, copyHTML: copyHTML, checkGit: checkGit, ghRemove: ghRemove, catOf: catOf, CATS: CATS, unpack: unpack, checkKey: checkKey, list: listGet, linkFor: linkFor, copy: copyText, lastRun: null, capturing: null, LABEL: LBL, state: function () { return S; } };
 })();
 /* ===== END AP TIMED TEST ===== */
 </script>
