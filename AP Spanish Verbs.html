@@ -5,7 +5,7 @@
 <script id="ap-update">
 /* AP auto-update: if this copy is older than the published version, reload once with the new one (saved answers are kept) */
 (function () {
-  var B = 'fb9618482e'; window.AP_BUILD = B;
+  var B = 'f1d04031cb'; window.AP_BUILD = B;
   function check() {
     if (!/^https?:$/.test(location.protocol) || !window.fetch) return;
     var f = decodeURIComponent(location.pathname.split('/').pop() || '');
@@ -1444,7 +1444,7 @@ var APPEN = (function () {
 @media (prefers-reduced-motion:reduce){.aph-btn.aptt-btn{animation:none}}
 .aptt-lvm{display:block;color:#c0392b;font-size:1rem;margin-bottom:4px}
 html.aptt-open,html.aptt-open body{overflow:hidden}
-#aptt-ov{position:fixed;inset:0;z-index:14000;background:var(--cream);overflow-y:auto;overflow-x:hidden;-webkit-overflow-scrolling:touch;font-family:var(--aph-body);color:var(--text)}
+#aptt-ov{position:fixed;inset:0;z-index:14000;background:var(--cream);overflow-y:auto;overflow-x:hidden;font-family:var(--aph-body);color:var(--text)}
 #aptt-ov:focus{outline:none}
 .aptt-bar{position:sticky;top:0;z-index:3;display:flex;align-items:center;gap:10px;background:var(--navy);border-bottom:3px solid var(--gold);padding:8px 16px}
 .aptt-bar-t{flex:1;min-width:0;font:700 .9375rem/1.2 var(--aph-body);color:var(--gold2);text-align:right;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
@@ -1551,6 +1551,7 @@ html.aptt-open,html.aptt-open body{overflow:hidden}
 .aptt-mklink a{color:#1a56c4;text-decoration:underline}
 .aptt-mkhint{font-size:.8125rem;color:var(--text2);margin-top:5px}
 .aptt-mkplain{background:none;border:0;padding:0;color:var(--text2);text-decoration:underline;font:inherit;cursor:pointer}
+.aptt-err{position:sticky;top:0;z-index:60;background:#c0392b;color:#fff;font:600 13px/1.35 var(--aph-body);padding:6px 10px;white-space:pre-wrap}
 .aptt-mkgh{margin-top:8px;border-radius:8px;padding:8px 10px;font-weight:700;background:#eef3fb;color:var(--navy)}
 .aptt-mkgh.ok{background:#e6f6ec;color:#14532d}.aptt-mkgh.bad{background:#fdecea;color:#7a1b12}
 .aptt-mkwarn{margin-top:8px;color:#a3001a;font-size:.875rem;font-weight:600}
@@ -1859,7 +1860,8 @@ var APTT = (function () {
       var v = $('aptt-mv-' + n); if (v) v.textContent = 'not attempted · 0 / ' + maxOf(S.items[n - 1]);
     });
   }
-  function clock() {
+  function clock() { try { clock0(); } catch (e) { showErr('clock: ' + (e && (e.message || e))); } }
+  function clock0() {
     var c = $('aptt-clock'), b = $('aptt-tban'); if (!S || !c) return;
     if (S.locked) {
       c.hidden = false; c.className = 'aptt-clock done';
@@ -1896,7 +1898,15 @@ var APTT = (function () {
     document.querySelectorAll('#aptt-ov .aptt-mb').forEach(function (b) { b.disabled = true; });
     (S.unm || []).forEach(function (n) { var r = $('aptt-it-' + n); if (r) r.querySelectorAll('.aptt-mb').forEach(function (b) { b.classList.toggle('on', +b.getAttribute('data-v') === 0); }); var v = $('aptt-mv-' + n); if (v) v.textContent = 'not marked in time · 0 / ' + maxOf(S.items[n - 1]); });
   }
-  function showAns() {
+  // any error on the test screen is shown in a red line at the top (so a screenshot tells AP what went wrong)
+  function showErr(m) {
+    var ov = $('aptt-ov'); if (!ov) return;
+    var d = $('aptt-err'); if (!d) { d = document.createElement('div'); d.id = 'aptt-err'; d.className = 'aptt-err'; ov.insertBefore(d, ov.firstChild); }
+    d.textContent += '⚠ ' + String(m).slice(0, 300) + ' [' + (window.AP_BUILD || '') + ' · ' + (navigator.userAgent.match(/OS [\d_]+|Version\/[\d.]+/g) || []).join(' ') + ']\n';
+  }
+  try { if (!window.__apttErr) { window.__apttErr = 1; window.addEventListener('error', function (e) { if ($('aptt-ov')) showErr((e.message || 'error') + ' @' + (e.lineno || '') + ':' + (e.colno || '')); }); } } catch (e) { }
+  function showAns() { try { showAns0(); } catch (e) { showErr('show: ' + (e && (e.message || e)) + ' ' + String(e && e.stack || '').split('\n')[0]); } }
+  function showAns0() {
     if (!S || !S.locked) return;
     S.shown = true; if (!S.m0) S.m0 = Date.now(); save();
     document.querySelectorAll('#aptt-ov .aptt-ans').forEach(function (a) { a.hidden = false; });
