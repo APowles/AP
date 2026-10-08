@@ -5,7 +5,7 @@
 <script id="ap-update">
 /* AP auto-update: if this copy is older than the published version, reload once with the new one (saved answers are kept) */
 (function () {
-  var B = '811a540a87'; window.AP_BUILD = B;
+  var B = '2a31c30d3d'; window.AP_BUILD = B;
   function check() {
     if (!/^https?:$/.test(location.protocol) || !window.fetch) return;
     var f = decodeURIComponent(location.pathname.split('/').pop() || '');
@@ -1969,16 +1969,25 @@ var APTT = (function () {
     } catch (e) { fb(); }
   }
   function copyLink(name, url, btn) { copyHTML('<a href="' + esc(url) + '">' + esc(name || 'AP test') + '</a>', url, btn); }
-  // the next free code: one more than the highest ST number in tests.txt and in this device's list (starts at ST101)
+  // code prefix by language: STF French, STS Spanish, STI Italian (the language of the answers, or of the test if the answers are English)
+  function langLetter() {
+    var L = { French: 'F', Spanish: 'S', Italian: 'I' }[S.m.lang];
+    if (L) return L;
+    var t = plain(S.m.meta) + ' ' + plain(S.m.title) + ' ' + plain(S.m.app);
+    if (/\uD83C\uDDEA\uD83C\uDDF8|Spanish|Español/i.test(t)) return 'S';
+    if (/\uD83C\uDDEE\uD83C\uDDF9|Italian|Italiano/i.test(t)) return 'I';
+    return 'F';
+  }
+  // the next free code: one more than the highest number for this language in tests.txt and in this device's list (STF101, STS101, STI101…)
   function nextCode(cb) {
-    var hi = 100, add = function (c) { var m = /^ST(\d+)$/i.exec(String(c || '').trim()); if (m) hi = Math.max(hi, +m[1]); };
+    var P = 'ST' + langLetter(), hi = 100, rx = new RegExp('^' + P + '(\\d+)$', 'i'), add = function (c) { var m = rx.exec(String(c || '').trim()); if (m) hi = Math.max(hi, +m[1]); };
     listGet().forEach(function (e) { add(e.c); });
-    cb('ST' + (hi + 1));
+    cb(P + (hi + 1));
     var base = String(document.baseURI || location.href).replace(/[#?].*$/, '').replace(/[^\/]*$/, '');
     if (!window.fetch || !/^https?:/.test(base)) return;
     fetch(base + 'tests.txt?t=' + Date.now(), { cache: 'no-store' }).then(function (r) { return r.ok ? r.text() : ''; }).then(function (t) {
       t.split(/\r?\n/).forEach(function (l) { if (l.trim() && l.trim().charAt(0) !== '#') add(l.split('|')[0]); });
-      cb('ST' + (hi + 1));
+      cb(P + (hi + 1));
     }).catch(function () { });
   }
   function draws(n) {   // more draws with the teacher's current settings (the same button, run again quietly)
@@ -2005,7 +2014,7 @@ var APTT = (function () {
       + '<label>Time limit</label><select id="aptt-mk-s">' + opts + '</select>'
       + '<label>Questions</label><div class="aptt-mkq"><label><input type="radio" name="aptt-mk-q" value="same" checked> Same questions for everyone <small>(you can go through the answers on the board)</small></label>'
       + '<label' + (RUN ? '' : ' class="off"') + '><input type="radio" name="aptt-mk-q" value="draw"' + (RUN ? '' : ' disabled') + '> Each boy gets his own draw <small>(' + VERSIONS + ' different versions from these settings)</small></label></div>'
-      + '<label>Code (for the AP Tests page: the next free number is filled in)</label><input id="aptt-mk-c" type="text" placeholder="e.g. ST101" autocapitalize="characters" maxlength="12">'
+      + '<label>Code (for the AP Tests page: the next free number is filled in)</label><input id="aptt-mk-c" type="text" placeholder="e.g. STF101" autocapitalize="characters" maxlength="12">'
       + '<div class="aptt-mkact"><button type="button" class="aph-btn" onclick="document.getElementById(\'aptt-mk\').remove()">Cancel</button><button type="button" class="aph-btn aph-btn-primary" id="aptt-mk-go">🔑 Make link</button></div>'
       + '<div id="aptt-mk-out"></div></div>';
     document.body.appendChild(d);
