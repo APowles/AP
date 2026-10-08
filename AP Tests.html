@@ -1,0 +1,1777 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<script id="ap-update">
+/* AP auto-update: if this copy is older than the published version, reload once with the new one (saved answers are kept) */
+(function () {
+  var B = '813cd522d2'; window.AP_BUILD = B;
+  function check() {
+    if (!/^https?:$/.test(location.protocol) || !window.fetch) return;
+    var f = decodeURIComponent(location.pathname.split('/').pop() || '');
+    fetch('versions.json?t=' + Date.now(), { cache: 'no-store' }).then(function (r) { return r.json(); }).then(function (v) {
+      var n = v && v[f]; if (!n || n === B) return;
+      try { if (sessionStorage.getItem('apUpdTo:' + f) === n) return; sessionStorage.setItem('apUpdTo:' + f, n); } catch (e) { }
+      var u = location.href.replace(/([?&])v=[^&#]*&?/, '$1').replace(/[?&]$/, '').replace(/#.*$/, '');
+      location.replace(u + (u.indexOf('?') < 0 ? '?' : '&') + 'v=' + n + location.hash);
+    }).catch(function () { });
+  }
+  check();
+  window.addEventListener('pageshow', function (e) { if (e.persisted) check(); });   // iPad restoring a saved copy of the page
+})();
+</script>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>AP Tests</title>
+<style id="aph-style">
+/* ===== AP HOUSE STYLE v1 ===== */
+/* One shared look for every AP app. Paste this block unchanged into each app (inside <style id="aph-style">);
+   each app's own CSS comes after it and holds only app-specific bits. Class names all start with "aph-".
+   Fonts (Andrew's font rule): Playfair Display ONLY for the app title in the header and each screen's main heading
+   (.aph-title, .aph-h, .aph-panel-title, .aph-res-score, print titles .aph-ptitle); DM Sans for everything else —
+   prompts, answers, tiles, drill-bar name, card titles, sub-headings, tables, buttons/inputs/selects. */
+@import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;700&family=DM+Sans:wght@400;500;600;700;800&display=swap');
+:root{
+  --navy:#1a2744; --navy2:#243260; --gold:#c9a84c; --gold-light:#f0d78c; --gold2:#ffd76a;
+  --cream:#faf8f3; --white:#fff; --text:#1a2744; --text2:#4a5a7a; --text3:#8899bb; --border:#e2e6f0;
+  --correct:#2e7d52; --correct-bg:#eaf5ef; --nearly:#b8922a; --nearly-bg:#fdf6e3; --wrong:#c0392b; --wrong-bg:#fdecea;
+  --radius:10px; --shadow:0 2px 16px rgba(26,39,68,.10);
+  --aph-display:'Playfair Display',Georgia,'Times New Roman',serif;
+  --aph-body:'DM Sans',system-ui,-apple-system,'Segoe UI',Roboto,'Helvetica Neue',sans-serif;
+}
+body{font-family:var(--aph-body);background:var(--cream);color:var(--text)}
+button,input,select,textarea,optgroup{font-family:inherit}
+
+/* ── 1 · Header: navy bar, gold rule; "AP <course>" white + app name gold; small-caps subtitle; ⌂ Home + portrait top right ── */
+.aph-header{background:var(--navy);border-bottom:3px solid var(--gold);color:#fff}
+.aph-header-in{display:flex;align-items:center;gap:12px;padding:10px 24px}
+.aph-titles{flex:1;min-width:0}
+.aph-title{font:700 1.3rem/1.2 var(--aph-display);color:#fff;margin:0}
+.aph-title em{font-style:normal;color:var(--gold)}
+.aph-sub{font-size:.75rem;line-height:1.35;font-weight:500;letter-spacing:.09em;text-transform:uppercase;color:#aab6d3;margin-top:3px}
+.aph-home{font:700 .9375rem/1.1 var(--aph-body);color:var(--gold);background:rgba(201,168,76,.12);border:1.5px solid rgba(201,168,76,.7);border-radius:8px;padding:8px 12px;cursor:pointer;white-space:nowrap;flex:none}
+.aph-home:hover{background:rgba(201,168,76,.26);color:var(--gold2)}
+.aph-avatar{width:44px;height:44px;border-radius:50%;border:2px solid var(--gold);object-fit:cover;display:block;flex:none;background:#fff}
+body.aph-at-home .aph-header .aph-home{display:none}   /* no Home on the home screen itself */
+
+/* ── Page column, cards, headings, labels ── */
+.aph-wrap{max-width:640px;margin:0 auto;padding:20px 16px 48px}
+.aph-card{background:var(--white);border:1px solid var(--border);border-radius:14px;box-shadow:var(--shadow);padding:24px}
+.aph-h{font:700 1.6rem/1.2 var(--aph-display);color:var(--navy);margin:0 0 16px}
+.aph-label{font-size:.75rem;font-weight:700;letter-spacing:.09em;text-transform:uppercase;color:var(--text3);margin:18px 0 8px}
+.aph-row{display:flex;flex-wrap:wrap;align-items:center;gap:8px}
+.aph-note{font-size:.8125rem;color:var(--text3)}
+.aph-divider{border:0;border-top:1px solid var(--border);margin:20px 0}
+.aph-select,.aph-input{font:500 .9375rem/1.2 var(--aph-body);color:var(--text);background:#fff;border:1.5px solid var(--border);border-radius:8px;padding:8px 10px;max-width:100%;min-height:40px}
+.aph-select{cursor:pointer}
+.aph-swap{font:700 .9375rem/1.2 var(--aph-body);color:var(--nearly);background:#fff;border:1.5px solid var(--gold);border-radius:8px;padding:8px 12px;min-height:40px;cursor:pointer;white-space:nowrap}
+.aph-swap:hover{background:var(--nearly-bg)}
+
+/* ── 4 · Buttons: main (navy + gold, full width, one per screen) · secondary (white, thin border) · option chips ── */
+.aph-btn{display:inline-flex;align-items:center;justify-content:center;gap:6px;font:600 .9375rem/1.25 var(--aph-body);color:var(--text);background:#fff;border:1.5px solid var(--border);border-radius:8px;padding:10px 16px;min-height:44px;cursor:pointer;text-align:center;text-decoration:none;transition:background .12s,border-color .12s,color .12s}
+.aph-btn:hover{border-color:var(--navy);color:var(--navy)}
+.aph-btn:disabled{opacity:.45;cursor:not-allowed}
+.aph-btn.on{border-color:var(--gold);background:var(--nearly-bg);color:var(--navy)}   /* a toggle that is switched on */
+.aph-btn-primary{background:var(--navy);border-color:var(--navy);color:var(--gold2);font-weight:700;font-size:1.0625rem;padding:13px 18px;min-height:50px}
+.aph-btn-primary:hover{background:var(--navy2);border-color:var(--navy2);color:var(--gold2)}
+.aph-btn-block{display:flex;width:100%}
+.aph-btn-sm{min-height:36px;padding:7px 12px;white-space:nowrap}
+.aph-stack{display:grid;gap:8px}
+.aph-tools{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}
+.aph-tools .aph-btn{padding:10px 8px}
+.aph-chip{font:600 .9375rem/1.2 var(--aph-body);color:var(--text2);background:#fff;border:1.5px solid var(--border);border-radius:20px;padding:6px 15px;min-height:36px;cursor:pointer;transition:background .12s,border-color .12s,color .12s}
+.aph-chip:hover{border-color:var(--navy);color:var(--navy)}
+.aph-chip.on,.aph-chip.on:hover{background:var(--navy);border-color:var(--navy);color:var(--gold2)}
+.aph-step{width:38px;height:38px;border-radius:8px;border:1.5px solid var(--border);background:#fff;color:var(--text);font:600 1.15rem/1 var(--aph-body);cursor:pointer;display:inline-flex;align-items:center;justify-content:center}
+.aph-step:hover{border-color:var(--navy)}
+.aph-step-val{font-weight:700;font-size:1.05rem;color:var(--navy);min-width:46px;text-align:center}
+
+/* ── Keyboard legend: the same three colours as the marking row ── */
+.aph-keys{display:flex;flex-wrap:wrap;justify-content:center;align-items:center;gap:8px 16px;margin-top:16px;font-size:.8125rem;color:var(--text2)}
+.aph-keys>span{display:inline-flex;align-items:center;gap:6px}
+.aph-key{display:inline-flex;align-items:center;justify-content:center;min-width:28px;height:24px;padding:0 6px;border-radius:6px;font-weight:800;font-size:.8125rem;border:1.5px solid transparent}
+.aph-key.bad{border-color:var(--wrong);color:var(--wrong);background:#fff}
+.aph-key.near{background:var(--nearly);border-color:var(--nearly);color:#fff}
+.aph-key.ok{background:var(--correct);border-color:var(--correct);color:#fff}
+
+/* ── 7 · ⚡ AP Speed Challenge banner (top of the set-up card) ── */
+.aph-banner{display:flex;align-items:center;gap:12px;width:100%;margin:0 0 4px;text-align:left;background:linear-gradient(135deg,var(--navy),#24366a);color:#fff;border:0;border-radius:12px;padding:12px 14px;cursor:pointer;font:inherit}
+.aph-banner-icon{font-size:1.6rem;line-height:1;flex:none}
+.aph-banner-text{flex:1;min-width:0}
+.aph-banner-text b{display:block;color:var(--gold2);font-size:1rem;font-weight:700}
+.aph-banner-text small{display:block;color:#c9d2ea;font-size:.8125rem;line-height:1.3;margin-top:1px}
+.aph-banner-play{flex:none;background:var(--gold);color:var(--navy);font-weight:800;font-size:.9375rem;border-radius:8px;padding:8px 14px;white-space:nowrap}
+.aph-banner:hover .aph-banner-play{background:var(--gold2)}
+
+/* ── 5 · Drill screen: navy drill bar, card in the middle, side column stacks under it on narrow screens ── */
+.aph-dbar{background:var(--navy);color:#fff;display:flex;align-items:center;flex-wrap:wrap;gap:8px 10px;padding:8px 16px;position:sticky;top:0;z-index:10}
+.aph-dbar-title{font:700 1.1rem/1.2 var(--aph-body);color:var(--gold);margin-right:auto;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.aph-dbar-score{display:inline-flex;gap:10px;background:rgba(255,255,255,.1);border-radius:20px;padding:5px 12px;font-weight:700;font-size:.9375rem;white-space:nowrap}
+.aph-dbar-score .ok{color:#6fcf97}.aph-dbar-score .bad{color:#ff8a80}
+.aph-dbar-btn{font:600 .9375rem/1.1 var(--aph-body);color:#dfe5f3;background:transparent;border:1px solid rgba(255,255,255,.3);border-radius:7px;padding:7px 11px;cursor:pointer;white-space:nowrap}
+.aph-dbar-btn:hover{border-color:var(--gold);color:var(--gold2)}
+.aph-dbar-btn.on{background:var(--gold);border-color:var(--gold);color:var(--navy)}
+.aph-dbar-btn:disabled{opacity:.4;cursor:not-allowed;border-color:rgba(255,255,255,.3);color:#dfe5f3}
+.aph-progress{height:4px;background:var(--border)}
+.aph-progress>div{height:100%;background:var(--gold);transition:width .4s}
+.aph-drill{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,760px) minmax(0,1fr);gap:16px;padding:20px 16px 48px;align-items:start}
+.aph-drill-main{grid-column:2;min-width:0}
+.aph-drill-side{grid-column:3;display:grid;gap:10px;max-width:200px;min-width:0}
+.aph-qcard{background:var(--white);border:1px solid var(--border);border-radius:14px;box-shadow:var(--shadow);padding:16px 20px 20px;text-align:center}
+.aph-qmeta{font-size:.8125rem;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:var(--text3);margin:6px 0}
+.aph-prompt{font:600 clamp(1.25rem,.85rem + 1.25vw,2.2rem)/1.35 var(--aph-body);color:var(--text);margin:8px 0 10px}
+.aph-under{display:flex;flex-wrap:wrap;justify-content:center;gap:8px;margin-top:12px}
+.aph-side-keys{display:grid;gap:6px;font-size:.8125rem;color:var(--text2)}
+.aph-side-keys>span{display:flex;align-items:center;gap:8px}
+/* marking row: ✗ Major error (←) · ~ Nearly (↓) · ✓ Got it (→), key shown as a small second line */
+.aph-mark{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;margin-top:14px}
+.aph-mark.two{grid-template-columns:repeat(2,minmax(0,1fr))}
+.aph-mark-btn{display:flex;flex-direction:column;align-items:center;justify-content:center;font:800 1rem/1.2 var(--aph-body);border:2px solid transparent;border-radius:10px;padding:11px 6px;min-height:60px;cursor:pointer;transition:background .12s,border-color .12s,filter .12s}
+.aph-mark-btn small{display:block;font-weight:500;font-size:.75rem;opacity:.9;margin-top:3px}
+.aph-mark-btn.bad{background:#fff;border-color:var(--wrong);color:var(--wrong)}
+.aph-mark-btn.bad:hover{background:var(--wrong-bg)}
+.aph-mark-btn.near{background:var(--nearly);border-color:var(--nearly);color:#fff}
+.aph-mark-btn.ok{background:var(--correct);border-color:var(--correct);color:#fff}
+.aph-mark-btn.near:hover,.aph-mark-btn.ok:hover{filter:brightness(.92)}
+.aph-mark-btn.skip{background:#fff;border-color:var(--border);color:var(--text2)}
+.aph-mark-btn.skip:hover{border-color:var(--navy)}
+
+/* ── 6 · Results / error review ── */
+.aph-results{max-width:560px;margin:0 auto;padding:28px 16px 48px}
+.aph-res{text-align:center}
+.aph-res-score{font:700 3rem/1 var(--aph-display);color:var(--navy)}
+.aph-res-pct{font-size:.875rem;color:var(--text3);margin:6px 0 14px}
+.aph-res-bar{height:6px;background:var(--border);border-radius:3px;overflow:hidden;margin-bottom:16px}
+.aph-res-bar>div{height:100%;border-radius:3px}
+.aph-revisit{background:var(--wrong-bg);border-radius:10px;padding:10px 12px 12px;text-align:left;margin-bottom:14px}
+.aph-revisit-head{display:flex;justify-content:space-between;align-items:center;gap:8px;margin-bottom:8px}
+.aph-revisit-title{font-weight:800;color:var(--wrong);font-size:.9375rem}
+.aph-revisit-list{display:grid;gap:5px}
+.aph-revisit-item{display:flex;justify-content:space-between;align-items:center;gap:10px;background:#fff;border-radius:6px;padding:7px 10px;font-size:.875rem}
+.aph-clean{background:var(--correct-bg);color:var(--correct);border-radius:8px;padding:12px;font-weight:600;font-size:.875rem;margin-bottom:14px}
+.aph-res-actions{display:grid;gap:8px}
+.aph-res-row{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:8px}
+
+/* ── 8 · Panels (Generate Test, View & Print, Adjust) ── */
+.aph-panel-top{max-width:608px;margin:20px auto 0}
+.aph-panel-head{display:flex;justify-content:space-between;align-items:center;gap:10px}
+.aph-panel-title{font:700 1.3rem/1.2 var(--aph-display);color:var(--navy);margin:0}
+.aph-out{margin-top:16px}
+
+/* ── 8 · Print band (used inside printed / PDF sheets) ── */
+.aph-pband{background:var(--navy);color:#fff;border-radius:6px 6px 0 0;padding:8px 14px;display:flex;align-items:center;gap:12px;-webkit-print-color-adjust:exact;print-color-adjust:exact}
+.aph-pband-text{flex:1;min-width:0}
+.aph-pkicker{font-size:.6rem;font-weight:800;letter-spacing:.13em;text-transform:uppercase;color:var(--gold)}
+.aph-ptitle{font:700 1.15rem/1.2 var(--aph-display);color:#fff;margin-top:2px}
+.aph-ptitle em{font-style:normal;color:var(--gold)}
+.aph-pmeta{font-size:.62rem;letter-spacing:.06em;text-transform:uppercase;color:#c9d2ea;margin-top:3px}
+.aph-pband .aph-avatar{width:44px;height:44px}
+.aph-pbtn{background:var(--gold);color:var(--navy);border:0;border-radius:4px;padding:5px 10px;font:700 .68rem var(--aph-body);cursor:pointer;white-space:nowrap}
+.aph-pstrip{display:flex;justify-content:space-between;gap:12px;font-size:.66rem;letter-spacing:.08em;text-transform:uppercase;color:#777;border:1px solid #e3e3e3;border-top:0;border-radius:0 0 6px 6px;padding:6px 14px;background:#fafafa;margin-bottom:8px;-webkit-print-color-adjust:exact;print-color-adjust:exact}
+.aph-pband.aph-solo{border-radius:6px;margin-bottom:8px}
+.aph-pfoot{font-size:.62rem;color:#999;text-align:right;padding-top:6px}
+@media print{.aph-noprint{display:none!important}}
+
+/* ── 9 · Phone and projector ── */
+@media (min-width:1600px){.aph-drill{grid-template-columns:minmax(0,1fr) minmax(0,900px) minmax(0,1fr)}.aph-drill-side{max-width:230px}}
+@media (max-width:900px){.aph-drill{grid-template-columns:minmax(0,1fr)}.aph-drill-main,.aph-drill-side{grid-column:1}.aph-drill-side{max-width:none}.aph-side-keys{display:flex;flex-wrap:wrap;justify-content:center;gap:8px 16px}.aph-drill-side>.aph-btn{max-width:320px;justify-self:center}}
+@media (max-width:640px){.aph-panel-top{margin:16px 16px 0}}
+@media (max-width:600px){
+  .aph-header-in{padding:10px 16px;gap:10px}
+  .aph-title{font-size:1.1rem}
+  .aph-home{padding:7px 10px;font-size:.875rem}
+  .aph-card{padding:18px 16px}
+  .aph-h{font-size:1.4rem}
+  .aph-dbar{padding:8px 12px;gap:6px;flex-wrap:nowrap}
+  .aph-dbar-title{font-size:.95rem;flex:1 1 auto}
+  .aph-dbar-btn{font-size:.875rem;padding:6px 8px}
+  .aph-dbar-score{font-size:.875rem;padding:4px 9px;gap:7px}
+  .aph-drill{padding:14px 16px 40px}
+  .aph-qcard{padding:14px 14px 16px}
+  .aph-mark{gap:8px}
+  .aph-mark-btn{font-size:.9375rem;padding:10px 4px}
+  .aph-select{width:100%}
+  .aph-row .aph-select{width:auto;flex:1 1 0;min-width:0}
+}
+@media (max-width:420px){.aph-tools{grid-template-columns:1fr}}
+/* ===== END AP HOUSE STYLE ===== */
+</style>
+<style id="apmp-style">
+/* ===== AP MARKED PAPER → PDF v1 · in-app pieces (shared; identical in every AP app with marked papers) ===== */
+.apmp-btn{display:inline-flex;align-items:center;justify-content:center;gap:6px;font:700 .9375rem/1.2 var(--aph-body);color:var(--gold2);background:var(--navy);border:2px solid var(--gold);border-radius:8px;padding:8px 14px;min-height:40px;cursor:pointer;white-space:nowrap;-webkit-tap-highlight-color:transparent}
+.apmp-btn:hover{background:var(--navy2);color:#fff}
+.apmp-btn.lg{font-size:1.0625rem;padding:12px 20px;min-height:50px}
+.apmp-btn.on-dark{background:var(--gold);color:var(--navy);border-color:var(--gold)}
+.apmp-btn.on-dark:hover{background:var(--gold2);color:var(--navy)}
+.apmp-ov{position:fixed;inset:0;z-index:20000;background:rgba(8,13,28,.62);display:flex;align-items:flex-start;justify-content:center;padding:8vh 16px 16px;overflow-y:auto;-webkit-overflow-scrolling:touch;box-sizing:border-box;font-family:var(--aph-body)}
+.apmp-box{width:100%;max-width:420px;background:#fff;border-radius:14px;box-shadow:0 30px 80px rgba(0,0,0,.45);padding:20px 20px 18px;color:var(--navy);box-sizing:border-box}
+.apmp-box h3{font:700 1.15rem/1.25 var(--aph-body);margin:0 0 4px;color:var(--navy)}
+.apmp-box p{font-size:.875rem;line-height:1.45;color:var(--text2);margin:0 0 12px}.apmp-box p.apmp-next{background:#fff4d6;border-left:4px solid #c9a84c;padding:8px 10px;border-radius:6px;color:#1a2744}
+.apmp-box label{display:block;font-size:.75rem;font-weight:700;letter-spacing:.09em;text-transform:uppercase;color:var(--text3);margin:0 0 6px}
+.apmp-box input{width:100%;box-sizing:border-box;font:500 16px/1.2 var(--aph-body);color:var(--text);border:1.5px solid var(--border);border-radius:8px;padding:10px 12px;min-height:44px}
+.apmp-box input:focus{outline:none;border-color:var(--gold);box-shadow:0 0 0 3px rgba(201,168,76,.25)}
+.apmp-acts{display:flex;gap:8px;margin-top:14px}
+.apmp-acts .aph-btn{flex:1 1 0;min-width:0}
+.apmp-acts .aph-btn-primary{flex:2 1 0}
+.apmp-frame{position:fixed;inset:0;z-index:20000;background:#525a6e;display:flex;flex-direction:column}
+.apmp-frame-bar{display:flex;flex-wrap:wrap;gap:8px;align-items:center;background:var(--navy);border-bottom:3px solid var(--gold);padding:8px 12px;color:#dfe5f3;font:500 .8125rem/1.3 var(--aph-body)}
+.apmp-frame-bar span{flex:1;min-width:160px}
+.apmp-frame iframe{flex:1;width:100%;border:0;background:#fff}
+.apmp-pt{background:#eef3fb;border:2px solid var(--navy);border-radius:10px;padding:10px 12px;margin:0 0 14px}
+.apmp-box .apmp-pt label{color:var(--navy);margin:0 0 4px}
+.apmp-pt-f{font-size:.8125rem;line-height:1.4;color:var(--navy);margin:0 0 8px}
+.apmp-pt-row{display:flex;gap:6px;align-items:stretch}
+.apmp-box .apmp-pt-row input{flex:1 1 auto;min-width:0;font-weight:700;font-size:15px;background:#fff;color:var(--navy)}
+.apmp-pt-row button{flex:none;font:700 .9375rem/1.2 var(--aph-body);color:var(--navy);background:var(--gold);border:0;border-radius:8px;padding:0 12px;min-height:44px;cursor:pointer;white-space:nowrap}
+.apmp-pt-row button.ok{background:#2e7d52;color:#fff}
+/* ===== END AP MARKED PAPER ===== */
+</style>
+<style id="appen-style">
+/* ===== AP PEN v1 · answer pad: ✍️ Handwrite (Apple Pencil) / ⌨️ Type (shared; identical in every AP app with written answers) ===== */
+.appen{margin:8px 0 4px;font-family:var(--aph-body);clear:both}
+.appen-bar{display:flex;flex-wrap:wrap;align-items:center;gap:6px 8px;margin:0 0 6px}
+.appen-tabs{display:inline-flex;flex:none;border:1.5px solid var(--navy);border-radius:9px;overflow:hidden;background:#fff}
+.appen-tab{font:700 .9375rem/1.1 var(--aph-body);background:#fff;color:var(--navy);border:0;padding:8px 12px;min-height:40px;cursor:pointer;white-space:nowrap;-webkit-tap-highlight-color:transparent}
+.appen-tab+.appen-tab{border-left:1.5px solid var(--navy)}
+.appen-tab.ty{font-weight:600}
+.appen-tab[aria-selected="true"]{background:var(--navy);color:var(--gold2)}
+.appen-tab:focus-visible,.appen-tb:focus-visible{outline:3px solid rgba(201,168,76,.6);outline-offset:1px}
+.appen-tools{display:flex;flex-wrap:wrap;align-items:center;gap:6px;flex:1 1 auto;justify-content:flex-end;min-width:0}
+.appen-tb{font:600 .9375rem/1.1 var(--aph-body);background:#fff;color:var(--text);border:1.5px solid var(--border);border-radius:8px;padding:6px 10px;min-height:38px;cursor:pointer;white-space:nowrap;-webkit-tap-highlight-color:transparent}
+.appen-tb:hover:not(:disabled){border-color:var(--navy);color:var(--navy)}
+.appen-tb[aria-pressed="true"]{border-color:var(--navy);background:#eef1f8;color:var(--navy);font-weight:700}
+.appen-tb.red{color:#b71c1c}
+.appen-tb.red[aria-pressed="true"]{border-color:#c62828;background:#fdecea;color:#b71c1c}
+.appen-tb:disabled{opacity:.4;cursor:default}
+.appen-seg{display:inline-flex;border:1.5px solid var(--border);border-radius:8px;overflow:hidden}
+.appen-seg .appen-tb{border:0;border-radius:0;min-height:35px}
+.appen-seg .appen-tb+.appen-tb{border-left:1.5px solid var(--border)}
+.appen-lock{font:700 .8125rem/1.2 var(--aph-body);color:#b71c1c;background:#fdecea;border:1px solid #f3c2bd;border-radius:6px;padding:5px 8px;white-space:nowrap}
+.appen-padwrap{position:relative;border:1px solid #d9d4c9;border-radius:8px;overflow:hidden;background:#fffef8;-webkit-user-select:none;user-select:none;-webkit-touch-callout:none}
+.appen.locked .appen-padwrap{border-color:#e9a9a3;box-shadow:0 0 0 2px rgba(198,40,40,.08)}
+.appen-cv{display:block;width:100%;height:100px;touch-action:none;cursor:crosshair;-webkit-user-select:none;user-select:none;-webkit-touch-callout:none}
+html.appen-pen .appen-cv{touch-action:manipulation}
+html.appen-pen .appen-cv.drawing{touch-action:none}
+.appen.erasing .appen-cv{cursor:cell}
+.appen-foot{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:4px 12px;margin-top:5px}
+.appen-hint{font-size:.8125rem;line-height:1.35;color:var(--text2);flex:1 1 220px}
+.appen.locked .appen-hint{color:#b71c1c}
+.appen-foot:has(.appen-hint:empty){display:none}
+.appen-confirm{display:flex;flex-wrap:wrap;align-items:center;gap:8px;background:#fdf6e3;border:1px solid #e6cf8f;border-radius:8px;padding:8px 10px;margin:0 0 6px;font-size:.9375rem;color:var(--navy)}
+.appen-confirm span{flex:1 1 200px}
+.appen-confirm .go{background:var(--navy);color:var(--gold2);border-color:var(--navy)}
+.appen-panel[hidden]{display:none!important}
+.appen-note{font-size:.8125rem;color:var(--text2);font-style:italic;margin:0 0 6px}
+.appen-ta{display:block;width:100%;box-sizing:border-box;font:500 1rem/1.55 var(--aph-body);color:var(--text);border:1px solid #bbb;border-radius:6px;padding:10px 12px;min-height:120px;background:#fffef8;resize:vertical}
+.appen-ta:focus{outline:none;border-color:var(--gold);box-shadow:0 0 0 3px rgba(201,168,76,.22)}
+.appen-ty input[readonly],.appen-ty textarea[readonly]{background:#f3f4f7;color:#2a2a2a}
+.appen-corr-wrap{margin-top:8px}
+.appen-corr-wrap label{display:block;font:800 .75rem/1.2 var(--aph-body);letter-spacing:.08em;text-transform:uppercase;color:#c62828;margin:0 0 4px}
+.appen-corr{display:block;width:100%;box-sizing:border-box;font:600 1rem/1.45 var(--aph-body);color:#c62828;border:1.5px solid #e9a9a3;border-radius:6px;padding:8px 10px;min-height:60px;background:#fff8f7;resize:vertical}
+.appen-corr:focus{outline:none;border-color:#c62828;box-shadow:0 0 0 3px rgba(198,40,40,.15)}
+.appen-restore{display:flex;flex-wrap:wrap;align-items:center;gap:8px 12px;background:#eef1f8;border:1px solid #cdd5e6;border-left:4px solid var(--gold);border-radius:8px;padding:10px 12px;margin:0 0 14px;font:500 .9375rem/1.4 var(--aph-body);color:var(--navy)}
+.appen-restore>span:first-child{flex:1 1 260px}
+.appen-restore-acts{display:flex;flex-wrap:wrap;gap:8px}
+.appen-restore .go{background:var(--navy);color:var(--gold2);border-color:var(--navy)}
+@media (max-width:560px){.appen-tools{justify-content:flex-start}.appen-tab{padding:8px 10px}}
+/* ===== END AP PEN ===== */
+</style>
+<style id="aptt-style">
+.aptt-ul{background:#fdecea;border:1.5px solid #c0392b;color:#7a1b12;border-radius:8px;padding:7px 10px;margin:8px 0 0;font-size:.9375rem}
+@keyframes tmShake{0%,100%{transform:none}20%,60%{transform:translateX(-6px)}40%,80%{transform:translateX(6px)}}
+.aptt-ul.tm-shake{animation:tmShake .45s ease}
+.aptt-level{display:inline-block;margin:6px 0 4px;font:800 1.0625rem/1 var(--aph-body);letter-spacing:.05em;color:#fff;background:#c0392b;border-radius:8px;padding:7px 12px}
+.aptt-lv-E{background:#2e7d52}.aptt-lv-M{background:#b9770e}.aptt-lv-H{background:#c0392b}.aptt-lv-X{background:var(--navy)}
+#aptt-lvask{position:fixed;inset:0;z-index:14000;background:rgba(8,13,28,.6);display:flex;align-items:center;justify-content:center;padding:16px}
+.aptt-lvbox{background:#fff;border-radius:14px;padding:18px;max-width:440px;width:100%;box-shadow:0 20px 60px rgba(0,0,0,.4);font-family:var(--aph-body);text-align:center}
+.aptt-lvh{font:700 1.35rem/1.2 var(--aph-display);color:var(--navy)}
+.aptt-lvs{font-size:.875rem;color:var(--text2);margin:6px 0 12px}
+.aptt-lvb{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.aptt-lvb button{border:0;border-radius:10px;padding:14px 10px;font:800 1.0625rem var(--aph-body);color:#fff;cursor:pointer}
+.aptt-lvb button.on{outline:3px solid var(--gold);outline-offset:2px}
+.aptt-lvx{margin-top:12px;background:none;border:0;color:var(--text2);font:600 .9375rem var(--aph-body);cursor:pointer}
+/* ===== AP TIMED TEST ===== */
+/* ⏱ AP Spot Test: timed & submitted — the printed AP Spot Test done on screen (Apple Pencil), timed or untimed, self-marked, handed in as a PDF.
+   Shared and app-agnostic: paste this <style> + <script> pair unchanged into any AP app that has AP PEN (appen-) and AP MARKED PAPER (apmp-).
+   Prefix aptt-. DM Sans only, except the screen heading (.aph-h). */
+.aph-btn.aptt-btn{border:4px solid #d0021b!important;color:#1a2744!important;background:#ffe94d!important;font-weight:800;box-shadow:0 0 0 2px rgba(208,2,27,.25),0 0 14px 3px rgba(208,2,27,.55);animation:apttBtnGlow 1.6s ease-in-out infinite}
+.aph-btn.aptt-btn:hover{background:#fff176!important;border-color:#d0021b!important}
+@keyframes apttBtnGlow{0%,100%{box-shadow:0 0 0 2px rgba(208,2,27,.25),0 0 10px 2px rgba(208,2,27,.45)}50%{box-shadow:0 0 0 3px rgba(208,2,27,.35),0 0 22px 7px rgba(208,2,27,.7)}}
+@media (prefers-reduced-motion:reduce){.aph-btn.aptt-btn{animation:none}}
+.aptt-lvm{display:block;color:#c0392b;font-size:1rem;margin-bottom:4px}
+html.aptt-open,html.aptt-open body{overflow:hidden}
+#aptt-ov{position:fixed;inset:0;z-index:14000;background:var(--cream);overflow-y:auto;overflow-x:hidden;-webkit-overflow-scrolling:touch;font-family:var(--aph-body);color:var(--text)}
+#aptt-ov:focus{outline:none}
+.aptt-bar{position:sticky;top:0;z-index:3;display:flex;align-items:center;gap:10px;background:var(--navy);border-bottom:3px solid var(--gold);padding:8px 16px}
+.aptt-bar-t{flex:1;min-width:0;font:700 .9375rem/1.2 var(--aph-body);color:var(--gold2);text-align:right;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+#aptt-top,.aptt-item,#aptt-after{scroll-margin-top:64px}
+.aptt-wrap{max-width:820px;margin:0 auto;padding:18px 16px 64px;box-sizing:border-box}
+.aptt-kick{font-size:.8125rem;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--text2);margin:0 0 4px;overflow-wrap:anywhere}
+.aptt-wrap .aph-h{margin:0 0 6px}
+.aptt-meta{font-size:.9375rem;color:var(--text2);margin:0 0 10px;overflow-wrap:anywhere}
+.aptt-instr{font-size:.9375rem;line-height:1.5;color:var(--text2);background:#f7f3e8;border-left:4px solid var(--gold);border-radius:6px;padding:10px 12px;margin:0 0 14px}
+.aptt-score{display:flex;flex-wrap:wrap;align-items:baseline;justify-content:center;gap:4px 12px;background:var(--navy);color:#fff;border:2px solid var(--gold);border-radius:12px;padding:10px 14px;margin:0 0 12px;font-size:.9375rem}
+.aptt-score[hidden]{display:none}
+.aptt-score b{font-size:1.5rem;font-weight:800;color:var(--gold2)}
+.aptt-score small{font-size:.875rem;color:#c9d2e8}
+.aptt-legend{font-size:.9375rem;line-height:1.5;color:var(--navy);background:#fff;border:1px solid var(--border);border-radius:10px;padding:8px 12px;margin:0 0 12px;text-align:left}
+.aptt-legend[hidden]{display:none}
+.aptt-legend b{display:inline-flex;align-items:center;justify-content:center;min-width:22px;height:22px;border-radius:6px;background:var(--navy);color:var(--gold2);font-size:.8125rem;margin-right:3px}
+.aptt-lh{font-weight:800;margin-bottom:4px}
+.aptt-lrow{display:flex;flex-wrap:wrap;gap:6px 14px;margin:8px 0}
+.aptt-item{background:#fff;border:1px solid var(--border);border-radius:12px;box-shadow:var(--shadow);padding:12px 14px 10px;margin:0 0 12px;transition:outline-color .2s}
+.aptt-item.aptt-empty{outline:3px solid var(--wrong);outline-offset:1px}
+.aptt-item.aptt-na{opacity:.85}
+.aptt-detail{color:#c0392b;font-weight:700;font-size:.9375rem;line-height:1.4;margin:4px 0 0}
+.aptt-item.aptt-unm{outline:4px solid #e67e00;outline-offset:2px;background:#fff8ec}
+.aptt-item.aptt-unm .aptt-mk-v{color:#b35900;font-weight:800}
+.aptt-item.aptt-mkd{border-left:8px solid #1e7a46}
+.aptt-todo{position:fixed;top:112px;right:14px;z-index:14010;background:#e67e00;color:#fff;border:3px solid #fff;border-radius:999px;padding:9px 16px;font:800 1rem/1.15 var(--aph-body);box-shadow:0 4px 16px rgba(0,0,0,.3);cursor:pointer;max-width:calc(100vw - 28px);text-align:left;-webkit-tap-highlight-color:transparent}
+.aptt-todo[hidden]{display:none}
+.aptt-todo.ok{background:#1e7a46}
+.aptt-item.tm-shake{animation:tmShake .45s ease}
+.aptt-ih{display:flex;gap:10px;align-items:flex-start}
+.aptt-n{flex:none;width:34px;height:34px;border-radius:50%;border:2px solid var(--gold);display:flex;align-items:center;justify-content:center;font-weight:800;font-size:1rem;color:var(--navy);background:#fff}
+.aptt-ib{flex:1;min-width:0}
+.aptt-q{font-size:1.1875rem;line-height:1.4;font-weight:600;color:var(--navy);overflow-wrap:anywhere}
+.aptt-chip{display:inline-block;font-size:.8125rem;font-style:italic;line-height:1.3;color:var(--text2);background:#f7f3e8;border:1px solid #e6d8ad;border-radius:12px;padding:2px 9px;margin:0 0 4px;overflow-wrap:anywhere}
+.aptt-item .appen{margin-top:8px}
+.aptt-item .appen-ta{min-height:76px}
+.aptt-item[data-kind="word"] .appen-ta{min-height:52px}
+#aptt-ov .appen-tb[data-a="more"]{font-size:0}
+#aptt-ov .appen-tb[data-a="more"]::after{content:"+ more space";font:600 .9375rem/1.1 var(--aph-body)}
+.aptt-ans{margin-top:12px;padding-top:4px}
+.aptt-ans[hidden]{display:none}
+.aptt-al{display:inline-block;font-size:.8125rem;font-weight:800;letter-spacing:.08em;text-transform:uppercase;color:#fff;background:#1e7a46;border-radius:6px 6px 0 0;padding:4px 10px;margin:0}
+.aptt-al::before{content:"✔ "}
+.aptt-a{font-size:1.375rem;font-weight:700;line-height:1.4;color:#0f1b3a;background:#dcf8e6;border:3px solid #1e7a46;border-left-width:10px;border-radius:0 10px 10px 10px;padding:10px 14px;box-shadow:0 4px 14px rgba(30,122,70,.35);overflow-wrap:anywhere}
+.aptt-mk{display:flex;flex-wrap:wrap;align-items:center;gap:6px;margin-top:8px}
+.aptt-mk-l{flex-basis:100%;font-size:.75rem;font-weight:800;letter-spacing:.08em;text-transform:uppercase;color:var(--text2);margin-right:4px}
+.aptt-mb{display:inline-flex;align-items:center;gap:7px;min-height:44px;padding:6px 12px 6px 6px;border-radius:10px;border:1.5px solid var(--border);background:#fff;color:var(--navy);font:600 .9375rem/1.2 var(--aph-body);cursor:pointer;-webkit-tap-highlight-color:transparent;text-align:left}
+.aptt-mb b{display:inline-flex;align-items:center;justify-content:center;width:30px;height:30px;border-radius:7px;background:#eef1f7;font-size:1.0625rem;font-weight:800;flex:none}
+.aptt-mb:hover:not(:disabled){border-color:var(--navy)}
+.aptt-mb.on{background:var(--navy);border-color:var(--navy);color:var(--gold2)}
+.aptt-mb.on b{background:var(--gold);color:var(--navy)}
+.aptt-mb:disabled{cursor:default}
+.aptt-mb:disabled:not(.on){opacity:.55}
+.aptt-mk-v{font-size:.875rem;font-weight:700;color:var(--text2);margin-left:4px}
+.aptt-msg{display:flex;flex-wrap:wrap;align-items:center;gap:8px 12px;background:#fdecea;border:1.5px solid #e9a9a3;border-left:5px solid #c0392b;border-radius:8px;padding:10px 12px;margin:14px 0 0;color:#7a1b12;font-size:.9375rem;line-height:1.4}
+.aptt-msg[hidden]{display:none}
+.aptt-steps{display:flex;flex-wrap:wrap;gap:10px;justify-content:center;margin:18px 0 0}
+.aptt-lock,.aptt-chk{font:800 1.0625rem/1.2 var(--aph-body);border-radius:10px;padding:12px 20px;min-height:52px;cursor:pointer;-webkit-tap-highlight-color:transparent;max-width:100%;white-space:normal}
+.aptt-lock{background:var(--gold);color:var(--navy);border:2px solid var(--navy);box-shadow:0 3px 0 var(--navy)}
+.aptt-lock:hover:not(:disabled){filter:brightness(1.05)}
+.aptt-lock:disabled{background:#eef0f4;color:#4a5368;border-color:#c9cfdb;box-shadow:none;cursor:default}
+.aptt-chk{background:var(--navy);color:var(--gold2);border:3px solid var(--navy)}
+.aptt-chk:disabled{background:#e4e7ee;color:#7a8299;border-color:#e4e7ee;cursor:not-allowed}
+.aptt-chk.ready{position:fixed;left:50%;top:50%;transform:translate(-50%,-50%);z-index:50;width:min(560px,calc(100vw - 32px));font-size:1.75rem;line-height:1.2;padding:26px 22px;min-height:120px;background:#ffe94d;color:#1a2744;border:6px solid #d0021b;border-radius:18px;animation:apttBig 1.4s ease-in-out infinite}
+.aptt-chk.ready::after{content:"Tap here to see the answers and mark yourself";display:block;font-size:1rem;font-weight:700;margin-top:8px;color:#a3001a}
+@keyframes apttBig{0%,100%{box-shadow:0 0 0 100vmax rgba(8,13,28,.55),0 0 12px 3px rgba(208,2,27,.6)}50%{box-shadow:0 0 0 100vmax rgba(8,13,28,.55),0 0 30px 10px rgba(208,2,27,.85)}}
+@media (prefers-reduced-motion:reduce){.aptt-chk.ready{animation:none;box-shadow:0 0 0 100vmax rgba(8,13,28,.55),0 0 20px 6px rgba(208,2,27,.7)}}
+@keyframes apttPulse{0%,100%{box-shadow:0 0 0 0 rgba(192,57,43,.7);border-color:#c0392b}50%{box-shadow:0 0 0 6px rgba(192,57,43,.45);border-color:#ff3b2f}}
+.aptt-lock-n{text-align:center;font-size:.875rem;font-weight:600;color:#a32116;margin-top:10px;line-height:1.4}
+.aptt-after[hidden]{display:none}
+.aptt-clock{position:fixed;top:64px;right:14px;z-index:14010;background:var(--navy);color:var(--gold2);border:2px solid var(--gold);border-radius:999px;padding:7px 14px;font:800 1.125rem/1 var(--aph-body);font-variant-numeric:tabular-nums;box-shadow:0 6px 18px rgba(8,13,28,.3)}
+.aptt-clock.amber{background:#b9770e;color:#fff;border-color:#f5c26b}
+.aptt-clock.red{background:#c0392b;color:#fff;border-color:#ff8a7a}
+.aptt-clock.pulse{animation:apttGlow 1s ease-in-out infinite}
+.aptt-clock[hidden]{display:none}
+.aptt-clock.free{background:#eaf5ef;color:#1d5c3a;border-color:#2e7d52}
+.aptt-clock.done{background:#eef1f7;color:var(--navy);border-color:var(--border);font-size:.9375rem}
+.aptt-mode{background:#fff;border:3px solid var(--gold);border-radius:14px;padding:16px;margin:0 0 16px}
+.aptt-mode[hidden]{display:none}
+.aptt-mode-h{font-weight:800;font-size:1.0625rem;color:var(--navy);margin:0 0 10px}
+.aptt-mode-b{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:12px}
+.aptt-mode-b button{display:flex;flex-direction:column;gap:6px;text-align:left;border-radius:12px;padding:14px 16px;cursor:pointer;font:500 .9375rem/1.4 var(--aph-body);-webkit-tap-highlight-color:transparent}
+.aptt-mode-b button b{font-size:1.125rem;font-weight:800}
+.aptt-mode-t{background:var(--navy);color:#fff;border:3px solid #c0392b}
+.aptt-mode-t b{color:var(--gold2)}
+.aptt-mode-f{background:#eaf5ef;color:#1d3a2a;border:2px solid #2e7d52}
+.aptt-mode-n{font-size:.8125rem;color:var(--text2);margin-top:8px}
+#aptt-ov.aptt-nomode #aptt-items,#aptt-ov.aptt-nomode .aptt-steps,#aptt-ov.aptt-nomode #aptt-lockn{display:none}
+.aptt-key-row{margin-top:12px;text-align:right}
+.aptt-mkbtn{border-color:#c9a84c;color:var(--navy);font-weight:700}
+.aptt-set{background:#e6f6ec;border:3px solid #1e7a46;border-radius:12px;padding:10px 14px;margin:0 0 12px;color:#14532d;font:800 1.125rem/1.3 var(--aph-body)}
+.aptt-set b{font-size:1.375rem;letter-spacing:.03em}
+.aptt-set span{display:block;font-weight:600;font-size:.9375rem;color:#1d3a2a;margin-top:2px}
+.aptt-mk{position:fixed;inset:0;z-index:15000;background:rgba(8,13,28,.6);display:flex;align-items:flex-start;justify-content:center;padding:6vh 16px 16px;overflow-y:auto;font-family:var(--aph-body)}
+.aptt-mkbox{background:#fff;border-radius:14px;max-width:520px;width:100%;padding:18px 18px 16px;box-shadow:0 20px 60px rgba(0,0,0,.4);color:var(--navy)}
+.aptt-mkh{font:800 1.25rem/1.2 var(--aph-body)}
+.aptt-mks{font-size:.875rem;color:var(--text2);margin:4px 0 8px}
+.aptt-mkbox>label,#aptt-mk-out label{display:block;font-size:.75rem;font-weight:800;letter-spacing:.08em;text-transform:uppercase;color:var(--text3);margin:12px 0 5px}
+.aptt-mkbox input[type=text],.aptt-mkbox select,.aptt-mkrow input{width:100%;box-sizing:border-box;font:500 16px/1.2 var(--aph-body);border:1.5px solid var(--border);border-radius:8px;padding:9px 11px;min-height:44px;color:var(--navy);background:#fff}
+.aptt-mkq label{display:block;font-size:.9375rem;margin:6px 0;cursor:pointer}.aptt-mkq label.off{opacity:.45}.aptt-mkq small{color:var(--text2)}
+.aptt-mkact{display:flex;gap:8px;justify-content:flex-end;margin-top:14px}
+.aptt-mkrow{display:flex;gap:6px}.aptt-mkrow input{flex:1;min-width:0}.aptt-mkrow button{flex:none;white-space:nowrap}
+.aptt-mkok{margin-top:14px;background:#e6f6ec;border-left:5px solid #1e7a46;border-radius:8px;padding:8px 10px;font-weight:700;color:#14532d}
+.aptt-mkwarn{margin-top:8px;color:#a3001a;font-size:.875rem;font-weight:600}
+.aptt-key-btn{background:#fff;border:1.5px dashed var(--border);color:var(--text2);border-radius:8px;padding:8px 12px;font:600 .875rem/1.2 var(--aph-body);cursor:pointer}
+#aptt-key{position:fixed;inset:0;z-index:14100;background:var(--cream,#f8f6f1);overflow-y:auto;overflow-x:hidden;font-family:var(--aph-body)}
+.aptt-key-bar{position:sticky;top:0;display:flex;justify-content:space-between;align-items:center;gap:10px;background:var(--navy);color:var(--gold2);padding:10px 16px;font-weight:800;font-size:1.125rem;border-bottom:3px solid var(--gold)}
+.aptt-key-bar span{min-width:0;overflow-wrap:anywhere}
+.aptt-key-bar button{flex:none;background:var(--gold);color:var(--navy);border:0;border-radius:8px;padding:8px 14px;font:800 1rem var(--aph-body);cursor:pointer}
+.aptt-key-list{max-width:1100px;margin:0 auto;padding:16px;box-sizing:border-box}
+.aptt-key-it{display:flex;gap:14px;background:#fff;border:1px solid var(--border);border-radius:12px;padding:14px 16px;margin:0 0 12px}
+.aptt-key-it>div{min-width:0}
+.aptt-key-q{font-size:clamp(1.05rem,1.6vw,1.6rem);font-weight:600;color:var(--navy);line-height:1.35;overflow-wrap:anywhere}
+.aptt-key-a{margin-top:8px;font-size:clamp(1.15rem,1.8vw,1.8rem);color:#14532d;background:#eaf5ef;border-left:5px solid #2e7d52;border-radius:8px;padding:8px 12px;line-height:1.35;overflow-wrap:anywhere}
+.aptt-tban{background:#fdecea;border:2px solid #c0392b;color:#7a1b12;border-radius:10px;padding:10px 14px;margin:0 0 12px;font-size:1rem;line-height:1.45}
+.aptt-tban.done{background:#fff8e6;border-color:var(--gold);color:var(--navy)}
+.aptt-tban[hidden]{display:none}
+.aptt-tban.live{position:fixed;top:108px;left:50%;transform:translateX(-50%);width:min(760px,calc(100vw - 32px));box-sizing:border-box;z-index:14005;box-shadow:0 10px 28px rgba(8,13,28,.35);margin:0}
+.aptt-learn{background:#fff;border:3px solid #c0392b;border-radius:12px;padding:12px 14px;margin:18px 0 0;animation:apttGlow 1.3s ease-in-out infinite}
+.aptt-learn.done{border-color:#2e7d52;animation:none;box-shadow:none}
+@keyframes apttGlow{0%,100%{box-shadow:0 0 0 0 rgba(192,57,43,.6)}50%{box-shadow:0 0 0 8px rgba(192,57,43,.12),0 0 18px 4px rgba(192,57,43,.35)}}
+@keyframes apttShake{0%,100%{transform:none}20%,60%{transform:translateX(-6px)}40%,80%{transform:translateX(6px)}}
+.aptt-learn.aptt-shake{animation:apttShake .45s ease, apttGlow 1.3s ease-in-out infinite}
+.aptt-learn-h{font-size:1rem;font-weight:800;color:var(--navy);margin:0 0 2px}
+.aptt-learn-q{font-size:.9375rem;color:var(--text2);margin:0 0 4px}
+.aptt-learn-must{font-size:.9375rem;font-weight:700;color:#a32116;margin:2px 0 8px}
+.aptt-learn-must.now{background:#fdecea;border-radius:8px;padding:6px 10px}
+.aptt-learn.done .aptt-learn-must{display:none}
+.aptt-save{text-align:center;margin:20px 0 0;padding:16px;border:2px solid var(--gold);border-radius:12px;background:#fffaf0}
+.aptt-save .apmp-btn{white-space:normal;max-width:100%}
+.aptt-save-n{font-size:.9375rem;color:var(--text2);margin-top:8px;line-height:1.45}
+@media (max-width:560px){
+  .aptt-wrap{padding:14px 16px 56px}
+  .aptt-q{font-size:1.0625rem}
+  .aptt-item{padding:10px 10px 8px}
+  .aptt-ih{gap:8px}
+  .aptt-n{width:30px;height:30px;font-size:.9375rem}
+  .aptt-mb{width:44px;padding:6px}
+  .aptt-mb span{display:none}
+  .aptt-bar-t{display:none}
+}
+@media print{#aptt-ov,#aptt-key{display:none!important}.aptt-learn{animation:none!important;box-shadow:none!important}}
+/* ===== END AP TIMED TEST ===== */
+</style>
+<style id="apt-page">
+/* AP Tests page: the one link every boy has. A code (ST101) or AP's signed link opens a fixed, timed AP Spot Test here. */
+body{background:var(--cream);margin:0}
+.apt-wrap{max-width:640px;margin:0 auto;padding:22px 16px 60px}
+.apt-card{background:#fff;border:1px solid var(--border);border-radius:16px;box-shadow:var(--shadow);padding:22px 20px;text-align:center}
+.apt-card h2{margin:0 0 6px}
+.apt-lead{color:var(--text2);font-size:1rem;line-height:1.45;margin:0 0 16px}
+.apt-row{display:flex;gap:8px;max-width:420px;margin:0 auto}
+.apt-code{flex:1;min-width:0;box-sizing:border-box;font:800 1.75rem/1.1 var(--aph-body);letter-spacing:.08em;text-transform:uppercase;text-align:center;color:var(--navy);border:3px solid var(--navy);border-radius:12px;padding:12px 10px;min-height:62px;background:#fff}
+.apt-code:focus{outline:none;border-color:var(--gold);box-shadow:0 0 0 4px rgba(201,168,76,.3)}
+.apt-go{flex:none;font:800 1.25rem/1 var(--aph-body);color:#1a2744;background:#ffe94d;border:4px solid #d0021b;border-radius:12px;padding:0 20px;min-height:62px;cursor:pointer}
+.apt-msg{margin:14px auto 0;max-width:460px;font-size:.9375rem;line-height:1.45;border-radius:10px;padding:10px 12px;text-align:left}
+.apt-msg[hidden]{display:none}
+.apt-msg.bad{background:#fdecea;border-left:5px solid #c0392b;color:#7a1b12}
+.apt-msg.wait{background:#eef3fb;border-left:5px solid var(--navy);color:var(--navy)}
+.apt-note{margin:18px 0 0;font-size:.875rem;color:var(--text2);line-height:1.45}
+.apt-foot{text-align:center;margin-top:26px}
+.apt-tlink{background:none;border:0;color:var(--text3);font:600 .8125rem var(--aph-body);cursor:pointer;padding:6px}
+/* teacher area */
+.apt-t{margin-top:20px;background:#fff;border:2px solid var(--gold);border-radius:16px;padding:18px 18px 14px;text-align:left}
+.apt-t[hidden]{display:none}
+.apt-t h3{margin:0 0 8px;font:800 1.125rem/1.2 var(--aph-body);color:var(--navy)}
+.apt-t h4{margin:18px 0 8px;font:800 .8125rem/1.2 var(--aph-body);letter-spacing:.08em;text-transform:uppercase;color:var(--text3)}
+.apt-t p{font-size:.9375rem;color:var(--text2);line-height:1.45;margin:0 0 10px}
+.apt-key{width:100%;box-sizing:border-box;font:500 16px var(--aph-body);border:1.5px solid var(--border);border-radius:8px;padding:10px 12px;min-height:44px}
+.apt-acts{display:flex;flex-wrap:wrap;gap:8px;margin:10px 0 0}
+.apt-it{border:1px solid var(--border);border-radius:10px;padding:10px 12px;margin:0 0 8px}
+.apt-it-h{display:flex;gap:8px;align-items:baseline;flex-wrap:wrap}
+.apt-it-c{font-weight:800;color:#fff;background:var(--navy);border-radius:6px;padding:2px 8px;font-size:.875rem;letter-spacing:.04em}
+.apt-it-c.none{background:#eef0f4;color:var(--text3)}
+.apt-it-n{font-weight:800;color:var(--navy)}
+.apt-it-m{font-size:.8125rem;color:var(--text2);margin:3px 0 6px}
+.apt-it .aph-btn{font-size:.8125rem;padding:6px 10px;min-height:34px}
+.apt-empty{font-size:.9375rem;color:var(--text3);font-style:italic}
+</style>
+</head>
+<body>
+<header class="aph-header">
+  <div class="aph-header-in">
+    <div class="aph-titles">
+      <h1 class="aph-title">AP <em>Tests</em></h1>
+      <div class="aph-sub">Spot Tests set by AP · enter your code</div>
+    </div>
+    <img class="aph-avatar" alt="AP" src="data:image/jpeg;base64,/9j/4AAQSkZJRgABAQAAAQABAAD/2wBDAAkGBwgHBgkIBwgKCgkLDRYPDQwMDRsUFRAWIB0iIiAdHx8kKDQsJCYxJx8fLT0tMTU3Ojo6Iys/RD84QzQ5Ojf/2wBDAQoKCg0MDRoPDxo3JR8lNzc3Nzc3Nzc3Nzc3Nzc3Nzc3Nzc3Nzc3Nzc3Nzc3Nzc3Nzc3Nzc3Nzc3Nzc3Nzc3Nzf/wAARCABYAFgDASIAAhEBAxEB/8QAHAABAAICAwEAAAAAAAAAAAAAAAUHBAYCAwgB/8QANRAAAQMDAgMHAwMCBwAAAAAAAQIDBAAFEQYhEjFBBxMiUWFxgTKRsRQVQiPRFhdDYqLB4f/EABQBAQAAAAAAAAAAAAAAAAAAAAD/xAAUEQEAAAAAAAAAAAAAAAAAAAAA/9oADAMBAAIRAxEAPwC8KUpQKwJNxSzcmYQA4ltqdUT/ABSP/ay33mo7Snn3EttoGVLUcAD1NV5rXUSYN3i3G3OtyGFsqjOKbUFDPMbigz9XdokSyIDUFDcuWSQUFzCW9/5f2rWrb2wPNuufu0BtxkDwrjeE59lHcetVhPeU+tCyTxIQeLfOVbkmox5zvApCCotkDP8AuoL/ALV2tWGWvhmofggnCVrHGk/I5VuVrvFuu7RctsxmQkc+BWSPccxXlNsrcITnGB9R6f2FbBpG+L09d2ZzfCrgOCniPjHUUHpqlRen77Dv8JMmErp4kEglP2qUoFKUoFKV8JABJ2AoNH7UZL6bYYpLTURxGVuuHrnZKR5/eqQYcdVJUxFbL5c8IDfEM+uPKpzXd0dv2qZS25C3I7bhQylZ3CR5DoPzVhaC0mi0wEypbYXNfAUon+A6JHt+aDTbToG43L+tJKY4PTHiJqc/yniBrH6lYWeZAqyEAIG2K+d5vvQUveOze4xUqMRXfJG3LBxWm3G2yrO6lM5pTQVnBxkH5/6r06lSVKwoA1j3zS9rv9tdizWE4cGy0jBSfMetBTHZjfHbZfGTxBUZxQQspGAArbcV6FryyzCk2DUMi3SMhyK+WysbZHQ+x2r0/Ac72DHcJyVtJVk9cgUHfSlKBSlKCjtSabftmrXFSShSZ8gOoUkbFPHjG3LGRVurASlKU7YFaX2s3eLa5tkVMCw2lanCpCeIkApyB9q15ztLuU08dnskp5nostKwfkUFokDO/OuBBFVxatdXlctDdwszqE9eBs5Hwa2VWtLH9JntJdGxbUcKB8iDvmg2VrAO5FSjBHAMHIqqrlrS4NSeCHaH5CBvkoU3kdCM4/Fconak9b1o/drFOYjH6l92Tw+1B0doOn3JetgqK2C5MSztnGTukn/iKttlAaZQ2MYQkJ29BWiaf1ZZNV6vjuW19altRVeB1koVnPr6Gt+oFKUoFKUoKs7TY/8AiBhqWy/wMW6aYklITuWlqSlw58hkfBNSE+FGjxW7Yy+uOGEBvvWwCo+fsT5/bFTJtCETZtveZLsKet5b2PJaMYJ6ciM+1QD8fUVnIjriw7u02MNyS/3Lqkjl3iSCCrHMg788UGBG0hb2rPJf/dZMmQk/6ywAlO2QRvnbJrAtGlEGKnUaHnn1NuMyzHIB70NZI8XPfcjz2rMfiX3U7hgyzEtNs5vhp4rW4nP08WABn0qwYjUeIluMz3YZCQEpSRjAH4oK6i6dVqKV3064PoiPsl1MlChnjyDnJ+az9L25mM2Icia5OYxjunWCB6nJ/FcJ0eZpVwqsr8e5Wl5xRTEdc4Vxyd8JVggp8s1mW+5agnFAt1liRnFDwvypYUhB8+FAyrHltQR+k7Gu364vd1hBDVqhOrjpbA6lIW4B6An71arSw60hxPJSQoZ8jWvRrQbbaY9qbUuQt7vTIkqTgrcXkqWfIkqOB8dK2FpAbaQgckpA+1BypSlApSlB0yGuMpcBIKN/cVquqn1MstEkhCl8K1AZwK3A8qgrtF79pyMRvzBPUUEG25b0xuBMxlDpSFFp1XCv02NYyZM1Cwhl9vus74Iwn0qfaix3re2zKZQ4Eox40g/mtScs9qRLKUw0pUrbCVEDHsDigkFpt62gmVPipzk8HeDiUfQZ51w0VJWqe8ygqUy0fCT1qXgWm3xIfAxGZQMHJSgA4PMZ51xsMP8AQNuFWApas+uKDZmMrXxH6U7fNZFdUZBbZSFfVzPvXbQKUpQKUpQKwbmk5aWkZVuKUoMFxKVt8TZ9x61BvsRHHv6iEFzPMgZFKUEzCaTwBRUOADlWZEYCn0rI8AOwpSgk6UpQKUpQf//Z">
+  </div>
+</header>
+<main class="apt-wrap">
+  <div class="apt-card">
+    <h2 class="aph-h">Enter your test code</h2>
+    <p class="apt-lead">Type the code AP has given you (for example <b>ST101</b>), then tap <b>Go</b>. Your test opens ready to start.</p>
+    <form class="apt-row" id="apt-form" autocomplete="off">
+      <input class="apt-code" id="apt-code" type="text" inputmode="text" autocapitalize="characters" autocorrect="off" spellcheck="false" maxlength="12" placeholder="ST101" aria-label="Test code">
+      <button class="apt-go" type="submit">Go</button>
+    </form>
+    <div class="apt-msg" id="apt-msg" role="alert" hidden></div>
+    <p class="apt-note">Got a link from AP in OneNote or Teams? Just tap it: it opens your test straight away.<br>Every test here is <b>timed</b>. The clock only starts when you tap <b>Start</b>.</p>
+  </div>
+  <div class="apt-t" id="apt-t" hidden></div>
+  <div class="apt-foot"><button class="apt-tlink" type="button" onclick="aptTeacher()">AP</button></div>
+</main>
+<script>
+/* ===== AP HOUSE STYLE v1 · helpers (shared; paste unchanged) ===== */
+// The house CSS as text, for printed sheets (they are separate documents and need their own copy)
+function aphCSS() { var el = document.getElementById('aph-style'); return el ? el.textContent : ''; }
+// The portrait from the header, for print bands
+function aphAvatar() { var i = document.querySelector('.aph-header .aph-avatar'); return i ? i.src : ''; }
+// Navy print band. o = { kicker, title (HTML: wrap the gold part in <em>), meta, total (for "Score ___ / total"), strip: false (no Name/Date/Score), print: false (no button) }
+function aphPrintHead(o) {
+  var a = aphAvatar(), strip = o.strip !== false;
+  return '<div class="aph-pband' + (strip ? '' : ' aph-solo') + '"><div class="aph-pband-text"><div class="aph-pkicker">' + o.kicker + '</div><div class="aph-ptitle">' + o.title + '</div>'
+    + (o.meta ? '<div class="aph-pmeta">' + o.meta + '</div>' : '') + '</div>'
+    + (o.print === false ? '' : '<button class="aph-pbtn aph-noprint" onclick="window.print()">&#128424; Print / PDF</button>')
+    + (a ? '<img class="aph-avatar" src="' + a + '" alt="AP">' : '') + '</div>'
+    + (strip ? '<div class="aph-pstrip"><span>Name ______________________</span><span>Date ______________</span><span>Score _____' + (o.total != null ? ' / ' + o.total : '') + '</span></div>' : '');
+}
+function aphPrintFoot(t) { return '<div class="aph-pfoot">' + t + '</div>'; }
+// Hides the header's ⌂ Home while the home screen is showing. el = the app's screen container, sel = something only the home screen contains
+function aphWatchHome(el, sel) {
+  if (!el) return;
+  var f = function () { document.body.classList.toggle('aph-at-home', !!el.querySelector(sel)); };
+  new MutationObserver(f).observe(el, { childList: true }); f();
+}
+/* ===== END AP HOUSE STYLE helpers ===== */
+</script>
+<script id="apmp-script">
+/* ===== AP MARKED PAPER → PDF v1 (shared; identical in every AP app with marked papers) =====
+   APMP.save(build): asks once for the boy's name (in-page; remembered in localStorage 'apStudentName'; Skip allowed),
+   then build() returns { app, kicker, title, meta, got, max, partial, partNote, summary, body, foot, docTitle, pageTitle? }
+   (pageTitle: the OneNote page title after today's date dd/mm/yyyy; default = docTitle without '– marked'; a Copy
+   button for it is shown in the name dialog and on the PDF page) and the marked paper opens as a print-ready page with the print dialog (Save as PDF). If pop-ups are blocked,
+   the same page opens in an in-page overlay with its own Print button. Nothing here marks anything: the app's own
+   score is passed in. */
+var APMP = (function () {
+  var KEY = 'apStudentName';
+  function esc(s) { return String(s == null ? '' : s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;'); }
+  function getName() { try { return localStorage.getItem(KEY) || ''; } catch (e) { return ''; } }
+  function setName(n) { try { localStorage.setItem(KEY, n); } catch (e) { } }
+  function when(d) {
+    d = d || new Date();
+    var day = d.toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'long', year: 'numeric' });
+    var t = d.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' });
+    return day + ' · ' + t;
+  }
+  function closeAsk() { var o = document.getElementById('apmp-ask'); if (o) o.remove(); }
+  function apmpPad() { var ua = navigator.userAgent || ''; return /iPad|iPhone|iPod/.test(ua) || (/Macintosh/.test(ua) && navigator.maxTouchPoints > 1); }
+  // OneNote page title: today's date (dd/mm/yyyy) + what the work was, e.g. "07/10/2026 AP Spot Test on VV10a (Medium)"
+  function dmy(d) { d = d || new Date(); function p(n) { return (n < 10 ? '0' : '') + n; } return p(d.getDate()) + '/' + p(d.getMonth() + 1) + '/' + d.getFullYear(); }
+  function pageTitle(o) {
+    var t = (o && (o.pageTitle || o.docTitle)) || 'AP work';
+    t = String(t).replace(/<[^>]*>/g, '').replace(/&nbsp;/g, ' ').replace(/&middot;/g, '·').replace(/&amp;/g, '&').replace(/\s*[–—-]\s*marked\s*$/i, '').replace(/\s+/g, ' ').trim();
+    return dmy() + ' ' + t;
+  }
+  var FOLDER = 'Done in class (<b>Birley 12</b>)? &rarr; put it in <b>Class Work</b>. Done in your <b>House</b> (EW)? &rarr; put it in <b>EW</b>.';
+  // copy button: works in Prisma / Safari (clipboard API) with a select-and-copy fallback
+  var COPY = "var i=this.parentNode.querySelector('input'),b=this,v=i.value;function ok(){b.textContent='\u2713 Copied';b.className='ok';setTimeout(function(){b.textContent='\ud83d\udccb Copy';b.className='';},2500);}"
+    + "function fb(){try{i.removeAttribute('readonly');i.focus();i.select();i.setSelectionRange(0,v.length);var r=document.execCommand('copy');i.setAttribute('readonly','');i.blur();if(r)ok();else alert('Hold your finger on the title, then tap Select All and Copy.');}catch(e){alert('Hold your finger on the title, then tap Select All and Copy.');}}"
+    + "try{if(navigator.clipboard&&navigator.clipboard.writeText){navigator.clipboard.writeText(v).then(ok,fb);}else fb();}catch(e){fb();}";
+  function copyRow(t, id) {
+    return '<div class="apmp-pt-row"><input id="' + id + '" type="text" readonly value="' + esc(t) + '" onclick="this.select()" aria-label="OneNote page title">'
+      + '<button type="button" onclick="' + esc(COPY) + '">&#128203; Copy</button></div>';
+  }
+  function ptBox(t, id) {
+    return '<div class="apmp-pt"><label for="' + id + '">&#128221; Your OneNote page title</label>'
+      + '<div class="apmp-pt-f">' + (apmpPad() ? 'Tap' : 'Click') + ' <b>Copy</b> now. In OneNote, make a <b>new page</b> and paste this as its title. ' + FOLDER + '</div>' + copyRow(t, id) + '</div>';
+  }
+  function howTo(pt) {
+    var pad = apmpPad(), T = pad ? 'tap' : 'click';
+    var po = (pt ? '<li>Tap <b>&#128203; Copy</b> to copy your <b>OneNote page title</b>:' + copyRow(pt, 'apmp-ptd') + '</li>'
+        + '<li>In <b>OneNote</b>, open <b>AP&rsquo;s notebook</b>. ' + FOLDER + ' Make a <b>new page</b> and paste the title into the page&rsquo;s <b>title line</b> (at the top, above the date).</li>' : '')
+      + '<li>' + (pt ? 'On that new page, ' + T : 'In <b>OneNote</b>, open <b>AP&rsquo;s notebook</b> and the <b>page with today&rsquo;s date</b>. ' + (pad ? 'Tap' : 'Click'))
+      + (pad ? ' the <b>Insert</b> tab at the top, then <b>PDF</b> <span class="apmp-ico">(the button next to the paper-clip &#128206;)</span>. In Files, open <b>Recents</b> (or <i>Downloads</i>) and tap your PDF.'
+             : ' <b>Insert</b> &rsaquo; <b>File Printout</b> (or <b>File</b> &rsaquo; <b>Insert Printout</b>) and choose your PDF.')
+      + (pad ? ' <span class="apmp-warn">Not the paper-clip <b>File</b> button: that only puts a small PDF box on the page. <b>Insert &rsaquo; PDF</b> puts every page of your work on the OneNote page.</span></li>'
+             : ' <span class="apmp-warn">Not &ldquo;Attachment&rdquo;: an attachment is just a small PDF box that AP has to open. A printout puts every page of your work on the OneNote page.</span></li>')
+      + '<li>Check the OneNote page shows your pages, with your name and red score at the top.</li>';
+    if (pad) return '<div class="apmp-how"><div class="apmp-how-h">&#128242; How to send this to AP (iPad)</div><ol>'
+      + '<li>If the print screen has not opened by itself, tap <button type="button" onclick="window.print()">&#128424; Print / Save as PDF</button></li>'
+      + '<li>In <b>Print Options</b>, do <b>not</b> choose a printer and do <b>not</b> tap Print. Tap the <b>Share button</b> at the top <span class="apmp-ico">(the square with an arrow &#11014;&#65038;)</span>, then <b>Save to Files</b> and save it (e.g. in <i>Downloads</i>).</li>'
+      + po + '</ol>'
+      + '<div class="apmp-how-s">Print screen never appears in Prisma? Tell AP, or do the paper in Safari.</div></div>';
+    return '<div class="apmp-how"><div class="apmp-how-h">&#128187; How to send this to AP</div><ol>'
+      + '<li>If the print window has not opened by itself, click <button type="button" onclick="window.print()">&#128424; Print / Save as PDF</button></li>'
+      + '<li>Set <b>Destination</b> (or Printer) to <b>Save as PDF</b> (or <i>Microsoft Print to PDF</i>), then <b>Save</b>. Your computer remembers this choice next time.</li>'
+      + po.replace('<li>Tap <b>', '<li>Click <b>') + '</ol></div>';
+  }
+  function ask(cb, pt) {
+    closeAsk();
+    var o = document.createElement('div'); o.id = 'apmp-ask'; o.className = 'apmp-ov';
+    o.innerHTML = '<div class="apmp-box" role="dialog" aria-modal="true" aria-labelledby="apmp-ask-h">'
+      + '<h3 id="apmp-ask-h">&#128196; Save marked paper as PDF</h3>'
+      + '<p>Your answers, the mark scheme and your score go on one page.</p>'
+      + (pt ? ptBox(pt, 'apmp-pta') : '')
+      + (apmpPad() ? '<p class="apmp-next">Next, the print screen opens. <b>Do not print.</b> Tap the <b>Share button &#11014;&#65038;</b> at the top, then <b>Save to Files</b>. Then put it into OneNote with <b>Insert &rsaquo; PDF</b> (not the paper-clip). Step-by-step help is at the top of the next page.</p>'
+                   : '<p class="apmp-next">Next, the print window opens: choose <b>Save as PDF</b>, then put it into <b>OneNote</b> with <b>Insert &rsaquo; File Printout</b> (not as an attachment).</p>')
+      + '<label for="apmp-name">Your name (printed at the top)</label>'
+      + '<input id="apmp-name" type="text" autocomplete="name" autocapitalize="words" spellcheck="false" maxlength="60" placeholder="e.g. A. Smith">'
+      + '<div class="apmp-acts"><button type="button" class="aph-btn" id="apmp-skip">Skip</button>'
+      + '<button type="button" class="aph-btn aph-btn-primary" id="apmp-go">&#128196; Continue</button></div></div>';
+    document.body.appendChild(o);
+    var inp = o.querySelector('#apmp-name'); inp.value = getName();
+    function go(skip) {
+      var n = skip ? '' : inp.value.replace(/\s+/g, ' ').trim();
+      if (!skip && n) setName(n);
+      closeAsk(); cb(n);
+    }
+    o.querySelector('#apmp-go').onclick = function () { go(false); };
+    o.querySelector('#apmp-skip').onclick = function () { go(true); };
+    inp.onkeydown = function (e) { if (e.key === 'Enter') { e.preventDefault(); go(false); } else if (e.key === 'Escape') closeAsk(); };
+    o.onclick = function (e) { if (e.target === o) closeAsk(); };
+    setTimeout(function () { try { inp.focus(); inp.select(); } catch (e) { } }, 30);
+  }
+  // ── pieces the apps use to build the body ──
+  var SYM = { ok: '✓', bad: '✗', part: '~', none: '—', open: '…' };
+  function verdict(got, max, marked, answered) {
+    if (!marked) return 'open';
+    if (got == null) return 'none';
+    if (got >= max && max > 0) return 'ok';
+    if (got > 0) return 'part';
+    return 'bad';
+  }
+  function sec(title, got, max, marked) {
+    return '<div class="apmp-sec"><span>' + title + '</span><span class="apmp-secmk">' + (marked ? got + ' / ' + max : 'not marked yet · ' + max + ' marks') + '</span></div>';
+  }
+  // o = { num, text, got, max, v ('ok'|'bad'|'part'|'none'|'open'), rows: [[label, html, cls]], extra, note, big }
+  function q(o) {
+    var v = o.v || 'open';
+    var mk = v === 'open' ? '<span class="apmp-mk open">not marked</span>'
+      : v === 'none' ? '<span class="apmp-mk none">— / ' + o.max + ' <small>not self-marked</small></span>'
+      : '<span class="apmp-mk ' + v + '"><i>' + SYM[v] + '</i> ' + o.got + ' / ' + o.max + '</span>';
+    var h = '<div class="apmp-q v-' + v + (o.big ? ' big' : '') + '"><div class="apmp-qh"><span class="apmp-qn">' + o.num + '</span><span class="apmp-qt">' + (o.text || '') + '</span>' + mk + '</div>';
+    (o.rows || []).forEach(function (r) { if (r) h += '<div class="apmp-row ' + (r[2] || '') + '"><span class="apmp-lab">' + r[0] + '</span><div class="apmp-val">' + r[1] + '</div></div>'; });
+    return h + (o.extra || '') + '</div>';
+  }
+  // options: [{ l, t, chosen, correct, why }] ; marked = show which is right
+  function opts(list, marked) {
+    return '<div class="apmp-opts">' + list.map(function (x) {
+      var cls = x.chosen ? (marked ? (x.correct ? 'ok' : 'bad') : 'mine') : (marked && x.correct ? 'right' : '');
+      var tag = x.chosen ? (marked ? (x.correct ? '<b class="apmp-tag ok">✓ your answer</b>' : '<b class="apmp-tag bad">✗ your answer</b>') : '<b class="apmp-tag mine">your answer</b>')
+        : (marked && x.correct ? '<b class="apmp-tag ok">✓ correct answer</b>' : '');
+      return '<div class="apmp-opt ' + cls + '"><span class="apmp-box">' + (x.chosen ? '✕' : '') + '</span><b class="apmp-l">' + x.l + '</b><span class="apmp-ot">' + x.t + tag + (x.why ? '<span class="apmp-why">' + x.why + '</span>' : '') + '</span></div>';
+    }).join('') + '</div>';
+  }
+  function answer(s) { s = String(s == null ? '' : s); return s.replace(/\s+/g, '') === '' ? '<span class="apmp-blank">(no answer)</span>' : '<span class="apmp-yours">' + esc(s).replace(/\n/g, '<br>') + '</span>'; }
+  function circle(got, max, partial) {
+    var pct = max ? Math.round(got / max * 100) : 0;
+    return '<div class="apmp-score"><div class="apmp-ring"><div class="apmp-frac"><b>' + got + '</b><span>/' + max + '</span></div><div class="apmp-pct">' + pct + '%</div></div>'
+      + (partial ? '<div class="apmp-part">marked so far</div>' : '') + '</div>';
+  }
+  var CSS = '@page{size:A4;margin:12mm 12mm 15mm;@bottom-right{content:"Page " counter(page) " of " counter(pages);font:8pt "DM Sans",sans-serif;color:#8a93a8}}'
+    + '*{box-sizing:border-box}html,body{background:#fff}body{margin:0;font-family:var(--aph-body);color:#1a2744;font-size:10pt;line-height:1.42;-webkit-print-color-adjust:exact;print-color-adjust:exact;-webkit-text-size-adjust:100%}'
+    + '.apmp-bar{display:block;background:#1a2744;color:#eef2fa;padding:14px 18px;font-size:16px;line-height:1.45;border-bottom:4px solid #c9a84c}.apmp-how{max-width:760px;margin:0 auto}.apmp-how-h{font-weight:800;font-size:18px;color:#f3dc9a;margin:0 0 6px}.apmp-how ol{margin:0;padding-left:1.4em}.apmp-how li{margin:6px 0}.apmp-how b{color:#fff}.apmp-ico{color:#f3dc9a;white-space:nowrap}.apmp-warn{display:block;margin-top:4px;color:#ffd0c9;font-size:14px}.apmp-how-s{font-size:13px;color:#b9c3da;margin-top:8px}'
+    + '.apmp-bar button{background:#c9a84c;color:#1a2744;border:0;border-radius:6px;padding:9px 14px;font:700 14px var(--aph-body);cursor:pointer;min-height:40px}'
+    + '.apmp-pt-row{display:flex;gap:6px;margin:6px 0 2px;max-width:600px}.apmp-pt-row input{flex:1 1 auto;min-width:0;font:700 16px/1.2 var(--aph-body);padding:8px 10px;border-radius:6px;border:2px solid #c9a84c;color:#1a2744;background:#fff;min-height:40px}.apmp-pt-row button{flex:none;white-space:nowrap}.apmp-bar .apmp-pt-row button.ok{background:#2e7d52;color:#fff}'
+    + '.apmp-page{max-width:186mm;margin:0 auto;padding:8mm 16px 10mm}'
+    + '.aph-pband{margin-top:0}'
+    + '.apmp-res{display:flex;align-items:center;gap:6mm;border:1px solid #e3e3e3;border-top:0;border-radius:0 0 6px 6px;padding:4mm 5mm;margin-bottom:4mm;background:#fafafa}'
+    + '.apmp-who{flex:1;min-width:0}.apmp-name{font-size:13pt;color:#1a2744}.apmp-name b{font-weight:700}.apmp-name .ln{display:inline-block;width:60mm;border-bottom:1px solid #9aa3b8;height:5mm;vertical-align:-1mm}'
+    + '.apmp-when{font-size:9pt;color:#4a5a7a;margin-top:1.2mm}.apmp-sum{font-size:9pt;color:#4a5a7a;margin-top:1.2mm}.apmp-sum b{color:#1a2744}'
+    + '.apmp-pnote{display:inline-block;margin-top:2mm;font-size:8.5pt;font-weight:700;color:#8a5c00;background:#fdf6e3;border:1px solid #e6cf8f;border-radius:4px;padding:1mm 2.5mm}'
+    + '.apmp-score{flex:none;text-align:center}.apmp-ring{width:34mm;height:34mm;border:1.1mm solid #c0392b;border-radius:50%;display:flex;flex-direction:column;align-items:center;justify-content:center;color:#c0392b;background:#fff;transform:rotate(-4deg)}'
+    + '.apmp-frac{font-weight:800;line-height:1;white-space:nowrap}.apmp-frac b{font-size:25pt}.apmp-frac span{font-size:16pt;font-weight:800}.apmp-pct{font-size:9pt;font-weight:700;margin-top:1.5mm}'
+    + '.apmp-part{font-size:7.5pt;font-weight:800;letter-spacing:.08em;text-transform:uppercase;color:#c0392b;margin-top:1.5mm}'
+    + '.apmp-key{font-size:8pt;color:#6b7590;margin:0 0 3mm;display:flex;flex-wrap:wrap;gap:2mm 5mm}.apmp-key i{font-style:normal;font-weight:800}'
+    + '.apmp-sec{display:flex;justify-content:space-between;gap:4mm;align-items:baseline;font-weight:800;font-size:10.5pt;letter-spacing:.05em;text-transform:uppercase;color:#1a2744;border-bottom:2px solid #c9a84c;padding:2mm 0 1mm;margin:5mm 0 2.5mm;break-after:avoid;page-break-after:avoid}'
+    + '.apmp-secmk{font-size:10.5pt;letter-spacing:0;text-transform:none;white-space:nowrap}'
+    + '.apmp-sub{font-weight:700;font-size:10pt;margin:3mm 0 1.5mm;color:#1a2744;break-after:avoid;page-break-after:avoid}'
+    + '.apmp-info{font-size:9pt;color:#4a5a7a;margin:0 0 2mm}'
+    + '.apmp-q{border:1px solid #dfe3ec;border-left:1.2mm solid #b9c0d0;border-radius:1.5mm;padding:2mm 3mm 2mm;margin:0 0 2.5mm;break-inside:avoid;page-break-inside:avoid}'
+    + '.apmp-q.big{break-inside:auto;page-break-inside:auto}.apmp-qh{break-after:avoid;page-break-after:avoid}.apmp-row{break-inside:avoid;page-break-inside:avoid}'
+    + '.apmp-small{font-size:8.5pt;color:#33405e}.apmp-dot{color:#b9c0d0;margin:0 .6mm}'
+    + '.apmp-q.v-ok{border-left-color:#2e7d52}.apmp-q.v-bad{border-left-color:#c0392b}.apmp-q.v-part{border-left-color:#b8922a}'
+    + '.apmp-qh{display:flex;gap:2.5mm;align-items:baseline}.apmp-qn{font-weight:800;color:#a8862e;flex:none;min-width:8mm}.apmp-qt{flex:1;min-width:0;font-weight:600}'
+    + '.apmp-mk{flex:none;font-weight:800;white-space:nowrap;font-size:10pt}.apmp-mk i{font-style:normal;font-size:12pt}.apmp-mk.ok{color:#2e7d52}.apmp-mk.bad{color:#c0392b}.apmp-mk.part{color:#8a5c00}.apmp-mk.none,.apmp-mk.open{color:#8a93a8;font-weight:600}.apmp-mk small{font-weight:600;font-size:8pt}'
+    + '.apmp-row{display:flex;gap:3mm;margin-top:1.2mm;font-size:9.5pt}.apmp-lab{flex:none;width:30mm;white-space:nowrap;font-size:7.5pt;font-weight:800;letter-spacing:.06em;text-transform:uppercase;color:#8a93a8;padding-top:.5mm}.apmp-val{flex:1;min-width:0}'
+    + '.apmp-row.ms .apmp-val{color:#1a2744}.apmp-row.ok .apmp-lab{color:#2e7d52}.apmp-row.bad .apmp-lab{color:#c0392b}.apmp-row.mine .apmp-val{font-weight:600}'
+    + '.apmp-yours{font-weight:600;color:#1a2744;background:#f4f6fb;border-radius:1mm;padding:0 1mm;-webkit-box-decoration-break:clone;box-decoration-break:clone}.apmp-blank{color:#c0392b;font-style:italic}'
+    + '.apmp-list{margin:0;padding-left:4mm}.apmp-list li{margin:0}'
+    + '.apmp-tip{font-size:8.5pt;color:#4a5a7a;font-style:italic;margin-top:1mm}'
+    + '.apmp-opts{margin-top:1mm}.apmp-opt{display:flex;gap:2mm;align-items:baseline;font-size:9.5pt;padding:.4mm 1mm;border-radius:1mm}'
+    + '.apmp-opt .apmp-box{flex:none;display:inline-flex;align-items:center;justify-content:center;width:3.6mm;height:3.6mm;border:1px solid #1a2744;font-size:7pt;font-weight:800;vertical-align:-.5mm}'
+    + '.apmp-l{flex:none;width:4mm}.apmp-ot{flex:1;min-width:0}.apmp-opt.ok{background:#eaf5ef}.apmp-opt.bad{background:#fdecea}.apmp-opt.right{background:#eaf5ef}.apmp-opt.mine{background:#f4f6fb}'
+    + '.apmp-tag{font-size:7.5pt;font-weight:800;letter-spacing:.04em;text-transform:uppercase;margin-left:2mm;white-space:nowrap}.apmp-tag.ok{color:#2e7d52}.apmp-tag.bad{color:#c0392b}.apmp-tag.mine{color:#4a5a7a}'
+    + '.apmp-why{display:block;font-size:8.5pt;color:#4a5a7a}'
+    + '.apmp-text{border:1px solid #c9ced9;border-radius:1.5mm;padding:2.5mm 3.5mm;margin:1mm 0 3mm;font-size:9.5pt;background:#fff}.apmp-text p{margin:0 0 1.6mm}.apmp-text p:last-child{margin:0}.apmp-text .ttl{text-align:center;font-weight:700;margin-bottom:1.5mm}'
+    + '.apmp-trans{border:1px dashed #9aa3b8;border-radius:1.5mm;padding:2mm 3mm;margin:1mm 0 3mm;font-size:8.5pt;color:#333;break-inside:auto}.apmp-trans>b{display:block;font-size:7.5pt;letter-spacing:.06em;text-transform:uppercase;color:#8a93a8;margin-bottom:1mm}'
+    + 'table.apmp-t{width:100%;border-collapse:collapse;font-size:8.8pt;margin:1.5mm 0}table.apmp-t th,table.apmp-t td{border:1px solid #d3d8e3;padding:1mm 1.5mm;vertical-align:top;text-align:left}table.apmp-t th{background:#f1f3f8;font-size:7.5pt;letter-spacing:.05em;text-transform:uppercase;color:#4a5a7a}'
+    + 'table.apmp-t tr{break-inside:avoid;page-break-inside:avoid}table.apmp-t td.mk{white-space:nowrap;font-weight:800;text-align:center;width:13mm}table.apmp-t td.mk.ok{color:#2e7d52}table.apmp-t td.mk.bad{color:#c0392b}table.apmp-t td.mk.none{color:#8a93a8;font-weight:600}table.apmp-t td.n{width:7mm;font-weight:800;color:#a8862e}'
+    + '.apmp-ok{color:#2e7d52}.apmp-bad{color:#c0392b}'
+    + '.apmp-foot{display:flex;justify-content:space-between;gap:4mm;border-top:1px solid #e3e3e3;margin-top:5mm;padding-top:1.5mm;font-size:7.5pt;color:#8a93a8}'
+    + '@media print{.apmp-bar{display:none!important}.apmp-page{padding:0;max-width:none}}'
+    + '.apmp-sep{color:#8a93a8;font-size:7.5pt;font-weight:800;letter-spacing:.06em;text-transform:uppercase;margin:0 1.5mm 0 4mm}'
+    + '@media (max-width:560px){.apmp-res{flex-direction:column-reverse;align-items:flex-start}.apmp-lab{width:24mm;white-space:normal}}';
+  function doc(o) {
+    var d = new Date(), stamp = when(d);
+    var who = o.name ? '<div class="apmp-name">Name: <b>' + esc(o.name) + '</b></div>' : '<div class="apmp-name">Name: <span class="ln"></span></div>';
+    var head = aphPrintHead({ kicker: o.kicker, title: o.title, meta: o.meta, strip: false, print: false }).replace('aph-pband aph-solo', 'aph-pband');
+    var auto = '<scr' + 'ipt>(function(){if(window.parent!==window)return;var done=false;function go(){if(done)return;done=true;setTimeout(function(){try{window.focus();window.print();}catch(e){}},200);}'
+      + 'function ready(){if(document.fonts&&document.fonts.ready){document.fonts.ready.then(go,go);}setTimeout(go,1800);}'
+      + 'if(document.readyState==="complete")ready();else window.addEventListener("load",ready);})();</scr' + 'ipt>';
+    return '<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>' + esc(o.docTitle + (o.name ? ' — ' + o.name : '')) + '</title>'
+      + '<style>' + aphCSS() + '</style><style>' + CSS + '</style></head><body>'
+      + '<div class="apmp-bar aph-noprint">' + howTo(o.pt || pageTitle(o)) + '</div>'
+      + '<div class="apmp-page">' + head
+      + '<div class="apmp-res"><div class="apmp-who">' + who + '<div class="apmp-when">Completed ' + stamp + (o.lang ? ' &middot; ' + o.lang : '') + '</div>'
+      + (o.summary ? '<div class="apmp-sum">' + o.summary + '</div>' : '')
+      + (o.partial ? '<div class="apmp-pnote">Marked so far: ' + (o.partNote || '') + '</div>' : '') + '</div>'
+      + circle(o.got, o.max, o.partial) + '</div>'
+      + '<div class="apmp-key"><span><i class="apmp-ok">✓</i> correct</span><span><i class="apmp-bad">✗</i> wrong</span><span><i style="color:#8a5c00">~</i> partly right</span><span><i style="color:#8a93a8">—</i> no mark given</span><span>&#9746; = your choice</span></div>'
+      + o.body
+      + '<div class="apmp-foot"><span>' + o.foot + '</span><span>Generated ' + stamp + '</span></div>'
+      + '</div>' + auto + '</body></html>';
+  }
+  function overlay(html) {
+    var old = document.getElementById('apmp-frame'); if (old) old.remove();
+    var o = document.createElement('div'); o.id = 'apmp-frame'; o.className = 'apmp-frame';
+    o.innerHTML = '<div class="apmp-frame-bar"><button type="button" class="apmp-btn on-dark" id="apmp-fprint">&#128424; Print / Save as PDF</button><span>Pop-ups are blocked, so your marked paper is shown here.</span><button type="button" class="aph-btn aph-btn-sm" id="apmp-fclose">&#10005; Close</button></div>';
+    var f = document.createElement('iframe'); f.title = 'Marked paper'; f.srcdoc = html; o.appendChild(f); document.body.appendChild(o);
+    o.querySelector('#apmp-fclose').onclick = function () { o.remove(); };
+    o.querySelector('#apmp-fprint').onclick = function () { try { f.contentWindow.focus(); f.contentWindow.print(); } catch (e) { window.print(); } };
+  }
+  function open(html) {
+    var w = null; try { w = window.open('', '_blank'); } catch (e) { w = null; }
+    if (w && w.document) { w.document.open(); w.document.write(html); w.document.close(); try { w.focus(); } catch (e) { } return 'window'; }
+    overlay(html); return 'overlay';
+  }
+  function save(build) {
+    var o; try { o = build(); } catch (e) { alert('Sorry, the marked paper could not be built.'); if (window.console) console.error(e); return; }
+    if (!o) return;
+    o.pt = pageTitle(o);
+    ask(function (name) { o.name = name; APMP.last = o; open(doc(o)); }, o.pt);
+  }
+  return { save: save, pageTitle: pageTitle, esc: esc, q: q, sec: sec, opts: opts, answer: answer, verdict: verdict, when: when, doc: doc, SYM: SYM };
+})();
+/* ===== END AP MARKED PAPER ===== */
+</script>
+<script id="appen-script">
+/* ===== AP PEN v1 · answer pad (shared; identical in every AP app with written answers) =====
+   APPEN.html({key, lines, nums, label, typed}) → markup with two tabs: ✍️ Handwrite (default, selected) and ⌨️ Type
+   (the app's own input/textarea goes in `typed`). APPEN.mount(root) wires every pad in root and returns the states that
+   already held work (to offer "Start afresh"). APPEN.lock(key) / lockIn(el) once the answer is marked: black ink is
+   kept as written (no undo / erase / clear of black), the pen turns red for corrections, typed answers go read-only
+   and a red Corrections box appears. Strokes are vectors in logical units (800 wide), saved per pad in localStorage.
+   Palm rejection: once an Apple Pencil ('pen') is seen, touch never draws (a finger scrolls the page).
+   APPEN.pdf(key[, typedHtml]) → HTML for the marked-paper PDF (typed text, handwriting PNG, red corrections). */
+var APPEN = (function () {
+  var LW = 800, LH = 46, TOP = 12, PADB = 12, ML = 34, MAXL = 80;
+  var SIZES = { thin: 2.2, med: 3.4 }, COL = { k: '#111111', r: '#c62828' };
+  var SKEY = 'appen:', IDX = 'appen:idx', KEEP_DAYS = 60;
+  var REG = {}, RO = null;
+  var penSeen = false;
+  try { penSeen = localStorage.getItem('appenPen') === '1'; } catch (e) { }
+  if (penSeen) document.documentElement.classList.add('appen-pen');
+  function markPen() {
+    if (penSeen) return; penSeen = true; document.documentElement.classList.add('appen-pen');
+    try { localStorage.setItem('appenPen', '1'); } catch (e) { }
+    Object.keys(REG).forEach(function (k) { if (REG[k].el) hint(REG[k]); });
+  }
+  function esc(s) { return String(s == null ? '' : s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;'); }
+  function uid(k) { return 'appen-' + String(k).replace(/[^A-Za-z0-9_-]/g, '_'); }
+  function when(t) {
+    var d = new Date(t);
+    try { return d.toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short' }) + ', ' + d.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' }); } catch (e) { return ''; }
+  }
+  // ── storage (every access wrapped: private mode / blocked storage must never break the page) ──
+  function lsGet(k) { try { return localStorage.getItem(k); } catch (e) { return null; } }
+  function lsSet(k, v) { try { localStorage.setItem(k, v); return true; } catch (e) { return false; } }
+  function lsDel(k) { try { localStorage.removeItem(k); } catch (e) { } }
+  function idx() { try { return JSON.parse(lsGet(IDX) || '{}') || {}; } catch (e) { return {}; } }
+  function prune(half) {
+    var o = idx(), now = Date.now(), ks = Object.keys(o).sort(function (a, b) { return o[a] - o[b]; }), cut = half ? Math.ceil(ks.length / 2) : 0;
+    ks.forEach(function (k, i) { if (i < cut || now - o[k] > KEEP_DAYS * 864e5) { lsDel(SKEY + k); delete o[k]; } });
+    lsSet(IDX, JSON.stringify(o));
+  }
+  function hasContent(st) { return !!(st && (st.strokes.length || (st.typed && st.typed.join('').replace(/\s+/g, '')) || (st.corr && st.corr.replace(/\s+/g, '')))); }
+  function save(st) {
+    clearTimeout(st.tm); st.tm = null;
+    var o = idx();
+    if (!hasContent(st)) { lsDel(SKEY + st.key); delete o[st.key]; lsSet(IDX, JSON.stringify(o)); return; }
+    var data = JSON.stringify({ v: 1, t: st.ts, l: st.lines, tab: st.tab, lk: st.locked ? 1 : 0, sz: st.size, ty: st.typed, c: st.corr,
+      s: st.strokes.map(function (s) { var q = []; for (var i = 0; i < s.p.length; i += 3) q.push(Math.round(s.p[i] * 10), Math.round(s.p[i + 1] * 10), Math.round(s.p[i + 2] * 100)); return [s.c, s.w, q]; }) });
+    o[st.key] = st.ts || Date.now();
+    if (!lsSet(SKEY + st.key, data)) { prune(true); o = idx(); o[st.key] = st.ts || Date.now(); if (!lsSet(SKEY + st.key, data)) return; }
+    lsSet(IDX, JSON.stringify(o));
+  }
+  function touch(st) { st.ts = Date.now(); clearTimeout(st.tm); st.tm = setTimeout(function () { save(st); }, 250); }
+  function flush() { Object.keys(REG).forEach(function (k) { if (REG[k].tm) save(REG[k]); }); }
+  try { window.addEventListener('pagehide', flush); document.addEventListener('visibilitychange', function () { if (document.visibilityState === 'hidden') flush(); }); } catch (e) { }
+  function blank(key) { return { key: key, lines: 3, min: 3, nums: 0, label: '', strokes: [], hist: [], typed: null, corr: '', locked: false, tab: 'hw', size: 'med', tool: 'pen', ts: 0, el: null, cv: null, act: null, cur: null, fromStore: false }; }
+  function load(key) {
+    var raw = lsGet(SKEY + key); if (!raw) return null;
+    try {
+      var d = JSON.parse(raw), st = blank(key);
+      st.ts = d.t || 0; st.lines = Math.min(MAXL, d.l || 3); st.tab = d.tab === 'ty' ? 'ty' : 'hw'; st.locked = !!d.lk; st.size = d.sz === 'thin' ? 'thin' : 'med';
+      st.typed = Array.isArray(d.ty) ? d.ty : null; st.corr = d.c || ''; st.tool = 'pen'; st.fromStore = true;
+      st.strokes = (d.s || []).map(function (a) { var p = [], q = a[2] || []; for (var i = 0; i + 2 < q.length; i += 3) p.push(q[i] / 10, q[i + 1] / 10, q[i + 2] / 100); return { c: a[0] === 'r' ? 'r' : 'k', w: +a[1] || SIZES.med, p: p }; }).filter(function (s) { return s.p.length >= 3; });
+      return st;
+    } catch (e) { return null; }
+  }
+  try { prune(false); } catch (e) { }
+  // ── markup ──
+  function html(o) {
+    var id = uid(o.key), lab = esc(o.label || 'Your answer');
+    return '<div class="appen" data-appen="' + esc(o.key) + '" data-lines="' + (o.lines || 3) + '" data-nums="' + (o.nums || 0) + '" data-label="' + lab + '">'
+      + '<div class="appen-bar"><div class="appen-tabs" role="tablist" aria-label="' + lab + ': how you answer">'
+      + '<button type="button" role="tab" class="appen-tab hw" id="' + id + '-thw" aria-selected="true" aria-controls="' + id + '-hw" data-t="hw">&#9997;&#65039; Handwrite</button>'
+      + '<button type="button" role="tab" class="appen-tab ty" id="' + id + '-tty" aria-selected="false" aria-controls="' + id + '-ty" data-t="ty" tabindex="-1">&#9000;&#65039; Type</button></div>'
+      + '<div class="appen-tools" role="toolbar" aria-label="Pen tools"></div></div>'
+      + '<div class="appen-panel appen-hw" role="tabpanel" id="' + id + '-hw" aria-labelledby="' + id + '-thw"><div class="appen-cslot"></div>'
+      + '<div class="appen-padwrap"><canvas class="appen-cv" role="img" aria-label="' + lab + ': handwriting area. Write with Apple Pencil, or with a finger or mouse."></canvas></div>'
+      + '<div class="appen-foot"><span class="appen-hint" aria-live="polite"></span></div></div>'
+      + '<div class="appen-panel appen-ty" role="tabpanel" id="' + id + '-ty" aria-labelledby="' + id + '-tty" hidden><div class="appen-note">Type only if you type in exams or have no Apple Pencil.</div>'
+      + (o.typed || '')
+      + '<div class="appen-corr-wrap" hidden><label for="' + id + '-corr">Corrections</label><textarea class="appen-corr" id="' + id + '-corr" rows="2" spellcheck="false" autocomplete="off" placeholder="Your corrections (they print in red)"></textarea></div></div></div>';
+  }
+  // ── geometry & drawing ──
+  function wAt(s, pr) { pr = pr < 0.05 ? 0.05 : pr > 1 ? 1 : pr; return s.w * (0.55 + 0.9 * pr); }
+  function seg(c, s, i) {   // the piece of stroke s that ends around point i (smoothed through midpoints)
+    var p = s.p, a = 3 * (i - 1), b = 3 * i;
+    c.beginPath(); c.lineWidth = wAt(s, (p[a + 2] + p[b + 2]) / 2);
+    if (i === 1) { c.moveTo(p[0], p[1]); c.lineTo((p[0] + p[3]) / 2, (p[1] + p[4]) / 2); }
+    else { var z = 3 * (i - 2); c.moveTo((p[z] + p[a]) / 2, (p[z + 1] + p[a + 1]) / 2); c.quadraticCurveTo(p[a], p[a + 1], (p[a] + p[b]) / 2, (p[a + 1] + p[b + 1]) / 2); }
+    c.stroke();
+  }
+  function tail(c, s) {
+    var p = s.p, n = p.length / 3; if (n < 2) return;
+    var a = 3 * (n - 2), b = 3 * (n - 1);
+    c.beginPath(); c.lineWidth = wAt(s, p[b + 2]); c.moveTo((p[a] + p[b]) / 2, (p[a + 1] + p[b + 1]) / 2); c.lineTo(p[b], p[b + 1]); c.stroke();
+  }
+  function pen(c, s) { c.strokeStyle = c.fillStyle = COL[s.c] || COL.k; c.lineCap = 'round'; c.lineJoin = 'round'; }
+  function dot(c, s) { c.beginPath(); c.arc(s.p[0], s.p[1], wAt(s, s.p[2]) / 2, 0, Math.PI * 2); c.fill(); }
+  function drawStroke(c, s) {
+    pen(c, s); var n = s.p.length / 3;
+    if (n === 1) { dot(c, s); return; }
+    for (var i = 1; i < n; i++) seg(c, s, i);
+    tail(c, s);
+  }
+  function paper(c, st, lines, white) {
+    var h = TOP + lines * LH + PADB;
+    c.fillStyle = white ? '#ffffff' : '#fffef8'; c.fillRect(0, 0, LW, h);
+    c.strokeStyle = white ? 'rgba(26,39,68,.13)' : 'rgba(26,39,68,.17)'; c.lineWidth = 1.2;
+    for (var k = 1; k <= lines; k++) { var y = TOP + k * LH; c.beginPath(); c.moveTo(0, y); c.lineTo(LW, y); c.stroke(); }
+    c.strokeStyle = 'rgba(201,168,76,.55)'; c.lineWidth = 1.5; c.beginPath(); c.moveTo(ML, 0); c.lineTo(ML, h); c.stroke();
+    if (st.nums) {
+      c.fillStyle = '#8899bb'; c.font = '700 17px "DM Sans", sans-serif'; c.textAlign = 'center';
+      for (var j = 1; j <= Math.min(st.nums, lines); j++) c.fillText(String(j), ML / 2, TOP + j * LH - 10);
+    }
+  }
+  function layout(st) {
+    if (!st.cv || !st.wrap) return;
+    var w = st.wrap.clientWidth; if (!w) { st.lastW = 0; return; }
+    st.lastW = w; st.scale = w / LW;
+    var hL = TOP + st.lines * LH + PADB, h = Math.round(hL * st.scale), dpr = Math.min(window.devicePixelRatio || 1, 3);
+    while (dpr > 1 && w * h * dpr * dpr > 12e6) dpr -= 0.5;   // stay inside iOS canvas limits
+    st.dpr = dpr; st.cv.style.height = h + 'px';
+    st.cv.width = Math.round(w * dpr); st.cv.height = Math.round(h * dpr);
+    render(st);
+  }
+  function render(st) {
+    if (!st.cv || !st.lastW) return;
+    var c = st.ctx, k = st.scale * st.dpr;
+    c.setTransform(1, 0, 0, 1, 0, 0); c.clearRect(0, 0, st.cv.width, st.cv.height);
+    c.setTransform(k, 0, 0, k, 0, 0);
+    paper(c, st, st.lines, false);
+    st.strokes.forEach(function (s) { drawStroke(c, s); });
+    if (st.cur) drawStroke(c, st.cur);
+  }
+  function pos(st, e) {
+    var r = st.rect, pr = (e.pointerType === 'pen' && e.pressure > 0) ? e.pressure : 0.5;
+    return { x: (e.clientX - r.left) / st.scale, y: (e.clientY - r.top) / st.scale, p: pr };
+  }
+  function allowed(st, s) { return !st.locked || s.c === 'r'; }
+  function distSeg(px, py, ax, ay, bx, by) {
+    var dx = bx - ax, dy = by - ay, l = dx * dx + dy * dy, t = l ? ((px - ax) * dx + (py - ay) * dy) / l : 0;
+    t = t < 0 ? 0 : t > 1 ? 1 : t; var x = ax + t * dx - px, y = ay + t * dy - py; return Math.sqrt(x * x + y * y);
+  }
+  function eraseAt(st, pt) {
+    var R = 10, hit = false;
+    for (var j = st.strokes.length - 1; j >= 0; j--) {
+      var s = st.strokes[j]; if (!allowed(st, s)) continue;
+      var p = s.p, n = p.length / 3, on = false;
+      if (n === 1) on = Math.hypot(p[0] - pt.x, p[1] - pt.y) < R + s.w;
+      for (var i = 1; i < n && !on; i++) if (distSeg(pt.x, pt.y, p[3 * i - 3], p[3 * i - 2], p[3 * i], p[3 * i + 1]) < R + s.w / 2) on = true;
+      if (on) { st.strokes.splice(j, 1); st.hist.push({ t: 'e', s: s, i: j }); hit = true; }
+    }
+    if (hit) { render(st); touch(st); tools(st); }
+  }
+  function grow(st, n) {
+    var nl = Math.min(MAXL, st.lines + n); if (nl === st.lines) return; st.lines = nl; layout(st); touch(st);
+  }
+  function autoGrow(st, s) {
+    if (st.el && st.el.closest && st.el.closest('[data-nogrow]')) return;   // short-answer screens: space is added only with the + more space button
+    var my = 0; for (var i = 1; i < s.p.length; i += 3) if (s.p[i] > my) my = s.p[i];
+    if (my > TOP + (st.lines - 1) * LH + LH * 0.25) grow(st, 2);
+  }
+  function finish(st) {
+    var s = st.cur; st.cur = null;
+    if (s) {
+      var c = st.ctx; pen(c, s); tail(c, s);
+      st.strokes.push(s); st.hist.push({ t: 'a', s: s });
+      autoGrow(st, s); touch(st); tools(st);
+    }
+    try { if (st.act != null) st.cv.releasePointerCapture(st.act); } catch (e) { }
+    st.act = null; st.actType = null; st.erasing = false; st.cv.classList.remove('drawing');
+  }
+  function abort(st) { st.cur = null; st.act = null; st.actType = null; render(st); }
+  function bindCanvas(st) {
+    var cv = st.cv;
+    function down(e) {
+      if (e.pointerType === 'pen') markPen();
+      else if (e.pointerType === 'touch' && penSeen) return;        // palm rejection: with a Pencil around, touch only scrolls
+      if (e.pointerType === 'mouse' && e.button !== 0) return;
+      if (st.act != null) {
+        if (e.pointerType === 'pen' && st.actType === 'touch') abort(st);   // a palm got there first: drop it, the Pencil wins
+        else return;
+      }
+      e.preventDefault();
+      if (e.pointerType === 'pen') cv.classList.add('drawing');
+      try { cv.setPointerCapture(e.pointerId); } catch (x) { }
+      st.act = e.pointerId; st.actType = e.pointerType; st.rect = cv.getBoundingClientRect();
+      var pt = pos(st, e);
+      if (st.tool === 'eraser') { st.erasing = true; eraseAt(st, pt); return; }
+      st.cur = { c: st.locked ? 'r' : 'k', w: SIZES[st.size] || SIZES.med, p: [pt.x, pt.y, pt.p] };
+      var c = st.ctx; pen(c, st.cur); dot(c, st.cur);
+    }
+    function move(e) {
+      if (e.pointerId !== st.act) return;
+      e.preventDefault();
+      var evs = (e.getCoalescedEvents && e.getCoalescedEvents()) || []; if (!evs.length) evs = [e];
+      for (var k = 0; k < evs.length; k++) {
+        var pt = pos(st, evs[k]);
+        if (st.erasing) { eraseAt(st, pt); continue; }
+        var s = st.cur; if (!s) return;
+        var p = s.p, n = p.length / 3, lx = p[3 * n - 3], ly = p[3 * n - 2];
+        if (Math.abs(pt.x - lx) + Math.abs(pt.y - ly) < 0.8) continue;
+        p.push(pt.x, pt.y, pt.p); pen(st.ctx, s); seg(st.ctx, s, n);
+      }
+    }
+    function up(e) { if (e.pointerId !== st.act) return; finish(st); }
+    cv.addEventListener('pointerdown', down);
+    cv.addEventListener('pointermove', move);
+    cv.addEventListener('pointerup', up);
+    cv.addEventListener('pointercancel', up);
+    cv.addEventListener('lostpointercapture', up);
+    // a hovering Pencil (iPad M2+, Windows pens): lock the canvas against scrolling before it touches down
+    cv.addEventListener('pointerover', function (e) { if (e.pointerType === 'pen') cv.classList.add('drawing'); });
+    cv.addEventListener('pointerleave', function (e) { if (e.pointerType === 'pen' && st.act == null) cv.classList.remove('drawing'); });
+    // iPad Safari: a Pencil touch is a touch with touchType 'stylus' — stop it from scrolling; a finger scrolls once a Pencil has been used
+    function tch(e) {
+      var t = e.touches || [];
+      for (var i = 0; i < t.length; i++) if (t[i].touchType === 'stylus') { markPen(); if (e.cancelable) e.preventDefault(); return; }
+      if (!penSeen && e.cancelable) e.preventDefault();
+    }
+    cv.addEventListener('touchstart', tch, { passive: false });
+    cv.addEventListener('touchmove', tch, { passive: false });
+    cv.addEventListener('contextmenu', function (e) { e.preventDefault(); });
+  }
+  // ── toolbar ──
+  function canUndo(st) {
+    for (var j = st.hist.length - 1; j >= 0; j--) { var h = st.hist[j]; if (h.t === 'c' ? (h.col === 'r' || !st.locked) : allowed(st, h.s)) return true; }
+    for (var i = st.strokes.length - 1; i >= 0; i--) if (allowed(st, st.strokes[i])) return true;
+    return false;
+  }
+  function hasAllowed(st) { for (var i = 0; i < st.strokes.length; i++) if (allowed(st, st.strokes[i])) return true; return false; }
+  function tools(st) {
+    if (!st.el) return;
+    var t = st.el.querySelector('.appen-tools');
+    if (st.tab !== 'hw') { t.innerHTML = ''; return; }
+    var pr = function (b) { return ' aria-pressed="' + (b ? 'true' : 'false') + '"'; };
+    var h = st.locked
+      ? '<span class="appen-lock" title="Marked: your answer stays exactly as you wrote it">&#128274; Locked</span><button type="button" class="appen-tb red" data-a="pen"' + pr(st.tool === 'pen') + '>&#128397; Red pen: corrections</button>'
+      : '<button type="button" class="appen-tb" data-a="pen"' + pr(st.tool === 'pen') + ' title="Black ink">&#9999;&#65039; Pen</button>';
+    h += '<span class="appen-seg" role="group" aria-label="Pen thickness"><button type="button" class="appen-tb" data-a="thin"' + pr(st.size === 'thin') + '>Thin</button><button type="button" class="appen-tb" data-a="med"' + pr(st.size === 'med') + '>Medium</button></span>';
+    h += '<button type="button" class="appen-tb" data-a="eraser"' + pr(st.tool === 'eraser') + ' title="' + (st.locked ? 'Rubs out red corrections only' : 'Rubs out a whole stroke') + '"' + (hasAllowed(st) || st.tool === 'eraser' ? '' : ' disabled') + '>&#9003; Eraser</button>';
+    h += '<button type="button" class="appen-tb" data-a="undo"' + (canUndo(st) ? '' : ' disabled') + ' title="' + (st.locked ? 'Undo your last correction' : 'Undo') + '">&#8630; Undo</button>';
+    h += '<button type="button" class="appen-tb" data-a="clear"' + (hasAllowed(st) ? '' : ' disabled') + '>&#128465; ' + (st.locked ? 'Clear corrections' : 'Clear') + '</button>'
+      + '<button type="button" class="appen-tb" data-a="more" aria-label="More space: add lines to this pad">+ space</button>';
+    t.innerHTML = h;
+    st.el.classList.toggle('erasing', st.tool === 'eraser');
+  }
+  function hint(st) {
+    if (!st.el) return;
+    var big = st.min >= 5, x = st.el.querySelector('.appen-hint');
+    x.parentNode.hidden = false;
+    x.textContent = st.locked ? 'Marked: your answer is locked as written. Corrections go in red on top.'
+      : !big ? '' : penSeen ? 'Black ink. Write with your Apple Pencil; a finger scrolls the page.' : 'Black ink. Write with Apple Pencil (or a finger / mouse).';
+  }
+  function confirmBox(st, text, yes, fn) {
+    var slot = st.el.querySelector('.appen-cslot');
+    slot.innerHTML = '<div class="appen-confirm" role="alertdialog" aria-label="' + esc(text) + '"><span>' + esc(text) + '</span><button type="button" class="appen-tb" data-c="no">Cancel</button><button type="button" class="appen-tb go" data-c="yes">' + yes + '</button></div>';
+    slot.querySelector('[data-c="no"]').onclick = function () { slot.innerHTML = ''; };
+    slot.querySelector('[data-c="yes"]').onclick = function () { slot.innerHTML = ''; fn(); };
+    try { slot.querySelector('[data-c="no"]').focus(); } catch (e) { }
+  }
+  function undo(st) {
+    for (var j = st.hist.length - 1; j >= 0; j--) {
+      var h = st.hist[j];
+      if (h.t === 'c' ? !(h.col === 'r' || !st.locked) : !allowed(st, h.s)) continue;
+      st.hist.splice(j, 1);
+      if (h.t === 'a') { var i = st.strokes.indexOf(h.s); if (i >= 0) st.strokes.splice(i, 1); }
+      else if (h.t === 'e') st.strokes.splice(Math.min(h.i, st.strokes.length), 0, h.s);
+      else st.strokes = st.strokes.concat(h.rm);
+      render(st); touch(st); tools(st); return;
+    }
+    for (var k = st.strokes.length - 1; k >= 0; k--) if (allowed(st, st.strokes[k])) { st.strokes.splice(k, 1); render(st); touch(st); tools(st); return; }
+  }
+  function clear(st) {
+    var rm = st.strokes.filter(function (s) { return allowed(st, s); }); if (!rm.length) return;
+    st.strokes = st.strokes.filter(function (s) { return !allowed(st, s); });
+    st.hist.push({ t: 'c', col: st.locked ? 'r' : 'all', rm: rm });
+    render(st); touch(st); tools(st);
+  }
+  function act(st, a) {
+    if (a === 'pen' || a === 'eraser') st.tool = a;
+    else if (a === 'thin' || a === 'med') { st.size = a; st.tool = 'pen'; touch(st); }
+    else if (a === 'undo') undo(st);
+    else if (a === 'more') grow(st, 3);
+    else if (a === 'clear') confirmBox(st, st.locked ? 'Clear all your red corrections on this pad?' : 'Clear all your writing on this pad?', '&#128465; Clear', function () { clear(st); });
+    tools(st);
+  }
+  function setTab(st, t, quiet) {
+    st.tab = t === 'ty' ? 'ty' : 'hw';
+    var el = st.el;
+    el.querySelectorAll('.appen-tab').forEach(function (b) { var on = b.getAttribute('data-t') === st.tab; b.setAttribute('aria-selected', on ? 'true' : 'false'); b.tabIndex = on ? 0 : -1; });
+    el.querySelector('.appen-hw').hidden = st.tab !== 'hw';
+    el.querySelector('.appen-ty').hidden = st.tab !== 'ty';
+    tools(st);
+    if (st.tab === 'hw') layout(st);
+    if (!quiet) touch(st);
+  }
+  function applyLock(st) {
+    if (!st.el) return;
+    st.el.classList.toggle('locked', !!st.locked);
+    (st.tyEls || []).forEach(function (x) { if (st.locked) x.readOnly = true; });
+    var cw = st.el.querySelector('.appen-corr-wrap'), ca = st.el.querySelector('.appen-corr');
+    cw.hidden = !st.locked; ca.readOnly = !st.locked; ca.value = st.corr || '';
+    hint(st); tools(st);
+  }
+  function sweep() {   // let iPad Safari free the canvases of pads that are no longer on the page
+    Object.keys(REG).forEach(function (k) { var st = REG[k]; if (st.cv && !document.body.contains(st.cv)) { try { st.cv.width = st.cv.height = 0; } catch (e) { } if (RO && st.wrap) try { RO.unobserve(st.wrap); } catch (e) { } st.cv = st.el = st.wrap = null; st.act = null; st.cur = null; } });
+  }
+  function bind(st, el) {
+    st.el = el; st.wrap = el.querySelector('.appen-padwrap'); st.cv = el.querySelector('canvas'); st.ctx = st.cv.getContext('2d'); st.act = null; st.cur = null; st.lastW = 0;
+    st.wrap.__appen = st;
+    st.min = Math.max(1, +el.getAttribute('data-lines') || 3); st.nums = +el.getAttribute('data-nums') || 0; st.label = el.getAttribute('data-label') || '';
+    if (st.lines < st.min) st.lines = st.min;
+    el.querySelectorAll('.appen-tab').forEach(function (b) {
+      b.onclick = function () { setTab(st, b.getAttribute('data-t')); };
+      b.onkeydown = function (e) { if (e.key === 'ArrowLeft' || e.key === 'ArrowRight') { e.preventDefault(); var t = st.tab === 'hw' ? 'ty' : 'hw'; setTab(st, t); try { el.querySelector('.appen-tab[data-t="' + t + '"]').focus(); } catch (x) { } } };
+    });
+    el.querySelector('.appen-tools').onclick = function (e) { var b = e.target.closest('[data-a]'); if (b && !b.disabled) act(st, b.getAttribute('data-a')); };
+    st.tyEls = [].slice.call(el.querySelectorAll('.appen-ty input:not([type=radio]):not([type=checkbox]), .appen-ty textarea:not(.appen-corr)'));
+    if (st.typed) st.tyEls.forEach(function (x, i) { if (st.typed[i] != null && !x.value) x.value = st.typed[i]; });
+    st.tyEls.forEach(function (x) { x.addEventListener('input', function () { st.typed = st.tyEls.map(function (y) { return y.value; }); touch(st); }); });
+    var ca = el.querySelector('.appen-corr');
+    ca.addEventListener('input', function () { st.corr = ca.value; touch(st); });
+    bindCanvas(st);
+    if (RO) RO.observe(st.wrap);
+    applyLock(st); hint(st);
+    setTab(st, st.tab, true);
+  }
+  try {
+    if (window.ResizeObserver) RO = new ResizeObserver(function (en) { en.forEach(function (x) { var st = x.target.__appen; if (st && st.wrap === x.target && st.wrap.clientWidth !== st.lastW) layout(st); }); });
+    else window.addEventListener('resize', function () { Object.keys(REG).forEach(function (k) { var st = REG[k]; if (st.wrap && st.wrap.clientWidth !== st.lastW) layout(st); }); });
+  } catch (e) { }
+  function mount(root) {
+    sweep();
+    var back = [];
+    (root || document).querySelectorAll('.appen[data-appen]:not([data-on])').forEach(function (el) {
+      el.setAttribute('data-on', '1');
+      var key = el.getAttribute('data-appen'), st = REG[key];
+      if (!st) { st = load(key) || blank(key); REG[key] = st; }
+      if (hasContent(st)) back.push(st);
+      bind(st, el);
+    });
+    return back;
+  }
+  function get(key) { return REG[key] || (REG[key] = load(key) || blank(key)); }
+  function lock(key) { var st = get(key); if (st.locked) return; st.locked = true; st.tool = 'pen'; touch(st); applyLock(st); }
+  function lockIn(root) { if (!root) return; root.querySelectorAll('.appen[data-appen]').forEach(function (el) { lock(el.getAttribute('data-appen')); }); }
+  function reset(keys) {
+    (keys || []).forEach(function (k) { var st = REG[k]; if (st) { clearTimeout(st.tm); if (st.cv) try { st.cv.width = st.cv.height = 0; } catch (e) { } } delete REG[k]; lsDel(SKEY + k); });
+    var o = idx(); (keys || []).forEach(function (k) { delete o[k]; }); lsSet(IDX, JSON.stringify(o));
+  }
+  function offerAfresh(anchor, states, again) {
+    if (!anchor || !states || !states.length) return;
+    var t = 0, lk = false; states.forEach(function (s) { if (s.ts > t) t = s.ts; if (s.locked) lk = true; });
+    var d = document.createElement('div'); d.className = 'appen-restore'; d.setAttribute('role', 'status');
+    function show() {
+      d.innerHTML = '<span>&#8634; <b>Your earlier answers are back</b>' + (t ? ' (last written ' + esc(when(t)) + ')' : '') + '.' + (lk ? ' Answers that were already marked stay locked: correct them in red.' : '') + '</span>'
+        + '<span class="appen-restore-acts"><button type="button" class="appen-tb" data-r="keep">Keep them</button><button type="button" class="appen-tb" data-r="afresh">&#128465; Start afresh</button></span>';
+      d.querySelector('[data-r="keep"]').onclick = function () { d.remove(); };
+      d.querySelector('[data-r="afresh"]').onclick = function () {
+        d.innerHTML = '<span>Delete these earlier answers (handwriting and typing) and start again?</span><span class="appen-restore-acts"><button type="button" class="appen-tb" data-r="no">Cancel</button><button type="button" class="appen-tb go" data-r="yes">&#128465; Yes, start afresh</button></span>';
+        d.querySelector('[data-r="no"]').onclick = show;
+        d.querySelector('[data-r="yes"]').onclick = function () { reset(states.map(function (s) { return s.key; })); if (again) again(); };
+      };
+    }
+    show();
+    anchor.insertAdjacentElement('afterend', d);
+  }
+  // ── output ──
+  function inkBottom(st) { var my = 0; st.strokes.forEach(function (s) { for (var i = 1; i < s.p.length; i += 3) if (s.p[i] > my) my = s.p[i]; }); return my; }
+  function png(key) {
+    var st = REG[key] || load(key); if (!st || !st.strokes.length) return '';
+    var lines = Math.max(1, Math.min(MAXL, Math.ceil((inkBottom(st) - TOP - 4) / LH)));
+    var S = 1.5, cv = document.createElement('canvas'), hL = TOP + lines * LH + PADB;
+    cv.width = Math.round(LW * S); cv.height = Math.round(hL * S);
+    var c = cv.getContext('2d'); c.setTransform(S, 0, 0, S, 0, 0);
+    paper(c, st, lines, true);
+    st.strokes.forEach(function (s) { drawStroke(c, s); });
+    var url = ''; try { url = cv.toDataURL('image/png'); } catch (e) { }
+    cv.width = cv.height = 0; return url;
+  }
+  function info(key) {
+    var st = REG[key] || load(key) || blank(key);
+    return { ink: st.strokes.filter(function (s) { return s.c === 'k'; }).length, red: st.strokes.filter(function (s) { return s.c === 'r'; }).length,
+      typed: (st.typed || []).slice(), corr: st.corr || '', locked: !!st.locked, tab: st.tab, lines: st.lines, any: hasContent(st) };
+  }
+  // typedHtml: the app's own rendering of the typed answer ('' = nothing typed); omitted → the pad's own typed text
+  function pdf(key, typedHtml) {
+    var st = REG[key] || load(key); if (!st) return '';
+    if (typedHtml === undefined) { var tx = (st.typed || []).join('\n'); typedHtml = tx.replace(/\s+/g, '') ? '<div class="appen-ptyped">' + esc(tx).replace(/\n/g, '<br>') + '</div>' : ''; }
+    var img = png(key), red = st.strokes.some(function (s) { return s.c === 'r'; }), out = '';
+    if (typedHtml) out += (img ? '<div class="appen-plab">Typed</div>' : '') + typedHtml;
+    if (img) out += (typedHtml ? '<div class="appen-plab">Handwritten</div>' : '') + '<img class="appen-pimg" alt="Handwritten answer" src="' + img + '">'
+      + (red ? '<div class="appen-pkey"><b style="color:#111">Black</b>: answer as written &middot; <b style="color:#c62828">red</b>: corrections after marking</div>' : '');
+    if (st.corr && st.corr.replace(/\s+/g, '')) out += '<div class="appen-pcorr"><b>Corrections</b> ' + esc(st.corr).replace(/\n/g, '<br>') + '</div>';
+    return out;
+  }
+  var PDF_CSS = '.appen-pimg{display:block;width:100%;max-width:100%;height:auto;max-height:250mm;object-fit:contain;object-position:left top;border:1px solid #dfe3ec;border-radius:1mm;margin:1mm 0;break-inside:avoid;page-break-inside:avoid}'
+    + '.appen-plab{font-size:7pt;font-weight:800;letter-spacing:.06em;text-transform:uppercase;color:#8a93a8;margin:1.2mm 0 .4mm}'
+    + '.appen-ptyped{font-weight:600;color:#1a2744;background:#f4f6fb;border-radius:1mm;padding:1mm 2mm;white-space:normal}'
+    + '.appen-pcorr{color:#c62828;font-weight:600;margin-top:1.2mm;border-left:1mm solid #c62828;padding-left:2mm}.appen-pcorr b{font-size:7.5pt;letter-spacing:.06em;text-transform:uppercase;margin-right:1.5mm}'
+    + '.appen-pkey{font-size:7.5pt;color:#6b7590}.appen-pbox{border:1px solid #dfe3ec;border-radius:1.5mm;padding:2mm 3mm;margin:0 0 3mm}';
+  return { html: html, mount: mount, lock: lock, lockIn: lockIn, reset: reset, offerAfresh: offerAfresh, pdf: pdf, png: png, info: info, PDF_CSS: PDF_CSS,
+    _reg: REG, penSeen: function () { return penSeen; } };
+})();
+/* ===== END AP PEN ===== */
+</script>
+<script id="aptt-script">
+/* ===== AP TIMED TEST ===== */
+/* ⏱ AP Spot Test: timed & submitted (shared; identical in every AP app that offers it). Needs AP PEN (APPEN) and AP MARKED PAPER (APMP).
+   APTT.open({ id, app, kicker, title, meta, lang, langCode, items, total })
+     id     : the test's settings as a string: app + test type + selection + direction + level + item count. The item answers are
+              hashed in here, so a different draw (or a different selection) is a different test.
+     app    : app name for the PDF footer, e.g. 'AP A Level VVs, Gr EWs &amp; Translation' (HTML)
+     kicker : print kicker, e.g. 'AP A Level &middot; VVs, Gr EWs &amp; Translation' (HTML)
+     title  : what the test is on, e.g. 'VV3a' (HTML; the PDF title becomes "AP Spot Test — <title>")
+     meta   : one line under the title, e.g. '🇬🇧 → 🇫🇷 · 5 × 3 = 15 items' (HTML)
+     lang   : the language the answers are written in, e.g. 'French' (langCode optional: 'fr')
+     items  : [{ prompt, answer, kind: 'word'|'sentence', label?, html? }] exactly as the printed Spot Test shows them (same direction).
+              prompt / answer are plain text (escaped here) unless html: true (trusted HTML from the app's own data).
+     total  : 10 (an AP Spot Test is always out of 10). Each item is worth total / items.length.
+   Marks: word 2 Right · 1 Nearly · 0 Wrong; sentence 4 Perfect · 3 Mostly right · 2 About half right · 1 Only a word or two right · 0 Nothing right.
+   Item score = mark / max × item value; the total is shown out of 10 (one decimal if needed) and as the red circle on the PDF.
+   Modes: ⏱ Timed (items × 30 s per word / 60 s per sentence, rounded to whole minutes, at least 3; +30 s grace, then the answers lock
+   in by themselves once the pen is up; blanks = not attempted · 0; marking clock max(2 min, items × 10 s / 20 s): unmarked = 0) and
+   🏠 Untimed (every item must be attempted before lock-in; no marking clock). No change of mode once started.
+   Storage: pads are AP PEN (keys <test key>:<n>, <test key>:learn); progress in localStorage apttState:<test key>; attempts per mode in
+   apttAttempts:<test key>; the test in progress for a set of settings in apttCur:<settings hash>. Opening the same settings again within
+   12 hours of the start resumes that test (same items); "Start afresh" clears it and starts the same items again (next attempt). */
+var APTT = (function () {
+  var GRACE = 30, RESUME_MS = 12 * 3600e3, LBL = '⏱ AP Spot Test: timed &amp; submitted';
+  var MARKW = { 2: 'Right', 1: 'Nearly', 0: 'Wrong' };
+  var MARKS = { 4: 'Perfect', 3: 'Mostly right', 2: 'About half right', 1: 'Only a word or two right', 0: 'Nothing right' };
+  var LCODE = { French: 'fr', English: 'en', Spanish: 'es', Italian: 'it', German: 'de', Latin: 'la' };
+  var S = null, TICK = null, PEN = false, RUN = null;
+  function esc(s) { return String(s == null ? '' : s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;'); }
+  function plain(h) { var d = document.createElement('div'); d.innerHTML = String(h == null ? '' : h); return (d.textContent || '').replace(/\s+/g, ' ').trim(); }
+  function h32(s) { var h = 0x811c9dc5; s = String(s); for (var i = 0; i < s.length; i++) { h ^= s.charCodeAt(i); h = Math.imul(h, 16777619); } return (h >>> 0).toString(36); }
+  function lsGet(k) { try { return localStorage.getItem(k); } catch (e) { return null; } }
+  function lsSet(k, v) { try { localStorage.setItem(k, v); } catch (e) { } }
+  function lsDel(k) { try { localStorage.removeItem(k); } catch (e) { } }
+  function load(key) { try { var s = JSON.parse(lsGet('apttState:' + key) || 'null'); return s && s.key === key && Array.isArray(s.items) ? s : null; } catch (e) { return null; } }
+  function save() {
+    if (!S || !S.mode) return;   // nothing worth keeping before a mode is chosen
+    S.at = Date.now();
+    var o = {}; Object.keys(S).forEach(function (k) { if (k !== 'resumed') o[k] = S[k]; });
+    lsSet('apttState:' + S.key, JSON.stringify(o)); lsSet('apttCur:' + S.sel, S.key);
+  }
+  function padKeys(st) { return st.items.map(function (it, i) { return st.key + ':' + (i + 1); }).concat([st.key + ':learn']); }
+  function forget(st) { if (!st) return; APPEN.reset(padKeys(st)); lsDel('apttState:' + st.key); if (lsGet('apttCur:' + st.sel) === st.key) lsDel('apttCur:' + st.sel); }
+  function fresh(key, sel, m, items) {
+    return { v: 1, key: key, sel: sel, m: m, items: items, mode: '', t0: 0, at: 0, locked: false, lockAt: 0, endAt: 0, auto: false, na: [], shown: false, m0: 0, markDone: false, unm: [], marks: [], tAns: 0, tMark: 0, att: 0, done: false };
+  }
+  function norm(it) { return { prompt: String(it.prompt == null ? '' : it.prompt), answer: String(it.answer == null ? '' : it.answer), kind: it.kind === 'sentence' ? 'sentence' : 'word', label: it.label ? String(it.label) : '', html: !!it.html }; }
+  function show(it, f) { return it.html ? it[f] : esc(it[f]); }
+  function maxOf(it) { return it.kind === 'sentence' ? 4 : 2; }
+  function val() { return (S.m.total || 10) / S.items.length; }
+  function noun(n) { var sen = S.items.every(function (it) { return it.kind === 'sentence'; }); return (sen ? 'sentence' : 'item') + (n === 1 ? '' : 's'); }
+  function Noun(n) { var s = noun(n); return s.charAt(0).toUpperCase() + s.slice(1); }
+  function nWords(h) { return String(h || '').replace(/<[^>]+>/g, ' ').replace(/&[a-z#0-9]+;/gi, ' ').replace(/[(),;:!?.«»"]/g, ' ').split(/\s+/).filter(function (w) { return w && w !== '/' && w !== '-'; }).length; }
+  // AP's own classroom timings: a VV Spot Test (15 items) 5 minutes, an average Spot Test (10 items) 4 minutes
+  // → 20 s a word/phrase item, 24 s a sentence item; rounded up to 30 s, at least 2 min
+  function limit() { if (S.m.set && S.m.set.secs) return S.m.set.secs; var t = 0; S.items.forEach(function (it) { t += it.kind === 'sentence' ? 24 : 20; }); return Math.max(120, Math.ceil(t / 30) * 30); }
+  function minsTxt(sec) { var m = Math.floor(sec / 60); return m + (sec % 60 ? '½' : ''); }
+  function markLimit() { var t = 0; S.items.forEach(function (it) { t += it.kind === 'sentence' ? 20 : 10; }); return Math.max(120, t); }
+  function r1(x) { var r = Math.round(x * 10) / 10; return String(r); }
+  function mmss(x) { x = Math.max(0, Math.ceil(x)); return Math.floor(x / 60) + ':' + ('0' + x % 60).slice(-2); }
+  function dur(sec) { sec = Math.round(sec || 0); var m = Math.floor(sec / 60), s = sec % 60; return m ? m + ' min ' + (s < 10 ? '0' : '') + s + ' s' : s + ' s'; }
+  function hhmm(ms) { if (!ms) return ''; var d = new Date(ms); return ('0' + d.getHours()).slice(-2) + ':' + ('0' + d.getMinutes()).slice(-2); }
+  function elapsed() { return S && S.t0 ? Math.max(0, Math.round((Date.now() - S.t0) / 1000)) : 0; }
+  function list(a) { return a.length > 1 ? Noun(2) + ' ' + a.slice(0, -1).join(', ') + ' and ' + a[a.length - 1] : Noun(1) + ' ' + a[0]; }
+  function $(id) { return document.getElementById(id); }
+  function sum() {
+    var t = 0, raw = 0, rmax = 0, n = 0, left = 0, v = val(), off = (S.na || []).concat(S.unm || []);
+    S.items.forEach(function (it, i) { var m = S.marks[i], mx = maxOf(it); rmax += mx; if (m != null && m !== '') { t += (+m / mx) * v; raw += +m; if (off.indexOf(i + 1) < 0) n++; } else left++; });
+    return { score: Math.round(t * 10) / 10, raw: raw, rmax: rmax, n: n, left: left };   // n = marked by him; left = not marked yet
+  }
+  function filled(n) { var inf = APPEN.info(S.key + ':' + n); return inf.ink > 0 || (inf.typed || []).join('').replace(/\s+/g, '') !== ''; }
+  function empties() { var e = []; S.items.forEach(function (it, i) { if (!filled(i + 1)) e.push(i + 1); }); return e; }
+  function emptyText(e) { return 'Have a go at every ' + noun(1) + ' first: ' + noun(1) + ' ' + e.join(', ') + (e.length > 1 ? ' are' : ' is') + ' empty. A rough attempt is fine.'; }
+
+  // ── open / close ──
+  function open(o) {
+    if (!o || !o.items || !o.items.length || typeof APPEN === 'undefined' || typeof APMP === 'undefined') return;
+    var items = o.items.map(norm);
+    var m = { id: String(o.id || ''), app: o.app || '', kicker: o.kicker || '', title: o.title || '', meta: o.meta || '', detail: o.detail || '', lang: o.lang || '', code: o.langCode || LCODE[o.lang] || '', total: +o.total || 10, level: o.level || '', set: o.set || null };
+    if (window.APTT.capturing) { window.APTT.capturing.push({ m: m, items: items }); return; }   // 🔑 making a test link: another draw, not opened
+    RUN = o.set ? null : (window.APTT.lastRun || null); window.APTT.lastRun = null;
+    var sel = h32(m.app + '|' + m.id), key = 'aptt' + sel + h32(items.map(function (it) { return it.prompt + '\u0001' + it.answer; }).sort().join('\u0002'));
+    try { if (window.speechSynthesis) speechSynthesis.cancel(); } catch (e) { }
+    var cur = lsGet('apttCur:' + sel), st = cur ? load(cur) : null;
+    if (st && st.mode && Date.now() - (st.t0 || 0) < RESUME_MS) { S = st; S.resumed = true; }
+    else {
+      if (st) forget(st);                 // an old test for these settings: gone (its attempts are kept)
+      var old = load(key); if (old) forget(old);
+      S = fresh(key, sel, m, items);
+    }
+    build();
+  }
+  function build() {
+    var ov = $('aptt-ov'); if (ov) ov.remove();
+    ov = document.createElement('div'); ov.id = 'aptt-ov'; ov.setAttribute('data-nogrow', '1'); ov.tabIndex = -1; ov.setAttribute('role', 'dialog'); ov.setAttribute('aria-label', 'AP Spot Test: timed and submitted');
+    ov.addEventListener('keydown', function (e) { e.stopPropagation(); if (e.key === 'Escape' && !$('apmp-ask') && !$('aptt-key')) close(); });
+    ['keyup', 'keypress'].forEach(function (t) { ov.addEventListener(t, function (e) { e.stopPropagation(); }); });
+    document.body.appendChild(ov);
+    document.documentElement.classList.add('aptt-open');
+    render();
+    try { ov.focus({ preventScroll: true }); } catch (e) { }
+    clearInterval(TICK);
+    TICK = setInterval(function () {
+      if (!S || !$('aptt-ov')) return;
+      clock();
+      try { var lb = $('aptt-learn'); if (lb) lb.classList.toggle('done', filled('learn')); } catch (e) { }
+      if (document.visibilityState && document.visibilityState !== 'visible') return;
+      if (!S.mode) return;
+      if (!S.locked) S.tAns++; else if (S.shown && !(S.mode === 'timed' && S.markDone)) S.tMark++; else return;
+      if ((S.tAns + S.tMark) % 5 === 0) save();
+    }, 1000);
+  }
+  function close() {
+    clearInterval(TICK); TICK = null; save();
+    var k = $('aptt-key'); if (k) k.remove();
+    var ov = $('aptt-ov'); if (ov) ov.remove();
+    document.documentElement.classList.remove('aptt-open');
+  }
+  function teacher() {
+    if (!S) return;
+    if (!window.confirm('Show all ' + S.items.length + ' ' + noun(2) + ' WITH their answers?\n\nThis is for the teacher to go through on the board after the class has finished.')) return;
+    var k = $('aptt-key'); if (k) k.remove();
+    k = document.createElement('div'); k.id = 'aptt-key';
+    k.innerHTML = '<div class="aptt-key-bar"><span>👩‍🏫 Answers · AP Spot Test · ' + S.m.title + '</span><button type="button" onclick="document.getElementById(\'aptt-key\').remove()">✕ Close</button></div><div class="aptt-key-list">'
+      + S.items.map(function (it, i) {
+        return '<div class="aptt-key-it"><span class="aptt-n">' + (i + 1) + '</span><div>' + (it.label ? '<div class="aptt-chip">' + (it.html ? it.label : esc(it.label)) + '</div>' : '')
+          + '<div class="aptt-key-q">' + show(it, 'prompt') + '</div><div class="aptt-key-a"' + (S.m.code ? ' lang="' + esc(S.m.code) + '"' : '') + '>' + show(it, 'answer') + '</div></div></div>';
+      }).join('') + '</div>';
+    document.body.appendChild(k);
+  }
+
+  // ── screen ──
+  function legend() {
+    var w = S.items.some(function (it) { return it.kind === 'word'; }), s = S.items.some(function (it) { return it.kind === 'sentence'; });
+    return '<div class="aptt-lh">How to mark yourself' + (S.mode === 'timed' ? ': you have ' + dur(markLimit()) : '') + '</div><b>Mark each answer in red</b>: compare it with the correct one, word by word, and <b>underline your errors</b> (or put a <b>tick</b> if it is perfect). Then tap the mark that fits. You cannot choose a mark until there is red on your answer:'
+      + (w ? '<div class="aptt-lrow">' + (s ? '<span><i>Words and phrases:</i></span>' : '') + '<span><b>2</b> Right (a tiny slip like a missing accent is OK)</span><span><b>1</b> Nearly</span><span><b>0</b> Wrong</span></div>' : '')
+      + (s ? '<div class="aptt-lrow">' + (w ? '<span><i>Sentences:</i></span>' : '') + '<span><b>4</b> Perfect (a tiny slip like a missing accent is OK)</span><span><b>3</b> Mostly right: more right than wrong</span><span><b>2</b> About half right</span><span><b>1</b> Only a word or two right</span><span><b>0</b> Nothing right</span></div>' : '')
+      + 'Each ' + noun(1) + ' is worth ' + r1(val()) + ' of the ' + (S.m.total || 10) + ' marks.' + (S.mode === 'timed' ? ' Anything you have not marked when the marking time runs out scores 0.' : '');
+  }
+  function row(it, i) {
+    var n = i + 1, m = S.marks[i], W = it.kind === 'sentence' ? MARKS : MARKW, vs = it.kind === 'sentence' ? [4, 3, 2, 1, 0] : [2, 1, 0];
+    var mk = vs.map(function (v) { return '<button type="button" class="aptt-mb' + (m === v ? ' on' : '') + '" data-n="' + n + '" data-v="' + v + '" aria-pressed="' + (m === v) + '" title="' + v + ': ' + W[v] + '"' + (S.markDone ? ' disabled' : '') + '><b>' + v + '</b><span>' + W[v] + '</span></button>'; }).join('');
+    return '<div class="aptt-item" id="aptt-it-' + n + '" data-n="' + n + '" data-kind="' + it.kind + '"><div class="aptt-ih"><span class="aptt-n">' + n + '</span><div class="aptt-ib">'
+      + (it.label ? '<div class="aptt-chip">' + (it.html ? it.label : esc(it.label)) + '</div>' : '') + '<div class="aptt-q">' + show(it, 'prompt') + '</div></div></div>'
+      + APPEN.html({ key: S.key + ':' + n, lines: it.kind === 'sentence' ? 3 : 2, label: Noun(1) + ' ' + n, typed: '<textarea class="appen-ta" rows="' + (it.kind === 'sentence' ? 2 : 1) + '" spellcheck="false" autocomplete="off" autocorrect="off" autocapitalize="off" placeholder="Type your ' + (S.m.lang ? esc(S.m.lang) + ' ' : '') + 'answer"></textarea>' })
+      + '<div class="aptt-ans"' + (S.shown ? '' : ' hidden') + '><div class="aptt-al">Answer</div><div class="aptt-a"' + (S.m.code ? ' lang="' + esc(S.m.code) + '"' : '') + '>' + show(it, 'answer') + '</div>'
+      + '<div class="aptt-mk" role="group" aria-label="Your mark for ' + noun(1) + ' ' + n + '"><span class="aptt-mk-l">Underline your errors in red (or tick if perfect), then tap your mark:</span>' + mk + '<span class="aptt-mk-v" id="aptt-mv-' + n + '">' + (m != null && m !== '' ? m + ' / ' + maxOf(it) : '') + '</span></div></div></div>';
+  }
+  function render() {
+    var ov = $('aptt-ov'), N = S.items.length, L = S.m.lang || '', mins = minsTxt(limit());
+    var h = '<div class="aptt-bar"><button type="button" class="aph-home" onclick="APTT.close()">⌂ Back</button><span class="aptt-bar-t">' + LBL + '</span></div>'
+      + '<div class="aptt-wrap"><div id="aptt-top"><div class="aptt-kick">AP Spot Test · ' + S.m.title + '</div>'
+      + (S.m.level ? '<div class="aptt-level aptt-lv-' + ({ Easy: 'E', Medium: 'M', Hard: 'H', Mixed: 'X' }[S.m.level] || 'X') + '">LEVEL: ' + S.m.level.toUpperCase() + '</div>' : '')
+      + '<h2 class="aph-h">' + (L ? 'Translate into ' + esc(L) : 'Write your answers') + '</h2>'
+      + (S.m.meta ? '<div class="aptt-meta">' + S.m.meta + '</div>' : '')
+      + (S.m.detail ? '<div class="aptt-detail">' + S.m.detail + '</div>' : '')
+      + '<p class="aptt-instr">' + (L ? 'Translate' : 'Answer') + ' all ' + N + ' ' + noun(N) + (L ? ' into ' + esc(L) : '') + ' with your Apple Pencil (black ink). Have a go at every one, then lock in, open the answers, correct your work in red and give each ' + noun(1) + ' a mark. Your score is out of ' + (S.m.total || 10) + '.</p>'
+      + '<div class="aptt-score" id="aptt-score1"' + (S.shown ? '' : ' hidden') + '></div>'
+      + '<div class="aptt-legend" id="aptt-legend"' + (S.shown ? '' : ' hidden') + '>' + legend() + '</div></div>'
+      + (S.m.set ? '<div class="aptt-mode aptt-setmode" id="aptt-mode"><div class="aptt-set">✅ TEST SET BY AP' + (S.m.set.code ? ': <b>' + esc(S.m.set.code) + '</b>' : '') + '<span>' + esc(S.m.set.name || plain(S.m.title)) + ' · ⏱ ' + mins + ' minutes</span></div><div class="aptt-mode-b">'
+        + '<button type="button" class="aptt-mode-t" onclick="APTT.mode(\'timed\')"><b>⏱ Start: ' + mins + ' minutes</b><span>AP has set this test and its time limit. The clock starts as soon as you tap. Do as much as you can: at the end you get 30 more seconds, then your answers lock in by themselves. ' + Noun(2) + ' left blank score 0. Then ' + dur(markLimit()) + ' to mark yourself: anything not marked in time scores 0.</span></button>'
+        + '</div><div class="aptt-mode-n">The test code, your times and your attempt number are printed on your PDF.</div></div>' : '')
+      + (S.m.set ? '' : '<div class="aptt-mode" id="aptt-mode"><div class="aptt-mode-h">Choose how you are doing this: ⏱ Timed or 🏠 Untimed</div><div class="aptt-mode-b">'
+      + '<button type="button" class="aptt-mode-t" onclick="APTT.mode(\'timed\')"><b>⏱ Timed: ' + mins + ' minutes</b><span>In Birley 12. The clock starts as soon as you tap. Do as much as you can: at the end you get 30 more seconds, then your answers lock in by themselves. ' + Noun(2) + ' left blank score 0. Then ' + dur(markLimit()) + ' to mark yourself: anything not marked in time scores 0.</span></button>'
+      + '<button type="button" class="aptt-mode-f" onclick="APTT.mode(\'free\')"><b>🏠 Untimed</b><span>In your House (EW). Take as long as you need, but you must have a go at all ' + N + ' before you can lock in.</span></button>'
+      + '</div><div class="aptt-mode-n">Your choice, your times and your attempt number are printed on your PDF. You cannot change mode once you start.</div>'
+      + (tkey() ? '<div class="aptt-key-row"><button type="button" class="aptt-key-btn aptt-mkbtn" onclick="APTT.maker()">🔑 Teacher: make a test link from these settings</button></div>' : '')
+      + '</div>')
+      + '<div id="aptt-items">' + S.items.map(row).join('') + '</div>'
+      + '<div class="aptt-msg" id="aptt-msg" role="alert" hidden></div>'
+      + '<div class="aptt-steps"><button type="button" class="aptt-lock" id="aptt-lock" onclick="APTT.lock()">🔒 I\'ve attempted all ' + N + ': lock in</button>'
+      + '<button type="button" class="aptt-chk" id="aptt-chk" disabled onclick="APTT.show()">✔ Show answers &amp; mark</button></div>'
+      + '<div class="aptt-lock-n" id="aptt-lockn"></div>'
+      + '<div class="aptt-after" id="aptt-after"' + (S.shown ? '' : ' hidden') + '>'
+      + '<div class="aptt-score" id="aptt-score2"></div>'
+      + '<div class="aptt-learn" id="aptt-learn"><div class="aptt-learn-h">📝 What I learned</div><div class="aptt-learn-q">What did you learn? Which words or structures caught you out?</div>'
+      + '<div class="aptt-learn-must" id="aptt-learn-must">✋ Think about this and write something here: you cannot save your PDF until you have.</div>'
+      + APPEN.html({ key: S.key + ':learn', lines: 4, label: 'What I learned', typed: '<textarea class="appen-ta" rows="4" spellcheck="false" autocomplete="off" placeholder="What did you learn? Which words or structures caught you out?"></textarea>' }) + '</div>'
+      + '<div class="aptt-save"><button type="button" class="apmp-btn lg" onclick="APTT.pdf()">📄 Save my work as PDF</button>'
+      + '<div class="aptt-save-n">then put it into OneNote on a new page: Insert &rsaquo; PDF on iPad, Insert &rsaquo; File Printout on a computer</div></div></div>'
+      + '</div>';
+    ov.innerHTML = h;
+    ov.insertAdjacentHTML('afterbegin', '<div class="aptt-clock" id="aptt-clock" role="timer" aria-live="off" hidden></div>');
+    $('aptt-top').insertAdjacentHTML('afterend', '<div class="aptt-tban" id="aptt-tban" role="alert" hidden></div>');
+    var itemsEl = $('aptt-items');
+    itemsEl.addEventListener('pointerdown', function (e) { if (e.target.closest('.appen-cv, textarea')) PEN = true; }, true);
+    itemsEl.addEventListener('click', function (e) { var b = e.target.closest('.aptt-mb'); if (b && !b.disabled) mark(+b.getAttribute('data-n'), +b.getAttribute('data-v')); });
+    var unflag = function (e) { var it = e.target.closest && e.target.closest('.aptt-item.aptt-empty'); if (it) setTimeout(function () { if (filled(+it.getAttribute('data-n'))) it.classList.remove('aptt-empty'); msgRefresh(); }, 30); };
+    itemsEl.addEventListener('pointerup', unflag); itemsEl.addEventListener('input', unflag);
+    var back = APPEN.mount(ov);
+    // compact pads: a word or phrase starts with 2 lines (AP PEN's fresh pads start at 3; it grows as he writes)
+    S.items.forEach(function (it, i) { var st = APPEN._reg && APPEN._reg[S.key + ':' + (i + 1)], t;
+      if (st && st.el && st.min < st.lines && !st.strokes.length && st.tab === 'hw' && (t = st.el.querySelector('.appen-tab.hw'))) { st.lines = st.min; t.click(); } });
+    if (!back.length && S.resumed && S.mode) back = [{ key: S.key + ':1', ts: S.at || S.t0, locked: S.locked }];
+    if (back.length) APPEN.offerAfresh($('aptt-top'), back, afresh);
+    S.resumed = false;
+    if (S.locked) { APPEN.lockIn(itemsEl); naUI(); }
+    modeUI(); steps(); score(); clock();
+    if (S.shown && S.markDone) markEndUI();
+  }
+  function afresh() {   // the same items again, from the mode choice (the next attempt)
+    var st = S; forget(st);
+    S = fresh(st.key, st.sel, st.m, st.items); render();
+    try { $('aptt-ov').scrollTop = 0; } catch (e) { }
+  }
+  function modeUI() { var ov = $('aptt-ov'); if (!ov) return; ov.classList.toggle('aptt-nomode', !S.mode); var p = $('aptt-mode'); if (p) p.hidden = !!S.mode; }
+  function msgRefresh() { var m = $('aptt-msg'); if (!m || m.hidden || S.locked) return; var e = empties(); if (!e.length) { m.hidden = true; return; } m.textContent = emptyText(e); }
+  function steps() {
+    var l = $('aptt-lock'), c = $('aptt-chk'), n = $('aptt-lockn'); if (!l) return;
+    l.disabled = S.locked || !S.mode; l.textContent = S.locked ? '🔒 Locked in' : S.mode === 'timed' ? '🔒 I\'ve finished: lock in' : '🔒 I\'ve attempted all ' + S.items.length + ': lock in';
+    c.disabled = !S.locked; c.classList.toggle('ready', S.locked && !S.shown);
+    if (S.shown) c.textContent = '✔ Answers shown: mark yourself above';
+    n.textContent = !S.locked ? '① Lock in when you have attempted every ' + noun(1) + ' (you cannot change them afterwards). ② Then open the answers and mark yourself in red.'
+      : !S.shown ? '② Now open the answers, correct your work in red and mark each ' + noun(1) + '.' : 'Correct each ' + noun(1) + ' in red, choose a mark for each, then save your work as a PDF.';
+  }
+  function mode(m) {
+    if (!S || S.mode || (m !== 'timed' && m !== 'free')) return;
+    if (m === 'timed' && !window.confirm('Start the ' + (limit() / 60) + '-minute timer now?\n\nThe clock starts as soon as you tap OK and cannot be paused.')) return;
+    S.mode = m; S.t0 = Date.now();
+    try { var ak = 'apttAttempts:' + S.key, A = JSON.parse(lsGet(ak) || '{}') || {}; A[m] = (A[m] || 0) + 1; lsSet(ak, JSON.stringify(A)); S.att = A[m]; } catch (e) { S.att = 0; }
+    save(); modeUI(); clock(); steps();
+    var f = $('aptt-it-1'); if (f && f.scrollIntoView) try { f.scrollIntoView({ behavior: 'smooth', block: 'start' }); } catch (e) { }
+  }
+  function lockNow(auto) {
+    S.locked = true; S.auto = !!auto;
+    S.lockAt = auto ? limit() + GRACE : elapsed(); S.endAt = auto ? S.t0 + (limit() + GRACE) * 1000 : Date.now();
+    save();
+    var msg = $('aptt-msg'); if (msg) msg.hidden = true;
+    document.querySelectorAll('#aptt-items .aptt-item').forEach(function (r) { r.classList.remove('aptt-empty'); });
+    APPEN.lockIn($('aptt-items')); naUI(); steps(); clock();
+  }
+  function lock() {
+    if (!S || S.locked || !S.mode) return;
+    var e = empties(), msg = $('aptt-msg');
+    if (S.mode === 'timed') {
+      if (e.length && !window.confirm(list(e) + (e.length > 1 ? ' are' : ' is') + ' still empty and will score 0.\n\nLock in now anyway?')) return;
+      if (!e.length && !window.confirm('Lock in your ' + S.items.length + ' answers?\n\nYou will not be able to change them afterwards. Corrections after the answers go in red.')) return;
+      S.na = e; e.forEach(function (n) { S.marks[n - 1] = 0; });
+      lockNow(false); return;
+    }
+    document.querySelectorAll('#aptt-items .aptt-item').forEach(function (r) { r.classList.toggle('aptt-empty', e.indexOf(+r.getAttribute('data-n')) >= 0); });
+    if (e.length) {
+      msg.textContent = emptyText(e); msg.hidden = false;
+      var f = $('aptt-it-' + e[0]); if (f && f.scrollIntoView) try { f.scrollIntoView({ behavior: 'smooth', block: 'center' }); } catch (x) { f.scrollIntoView(); }
+      return;
+    }
+    msg.hidden = true;
+    if (!window.confirm('Lock in your ' + S.items.length + ' answers?\n\nYou will not be able to change them afterwards. Corrections after the answers go in red.')) return;
+    lockNow(false);
+  }
+  function autoLock() {
+    if (!S || S.locked) return;
+    S.na = empties(); S.na.forEach(function (n) { S.marks[n - 1] = 0; });
+    lockNow(true);
+    var b = $('aptt-tban'); if (b) { b.hidden = false; b.className = 'aptt-tban done'; b.innerHTML = '🔒 <b>Time\'s up: your answers are locked in.</b> Now open the answers, correct your work in red and mark each ' + noun(1) + '.' + (S.na.length ? ' ' + list(S.na) + ' (not attempted) ' + (S.na.length > 1 ? 'score' : 'scores') + ' 0.' : ''); }
+  }
+  function naUI() {
+    (S.na || []).forEach(function (n) {
+      var r = $('aptt-it-' + n); if (!r) return;
+      r.classList.add('aptt-na');
+      r.querySelectorAll('.aptt-mb').forEach(function (b) { b.disabled = true; b.classList.toggle('on', +b.getAttribute('data-v') === 0); });
+      var v = $('aptt-mv-' + n); if (v) v.textContent = 'not attempted · 0 / ' + maxOf(S.items[n - 1]);
+    });
+  }
+  function clock() {
+    var c = $('aptt-clock'), b = $('aptt-tban'); if (!S || !c) return;
+    if (S.locked) {
+      c.hidden = false; c.className = 'aptt-clock done';
+      c.innerHTML = (S.mode === 'free' ? '🏠 Untimed · translated in ' : S.auto ? '⏱ Locked automatically at ' : '⏱ Timed · translated in ') + mmss(S.lockAt || 0);
+      if (S.mode === 'timed' && S.shown) {
+        if (S.markDone) c.innerHTML = '✔ Marking time over';
+        else {
+          var ml = markLimit() - Math.max(0, Math.round((Date.now() - (S.m0 || Date.now())) / 1000));
+          c.className = 'aptt-clock' + (ml <= 15 ? ' red pulse' : ml <= 45 ? ' amber' : ''); c.innerHTML = '✔ Marking: ' + mmss(ml);
+          if (ml <= 0) markEnd();
+        }
+      }
+      if (b && !b.classList.contains('done')) b.hidden = true;
+      return;
+    }
+    if (!S.mode) { c.hidden = true; if (b) b.hidden = true; return; }
+    c.hidden = false;
+    if (S.mode === 'free') { c.className = 'aptt-clock free'; c.innerHTML = '🏠 Untimed · ' + mmss(elapsed()); if (b) b.hidden = true; return; }
+    var e = elapsed(), left = limit() - e;
+    if (left > 0) { c.className = 'aptt-clock' + (left <= 30 ? ' red' : left <= 120 ? ' amber' : ''); c.innerHTML = '⏱ ' + mmss(left); if (b) b.hidden = true; return; }
+    var g = limit() + GRACE - e, E = empties();
+    c.className = 'aptt-clock red pulse'; c.innerHTML = '⏱ 0:' + ('0' + Math.max(0, Math.ceil(g))).slice(-2);
+    if (b) { b.hidden = false; b.className = 'aptt-tban live'; b.innerHTML = '⏱ <b>Time\'s up!</b> You have <b>' + Math.max(0, Math.ceil(g)) + ' seconds</b> to finish. Your answers will lock in automatically at 0:00.' + (E.length ? ' ' + list(E) + (E.length > 1 ? ' are' : ' is') + ' still empty: have a quick go!' : ''); }
+    if (g <= 0 && !PEN) autoLock();
+  }
+  function markEnd() {   // timed: marking time is over; anything not marked scores 0
+    if (!S || S.markDone) return;
+    S.markDone = true;
+    S.items.forEach(function (it, i) { var m = S.marks[i]; if (m == null || m === '') { S.marks[i] = 0; S.unm = (S.unm || []).concat([i + 1]); } });
+    save(); markEndUI(); score();
+    var b = $('aptt-tban'); if (b) { b.hidden = false; b.className = 'aptt-tban done'; b.innerHTML = '✔ <b>Marking time is over.</b> Your score is what you managed to mark. Now write what you learned, then save your PDF.'; }
+  }
+  function markEndUI() {
+    document.querySelectorAll('#aptt-ov .aptt-mb').forEach(function (b) { b.disabled = true; });
+    (S.unm || []).forEach(function (n) { var r = $('aptt-it-' + n); if (r) r.querySelectorAll('.aptt-mb').forEach(function (b) { b.classList.toggle('on', +b.getAttribute('data-v') === 0); }); var v = $('aptt-mv-' + n); if (v) v.textContent = 'not marked in time · 0 / ' + maxOf(S.items[n - 1]); });
+  }
+  function showAns() {
+    if (!S || !S.locked) return;
+    S.shown = true; if (!S.m0) S.m0 = Date.now(); save();
+    document.querySelectorAll('#aptt-ov .aptt-ans').forEach(function (a) { a.hidden = false; });
+    ['aptt-score1', 'aptt-legend', 'aptt-after'].forEach(function (id) { var x = $(id); if (x) x.hidden = false; });
+    steps(); score(); clock();
+    var t = $('aptt-top'); if (t && t.scrollIntoView) try { t.scrollIntoView({ behavior: 'smooth', block: 'start' }); } catch (x) { t.scrollIntoView(); }
+  }
+  function corrected(n) { var inf = APPEN.info(S.key + ':' + n); return inf.red > 0 || String(inf.corr || '').replace(/\s+/g, '') !== ''; }
+  function mark(n, v) {
+    if (!S || !S.shown || S.markDone || (S.na || []).indexOf(n) >= 0) return;
+    var row = $('aptt-it-' + n), w = row && row.querySelector('.aptt-ul');
+    if (!corrected(n)) {   // red pen on paper first: errors underlined, or a tick if it is perfect
+      if (!w && row) { w = document.createElement('div'); w.className = 'aptt-ul'; w.setAttribute('role', 'alert'); var mk = row.querySelector('.aptt-mk'); if (mk) mk.parentNode.insertBefore(w, mk); }
+      if (w) { w.innerHTML = '✋ First mark your answer <b>in red</b>: underline your errors, or put a <b>tick</b> if it is perfect. Then choose your mark.'; w.classList.remove('tm-shake'); void w.offsetWidth; w.classList.add('tm-shake'); }
+      var pad = row && row.querySelector('.appen'); if (pad && pad.scrollIntoView) try { pad.scrollIntoView({ behavior: 'smooth', block: 'center' }); } catch (e) { }
+      return;
+    }
+    if (w) w.remove();
+    S.marks[n - 1] = v; save();
+    document.querySelectorAll('#aptt-it-' + n + ' .aptt-mb').forEach(function (b) { var on = +b.getAttribute('data-v') === v; b.classList.toggle('on', on); b.setAttribute('aria-pressed', on ? 'true' : 'false'); });
+    var mv = $('aptt-mv-' + n); if (mv) mv.textContent = v + ' / ' + maxOf(S.items[n - 1]);
+    score();
+  }
+  function todo() {   // after Show answers: every item still to mark is outlined in orange; a pill says how many and jumps to the next one
+    if (!S) return;
+    var live = S.shown && !S.markDone, left = [];
+    S.items.forEach(function (it, i) {
+      var n = i + 1, na = (S.na || []).indexOf(n) >= 0, m = S.marks[i], un = live && !na && (m == null || m === '');
+      if (un) left.push(n);
+      var r = $('aptt-it-' + n); if (!r) return;
+      r.classList.toggle('aptt-unm', un); r.classList.toggle('aptt-mkd', S.shown && !na && !un && m != null && m !== '');
+      var v = $('aptt-mv-' + n); if (v && un) v.textContent = '⚠ not marked yet';
+    });
+    var p = $('aptt-todo'), ov = $('aptt-ov');
+    if (!p && ov) { p = document.createElement('button'); p.type = 'button'; p.id = 'aptt-todo'; p.className = 'aptt-todo'; p.onclick = function () { APTT.next(); }; ov.appendChild(p); }
+    if (!p) return;
+    p.hidden = !live;
+    p.className = 'aptt-todo' + (left.length ? '' : ' ok');
+    p.innerHTML = left.length ? '⚠ ' + left.length + ' not marked yet' + (left.length <= 5 ? ': ' + noun(left.length) + ' ' + left.join(', ') : '') + ' &rarr;' : '✔ All marked';
+    S.left = left;
+  }
+  function next() {
+    if (!S || !S.left || !S.left.length) return;
+    var r = $('aptt-it-' + S.left[0]); if (!r) return;
+    try { r.scrollIntoView({ behavior: 'smooth', block: 'center' }); } catch (e) { r.scrollIntoView(); }
+    r.classList.remove('tm-shake'); void r.offsetWidth; r.classList.add('tm-shake');
+  }
+  // verb apps: what the test was on, from the items actually drawn ({verb:{inf,tense}, personIdx} or {inf:{inf}})
+  function verbDetail(items, tn, o) {
+    o = o || {}; var T = [], V = [];
+    items.forEach(function (x) {
+      var t = x.inf ? 'Infinitive' : (tn[x.verb.tense] || x.verb.tense), v = x.inf ? x.inf.inf : x.verb.inf;
+      if (T.indexOf(t) < 0) T.push(t); if (v && V.indexOf(v) < 0) V.push(v);
+    });
+    var ord = Object.keys(tn).map(function (k) { return tn[k]; }); T.sort(function (x, y) { var i = ord.indexOf(x), j = ord.indexOf(y); return (i < 0 ? 99 : i) - (j < 0 ? 99 : j); });
+    var d = '<b>Tense' + (T.length > 1 ? 's' : '') + ':</b> ' + esc(T.join(', ')) + ' &middot; <b>' + V.length + ' verb' + (V.length > 1 ? 's' : '') + ':</b> ' + esc(V.join(', '))
+      + (o.set ? ' &middot; ' + esc(o.set) : '') + (o.reg ? ' &middot; ' + esc(o.reg) : '') + (o.person ? ' &middot; ' + esc(o.person) : '');
+    return { tenses: T, verbs: V, short: T.length <= 3 ? T.join(', ') : T.length + ' tenses', detail: d };
+  }
+  function score() {
+    todo();
+    var r = sum(), h = '<span>Your score</span><b>' + r1(r.score) + ' / ' + (S.m.total || 10) + '</b><small>' + r.raw + ' / ' + r.rmax + ' marks · ' + r.n + ' of ' + S.items.length + ' marked by you</small>';
+    ['aptt-score1', 'aptt-score2'].forEach(function (id) { var x = $(id); if (x) x.innerHTML = h; });
+  }
+  function pdf() {
+    if (!S) return;
+    save();
+    if (!filled('learn')) {   // he must reflect before he can hand in
+      var lb = $('aptt-learn'), mu = $('aptt-learn-must');
+      if (mu) { mu.textContent = '✋ Before you can save your PDF, write what you learned here: which words or structures caught you out?'; mu.classList.add('now'); }
+      if (lb) { try { lb.scrollIntoView({ behavior: 'smooth', block: 'center' }); } catch (e) { } lb.classList.remove('aptt-shake'); void lb.offsetWidth; lb.classList.add('aptt-shake'); }
+      return;
+    }
+    APMP.save(function () {
+      var r = sum(), T = S.m.total || 10, timed = S.mode === 'timed', mins = minsTxt(limit()), ml = markLimit();
+      var q = function (it, i) {
+        var m = S.marks[i], has = m != null && m !== '', mx = maxOf(it);
+        var txt = (it.label ? '<span class="aptt-plab">' + (it.html ? it.label : esc(it.label)) + '</span> ' : '') + show(it, 'prompt');
+        var note = (S.na || []).indexOf(i + 1) >= 0 ? ' <span class="apmp-bad">(not attempted)</span>' : (S.unm || []).indexOf(i + 1) >= 0 ? ' <span class="apmp-bad">(not marked in time)</span>' : '';
+        return APMP.q({ num: i + 1, text: txt + note, got: has ? m : null, max: mx, v: has ? APMP.verdict(+m, mx, true) : 'none',
+          rows: [['Your answer', APPEN.pdf(S.key + ':' + (i + 1)) || APMP.answer(''), 'mine'], ['Answer', '<span class="aptt-pa">' + show(it, 'answer') + '</span>', 'ms']] });
+      };
+      var learn = APPEN.pdf(S.key + ':learn');
+      var w = S.items.some(function (it) { return it.kind === 'word'; }), s = S.items.some(function (it) { return it.kind === 'sentence'; });
+      var body = '<style>' + APPEN.PDF_CSS
+        + '.aptt-plab{display:inline-block;font-size:8pt;font-weight:500;font-style:italic;color:#4a5a7a;background:#f7f3e8;border:1px solid #e6d8ad;border-radius:3mm;padding:0 2mm;margin-right:1mm}'
+        + '.aptt-on b{color:#c0392b!important}.aptt-pa{color:#1a2744}.aptt-plegend{font-size:8.5pt;color:#4a5a7a;margin:0 0 2mm}.aptt-plegend b{color:#1a2744}</style>'
+        + '<div class="aptt-plegend">Marks: ' + (w ? (s ? 'words ' : '') + '<b>2</b> right · <b>1</b> nearly · <b>0</b> wrong' : '') + (w && s ? ' &middot; ' : '') + (s ? (w ? 'sentences ' : '') + '<b>4</b> perfect · <b>3</b> mostly right · <b>2</b> about half right · <b>1</b> only a word or two right · <b>0</b> nothing right' : '')
+        + ' &middot; each ' + noun(1) + ' is worth ' + r1(val()) + ' of ' + T + (timed ? ' &middot; ' + dur(ml) + ' to mark (anything not marked in time scores 0)' : '') + '</div>'
+        + APMP.sec(S.items.length + ' ' + noun(S.items.length), r1(r.score), T, true) + S.items.map(q).join('')
+        + '<div class="apmp-sec"><span>📝 What I learned</span></div><div class="appen-pbox">' + (learn || '<span class="apmp-blank">(nothing written)</span>') + '</div>';
+      S.done = true; save();
+      return {
+        app: plain(S.m.app), kicker: S.m.kicker + ' &middot; AP Spot Test: timed &amp; submitted' + (S.m.set ? ' &middot; SET BY AP' + (S.m.set.code ? ': ' + esc(S.m.set.code) : '') : ''),
+        title: 'AP Spot Test &mdash; <em>' + S.m.title + '</em>', meta: S.m.meta,
+        got: r.score, max: T, partial: r.left > 0, partNote: (S.items.length - r.left) + ' of ' + S.items.length + ' ' + noun(2) + ' marked',
+        summary: (S.m.set ? '<div style="display:inline-block;border:2.5px solid #1e7a46;border-radius:2mm;padding:1mm 3mm;margin:0 0 2mm;color:#1e7a46;font-size:11pt;font-weight:800">✅ SET BY AP' + (S.m.set.code ? ': ' + esc(S.m.set.code) : '') + ' &middot; time limit ' + minsTxt(limit()) + ' min (set by AP) &middot; link checked</div>' : '')
+          + '<div class="aptt-on" style="border:2.5px solid #c0392b;border-radius:2mm;padding:1.5mm 3mm 2mm;margin:0 0 2mm;color:#c0392b"><div style="font-size:7.5pt;font-weight:800;letter-spacing:.1em">TEST ON</div><div style="font-size:14pt;font-weight:800;line-height:1.2">' + S.m.title + '</div>'
+          + '<div style="font-size:9.5pt;font-weight:600;line-height:1.35;margin-top:.8mm">' + (S.m.detail ? S.m.detail + '<br>' : '') + S.m.meta + '</div></div>'
+          + (S.m.level ? '<span style="display:inline-block;font-size:13pt;font-weight:800;letter-spacing:.04em;color:#c0392b;border:2px solid #c0392b;border-radius:2mm;padding:.5mm 3mm;margin:0 0 1.5mm">LEVEL: ' + S.m.level.toUpperCase() + '</span><br>' : '') + 'Self-marked: <b>' + r1(r.score) + ' / ' + T + '</b> (' + r.raw + ' / ' + r.rmax + ' marks) &middot; ' + r.n + ' of ' + S.items.length + ' ' + noun(2) + ' marked by him'
+          + (S.unm && S.unm.length ? ' &middot; <span class="apmp-bad">not marked in time: ' + noun(S.unm.length) + ' ' + S.unm.join(', ') + '</span>' : '')
+          + '<br>' + (timed ? '⏱ <b>Timed: ' + mins + ' minutes (class)</b>' : '🏠 <b>Untimed (in House, EW)</b>')
+          + (S.t0 ? (S.att ? ' &middot; <b' + (S.att > 1 ? ' class="apmp-bad"' : '') + '>attempt ' + S.att + ' on this test</b>' : '') + ' &middot; started ' + hhmm(S.t0) + (S.endAt ? ', locked in ' + hhmm(S.endAt) : '') + ' on ' + new Date(S.t0).toLocaleDateString('en-GB') : '')
+          + '<br>⏱ ' + (S.auto ? '<b class="apmp-bad">Locked automatically at ' + dur(S.lockAt) + '</b> (time limit ' + mins + ' min + 30 s)' : 'Translating: <b>' + dur(S.lockAt || S.tAns) + '</b>' + (timed ? ' (limit ' + mins + ' min)' : ' (no time limit)'))
+          + (S.na && S.na.length ? ' &middot; <span class="apmp-bad">not attempted: ' + noun(S.na.length) + ' ' + S.na.join(', ') + '</span>' : '')
+          + ' &middot; Marking: <b>' + dur(S.tMark) + '</b>' + (timed ? ' (limit ' + dur(ml) + ')' : ''),
+        body: body, foot: S.m.app + ' &middot; AP Spot Test: timed &amp; submitted',
+        docTitle: 'AP Spot Test — ' + plain(S.m.title), lang: S.m.lang,
+        pageTitle: 'AP Spot Test ' + (S.m.set && S.m.set.code ? S.m.set.code + ' ' : '') + 'on ' + plain(S.m.title) + (S.m.level && plain(S.m.title).toLowerCase().indexOf(S.m.level.toLowerCase()) < 0 ? ' (' + S.m.level + ')' : '')
+      };
+    });
+  }
+
+  // ── 🔑 AP SET TESTS: AP makes a signed link (or a code) that opens a fixed, timed test on the AP Tests page ──
+  // Only AP's teacher key (kept on AP's own devices: localStorage apTeacherKey) can sign; every app checks with the public key below.
+  var PUB = { kty: 'EC', crv: 'P-256', x: 'H6tx5wdXuLRkkBsXOBDoHD0fP2DniGJLP7uIhpaDa0c', y: 'qjLwa3P_03ACVApF1cuXHkxQlz-UqsxgVfnSraPuGGs' }, ALG = { name: 'ECDSA', namedCurve: 'P-256' }, SIG = { name: 'ECDSA', hash: 'SHA-256' };
+  var VERSIONS = 6;   // "each boy gets his own draw": this many different draws go into the link
+  function tkey() { return lsGet('apTeacherKey') || ''; }
+  function b64u(buf) { var b = new Uint8Array(buf), s = ''; for (var i = 0; i < b.length; i++) s += String.fromCharCode(b[i]); return btoa(s).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, ''); }
+  function unb64u(t) { t = String(t).replace(/-/g, '+').replace(/_/g, '/'); while (t.length % 4) t += '='; var s = atob(t), b = new Uint8Array(s.length); for (var i = 0; i < s.length; i++) b[i] = s.charCodeAt(i); return b; }
+  function utf8(s) { return new TextEncoder().encode(s); }
+  function zip(str) {
+    if (window.CompressionStream) return new Response(new Blob([utf8(str)]).stream().pipeThrough(new CompressionStream('deflate-raw'))).arrayBuffer().then(function (a) { return 'z' + b64u(a); });
+    return Promise.resolve('j' + b64u(utf8(str)));
+  }
+  function unzip(t) {
+    var b = unb64u(t.slice(1));
+    if (t.charAt(0) === 'j') return Promise.resolve(new TextDecoder().decode(b));
+    if (!window.DecompressionStream) return Promise.reject(new Error('old'));
+    return new Response(new Blob([b]).stream().pipeThrough(new DecompressionStream('deflate-raw'))).text();
+  }
+  function subtle() { return window.crypto && window.crypto.subtle; }
+  function signKey(d) { return subtle().importKey('jwk', { kty: 'EC', crv: 'P-256', x: PUB.x, y: PUB.y, d: String(d).replace(/^AP-/, '').trim(), ext: true }, ALG, false, ['sign']); }
+  function sign(tok, d) { return signKey(d).then(function (k) { return subtle().sign(SIG, k, utf8(tok)); }).then(b64u); }
+  function verify(tok, sig) {
+    if (!subtle()) return Promise.reject(new Error('nocrypto'));
+    return subtle().importKey('jwk', PUB, ALG, false, ['verify']).then(function (k) { return subtle().verify(SIG, k, unb64u(sig), utf8(tok)); });
+  }
+  // a teacher key is good if what it signs checks out with the public key
+  function checkKey(d) { var t = 'AP key check ' + Date.now(); return sign(t, d).then(function (g) { return verify(t, g); }).catch(function () { return false; }); }
+  function pack(o) { return zip(JSON.stringify(o)).then(function (t) { return sign(t, tkey()).then(function (g) { return t + '.' + g; }); }); }
+  // token "payload.signature" → the test (rejects if it was not signed by AP's key)
+  function unpack(token) {
+    token = String(token || '').trim().replace(/^.*#t=/, ''); var i = token.lastIndexOf('.');
+    if (i < 2) return Promise.reject(new Error('bad'));
+    var t = token.slice(0, i), g = token.slice(i + 1);
+    return verify(t, g).then(function (ok) { if (!ok) throw new Error('unsigned'); return unzip(t); }).then(function (j) { var o = JSON.parse(j); o.tok = token; return o; });
+  }
+  function listGet() { try { return JSON.parse(lsGet('apTestLinks') || '[]') || []; } catch (e) { return []; } }
+  function listAdd(e) { var l = listGet(); l.unshift(e); lsSet('apTestLinks', JSON.stringify(l)); }
+  function linkFor(token) {
+    var base = String(document.baseURI || location.href).replace(/[#?].*$/, '').replace(/[^\/]*$/, '');
+    return base + 'AP%20Tests.html#t=' + token;
+  }
+  function copyText(t, btn) {
+    function ok() { if (btn) { var o = btn.textContent; btn.textContent = '✓ Copied'; setTimeout(function () { btn.textContent = o; }, 2000); } }
+    function fb() { var a = document.createElement('textarea'); a.value = t; a.setAttribute('readonly', ''); a.style.position = 'fixed'; a.style.top = '-200px'; document.body.appendChild(a); a.select(); a.setSelectionRange(0, t.length); try { document.execCommand('copy'); ok(); } catch (e) { } a.remove(); }
+    try { if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(t).then(ok, fb); else fb(); } catch (e) { fb(); }
+  }
+  function draws(n) {   // more draws with the teacher's current settings (the same button, run again quietly)
+    var out = [], seen = {}, sig = function (its) { return its.map(function (it) { return it.prompt + '\u0001' + it.answer; }).join('\u0002'); };
+    seen[sig(S.items)] = 1; out.push(S.items);
+    if (!RUN) return out;
+    for (var k = 0; k < n * 3 && out.length < n; k++) {
+      window.APTT.capturing = [];
+      try { RUN(); } catch (e) { }
+      var got = window.APTT.capturing; window.APTT.capturing = null;
+      if (got && got[0] && got[0].items.length === S.items.length) { var h = sig(got[0].items); if (!seen[h]) { seen[h] = 1; out.push(got[0].items); } }
+    }
+    return out;
+  }
+  function maker() {
+    if (!S || !tkey()) return;
+    var d = $('aptt-mk'); if (d) d.remove();
+    var secs = limit(), opts = '';
+    for (var x = 60; x <= 1200; x += 30) opts += '<option value="' + x + '"' + (x === secs ? ' selected' : '') + '>' + minsTxt(x) + ' min</option>';
+    d = document.createElement('div'); d.id = 'aptt-mk'; d.className = 'aptt-mk';
+    d.innerHTML = '<div class="aptt-mkbox" role="dialog" aria-modal="true"><div class="aptt-mkh">🔑 Make a test link</div>'
+      + '<div class="aptt-mks">' + S.m.title + (S.m.level && plain(S.m.title).indexOf(S.m.level) < 0 ? ' · ' + esc(S.m.level) : '') + ' · ' + S.items.length + ' ' + noun(S.items.length) + '</div>'
+      + '<label>Name (for your list)</label><input id="aptt-mk-n" type="text" value="' + esc(plain(S.m.title) + (S.m.level && plain(S.m.title).indexOf(S.m.level) < 0 ? ' · ' + S.m.level : '')) + '">'
+      + '<label>Time limit</label><select id="aptt-mk-s">' + opts + '</select>'
+      + '<label>Questions</label><div class="aptt-mkq"><label><input type="radio" name="aptt-mk-q" value="same" checked> Same questions for everyone <small>(you can go through the answers on the board)</small></label>'
+      + '<label' + (RUN ? '' : ' class="off"') + '><input type="radio" name="aptt-mk-q" value="draw"' + (RUN ? '' : ' disabled') + '> Each boy gets his own draw <small>(' + VERSIONS + ' different versions from these settings)</small></label></div>'
+      + '<label>Code (optional, for the AP Tests page)</label><input id="aptt-mk-c" type="text" placeholder="e.g. ST101" autocapitalize="characters" maxlength="12">'
+      + '<div class="aptt-mkact"><button type="button" class="aph-btn" onclick="document.getElementById(\'aptt-mk\').remove()">Cancel</button><button type="button" class="aph-btn aph-btn-primary" id="aptt-mk-go">🔑 Make link</button></div>'
+      + '<div id="aptt-mk-out"></div></div>';
+    document.body.appendChild(d);
+    $('aptt-mk-go').onclick = function () {
+      var b = this, q = (d.querySelector('input[name=aptt-mk-q]:checked') || {}).value || 'same', code = $('aptt-mk-c').value.replace(/\s+/g, '').toUpperCase(), name = $('aptt-mk-n').value.trim(), s2 = +$('aptt-mk-s').value;
+      b.disabled = true; b.textContent = 'Making…';
+      var V = q === 'draw' ? draws(VERSIONS) : [S.items];
+      var o = { v: 1, n: name, c: code, a: S.m.app, k: S.m.kicker, t: S.m.title, m: S.m.meta, d: S.m.detail, l: S.m.lang, lc: S.m.code, lv: S.m.level, s: s2, q: q, id: S.m.id, made: new Date().toISOString().slice(0, 10),
+        V: V.map(function (its) { return its.map(function (it) { return [it.prompt, it.answer, it.kind === 'sentence' ? 1 : 0, it.label || '', it.html ? 1 : 0]; }); }) };
+      pack(o).then(function (tok) {
+        var link = linkFor(tok), line = (code || 'ST???') + ' | ' + name.replace(/\|/g, '/') + ' | ' + tok;
+        listAdd({ n: name, c: code, made: o.made, s: s2, q: q, v: V.length, items: S.items.length, t: plain(S.m.title), lv: S.m.level, app: plain(S.m.app), tok: tok });
+        $('aptt-mk-out').innerHTML = '<div class="aptt-mkok">✅ Link made' + (q === 'draw' ? ' (' + V.length + ' versions)' : '') + '. It is also saved in your list on the AP Tests page.</div>'
+          + '<label>Link for OneNote / Teams</label><div class="aptt-mkrow"><input readonly value="' + esc(link) + '"><button type="button" class="aph-btn aph-btn-primary">📋 Copy link</button></div>'
+          + '<label>Line for tests.txt (for a code)</label><div class="aptt-mkrow"><input readonly value="' + esc(line) + '"><button type="button" class="aph-btn">📋 Copy line</button></div>'
+          + (link.length > 6000 ? '<div class="aptt-mkwarn">This link is very long (' + link.length + ' characters). If OneNote will not take it, use a code instead.</div>' : '');
+        var rows = $('aptt-mk-out').querySelectorAll('.aptt-mkrow');
+        rows[0].querySelector('button').onclick = function () { copyText(link, this); };
+        rows[1].querySelector('button').onclick = function () { copyText(line, this); };
+        b.textContent = '✓ Made'; 
+      }).catch(function (e) { b.disabled = false; b.textContent = '🔑 Make link'; alert('Sorry, the link could not be made (' + (e && e.message || e) + '). Is your teacher key set on this device?'); });
+    };
+  }
+  // open a test from a signed token (the AP Tests page); version: which draw (own-draw links), chosen at random if not given
+  function openSet(o, code) {
+    var V = o.V || [], k = o.q === 'draw' ? Math.floor(Math.random() * V.length) : 0, its = V[k] || [];
+    open({ id: 'set|' + (code || o.c || h32(o.tok || '')) + '|' + (o.q === 'draw' ? 'v' + k : 'same'), app: o.a, kicker: o.k, title: o.t, meta: o.m, detail: o.d, lang: o.l, langCode: o.lc, level: o.lv, total: 10,
+      items: its.map(function (r) { return { prompt: r[0], answer: r[1], kind: r[2] ? 'sentence' : 'word', label: r[3], html: !!r[4] }; }),
+      set: { code: code || o.c || '', secs: +o.s || 0, name: o.n || '', q: o.q, ver: k + 1, of: V.length } });
+  }
+  // pen-up anywhere ends a stroke (the automatic lock waits for it)
+  try { ['pointerup', 'pointercancel'].forEach(function (t) { document.addEventListener(t, function () { PEN = false; }, true); }); } catch (e) { }
+  return { open: open, close: close, mode: mode, lock: lock, show: showAns, mark: mark, next: next, verbDetail: verbDetail, pdf: pdf, teacher: teacher, maker: maker, openSet: openSet, unpack: unpack, checkKey: checkKey, list: listGet, linkFor: linkFor, copy: copyText, lastRun: null, capturing: null, LABEL: LBL, state: function () { return S; } };
+})();
+/* ===== END AP TIMED TEST ===== */
+</script>
+<script id="apt-script">
+/* ===== AP TESTS page ===== */
+var APT_CODES = null;   // tests.txt: CODE | name | token (one test per line; # starts a comment)
+function aptEsc(s) { return String(s == null ? '' : s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;'); }
+function aptMsg(t, cls) { var m = document.getElementById('apt-msg'); if (!t) { m.hidden = true; return; } m.className = 'apt-msg ' + (cls || 'bad'); m.innerHTML = t; m.hidden = false; }
+function aptCodes() {
+  if (APT_CODES) return Promise.resolve(APT_CODES);
+  return fetch('tests.txt?t=' + Date.now(), { cache: 'no-store' }).then(function (r) { if (!r.ok) throw new Error('missing'); return r.text(); }).then(function (t) {
+    var o = {};
+    t.split(/\r?\n/).forEach(function (l) {
+      l = l.trim(); if (!l || l.charAt(0) === '#') return;
+      var p = l.split('|'); if (p.length < 3) return;
+      var c = p[0].replace(/\s+/g, '').toUpperCase(), tok = p[p.length - 1].trim(), n = p.slice(1, -1).join('|').trim();
+      if (c && tok) o[c] = { n: n, tok: tok };
+    });
+    APT_CODES = o; return o;
+  });
+}
+function aptFail(e) {
+  var m = e && e.message;
+  aptMsg(m === 'unsigned' || m === 'bad' ? '⚠️ <b>This link was not set by AP.</b> Use the exact link or code AP gave you.'
+    : m === 'old' ? '⚠️ This iPad needs updating to open AP tests. Tell AP.'
+    : m === 'nocrypto' ? '⚠️ This browser cannot check AP test links. Open this page from the link AP gave you (https), or tell AP.'
+    : '⚠️ Sorry, this test could not be opened. Check the code, or tell AP.');
+}
+function aptRun(token, code) {
+  aptMsg('Opening your test…', 'wait');
+  return APTT.unpack(token).then(function (o) {
+    if (code && o.c && o.c !== code) o.c = code;
+    aptMsg('');
+    APTT.openSet(o, code || o.c || '');
+  }).catch(aptFail);
+}
+function aptCode(c) {
+  c = String(c || '').replace(/\s+/g, '').toUpperCase();
+  if (!c) { aptMsg('Type the code AP gave you first.'); return; }
+  aptMsg('Looking up ' + aptEsc(c) + '…', 'wait');
+  aptCodes().then(function (o) {
+    var e = o[c];
+    if (!e) { aptMsg('⚠️ There is no test called <b>' + aptEsc(c) + '</b>. Check the code with AP (letters and numbers, e.g. ST101).'); return; }
+    aptRun(e.tok, c);
+  }).catch(function () { aptMsg('⚠️ The list of test codes could not be loaded. Check your internet connection and try again.'); });
+}
+document.getElementById('apt-form').addEventListener('submit', function (e) { e.preventDefault(); aptCode(document.getElementById('apt-code').value); });
+// a link: AP Tests.html#t=<signed test>   or   AP Tests.html#c=ST101
+(function () {
+  var h = location.hash || '';
+  if (/^#t=/.test(h)) aptRun(h.slice(3));
+  else if (/^#c=/.test(h)) { var c = decodeURIComponent(h.slice(3)); document.getElementById('apt-code').value = c; aptCode(c); }
+})();
+
+// ── AP's teacher area (unlocked with AP's teacher key on this device) ──
+function aptTeacher() {
+  var t = document.getElementById('apt-t');
+  if (!t.hidden) { t.hidden = true; return; }
+  t.hidden = false; aptTRender();
+  try { t.scrollIntoView({ behavior: 'smooth', block: 'start' }); } catch (e) { }
+}
+function aptKey() { try { return localStorage.getItem('apTeacherKey') || ''; } catch (e) { return ''; } }
+function aptTRender() {
+  var t = document.getElementById('apt-t');
+  if (!aptKey()) {
+    t.innerHTML = '<h3>🔑 Teacher</h3><p>Enter your teacher key once on this device (and once in each browser you use). It is never shown to the boys.</p>'
+      + '<input class="apt-key" id="apt-key" type="password" autocomplete="off" placeholder="Teacher key">'
+      + '<div class="apt-acts"><button class="aph-btn aph-btn-primary" type="button" onclick="aptSaveKey()">Save key</button><button class="aph-btn" type="button" onclick="aptTeacher()">Close</button></div>';
+    return;
+  }
+  var mine = APTT.list();
+  var h = '<h3>🔑 Teacher: your tests</h3><p>Make a link from any app: set the test up, tap <b>⏱ AP Spot Test: timed &amp; submitted</b>, then <b>🔑 Teacher: make a test link</b>. Every link you make on this device is listed here.</p>'
+    + '<div class="apt-acts"><button class="aph-btn" type="button" onclick="aptCopyAll(this)">📋 Copy whole list (for OneNote, or to send to Claude)</button></div>'
+    + '<h4>Links made on this device (' + mine.length + ')</h4>'
+    + (mine.length ? mine.map(function (e, i) { return aptItem(e, i, true); }).join('') : '<div class="apt-empty">None yet.</div>')
+    + '<h4>Codes on the site (tests.txt)</h4><div id="apt-codes"><div class="apt-empty">Loading…</div></div>'
+    + '<div class="apt-acts" style="margin-top:16px"><button class="aph-btn" type="button" onclick="aptForget()">Remove teacher key from this device</button><button class="aph-btn" type="button" onclick="aptTeacher()">Close</button></div>';
+  t.innerHTML = h;
+  APT_CODES = null;
+  aptCodes().then(function (o) {
+    var ks = Object.keys(o);
+    document.getElementById('apt-codes').innerHTML = ks.length ? ks.map(function (c) { return aptItem({ c: c, n: o[c].n, tok: o[c].tok }, c, false); }).join('') : '<div class="apt-empty">No codes yet.</div>';
+  }).catch(function () { document.getElementById('apt-codes').innerHTML = '<div class="apt-empty">tests.txt could not be loaded.</div>'; });
+}
+function aptItem(e, i, mine) {
+  var meta = mine ? [e.t, e.lv, (e.items || '?') + ' items', (e.s ? (e.s / 60) + ' min' : ''), e.q === 'draw' ? 'own draw (' + e.v + ' versions)' : 'same questions', e.app, 'made ' + e.made].filter(Boolean).join(' · ') : 'on the site';
+  return '<div class="apt-it"><div class="apt-it-h"><span class="apt-it-c' + (e.c ? '' : ' none') + '">' + aptEsc(e.c || 'no code') + '</span><span class="apt-it-n">' + aptEsc(e.n || '') + '</span></div>'
+    + '<div class="apt-it-m">' + aptEsc(meta) + '</div><div class="apt-acts">'
+    + '<button class="aph-btn" type="button" data-tok="' + aptEsc(e.tok) + '" onclick="APTT.copy(APTT.linkFor(this.getAttribute(\'data-tok\')),this)">📋 Copy link</button>'
+    + (mine ? '<button class="aph-btn" type="button" data-line="' + aptEsc((e.c || 'ST???') + ' | ' + String(e.n || '').replace(/\|/g, '/') + ' | ' + e.tok) + '" onclick="APTT.copy(this.getAttribute(\'data-line\'),this)">📋 Copy line for tests.txt</button>' : '')
+    + '<button class="aph-btn" type="button" data-tok="' + aptEsc(e.tok) + '" onclick="aptRun(this.getAttribute(\'data-tok\'),' + (e.c ? '\'' + aptEsc(e.c) + '\'' : '\'\'') + ')">▶ Try it</button>'
+    + (mine ? '<button class="aph-btn" type="button" onclick="aptDel(' + i + ')">🗑</button>' : '') + '</div></div>';
+}
+function aptCopyAll(btn) {
+  var L = APTT.list().map(function (e) { return (e.c || '(no code)') + ' — ' + e.n + ' — ' + [e.t, e.lv, (e.s / 60) + ' min', e.q === 'draw' ? 'own draw' : 'same questions', e.made].join(', ') + '\n' + APTT.linkFor(e.tok); });
+  APTT.copy(L.join('\n\n') || '(no links yet)', btn);
+}
+function aptDel(i) {
+  var l = APTT.list(); if (!l[i] || !confirm('Remove "' + l[i].n + '" from this list?\n\nThe link itself keeps working.')) return;
+  l.splice(i, 1); try { localStorage.setItem('apTestLinks', JSON.stringify(l)); } catch (e) { } aptTRender();
+}
+function aptSaveKey() {
+  var k = document.getElementById('apt-key').value.trim(); if (!k) return;
+  APTT.checkKey(k).then(function (ok) {
+    if (!ok) { alert('That key is not right. Check it and try again.'); return; }
+    try { localStorage.setItem('apTeacherKey', k); } catch (e) { }
+    aptTRender();
+  });
+}
+function aptForget() { if (!confirm('Remove the teacher key from this device?')) return; try { localStorage.removeItem('apTeacherKey'); } catch (e) { } aptTRender(); }
+</script>
+</body>
+</html>

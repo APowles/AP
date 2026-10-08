@@ -5,7 +5,7 @@
 <script id="ap-update">
 /* AP auto-update: if this copy is older than the published version, reload once with the new one (saved answers are kept) */
 (function () {
-  var B = '5860485bba'; window.AP_BUILD = B;
+  var B = '69bb5304fb'; window.AP_BUILD = B;
   function check() {
     if (!/^https?:$/.test(location.protocol) || !window.fetch) return;
     var f = decodeURIComponent(location.pathname.split('/').pop() || '');
@@ -1534,6 +1534,21 @@ html.aptt-open,html.aptt-open body{overflow:hidden}
 .aptt-mode-n{font-size:.8125rem;color:var(--text2);margin-top:8px}
 #aptt-ov.aptt-nomode #aptt-items,#aptt-ov.aptt-nomode .aptt-steps,#aptt-ov.aptt-nomode #aptt-lockn{display:none}
 .aptt-key-row{margin-top:12px;text-align:right}
+.aptt-mkbtn{border-color:#c9a84c;color:var(--navy);font-weight:700}
+.aptt-set{background:#e6f6ec;border:3px solid #1e7a46;border-radius:12px;padding:10px 14px;margin:0 0 12px;color:#14532d;font:800 1.125rem/1.3 var(--aph-body)}
+.aptt-set b{font-size:1.375rem;letter-spacing:.03em}
+.aptt-set span{display:block;font-weight:600;font-size:.9375rem;color:#1d3a2a;margin-top:2px}
+.aptt-mk{position:fixed;inset:0;z-index:15000;background:rgba(8,13,28,.6);display:flex;align-items:flex-start;justify-content:center;padding:6vh 16px 16px;overflow-y:auto;font-family:var(--aph-body)}
+.aptt-mkbox{background:#fff;border-radius:14px;max-width:520px;width:100%;padding:18px 18px 16px;box-shadow:0 20px 60px rgba(0,0,0,.4);color:var(--navy)}
+.aptt-mkh{font:800 1.25rem/1.2 var(--aph-body)}
+.aptt-mks{font-size:.875rem;color:var(--text2);margin:4px 0 8px}
+.aptt-mkbox>label,#aptt-mk-out label{display:block;font-size:.75rem;font-weight:800;letter-spacing:.08em;text-transform:uppercase;color:var(--text3);margin:12px 0 5px}
+.aptt-mkbox input[type=text],.aptt-mkbox select,.aptt-mkrow input{width:100%;box-sizing:border-box;font:500 16px/1.2 var(--aph-body);border:1.5px solid var(--border);border-radius:8px;padding:9px 11px;min-height:44px;color:var(--navy);background:#fff}
+.aptt-mkq label{display:block;font-size:.9375rem;margin:6px 0;cursor:pointer}.aptt-mkq label.off{opacity:.45}.aptt-mkq small{color:var(--text2)}
+.aptt-mkact{display:flex;gap:8px;justify-content:flex-end;margin-top:14px}
+.aptt-mkrow{display:flex;gap:6px}.aptt-mkrow input{flex:1;min-width:0}.aptt-mkrow button{flex:none;white-space:nowrap}
+.aptt-mkok{margin-top:14px;background:#e6f6ec;border-left:5px solid #1e7a46;border-radius:8px;padding:8px 10px;font-weight:700;color:#14532d}
+.aptt-mkwarn{margin-top:8px;color:#a3001a;font-size:.875rem;font-weight:600}
 .aptt-key-btn{background:#fff;border:1.5px dashed var(--border);color:var(--text2);border-radius:8px;padding:8px 12px;font:600 .875rem/1.2 var(--aph-body);cursor:pointer}
 #aptt-key{position:fixed;inset:0;z-index:14100;background:var(--cream,#f8f6f1);overflow-y:auto;overflow-x:hidden;font-family:var(--aph-body)}
 .aptt-key-bar{position:sticky;top:0;display:flex;justify-content:space-between;align-items:center;gap:10px;background:var(--navy);color:var(--gold2);padding:10px 16px;font-weight:800;font-size:1.125rem;border-bottom:3px solid var(--gold)}
@@ -1601,7 +1616,7 @@ var APTT = (function () {
   var MARKW = { 2: 'Right', 1: 'Nearly', 0: 'Wrong' };
   var MARKS = { 4: 'Perfect', 3: 'Mostly right', 2: 'About half right', 1: 'Only a word or two right', 0: 'Nothing right' };
   var LCODE = { French: 'fr', English: 'en', Spanish: 'es', Italian: 'it', German: 'de', Latin: 'la' };
-  var S = null, TICK = null, PEN = false;
+  var S = null, TICK = null, PEN = false, RUN = null;
   function esc(s) { return String(s == null ? '' : s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;'); }
   function plain(h) { var d = document.createElement('div'); d.innerHTML = String(h == null ? '' : h); return (d.textContent || '').replace(/\s+/g, ' ').trim(); }
   function h32(s) { var h = 0x811c9dc5; s = String(s); for (var i = 0; i < s.length; i++) { h ^= s.charCodeAt(i); h = Math.imul(h, 16777619); } return (h >>> 0).toString(36); }
@@ -1629,7 +1644,7 @@ var APTT = (function () {
   function nWords(h) { return String(h || '').replace(/<[^>]+>/g, ' ').replace(/&[a-z#0-9]+;/gi, ' ').replace(/[(),;:!?.«»"]/g, ' ').split(/\s+/).filter(function (w) { return w && w !== '/' && w !== '-'; }).length; }
   // AP's own classroom timings: a VV Spot Test (15 items) 5 minutes, an average Spot Test (10 items) 4 minutes
   // → 20 s a word/phrase item, 24 s a sentence item; rounded up to 30 s, at least 2 min
-  function limit() { var t = 0; S.items.forEach(function (it) { t += it.kind === 'sentence' ? 24 : 20; }); return Math.max(120, Math.ceil(t / 30) * 30); }
+  function limit() { if (S.m.set && S.m.set.secs) return S.m.set.secs; var t = 0; S.items.forEach(function (it) { t += it.kind === 'sentence' ? 24 : 20; }); return Math.max(120, Math.ceil(t / 30) * 30); }
   function minsTxt(sec) { var m = Math.floor(sec / 60); return m + (sec % 60 ? '½' : ''); }
   function markLimit() { var t = 0; S.items.forEach(function (it) { t += it.kind === 'sentence' ? 20 : 10; }); return Math.max(120, t); }
   function r1(x) { var r = Math.round(x * 10) / 10; return String(r); }
@@ -1652,7 +1667,9 @@ var APTT = (function () {
   function open(o) {
     if (!o || !o.items || !o.items.length || typeof APPEN === 'undefined' || typeof APMP === 'undefined') return;
     var items = o.items.map(norm);
-    var m = { id: String(o.id || ''), app: o.app || '', kicker: o.kicker || '', title: o.title || '', meta: o.meta || '', detail: o.detail || '', lang: o.lang || '', code: o.langCode || LCODE[o.lang] || '', total: +o.total || 10, level: o.level || '' };
+    var m = { id: String(o.id || ''), app: o.app || '', kicker: o.kicker || '', title: o.title || '', meta: o.meta || '', detail: o.detail || '', lang: o.lang || '', code: o.langCode || LCODE[o.lang] || '', total: +o.total || 10, level: o.level || '', set: o.set || null };
+    if (window.APTT.capturing) { window.APTT.capturing.push({ m: m, items: items }); return; }   // 🔑 making a test link: another draw, not opened
+    RUN = o.set ? null : (window.APTT.lastRun || null); window.APTT.lastRun = null;
     var sel = h32(m.app + '|' + m.id), key = 'aptt' + sel + h32(items.map(function (it) { return it.prompt + '\u0001' + it.answer; }).sort().join('\u0002'));
     try { if (window.speechSynthesis) speechSynthesis.cancel(); } catch (e) { }
     var cur = lsGet('apttCur:' + sel), st = cur ? load(cur) : null;
@@ -1731,11 +1748,15 @@ var APTT = (function () {
       + '<p class="aptt-instr">' + (L ? 'Translate' : 'Answer') + ' all ' + N + ' ' + noun(N) + (L ? ' into ' + esc(L) : '') + ' with your Apple Pencil (black ink). Have a go at every one, then lock in, open the answers, correct your work in red and give each ' + noun(1) + ' a mark. Your score is out of ' + (S.m.total || 10) + '.</p>'
       + '<div class="aptt-score" id="aptt-score1"' + (S.shown ? '' : ' hidden') + '></div>'
       + '<div class="aptt-legend" id="aptt-legend"' + (S.shown ? '' : ' hidden') + '>' + legend() + '</div></div>'
-      + '<div class="aptt-mode" id="aptt-mode"><div class="aptt-mode-h">Choose how you are doing this: ⏱ Timed or 🏠 Untimed</div><div class="aptt-mode-b">'
+      + (S.m.set ? '<div class="aptt-mode aptt-setmode" id="aptt-mode"><div class="aptt-set">✅ TEST SET BY AP' + (S.m.set.code ? ': <b>' + esc(S.m.set.code) + '</b>' : '') + '<span>' + esc(S.m.set.name || plain(S.m.title)) + ' · ⏱ ' + mins + ' minutes</span></div><div class="aptt-mode-b">'
+        + '<button type="button" class="aptt-mode-t" onclick="APTT.mode(\'timed\')"><b>⏱ Start: ' + mins + ' minutes</b><span>AP has set this test and its time limit. The clock starts as soon as you tap. Do as much as you can: at the end you get 30 more seconds, then your answers lock in by themselves. ' + Noun(2) + ' left blank score 0. Then ' + dur(markLimit()) + ' to mark yourself: anything not marked in time scores 0.</span></button>'
+        + '</div><div class="aptt-mode-n">The test code, your times and your attempt number are printed on your PDF.</div></div>' : '')
+      + (S.m.set ? '' : '<div class="aptt-mode" id="aptt-mode"><div class="aptt-mode-h">Choose how you are doing this: ⏱ Timed or 🏠 Untimed</div><div class="aptt-mode-b">'
       + '<button type="button" class="aptt-mode-t" onclick="APTT.mode(\'timed\')"><b>⏱ Timed: ' + mins + ' minutes</b><span>In Birley 12. The clock starts as soon as you tap. Do as much as you can: at the end you get 30 more seconds, then your answers lock in by themselves. ' + Noun(2) + ' left blank score 0. Then ' + dur(markLimit()) + ' to mark yourself: anything not marked in time scores 0.</span></button>'
       + '<button type="button" class="aptt-mode-f" onclick="APTT.mode(\'free\')"><b>🏠 Untimed</b><span>In your House (EW). Take as long as you need, but you must have a go at all ' + N + ' before you can lock in.</span></button>'
       + '</div><div class="aptt-mode-n">Your choice, your times and your attempt number are printed on your PDF. You cannot change mode once you start.</div>'
-      + '</div>'
+      + (tkey() ? '<div class="aptt-key-row"><button type="button" class="aptt-key-btn aptt-mkbtn" onclick="APTT.maker()">🔑 Teacher: make a test link from these settings</button></div>' : '')
+      + '</div>')
       + '<div id="aptt-items">' + S.items.map(row).join('') + '</div>'
       + '<div class="aptt-msg" id="aptt-msg" role="alert" hidden></div>'
       + '<div class="aptt-steps"><button type="button" class="aptt-lock" id="aptt-lock" onclick="APTT.lock()">🔒 I\'ve attempted all ' + N + ': lock in</button>'
@@ -1963,10 +1984,11 @@ var APTT = (function () {
         + '<div class="apmp-sec"><span>📝 What I learned</span></div><div class="appen-pbox">' + (learn || '<span class="apmp-blank">(nothing written)</span>') + '</div>';
       S.done = true; save();
       return {
-        app: plain(S.m.app), kicker: S.m.kicker + ' &middot; AP Spot Test: timed &amp; submitted',
+        app: plain(S.m.app), kicker: S.m.kicker + ' &middot; AP Spot Test: timed &amp; submitted' + (S.m.set ? ' &middot; SET BY AP' + (S.m.set.code ? ': ' + esc(S.m.set.code) : '') : ''),
         title: 'AP Spot Test &mdash; <em>' + S.m.title + '</em>', meta: S.m.meta,
         got: r.score, max: T, partial: r.left > 0, partNote: (S.items.length - r.left) + ' of ' + S.items.length + ' ' + noun(2) + ' marked',
-        summary: '<div class="aptt-on" style="border:2.5px solid #c0392b;border-radius:2mm;padding:1.5mm 3mm 2mm;margin:0 0 2mm;color:#c0392b"><div style="font-size:7.5pt;font-weight:800;letter-spacing:.1em">TEST ON</div><div style="font-size:14pt;font-weight:800;line-height:1.2">' + S.m.title + '</div>'
+        summary: (S.m.set ? '<div style="display:inline-block;border:2.5px solid #1e7a46;border-radius:2mm;padding:1mm 3mm;margin:0 0 2mm;color:#1e7a46;font-size:11pt;font-weight:800">✅ SET BY AP' + (S.m.set.code ? ': ' + esc(S.m.set.code) : '') + ' &middot; time limit ' + minsTxt(limit()) + ' min (set by AP) &middot; link checked</div>' : '')
+          + '<div class="aptt-on" style="border:2.5px solid #c0392b;border-radius:2mm;padding:1.5mm 3mm 2mm;margin:0 0 2mm;color:#c0392b"><div style="font-size:7.5pt;font-weight:800;letter-spacing:.1em">TEST ON</div><div style="font-size:14pt;font-weight:800;line-height:1.2">' + S.m.title + '</div>'
           + '<div style="font-size:9.5pt;font-weight:600;line-height:1.35;margin-top:.8mm">' + (S.m.detail ? S.m.detail + '<br>' : '') + S.m.meta + '</div></div>'
           + (S.m.level ? '<span style="display:inline-block;font-size:13pt;font-weight:800;letter-spacing:.04em;color:#c0392b;border:2px solid #c0392b;border-radius:2mm;padding:.5mm 3mm;margin:0 0 1.5mm">LEVEL: ' + S.m.level.toUpperCase() + '</span><br>' : '') + 'Self-marked: <b>' + r1(r.score) + ' / ' + T + '</b> (' + r.raw + ' / ' + r.rmax + ' marks) &middot; ' + r.n + ' of ' + S.items.length + ' ' + noun(2) + ' marked by him'
           + (S.unm && S.unm.length ? ' &middot; <span class="apmp-bad">not marked in time: ' + noun(S.unm.length) + ' ' + S.unm.join(', ') + '</span>' : '')
@@ -1977,13 +1999,115 @@ var APTT = (function () {
           + ' &middot; Marking: <b>' + dur(S.tMark) + '</b>' + (timed ? ' (limit ' + dur(ml) + ')' : ''),
         body: body, foot: S.m.app + ' &middot; AP Spot Test: timed &amp; submitted',
         docTitle: 'AP Spot Test — ' + plain(S.m.title), lang: S.m.lang,
-        pageTitle: 'AP Spot Test on ' + plain(S.m.title) + (S.m.level && plain(S.m.title).toLowerCase().indexOf(S.m.level.toLowerCase()) < 0 ? ' (' + S.m.level + ')' : '')
+        pageTitle: 'AP Spot Test ' + (S.m.set && S.m.set.code ? S.m.set.code + ' ' : '') + 'on ' + plain(S.m.title) + (S.m.level && plain(S.m.title).toLowerCase().indexOf(S.m.level.toLowerCase()) < 0 ? ' (' + S.m.level + ')' : '')
       };
     });
   }
+
+  // ── 🔑 AP SET TESTS: AP makes a signed link (or a code) that opens a fixed, timed test on the AP Tests page ──
+  // Only AP's teacher key (kept on AP's own devices: localStorage apTeacherKey) can sign; every app checks with the public key below.
+  var PUB = { kty: 'EC', crv: 'P-256', x: 'H6tx5wdXuLRkkBsXOBDoHD0fP2DniGJLP7uIhpaDa0c', y: 'qjLwa3P_03ACVApF1cuXHkxQlz-UqsxgVfnSraPuGGs' }, ALG = { name: 'ECDSA', namedCurve: 'P-256' }, SIG = { name: 'ECDSA', hash: 'SHA-256' };
+  var VERSIONS = 6;   // "each boy gets his own draw": this many different draws go into the link
+  function tkey() { return lsGet('apTeacherKey') || ''; }
+  function b64u(buf) { var b = new Uint8Array(buf), s = ''; for (var i = 0; i < b.length; i++) s += String.fromCharCode(b[i]); return btoa(s).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, ''); }
+  function unb64u(t) { t = String(t).replace(/-/g, '+').replace(/_/g, '/'); while (t.length % 4) t += '='; var s = atob(t), b = new Uint8Array(s.length); for (var i = 0; i < s.length; i++) b[i] = s.charCodeAt(i); return b; }
+  function utf8(s) { return new TextEncoder().encode(s); }
+  function zip(str) {
+    if (window.CompressionStream) return new Response(new Blob([utf8(str)]).stream().pipeThrough(new CompressionStream('deflate-raw'))).arrayBuffer().then(function (a) { return 'z' + b64u(a); });
+    return Promise.resolve('j' + b64u(utf8(str)));
+  }
+  function unzip(t) {
+    var b = unb64u(t.slice(1));
+    if (t.charAt(0) === 'j') return Promise.resolve(new TextDecoder().decode(b));
+    if (!window.DecompressionStream) return Promise.reject(new Error('old'));
+    return new Response(new Blob([b]).stream().pipeThrough(new DecompressionStream('deflate-raw'))).text();
+  }
+  function subtle() { return window.crypto && window.crypto.subtle; }
+  function signKey(d) { return subtle().importKey('jwk', { kty: 'EC', crv: 'P-256', x: PUB.x, y: PUB.y, d: String(d).replace(/^AP-/, '').trim(), ext: true }, ALG, false, ['sign']); }
+  function sign(tok, d) { return signKey(d).then(function (k) { return subtle().sign(SIG, k, utf8(tok)); }).then(b64u); }
+  function verify(tok, sig) {
+    if (!subtle()) return Promise.reject(new Error('nocrypto'));
+    return subtle().importKey('jwk', PUB, ALG, false, ['verify']).then(function (k) { return subtle().verify(SIG, k, unb64u(sig), utf8(tok)); });
+  }
+  // a teacher key is good if what it signs checks out with the public key
+  function checkKey(d) { var t = 'AP key check ' + Date.now(); return sign(t, d).then(function (g) { return verify(t, g); }).catch(function () { return false; }); }
+  function pack(o) { return zip(JSON.stringify(o)).then(function (t) { return sign(t, tkey()).then(function (g) { return t + '.' + g; }); }); }
+  // token "payload.signature" → the test (rejects if it was not signed by AP's key)
+  function unpack(token) {
+    token = String(token || '').trim().replace(/^.*#t=/, ''); var i = token.lastIndexOf('.');
+    if (i < 2) return Promise.reject(new Error('bad'));
+    var t = token.slice(0, i), g = token.slice(i + 1);
+    return verify(t, g).then(function (ok) { if (!ok) throw new Error('unsigned'); return unzip(t); }).then(function (j) { var o = JSON.parse(j); o.tok = token; return o; });
+  }
+  function listGet() { try { return JSON.parse(lsGet('apTestLinks') || '[]') || []; } catch (e) { return []; } }
+  function listAdd(e) { var l = listGet(); l.unshift(e); lsSet('apTestLinks', JSON.stringify(l)); }
+  function linkFor(token) {
+    var base = String(document.baseURI || location.href).replace(/[#?].*$/, '').replace(/[^\/]*$/, '');
+    return base + 'AP%20Tests.html#t=' + token;
+  }
+  function copyText(t, btn) {
+    function ok() { if (btn) { var o = btn.textContent; btn.textContent = '✓ Copied'; setTimeout(function () { btn.textContent = o; }, 2000); } }
+    function fb() { var a = document.createElement('textarea'); a.value = t; a.setAttribute('readonly', ''); a.style.position = 'fixed'; a.style.top = '-200px'; document.body.appendChild(a); a.select(); a.setSelectionRange(0, t.length); try { document.execCommand('copy'); ok(); } catch (e) { } a.remove(); }
+    try { if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(t).then(ok, fb); else fb(); } catch (e) { fb(); }
+  }
+  function draws(n) {   // more draws with the teacher's current settings (the same button, run again quietly)
+    var out = [], seen = {}, sig = function (its) { return its.map(function (it) { return it.prompt + '\u0001' + it.answer; }).join('\u0002'); };
+    seen[sig(S.items)] = 1; out.push(S.items);
+    if (!RUN) return out;
+    for (var k = 0; k < n * 3 && out.length < n; k++) {
+      window.APTT.capturing = [];
+      try { RUN(); } catch (e) { }
+      var got = window.APTT.capturing; window.APTT.capturing = null;
+      if (got && got[0] && got[0].items.length === S.items.length) { var h = sig(got[0].items); if (!seen[h]) { seen[h] = 1; out.push(got[0].items); } }
+    }
+    return out;
+  }
+  function maker() {
+    if (!S || !tkey()) return;
+    var d = $('aptt-mk'); if (d) d.remove();
+    var secs = limit(), opts = '';
+    for (var x = 60; x <= 1200; x += 30) opts += '<option value="' + x + '"' + (x === secs ? ' selected' : '') + '>' + minsTxt(x) + ' min</option>';
+    d = document.createElement('div'); d.id = 'aptt-mk'; d.className = 'aptt-mk';
+    d.innerHTML = '<div class="aptt-mkbox" role="dialog" aria-modal="true"><div class="aptt-mkh">🔑 Make a test link</div>'
+      + '<div class="aptt-mks">' + S.m.title + (S.m.level && plain(S.m.title).indexOf(S.m.level) < 0 ? ' · ' + esc(S.m.level) : '') + ' · ' + S.items.length + ' ' + noun(S.items.length) + '</div>'
+      + '<label>Name (for your list)</label><input id="aptt-mk-n" type="text" value="' + esc(plain(S.m.title) + (S.m.level && plain(S.m.title).indexOf(S.m.level) < 0 ? ' · ' + S.m.level : '')) + '">'
+      + '<label>Time limit</label><select id="aptt-mk-s">' + opts + '</select>'
+      + '<label>Questions</label><div class="aptt-mkq"><label><input type="radio" name="aptt-mk-q" value="same" checked> Same questions for everyone <small>(you can go through the answers on the board)</small></label>'
+      + '<label' + (RUN ? '' : ' class="off"') + '><input type="radio" name="aptt-mk-q" value="draw"' + (RUN ? '' : ' disabled') + '> Each boy gets his own draw <small>(' + VERSIONS + ' different versions from these settings)</small></label></div>'
+      + '<label>Code (optional, for the AP Tests page)</label><input id="aptt-mk-c" type="text" placeholder="e.g. ST101" autocapitalize="characters" maxlength="12">'
+      + '<div class="aptt-mkact"><button type="button" class="aph-btn" onclick="document.getElementById(\'aptt-mk\').remove()">Cancel</button><button type="button" class="aph-btn aph-btn-primary" id="aptt-mk-go">🔑 Make link</button></div>'
+      + '<div id="aptt-mk-out"></div></div>';
+    document.body.appendChild(d);
+    $('aptt-mk-go').onclick = function () {
+      var b = this, q = (d.querySelector('input[name=aptt-mk-q]:checked') || {}).value || 'same', code = $('aptt-mk-c').value.replace(/\s+/g, '').toUpperCase(), name = $('aptt-mk-n').value.trim(), s2 = +$('aptt-mk-s').value;
+      b.disabled = true; b.textContent = 'Making…';
+      var V = q === 'draw' ? draws(VERSIONS) : [S.items];
+      var o = { v: 1, n: name, c: code, a: S.m.app, k: S.m.kicker, t: S.m.title, m: S.m.meta, d: S.m.detail, l: S.m.lang, lc: S.m.code, lv: S.m.level, s: s2, q: q, id: S.m.id, made: new Date().toISOString().slice(0, 10),
+        V: V.map(function (its) { return its.map(function (it) { return [it.prompt, it.answer, it.kind === 'sentence' ? 1 : 0, it.label || '', it.html ? 1 : 0]; }); }) };
+      pack(o).then(function (tok) {
+        var link = linkFor(tok), line = (code || 'ST???') + ' | ' + name.replace(/\|/g, '/') + ' | ' + tok;
+        listAdd({ n: name, c: code, made: o.made, s: s2, q: q, v: V.length, items: S.items.length, t: plain(S.m.title), lv: S.m.level, app: plain(S.m.app), tok: tok });
+        $('aptt-mk-out').innerHTML = '<div class="aptt-mkok">✅ Link made' + (q === 'draw' ? ' (' + V.length + ' versions)' : '') + '. It is also saved in your list on the AP Tests page.</div>'
+          + '<label>Link for OneNote / Teams</label><div class="aptt-mkrow"><input readonly value="' + esc(link) + '"><button type="button" class="aph-btn aph-btn-primary">📋 Copy link</button></div>'
+          + '<label>Line for tests.txt (for a code)</label><div class="aptt-mkrow"><input readonly value="' + esc(line) + '"><button type="button" class="aph-btn">📋 Copy line</button></div>'
+          + (link.length > 6000 ? '<div class="aptt-mkwarn">This link is very long (' + link.length + ' characters). If OneNote will not take it, use a code instead.</div>' : '');
+        var rows = $('aptt-mk-out').querySelectorAll('.aptt-mkrow');
+        rows[0].querySelector('button').onclick = function () { copyText(link, this); };
+        rows[1].querySelector('button').onclick = function () { copyText(line, this); };
+        b.textContent = '✓ Made'; 
+      }).catch(function (e) { b.disabled = false; b.textContent = '🔑 Make link'; alert('Sorry, the link could not be made (' + (e && e.message || e) + '). Is your teacher key set on this device?'); });
+    };
+  }
+  // open a test from a signed token (the AP Tests page); version: which draw (own-draw links), chosen at random if not given
+  function openSet(o, code) {
+    var V = o.V || [], k = o.q === 'draw' ? Math.floor(Math.random() * V.length) : 0, its = V[k] || [];
+    open({ id: 'set|' + (code || o.c || h32(o.tok || '')) + '|' + (o.q === 'draw' ? 'v' + k : 'same'), app: o.a, kicker: o.k, title: o.t, meta: o.m, detail: o.d, lang: o.l, langCode: o.lc, level: o.lv, total: 10,
+      items: its.map(function (r) { return { prompt: r[0], answer: r[1], kind: r[2] ? 'sentence' : 'word', label: r[3], html: !!r[4] }; }),
+      set: { code: code || o.c || '', secs: +o.s || 0, name: o.n || '', q: o.q, ver: k + 1, of: V.length } });
+  }
   // pen-up anywhere ends a stroke (the automatic lock waits for it)
   try { ['pointerup', 'pointercancel'].forEach(function (t) { document.addEventListener(t, function () { PEN = false; }, true); }); } catch (e) { }
-  return { open: open, close: close, mode: mode, lock: lock, show: showAns, mark: mark, next: next, verbDetail: verbDetail, pdf: pdf, teacher: teacher, LABEL: LBL, state: function () { return S; } };
+  return { open: open, close: close, mode: mode, lock: lock, show: showAns, mark: mark, next: next, verbDetail: verbDetail, pdf: pdf, teacher: teacher, maker: maker, openSet: openSet, unpack: unpack, checkKey: checkKey, list: listGet, linkFor: linkFor, copy: copyText, lastRun: null, capturing: null, LABEL: LBL, state: function () { return S; } };
 })();
 /* ===== END AP TIMED TEST ===== */
 </script>
@@ -2000,6 +2124,8 @@ function apttSpot(o) {
 // the boy must choose his level (Easy / Medium / Hard / Mixed) before a timed & submitted Spot Test is drawn
 // (this app has one test level for every panel: apTestLevel, set with apSetTestLevel; sc is kept for the shared call shape)
 function apttLevel(sc, run) {
+  if (window.APTT && APTT.capturing) { run(); return; }   // 🔑 making a test link: draw again with the same settings, quietly
+  if (window.APTT) APTT.lastRun = run;
   var d = document.getElementById('aptt-lvask'); if (d) d.remove();
   d = document.createElement('div'); d.id = 'aptt-lvask';
   d.innerHTML = '<div class="aptt-lvbox" role="dialog" aria-modal="true"><div class="aptt-lvh">Choose your level</div>'
