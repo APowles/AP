@@ -3,7 +3,7 @@
 <script id="ap-update">
 /* AP auto-update: if this copy is older than the published version, reload once with the new one (saved answers are kept) */
 (function () {
-  var B = '7531d17b69'; window.AP_BUILD = B;
+  var B = '86806d4e98'; window.AP_BUILD = B;
   function check() {
     if (!/^https?:$/.test(location.protocol) || !window.fetch) return;
     var f = decodeURIComponent(location.pathname.split('/').pop() || '');
@@ -2630,13 +2630,27 @@ var APTT = (function () {
   }
   function checkGit(k) { return ghGet(k).then(function () { return true; }).catch(function () { return false; }); }
   // code prefix by language: STF French, STS Spanish, STI Italian (the language of the answers, or of the test if the answers are English)
-  function langLetter() {
-    var L = { French: 'F', Spanish: 'S', Italian: 'I' }[S.m.lang];
+  function langLetter() { return langOf(S.m); }
+  function langOf(m) {
+    var L = { French: 'F', Spanish: 'S', Italian: 'I' }[m.lang];
     if (L) return L;
-    var t = plain(S.m.meta) + ' ' + plain(S.m.title) + ' ' + plain(S.m.app);
+    var t = plain(m.meta) + ' ' + plain(m.title) + ' ' + plain(m.app);
     if (/\uD83C\uDDEA\uD83C\uDDF8|Spanish|Español/i.test(t)) return 'S';
     if (/\uD83C\uDDEE\uD83C\uDDF9|Italian|Italiano/i.test(t)) return 'I';
     return 'F';
+  }
+  // ── Test Library headings: course + language ▸ type, worked out from the test's settings (the button it was made from) ──
+  var TYPES = { vv: 'VVs', grews: 'Gr EWs', gr: 'Grammar', sd: 'VV sentences', mlf: 'Metalanguage', oc: 'Oral topics & KTRs', ktr: 'Oral topics & KTRs', opb: 'Oral phrases',
+    ms: 'AP Structures', voc: 'Vocab EWs', gg: 'Gr EWs', ig: 'Vocab Essentials', am: 'Approved Material', essphr: 'Essential Phrases', esvocab: 'Essential Phrases', conj: 'Verbs', it: 'Verbs', spot: 'Verbs', sv: 'Vocab' };
+  var ALEVEL = { vv: 1, grews: 1, gr: 1, sd: 1, mlf: 1, oc: 1, ktr: 1, opb: 1 };
+  var CATS = ['A Level French ▸ VVs', 'A Level French ▸ Gr EWs', 'A Level French ▸ Grammar', 'A Level French ▸ VV sentences', 'A Level French ▸ Metalanguage', 'A Level French ▸ Oral topics & KTRs', 'A Level French ▸ Oral phrases',
+    'IGCSE French ▸ AP Structures', 'IGCSE French ▸ Vocab EWs', 'IGCSE French ▸ Gr EWs', 'IGCSE French ▸ Vocab Essentials', 'IGCSE French ▸ Approved Material', 'IGCSE French ▸ Essential Phrases', 'IGCSE French ▸ Verbs',
+    'IGCSE Spanish ▸ AP Structures', 'IGCSE Spanish ▸ Vocab', 'IGCSE Spanish ▸ Verbs', 'IGCSE Spanish ▸ Approved Material', 'IGCSE Spanish ▸ Essential Phrases',
+    'IGCSE Italian ▸ AP Structures', 'IGCSE Italian ▸ Verbs', 'IGCSE Italian ▸ Approved Material', 'IGCSE Italian ▸ Essential Phrases'];
+  function catOf(m) {   // m: { id, lang, meta, title, app }
+    var k = String(m.id || '').split('|')[0], L = { F: 'French', S: 'Spanish', I: 'Italian' }[langOf(m)];
+    var lvl = ALEVEL[k] || (!TYPES[k] && /A Level/.test(plain(m.app))) ? 'A Level' : 'IGCSE';
+    return lvl + ' ' + L + ' ▸ ' + (TYPES[k] || 'Other');
   }
   // the next free code: one more than the highest number for this language in tests.txt and in this device's list (STF101, STS101, STI101…)
   function nextCode(cb) {
@@ -2650,6 +2664,7 @@ var APTT = (function () {
       cb(P + (hi + 1));
     }).catch(function () { });
   }
+  function folders() { var o = {}; listGet().forEach(function (e) { if (e.f) o[e.f] = 1; }); return Object.keys(o).sort(); }
   function draws(n) {   // more draws with the teacher's current settings (the same button, run again quietly)
     var out = [], seen = {}, sig = function (its) { return its.map(function (it) { return it.prompt + '\u0001' + it.answer; }).join('\u0002'); };
     seen[sig(S.items)] = 1; out.push(S.items);
@@ -2674,6 +2689,8 @@ var APTT = (function () {
       + '<label>Time limit</label><select id="aptt-mk-s">' + opts + '</select>'
       + '<label>Questions</label><div class="aptt-mkq"><label><input type="radio" name="aptt-mk-q" value="same" checked> Same questions for everyone <small>(you can go through the answers on the board)</small></label>'
       + '<label' + (RUN ? '' : ' class="off"') + '><input type="radio" name="aptt-mk-q" value="draw"' + (RUN ? '' : ' disabled') + '> Each boy gets his own draw <small>(' + VERSIONS + ' different versions from these settings)</small></label></div>'
+      + '<label>Library heading</label><select id="aptt-mk-cat">' + (function () { var c = catOf(S.m), L = CATS.indexOf(c) < 0 ? [c].concat(CATS) : CATS; return L.map(function (x) { return '<option' + (x === c ? ' selected' : '') + '>' + esc(x) + '</option>'; }).join(''); })() + '</select>'
+      + '<label>Folder inside it (optional: e.g. C Block Set 2, Autumn 2026)</label><input id="aptt-mk-f" type="text" list="aptt-mk-fl" maxlength="40" placeholder="none"><datalist id="aptt-mk-fl">' + folders().map(function (x) { return '<option value="' + esc(x) + '">'; }).join('') + '</datalist>'
       + '<label>Code (for the AP Tests page: the next free number is filled in' + (gkey() ? '; it is added automatically' : '') + ')</label><input id="aptt-mk-c" type="text" placeholder="e.g. STF101" autocapitalize="characters" maxlength="12">'
       + '<div class="aptt-mkact"><button type="button" class="aph-btn" onclick="document.getElementById(\'aptt-mk\').remove()">Cancel</button><button type="button" class="aph-btn aph-btn-primary" id="aptt-mk-go">🔑 Make link</button></div>'
       + '<div id="aptt-mk-out"></div></div>';
@@ -2681,14 +2698,14 @@ var APTT = (function () {
     nextCode(function (c) { var i = $('aptt-mk-c'); if (i && !i.dataset.typed) i.value = c; });
     $('aptt-mk-c').addEventListener('input', function () { this.dataset.typed = '1'; });
     $('aptt-mk-go').onclick = function () {
-      var b = this, q = (d.querySelector('input[name=aptt-mk-q]:checked') || {}).value || 'same', code = $('aptt-mk-c').value.replace(/\s+/g, '').toUpperCase(), name = $('aptt-mk-n').value.trim(), s2 = +$('aptt-mk-s').value;
+      var b = this, q = (d.querySelector('input[name=aptt-mk-q]:checked') || {}).value || 'same', code = $('aptt-mk-c').value.replace(/\s+/g, '').toUpperCase(), name = $('aptt-mk-n').value.trim(), s2 = +$('aptt-mk-s').value, cat = $('aptt-mk-cat').value, fol = $('aptt-mk-f').value.replace(/\|/g, '/').trim();
       b.disabled = true; b.textContent = 'Making…';
       var V = q === 'draw' ? draws(VERSIONS) : [S.items];
-      var o = { v: 1, n: name, c: code, a: S.m.app, k: S.m.kicker, t: S.m.title, m: S.m.meta, d: S.m.detail, l: S.m.lang, lc: S.m.code, lv: S.m.level, s: s2, q: q, id: S.m.id, made: new Date().toISOString().slice(0, 10),
+      var o = { v: 1, n: name, c: code, a: S.m.app, k: S.m.kicker, t: S.m.title, m: S.m.meta, d: S.m.detail, l: S.m.lang, lc: S.m.code, lv: S.m.level, s: s2, q: q, id: S.m.id, cat: cat, f: fol, made: new Date().toISOString().slice(0, 10),
         V: V.map(function (its) { return its.map(function (it) { return [it.prompt, it.answer, it.kind === 'sentence' ? 1 : 0, it.label || '', it.html ? 1 : 0]; }); }) };
       pack(o).then(function (tok) {
-        var link = linkFor(tok), line = (code || 'ST???') + ' | ' + name.replace(/\|/g, '/') + ' | ' + tok;
-        listAdd({ n: name, c: code, made: o.made, s: s2, q: q, v: V.length, items: S.items.length, t: plain(S.m.title), lv: S.m.level, app: plain(S.m.app), tok: tok });
+        var link = linkFor(tok), line = (code || 'ST???') + ' | ' + name.replace(/\|/g, '/') + ' | ' + cat + ' | ' + fol + ' | ' + tok;
+        listAdd({ n: name, c: code, cat: cat, f: fol, made: o.made, s: s2, q: q, v: V.length, items: S.items.length, t: plain(S.m.title), lv: S.m.level, app: plain(S.m.app), tok: tok });
         $('aptt-mk-out').innerHTML = '<div class="aptt-mkok">✅ Link made' + (q === 'draw' ? ' (' + V.length + ' versions)' : '') + '. It is also saved in your list on the AP Tests page.</div>'
           + '<label>Link for OneNote / Teams</label><div class="aptt-mkrow"><div class="aptt-mklink">🔗 <a href="' + esc(link) + '" target="_blank" rel="noopener">' + esc((name || 'AP test') + (code ? ' (' + code + ')' : '')) + '</a></div><button type="button" class="aph-btn aph-btn-primary">📋 Copy link</button></div>'
           + '<div class="aptt-mkhint">Pastes as the name above, with the long address hidden inside it. <button type="button" class="aptt-mkplain">Copy the plain address instead</button></div>'
@@ -2717,7 +2734,7 @@ var APTT = (function () {
   }
   // pen-up anywhere ends a stroke (the automatic lock waits for it)
   try { ['pointerup', 'pointercancel'].forEach(function (t) { document.addEventListener(t, function () { PEN = false; }, true); }); } catch (e) { }
-  return { open: open, close: close, mode: mode, lock: lock, show: showAns, mark: mark, next: next, verbDetail: verbDetail, pdf: pdf, teacher: teacher, maker: maker, openSet: openSet, copyLink: copyLink, copyHTML: copyHTML, checkGit: checkGit, unpack: unpack, checkKey: checkKey, list: listGet, linkFor: linkFor, copy: copyText, lastRun: null, capturing: null, LABEL: LBL, state: function () { return S; } };
+  return { open: open, close: close, mode: mode, lock: lock, show: showAns, mark: mark, next: next, verbDetail: verbDetail, pdf: pdf, teacher: teacher, maker: maker, openSet: openSet, copyLink: copyLink, copyHTML: copyHTML, checkGit: checkGit, catOf: catOf, CATS: CATS, unpack: unpack, checkKey: checkKey, list: listGet, linkFor: linkFor, copy: copyText, lastRun: null, capturing: null, LABEL: LBL, state: function () { return S; } };
 })();
 /* ===== END AP TIMED TEST ===== */
 </script>
@@ -31744,13 +31761,27 @@ var APTT = (function () {
   }
   function checkGit(k) { return ghGet(k).then(function () { return true; }).catch(function () { return false; }); }
   // code prefix by language: STF French, STS Spanish, STI Italian (the language of the answers, or of the test if the answers are English)
-  function langLetter() {
-    var L = { French: 'F', Spanish: 'S', Italian: 'I' }[S.m.lang];
+  function langLetter() { return langOf(S.m); }
+  function langOf(m) {
+    var L = { French: 'F', Spanish: 'S', Italian: 'I' }[m.lang];
     if (L) return L;
-    var t = plain(S.m.meta) + ' ' + plain(S.m.title) + ' ' + plain(S.m.app);
+    var t = plain(m.meta) + ' ' + plain(m.title) + ' ' + plain(m.app);
     if (/\uD83C\uDDEA\uD83C\uDDF8|Spanish|Español/i.test(t)) return 'S';
     if (/\uD83C\uDDEE\uD83C\uDDF9|Italian|Italiano/i.test(t)) return 'I';
     return 'F';
+  }
+  // ── Test Library headings: course + language ▸ type, worked out from the test's settings (the button it was made from) ──
+  var TYPES = { vv: 'VVs', grews: 'Gr EWs', gr: 'Grammar', sd: 'VV sentences', mlf: 'Metalanguage', oc: 'Oral topics &amp; KTRs', ktr: 'Oral topics &amp; KTRs', opb: 'Oral phrases',
+    ms: 'AP Structures', voc: 'Vocab EWs', gg: 'Gr EWs', ig: 'Vocab Essentials', am: 'Approved Material', essphr: 'Essential Phrases', esvocab: 'Essential Phrases', conj: 'Verbs', it: 'Verbs', spot: 'Verbs', sv: 'Vocab' };
+  var ALEVEL = { vv: 1, grews: 1, gr: 1, sd: 1, mlf: 1, oc: 1, ktr: 1, opb: 1 };
+  var CATS = ['A Level French ▸ VVs', 'A Level French ▸ Gr EWs', 'A Level French ▸ Grammar', 'A Level French ▸ VV sentences', 'A Level French ▸ Metalanguage', 'A Level French ▸ Oral topics &amp; KTRs', 'A Level French ▸ Oral phrases',
+    'IGCSE French ▸ AP Structures', 'IGCSE French ▸ Vocab EWs', 'IGCSE French ▸ Gr EWs', 'IGCSE French ▸ Vocab Essentials', 'IGCSE French ▸ Approved Material', 'IGCSE French ▸ Essential Phrases', 'IGCSE French ▸ Verbs',
+    'IGCSE Spanish ▸ AP Structures', 'IGCSE Spanish ▸ Vocab', 'IGCSE Spanish ▸ Verbs', 'IGCSE Spanish ▸ Approved Material', 'IGCSE Spanish ▸ Essential Phrases',
+    'IGCSE Italian ▸ AP Structures', 'IGCSE Italian ▸ Verbs', 'IGCSE Italian ▸ Approved Material', 'IGCSE Italian ▸ Essential Phrases'];
+  function catOf(m) {   // m: { id, lang, meta, title, app }
+    var k = String(m.id || '').split('|')[0], L = { F: 'French', S: 'Spanish', I: 'Italian' }[langOf(m)];
+    var lvl = ALEVEL[k] || (!TYPES[k] &amp;&amp; /A Level/.test(plain(m.app))) ? 'A Level' : 'IGCSE';
+    return lvl + ' ' + L + ' ▸ ' + (TYPES[k] || 'Other');
   }
   // the next free code: one more than the highest number for this language in tests.txt and in this device's list (STF101, STS101, STI101…)
   function nextCode(cb) {
@@ -31764,6 +31795,7 @@ var APTT = (function () {
       cb(P + (hi + 1));
     }).catch(function () { });
   }
+  function folders() { var o = {}; listGet().forEach(function (e) { if (e.f) o[e.f] = 1; }); return Object.keys(o).sort(); }
   function draws(n) {   // more draws with the teacher's current settings (the same button, run again quietly)
     var out = [], seen = {}, sig = function (its) { return its.map(function (it) { return it.prompt + '\u0001' + it.answer; }).join('\u0002'); };
     seen[sig(S.items)] = 1; out.push(S.items);
@@ -31788,6 +31820,8 @@ var APTT = (function () {
       + '<label>Time limit</label><select id=&quot;aptt-mk-s&quot;>' + opts + '</select>'
       + '<label>Questions</label><div class=&quot;aptt-mkq&quot;><label><input type=&quot;radio&quot; name=&quot;aptt-mk-q&quot; value=&quot;same&quot; checked> Same questions for everyone <small>(you can go through the answers on the board)</small></label>'
       + '<label' + (RUN ? '' : ' class=&quot;off&quot;') + '><input type=&quot;radio&quot; name=&quot;aptt-mk-q&quot; value=&quot;draw&quot;' + (RUN ? '' : ' disabled') + '> Each boy gets his own draw <small>(' + VERSIONS + ' different versions from these settings)</small></label></div>'
+      + '<label>Library heading</label><select id=&quot;aptt-mk-cat&quot;>' + (function () { var c = catOf(S.m), L = CATS.indexOf(c) < 0 ? [c].concat(CATS) : CATS; return L.map(function (x) { return '<option' + (x === c ? ' selected' : '') + '>' + esc(x) + '</option>'; }).join(''); })() + '</select>'
+      + '<label>Folder inside it (optional: e.g. C Block Set 2, Autumn 2026)</label><input id=&quot;aptt-mk-f&quot; type=&quot;text&quot; list=&quot;aptt-mk-fl&quot; maxlength=&quot;40&quot; placeholder=&quot;none&quot;><datalist id=&quot;aptt-mk-fl&quot;>' + folders().map(function (x) { return '<option value=&quot;' + esc(x) + '&quot;>'; }).join('') + '</datalist>'
       + '<label>Code (for the AP Tests page: the next free number is filled in' + (gkey() ? '; it is added automatically' : '') + ')</label><input id=&quot;aptt-mk-c&quot; type=&quot;text&quot; placeholder=&quot;e.g. STF101&quot; autocapitalize=&quot;characters&quot; maxlength=&quot;12&quot;>'
       + '<div class=&quot;aptt-mkact&quot;><button type=&quot;button&quot; class=&quot;aph-btn&quot; onclick=&quot;document.getElementById(\'aptt-mk\').remove()&quot;>Cancel</button><button type=&quot;button&quot; class=&quot;aph-btn aph-btn-primary&quot; id=&quot;aptt-mk-go&quot;>🔑 Make link</button></div>'
       + '<div id=&quot;aptt-mk-out&quot;></div></div>';
@@ -31795,14 +31829,14 @@ var APTT = (function () {
     nextCode(function (c) { var i = $('aptt-mk-c'); if (i &amp;&amp; !i.dataset.typed) i.value = c; });
     $('aptt-mk-c').addEventListener('input', function () { this.dataset.typed = '1'; });
     $('aptt-mk-go').onclick = function () {
-      var b = this, q = (d.querySelector('input[name=aptt-mk-q]:checked') || {}).value || 'same', code = $('aptt-mk-c').value.replace(/\s+/g, '').toUpperCase(), name = $('aptt-mk-n').value.trim(), s2 = +$('aptt-mk-s').value;
+      var b = this, q = (d.querySelector('input[name=aptt-mk-q]:checked') || {}).value || 'same', code = $('aptt-mk-c').value.replace(/\s+/g, '').toUpperCase(), name = $('aptt-mk-n').value.trim(), s2 = +$('aptt-mk-s').value, cat = $('aptt-mk-cat').value, fol = $('aptt-mk-f').value.replace(/\|/g, '/').trim();
       b.disabled = true; b.textContent = 'Making…';
       var V = q === 'draw' ? draws(VERSIONS) : [S.items];
-      var o = { v: 1, n: name, c: code, a: S.m.app, k: S.m.kicker, t: S.m.title, m: S.m.meta, d: S.m.detail, l: S.m.lang, lc: S.m.code, lv: S.m.level, s: s2, q: q, id: S.m.id, made: new Date().toISOString().slice(0, 10),
+      var o = { v: 1, n: name, c: code, a: S.m.app, k: S.m.kicker, t: S.m.title, m: S.m.meta, d: S.m.detail, l: S.m.lang, lc: S.m.code, lv: S.m.level, s: s2, q: q, id: S.m.id, cat: cat, f: fol, made: new Date().toISOString().slice(0, 10),
         V: V.map(function (its) { return its.map(function (it) { return [it.prompt, it.answer, it.kind === 'sentence' ? 1 : 0, it.label || '', it.html ? 1 : 0]; }); }) };
       pack(o).then(function (tok) {
-        var link = linkFor(tok), line = (code || 'ST???') + ' | ' + name.replace(/\|/g, '/') + ' | ' + tok;
-        listAdd({ n: name, c: code, made: o.made, s: s2, q: q, v: V.length, items: S.items.length, t: plain(S.m.title), lv: S.m.level, app: plain(S.m.app), tok: tok });
+        var link = linkFor(tok), line = (code || 'ST???') + ' | ' + name.replace(/\|/g, '/') + ' | ' + cat + ' | ' + fol + ' | ' + tok;
+        listAdd({ n: name, c: code, cat: cat, f: fol, made: o.made, s: s2, q: q, v: V.length, items: S.items.length, t: plain(S.m.title), lv: S.m.level, app: plain(S.m.app), tok: tok });
         $('aptt-mk-out').innerHTML = '<div class=&quot;aptt-mkok&quot;>✅ Link made' + (q === 'draw' ? ' (' + V.length + ' versions)' : '') + '. It is also saved in your list on the AP Tests page.</div>'
           + '<label>Link for OneNote / Teams</label><div class=&quot;aptt-mkrow&quot;><div class=&quot;aptt-mklink&quot;>🔗 <a href=&quot;' + esc(link) + '&quot; target=&quot;_blank&quot; rel=&quot;noopener&quot;>' + esc((name || 'AP test') + (code ? ' (' + code + ')' : '')) + '</a></div><button type=&quot;button&quot; class=&quot;aph-btn aph-btn-primary&quot;>📋 Copy link</button></div>'
           + '<div class=&quot;aptt-mkhint&quot;>Pastes as the name above, with the long address hidden inside it. <button type=&quot;button&quot; class=&quot;aptt-mkplain&quot;>Copy the plain address instead</button></div>'
@@ -31831,7 +31865,7 @@ var APTT = (function () {
   }
   // pen-up anywhere ends a stroke (the automatic lock waits for it)
   try { ['pointerup', 'pointercancel'].forEach(function (t) { document.addEventListener(t, function () { PEN = false; }, true); }); } catch (e) { }
-  return { open: open, close: close, mode: mode, lock: lock, show: showAns, mark: mark, next: next, verbDetail: verbDetail, pdf: pdf, teacher: teacher, maker: maker, openSet: openSet, copyLink: copyLink, copyHTML: copyHTML, checkGit: checkGit, unpack: unpack, checkKey: checkKey, list: listGet, linkFor: linkFor, copy: copyText, lastRun: null, capturing: null, LABEL: LBL, state: function () { return S; } };
+  return { open: open, close: close, mode: mode, lock: lock, show: showAns, mark: mark, next: next, verbDetail: verbDetail, pdf: pdf, teacher: teacher, maker: maker, openSet: openSet, copyLink: copyLink, copyHTML: copyHTML, checkGit: checkGit, catOf: catOf, CATS: CATS, unpack: unpack, checkKey: checkKey, list: listGet, linkFor: linkFor, copy: copyText, lastRun: null, capturing: null, LABEL: LBL, state: function () { return S; } };
 })();
 /* ===== END AP TIMED TEST ===== */
 </script>

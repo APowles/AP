@@ -5,7 +5,7 @@
 <script id="ap-update">
 /* AP auto-update: if this copy is older than the published version, reload once with the new one (saved answers are kept) */
 (function () {
-  var B = 'b248bc4782'; window.AP_BUILD = B;
+  var B = '316434bdb4'; window.AP_BUILD = B;
   function check() {
     if (!/^https?:$/.test(location.protocol) || !window.fetch) return;
     var f = decodeURIComponent(location.pathname.split('/').pop() || '');
@@ -483,6 +483,16 @@ body{background:var(--cream);margin:0}
 .apt-it-n{font-weight:800;color:var(--navy)}
 .apt-it-m{font-size:.8125rem;color:var(--text2);margin:3px 0 6px}
 .apt-it .aph-btn{font-size:.8125rem;padding:6px 10px;min-height:34px}
+.apt-search{margin:4px 0 12px}
+.apt-course{font:800 1.0625rem/1.2 var(--aph-body);color:var(--navy);margin:18px 0 6px;padding-bottom:4px;border-bottom:3px solid var(--gold)}
+.apt-type{border:1px solid var(--border);border-radius:10px;margin:0 0 8px;background:#fbfaf6}
+.apt-type>summary{cursor:pointer;list-style:none;display:flex;justify-content:space-between;align-items:center;padding:10px 12px;font-weight:800;color:var(--navy)}
+.apt-type>summary::-webkit-details-marker{display:none}
+.apt-type>summary::before{content:'▸';margin-right:8px;color:var(--gold)}.apt-type[open]>summary::before{content:'▾'}
+.apt-type>summary span{flex:1}.apt-type>summary b{background:var(--navy);color:#fff;border-radius:999px;padding:1px 9px;font-size:.8125rem}
+.apt-type[open]{background:#fff}.apt-type>.apt-it,.apt-type>.apt-fh{margin-left:10px;margin-right:10px}
+.apt-fh{display:flex;justify-content:space-between;align-items:center;gap:8px;margin:6px 0 6px;font-weight:800;color:var(--navy)}
+.apt-fh .aph-btn{font-size:.75rem;padding:4px 9px;min-height:30px}
 .apt-empty{font-size:.9375rem;color:var(--text3);font-style:italic}
 </style>
 </head>
@@ -499,9 +509,9 @@ body{background:var(--cream);margin:0}
 <main class="apt-wrap">
   <div class="apt-card">
     <h2 class="aph-h">Enter your test code</h2>
-    <p class="apt-lead">Type the code AP has given you (for example <b>ST101</b>), then tap <b>Go</b>. Your test opens ready to start.</p>
+    <p class="apt-lead">Type the code AP has given you (for example <b>STF101</b>), then tap <b>Go</b>. Your test opens ready to start.</p>
     <form class="apt-row" id="apt-form" autocomplete="off">
-      <input class="apt-code" id="apt-code" type="text" inputmode="text" autocapitalize="characters" autocorrect="off" spellcheck="false" maxlength="12" placeholder="ST101" aria-label="Test code">
+      <input class="apt-code" id="apt-code" type="text" inputmode="text" autocapitalize="characters" autocorrect="off" spellcheck="false" maxlength="12" placeholder="STF101" aria-label="Test code">
       <button class="apt-go" type="submit">Go</button>
     </form>
     <div class="apt-msg" id="apt-msg" role="alert" hidden></div>
@@ -1645,13 +1655,27 @@ var APTT = (function () {
   }
   function checkGit(k) { return ghGet(k).then(function () { return true; }).catch(function () { return false; }); }
   // code prefix by language: STF French, STS Spanish, STI Italian (the language of the answers, or of the test if the answers are English)
-  function langLetter() {
-    var L = { French: 'F', Spanish: 'S', Italian: 'I' }[S.m.lang];
+  function langLetter() { return langOf(S.m); }
+  function langOf(m) {
+    var L = { French: 'F', Spanish: 'S', Italian: 'I' }[m.lang];
     if (L) return L;
-    var t = plain(S.m.meta) + ' ' + plain(S.m.title) + ' ' + plain(S.m.app);
+    var t = plain(m.meta) + ' ' + plain(m.title) + ' ' + plain(m.app);
     if (/\uD83C\uDDEA\uD83C\uDDF8|Spanish|Español/i.test(t)) return 'S';
     if (/\uD83C\uDDEE\uD83C\uDDF9|Italian|Italiano/i.test(t)) return 'I';
     return 'F';
+  }
+  // ── Test Library headings: course + language ▸ type, worked out from the test's settings (the button it was made from) ──
+  var TYPES = { vv: 'VVs', grews: 'Gr EWs', gr: 'Grammar', sd: 'VV sentences', mlf: 'Metalanguage', oc: 'Oral topics & KTRs', ktr: 'Oral topics & KTRs', opb: 'Oral phrases',
+    ms: 'AP Structures', voc: 'Vocab EWs', gg: 'Gr EWs', ig: 'Vocab Essentials', am: 'Approved Material', essphr: 'Essential Phrases', esvocab: 'Essential Phrases', conj: 'Verbs', it: 'Verbs', spot: 'Verbs', sv: 'Vocab' };
+  var ALEVEL = { vv: 1, grews: 1, gr: 1, sd: 1, mlf: 1, oc: 1, ktr: 1, opb: 1 };
+  var CATS = ['A Level French ▸ VVs', 'A Level French ▸ Gr EWs', 'A Level French ▸ Grammar', 'A Level French ▸ VV sentences', 'A Level French ▸ Metalanguage', 'A Level French ▸ Oral topics & KTRs', 'A Level French ▸ Oral phrases',
+    'IGCSE French ▸ AP Structures', 'IGCSE French ▸ Vocab EWs', 'IGCSE French ▸ Gr EWs', 'IGCSE French ▸ Vocab Essentials', 'IGCSE French ▸ Approved Material', 'IGCSE French ▸ Essential Phrases', 'IGCSE French ▸ Verbs',
+    'IGCSE Spanish ▸ AP Structures', 'IGCSE Spanish ▸ Vocab', 'IGCSE Spanish ▸ Verbs', 'IGCSE Spanish ▸ Approved Material', 'IGCSE Spanish ▸ Essential Phrases',
+    'IGCSE Italian ▸ AP Structures', 'IGCSE Italian ▸ Verbs', 'IGCSE Italian ▸ Approved Material', 'IGCSE Italian ▸ Essential Phrases'];
+  function catOf(m) {   // m: { id, lang, meta, title, app }
+    var k = String(m.id || '').split('|')[0], L = { F: 'French', S: 'Spanish', I: 'Italian' }[langOf(m)];
+    var lvl = ALEVEL[k] || (!TYPES[k] && /A Level/.test(plain(m.app))) ? 'A Level' : 'IGCSE';
+    return lvl + ' ' + L + ' ▸ ' + (TYPES[k] || 'Other');
   }
   // the next free code: one more than the highest number for this language in tests.txt and in this device's list (STF101, STS101, STI101…)
   function nextCode(cb) {
@@ -1665,6 +1689,7 @@ var APTT = (function () {
       cb(P + (hi + 1));
     }).catch(function () { });
   }
+  function folders() { var o = {}; listGet().forEach(function (e) { if (e.f) o[e.f] = 1; }); return Object.keys(o).sort(); }
   function draws(n) {   // more draws with the teacher's current settings (the same button, run again quietly)
     var out = [], seen = {}, sig = function (its) { return its.map(function (it) { return it.prompt + '\u0001' + it.answer; }).join('\u0002'); };
     seen[sig(S.items)] = 1; out.push(S.items);
@@ -1689,6 +1714,8 @@ var APTT = (function () {
       + '<label>Time limit</label><select id="aptt-mk-s">' + opts + '</select>'
       + '<label>Questions</label><div class="aptt-mkq"><label><input type="radio" name="aptt-mk-q" value="same" checked> Same questions for everyone <small>(you can go through the answers on the board)</small></label>'
       + '<label' + (RUN ? '' : ' class="off"') + '><input type="radio" name="aptt-mk-q" value="draw"' + (RUN ? '' : ' disabled') + '> Each boy gets his own draw <small>(' + VERSIONS + ' different versions from these settings)</small></label></div>'
+      + '<label>Library heading</label><select id="aptt-mk-cat">' + (function () { var c = catOf(S.m), L = CATS.indexOf(c) < 0 ? [c].concat(CATS) : CATS; return L.map(function (x) { return '<option' + (x === c ? ' selected' : '') + '>' + esc(x) + '</option>'; }).join(''); })() + '</select>'
+      + '<label>Folder inside it (optional: e.g. C Block Set 2, Autumn 2026)</label><input id="aptt-mk-f" type="text" list="aptt-mk-fl" maxlength="40" placeholder="none"><datalist id="aptt-mk-fl">' + folders().map(function (x) { return '<option value="' + esc(x) + '">'; }).join('') + '</datalist>'
       + '<label>Code (for the AP Tests page: the next free number is filled in' + (gkey() ? '; it is added automatically' : '') + ')</label><input id="aptt-mk-c" type="text" placeholder="e.g. STF101" autocapitalize="characters" maxlength="12">'
       + '<div class="aptt-mkact"><button type="button" class="aph-btn" onclick="document.getElementById(\'aptt-mk\').remove()">Cancel</button><button type="button" class="aph-btn aph-btn-primary" id="aptt-mk-go">🔑 Make link</button></div>'
       + '<div id="aptt-mk-out"></div></div>';
@@ -1696,14 +1723,14 @@ var APTT = (function () {
     nextCode(function (c) { var i = $('aptt-mk-c'); if (i && !i.dataset.typed) i.value = c; });
     $('aptt-mk-c').addEventListener('input', function () { this.dataset.typed = '1'; });
     $('aptt-mk-go').onclick = function () {
-      var b = this, q = (d.querySelector('input[name=aptt-mk-q]:checked') || {}).value || 'same', code = $('aptt-mk-c').value.replace(/\s+/g, '').toUpperCase(), name = $('aptt-mk-n').value.trim(), s2 = +$('aptt-mk-s').value;
+      var b = this, q = (d.querySelector('input[name=aptt-mk-q]:checked') || {}).value || 'same', code = $('aptt-mk-c').value.replace(/\s+/g, '').toUpperCase(), name = $('aptt-mk-n').value.trim(), s2 = +$('aptt-mk-s').value, cat = $('aptt-mk-cat').value, fol = $('aptt-mk-f').value.replace(/\|/g, '/').trim();
       b.disabled = true; b.textContent = 'Making…';
       var V = q === 'draw' ? draws(VERSIONS) : [S.items];
-      var o = { v: 1, n: name, c: code, a: S.m.app, k: S.m.kicker, t: S.m.title, m: S.m.meta, d: S.m.detail, l: S.m.lang, lc: S.m.code, lv: S.m.level, s: s2, q: q, id: S.m.id, made: new Date().toISOString().slice(0, 10),
+      var o = { v: 1, n: name, c: code, a: S.m.app, k: S.m.kicker, t: S.m.title, m: S.m.meta, d: S.m.detail, l: S.m.lang, lc: S.m.code, lv: S.m.level, s: s2, q: q, id: S.m.id, cat: cat, f: fol, made: new Date().toISOString().slice(0, 10),
         V: V.map(function (its) { return its.map(function (it) { return [it.prompt, it.answer, it.kind === 'sentence' ? 1 : 0, it.label || '', it.html ? 1 : 0]; }); }) };
       pack(o).then(function (tok) {
-        var link = linkFor(tok), line = (code || 'ST???') + ' | ' + name.replace(/\|/g, '/') + ' | ' + tok;
-        listAdd({ n: name, c: code, made: o.made, s: s2, q: q, v: V.length, items: S.items.length, t: plain(S.m.title), lv: S.m.level, app: plain(S.m.app), tok: tok });
+        var link = linkFor(tok), line = (code || 'ST???') + ' | ' + name.replace(/\|/g, '/') + ' | ' + cat + ' | ' + fol + ' | ' + tok;
+        listAdd({ n: name, c: code, cat: cat, f: fol, made: o.made, s: s2, q: q, v: V.length, items: S.items.length, t: plain(S.m.title), lv: S.m.level, app: plain(S.m.app), tok: tok });
         $('aptt-mk-out').innerHTML = '<div class="aptt-mkok">✅ Link made' + (q === 'draw' ? ' (' + V.length + ' versions)' : '') + '. It is also saved in your list on the AP Tests page.</div>'
           + '<label>Link for OneNote / Teams</label><div class="aptt-mkrow"><div class="aptt-mklink">🔗 <a href="' + esc(link) + '" target="_blank" rel="noopener">' + esc((name || 'AP test') + (code ? ' (' + code + ')' : '')) + '</a></div><button type="button" class="aph-btn aph-btn-primary">📋 Copy link</button></div>'
           + '<div class="aptt-mkhint">Pastes as the name above, with the long address hidden inside it. <button type="button" class="aptt-mkplain">Copy the plain address instead</button></div>'
@@ -1732,13 +1759,13 @@ var APTT = (function () {
   }
   // pen-up anywhere ends a stroke (the automatic lock waits for it)
   try { ['pointerup', 'pointercancel'].forEach(function (t) { document.addEventListener(t, function () { PEN = false; }, true); }); } catch (e) { }
-  return { open: open, close: close, mode: mode, lock: lock, show: showAns, mark: mark, next: next, verbDetail: verbDetail, pdf: pdf, teacher: teacher, maker: maker, openSet: openSet, copyLink: copyLink, copyHTML: copyHTML, checkGit: checkGit, unpack: unpack, checkKey: checkKey, list: listGet, linkFor: linkFor, copy: copyText, lastRun: null, capturing: null, LABEL: LBL, state: function () { return S; } };
+  return { open: open, close: close, mode: mode, lock: lock, show: showAns, mark: mark, next: next, verbDetail: verbDetail, pdf: pdf, teacher: teacher, maker: maker, openSet: openSet, copyLink: copyLink, copyHTML: copyHTML, checkGit: checkGit, catOf: catOf, CATS: CATS, unpack: unpack, checkKey: checkKey, list: listGet, linkFor: linkFor, copy: copyText, lastRun: null, capturing: null, LABEL: LBL, state: function () { return S; } };
 })();
 /* ===== END AP TIMED TEST ===== */
 </script>
 <script id="apt-script">
 /* ===== AP TESTS page ===== */
-var APT_CODES = null;   // tests.txt: CODE | name | token (one test per line; # starts a comment)
+var APT_CODES = null;   // tests.txt: CODE | name | heading | folder | token (one test per line; # starts a comment; old lines: CODE | name | token)
 function aptEsc(s) { return String(s == null ? '' : s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;'); }
 function aptMsg(t, cls) { var m = document.getElementById('apt-msg'); if (!t) { m.hidden = true; return; } m.className = 'apt-msg ' + (cls || 'bad'); m.innerHTML = t; m.hidden = false; }
 function aptCodes() {
@@ -1748,8 +1775,8 @@ function aptCodes() {
     t.split(/\r?\n/).forEach(function (l) {
       l = l.trim(); if (!l || l.charAt(0) === '#') return;
       var p = l.split('|'); if (p.length < 3) return;
-      var c = p[0].replace(/\s+/g, '').toUpperCase(), tok = p[p.length - 1].trim(), n = p.slice(1, -1).join('|').trim();
-      if (c && tok) o[c] = { n: n, tok: tok };
+      var c = p[0].replace(/\s+/g, '').toUpperCase(), tok = p[p.length - 1].trim(), n = p[1].trim(), cat = p.length >= 5 ? p[2].trim() : '', f = p.length >= 5 ? p[3].trim() : '';
+      if (c && tok) o[c] = { n: n, cat: cat, f: f, tok: tok };
     });
     APT_CODES = o; return o;
   });
@@ -1775,7 +1802,7 @@ function aptCode(c) {
   aptMsg('Looking up ' + aptEsc(c) + '…', 'wait');
   aptCodes().then(function (o) {
     var e = o[c];
-    if (!e) { aptMsg('⚠️ There is no test called <b>' + aptEsc(c) + '</b>. Check the code with AP (letters and numbers, e.g. ST101).'); return; }
+    if (!e) { aptMsg('⚠️ There is no test called <b>' + aptEsc(c) + '</b>. Check the code with AP (letters and numbers, e.g. STF101).'); return; }
     aptRun(e.tok, c);
   }).catch(function () { aptMsg('⚠️ The list of test codes could not be loaded. Check your internet connection and try again.'); });
 }
@@ -1803,41 +1830,83 @@ function aptTRender() {
       + '<div class="apt-acts"><button class="aph-btn aph-btn-primary" type="button" onclick="aptSaveKey()">Save key</button><button class="aph-btn" type="button" onclick="aptTeacher()">Close</button></div>';
     return;
   }
-  var mine = APTT.list();
-  var h = '<h3>🔑 Teacher: your tests</h3><p>Make a link from any app: set the test up, tap <b>⏱ AP Spot Test: timed &amp; submitted</b>, then <b>🔑 Teacher: make a test link</b>. Every link you make on this device is listed here.</p>'
-    + '<div class="apt-acts"><button class="aph-btn" type="button" onclick="aptCopyAll(this)">📋 Copy whole list (pastes into OneNote as named links)</button></div>'
-    + '<h4>Links made on this device (' + mine.length + ')</h4>'
-    + (mine.length ? mine.map(function (e, i) { return aptItem(e, i, true); }).join('') : '<div class="apt-empty">None yet.</div>')
-    + '<h4>Codes on the site (tests.txt)</h4><div id="apt-codes"><div class="apt-empty">Loading…</div></div>'
+  t.innerHTML = '<h3>📚 Test Library</h3><p>Every test you have made, sorted by course and type. To make a new one: set the test up in an app, tap <b>⏱ AP Spot Test: timed &amp; submitted</b>, then <b>🔑 Teacher: make a test link</b>.</p>'
+    + '<input class="apt-key apt-search" id="apt-q" type="search" placeholder="🔎 Search: code, name, VV10, Present, folder…" oninput="aptLibDraw()">'
+    + '<div id="apt-lib"><div class="apt-empty">Loading your tests…</div></div>'
     + '<h4>Automatic codes</h4>' + (aptGit() ? '<p>✅ GitHub key saved on this device: every new code is added to the AP Tests page by itself.</p><div class="apt-acts"><button class="aph-btn" type="button" onclick="aptGitForget()">Remove GitHub key</button></div>'
       : '<p>Save your GitHub key here once (on each device and browser) and every code you make is added to the AP Tests page by itself.</p><input class="apt-key" id="apt-git" type="password" autocomplete="new-password" name="apgit" placeholder="GitHub key (github_pat_…)"><div class="apt-acts"><button class="aph-btn aph-btn-primary" type="button" onclick="aptGitSave(this)">Save GitHub key</button></div>')
     + '<div class="apt-acts" style="margin-top:16px"><button class="aph-btn" type="button" onclick="aptForget()">Remove teacher key from this device</button><button class="aph-btn" type="button" onclick="aptTeacher()">Close</button></div>';
-  t.innerHTML = h;
-  APT_CODES = null;
-  aptCodes().then(function (o) {
-    var ks = Object.keys(o);
-    document.getElementById('apt-codes').innerHTML = ks.length ? ks.map(function (c) { return aptItem({ c: c, n: o[c].n, tok: o[c].tok }, c, false); }).join('') : '<div class="apt-empty">No codes yet.</div>';
-  }).catch(function () { document.getElementById('apt-codes').innerHTML = '<div class="apt-empty">tests.txt could not be loaded.</div>'; });
+  APT_CODES = null; APT_LIB = null;
+  aptLibLoad().then(aptLibDraw).catch(function () { document.getElementById('apt-lib').innerHTML = '<div class="apt-empty">The library could not be loaded. Check the internet connection.</div>'; });
 }
-function aptItem(e, i, mine) {
-  var meta = mine ? [e.t, e.lv, (e.items || '?') + ' items', (e.s ? (e.s / 60) + ' min' : ''), e.q === 'draw' ? 'own draw (' + e.v + ' versions)' : 'same questions', e.app, 'made ' + e.made].filter(Boolean).join(' · ') : 'on the site';
-  return '<div class="apt-it"><div class="apt-it-h"><span class="apt-it-c' + (e.c ? '' : ' none') + '">' + aptEsc(e.c || 'no code') + '</span><span class="apt-it-n">' + aptEsc(e.n || '') + '</span></div>'
+var APT_LIB = null, APT_OPEN = {};
+// every test: the codes on the site (tests.txt, shared by all devices) + links made on this device that have no code there
+function aptLibLoad() {
+  return aptCodes().catch(function () { return {}; }).then(function (codes) {
+    var E = Object.keys(codes).map(function (c) { var x = codes[c]; return { c: c, n: x.n, cat: x.cat, f: x.f, tok: x.tok, site: true }; });
+    var have = {}; E.forEach(function (e) { have[e.c] = 1; });
+    APTT.list().forEach(function (e, i) { if (!e.c || !have[e.c]) E.push({ c: e.c, n: e.n, cat: e.cat, f: e.f, tok: e.tok, local: i }); });
+    return Promise.all(E.map(function (e) {
+      return APTT.unpack(e.tok).then(function (o) {
+        e.o = o; e.cat = e.cat || o.cat || APTT.catOf({ id: o.id, lang: o.l, meta: o.m, title: o.t, app: o.a }); e.f = e.f || o.f || '';
+        e.made = o.made || ''; e.lv = o.lv; e.s = o.s; e.q = o.q; e.v = (o.V || []).length; e.items = o.V && o.V[0] ? o.V[0].length : 0; e.t = o.t;
+        return e;
+      }).catch(function () { e.bad = true; e.cat = e.cat || 'Other ▸ Unreadable'; return e; });
+    })).then(function (L) { APT_LIB = L; });
+  });
+}
+function aptPlain(h) { var d = document.createElement('div'); d.innerHTML = String(h || ''); return (d.textContent || '').trim(); }
+function aptLinkName(e) { return (e.n || aptPlain(e.t) || 'AP test') + (e.c ? ' (' + e.c + ')' : ''); }
+function aptLibDraw() {
+  var box = document.getElementById('apt-lib'); if (!box || !APT_LIB) return;
+  var q = (document.getElementById('apt-q') || {}).value || ''; q = q.trim().toLowerCase();
+  var L = APT_LIB.filter(function (e) { return !q || [e.c, e.n, e.cat, e.f, aptPlain(e.t), e.lv].join(' ').toLowerCase().indexOf(q) >= 0; });
+  if (!APT_LIB.length) { box.innerHTML = '<div class="apt-empty">No tests yet.</div>'; return; }
+  if (!L.length) { box.innerHTML = '<div class="apt-empty">No test matches “' + aptEsc(q) + '”.</div>'; return; }
+  var order = APTT.CATS, byCat = {};
+  L.forEach(function (e) { (byCat[e.cat] = byCat[e.cat] || []).push(e); });
+  var cats = Object.keys(byCat).sort(function (a, b) { var i = order.indexOf(a), j = order.indexOf(b); return (i < 0 ? 999 : i) - (j < 0 ? 999 : j) || (a < b ? -1 : 1); });
+  var h = '', course = '';
+  cats.forEach(function (c) {
+    var p = c.split(' ▸ '), co = p[0], ty = p.slice(1).join(' ▸ ') || 'Other';
+    if (co !== course) { h += '<div class="apt-course">' + aptEsc(co) + '</div>'; course = co; }
+    var es = byCat[c].sort(function (a, b) { return (b.made || '').localeCompare(a.made || '') || String(b.c || '').localeCompare(String(a.c || ''), undefined, { numeric: true }); });
+    var open = q || APT_OPEN[c];
+    h += '<details class="apt-type"' + (open ? ' open' : '') + ' data-cat="' + aptEsc(c) + '" ontoggle="APT_OPEN[this.getAttribute(\'data-cat\')]=this.open"><summary><span>' + aptEsc(ty) + '</span><b>' + es.length + '</b></summary>';
+    var groups = {}, gk = []; es.forEach(function (e) { var k = e.f || ''; if (!groups[k]) { groups[k] = []; gk.push(k); } groups[k].push(e); });
+    gk.sort(function (a, b) { return a === '' ? -1 : b === '' ? 1 : a.localeCompare(b); });
+    gk.forEach(function (k) {
+      h += '<div class="apt-fh"><span>' + (k ? '📁 ' + aptEsc(k) : '') + '</span><button class="aph-btn" type="button" data-cat="' + aptEsc(c) + '" data-f="' + aptEsc(k) + '" onclick="aptCopyGroup(this)">📋 Copy ' + (k ? 'folder' : 'all') + ' as links</button></div>';
+      h += groups[k].map(aptItem).join('');
+    });
+    h += '</details>';
+  });
+  box.innerHTML = h;
+}
+function aptItem(e) {
+  var i = APT_LIB.indexOf(e);
+  var meta = e.bad ? '⚠️ this test could not be read' : [e.lv, (e.items || '?') + ' items', e.s ? (e.s % 60 ? Math.floor(e.s / 60) + '½' : e.s / 60) + ' min' : '', e.q === 'draw' ? 'own draw (' + e.v + ' versions)' : 'same questions', e.made ? 'made ' + e.made.split('-').reverse().join('/') : '', e.site ? '' : 'on this device only'].filter(Boolean).join(' · ');
+  return '<div class="apt-it"><div class="apt-it-h"><span class="apt-it-c' + (e.c ? '' : ' none') + '">' + aptEsc(e.c || 'no code') + '</span><span class="apt-it-n">' + aptEsc(e.n || aptPlain(e.t)) + '</span></div>'
     + '<div class="apt-it-m">' + aptEsc(meta) + '</div><div class="apt-acts">'
-    + '<button class="aph-btn aph-btn-primary" type="button" data-tok="' + aptEsc(e.tok) + '" data-n="' + aptEsc(aptLinkName(e)) + '" onclick="APTT.copyLink(this.getAttribute(\'data-n\'),APTT.linkFor(this.getAttribute(\'data-tok\')),this)">📋 Copy link</button>'
-    + (mine ? '<button class="aph-btn" type="button" data-line="' + aptEsc((e.c || 'ST???') + ' | ' + String(e.n || '').replace(/\|/g, '/') + ' | ' + e.tok) + '" onclick="APTT.copy(this.getAttribute(\'data-line\'),this)">📋 Copy line for tests.txt</button>' : '')
-    + '<button class="aph-btn" type="button" data-tok="' + aptEsc(e.tok) + '" onclick="aptRun(this.getAttribute(\'data-tok\'),' + (e.c ? '\'' + aptEsc(e.c) + '\'' : '\'\'') + ')">▶ Try it</button>'
-    + (mine ? '<button class="aph-btn" type="button" onclick="aptDel(' + i + ')">🗑</button>' : '') + '</div></div>';
+    + '<button class="aph-btn aph-btn-primary" type="button" onclick="aptCopyLink(' + i + ',this)">📋 Copy link</button>'
+    + (e.c ? '<button class="aph-btn" type="button" onclick="APTT.copy(\'' + aptEsc(e.c) + '\',this)">📋 Copy code</button>' : '')
+    + '<button class="aph-btn" type="button" onclick="aptTry(' + i + ')">▶ Try it</button>'
+    + (e.local != null ? '<button class="aph-btn" type="button" title="Line for tests.txt" onclick="aptCopyLine(' + i + ',this)">📋 Line</button><button class="aph-btn" type="button" title="Remove from this device\'s list" onclick="aptDel(' + e.local + ')">🗑</button>' : '')
+    + '</div></div>';
 }
-function aptLinkName(e) { return (e.n || e.t || 'AP test') + (e.c ? ' (' + e.c + ')' : ''); }
-function aptCopyAll(btn) {   // pastes into OneNote as a tidy list: each test's name is the link
-  var L = APTT.list();
-  if (!L.length) { alert('No links yet.'); return; }
-  var html = '<ul>' + L.map(function (e) { return '<li><a href="' + aptEsc(APTT.linkFor(e.tok)) + '">' + aptEsc(aptLinkName(e)) + '</a> &ndash; ' + aptEsc([e.lv, (e.s / 60) + ' min', e.q === 'draw' ? 'own draw' : 'same questions', 'made ' + e.made].filter(Boolean).join(', ')) + '</li>'; }).join('') + '</ul>';
-  var txt = L.map(function (e) { return aptLinkName(e) + ' – ' + [e.lv, (e.s / 60) + ' min', e.q === 'draw' ? 'own draw' : 'same questions', 'made ' + e.made].join(', ') + '\n' + APTT.linkFor(e.tok); }).join('\n\n');
+function aptCopyLink(i, btn) { var e = APT_LIB[i]; APTT.copyLink(aptLinkName(e), APTT.linkFor(e.tok), btn); }
+function aptCopyLine(i, btn) { var e = APT_LIB[i]; APTT.copy((e.c || 'ST???') + ' | ' + String(e.n || '').replace(/\|/g, '/') + ' | ' + (e.cat || '') + ' | ' + (e.f || '') + ' | ' + e.tok, btn); }
+function aptTry(i) { var e = APT_LIB[i]; aptRun(e.tok, e.c || ''); }
+function aptCopyGroup(btn) {   // pastes into OneNote as a tidy list: each test's name is the link
+  var c = btn.getAttribute('data-cat'), f = btn.getAttribute('data-f');
+  var L = APT_LIB.filter(function (e) { return e.cat === c && (e.f || '') === f && !e.bad; });
+  var info = function (e) { return [e.lv, e.s ? (e.s / 60) + ' min' : '', e.q === 'draw' ? 'own draw' : 'same questions'].filter(Boolean).join(', '); };
+  var html = '<p><b>' + aptEsc(c + (f ? ' ▸ ' + f : '')) + '</b></p><ul>' + L.map(function (e) { return '<li><a href="' + aptEsc(APTT.linkFor(e.tok)) + '">' + aptEsc(aptLinkName(e)) + '</a> &ndash; ' + aptEsc(info(e)) + '</li>'; }).join('') + '</ul>';
+  var txt = c + (f ? ' ▸ ' + f : '') + '\n\n' + L.map(function (e) { return aptLinkName(e) + ' – ' + info(e) + '\n' + APTT.linkFor(e.tok); }).join('\n\n');
   APTT.copyHTML(html, txt, btn);
 }
 function aptDel(i) {
-  var l = APTT.list(); if (!l[i] || !confirm('Remove "' + l[i].n + '" from this list?\n\nThe link itself keeps working.')) return;
+  var l = APTT.list(); if (!l[i] || !confirm('Remove "' + l[i].n + '" from this device\'s list?\n\nThe link itself keeps working.')) return;
   l.splice(i, 1); try { localStorage.setItem('apTestLinks', JSON.stringify(l)); } catch (e) { } aptTRender();
 }
 function aptSaveKey() {
