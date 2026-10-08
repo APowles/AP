@@ -5,7 +5,7 @@
 <script id="ap-update">
 /* AP auto-update: if this copy is older than the published version, reload once with the new one (saved answers are kept) */
 (function () {
-  var B = '69bb5304fb'; window.AP_BUILD = B;
+  var B = '7a64db3416'; window.AP_BUILD = B;
   function check() {
     if (!/^https?:$/.test(location.protocol) || !window.fetch) return;
     var f = decodeURIComponent(location.pathname.split('/').pop() || '');
@@ -1548,6 +1548,10 @@ html.aptt-open,html.aptt-open body{overflow:hidden}
 .aptt-mkact{display:flex;gap:8px;justify-content:flex-end;margin-top:14px}
 .aptt-mkrow{display:flex;gap:6px}.aptt-mkrow input{flex:1;min-width:0}.aptt-mkrow button{flex:none;white-space:nowrap}
 .aptt-mkok{margin-top:14px;background:#e6f6ec;border-left:5px solid #1e7a46;border-radius:8px;padding:8px 10px;font-weight:700;color:#14532d}
+.aptt-mklink{flex:1;min-width:0;border:1.5px solid var(--border);border-radius:8px;padding:10px 11px;min-height:44px;box-sizing:border-box;font-weight:700;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.aptt-mklink a{color:#1a56c4;text-decoration:underline}
+.aptt-mkhint{font-size:.8125rem;color:var(--text2);margin-top:5px}
+.aptt-mkplain{background:none;border:0;padding:0;color:var(--text2);text-decoration:underline;font:inherit;cursor:pointer}
 .aptt-mkwarn{margin-top:8px;color:#a3001a;font-size:.875rem;font-weight:600}
 .aptt-key-btn{background:#fff;border:1.5px dashed var(--border);color:var(--text2);border-radius:8px;padding:8px 12px;font:600 .875rem/1.2 var(--aph-body);cursor:pointer}
 #aptt-key{position:fixed;inset:0;z-index:14100;background:var(--cream,#f8f6f1);overflow-y:auto;overflow-x:hidden;font-family:var(--aph-body)}
@@ -2050,6 +2054,22 @@ var APTT = (function () {
     function fb() { var a = document.createElement('textarea'); a.value = t; a.setAttribute('readonly', ''); a.style.position = 'fixed'; a.style.top = '-200px'; document.body.appendChild(a); a.select(); a.setSelectionRange(0, t.length); try { document.execCommand('copy'); ok(); } catch (e) { } a.remove(); }
     try { if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(t).then(ok, fb); else fb(); } catch (e) { fb(); }
   }
+  // copy a link that pastes as its NAME (the long address hidden inside), e.g. into OneNote or Teams; plain address as a fallback
+  function copyHTML(html, plainText, btn) {
+    function ok() { if (btn) { var o = btn.textContent; btn.textContent = '✓ Copied'; setTimeout(function () { btn.textContent = o; }, 2000); } }
+    function fb() {
+      var d = document.createElement('div'); d.contentEditable = 'true'; d.innerHTML = html; d.style.position = 'fixed'; d.style.left = '-9999px'; d.style.top = '0'; document.body.appendChild(d);
+      var r = document.createRange(); r.selectNodeContents(d); var sel = window.getSelection(); sel.removeAllRanges(); sel.addRange(r);
+      var done = false; try { done = document.execCommand('copy'); } catch (e) { } sel.removeAllRanges(); d.remove();
+      if (done) ok(); else copyText(plainText, btn);
+    }
+    try {
+      if (window.ClipboardItem && navigator.clipboard && navigator.clipboard.write) {
+        navigator.clipboard.write([new ClipboardItem({ 'text/html': new Blob([html], { type: 'text/html' }), 'text/plain': new Blob([plainText], { type: 'text/plain' }) })]).then(ok, fb);
+      } else fb();
+    } catch (e) { fb(); }
+  }
+  function copyLink(name, url, btn) { copyHTML('<a href="' + esc(url) + '">' + esc(name || 'AP test') + '</a>', url, btn); }
   function draws(n) {   // more draws with the teacher's current settings (the same button, run again quietly)
     var out = [], seen = {}, sig = function (its) { return its.map(function (it) { return it.prompt + '\u0001' + it.answer; }).join('\u0002'); };
     seen[sig(S.items)] = 1; out.push(S.items);
@@ -2088,11 +2108,13 @@ var APTT = (function () {
         var link = linkFor(tok), line = (code || 'ST???') + ' | ' + name.replace(/\|/g, '/') + ' | ' + tok;
         listAdd({ n: name, c: code, made: o.made, s: s2, q: q, v: V.length, items: S.items.length, t: plain(S.m.title), lv: S.m.level, app: plain(S.m.app), tok: tok });
         $('aptt-mk-out').innerHTML = '<div class="aptt-mkok">✅ Link made' + (q === 'draw' ? ' (' + V.length + ' versions)' : '') + '. It is also saved in your list on the AP Tests page.</div>'
-          + '<label>Link for OneNote / Teams</label><div class="aptt-mkrow"><input readonly value="' + esc(link) + '"><button type="button" class="aph-btn aph-btn-primary">📋 Copy link</button></div>'
+          + '<label>Link for OneNote / Teams</label><div class="aptt-mkrow"><div class="aptt-mklink">🔗 <a href="' + esc(link) + '" target="_blank" rel="noopener">' + esc(name || 'AP test') + '</a></div><button type="button" class="aph-btn aph-btn-primary">📋 Copy link</button></div>'
+          + '<div class="aptt-mkhint">Pastes as the name above, with the long address hidden inside it. <button type="button" class="aptt-mkplain">Copy the plain address instead</button></div>'
           + '<label>Line for tests.txt (for a code)</label><div class="aptt-mkrow"><input readonly value="' + esc(line) + '"><button type="button" class="aph-btn">📋 Copy line</button></div>'
           + (link.length > 6000 ? '<div class="aptt-mkwarn">This link is very long (' + link.length + ' characters). If OneNote will not take it, use a code instead.</div>' : '');
         var rows = $('aptt-mk-out').querySelectorAll('.aptt-mkrow');
-        rows[0].querySelector('button').onclick = function () { copyText(link, this); };
+        rows[0].querySelector('button').onclick = function () { copyLink(name, link, this); };
+        $('aptt-mk-out').querySelector('.aptt-mkplain').onclick = function () { copyText(link, this); };
         rows[1].querySelector('button').onclick = function () { copyText(line, this); };
         b.textContent = '✓ Made'; 
       }).catch(function (e) { b.disabled = false; b.textContent = '🔑 Make link'; alert('Sorry, the link could not be made (' + (e && e.message || e) + '). Is your teacher key set on this device?'); });
@@ -2107,7 +2129,7 @@ var APTT = (function () {
   }
   // pen-up anywhere ends a stroke (the automatic lock waits for it)
   try { ['pointerup', 'pointercancel'].forEach(function (t) { document.addEventListener(t, function () { PEN = false; }, true); }); } catch (e) { }
-  return { open: open, close: close, mode: mode, lock: lock, show: showAns, mark: mark, next: next, verbDetail: verbDetail, pdf: pdf, teacher: teacher, maker: maker, openSet: openSet, unpack: unpack, checkKey: checkKey, list: listGet, linkFor: linkFor, copy: copyText, lastRun: null, capturing: null, LABEL: LBL, state: function () { return S; } };
+  return { open: open, close: close, mode: mode, lock: lock, show: showAns, mark: mark, next: next, verbDetail: verbDetail, pdf: pdf, teacher: teacher, maker: maker, openSet: openSet, copyLink: copyLink, copyHTML: copyHTML, unpack: unpack, checkKey: checkKey, list: listGet, linkFor: linkFor, copy: copyText, lastRun: null, capturing: null, LABEL: LBL, state: function () { return S; } };
 })();
 /* ===== END AP TIMED TEST ===== */
 </script>
