@@ -3,7 +3,7 @@
 <script id="ap-update">
 /* AP auto-update: if this copy is older than the published version, reload once with the new one (saved answers are kept) */
 (function () {
-  var B = 'b0abddf77b'; window.AP_BUILD = B;
+  var B = '4b9fa18d8a'; window.AP_BUILD = B;
   function check() {
     if (!/^https?:$/.test(location.protocol) || !window.fetch) return;
     var f = decodeURIComponent(location.pathname.split('/').pop() || '');
@@ -2087,9 +2087,10 @@ var APMP = (function () {
     }).join('') + '</div>';
   }
   function answer(s) { s = String(s == null ? '' : s); return s.replace(/\s+/g, '') === '' ? '<span class="apmp-blank">(no answer)</span>' : '<span class="apmp-yours">' + esc(s).replace(/\n/g, '<br>') + '</span>'; }
-  function circle(got, max, partial) {
-    var pct = max ? Math.round(got / max * 100) : 0;
-    return '<div class="apmp-score"><div class="apmp-ring"><div class="apmp-frac"><b>' + got + '</b><span>/' + max + '</span></div><div class="apmp-pct">' + pct + '%</div></div>'
+  function circle(got, max, partial, raw) {
+    // AP: every main mark is shown out of 20; the actual mark and the percentage go underneath
+    var pct = max ? Math.round(got / max * 100) : 0, g20 = max ? Math.round(got / max * 200) / 10 : 0;
+    return '<div class="apmp-score"><div class="apmp-ring"><div class="apmp-frac"><b>' + g20 + '</b><span>/20</span></div><div class="apmp-pct">' + (raw ? raw + ' &middot; ' : max !== 20 ? got + ' / ' + max + ' &middot; ' : '') + pct + '%</div></div>'
       + (partial ? '<div class="apmp-part">marked so far</div>' : '') + '</div>';
   }
   var CSS = '@page{size:A4;margin:12mm 12mm 15mm;@bottom-right{content:"Page " counter(page) " of " counter(pages);font:8pt "DM Sans",sans-serif;color:#8a93a8}}'
@@ -2150,7 +2151,7 @@ var APMP = (function () {
       + '<div class="apmp-res"><div class="apmp-who">' + who + '<div class="apmp-when">Completed ' + stamp + (o.lang ? ' &middot; ' + o.lang : '') + '</div>'
       + (o.summary ? '<div class="apmp-sum">' + o.summary + '</div>' : '')
       + (o.partial ? '<div class="apmp-pnote">Marked so far: ' + (o.partNote || '') + '</div>' : '') + '</div>'
-      + circle(o.got, o.max, o.partial) + '</div>'
+      + circle(o.got, o.max, o.partial, o.raw) + '</div>'
       + '<div class="apmp-key"><span><i class="apmp-ok">✓</i> correct</span><span><i class="apmp-bad">✗</i> wrong</span><span><i style="color:#8a5c00">~</i> partly right</span><span><i style="color:#8a93a8">—</i> no mark given</span><span>&#9746; = your choice</span></div>'
       + o.body
       + '<div class="apmp-foot"><span>' + o.foot + '</span><span>Generated ' + stamp + '</span></div>'
@@ -2907,7 +2908,7 @@ var APTT = (function () {
   function open(o) {
     if (!o || !o.items || !o.items.length || typeof APPEN === 'undefined' || typeof APMP === 'undefined') return;
     var items = o.items.map(norm);
-    var m = { id: String(o.id || ''), app: o.app || '', kicker: o.kicker || '', title: o.title || '', meta: o.meta || '', detail: o.detail || '', lang: o.lang || '', code: o.langCode || LCODE[o.lang] || '', total: +o.total || 10, level: o.level || '', set: o.set || null };
+    var m = { id: String(o.id || ''), app: o.app || '', kicker: o.kicker || '', title: o.title || '', meta: o.meta || '', detail: o.detail || '', lang: o.lang || '', code: o.langCode || LCODE[o.lang] || '', total: 20, level: o.level || '', set: o.set || null };
     m.srcId = String((o.set && o.set.src) || m.id || '');
     var src = m.srcId.split('|')[0], VERB = { conj: 1, it: 1, spot: 1 };
     items.forEach(function (it) { it.big = it.kind === 'sentence' || (!VERB[src] && nWords(it.answer) > 2); });
@@ -3207,7 +3208,7 @@ var APTT = (function () {
   }
   function score() {
     todo();
-    var r = sum(), h = '<span>Your score</span><b>' + r1(r.score) + ' / ' + (S.m.total || 10) + '</b><small>' + r.raw + ' / ' + r.rmax + ' marks · ' + r.n + ' of ' + S.items.length + ' marked by you</small>';
+    var r = sum(), h = '<span>Your score</span><b>' + r1(r.score) + ' / ' + (S.m.total || 10) + '</b><small>' + r.raw + ' / ' + r.rmax + ' marks · ' + (r.rmax ? Math.round(r.raw / r.rmax * 100) : 0) + '% · ' + r.n + ' of ' + S.items.length + ' marked by you</small>';
     ['aptt-score1', 'aptt-score2'].forEach(function (id) { var x = $(id); if (x) x.innerHTML = h; });
   }
   function pdf() {
@@ -3241,7 +3242,7 @@ var APTT = (function () {
       return {
         app: plain(S.m.app), kicker: S.m.kicker + ' &middot; AP Spot Test: timed &amp; submitted' + (S.m.set ? ' &middot; SET BY AP' + (S.m.set.code ? ': ' + esc(S.m.set.code) : '') : ''),
         title: 'AP Spot Test &mdash; <em>' + S.m.title + '</em>', meta: S.m.meta,
-        got: r.score, max: T, partial: r.left > 0, partNote: (S.items.length - r.left) + ' of ' + S.items.length + ' ' + noun(2) + ' marked',
+        got: r.score, max: T, raw: r.raw + ' / ' + r.rmax, partial: r.left > 0, partNote: (S.items.length - r.left) + ' of ' + S.items.length + ' ' + noun(2) + ' marked',
         summary: (S.att > 1 ? '<div style="display:inline-block;font-size:15pt;font-weight:900;letter-spacing:.05em;color:#fff;background:#6d28d9;border-radius:2mm;padding:1mm 4mm;margin:0 0 2mm">⚠ ATTEMPT ' + S.att + ' ON THIS TEST</div><br>' : '') + (S.m.set ? '<div style="display:inline-block;border:2.5px solid #1e7a46;border-radius:2mm;padding:1mm 3mm;margin:0 0 2mm;color:#1e7a46;font-size:11pt;font-weight:800">✅ SET BY AP' + (S.m.set.code ? ': ' + esc(S.m.set.code) : '') + ' &middot; time limit ' + minsTxt(limit()) + ' min (set by AP) &middot; link checked</div>' : '')
           + '<div class="aptt-on" style="border:2.5px solid #c0392b;border-radius:2mm;padding:1.5mm 3mm 2mm;margin:0 0 2mm;color:#c0392b"><div style="font-size:7.5pt;font-weight:800;letter-spacing:.1em">TEST ON</div><div style="font-size:14pt;font-weight:800;line-height:1.2">' + S.m.title + '</div>'
           + '<div style="font-size:9.5pt;font-weight:600;line-height:1.35;margin-top:.8mm">' + (S.m.detail ? S.m.detail + '<br>' : '') + S.m.meta + '</div></div>'

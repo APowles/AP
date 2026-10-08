@@ -3,7 +3,7 @@
 <script id="ap-update">
 /* AP auto-update: if this copy is older than the published version, reload once with the new one (saved answers are kept) */
 (function () {
-  var B = '548a55c9c1'; window.AP_BUILD = B;
+  var B = '7083e3f925'; window.AP_BUILD = B;
   function check() {
     if (!/^https?:$/.test(location.protocol) || !window.fetch) return;
     var f = decodeURIComponent(location.pathname.split('/').pop() || '');
@@ -883,9 +883,10 @@ var APMP = (function () {
     }).join('') + '</div>';
   }
   function answer(s) { s = String(s == null ? '' : s); return s.replace(/\s+/g, '') === '' ? '<span class="apmp-blank">(no answer)</span>' : '<span class="apmp-yours">' + esc(s).replace(/\n/g, '<br>') + '</span>'; }
-  function circle(got, max, partial) {
-    var pct = max ? Math.round(got / max * 100) : 0;
-    return '<div class="apmp-score"><div class="apmp-ring"><div class="apmp-frac"><b>' + got + '</b><span>/' + max + '</span></div><div class="apmp-pct">' + pct + '%</div></div>'
+  function circle(got, max, partial, raw) {
+    // AP: every main mark is shown out of 20; the actual mark and the percentage go underneath
+    var pct = max ? Math.round(got / max * 100) : 0, g20 = max ? Math.round(got / max * 200) / 10 : 0;
+    return '<div class="apmp-score"><div class="apmp-ring"><div class="apmp-frac"><b>' + g20 + '</b><span>/20</span></div><div class="apmp-pct">' + (raw ? raw + ' &middot; ' : max !== 20 ? got + ' / ' + max + ' &middot; ' : '') + pct + '%</div></div>'
       + (partial ? '<div class="apmp-part">marked so far</div>' : '') + '</div>';
   }
   var CSS = '@page{size:A4;margin:12mm 12mm 15mm;@bottom-right{content:"Page " counter(page) " of " counter(pages);font:8pt "DM Sans",sans-serif;color:#8a93a8}}'
@@ -946,7 +947,7 @@ var APMP = (function () {
       + '<div class="apmp-res"><div class="apmp-who">' + who + '<div class="apmp-when">Completed ' + stamp + (o.lang ? ' &middot; ' + o.lang : '') + '</div>'
       + (o.summary ? '<div class="apmp-sum">' + o.summary + '</div>' : '')
       + (o.partial ? '<div class="apmp-pnote">Marked so far: ' + (o.partNote || '') + '</div>' : '') + '</div>'
-      + circle(o.got, o.max, o.partial) + '</div>'
+      + circle(o.got, o.max, o.partial, o.raw) + '</div>'
       + '<div class="apmp-key"><span><i class="apmp-ok">✓</i> correct</span><span><i class="apmp-bad">✗</i> wrong</span><span><i style="color:#8a5c00">~</i> partly right</span><span><i style="color:#8a93a8">—</i> no mark given</span><span>&#9746; = your choice</span></div>'
       + o.body
       + '<div class="apmp-foot"><span>' + o.foot + '</span><span>Generated ' + stamp + '</span></div>'
