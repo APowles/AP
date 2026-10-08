@@ -3,7 +3,7 @@
 <script id="ap-update">
 /* AP auto-update: if this copy is older than the published version, reload once with the new one (saved answers are kept) */
 (function () {
-  var B = 'efc416cc9d'; window.AP_BUILD = B;
+  var B = '50287eb9ba'; window.AP_BUILD = B;
   function check() {
     if (!/^https?:$/.test(location.protocol) || !window.fetch) return;
     var f = decodeURIComponent(location.pathname.split('/').pop() || '');
@@ -1729,7 +1729,10 @@ html.aptt-open,html.aptt-open body{overflow:hidden}
 .aptt-lock:disabled{background:#eef0f4;color:#4a5368;border-color:#c9cfdb;box-shadow:none;cursor:default}
 .aptt-chk{background:var(--navy);color:var(--gold2);border:3px solid var(--navy)}
 .aptt-chk:disabled{background:#e4e7ee;color:#7a8299;border-color:#e4e7ee;cursor:not-allowed}
-.aptt-chk.ready{border-color:#c0392b;animation:apttPulse 1.2s ease-in-out infinite}
+.aptt-chk.ready{position:fixed;left:50%;top:50%;transform:translate(-50%,-50%);z-index:50;width:min(560px,calc(100vw - 32px));font-size:1.75rem;line-height:1.2;padding:26px 22px;min-height:120px;background:#ffe94d;color:#1a2744;border:6px solid #d0021b;border-radius:18px;animation:apttBig 1.4s ease-in-out infinite}
+.aptt-chk.ready::after{content:"Tap here to see the answers and mark yourself";display:block;font-size:1rem;font-weight:700;margin-top:8px;color:#a3001a}
+@keyframes apttBig{0%,100%{box-shadow:0 0 0 100vmax rgba(8,13,28,.55),0 0 12px 3px rgba(208,2,27,.6)}50%{box-shadow:0 0 0 100vmax rgba(8,13,28,.55),0 0 30px 10px rgba(208,2,27,.85)}}
+@media (prefers-reduced-motion:reduce){.aptt-chk.ready{animation:none;box-shadow:0 0 0 100vmax rgba(8,13,28,.55),0 0 20px 6px rgba(208,2,27,.7)}}
 @keyframes apttPulse{0%,100%{box-shadow:0 0 0 0 rgba(192,57,43,.7);border-color:#c0392b}50%{box-shadow:0 0 0 6px rgba(192,57,43,.45);border-color:#ff3b2f}}
 .aptt-lock-n{text-align:center;font-size:.875rem;font-weight:600;color:#a32116;margin-top:10px;line-height:1.4}
 .aptt-after[hidden]{display:none}
@@ -1950,7 +1953,7 @@ var APTT = (function () {
       + '<div class="aptt-legend" id="aptt-legend"' + (S.shown ? '' : ' hidden') + '>' + legend() + '</div></div>'
       + '<div class="aptt-mode" id="aptt-mode"><div class="aptt-mode-h">Choose how you are doing this: ⏱ Timed or 🏠 Untimed</div><div class="aptt-mode-b">'
       + '<button type="button" class="aptt-mode-t" onclick="APTT.mode(\'timed\')"><b>⏱ Timed: ' + mins + ' minutes</b><span>In Birley 12. The clock starts as soon as you tap. Do as much as you can: at the end you get 30 more seconds, then your answers lock in by themselves. ' + Noun(2) + ' left blank score 0. Then ' + dur(markLimit()) + ' to mark yourself: anything not marked in time scores 0.</span></button>'
-      + '<button type="button" class="aptt-mode-f" onclick="APTT.mode(\'free\')"><b>🏠 Untimed</b><span>Homework. Take as long as you need, but you must have a go at all ' + N + ' before you can lock in.</span></button>'
+      + '<button type="button" class="aptt-mode-f" onclick="APTT.mode(\'free\')"><b>🏠 Untimed</b><span>In your House (EW). Take as long as you need, but you must have a go at all ' + N + ' before you can lock in.</span></button>'
       + '</div><div class="aptt-mode-n">Your choice, your times and your attempt number are printed on your PDF. You cannot change mode once you start.</div>'
       + '</div>'
       + '<div id="aptt-items">' + S.items.map(row).join('') + '</div>'
@@ -2148,7 +2151,7 @@ var APTT = (function () {
         got: r.score, max: T, partial: r.left > 0, partNote: (S.items.length - r.left) + ' of ' + S.items.length + ' ' + noun(2) + ' marked',
         summary: (S.m.level ? '<span style="display:inline-block;font-size:13pt;font-weight:800;letter-spacing:.04em;color:#c0392b;border:2px solid #c0392b;border-radius:2mm;padding:.5mm 3mm;margin:0 0 1.5mm">LEVEL: ' + S.m.level.toUpperCase() + '</span><br>' : '') + 'Self-marked: <b>' + r1(r.score) + ' / ' + T + '</b> (' + r.raw + ' / ' + r.rmax + ' marks) &middot; ' + r.n + ' of ' + S.items.length + ' ' + noun(2) + ' marked by him'
           + (S.unm && S.unm.length ? ' &middot; <span class="apmp-bad">not marked in time: ' + noun(S.unm.length) + ' ' + S.unm.join(', ') + '</span>' : '')
-          + '<br>' + (timed ? '⏱ <b>Timed: ' + mins + ' minutes (class)</b>' : '🏠 <b>Untimed (homework)</b>')
+          + '<br>' + (timed ? '⏱ <b>Timed: ' + mins + ' minutes (class)</b>' : '🏠 <b>Untimed (in House, EW)</b>')
           + (S.t0 ? (S.att ? ' &middot; <b' + (S.att > 1 ? ' class="apmp-bad"' : '') + '>attempt ' + S.att + ' on this test</b>' : '') + ' &middot; started ' + hhmm(S.t0) + (S.endAt ? ', locked in ' + hhmm(S.endAt) : '') + ' on ' + new Date(S.t0).toLocaleDateString('en-GB') : '')
           + '<br>⏱ ' + (S.auto ? '<b class="apmp-bad">Locked automatically at ' + dur(S.lockAt) + '</b> (time limit ' + mins + ' min + 30 s)' : 'Translating: <b>' + dur(S.lockAt || S.tAns) + '</b>' + (timed ? ' (limit ' + mins + ' min)' : ' (no time limit)'))
           + (S.na && S.na.length ? ' &middot; <span class="apmp-bad">not attempted: ' + noun(S.na.length) + ' ' + S.na.join(', ') + '</span>' : '')
