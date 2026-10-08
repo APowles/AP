@@ -5,7 +5,7 @@
 <script id="ap-update">
 /* AP auto-update: if this copy is older than the published version, reload once with the new one (saved answers are kept) */
 (function () {
-  var B = '16bc611f74'; window.AP_BUILD = B;
+  var B = '4494f19a02'; window.AP_BUILD = B;
   function check() {
     if (!/^https?:$/.test(location.protocol) || !window.fetch) return;
     var f = decodeURIComponent(location.pathname.split('/').pop() || '');
@@ -1436,8 +1436,11 @@ var APPEN = (function () {
 /* ⏱ AP Spot Test: timed & submitted — the printed AP Spot Test done on screen (Apple Pencil), timed or untimed, self-marked, handed in as a PDF.
    Shared and app-agnostic: paste this <style> + <script> pair unchanged into any AP app that has AP PEN (appen-) and AP MARKED PAPER (apmp-).
    Prefix aptt-. DM Sans only, except the screen heading (.aph-h). */
-.aph-btn.aptt-btn{border:2px solid var(--gold);color:var(--navy);background:#fffaf0;font-weight:700}
-.aph-btn.aptt-btn:hover{background:#fff3d6;border-color:var(--gold)}
+.aph-btn.aptt-btn{border:4px solid #d0021b!important;color:#1a2744!important;background:#ffe94d!important;font-weight:800;box-shadow:0 0 0 2px rgba(208,2,27,.25),0 0 14px 3px rgba(208,2,27,.55);animation:apttGlow 1.6s ease-in-out infinite}
+.aph-btn.aptt-btn:hover{background:#fff176!important;border-color:#d0021b!important}
+@keyframes apttGlow{0%,100%{box-shadow:0 0 0 2px rgba(208,2,27,.25),0 0 10px 2px rgba(208,2,27,.45)}50%{box-shadow:0 0 0 3px rgba(208,2,27,.35),0 0 22px 7px rgba(208,2,27,.7)}}
+@media (prefers-reduced-motion:reduce){.aph-btn.aptt-btn{animation:none}}
+.aptt-lvm{display:block;color:#c0392b;font-size:1rem;margin-bottom:4px}
 html.aptt-open,html.aptt-open body{overflow:hidden}
 #aptt-ov{position:fixed;inset:0;z-index:14000;background:var(--cream);overflow-y:auto;overflow-x:hidden;-webkit-overflow-scrolling:touch;font-family:var(--aph-body);color:var(--text)}
 #aptt-ov:focus{outline:none}
@@ -1713,11 +1716,11 @@ var APTT = (function () {
       + '<p class="aptt-instr">' + (L ? 'Translate' : 'Answer') + ' all ' + N + ' ' + noun(N) + (L ? ' into ' + esc(L) : '') + ' with your Apple Pencil (black ink). Have a go at every one, then lock in, open the answers, correct your work in red and give each ' + noun(1) + ' a mark. Your score is out of ' + (S.m.total || 10) + '.</p>'
       + '<div class="aptt-score" id="aptt-score1"' + (S.shown ? '' : ' hidden') + '></div>'
       + '<div class="aptt-legend" id="aptt-legend"' + (S.shown ? '' : ' hidden') + '>' + legend() + '</div></div>'
-      + '<div class="aptt-mode" id="aptt-mode"><div class="aptt-mode-h">Choose how you are doing this:</div><div class="aptt-mode-b">'
-      + '<button type="button" class="aptt-mode-t" onclick="APTT.mode(\'timed\')"><b>⏱ Timed: ' + mins + ' minutes</b><span>In class. The clock starts as soon as you tap. Do as much as you can: at the end you get 30 more seconds, then your answers lock in by themselves. ' + Noun(2) + ' left blank score 0. Then ' + dur(markLimit()) + ' to mark yourself: anything not marked in time scores 0.</span></button>'
+      + '<div class="aptt-mode" id="aptt-mode"><div class="aptt-mode-h">Choose how you are doing this: ⏱ Timed or 🏠 Untimed</div><div class="aptt-mode-b">'
+      + '<button type="button" class="aptt-mode-t" onclick="APTT.mode(\'timed\')"><b>⏱ Timed: ' + mins + ' minutes</b><span>In Birley 12. The clock starts as soon as you tap. Do as much as you can: at the end you get 30 more seconds, then your answers lock in by themselves. ' + Noun(2) + ' left blank score 0. Then ' + dur(markLimit()) + ' to mark yourself: anything not marked in time scores 0.</span></button>'
       + '<button type="button" class="aptt-mode-f" onclick="APTT.mode(\'free\')"><b>🏠 Untimed</b><span>Homework. Take as long as you need, but you must have a go at all ' + N + ' before you can lock in.</span></button>'
       + '</div><div class="aptt-mode-n">Your choice, your times and your attempt number are printed on your PDF. You cannot change mode once you start.</div>'
-      + '<div class="aptt-key-row"><button type="button" class="aptt-key-btn" onclick="APTT.teacher()">👩‍🏫 Teacher: show all answers (projector)</button></div></div>'
+      + '</div>'
       + '<div id="aptt-items">' + S.items.map(row).join('') + '</div>'
       + '<div class="aptt-msg" id="aptt-msg" role="alert" hidden></div>'
       + '<div class="aptt-steps"><button type="button" class="aptt-lock" id="aptt-lock" onclick="APTT.lock()">🔒 I\'ve attempted all ' + N + ': lock in</button>'
@@ -1946,7 +1949,7 @@ function apttLevel(sc, run) {
   var d = document.getElementById('aptt-lvask'); if (d) d.remove();
   d = document.createElement('div'); d.id = 'aptt-lvask';
   d.innerHTML = '<div class="aptt-lvbox" role="dialog" aria-modal="true"><div class="aptt-lvh">Choose your level</div>'
-    + '<div class="aptt-lvs">Your level is printed in big letters at the top of your PDF.</div><div class="aptt-lvb">'
+    + '<div class="aptt-lvs"><b class="aptt-lvm">Leave it on Mixed unless AP has told you otherwise.</b><br>Your level is printed in big letters at the top of your PDF.</div><div class="aptt-lvb">'
     + ['E', 'M', 'H', 'X'].map(function (v) { return '<button type="button" data-v="' + v + '" class="aptt-lv-' + v + (apTestLevel === v ? ' on' : '') + '">' + AP_LEVEL.NAMES[v] + '</button>'; }).join('')
     + '</div><button type="button" class="aptt-lvx">Cancel</button></div>';
   d.addEventListener('click', function (e) {
