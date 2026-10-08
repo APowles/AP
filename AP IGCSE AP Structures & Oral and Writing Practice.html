@@ -3,7 +3,7 @@
 <script id="ap-update">
 /* AP auto-update: if this copy is older than the published version, reload once with the new one (saved answers are kept) */
 (function () {
-  var B = '807b23a5db'; window.AP_BUILD = B;
+  var B = 'a5fa88b462'; window.AP_BUILD = B;
   function check() {
     if (!/^https?:$/.test(location.protocol) || !window.fetch) return;
     var f = decodeURIComponent(location.pathname.split('/').pop() || '');
@@ -10731,6 +10731,11 @@ html.appen-pen .appen-cv.drawing{touch-action:none}
 .appen-restore>span:first-child{flex:1 1 260px}
 .appen-restore-acts{display:flex;flex-wrap:wrap;gap:8px}
 .appen-restore .go{background:var(--navy);color:var(--gold2);border-color:var(--navy)}
+.appen-restore{background:#fff4d6;border:2px solid #e6c15a;border-left:6px solid #c0392b;font-size:1rem}
+.appen-restore .appen-tb{min-height:42px;font-size:.9375rem;font-weight:700}
+.appen-restore .appen-fresh{background:#c0392b;color:#fff;border-color:#c0392b}
+.appen-restore .appen-fresh:hover{background:#a93226;color:#fff}
+.appen-warn{color:#7a1b12}
 @media (max-width:560px){.appen-tools{justify-content:flex-start}.appen-tab{padding:8px 10px}}
 /* ===== END AP PEN ===== */
 </style>
@@ -11088,10 +11093,10 @@ var APPEN = (function () {
     var d = document.createElement('div'); d.className = 'appen-restore'; d.setAttribute('role', 'status');
     function show() {
       d.innerHTML = '<span>&#8634; <b>Your earlier answers are back</b>' + (t ? ' (last written ' + esc(when(t)) + ')' : '') + '.' + (lk ? ' Answers that were already marked stay locked: correct them in red.' : '') + '</span>'
-        + '<span class="appen-restore-acts"><button type="button" class="appen-tb" data-r="keep">Keep them</button><button type="button" class="appen-tb" data-r="afresh">&#128465; Start afresh</button></span>';
+        + '<span class="appen-restore-acts"><button type="button" class="appen-tb" data-r="keep">Keep them</button><button type="button" class="appen-tb appen-fresh" data-r="afresh">&#8635; Start afresh</button></span>';
       d.querySelector('[data-r="keep"]').onclick = function () { d.remove(); };
       d.querySelector('[data-r="afresh"]').onclick = function () {
-        d.innerHTML = '<span>Delete these earlier answers (handwriting and typing) and start again?</span><span class="appen-restore-acts"><button type="button" class="appen-tb" data-r="no">Cancel</button><button type="button" class="appen-tb go" data-r="yes">&#128465; Yes, start afresh</button></span>';
+        d.innerHTML = '<span class="appen-warn">&#9888;&#65039; <b>Start afresh?</b> This deletes these earlier answers (handwriting and typing) for good and starts again from the beginning.</span><span class="appen-restore-acts"><button type="button" class="appen-tb" data-r="no">Cancel</button><button type="button" class="appen-tb appen-fresh" data-r="yes">Yes, delete and start afresh</button></span>';
         d.querySelector('[data-r="no"]').onclick = show;
         d.querySelector('[data-r="yes"]').onclick = function () { reset(states.map(function (s) { return s.key; })); if (again) again(); };
       };
@@ -11270,6 +11275,8 @@ html.aptt-open,html.aptt-open body{overflow:hidden}
 .aptt-mkhint{font-size:.8125rem;color:var(--text2);margin-top:5px}
 .aptt-mkplain{background:none;border:0;padding:0;color:var(--text2);text-decoration:underline;font:inherit;cursor:pointer}
 .aptt-err{position:sticky;top:0;z-index:60;background:#c0392b;color:#fff;font:600 13px/1.35 var(--aph-body);padding:6px 10px;white-space:pre-wrap}
+.aptt-att{display:inline-block;margin:6px 0 2px;background:#c0392b;color:#fff;font:900 1.25rem/1.2 var(--aph-body);letter-spacing:.05em;border-radius:8px;padding:6px 14px;box-shadow:0 0 0 3px #f5b7b1}
+.aptt-att[hidden]{display:none}
 .aptt-mkgh{margin-top:8px;border-radius:8px;padding:8px 10px;font-weight:700;background:#eef3fb;color:var(--navy)}
 .aptt-mkgh.ok{background:#e6f6ec;color:#14532d}.aptt-mkgh.bad{background:#fdecea;color:#7a1b12}
 .aptt-mkwarn{margin-top:8px;color:#a3001a;font-size:.875rem;font-weight:600}
@@ -11471,6 +11478,7 @@ var APTT = (function () {
     var h = '<div class="aptt-bar"><button type="button" class="aph-home" onclick="APTT.close()">⌂ Back</button><span class="aptt-bar-t">' + LBL + '</span></div>'
       + '<div class="aptt-wrap"><div id="aptt-top"><div class="aptt-kick">AP Spot Test · ' + S.m.title + '</div>'
       + (S.m.level ? '<div class="aptt-level aptt-lv-' + ({ Easy: 'E', Medium: 'M', Hard: 'H', Mixed: 'X' }[S.m.level] || 'X') + '">LEVEL: ' + S.m.level.toUpperCase() + '</div>' : '')
+      + '<div class="aptt-att" id="aptt-att"' + (S.att > 1 ? '' : ' hidden') + '>⚠ ATTEMPT ' + (S.att || '') + ' ON THIS TEST</div>'
       + '<h2 class="aph-h">' + (L ? 'Translate into ' + esc(L) : 'Write your answers') + '</h2>'
       + (S.m.meta ? '<div class="aptt-meta">' + S.m.meta + '</div>' : '')
       + (S.m.detail ? '<div class="aptt-detail">' + S.m.detail + '</div>' : '')
@@ -11540,6 +11548,7 @@ var APTT = (function () {
     S.mode = m; S.t0 = Date.now();
     try { var ak = 'apttAttempts:' + S.key, A = JSON.parse(lsGet(ak) || '{}') || {}; A[m] = (A[m] || 0) + 1; lsSet(ak, JSON.stringify(A)); S.att = A[m]; } catch (e) { S.att = 0; }
     save(); modeUI(); clock(); steps();
+    var ab = $('aptt-att'); if (ab) { ab.textContent = '⚠ ATTEMPT ' + S.att + ' ON THIS TEST'; ab.hidden = !(S.att > 1); }
     var f = $('aptt-it-1'); if (f && f.scrollIntoView) try { f.scrollIntoView({ behavior: 'smooth', block: 'start' }); } catch (e) { }
   }
   function lockNow(auto) {
@@ -11726,7 +11735,7 @@ var APTT = (function () {
         app: plain(S.m.app), kicker: S.m.kicker + ' &middot; AP Spot Test: timed &amp; submitted' + (S.m.set ? ' &middot; SET BY AP' + (S.m.set.code ? ': ' + esc(S.m.set.code) : '') : ''),
         title: 'AP Spot Test &mdash; <em>' + S.m.title + '</em>', meta: S.m.meta,
         got: r.score, max: T, partial: r.left > 0, partNote: (S.items.length - r.left) + ' of ' + S.items.length + ' ' + noun(2) + ' marked',
-        summary: (S.m.set ? '<div style="display:inline-block;border:2.5px solid #1e7a46;border-radius:2mm;padding:1mm 3mm;margin:0 0 2mm;color:#1e7a46;font-size:11pt;font-weight:800">✅ SET BY AP' + (S.m.set.code ? ': ' + esc(S.m.set.code) : '') + ' &middot; time limit ' + minsTxt(limit()) + ' min (set by AP) &middot; link checked</div>' : '')
+        summary: (S.att > 1 ? '<div style="display:inline-block;font-size:15pt;font-weight:900;letter-spacing:.05em;color:#fff;background:#c0392b;border-radius:2mm;padding:1mm 4mm;margin:0 0 2mm">⚠ ATTEMPT ' + S.att + ' ON THIS TEST</div><br>' : '') + (S.m.set ? '<div style="display:inline-block;border:2.5px solid #1e7a46;border-radius:2mm;padding:1mm 3mm;margin:0 0 2mm;color:#1e7a46;font-size:11pt;font-weight:800">✅ SET BY AP' + (S.m.set.code ? ': ' + esc(S.m.set.code) : '') + ' &middot; time limit ' + minsTxt(limit()) + ' min (set by AP) &middot; link checked</div>' : '')
           + '<div class="aptt-on" style="border:2.5px solid #c0392b;border-radius:2mm;padding:1.5mm 3mm 2mm;margin:0 0 2mm;color:#c0392b"><div style="font-size:7.5pt;font-weight:800;letter-spacing:.1em">TEST ON</div><div style="font-size:14pt;font-weight:800;line-height:1.2">' + S.m.title + '</div>'
           + '<div style="font-size:9.5pt;font-weight:600;line-height:1.35;margin-top:.8mm">' + (S.m.detail ? S.m.detail + '<br>' : '') + S.m.meta + '</div></div>'
           + (S.m.level ? '<span style="display:inline-block;font-size:13pt;font-weight:800;letter-spacing:.04em;color:#c0392b;border:2px solid #c0392b;border-radius:2mm;padding:.5mm 3mm;margin:0 0 1.5mm">LEVEL: ' + S.m.level.toUpperCase() + '</span><br>' : '') + 'Self-marked: <b>' + r1(r.score) + ' / ' + T + '</b> (' + r.raw + ' / ' + r.rmax + ' marks) &middot; ' + r.n + ' of ' + S.items.length + ' ' + noun(2) + ' marked by him'
@@ -11738,7 +11747,7 @@ var APTT = (function () {
           + ' &middot; Marking: <b>' + dur(S.tMark) + '</b>' + (timed ? ' (limit ' + dur(ml) + ')' : ''),
         body: body, foot: S.m.app + ' &middot; AP Spot Test: timed &amp; submitted',
         docTitle: 'AP Spot Test — ' + plain(S.m.title), lang: S.m.lang,
-        pageTitle: 'AP Spot Test ' + (S.m.set && S.m.set.code ? S.m.set.code + ' ' : '') + 'on ' + plain(S.m.title) + (S.m.level && plain(S.m.title).toLowerCase().indexOf(S.m.level.toLowerCase()) < 0 ? ' (' + S.m.level + ')' : '')
+        pageTitle: 'AP Spot Test ' + (S.m.set && S.m.set.code ? S.m.set.code + ' ' : '') + 'on ' + plain(S.m.title) + (S.m.level && plain(S.m.title).toLowerCase().indexOf(S.m.level.toLowerCase()) < 0 ? ' (' + S.m.level + ')' : '') + (S.att > 1 ? ' – ATTEMPT ' + S.att : '')
       };
     });
   }
@@ -12236,6 +12245,7 @@ function _tmRender() {
   var first = its.filter(function (it) { return it.n <= 6; }), mine = its.filter(function (it) { return it.n > 6; });
   var h = '<div class="tm-bar"><button type="button" class="aph-home" onclick="tmClose()">⌂ Back to the card</button><span class="tm-bar-t">✍️ Translate 10 sentences</span></div>'
     + '<div class="tm-wrap"><div id="tm-top"><div class="tm-kick">' + _tmEsc(card.code || '') + ' · ' + _tmEsc(card.theme || '') + '</div>'
+    + '<div class="aptt-att" id="tm-att"' + (S.att > 1 ? '' : ' hidden') + '>⚠ ATTEMPT ' + (S.att || '') + ' ON THIS EXERCISE</div>'
     + '<h2 class="aph-h">Translate into ' + L + '</h2>'
     + '<p class="tm-instr">Translate all 10 sentences into ' + L + ' with your Apple Pencil (black ink). Each sentence must use one of this card\'s structures: it is shown in the small gold box under the English. Have a go at all 10, then lock in, open the answers, correct your work in red and give each sentence a mark.</p>'
     + '<div class="tm-score" id="tm-score1"' + (S.shown ? '' : ' hidden') + '></div>'
@@ -12355,6 +12365,7 @@ function tmMode(m) {
   if (m === 'quick' && !window.confirm('Start Quick 5 now?\n\nYou get 5 random sentences and 6 minutes. The clock starts as soon as you tap OK and cannot be paused.')) return;
   S.mode = m; S.t0 = Date.now();
   try { var ak = 'tmAttempts:' + _tmLang() + ':' + S.card.id, A = JSON.parse(localStorage.getItem(ak) || '{}'); A[m] = (A[m] || 0) + 1; localStorage.setItem(ak, JSON.stringify(A)); S.att = A[m]; } catch (e) { S.att = 0; }
+  var ab = document.getElementById('tm-att'); if (ab) { ab.textContent = '⚠ ATTEMPT ' + S.att + ' ON THIS EXERCISE'; ab.hidden = !(S.att > 1); }
   if (m === 'quick') {   // 3 from the demo + 2 "make it your own", different for every boy
     var sh = function (a) { a = a.slice(); for (var i = a.length - 1; i > 0; i--) { var j = Math.floor(Math.random() * (i + 1)), t = a[i]; a[i] = a[j]; a[j] = t; } return a; };
     var A = S.items.filter(function (it) { return it.n <= 6; }).map(function (it) { return it.n; }), B = S.items.filter(function (it) { return it.n > 6; }).map(function (it) { return it.n; });
@@ -12508,12 +12519,12 @@ function tmPDF() {
       title: 'Translation — ' + _tmEsc(card.code || '') + ' · <em>' + _tmEsc(card.theme || '') + '</em>',
       meta: L + ' · ' + S.items.length + ' sentences',
       got: Q ? r.sum : r.sum / 2, max: Q ? tot : tot / 2, partial: r.n < S.items.length, partNote: r.n + ' of ' + S.items.length + ' sentences marked',
-      summary: 'Self-marked: <b>' + r.sum + ' / ' + tot + '</b>' + (Q ? '' : ' (= ' + _tmHalf(r.sum) + ' / ' + (tot / 2) + ')') + ' &middot; ' + r.n + ' of ' + S.items.length + ' sentences marked' + (Q && S.unm && S.unm.length ? ' &middot; <span class="apmp-bad">not marked in time: sentence ' + S.unm.join(', ') + '</span>' : '')
+      summary: (S.att > 1 ? '<div style="display:inline-block;font-size:15pt;font-weight:900;letter-spacing:.05em;color:#fff;background:#c0392b;border-radius:2mm;padding:1mm 4mm;margin:0 0 2mm">⚠ ATTEMPT ' + S.att + ' ON THIS EXERCISE</div><br>' : '') + 'Self-marked: <b>' + r.sum + ' / ' + tot + '</b>' + (Q ? '' : ' (= ' + _tmHalf(r.sum) + ' / ' + (tot / 2) + ')') + ' &middot; ' + r.n + ' of ' + S.items.length + ' sentences marked' + (Q && S.unm && S.unm.length ? ' &middot; <span class="apmp-bad">not marked in time: sentence ' + S.unm.join(', ') + '</span>' : '')
         + '<br>' + (S.mode === 'free' ? '🏠 <b>Untimed (in House, EW)</b>' : Q ? '⚡ <b>Quick 5: 6 minutes (class)</b> &middot; sentences ' + S.items.map(function (it) { return it.n; }).join(', ') + ' of 10' : '⏱ <b>Timed: 10 minutes (class)</b>') + (S.t0 ? (S.att ? ' &middot; <b' + (S.att > 1 ? ' class="apmp-bad"' : '') + '>attempt ' + S.att + ' on this card</b>' : '') + ' &middot; started ' + _tmClockTime(S.t0) + (S.endAt ? ', locked in ' + _tmClockTime(S.endAt) : '') + ' on ' + new Date(S.t0).toLocaleDateString('en-GB') : '')
         + '<br>⏱ ' + (S.auto ? '<b class="apmp-bad">Locked automatically at ' + _tmTime(S.lockAt) + '</b> (time limit ' + (Q ? 6 : 10) + ' min + 30 s)' + (S.na && S.na.length ? ' &middot; not attempted: sentence ' + S.na.join(', ') : '') : 'Translating: <b>' + _tmTime(S.lockAt || S.tAns) + '</b>' + (S.mode === 'free' ? ' (no time limit)' : ' (limit ' + (Q ? 6 : 10) + ' min)')) + ' &middot; Marking: <b>' + _tmTime(S.tMark) + '</b>',
       body: body, foot: 'AP IGCSE Structures &amp; Oral &middot; Translate 10 sentences &middot; ' + _tmEsc(card.code || ''),
       docTitle: 'AP IGCSE Structures & Oral — Translation ' + (card.code || ''), lang: L,
-      pageTitle: 'Translate 10 on ' + (card.code || '') + (card.theme ? ' · ' + card.theme : '') + ' (' + (S.mode === 'free' ? 'Untimed' : Q ? 'Quick 5' : 'Timed 10') + ')'
+      pageTitle: 'Translate 10 on ' + (card.code || '') + (card.theme ? ' · ' + card.theme : '') + ' (' + (S.mode === 'free' ? 'Untimed' : Q ? 'Quick 5' : 'Timed 10') + ')' + (S.att > 1 ? ' – ATTEMPT ' + S.att : '')
     };
   });
 }
