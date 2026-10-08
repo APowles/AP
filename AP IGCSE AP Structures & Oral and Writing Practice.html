@@ -3,7 +3,7 @@
 <script id="ap-update">
 /* AP auto-update: if this copy is older than the published version, reload once with the new one (saved answers are kept) */
 (function () {
-  var B = 'ca43537367'; window.AP_BUILD = B;
+  var B = '4205541869'; window.AP_BUILD = B;
   function check() {
     if (!/^https?:$/.test(location.protocol) || !window.fetch) return;
     var f = decodeURIComponent(location.pathname.split('/').pop() || '');
@@ -11156,9 +11156,9 @@ var APPEN = (function () {
 /* ⏱ AP Spot Test: timed & submitted — the printed AP Spot Test done on screen (Apple Pencil), timed or untimed, self-marked, handed in as a PDF.
    Shared and app-agnostic: paste this <style> + <script> pair unchanged into any AP app that has AP PEN (appen-) and AP MARKED PAPER (apmp-).
    Prefix aptt-. DM Sans only, except the screen heading (.aph-h). */
-.aph-btn.aptt-btn{border:4px solid #d0021b!important;color:#1a2744!important;background:#ffe94d!important;font-weight:800;box-shadow:0 0 0 2px rgba(208,2,27,.25),0 0 14px 3px rgba(208,2,27,.55);animation:apttGlow 1.6s ease-in-out infinite}
+.aph-btn.aptt-btn{border:4px solid #d0021b!important;color:#1a2744!important;background:#ffe94d!important;font-weight:800;box-shadow:0 0 0 2px rgba(208,2,27,.25),0 0 14px 3px rgba(208,2,27,.55);animation:apttBtnGlow 1.6s ease-in-out infinite}
 .aph-btn.aptt-btn:hover{background:#fff176!important;border-color:#d0021b!important}
-@keyframes apttGlow{0%,100%{box-shadow:0 0 0 2px rgba(208,2,27,.25),0 0 10px 2px rgba(208,2,27,.45)}50%{box-shadow:0 0 0 3px rgba(208,2,27,.35),0 0 22px 7px rgba(208,2,27,.7)}}
+@keyframes apttBtnGlow{0%,100%{box-shadow:0 0 0 2px rgba(208,2,27,.25),0 0 10px 2px rgba(208,2,27,.45)}50%{box-shadow:0 0 0 3px rgba(208,2,27,.35),0 0 22px 7px rgba(208,2,27,.7)}}
 @media (prefers-reduced-motion:reduce){.aph-btn.aptt-btn{animation:none}}
 .aptt-lvm{display:block;color:#c0392b;font-size:1rem;margin-bottom:4px}
 html.aptt-open,html.aptt-open body{overflow:hidden}
@@ -11184,6 +11184,13 @@ html.aptt-open,html.aptt-open body{overflow:hidden}
 .aptt-item{background:#fff;border:1px solid var(--border);border-radius:12px;box-shadow:var(--shadow);padding:12px 14px 10px;margin:0 0 12px;transition:outline-color .2s}
 .aptt-item.aptt-empty{outline:3px solid var(--wrong);outline-offset:1px}
 .aptt-item.aptt-na{opacity:.85}
+.aptt-item.aptt-unm{outline:4px solid #e67e00;outline-offset:2px;background:#fff8ec}
+.aptt-item.aptt-unm .aptt-mk-v{color:#b35900;font-weight:800}
+.aptt-item.aptt-mkd{border-left:8px solid #1e7a46}
+.aptt-todo{position:fixed;top:112px;right:14px;z-index:14010;background:#e67e00;color:#fff;border:3px solid #fff;border-radius:999px;padding:9px 16px;font:800 1rem/1.15 var(--aph-body);box-shadow:0 4px 16px rgba(0,0,0,.3);cursor:pointer;max-width:calc(100vw - 28px);text-align:left;-webkit-tap-highlight-color:transparent}
+.aptt-todo[hidden]{display:none}
+.aptt-todo.ok{background:#1e7a46}
+.aptt-item.tm-shake{animation:tmShake .45s ease}
 .aptt-ih{display:flex;gap:10px;align-items:flex-start}
 .aptt-n{flex:none;width:34px;height:34px;border-radius:50%;border:2px solid var(--gold);display:flex;align-items:center;justify-content:center;font-weight:800;font-size:1rem;color:var(--navy);background:#fff}
 .aptt-ib{flex:1;min-width:0}
@@ -11602,7 +11609,32 @@ var APTT = (function () {
     var mv = $('aptt-mv-' + n); if (mv) mv.textContent = v + ' / ' + maxOf(S.items[n - 1]);
     score();
   }
+  function todo() {   // after Show answers: every item still to mark is outlined in orange; a pill says how many and jumps to the next one
+    if (!S) return;
+    var live = S.shown && !S.markDone, left = [];
+    S.items.forEach(function (it, i) {
+      var n = i + 1, na = (S.na || []).indexOf(n) >= 0, m = S.marks[i], un = live && !na && (m == null || m === '');
+      if (un) left.push(n);
+      var r = $('aptt-it-' + n); if (!r) return;
+      r.classList.toggle('aptt-unm', un); r.classList.toggle('aptt-mkd', S.shown && !na && !un && m != null && m !== '');
+      var v = $('aptt-mv-' + n); if (v && un) v.textContent = '⚠ not marked yet';
+    });
+    var p = $('aptt-todo'), ov = $('aptt-ov');
+    if (!p && ov) { p = document.createElement('button'); p.type = 'button'; p.id = 'aptt-todo'; p.className = 'aptt-todo'; p.onclick = function () { APTT.next(); }; ov.appendChild(p); }
+    if (!p) return;
+    p.hidden = !live;
+    p.className = 'aptt-todo' + (left.length ? '' : ' ok');
+    p.innerHTML = left.length ? '⚠ ' + left.length + ' not marked yet' + (left.length <= 5 ? ': ' + noun(left.length) + ' ' + left.join(', ') : '') + ' &rarr;' : '✔ All marked';
+    S.left = left;
+  }
+  function next() {
+    if (!S || !S.left || !S.left.length) return;
+    var r = $('aptt-it-' + S.left[0]); if (!r) return;
+    try { r.scrollIntoView({ behavior: 'smooth', block: 'center' }); } catch (e) { r.scrollIntoView(); }
+    r.classList.remove('tm-shake'); void r.offsetWidth; r.classList.add('tm-shake');
+  }
   function score() {
+    todo();
     var r = sum(), h = '<span>Your score</span><b>' + r1(r.score) + ' / ' + (S.m.total || 10) + '</b><small>' + r.raw + ' / ' + r.rmax + ' marks · ' + r.n + ' of ' + S.items.length + ' marked by you</small>';
     ['aptt-score1', 'aptt-score2'].forEach(function (id) { var x = $(id); if (x) x.innerHTML = h; });
   }
@@ -11653,7 +11685,7 @@ var APTT = (function () {
   }
   // pen-up anywhere ends a stroke (the automatic lock waits for it)
   try { ['pointerup', 'pointercancel'].forEach(function (t) { document.addEventListener(t, function () { PEN = false; }, true); }); } catch (e) { }
-  return { open: open, close: close, mode: mode, lock: lock, show: showAns, mark: mark, pdf: pdf, teacher: teacher, LABEL: LBL, state: function () { return S; } };
+  return { open: open, close: close, mode: mode, lock: lock, show: showAns, mark: mark, next: next, pdf: pdf, teacher: teacher, LABEL: LBL, state: function () { return S; } };
 })();
 /* ===== END AP TIMED TEST ===== */
 </script>
@@ -11796,6 +11828,13 @@ html.tm-open,html.tm-open body{overflow:hidden}
 .tm-item.tm-na{opacity:.85}
 .tm-ul{background:#fdecea;border:1.5px solid #c0392b;color:#7a1b12;border-radius:8px;padding:7px 10px;margin:8px 0 0;font-size:.9375rem}
 .tm-ul.tm-shake{animation:tmShake .45s ease}
+.tm-item.tm-unm{outline:4px solid #e67e00;outline-offset:2px;background:#fff8ec}
+.tm-item.tm-unm .tm-mk-v{color:#b35900;font-weight:800}
+.tm-item.tm-mkd{border-left:8px solid #1e7a46}
+.tm-item.tm-shake{animation:tmShake .45s ease}
+.tm-todo{position:fixed;top:112px;right:14px;z-index:13010;background:#e67e00;color:#fff;border:3px solid #fff;border-radius:999px;padding:9px 16px;font:800 1rem/1.15 var(--aph-body);box-shadow:0 4px 16px rgba(0,0,0,.3);cursor:pointer;max-width:calc(100vw - 28px);text-align:left;-webkit-tap-highlight-color:transparent}
+.tm-todo[hidden]{display:none}
+.tm-todo.ok{background:#1e7a46}
 .tm-learn{background:#fff;border:3px solid #c0392b;border-radius:12px;padding:12px 14px;margin:18px 0 0;animation:tmGlow 1.3s ease-in-out infinite}
 .tm-learn.done{border-color:#2e7d52;animation:none;box-shadow:none}
 @keyframes tmGlow{0%,100%{box-shadow:0 0 0 0 rgba(192,57,43,.6)}50%{box-shadow:0 0 0 8px rgba(192,57,43,.12),0 0 18px 4px rgba(192,57,43,.35)}}
@@ -12132,7 +12171,31 @@ function tmMark(n, v) {
   var mv = document.getElementById('tm-mv-' + n); if (mv) mv.textContent = v + ' / ' + _tmMax();
   _tmScore();
 }
+function _tmTodo() {   // after Show answers: sentences still to mark are outlined in orange; a pill counts them and jumps to the next
+  var S = _tmS; if (!S) return;
+  var live = S.shown && !S.markDone, left = [];
+  S.items.forEach(function (it) {
+    var n = it.n, na = (S.na || []).indexOf(n) >= 0, m = S.marks[n - 1], un = live && !na && (m == null || m === '');
+    if (un) left.push(n);
+    var r = document.getElementById('tm-it-' + n); if (!r) return;
+    r.classList.toggle('tm-unm', un); r.classList.toggle('tm-mkd', S.shown && !na && !un && m != null && m !== '');
+    var v = document.getElementById('tm-mv-' + n); if (v && un) v.textContent = '⚠ not marked yet';
+  });
+  var p = document.getElementById('tm-todo'), ov = document.getElementById('tm-ov');
+  if (!p && ov) { p = document.createElement('button'); p.type = 'button'; p.id = 'tm-todo'; p.className = 'tm-todo'; p.onclick = tmNext; ov.appendChild(p); }
+  if (!p) return;
+  p.hidden = !live; p.className = 'tm-todo' + (left.length ? '' : ' ok');
+  p.innerHTML = left.length ? '⚠ ' + left.length + ' not marked yet' + (left.length <= 5 ? ': sentence' + (left.length > 1 ? 's ' : ' ') + left.join(', ') : '') + ' &rarr;' : '✔ All marked';
+  S.left = left;
+}
+function tmNext() {
+  var S = _tmS; if (!S || !S.left || !S.left.length) return;
+  var r = document.getElementById('tm-it-' + S.left[0]); if (!r) return;
+  try { r.scrollIntoView({ behavior: 'smooth', block: 'center' }); } catch (e) { r.scrollIntoView(); }
+  r.classList.remove('tm-shake'); void r.offsetWidth; r.classList.add('tm-shake');
+}
 function _tmScore() {
+  _tmTodo();
   var r = _tmSum(), Q = _tmS.mode === 'quick', tot = _tmS.items.length * _tmMax();
   var h = Q ? '<span>Your score</span><b>' + r.sum + ' / ' + tot + '</b><small>' + r.n + ' of ' + _tmS.items.length + ' marked</small>'
     : '<span>Your score</span><b>' + _tmHalf(r.sum) + ' / ' + (tot / 2) + '</b><small>' + r.sum + ' / ' + tot + ' · ' + r.n + ' of ' + _tmS.items.length + ' marked</small>';
