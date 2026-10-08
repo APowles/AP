@@ -5,7 +5,7 @@
 <script id="ap-update">
 /* AP auto-update: if this copy is older than the published version, reload once with the new one (saved answers are kept) */
 (function () {
-  var B = '9c026abcc6'; window.AP_BUILD = B;
+  var B = '6b07d905f0'; window.AP_BUILD = B;
   function check() {
     if (!/^https?:$/.test(location.protocol) || !window.fetch) return;
     var f = decodeURIComponent(location.pathname.split('/').pop() || '');
@@ -1679,6 +1679,14 @@ var APTT = (function () {
         .then(function (r) { if (!r.ok) throw new Error('GitHub ' + r.status); return true; });
     });
   }
+  function ghReplace(code, line) {   // change one test's line in tests.txt (same code)
+    return ghGet().then(function (f) {
+      var hit = false, L = f.text.split(/\r?\n/).map(function (l) { if (l.split('|')[0].trim().toUpperCase() === code) { hit = true; return line; } return l; });
+      if (!hit) throw new Error('not found');
+      return fetch(GH, { method: 'PUT', headers: ghHead(), body: JSON.stringify({ message: 'Edit test code ' + code, content: btoa(String.fromCharCode.apply(null, Array.from(utf8(L.join('\n'))))), sha: f.sha, branch: 'main' }) })
+        .then(function (r) { if (!r.ok) throw new Error('GitHub ' + r.status); return true; });
+    });
+  }
   function checkGit(k) { return ghGet(k).then(function () { return true; }).catch(function () { return false; }); }
   // code prefix by language: STF French, STS Spanish, STI Italian (the language of the answers, or of the test if the answers are English)
   function langLetter() { return langOf(S.m); }
@@ -1796,7 +1804,7 @@ var APTT = (function () {
   }
   // pen-up anywhere ends a stroke (the automatic lock waits for it)
   try { ['pointerup', 'pointercancel'].forEach(function (t) { document.addEventListener(t, function () { PEN = false; }, true); }); } catch (e) { }
-  return { open: open, close: close, mode: mode, lock: lock, show: showAns, mark: mark, next: next, verbDetail: verbDetail, pdf: pdf, teacher: teacher, maker: maker, openSet: openSet, inProgress: inProgress, resume: resume, copyLink: copyLink, copyHTML: copyHTML, checkGit: checkGit, ghRemove: ghRemove, bigOf: function (answer, kind, srcId) { return kind === 'sentence' || (!{ conj: 1, it: 1, spot: 1 }[String(srcId || '').split('|')[0]] && nWords(answer) > 2); }, catOf: catOf, CATS: CATS, unpack: unpack, checkKey: checkKey, list: listGet, linkFor: linkFor, copy: copyText, lastRun: null, capturing: null, LABEL: LBL, state: function () { return S; } };
+  return { open: open, close: close, mode: mode, lock: lock, show: showAns, mark: mark, next: next, verbDetail: verbDetail, pdf: pdf, teacher: teacher, maker: maker, openSet: openSet, inProgress: inProgress, resume: resume, copyLink: copyLink, copyHTML: copyHTML, checkGit: checkGit, ghRemove: ghRemove, ghReplace: ghReplace, pack: pack, minsTxt: minsTxt, bigOf: function (answer, kind, srcId) { return kind === 'sentence' || (!{ conj: 1, it: 1, spot: 1 }[String(srcId || '').split('|')[0]] && nWords(answer) > 2); }, catOf: catOf, CATS: CATS, unpack: unpack, checkKey: checkKey, list: listGet, linkFor: linkFor, copy: copyText, lastRun: null, capturing: null, LABEL: LBL, state: function () { return S; } };
 })();
 /* ===== END AP TIMED TEST ===== */
 </script>
@@ -1940,6 +1948,7 @@ function aptItem(e) {
     + '<button class="aph-btn" type="button" onclick="aptTry(' + i + ')">▶ Try it</button>'
     + (e.o ? '<button class="aph-btn" type="button" onclick="aptPrintAsk(' + i + ')">🖨 Print</button>' : '')
     + (e.local != null ? '<button class="aph-btn" type="button" title="Line for tests.txt" onclick="aptCopyLine(' + i + ',this)">📋 Line</button><button class="aph-btn" type="button" title="Remove from this device\'s list" onclick="aptDel(' + e.local + ')">🗑</button>' : '')
+    + (e.site && aptGit() && e.o ? '<button class="aph-btn" type="button" onclick="aptEdit(' + i + ')">✏️ Edit</button>' : '')
     + (e.site && aptGit() ? '<button class="aph-btn" type="button" title="Delete this test" onclick="aptDelSite(' + i + ',this)">🗑 Delete</button>' : '')
     + '</div></div>';
 }
@@ -1994,6 +2003,35 @@ function aptCopyGroup(btn) {   // pastes into OneNote as a tidy list: each test'
   var html = '<p><b>' + aptEsc(c + (f ? ' ▸ ' + f : '')) + '</b></p><ul>' + L.map(function (e) { return '<li><a href="' + aptEsc(APTT.linkFor(e.tok)) + '">' + aptEsc(aptLinkName(e)) + '</a> &ndash; ' + aptEsc(info(e)) + '</li>'; }).join('') + '</ul>';
   var txt = c + (f ? ' ▸ ' + f : '') + '\n\n' + L.map(function (e) { return aptLinkName(e) + ' – ' + info(e) + '\n' + APTT.linkFor(e.tok); }).join('\n\n');
   APTT.copyHTML(html, txt, btn);
+}
+// ✏️ change a test's name, heading, folder or time limit (same code; the test is signed again with the teacher key)
+function aptEdit(i) {
+  var e = APT_LIB[i], o = e.o, d = document.getElementById('apt-ed'); if (d) d.remove();
+  var opts = ''; for (var x = 60; x <= 1200; x += 30) opts += '<option value="' + x + '"' + (x === +o.s ? ' selected' : '') + '>' + APTT.minsTxt(x) + ' min</option>';
+  var cats = APTT.CATS.indexOf(e.cat) < 0 ? [e.cat].concat(APTT.CATS) : APTT.CATS;
+  d = document.createElement('div'); d.id = 'apt-ed'; d.className = 'aptt-mkov';
+  d.innerHTML = '<div class="aptt-mkbox" role="dialog" aria-modal="true"><div class="aptt-mkh">✏️ Edit ' + aptEsc(e.c) + '</div><div class="aptt-mks">' + aptEsc(aptPlain(o.t)) + ' · ' + (e.items || '?') + ' items</div>'
+    + '<label>Name</label><input id="apt-ed-n" type="text" value="' + aptEsc(e.n || '') + '">'
+    + '<label>Time limit</label><select id="apt-ed-s">' + opts + '</select>'
+    + '<label>Library heading</label><select id="apt-ed-cat">' + cats.map(function (c) { return '<option' + (c === e.cat ? ' selected' : '') + '>' + aptEsc(c) + '</option>'; }).join('') + '</select>'
+    + '<label>Folder (optional)</label><input id="apt-ed-f" type="text" maxlength="40" value="' + aptEsc(e.f || '') + '" placeholder="none">'
+    + '<div class="aptt-mkhint">The code ' + aptEsc(e.c) + ' opens the changed test within a minute or two. Links you have already posted keep the old name and time; copy the link again to get the new one.</div>'
+    + '<div class="aptt-mkact"><button type="button" class="aph-btn" onclick="document.getElementById(\'apt-ed\').remove()">Cancel</button><button type="button" class="aph-btn aph-btn-primary" id="apt-ed-go">💾 Save</button></div></div>';
+  document.body.appendChild(d);
+  var nm = document.getElementById('apt-ed-n'), sl = document.getElementById('apt-ed-s');
+  sl.addEventListener('change', function () { nm.value = nm.value.replace(/\s*·\s*\d+½?\s*min\s*$/, '') + ' · ' + APTT.minsTxt(+sl.value) + ' min'; });
+  document.getElementById('apt-ed-go').onclick = function () {
+    var b = this, n2 = nm.value.trim(), s2 = +sl.value, c2 = document.getElementById('apt-ed-cat').value, f2 = document.getElementById('apt-ed-f').value.replace(/\|/g, '/').trim();
+    var o2 = {}; Object.keys(o).forEach(function (k) { if (k !== 'tok') o2[k] = o[k]; });
+    o2.n = n2; o2.s = s2; o2.cat = c2; o2.f = f2;
+    b.disabled = true; b.textContent = 'Saving…';
+    APTT.pack(o2).then(function (tok) {
+      return APTT.ghReplace(e.c, e.c + ' | ' + n2.replace(/\|/g, '/') + ' | ' + c2 + ' | ' + f2 + ' | ' + tok).then(function () { return tok; });
+    }).then(function (tok) {
+      o2.tok = tok; e.o = o2; e.tok = tok; e.n = n2; e.s = s2; e.cat = c2; e.f = f2;
+      d.remove(); aptLibDraw();
+    }).catch(function (x) { b.disabled = false; b.textContent = '💾 Save'; alert('Sorry, it could not be saved (' + (x && x.message || x) + ').'); });
+  };
 }
 function aptDelSite(i, btn) {
   var e = APT_LIB[i];
