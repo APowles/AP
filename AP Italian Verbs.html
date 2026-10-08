@@ -5,7 +5,7 @@
 <script id="ap-update">
 /* AP auto-update: if this copy is older than the published version, reload once with the new one (saved answers are kept) */
 (function () {
-  var B = 'ef1640c5c6'; window.AP_BUILD = B;
+  var B = '350b353c1f'; window.AP_BUILD = B;
   function check() {
     if (!/^https?:$/.test(location.protocol) || !window.fetch) return;
     var f = decodeURIComponent(location.pathname.split('/').pop() || '');
@@ -2264,6 +2264,9 @@ var APTT = (function () {
       + '<div id="aptt-mk-out"></div></div>';
     document.body.appendChild(d);
     nextCode(function (c) { var i = $('aptt-mk-c'); if (i && !i.dataset.typed) i.value = c; });
+    // the time limit is always the end of the name: "… · 4½ min" (kept in step when the limit is changed)
+    var nm = $('aptt-mk-n'), sl = $('aptt-mk-s'), tl = function () { nm.value = nm.value.replace(/\s*·\s*\d+½?\s*min\s*$/, '') + ' · ' + minsTxt(+sl.value) + ' min'; };
+    tl(); sl.addEventListener('change', tl);
     $('aptt-mk-c').addEventListener('input', function () { this.dataset.typed = '1'; });
     $('aptt-mk-go').onclick = function () {
       var b = this, q = (d.querySelector('input[name=aptt-mk-q]:checked') || {}).value || 'same', code = $('aptt-mk-c').value.replace(/\s+/g, '').toUpperCase(), name = $('aptt-mk-n').value.trim(), s2 = +$('aptt-mk-s').value, cat = $('aptt-mk-cat').value, fol = $('aptt-mk-f').value.replace(/\|/g, '/').trim();
