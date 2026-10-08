@@ -3,7 +3,7 @@
 <script id="ap-update">
 /* AP auto-update: if this copy is older than the published version, reload once with the new one (saved answers are kept) */
 (function () {
-  var B = '21967da421'; window.AP_BUILD = B;
+  var B = 'd9ee2f2893'; window.AP_BUILD = B;
   function check() {
     if (!/^https?:$/.test(location.protocol) || !window.fetch) return;
     var f = decodeURIComponent(location.pathname.split('/').pop() || '');
@@ -2005,6 +2005,7 @@ html.aptt-open,html.aptt-open body{overflow:hidden}
 .aptt-item{background:#fff;border:1px solid var(--border);border-radius:12px;box-shadow:var(--shadow);padding:12px 14px 10px;margin:0 0 12px;transition:outline-color .2s}
 .aptt-item.aptt-empty{outline:3px solid var(--wrong);outline-offset:1px}
 .aptt-item.aptt-na{opacity:.85}
+.aptt-detail{color:#c0392b;font-weight:700;font-size:.9375rem;line-height:1.4;margin:4px 0 0}
 .aptt-item.aptt-unm{outline:4px solid #e67e00;outline-offset:2px;background:#fff8ec}
 .aptt-item.aptt-unm .aptt-mk-v{color:#b35900;font-weight:800}
 .aptt-item.aptt-mkd{border-left:8px solid #1e7a46}
@@ -2190,7 +2191,7 @@ var APTT = (function () {
   function open(o) {
     if (!o || !o.items || !o.items.length || typeof APPEN === 'undefined' || typeof APMP === 'undefined') return;
     var items = o.items.map(norm);
-    var m = { id: String(o.id || ''), app: o.app || '', kicker: o.kicker || '', title: o.title || '', meta: o.meta || '', lang: o.lang || '', code: o.langCode || LCODE[o.lang] || '', total: +o.total || 10, level: o.level || '' };
+    var m = { id: String(o.id || ''), app: o.app || '', kicker: o.kicker || '', title: o.title || '', meta: o.meta || '', detail: o.detail || '', lang: o.lang || '', code: o.langCode || LCODE[o.lang] || '', total: +o.total || 10, level: o.level || '' };
     var sel = h32(m.app + '|' + m.id), key = 'aptt' + sel + h32(items.map(function (it) { return it.prompt + '\u0001' + it.answer; }).sort().join('\u0002'));
     try { if (window.speechSynthesis) speechSynthesis.cancel(); } catch (e) { }
     var cur = lsGet('apttCur:' + sel), st = cur ? load(cur) : null;
@@ -2265,6 +2266,7 @@ var APTT = (function () {
       + (S.m.level ? '<div class="aptt-level aptt-lv-' + ({ Easy: 'E', Medium: 'M', Hard: 'H', Mixed: 'X' }[S.m.level] || 'X') + '">LEVEL: ' + S.m.level.toUpperCase() + '</div>' : '')
       + '<h2 class="aph-h">' + (L ? 'Translate into ' + esc(L) : 'Write your answers') + '</h2>'
       + (S.m.meta ? '<div class="aptt-meta">' + S.m.meta + '</div>' : '')
+      + (S.m.detail ? '<div class="aptt-detail">' + S.m.detail + '</div>' : '')
       + '<p class="aptt-instr">' + (L ? 'Translate' : 'Answer') + ' all ' + N + ' ' + noun(N) + (L ? ' into ' + esc(L) : '') + ' with your Apple Pencil (black ink). Have a go at every one, then lock in, open the answers, correct your work in red and give each ' + noun(1) + ' a mark. Your score is out of ' + (S.m.total || 10) + '.</p>'
       + '<div class="aptt-score" id="aptt-score1"' + (S.shown ? '' : ' hidden') + '></div>'
       + '<div class="aptt-legend" id="aptt-legend"' + (S.shown ? '' : ' hidden') + '>' + legend() + '</div></div>'
@@ -2454,6 +2456,18 @@ var APTT = (function () {
     try { r.scrollIntoView({ behavior: 'smooth', block: 'center' }); } catch (e) { r.scrollIntoView(); }
     r.classList.remove('tm-shake'); void r.offsetWidth; r.classList.add('tm-shake');
   }
+  // verb apps: what the test was on, from the items actually drawn ({verb:{inf,tense}, personIdx} or {inf:{inf}})
+  function verbDetail(items, tn, o) {
+    o = o || {}; var T = [], V = [];
+    items.forEach(function (x) {
+      var t = x.inf ? 'Infinitive' : (tn[x.verb.tense] || x.verb.tense), v = x.inf ? x.inf.inf : x.verb.inf;
+      if (T.indexOf(t) < 0) T.push(t); if (v && V.indexOf(v) < 0) V.push(v);
+    });
+    var ord = Object.keys(tn).map(function (k) { return tn[k]; }); T.sort(function (x, y) { var i = ord.indexOf(x), j = ord.indexOf(y); return (i < 0 ? 99 : i) - (j < 0 ? 99 : j); });
+    var d = '<b>Tense' + (T.length > 1 ? 's' : '') + ':</b> ' + esc(T.join(', ')) + ' &middot; <b>' + V.length + ' verb' + (V.length > 1 ? 's' : '') + ':</b> ' + esc(V.join(', '))
+      + (o.set ? ' &middot; ' + esc(o.set) : '') + (o.reg ? ' &middot; ' + esc(o.reg) : '') + (o.person ? ' &middot; ' + esc(o.person) : '');
+    return { tenses: T, verbs: V, short: T.length <= 3 ? T.join(', ') : T.length + ' tenses', detail: d };
+  }
   function score() {
     todo();
     var r = sum(), h = '<span>Your score</span><b>' + r1(r.score) + ' / ' + (S.m.total || 10) + '</b><small>' + r.raw + ' / ' + r.rmax + ' marks · ' + r.n + ' of ' + S.items.length + ' marked by you</small>';
@@ -2481,7 +2495,7 @@ var APTT = (function () {
       var w = S.items.some(function (it) { return it.kind === 'word'; }), s = S.items.some(function (it) { return it.kind === 'sentence'; });
       var body = '<style>' + APPEN.PDF_CSS
         + '.aptt-plab{display:inline-block;font-size:8pt;font-weight:500;font-style:italic;color:#4a5a7a;background:#f7f3e8;border:1px solid #e6d8ad;border-radius:3mm;padding:0 2mm;margin-right:1mm}'
-        + '.aptt-pa{color:#1a2744}.aptt-plegend{font-size:8.5pt;color:#4a5a7a;margin:0 0 2mm}.aptt-plegend b{color:#1a2744}</style>'
+        + '.aptt-on b{color:#c0392b!important}.aptt-pa{color:#1a2744}.aptt-plegend{font-size:8.5pt;color:#4a5a7a;margin:0 0 2mm}.aptt-plegend b{color:#1a2744}</style>'
         + '<div class="aptt-plegend">Marks: ' + (w ? (s ? 'words ' : '') + '<b>2</b> right · <b>1</b> nearly · <b>0</b> wrong' : '') + (w && s ? ' &middot; ' : '') + (s ? (w ? 'sentences ' : '') + '<b>4</b> perfect · <b>3</b> mostly right · <b>2</b> about half right · <b>1</b> only a word or two right · <b>0</b> nothing right' : '')
         + ' &middot; each ' + noun(1) + ' is worth ' + r1(val()) + ' of ' + T + (timed ? ' &middot; ' + dur(ml) + ' to mark (anything not marked in time scores 0)' : '') + '</div>'
         + APMP.sec(S.items.length + ' ' + noun(S.items.length), r1(r.score), T, true) + S.items.map(q).join('')
@@ -2491,7 +2505,9 @@ var APTT = (function () {
         app: plain(S.m.app), kicker: S.m.kicker + ' &middot; AP Spot Test: timed &amp; submitted',
         title: 'AP Spot Test &mdash; <em>' + S.m.title + '</em>', meta: S.m.meta,
         got: r.score, max: T, partial: r.left > 0, partNote: (S.items.length - r.left) + ' of ' + S.items.length + ' ' + noun(2) + ' marked',
-        summary: (S.m.level ? '<span style="display:inline-block;font-size:13pt;font-weight:800;letter-spacing:.04em;color:#c0392b;border:2px solid #c0392b;border-radius:2mm;padding:.5mm 3mm;margin:0 0 1.5mm">LEVEL: ' + S.m.level.toUpperCase() + '</span><br>' : '') + 'Self-marked: <b>' + r1(r.score) + ' / ' + T + '</b> (' + r.raw + ' / ' + r.rmax + ' marks) &middot; ' + r.n + ' of ' + S.items.length + ' ' + noun(2) + ' marked by him'
+        summary: '<div class="aptt-on" style="border:2.5px solid #c0392b;border-radius:2mm;padding:1.5mm 3mm 2mm;margin:0 0 2mm;color:#c0392b"><div style="font-size:7.5pt;font-weight:800;letter-spacing:.1em">TEST ON</div><div style="font-size:14pt;font-weight:800;line-height:1.2">' + S.m.title + '</div>'
+          + '<div style="font-size:9.5pt;font-weight:600;line-height:1.35;margin-top:.8mm">' + (S.m.detail ? S.m.detail + '<br>' : '') + S.m.meta + '</div></div>'
+          + (S.m.level ? '<span style="display:inline-block;font-size:13pt;font-weight:800;letter-spacing:.04em;color:#c0392b;border:2px solid #c0392b;border-radius:2mm;padding:.5mm 3mm;margin:0 0 1.5mm">LEVEL: ' + S.m.level.toUpperCase() + '</span><br>' : '') + 'Self-marked: <b>' + r1(r.score) + ' / ' + T + '</b> (' + r.raw + ' / ' + r.rmax + ' marks) &middot; ' + r.n + ' of ' + S.items.length + ' ' + noun(2) + ' marked by him'
           + (S.unm && S.unm.length ? ' &middot; <span class="apmp-bad">not marked in time: ' + noun(S.unm.length) + ' ' + S.unm.join(', ') + '</span>' : '')
           + '<br>' + (timed ? '⏱ <b>Timed: ' + mins + ' minutes (class)</b>' : '🏠 <b>Untimed (in House, EW)</b>')
           + (S.t0 ? (S.att ? ' &middot; <b' + (S.att > 1 ? ' class="apmp-bad"' : '') + '>attempt ' + S.att + ' on this test</b>' : '') + ' &middot; started ' + hhmm(S.t0) + (S.endAt ? ', locked in ' + hhmm(S.endAt) : '') + ' on ' + new Date(S.t0).toLocaleDateString('en-GB') : '')
@@ -2506,7 +2522,7 @@ var APTT = (function () {
   }
   // pen-up anywhere ends a stroke (the automatic lock waits for it)
   try { ['pointerup', 'pointercancel'].forEach(function (t) { document.addEventListener(t, function () { PEN = false; }, true); }); } catch (e) { }
-  return { open: open, close: close, mode: mode, lock: lock, show: showAns, mark: mark, next: next, pdf: pdf, teacher: teacher, LABEL: LBL, state: function () { return S; } };
+  return { open: open, close: close, mode: mode, lock: lock, show: showAns, mark: mark, next: next, verbDetail: verbDetail, pdf: pdf, teacher: teacher, LABEL: LBL, state: function () { return S; } };
 })();
 /* ===== END AP TIMED TEST ===== */
 </script>
@@ -2518,7 +2534,7 @@ var APTT_APP = 'AP Essential Phrases', APTT_KICK = 'AP &middot; Essential Phrase
 function apttSpot(o) {
   var items = [];
   o.rows.forEach(function (g) { g.forEach(function (x) { items.push({ prompt: o.q(x), answer: o.a(x), kind: o.kind, label: o.label ? o.label(x) : '', html: true }); }); });
-  APTT.open({ id: o.id, app: APTT_APP, kicker: APTT_KICK, title: o.title, meta: o.meta, lang: o.lang, items: items, total: 10, level: AP_LEVEL.NAMES[apTestLevel] || '' });
+  APTT.open({ id: o.id, app: APTT_APP, kicker: APTT_KICK, title: o.title, meta: o.meta, detail: o.detail, lang: o.lang, items: items, total: 10, level: AP_LEVEL.NAMES[apTestLevel] || '' });
 }
 // the boy must choose his level (Easy / Medium / Hard / Mixed) before a timed & submitted Spot Test is drawn
 // (this app has one test level for the Generate Test / AP Spot Test panel: apTestLevel, set with setApTestLevel; sc is kept for the shared call shape)
@@ -30906,6 +30922,7 @@ html.aptt-open,html.aptt-open body{overflow:hidden}
 .aptt-item{background:#fff;border:1px solid var(--border);border-radius:12px;box-shadow:var(--shadow);padding:12px 14px 10px;margin:0 0 12px;transition:outline-color .2s}
 .aptt-item.aptt-empty{outline:3px solid var(--wrong);outline-offset:1px}
 .aptt-item.aptt-na{opacity:.85}
+.aptt-detail{color:#c0392b;font-weight:700;font-size:.9375rem;line-height:1.4;margin:4px 0 0}
 .aptt-item.aptt-unm{outline:4px solid #e67e00;outline-offset:2px;background:#fff8ec}
 .aptt-item.aptt-unm .aptt-mk-v{color:#b35900;font-weight:800}
 .aptt-item.aptt-mkd{border-left:8px solid #1e7a46}
@@ -30926,7 +30943,7 @@ html.aptt-open,html.aptt-open body{overflow:hidden}
 .aptt-ans{margin-top:12px;padding-top:4px}
 .aptt-ans[hidden]{display:none}
 .aptt-al{display:inline-block;font-size:.8125rem;font-weight:800;letter-spacing:.08em;text-transform:uppercase;color:#fff;background:#1e7a46;border-radius:6px 6px 0 0;padding:4px 10px;margin:0}
-.aptt-al::before{content:"✔ "}
+.aptt-al::before{content:&quot;✔ &quot;}
 .aptt-a{font-size:1.375rem;font-weight:700;line-height:1.4;color:#0f1b3a;background:#dcf8e6;border:3px solid #1e7a46;border-left-width:10px;border-radius:0 10px 10px 10px;padding:10px 14px;box-shadow:0 4px 14px rgba(30,122,70,.35);overflow-wrap:anywhere}
 .aptt-mk{display:flex;flex-wrap:wrap;align-items:center;gap:6px;margin-top:8px}
 .aptt-mk-l{flex-basis:100%;font-size:.75rem;font-weight:800;letter-spacing:.08em;text-transform:uppercase;color:var(--text2);margin-right:4px}
@@ -30948,7 +30965,7 @@ html.aptt-open,html.aptt-open body{overflow:hidden}
 .aptt-chk{background:var(--navy);color:var(--gold2);border:3px solid var(--navy)}
 .aptt-chk:disabled{background:#e4e7ee;color:#7a8299;border-color:#e4e7ee;cursor:not-allowed}
 .aptt-chk.ready{position:fixed;left:50%;top:50%;transform:translate(-50%,-50%);z-index:50;width:min(560px,calc(100vw - 32px));font-size:1.75rem;line-height:1.2;padding:26px 22px;min-height:120px;background:#ffe94d;color:#1a2744;border:6px solid #d0021b;border-radius:18px;animation:apttBig 1.4s ease-in-out infinite}
-.aptt-chk.ready::after{content:"Tap here to see the answers and mark yourself";display:block;font-size:1rem;font-weight:700;margin-top:8px;color:#a3001a}
+.aptt-chk.ready::after{content:&quot;Tap here to see the answers and mark yourself&quot;;display:block;font-size:1rem;font-weight:700;margin-top:8px;color:#a3001a}
 @keyframes apttBig{0%,100%{box-shadow:0 0 0 100vmax rgba(8,13,28,.55),0 0 12px 3px rgba(208,2,27,.6)}50%{box-shadow:0 0 0 100vmax rgba(8,13,28,.55),0 0 30px 10px rgba(208,2,27,.85)}}
 @media (prefers-reduced-motion:reduce){.aptt-chk.ready{animation:none;box-shadow:0 0 0 100vmax rgba(8,13,28,.55),0 0 20px 6px rgba(208,2,27,.7)}}
 @keyframes apttPulse{0%,100%{box-shadow:0 0 0 0 rgba(192,57,43,.7);border-color:#c0392b}50%{box-shadow:0 0 0 6px rgba(192,57,43,.45);border-color:#ff3b2f}}
@@ -31091,7 +31108,7 @@ var APTT = (function () {
   function open(o) {
     if (!o || !o.items || !o.items.length || typeof APPEN === 'undefined' || typeof APMP === 'undefined') return;
     var items = o.items.map(norm);
-    var m = { id: String(o.id || ''), app: o.app || '', kicker: o.kicker || '', title: o.title || '', meta: o.meta || '', lang: o.lang || '', code: o.langCode || LCODE[o.lang] || '', total: +o.total || 10, level: o.level || '' };
+    var m = { id: String(o.id || ''), app: o.app || '', kicker: o.kicker || '', title: o.title || '', meta: o.meta || '', detail: o.detail || '', lang: o.lang || '', code: o.langCode || LCODE[o.lang] || '', total: +o.total || 10, level: o.level || '' };
     var sel = h32(m.app + '|' + m.id), key = 'aptt' + sel + h32(items.map(function (it) { return it.prompt + '\u0001' + it.answer; }).sort().join('\u0002'));
     try { if (window.speechSynthesis) speechSynthesis.cancel(); } catch (e) { }
     var cur = lsGet('apttCur:' + sel), st = cur ? load(cur) : null;
@@ -31166,6 +31183,7 @@ var APTT = (function () {
       + (S.m.level ? '<div class=&quot;aptt-level aptt-lv-' + ({ Easy: 'E', Medium: 'M', Hard: 'H', Mixed: 'X' }[S.m.level] || 'X') + '&quot;>LEVEL: ' + S.m.level.toUpperCase() + '</div>' : '')
       + '<h2 class=&quot;aph-h&quot;>' + (L ? 'Translate into ' + esc(L) : 'Write your answers') + '</h2>'
       + (S.m.meta ? '<div class=&quot;aptt-meta&quot;>' + S.m.meta + '</div>' : '')
+      + (S.m.detail ? '<div class=&quot;aptt-detail&quot;>' + S.m.detail + '</div>' : '')
       + '<p class=&quot;aptt-instr&quot;>' + (L ? 'Translate' : 'Answer') + ' all ' + N + ' ' + noun(N) + (L ? ' into ' + esc(L) : '') + ' with your Apple Pencil (black ink). Have a go at every one, then lock in, open the answers, correct your work in red and give each ' + noun(1) + ' a mark. Your score is out of ' + (S.m.total || 10) + '.</p>'
       + '<div class=&quot;aptt-score&quot; id=&quot;aptt-score1&quot;' + (S.shown ? '' : ' hidden') + '></div>'
       + '<div class=&quot;aptt-legend&quot; id=&quot;aptt-legend&quot;' + (S.shown ? '' : ' hidden') + '>' + legend() + '</div></div>'
@@ -31355,6 +31373,18 @@ var APTT = (function () {
     try { r.scrollIntoView({ behavior: 'smooth', block: 'center' }); } catch (e) { r.scrollIntoView(); }
     r.classList.remove('tm-shake'); void r.offsetWidth; r.classList.add('tm-shake');
   }
+  // verb apps: what the test was on, from the items actually drawn ({verb:{inf,tense}, personIdx} or {inf:{inf}})
+  function verbDetail(items, tn, o) {
+    o = o || {}; var T = [], V = [];
+    items.forEach(function (x) {
+      var t = x.inf ? 'Infinitive' : (tn[x.verb.tense] || x.verb.tense), v = x.inf ? x.inf.inf : x.verb.inf;
+      if (T.indexOf(t) < 0) T.push(t); if (v &amp;&amp; V.indexOf(v) < 0) V.push(v);
+    });
+    var ord = Object.keys(tn).map(function (k) { return tn[k]; }); T.sort(function (x, y) { var i = ord.indexOf(x), j = ord.indexOf(y); return (i < 0 ? 99 : i) - (j < 0 ? 99 : j); });
+    var d = '<b>Tense' + (T.length > 1 ? 's' : '') + ':</b> ' + esc(T.join(', ')) + ' &amp;middot; <b>' + V.length + ' verb' + (V.length > 1 ? 's' : '') + ':</b> ' + esc(V.join(', '))
+      + (o.set ? ' &amp;middot; ' + esc(o.set) : '') + (o.reg ? ' &amp;middot; ' + esc(o.reg) : '') + (o.person ? ' &amp;middot; ' + esc(o.person) : '');
+    return { tenses: T, verbs: V, short: T.length <= 3 ? T.join(', ') : T.length + ' tenses', detail: d };
+  }
   function score() {
     todo();
     var r = sum(), h = '<span>Your score</span><b>' + r1(r.score) + ' / ' + (S.m.total || 10) + '</b><small>' + r.raw + ' / ' + r.rmax + ' marks · ' + r.n + ' of ' + S.items.length + ' marked by you</small>';
@@ -31382,7 +31412,7 @@ var APTT = (function () {
       var w = S.items.some(function (it) { return it.kind === 'word'; }), s = S.items.some(function (it) { return it.kind === 'sentence'; });
       var body = '<style>' + APPEN.PDF_CSS
         + '.aptt-plab{display:inline-block;font-size:8pt;font-weight:500;font-style:italic;color:#4a5a7a;background:#f7f3e8;border:1px solid #e6d8ad;border-radius:3mm;padding:0 2mm;margin-right:1mm}'
-        + '.aptt-pa{color:#1a2744}.aptt-plegend{font-size:8.5pt;color:#4a5a7a;margin:0 0 2mm}.aptt-plegend b{color:#1a2744}</style>'
+        + '.aptt-on b{color:#c0392b!important}.aptt-pa{color:#1a2744}.aptt-plegend{font-size:8.5pt;color:#4a5a7a;margin:0 0 2mm}.aptt-plegend b{color:#1a2744}</style>'
         + '<div class=&quot;aptt-plegend&quot;>Marks: ' + (w ? (s ? 'words ' : '') + '<b>2</b> right · <b>1</b> nearly · <b>0</b> wrong' : '') + (w &amp;&amp; s ? ' &amp;middot; ' : '') + (s ? (w ? 'sentences ' : '') + '<b>4</b> perfect · <b>3</b> mostly right · <b>2</b> about half right · <b>1</b> only a word or two right · <b>0</b> nothing right' : '')
         + ' &amp;middot; each ' + noun(1) + ' is worth ' + r1(val()) + ' of ' + T + (timed ? ' &amp;middot; ' + dur(ml) + ' to mark (anything not marked in time scores 0)' : '') + '</div>'
         + APMP.sec(S.items.length + ' ' + noun(S.items.length), r1(r.score), T, true) + S.items.map(q).join('')
@@ -31392,7 +31422,9 @@ var APTT = (function () {
         app: plain(S.m.app), kicker: S.m.kicker + ' &amp;middot; AP Spot Test: timed &amp;amp; submitted',
         title: 'AP Spot Test &amp;mdash; <em>' + S.m.title + '</em>', meta: S.m.meta,
         got: r.score, max: T, partial: r.left > 0, partNote: (S.items.length - r.left) + ' of ' + S.items.length + ' ' + noun(2) + ' marked',
-        summary: (S.m.level ? '<span style=&quot;display:inline-block;font-size:13pt;font-weight:800;letter-spacing:.04em;color:#c0392b;border:2px solid #c0392b;border-radius:2mm;padding:.5mm 3mm;margin:0 0 1.5mm&quot;>LEVEL: ' + S.m.level.toUpperCase() + '</span><br>' : '') + 'Self-marked: <b>' + r1(r.score) + ' / ' + T + '</b> (' + r.raw + ' / ' + r.rmax + ' marks) &amp;middot; ' + r.n + ' of ' + S.items.length + ' ' + noun(2) + ' marked by him'
+        summary: '<div class=&quot;aptt-on&quot; style=&quot;border:2.5px solid #c0392b;border-radius:2mm;padding:1.5mm 3mm 2mm;margin:0 0 2mm;color:#c0392b&quot;><div style=&quot;font-size:7.5pt;font-weight:800;letter-spacing:.1em&quot;>TEST ON</div><div style=&quot;font-size:14pt;font-weight:800;line-height:1.2&quot;>' + S.m.title + '</div>'
+          + '<div style=&quot;font-size:9.5pt;font-weight:600;line-height:1.35;margin-top:.8mm&quot;>' + (S.m.detail ? S.m.detail + '<br>' : '') + S.m.meta + '</div></div>'
+          + (S.m.level ? '<span style=&quot;display:inline-block;font-size:13pt;font-weight:800;letter-spacing:.04em;color:#c0392b;border:2px solid #c0392b;border-radius:2mm;padding:.5mm 3mm;margin:0 0 1.5mm&quot;>LEVEL: ' + S.m.level.toUpperCase() + '</span><br>' : '') + 'Self-marked: <b>' + r1(r.score) + ' / ' + T + '</b> (' + r.raw + ' / ' + r.rmax + ' marks) &amp;middot; ' + r.n + ' of ' + S.items.length + ' ' + noun(2) + ' marked by him'
           + (S.unm &amp;&amp; S.unm.length ? ' &amp;middot; <span class=&quot;apmp-bad&quot;>not marked in time: ' + noun(S.unm.length) + ' ' + S.unm.join(', ') + '</span>' : '')
           + '<br>' + (timed ? '⏱ <b>Timed: ' + mins + ' minutes (class)</b>' : '🏠 <b>Untimed (in House, EW)</b>')
           + (S.t0 ? (S.att ? ' &amp;middot; <b' + (S.att > 1 ? ' class=&quot;apmp-bad&quot;' : '') + '>attempt ' + S.att + ' on this test</b>' : '') + ' &amp;middot; started ' + hhmm(S.t0) + (S.endAt ? ', locked in ' + hhmm(S.endAt) : '') + ' on ' + new Date(S.t0).toLocaleDateString('en-GB') : '')
@@ -31407,7 +31439,7 @@ var APTT = (function () {
   }
   // pen-up anywhere ends a stroke (the automatic lock waits for it)
   try { ['pointerup', 'pointercancel'].forEach(function (t) { document.addEventListener(t, function () { PEN = false; }, true); }); } catch (e) { }
-  return { open: open, close: close, mode: mode, lock: lock, show: showAns, mark: mark, next: next, pdf: pdf, teacher: teacher, LABEL: LBL, state: function () { return S; } };
+  return { open: open, close: close, mode: mode, lock: lock, show: showAns, mark: mark, next: next, verbDetail: verbDetail, pdf: pdf, teacher: teacher, LABEL: LBL, state: function () { return S; } };
 })();
 /* ===== END AP TIMED TEST ===== */
 </script>
@@ -31419,7 +31451,7 @@ var APTT_APP = 'AP Essential Spanish Vocabulary', APTT_KICK = 'AP &amp;middot; E
 function apttSpot(o) {
   var items = [];
   o.rows.forEach(function (g) { g.forEach(function (x) { items.push({ prompt: o.q(x), answer: o.a(x), kind: o.kind, label: o.label ? o.label(x) : '', html: true }); }); });
-  APTT.open({ id: o.id, app: APTT_APP, kicker: APTT_KICK, title: o.title, meta: o.meta, lang: o.lang, items: items, total: 10, level: AP_LEVEL.NAMES[apTestLevel] || '' });
+  APTT.open({ id: o.id, app: APTT_APP, kicker: APTT_KICK, title: o.title, meta: o.meta, detail: o.detail, lang: o.lang, items: items, total: 10, level: AP_LEVEL.NAMES[apTestLevel] || '' });
 }
 // the boy must choose his level (Easy / Medium / Hard / Mixed) before a timed &amp; submitted Spot Test is drawn
 // (this app has one test level for the Generate Test / AP Spot Test panel: apTestLevel, set with setApTestLevel; sc is kept for the shared call shape)
@@ -31427,7 +31459,7 @@ function apttLevel(sc, run) {
   var d = document.getElementById('aptt-lvask'); if (d) d.remove();
   d = document.createElement('div'); d.id = 'aptt-lvask';
   d.innerHTML = '<div class=&quot;aptt-lvbox&quot; role=&quot;dialog&quot; aria-modal=&quot;true&quot;><div class=&quot;aptt-lvh&quot;>Choose your level</div>'
-    + '<div class=&quot;aptt-lvs&quot;><b class="aptt-lvm">Leave it on Mixed unless AP has told you otherwise.</b><br>Your level is printed in big letters at the top of your PDF.</div><div class=&quot;aptt-lvb&quot;>'
+    + '<div class=&quot;aptt-lvs&quot;><b class=&quot;aptt-lvm&quot;>Leave it on Mixed unless AP has told you otherwise.</b><br>Your level is printed in big letters at the top of your PDF.</div><div class=&quot;aptt-lvb&quot;>'
     + ['E', 'M', 'H', 'X'].map(function (v) { return '<button type=&quot;button&quot; data-v=&quot;' + v + '&quot; class=&quot;aptt-lv-' + v + (apTestLevel === v ? ' on' : '') + '&quot;>' + AP_LEVEL.NAMES[v] + '</button>'; }).join('')
     + '</div><button type=&quot;button&quot; class=&quot;aptt-lvx&quot;>Cancel</button></div>';
   d.addEventListener('click', function (e) {
