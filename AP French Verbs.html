@@ -5,7 +5,7 @@
 <script id="ap-update">
 /* AP auto-update: if this copy is older than the published version, reload once with the new one (saved answers are kept) */
 (function () {
-  var B = '6a6f1588ca'; window.AP_BUILD = B;
+  var B = '811a540a87'; window.AP_BUILD = B;
   function check() {
     if (!/^https?:$/.test(location.protocol) || !window.fetch) return;
     var f = decodeURIComponent(location.pathname.split('/').pop() || '');
@@ -1969,6 +1969,18 @@ var APTT = (function () {
     } catch (e) { fb(); }
   }
   function copyLink(name, url, btn) { copyHTML('<a href="' + esc(url) + '">' + esc(name || 'AP test') + '</a>', url, btn); }
+  // the next free code: one more than the highest ST number in tests.txt and in this device's list (starts at ST101)
+  function nextCode(cb) {
+    var hi = 100, add = function (c) { var m = /^ST(\d+)$/i.exec(String(c || '').trim()); if (m) hi = Math.max(hi, +m[1]); };
+    listGet().forEach(function (e) { add(e.c); });
+    cb('ST' + (hi + 1));
+    var base = String(document.baseURI || location.href).replace(/[#?].*$/, '').replace(/[^\/]*$/, '');
+    if (!window.fetch || !/^https?:/.test(base)) return;
+    fetch(base + 'tests.txt?t=' + Date.now(), { cache: 'no-store' }).then(function (r) { return r.ok ? r.text() : ''; }).then(function (t) {
+      t.split(/\r?\n/).forEach(function (l) { if (l.trim() && l.trim().charAt(0) !== '#') add(l.split('|')[0]); });
+      cb('ST' + (hi + 1));
+    }).catch(function () { });
+  }
   function draws(n) {   // more draws with the teacher's current settings (the same button, run again quietly)
     var out = [], seen = {}, sig = function (its) { return its.map(function (it) { return it.prompt + '\u0001' + it.answer; }).join('\u0002'); };
     seen[sig(S.items)] = 1; out.push(S.items);
@@ -1993,10 +2005,12 @@ var APTT = (function () {
       + '<label>Time limit</label><select id="aptt-mk-s">' + opts + '</select>'
       + '<label>Questions</label><div class="aptt-mkq"><label><input type="radio" name="aptt-mk-q" value="same" checked> Same questions for everyone <small>(you can go through the answers on the board)</small></label>'
       + '<label' + (RUN ? '' : ' class="off"') + '><input type="radio" name="aptt-mk-q" value="draw"' + (RUN ? '' : ' disabled') + '> Each boy gets his own draw <small>(' + VERSIONS + ' different versions from these settings)</small></label></div>'
-      + '<label>Code (optional, for the AP Tests page)</label><input id="aptt-mk-c" type="text" placeholder="e.g. ST101" autocapitalize="characters" maxlength="12">'
+      + '<label>Code (for the AP Tests page: the next free number is filled in)</label><input id="aptt-mk-c" type="text" placeholder="e.g. ST101" autocapitalize="characters" maxlength="12">'
       + '<div class="aptt-mkact"><button type="button" class="aph-btn" onclick="document.getElementById(\'aptt-mk\').remove()">Cancel</button><button type="button" class="aph-btn aph-btn-primary" id="aptt-mk-go">🔑 Make link</button></div>'
       + '<div id="aptt-mk-out"></div></div>';
     document.body.appendChild(d);
+    nextCode(function (c) { var i = $('aptt-mk-c'); if (i && !i.dataset.typed) i.value = c; });
+    $('aptt-mk-c').addEventListener('input', function () { this.dataset.typed = '1'; });
     $('aptt-mk-go').onclick = function () {
       var b = this, q = (d.querySelector('input[name=aptt-mk-q]:checked') || {}).value || 'same', code = $('aptt-mk-c').value.replace(/\s+/g, '').toUpperCase(), name = $('aptt-mk-n').value.trim(), s2 = +$('aptt-mk-s').value;
       b.disabled = true; b.textContent = 'Making…';
@@ -2007,12 +2021,12 @@ var APTT = (function () {
         var link = linkFor(tok), line = (code || 'ST???') + ' | ' + name.replace(/\|/g, '/') + ' | ' + tok;
         listAdd({ n: name, c: code, made: o.made, s: s2, q: q, v: V.length, items: S.items.length, t: plain(S.m.title), lv: S.m.level, app: plain(S.m.app), tok: tok });
         $('aptt-mk-out').innerHTML = '<div class="aptt-mkok">✅ Link made' + (q === 'draw' ? ' (' + V.length + ' versions)' : '') + '. It is also saved in your list on the AP Tests page.</div>'
-          + '<label>Link for OneNote / Teams</label><div class="aptt-mkrow"><div class="aptt-mklink">🔗 <a href="' + esc(link) + '" target="_blank" rel="noopener">' + esc(name || 'AP test') + '</a></div><button type="button" class="aph-btn aph-btn-primary">📋 Copy link</button></div>'
+          + '<label>Link for OneNote / Teams</label><div class="aptt-mkrow"><div class="aptt-mklink">🔗 <a href="' + esc(link) + '" target="_blank" rel="noopener">' + esc((name || 'AP test') + (code ? ' (' + code + ')' : '')) + '</a></div><button type="button" class="aph-btn aph-btn-primary">📋 Copy link</button></div>'
           + '<div class="aptt-mkhint">Pastes as the name above, with the long address hidden inside it. <button type="button" class="aptt-mkplain">Copy the plain address instead</button></div>'
           + '<label>Line for tests.txt (for a code)</label><div class="aptt-mkrow"><input readonly value="' + esc(line) + '"><button type="button" class="aph-btn">📋 Copy line</button></div>'
           + (link.length > 6000 ? '<div class="aptt-mkwarn">This link is very long (' + link.length + ' characters). If OneNote will not take it, use a code instead.</div>' : '');
         var rows = $('aptt-mk-out').querySelectorAll('.aptt-mkrow');
-        rows[0].querySelector('button').onclick = function () { copyLink(name, link, this); };
+        rows[0].querySelector('button').onclick = function () { copyLink(name + (code ? ' (' + code + ')' : ''), link, this); };
         $('aptt-mk-out').querySelector('.aptt-mkplain').onclick = function () { copyText(link, this); };
         rows[1].querySelector('button').onclick = function () { copyText(line, this); };
         b.textContent = '✓ Made'; 
