@@ -3,7 +3,7 @@
 <script id="ap-update">
 /* AP auto-update: if this copy is older than the published version, reload once with the new one (saved answers are kept) */
 (function () {
-  var B = 'ad32b7af74'; window.AP_BUILD = B;
+  var B = '6d043610fa'; window.AP_BUILD = B;
   function check() {
     if (!/^https?:$/.test(location.protocol) || !window.fetch) return;
     var f = decodeURIComponent(location.pathname.split('/').pop() || '');
@@ -2951,17 +2951,17 @@ var APTT = (function () {
   function noun(n) { var sen = S.items.every(function (it) { return it.kind === 'sentence'; }); return (sen ? 'sentence' : 'item') + (n === 1 ? '' : 's'); }
   function Noun(n) { var s = noun(n); return s.charAt(0).toUpperCase() + s.slice(1); }
   function nWords(h) { return String(h || '').replace(/<[^>]+>/g, ' ').replace(/&[a-z#0-9]+;/gi, ' ').replace(/[(),;:!?.«»"]/g, ' ').split(/\s+/).filter(function (w) { return w && w !== '/' && w !== '-'; }).length; }
-  // AP's timings (08/10/2026), per test type for its default size; a bigger or smaller test scales with its number of items.
-  // Seconds per item: verbs, Spanish vocab, IGCSE Vocab EWs 12 (15 items = 3 min) · IGCSE Gr EWs 18 (15 = 4½) · VVs 16 (15 = 4) ·
-  // VV sentence drills 27 (10 = 4½) · A Level Gr EWs 27 (10 = 4½) · A Level Grammar 24 (10 = 4) · Vocab Essentials: vocab 12 (15 = 3), sentences 16 (15 = 4) ·
-  // Oral Phrase Bank, Metalanguage 16 (15 = 4) · AP Structures 18 (15 = 4½), practice sentences 20 (15 = 5) · Approved Material 27 (10 = 4½),
-  // practice sentences 24 (10 = 4) · KTRs 24 (10 = 4). Anything else: 20 a word item, 24 a sentence. Rounded up to 30 s, at least 2 min.
-  var RATE = { conj: 12, it: 12, spot: 12, sv: 12, voc: 12, gg: 18, vv: 16, sd: 27, grews: 27, gr: 24, opb: 16, mlf: 16, ktr: 24 };
+  // AP's timings (08/10/2026, long-sentence tests made shorter so every boy can finish), per test type for its default size;
+  // a bigger or smaller test scales with its number of items. Seconds per item: verbs, Spanish vocab, IGCSE Vocab EWs, Vocab Essentials vocab 12
+  // (15 = 3 min) · IGCSE Gr EWs 18 (15 = 4½) · VVs 16 (15 = 4) · Oral Phrase Bank, Metalanguage 20 (15 = 5) · Vocab Essentials sentences 20 (15 = 5) ·
+  // VV sentence drills 30 (10 = 5) · A Level Gr EWs 27 (10 = 4½) · A Level Grammar 24 (10 = 4) · AP Structures 27 (10 = 4½), practice sentences 30 (10 = 5) ·
+  // Approved Material 54 (5 = 4½), practice sentences 48 (5 = 4) · KTRs 48 (5 = 4). Anything else: 20 a word item, 24 a sentence. Rounded up to 30 s, at least 2 min.
+  var RATE = { conj: 12, it: 12, spot: 12, sv: 12, voc: 12, gg: 18, vv: 16, sd: 30, grews: 27, gr: 24, opb: 20, mlf: 20, ktr: 48 };
   function rate(it) {
     var id = String(S.m.srcId || S.m.id || ''), k = id.split('|')[0];
-    if (k === 'ig') return /\|vocab\|/.test(id) ? 12 : 16;
-    if (k === 'ms') return it.kind === 'sentence' ? 20 : 18;
-    if (k === 'am') return /^am\|ps\|/.test(id) ? 24 : 27;
+    if (k === 'ig') return /\|vocab\|/.test(id) ? 12 : 20;
+    if (k === 'ms') return it.kind === 'sentence' ? 30 : 27;
+    if (k === 'am') return /^am\|ps\|/.test(id) ? 48 : 54;
     return RATE[k] || (it.kind === 'sentence' ? 24 : 20);
   }
   function limit() { if (S.m.set && S.m.set.secs) return S.m.set.secs; var t = 0; S.items.forEach(function (it) { t += rate(it); }); return Math.max(120, Math.ceil(t / 30) * 30); }
@@ -6434,7 +6434,7 @@ function ocOpenSpotTestPDF(btn, isTeacherNum) {
 
 // ── AP Spot Test ───────────────────────────────────────────────
 var apSpotRows=[], apSpotLabel='', apSpotQFlag='', apSpotAFlag='';
-var _apItemsPerQ = apSpotLoadPer('apSpotPer_ktr', 2); // default: 2 items per box (remembered on this device)
+var _apItemsPerQ = apSpotLoadPer('apSpotPer_ktr', 1); // default: 1 item per box (5 KTRs: long sentences) (remembered on this device)
 
 function setAPItems(n) {
   _apItemsPerQ = n; apSpotSavePer('apSpotPer_ktr', n);
