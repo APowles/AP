@@ -3,7 +3,7 @@
 <script id="ap-update">
 /* AP auto-update: if this copy is older than the published version, reload once with the new one (saved answers are kept) */
 (function () {
-  var B = '2a3dd00a1e'; window.AP_BUILD = B;
+  var B = '538f1ffbfb'; window.AP_BUILD = B;
   function check() {
     if (!/^https?:$/.test(location.protocol) || !window.fetch) return;
     var f = decodeURIComponent(location.pathname.split('/').pop() || '');
@@ -2182,7 +2182,10 @@ var APTT = (function () {
   }
   function norm(it) { return { prompt: String(it.prompt == null ? '' : it.prompt), answer: String(it.answer == null ? '' : it.answer), kind: it.kind === 'sentence' ? 'sentence' : 'word', label: it.label ? String(it.label) : '', html: !!it.html }; }
   function show(it, f) { return it.html ? it[f] : esc(it[f]); }
-  function maxOf(it) { return it.kind === 'sentence' ? 4 : 2; }
+  // marked out of 4 (Perfect … Nothing right): sentences, and any answer longer than two words (phrases, AP Structures…);
+  // out of 2 (Right / Nearly / Wrong): single words (with their article) and verb forms
+  function big(it) { return it.big != null ? !!it.big : it.kind === 'sentence'; }
+  function maxOf(it) { return big(it) ? 4 : 2; }
   function val() { return (S.m.total || 10) / S.items.length; }
   function noun(n) { var sen = S.items.every(function (it) { return it.kind === 'sentence'; }); return (sen ? 'sentence' : 'item') + (n === 1 ? '' : 's'); }
   function Noun(n) { var s = noun(n); return s.charAt(0).toUpperCase() + s.slice(1); }
@@ -2213,6 +2216,8 @@ var APTT = (function () {
     if (!o || !o.items || !o.items.length || typeof APPEN === 'undefined' || typeof APMP === 'undefined') return;
     var items = o.items.map(norm);
     var m = { id: String(o.id || ''), app: o.app || '', kicker: o.kicker || '', title: o.title || '', meta: o.meta || '', detail: o.detail || '', lang: o.lang || '', code: o.langCode || LCODE[o.lang] || '', total: +o.total || 10, level: o.level || '', set: o.set || null };
+    var src = String((o.set && o.set.src) || m.id || '').split('|')[0], VERB = { conj: 1, it: 1, spot: 1 };
+    items.forEach(function (it) { it.big = it.kind === 'sentence' || (!VERB[src] && nWords(it.answer) > 2); });
     if (window.APTT.capturing) { window.APTT.capturing.push({ m: m, items: items }); return; }   // 🔑 making a test link: another draw, not opened
     RUN = o.set ? null : (window.APTT.lastRun || null); window.APTT.lastRun = null;
     var sel = h32(m.app + '|' + m.id), key = 'aptt' + sel + h32(items.map(function (it) { return it.prompt + '\u0001' + it.answer; }).sort().join('\u0002'));
@@ -2267,14 +2272,14 @@ var APTT = (function () {
 
   // ── screen ──
   function legend() {
-    var w = S.items.some(function (it) { return it.kind === 'word'; }), s = S.items.some(function (it) { return it.kind === 'sentence'; });
+    var w = S.items.some(function (it) { return !big(it); }), s = S.items.some(big);
     return '<div class="aptt-lh">How to mark yourself' + (S.mode === 'timed' ? ': you have ' + dur(markLimit()) : '') + '</div><b>Mark each answer in red</b>: compare it with the correct one, word by word, and <b>underline your errors</b> (or put a <b>tick</b> if it is perfect). Then tap the mark that fits. You cannot choose a mark until there is red on your answer:'
-      + (w ? '<div class="aptt-lrow">' + (s ? '<span><i>Words and phrases:</i></span>' : '') + '<span><b>2</b> Right (a tiny slip like a missing accent is OK)</span><span><b>1</b> Nearly</span><span><b>0</b> Wrong</span></div>' : '')
-      + (s ? '<div class="aptt-lrow">' + (w ? '<span><i>Sentences:</i></span>' : '') + '<span><b>4</b> Perfect (a tiny slip like a missing accent is OK)</span><span><b>3</b> Mostly right: more right than wrong</span><span><b>2</b> About half right</span><span><b>1</b> Only a word or two right</span><span><b>0</b> Nothing right</span></div>' : '')
+      + (w ? '<div class="aptt-lrow">' + (s ? '<span><i>Single words and verb forms:</i></span>' : '') + '<span><b>2</b> Right (a tiny slip like a missing accent is OK)</span><span><b>1</b> Nearly</span><span><b>0</b> Wrong</span></div>' : '')
+      + (s ? '<div class="aptt-lrow">' + (w ? '<span><i>Phrases and sentences:</i></span>' : '') + '<span><b>4</b> Perfect (a tiny slip like a missing accent is OK)</span><span><b>3</b> Mostly right: more right than wrong</span><span><b>2</b> About half right</span><span><b>1</b> Only a word or two right</span><span><b>0</b> Nothing right</span></div>' : '')
       + 'Each ' + noun(1) + ' is worth ' + r1(val()) + ' of the ' + (S.m.total || 10) + ' marks.' + (S.mode === 'timed' ? ' Anything you have not marked when the marking time runs out scores 0.' : '');
   }
   function row(it, i) {
-    var n = i + 1, m = S.marks[i], W = it.kind === 'sentence' ? MARKS : MARKW, vs = it.kind === 'sentence' ? [4, 3, 2, 1, 0] : [2, 1, 0];
+    var n = i + 1, m = S.marks[i], W = big(it) ? MARKS : MARKW, vs = big(it) ? [4, 3, 2, 1, 0] : [2, 1, 0];
     var mk = vs.map(function (v) { return '<button type="button" class="aptt-mb' + (m === v ? ' on' : '') + '" data-n="' + n + '" data-v="' + v + '" aria-pressed="' + (m === v) + '" title="' + v + ': ' + W[v] + '"' + (S.markDone ? ' disabled' : '') + '><b>' + v + '</b><span>' + W[v] + '</span></button>'; }).join('');
     return '<div class="aptt-item" id="aptt-it-' + n + '" data-n="' + n + '" data-kind="' + it.kind + '"><div class="aptt-ih"><span class="aptt-n">' + n + '</span><div class="aptt-ib">'
       + (it.label ? '<div class="aptt-chip">' + (it.html ? it.label : esc(it.label)) + '</div>' : '') + '<div class="aptt-q">' + show(it, 'prompt') + '</div></div></div>'
@@ -2529,7 +2534,7 @@ var APTT = (function () {
           rows: [['Your answer', APPEN.pdf(S.key + ':' + (i + 1)) || APMP.answer(''), 'mine'], ['Answer', '<span class="aptt-pa">' + show(it, 'answer') + '</span>', 'ms']] });
       };
       var learn = APPEN.pdf(S.key + ':learn');
-      var w = S.items.some(function (it) { return it.kind === 'word'; }), s = S.items.some(function (it) { return it.kind === 'sentence'; });
+      var w = S.items.some(function (it) { return !big(it); }), s = S.items.some(big);
       var body = '<style>' + APPEN.PDF_CSS
         + '.aptt-plab{display:inline-block;font-size:8pt;font-weight:500;font-style:italic;color:#4a5a7a;background:#f7f3e8;border:1px solid #e6d8ad;border-radius:3mm;padding:0 2mm;margin-right:1mm}'
         + '.aptt-on b{color:#c0392b!important}.aptt-pa{color:#1a2744}.aptt-plegend{font-size:8.5pt;color:#4a5a7a;margin:0 0 2mm}.aptt-plegend b{color:#1a2744}</style>'
@@ -2759,11 +2764,11 @@ var APTT = (function () {
     var V = o.V || [], k = o.q === 'draw' ? Math.floor(Math.random() * V.length) : 0, its = V[k] || [];
     open({ id: 'set|' + (code || o.c || h32(o.tok || '')) + '|' + (o.q || 'same'), app: o.a, kicker: o.k, title: o.t, meta: o.m, detail: o.d, lang: o.l, langCode: o.lc, level: o.lv, total: 10,
       items: its.map(function (r) { return { prompt: r[0], answer: r[1], kind: r[2] ? 'sentence' : 'word', label: r[3], html: !!r[4] }; }),
-      set: { code: code || o.c || '', secs: +o.s || 0, name: o.n || '', q: o.q, ver: k + 1, of: V.length } });
+      set: { src: o.id || '', code: code || o.c || '', secs: +o.s || 0, name: o.n || '', q: o.q, ver: k + 1, of: V.length } });
   }
   // pen-up anywhere ends a stroke (the automatic lock waits for it)
   try { ['pointerup', 'pointercancel'].forEach(function (t) { document.addEventListener(t, function () { PEN = false; }, true); }); } catch (e) { }
-  return { open: open, close: close, mode: mode, lock: lock, show: showAns, mark: mark, next: next, verbDetail: verbDetail, pdf: pdf, teacher: teacher, maker: maker, openSet: openSet, inProgress: inProgress, resume: resume, copyLink: copyLink, copyHTML: copyHTML, checkGit: checkGit, ghRemove: ghRemove, catOf: catOf, CATS: CATS, unpack: unpack, checkKey: checkKey, list: listGet, linkFor: linkFor, copy: copyText, lastRun: null, capturing: null, LABEL: LBL, state: function () { return S; } };
+  return { open: open, close: close, mode: mode, lock: lock, show: showAns, mark: mark, next: next, verbDetail: verbDetail, pdf: pdf, teacher: teacher, maker: maker, openSet: openSet, inProgress: inProgress, resume: resume, copyLink: copyLink, copyHTML: copyHTML, checkGit: checkGit, ghRemove: ghRemove, bigOf: function (answer, kind, srcId) { return kind === 'sentence' || (!{ conj: 1, it: 1, spot: 1 }[String(srcId || '').split('|')[0]] && nWords(answer) > 2); }, catOf: catOf, CATS: CATS, unpack: unpack, checkKey: checkKey, list: listGet, linkFor: linkFor, copy: copyText, lastRun: null, capturing: null, LABEL: LBL, state: function () { return S; } };
 })();
 /* ===== END AP TIMED TEST ===== */
 </script>
@@ -31342,7 +31347,10 @@ var APTT = (function () {
   }
   function norm(it) { return { prompt: String(it.prompt == null ? '' : it.prompt), answer: String(it.answer == null ? '' : it.answer), kind: it.kind === 'sentence' ? 'sentence' : 'word', label: it.label ? String(it.label) : '', html: !!it.html }; }
   function show(it, f) { return it.html ? it[f] : esc(it[f]); }
-  function maxOf(it) { return it.kind === 'sentence' ? 4 : 2; }
+  // marked out of 4 (Perfect … Nothing right): sentences, and any answer longer than two words (phrases, AP Structures…);
+  // out of 2 (Right / Nearly / Wrong): single words (with their article) and verb forms
+  function big(it) { return it.big != null ? !!it.big : it.kind === 'sentence'; }
+  function maxOf(it) { return big(it) ? 4 : 2; }
   function val() { return (S.m.total || 10) / S.items.length; }
   function noun(n) { var sen = S.items.every(function (it) { return it.kind === 'sentence'; }); return (sen ? 'sentence' : 'item') + (n === 1 ? '' : 's'); }
   function Noun(n) { var s = noun(n); return s.charAt(0).toUpperCase() + s.slice(1); }
@@ -31373,6 +31381,8 @@ var APTT = (function () {
     if (!o || !o.items || !o.items.length || typeof APPEN === 'undefined' || typeof APMP === 'undefined') return;
     var items = o.items.map(norm);
     var m = { id: String(o.id || ''), app: o.app || '', kicker: o.kicker || '', title: o.title || '', meta: o.meta || '', detail: o.detail || '', lang: o.lang || '', code: o.langCode || LCODE[o.lang] || '', total: +o.total || 10, level: o.level || '', set: o.set || null };
+    var src = String((o.set &amp;&amp; o.set.src) || m.id || '').split('|')[0], VERB = { conj: 1, it: 1, spot: 1 };
+    items.forEach(function (it) { it.big = it.kind === 'sentence' || (!VERB[src] &amp;&amp; nWords(it.answer) > 2); });
     if (window.APTT.capturing) { window.APTT.capturing.push({ m: m, items: items }); return; }   // 🔑 making a test link: another draw, not opened
     RUN = o.set ? null : (window.APTT.lastRun || null); window.APTT.lastRun = null;
     var sel = h32(m.app + '|' + m.id), key = 'aptt' + sel + h32(items.map(function (it) { return it.prompt + '\u0001' + it.answer; }).sort().join('\u0002'));
@@ -31427,14 +31437,14 @@ var APTT = (function () {
 
   // ── screen ──
   function legend() {
-    var w = S.items.some(function (it) { return it.kind === 'word'; }), s = S.items.some(function (it) { return it.kind === 'sentence'; });
+    var w = S.items.some(function (it) { return !big(it); }), s = S.items.some(big);
     return '<div class=&quot;aptt-lh&quot;>How to mark yourself' + (S.mode === 'timed' ? ': you have ' + dur(markLimit()) : '') + '</div><b>Mark each answer in red</b>: compare it with the correct one, word by word, and <b>underline your errors</b> (or put a <b>tick</b> if it is perfect). Then tap the mark that fits. You cannot choose a mark until there is red on your answer:'
-      + (w ? '<div class=&quot;aptt-lrow&quot;>' + (s ? '<span><i>Words and phrases:</i></span>' : '') + '<span><b>2</b> Right (a tiny slip like a missing accent is OK)</span><span><b>1</b> Nearly</span><span><b>0</b> Wrong</span></div>' : '')
-      + (s ? '<div class=&quot;aptt-lrow&quot;>' + (w ? '<span><i>Sentences:</i></span>' : '') + '<span><b>4</b> Perfect (a tiny slip like a missing accent is OK)</span><span><b>3</b> Mostly right: more right than wrong</span><span><b>2</b> About half right</span><span><b>1</b> Only a word or two right</span><span><b>0</b> Nothing right</span></div>' : '')
+      + (w ? '<div class=&quot;aptt-lrow&quot;>' + (s ? '<span><i>Single words and verb forms:</i></span>' : '') + '<span><b>2</b> Right (a tiny slip like a missing accent is OK)</span><span><b>1</b> Nearly</span><span><b>0</b> Wrong</span></div>' : '')
+      + (s ? '<div class=&quot;aptt-lrow&quot;>' + (w ? '<span><i>Phrases and sentences:</i></span>' : '') + '<span><b>4</b> Perfect (a tiny slip like a missing accent is OK)</span><span><b>3</b> Mostly right: more right than wrong</span><span><b>2</b> About half right</span><span><b>1</b> Only a word or two right</span><span><b>0</b> Nothing right</span></div>' : '')
       + 'Each ' + noun(1) + ' is worth ' + r1(val()) + ' of the ' + (S.m.total || 10) + ' marks.' + (S.mode === 'timed' ? ' Anything you have not marked when the marking time runs out scores 0.' : '');
   }
   function row(it, i) {
-    var n = i + 1, m = S.marks[i], W = it.kind === 'sentence' ? MARKS : MARKW, vs = it.kind === 'sentence' ? [4, 3, 2, 1, 0] : [2, 1, 0];
+    var n = i + 1, m = S.marks[i], W = big(it) ? MARKS : MARKW, vs = big(it) ? [4, 3, 2, 1, 0] : [2, 1, 0];
     var mk = vs.map(function (v) { return '<button type=&quot;button&quot; class=&quot;aptt-mb' + (m === v ? ' on' : '') + '&quot; data-n=&quot;' + n + '&quot; data-v=&quot;' + v + '&quot; aria-pressed=&quot;' + (m === v) + '&quot; title=&quot;' + v + ': ' + W[v] + '&quot;' + (S.markDone ? ' disabled' : '') + '><b>' + v + '</b><span>' + W[v] + '</span></button>'; }).join('');
     return '<div class=&quot;aptt-item&quot; id=&quot;aptt-it-' + n + '&quot; data-n=&quot;' + n + '&quot; data-kind=&quot;' + it.kind + '&quot;><div class=&quot;aptt-ih&quot;><span class=&quot;aptt-n&quot;>' + n + '</span><div class=&quot;aptt-ib&quot;>'
       + (it.label ? '<div class=&quot;aptt-chip&quot;>' + (it.html ? it.label : esc(it.label)) + '</div>' : '') + '<div class=&quot;aptt-q&quot;>' + show(it, 'prompt') + '</div></div></div>'
@@ -31689,7 +31699,7 @@ var APTT = (function () {
           rows: [['Your answer', APPEN.pdf(S.key + ':' + (i + 1)) || APMP.answer(''), 'mine'], ['Answer', '<span class=&quot;aptt-pa&quot;>' + show(it, 'answer') + '</span>', 'ms']] });
       };
       var learn = APPEN.pdf(S.key + ':learn');
-      var w = S.items.some(function (it) { return it.kind === 'word'; }), s = S.items.some(function (it) { return it.kind === 'sentence'; });
+      var w = S.items.some(function (it) { return !big(it); }), s = S.items.some(big);
       var body = '<style>' + APPEN.PDF_CSS
         + '.aptt-plab{display:inline-block;font-size:8pt;font-weight:500;font-style:italic;color:#4a5a7a;background:#f7f3e8;border:1px solid #e6d8ad;border-radius:3mm;padding:0 2mm;margin-right:1mm}'
         + '.aptt-on b{color:#c0392b!important}.aptt-pa{color:#1a2744}.aptt-plegend{font-size:8.5pt;color:#4a5a7a;margin:0 0 2mm}.aptt-plegend b{color:#1a2744}</style>'
@@ -31919,11 +31929,11 @@ var APTT = (function () {
     var V = o.V || [], k = o.q === 'draw' ? Math.floor(Math.random() * V.length) : 0, its = V[k] || [];
     open({ id: 'set|' + (code || o.c || h32(o.tok || '')) + '|' + (o.q || 'same'), app: o.a, kicker: o.k, title: o.t, meta: o.m, detail: o.d, lang: o.l, langCode: o.lc, level: o.lv, total: 10,
       items: its.map(function (r) { return { prompt: r[0], answer: r[1], kind: r[2] ? 'sentence' : 'word', label: r[3], html: !!r[4] }; }),
-      set: { code: code || o.c || '', secs: +o.s || 0, name: o.n || '', q: o.q, ver: k + 1, of: V.length } });
+      set: { src: o.id || '', code: code || o.c || '', secs: +o.s || 0, name: o.n || '', q: o.q, ver: k + 1, of: V.length } });
   }
   // pen-up anywhere ends a stroke (the automatic lock waits for it)
   try { ['pointerup', 'pointercancel'].forEach(function (t) { document.addEventListener(t, function () { PEN = false; }, true); }); } catch (e) { }
-  return { open: open, close: close, mode: mode, lock: lock, show: showAns, mark: mark, next: next, verbDetail: verbDetail, pdf: pdf, teacher: teacher, maker: maker, openSet: openSet, inProgress: inProgress, resume: resume, copyLink: copyLink, copyHTML: copyHTML, checkGit: checkGit, ghRemove: ghRemove, catOf: catOf, CATS: CATS, unpack: unpack, checkKey: checkKey, list: listGet, linkFor: linkFor, copy: copyText, lastRun: null, capturing: null, LABEL: LBL, state: function () { return S; } };
+  return { open: open, close: close, mode: mode, lock: lock, show: showAns, mark: mark, next: next, verbDetail: verbDetail, pdf: pdf, teacher: teacher, maker: maker, openSet: openSet, inProgress: inProgress, resume: resume, copyLink: copyLink, copyHTML: copyHTML, checkGit: checkGit, ghRemove: ghRemove, bigOf: function (answer, kind, srcId) { return kind === 'sentence' || (!{ conj: 1, it: 1, spot: 1 }[String(srcId || '').split('|')[0]] &amp;&amp; nWords(answer) > 2); }, catOf: catOf, CATS: CATS, unpack: unpack, checkKey: checkKey, list: listGet, linkFor: linkFor, copy: copyText, lastRun: null, capturing: null, LABEL: LBL, state: function () { return S; } };
 })();
 /* ===== END AP TIMED TEST ===== */
 </script>
