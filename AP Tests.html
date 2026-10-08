@@ -5,7 +5,7 @@
 <script id="ap-update">
 /* AP auto-update: if this copy is older than the published version, reload once with the new one (saved answers are kept) */
 (function () {
-  var B = '5cba03e65f'; window.AP_BUILD = B;
+  var B = '604322f8b8'; window.AP_BUILD = B;
   function check() {
     if (!/^https?:$/.test(location.protocol) || !window.fetch) return;
     var f = decodeURIComponent(location.pathname.split('/').pop() || '');
@@ -1903,12 +1903,54 @@ function aptItem(e) {
     + '<button class="aph-btn aph-btn-primary" type="button" onclick="aptCopyLink(' + i + ',this)">📋 Copy link</button>'
     + (e.c ? '<button class="aph-btn" type="button" onclick="APTT.copy(\'' + aptEsc(e.c) + '\',this)">📋 Copy code</button>' : '')
     + '<button class="aph-btn" type="button" onclick="aptTry(' + i + ')">▶ Try it</button>'
+    + (e.o ? '<button class="aph-btn" type="button" onclick="aptPrintAsk(' + i + ')">🖨 Print</button>' : '')
     + (e.local != null ? '<button class="aph-btn" type="button" title="Line for tests.txt" onclick="aptCopyLine(' + i + ',this)">📋 Line</button><button class="aph-btn" type="button" title="Remove from this device\'s list" onclick="aptDel(' + e.local + ')">🗑</button>' : '')
     + (e.site && aptGit() ? '<button class="aph-btn" type="button" title="Delete this test" onclick="aptDelSite(' + i + ',this)">🗑 Delete</button>' : '')
     + '</div></div>';
 }
 function aptCopyLink(i, btn) { var e = APT_LIB[i]; APTT.copyLink(aptLinkName(e), APTT.linkFor(e.tok), btn); }
 function aptCopyLine(i, btn) { var e = APT_LIB[i]; APTT.copy((e.c || 'ST???') + ' | ' + String(e.n || '').replace(/\|/g, '/') + ' | ' + (e.cat || '') + ' | ' + (e.f || '') + ' | ' + e.tok, btn); }
+// 🖨 a paper copy for a boy without an iPad: student sheet (questions + lines) and/or answer sheet
+function aptPrintAsk(i) {
+  var e = APT_LIB[i], o = e.o, n = (o.V || []).length, d = document.getElementById('apt-pr'); if (d) d.remove();
+  d = document.createElement('div'); d.id = 'apt-pr'; d.className = 'aptt-mk';
+  d.innerHTML = '<div class="aptt-mkbox" role="dialog" aria-modal="true"><div class="aptt-mkh">🖨 Print a paper copy</div><div class="aptt-mks">' + aptEsc(aptLinkName(e)) + '</div>'
+    + (n > 1 ? '<label>Version (this test has ' + n + ' different draws)</label><select id="apt-pr-v">' + o.V.map(function (x, k) { return '<option value="' + k + '">Version ' + (k + 1) + '</option>'; }).join('') + '</select>' : '')
+    + '<div class="aptt-mkact" style="justify-content:flex-start;flex-wrap:wrap"><button type="button" class="aph-btn aph-btn-primary" onclick="aptPrint(' + i + ',\'s\')">🖨 Student sheet</button><button type="button" class="aph-btn" onclick="aptPrint(' + i + ',\'a\')">🖨 Answer sheet</button><button type="button" class="aph-btn" onclick="aptPrint(' + i + ',\'b\')">🖨 Both</button><button type="button" class="aph-btn" onclick="document.getElementById(\'apt-pr\').remove()">Cancel</button></div></div>';
+  document.body.appendChild(d);
+}
+function aptSheet(e, k, ans) {
+  var o = e.o, its = (o.V || [])[k] || [], n = (o.V || []).length, mins = o.s ? (o.s % 60 ? Math.floor(o.s / 60) + '½' : o.s / 60) : '';
+  var sen = its.some(function (r) { return r[2]; }), wrd = its.some(function (r) { return !r[2]; });
+  var show = function (r, x) { return r[4] ? r[x] : aptEsc(r[x]); };
+  var head = aphPrintHead({ kicker: 'AP Tests &middot; ' + (e.c ? 'SET BY AP: ' + aptEsc(e.c) : 'Set by AP') + (n > 1 ? ' &middot; Version ' + (k + 1) : '') + (ans ? ' &middot; ANSWER SHEET' : ''),
+    title: 'AP Spot Test &mdash; <em>' + (o.t || '') + '</em>', meta: [o.lv ? 'Level: ' + aptEsc(o.lv) : '', its.length + ' ' + (sen && !wrd ? 'sentences' : 'items'), mins ? '⏱ ' + mins + ' minutes (+30 s)' : '', o.l ? 'Answers in ' + aptEsc(o.l) : ''].filter(Boolean).join(' &middot; '), total: 10, print: false });
+  var leg = '<div class="apr-leg">' + (ans ? 'Mark each answer: ' : 'Write your answers in black. When AP says, mark them in red: ') + (wrd ? '<b>2</b> right · <b>1</b> nearly · <b>0</b> wrong' : '') + (wrd && sen ? ' (words) &middot; ' : '') + (sen ? '<b>4</b> perfect · <b>3</b> mostly right · <b>2</b> about half right · <b>1</b> a word or two right · <b>0</b> nothing right' + (wrd ? ' (sentences)' : '') : '') + '. Score out of 10.</div>';
+  var rows = its.map(function (r, j) {
+    return '<div class="apr-it"><span class="apr-n">' + (j + 1) + '</span><div class="apr-b">' + (r[3] ? '<div class="apr-chip">' + show(r, 3) + '</div>' : '') + '<div class="apr-q">' + show(r, 0) + '</div>'
+      + (ans ? '<div class="apr-a">' + show(r, 1) + '</div>' : '<div class="apr-l"></div>' + (r[2] ? '<div class="apr-l"></div>' : '')) + '</div><span class="apr-mk">/ ' + (r[2] ? 4 : 2) + '</span></div>';
+  }).join('');
+  return '<section class="apr-sheet">' + head + (o.d ? '<div class="apr-d">' + o.d + '</div>' : '') + leg + rows + aphPrintFoot('AP Tests &middot; ' + aptEsc(aptLinkName(e)) + (ans ? ' &middot; Answer sheet' : ' &middot; Student sheet')) + '</section>';
+}
+function aptPrint(i, what) {
+  var e = APT_LIB[i], v = document.getElementById('apt-pr-v'), k = v ? +v.value : 0;
+  var body = (what !== 'a' ? aptSheet(e, k, false) : '') + (what !== 's' ? aptSheet(e, k, true) : '');
+  var css = '@page{size:A4;margin:12mm}body{margin:0;font-family:var(--aph-body);color:#1a2744;-webkit-print-color-adjust:exact;print-color-adjust:exact}.apr-sheet{max-width:186mm;margin:0 auto;padding:6mm 0}.apr-sheet+.apr-sheet{break-before:page;page-break-before:always}'
+    + '.apr-d{font-size:9pt;color:#c0392b;font-weight:600;margin:3mm 0 1mm}.apr-leg{font-size:9pt;color:#4a5a7a;margin:3mm 0 4mm}.apr-leg b{color:#1a2744}'
+    + '.apr-it{display:flex;gap:3mm;align-items:flex-start;border-bottom:1px solid #e3e6ee;padding:2.5mm 0;break-inside:avoid;page-break-inside:avoid}.apr-n{flex:none;width:8mm;font-weight:800;color:#a8862e;font-size:11pt}.apr-b{flex:1;min-width:0}'
+    + '.apr-q{font-size:11pt;font-weight:600}.apr-chip{display:inline-block;font-size:8pt;font-style:italic;color:#4a5a7a;background:#f7f3e8;border:1px solid #e6d8ad;border-radius:3mm;padding:0 2mm;margin-bottom:1mm}'
+    + '.apr-l{border-bottom:1px solid #9aa3b8;height:9mm}.apr-a{font-size:11pt;font-weight:700;color:#1e7a46;margin-top:1mm}.apr-mk{flex:none;width:12mm;text-align:right;font-size:9pt;color:#8a93a8;padding-top:1mm}'
+    + '.apr-bar{background:#1a2744;color:#fff;padding:10px 14px;font:600 15px var(--aph-body)}.apr-bar button{margin-left:8px;background:#c9a84c;color:#1a2744;border:0;border-radius:6px;padding:8px 12px;font:700 14px var(--aph-body)}@media print{.apr-bar{display:none}}';
+  var html = '<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>' + aptEsc(aptLinkName(e)) + '</title><style>' + aphCSS() + '</style><style>' + css + '</style></head><body>'
+    + '<div class="apr-bar">🖨 Paper copy &middot; ' + aptEsc(aptLinkName(e)) + '<button onclick="window.print()">🖨 Print</button></div>' + body
+    + '<scr' + 'ipt>window.addEventListener("load",function(){setTimeout(function(){try{window.print()}catch(e){}},400)});</scr' + 'ipt></body></html>';
+  var p = document.getElementById('apt-pr'); if (p) p.remove();
+  var w = null; try { w = window.open('', '_blank'); } catch (x) { }
+  if (w && w.document) { w.document.open(); w.document.write(html); w.document.close(); return; }
+  var ov = document.createElement('div'); ov.className = 'apmp-frame'; ov.innerHTML = '<div class="apmp-frame-bar"><button type="button" class="apmp-btn on-dark">🖨 Print</button><span>Pop-ups are blocked, so the paper copy is shown here.</span><button type="button" class="aph-btn aph-btn-sm">✕ Close</button></div>';
+  var f = document.createElement('iframe'); f.srcdoc = html; ov.appendChild(f); document.body.appendChild(ov);
+  var bs = ov.querySelectorAll('button'); bs[0].onclick = function () { try { f.contentWindow.print(); } catch (x) { } }; bs[1].onclick = function () { ov.remove(); };
+}
 function aptTry(i) { var e = APT_LIB[i]; aptRun(e.tok, e.c || ''); }
 function aptCopyGroup(btn) {   // pastes into OneNote as a tidy list: each test's name is the link
   var c = btn.getAttribute('data-cat'), f = btn.getAttribute('data-f');
