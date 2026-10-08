@@ -5,7 +5,7 @@
 <script id="ap-update">
 /* AP auto-update: if this copy is older than the published version, reload once with the new one (saved answers are kept) */
 (function () {
-  var B = '1beb46c816'; window.AP_BUILD = B;
+  var B = 'd49c9bdb14'; window.AP_BUILD = B;
   function check() {
     if (!/^https?:$/.test(location.protocol) || !window.fetch) return;
     var f = decodeURIComponent(location.pathname.split('/').pop() || '');
@@ -1552,6 +1552,8 @@ html.aptt-open,html.aptt-open body{overflow:hidden}
 .aptt-mklink a{color:#1a56c4;text-decoration:underline}
 .aptt-mkhint{font-size:.8125rem;color:var(--text2);margin-top:5px}
 .aptt-mkplain{background:none;border:0;padding:0;color:var(--text2);text-decoration:underline;font:inherit;cursor:pointer}
+.aptt-mkgh{margin-top:8px;border-radius:8px;padding:8px 10px;font-weight:700;background:#eef3fb;color:var(--navy)}
+.aptt-mkgh.ok{background:#e6f6ec;color:#14532d}.aptt-mkgh.bad{background:#fdecea;color:#7a1b12}
 .aptt-mkwarn{margin-top:8px;color:#a3001a;font-size:.875rem;font-weight:600}
 .aptt-key-btn{background:#fff;border:1.5px dashed var(--border);color:var(--text2);border-radius:8px;padding:8px 12px;font:600 .875rem/1.2 var(--aph-body);cursor:pointer}
 #aptt-key{position:fixed;inset:0;z-index:14100;background:var(--cream,#f8f6f1);overflow-y:auto;overflow-x:hidden;font-family:var(--aph-body)}
@@ -2070,6 +2072,24 @@ var APTT = (function () {
     } catch (e) { fb(); }
   }
   function copyLink(name, url, btn) { copyHTML('<a href="' + esc(url) + '">' + esc(name || 'AP test') + '</a>', url, btn); }
+  // ── automatic codes: with AP's GitHub key saved on this device (localStorage apGitKey), a new code is added to tests.txt ──
+  var GH = 'https://api.github.com/repos/APowles/AP/contents/tests.txt';
+  function gkey() { return lsGet('apGitKey') || ''; }
+  function ghHead(k) { return { Authorization: 'Bearer ' + (k || gkey()), Accept: 'application/vnd.github+json' }; }
+  function ghGet(k) {   // → { text, sha } of tests.txt as it is on GitHub right now
+    return fetch(GH + '?ref=main&t=' + Date.now(), { headers: ghHead(k), cache: 'no-store' }).then(function (r) { if (!r.ok) throw new Error('GitHub ' + r.status); return r.json(); })
+      .then(function (j) { return { text: new TextDecoder().decode(unb64u(String(j.content || '').replace(/\s+/g, '').replace(/\+/g, '-').replace(/\//g, '_'))), sha: j.sha }; });
+  }
+  function ghAdd(code, line) {
+    return ghGet().then(function (f) {
+      var used = f.text.split(/\r?\n/).some(function (l) { return l.split('|')[0].trim().toUpperCase() === code; });
+      if (used) throw new Error('used');
+      var txt = f.text.replace(/\s*$/, '\n') + line + '\n';
+      return fetch(GH, { method: 'PUT', headers: ghHead(), body: JSON.stringify({ message: 'Test code ' + code, content: btoa(String.fromCharCode.apply(null, Array.from(utf8(txt)))), sha: f.sha, branch: 'main' }) })
+        .then(function (r) { if (!r.ok) throw new Error('GitHub ' + r.status); return true; });
+    });
+  }
+  function checkGit(k) { return ghGet(k).then(function () { return true; }).catch(function () { return false; }); }
   // code prefix by language: STF French, STS Spanish, STI Italian (the language of the answers, or of the test if the answers are English)
   function langLetter() {
     var L = { French: 'F', Spanish: 'S', Italian: 'I' }[S.m.lang];
@@ -2085,8 +2105,8 @@ var APTT = (function () {
     listGet().forEach(function (e) { add(e.c); });
     cb(P + (hi + 1));
     var base = String(document.baseURI || location.href).replace(/[#?].*$/, '').replace(/[^\/]*$/, '');
-    if (!window.fetch || !/^https?:/.test(base)) return;
-    fetch(base + 'tests.txt?t=' + Date.now(), { cache: 'no-store' }).then(function (r) { return r.ok ? r.text() : ''; }).then(function (t) {
+    if (!window.fetch) return;
+    (gkey() ? ghGet().then(function (f) { return f.text; }) : /^https?:/.test(base) ? fetch(base + 'tests.txt?t=' + Date.now(), { cache: 'no-store' }).then(function (r) { return r.ok ? r.text() : ''; }) : Promise.resolve('')).then(function (t) {
       t.split(/\r?\n/).forEach(function (l) { if (l.trim() && l.trim().charAt(0) !== '#') add(l.split('|')[0]); });
       cb(P + (hi + 1));
     }).catch(function () { });
@@ -2115,7 +2135,7 @@ var APTT = (function () {
       + '<label>Time limit</label><select id="aptt-mk-s">' + opts + '</select>'
       + '<label>Questions</label><div class="aptt-mkq"><label><input type="radio" name="aptt-mk-q" value="same" checked> Same questions for everyone <small>(you can go through the answers on the board)</small></label>'
       + '<label' + (RUN ? '' : ' class="off"') + '><input type="radio" name="aptt-mk-q" value="draw"' + (RUN ? '' : ' disabled') + '> Each boy gets his own draw <small>(' + VERSIONS + ' different versions from these settings)</small></label></div>'
-      + '<label>Code (for the AP Tests page: the next free number is filled in)</label><input id="aptt-mk-c" type="text" placeholder="e.g. STF101" autocapitalize="characters" maxlength="12">'
+      + '<label>Code (for the AP Tests page: the next free number is filled in' + (gkey() ? '; it is added automatically' : '') + ')</label><input id="aptt-mk-c" type="text" placeholder="e.g. STF101" autocapitalize="characters" maxlength="12">'
       + '<div class="aptt-mkact"><button type="button" class="aph-btn" onclick="document.getElementById(\'aptt-mk\').remove()">Cancel</button><button type="button" class="aph-btn aph-btn-primary" id="aptt-mk-go">🔑 Make link</button></div>'
       + '<div id="aptt-mk-out"></div></div>';
     document.body.appendChild(d);
@@ -2139,7 +2159,13 @@ var APTT = (function () {
         rows[0].querySelector('button').onclick = function () { copyLink(name + (code ? ' (' + code + ')' : ''), link, this); };
         $('aptt-mk-out').querySelector('.aptt-mkplain').onclick = function () { copyText(link, this); };
         rows[1].querySelector('button').onclick = function () { copyText(line, this); };
-        b.textContent = '✓ Made'; 
+        b.textContent = '✓ Made';
+        if (code && gkey()) {
+          var st = document.createElement('div'); st.className = 'aptt-mkgh'; st.textContent = '⏳ Adding code ' + code + ' to the AP Tests page…';
+          $('aptt-mk-out').insertBefore(st, $('aptt-mk-out').children[1]);
+          ghAdd(code, line).then(function () { st.className = 'aptt-mkgh ok'; st.innerHTML = '✅ Code <b>' + esc(code) + '</b> added. Boys can type it on the AP Tests page in about a minute.'; })
+            .catch(function (e) { st.className = 'aptt-mkgh bad'; st.innerHTML = e && e.message === 'used' ? '⚠️ Code <b>' + esc(code) + '</b> is already taken. Change the code and make the link again.' : '⚠️ The code could not be added automatically (' + esc(e && e.message || e) + '). Use Copy line and paste it into tests.txt.'; });
+        }
       }).catch(function (e) { b.disabled = false; b.textContent = '🔑 Make link'; alert('Sorry, the link could not be made (' + (e && e.message || e) + '). Is your teacher key set on this device?'); });
     };
   }
@@ -2152,7 +2178,7 @@ var APTT = (function () {
   }
   // pen-up anywhere ends a stroke (the automatic lock waits for it)
   try { ['pointerup', 'pointercancel'].forEach(function (t) { document.addEventListener(t, function () { PEN = false; }, true); }); } catch (e) { }
-  return { open: open, close: close, mode: mode, lock: lock, show: showAns, mark: mark, next: next, verbDetail: verbDetail, pdf: pdf, teacher: teacher, maker: maker, openSet: openSet, copyLink: copyLink, copyHTML: copyHTML, unpack: unpack, checkKey: checkKey, list: listGet, linkFor: linkFor, copy: copyText, lastRun: null, capturing: null, LABEL: LBL, state: function () { return S; } };
+  return { open: open, close: close, mode: mode, lock: lock, show: showAns, mark: mark, next: next, verbDetail: verbDetail, pdf: pdf, teacher: teacher, maker: maker, openSet: openSet, copyLink: copyLink, copyHTML: copyHTML, checkGit: checkGit, unpack: unpack, checkKey: checkKey, list: listGet, linkFor: linkFor, copy: copyText, lastRun: null, capturing: null, LABEL: LBL, state: function () { return S; } };
 })();
 /* ===== END AP TIMED TEST ===== */
 </script>
