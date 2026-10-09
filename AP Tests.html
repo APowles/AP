@@ -498,6 +498,7 @@ body{background:var(--cream);margin:0}
 .apt-it-m{font-size:.8125rem;color:var(--text2);margin:3px 0 6px}
 .apt-it .aph-btn{font-size:.8125rem;padding:6px 10px;min-height:34px}
 .apt-search{margin:4px 0 12px}
+.apt-demo-box{background:#fff4c2;border:3px solid #e0a800;border-radius:14px;padding:10px 12px 4px;margin:6px 0 14px;box-shadow:0 4px 14px rgba(224,168,0,.18)}.apt-demo-box-h{font:900 1rem/1.2 var(--aph-body);color:#7a4b00;margin:0 0 8px;letter-spacing:.02em}.apt-demo-box .apt-it{background:#fff;border-color:#e8c766}
 .apt-course{font:800 1.0625rem/1.2 var(--aph-body);color:var(--navy);margin:18px 0 6px;padding-bottom:4px;border-bottom:3px solid var(--gold)}
 .apt-type{border:1px solid var(--border);border-radius:10px;margin:0 0 8px;background:#fbfaf6}
 .apt-type>summary{cursor:pointer;list-style:none;display:flex;justify-content:space-between;align-items:center;padding:10px 12px;font-weight:800;color:var(--navy)}
@@ -2137,8 +2138,10 @@ function aptLibDraw() {
   var box = document.getElementById('apt-lib'); if (!box || !APT_LIB) return;
   var q = (document.getElementById('apt-q') || {}).value || ''; q = q.trim().toLowerCase();
   var L = APT_LIB.filter(function (e) { return !q || [e.c, e.n, e.cat, e.f, aptPlain(e.t), e.lv].join(' ').toLowerCase().indexOf(q) >= 0; });
+  var demo = L.filter(function (e) { return e.builtin; }); L = L.filter(function (e) { return !e.builtin; });   // the demo always sits on its own at the top
   if (!APT_LIB.length) { box.innerHTML = '<div class="apt-empty">No tests yet.</div>'; return; }
-  if (!L.length) { box.innerHTML = '<div class="apt-empty">No test matches “' + aptEsc(q) + '”.</div>'; return; }
+  var top = demo.length ? '<div class="apt-demo-box"><div class="apt-demo-box-h">⭐ DEMO TEST: for practising the test routine</div>' + demo.map(aptItem).join('') + '</div>' : '';
+  if (!L.length) { box.innerHTML = top + (demo.length && !q ? '' : '<div class="apt-empty">No test matches “' + aptEsc(q) + '”.</div>'); return; }
   var order = APTT.CATS, byCat = {};
   L.forEach(function (e) { (byCat[e.cat] = byCat[e.cat] || []).push(e); });
   var cats = Object.keys(byCat).sort(function (a, b) { var i = order.indexOf(a), j = order.indexOf(b); return (i < 0 ? 999 : i) - (j < 0 ? 999 : j) || (a < b ? -1 : 1); });
@@ -2157,7 +2160,7 @@ function aptLibDraw() {
     });
     h += '</details>';
   });
-  box.innerHTML = h;
+  box.innerHTML = top + h;
 }
 function aptItem(e) {
   var i = APT_LIB.indexOf(e);
