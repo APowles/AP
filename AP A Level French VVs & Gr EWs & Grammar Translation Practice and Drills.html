@@ -3,7 +3,7 @@
 <script id="ap-update">
 /* AP auto-update: if this copy is older than the published version, reload once with the new one (saved answers are kept) */
 (function () {
-  var B = 'd32677809d'; window.AP_BUILD = B;
+  var B = 'eb90ffdf50'; window.AP_BUILD = B;
   function check() {
     if (!/^https?:$/.test(location.protocol) || !window.fetch) return;
     var f = decodeURIComponent(location.pathname.split('/').pop() || '');
@@ -1868,6 +1868,116 @@ var APTT = (function () {
   var MARKS = { 4: 'Perfect', 3: 'Mostly right', 2: 'About half right', 1: 'Only a word or two right', 0: 'Nothing right' };
   var LCODE = { French: 'fr', English: 'en', Spanish: 'es', Italian: 'it', German: 'de', Latin: 'la' };
   var S = null, TICK = null, PEN = false, RUN = null;
+  /* ── 🚨 AP TEST GUARD (shared; identical in every AP app with timed tests) ──
+     While a test is being answered (mode chosen, answers not yet locked in), leaving the page — another tab or app, Split View /
+     Slide Over, closing or reloading, or ⌂ Back out of the test — sounds a 3-second siren, shows a flashing red warning, and is
+     logged in localStorage aptgLog:<test>:<start time>; the count, times and time away print in red at the top of the PDF. */
+  if (!window.APTG) window.APTG = (function () {
+    var P = [], AWAY = null, CTX = null, LAST = 0, PEND = false, IGN = 0;
+    function g(k) { try { return localStorage.getItem(k); } catch (e) { return null; } }
+    function p(k, v) { try { localStorage.setItem(k, v); } catch (e) { } }
+    function cur() { for (var i = 0; i < P.length; i++) { try { if (P[i].active()) return P[i]; } catch (e) { } } return null; }
+    function openId() { for (var i = 0; i < P.length; i++) { try { var id = P[i].id(); if (id) return id; } catch (e) { } } return ''; }
+    function log(id) { try { var o = JSON.parse(g('aptgLog:' + id) || 'null'); if (o && o.n) return o; } catch (e) { } return { n: 0, at: [], away: 0 }; }
+    function put(id, o) { p('aptgLog:' + id, JSON.stringify(o)); }
+    function ac() {
+      if (!CTX) { var A = window.AudioContext || window.webkitAudioContext; if (!A) return null; try { CTX = new A(); } catch (e) { return null; } }
+      return CTX;
+    }
+    function wail() {   // one long, loud, rising-and-falling siren (3 s)
+      var c = CTX; if (!c) return; LAST = Date.now();
+      try {
+        var t = c.currentTime + 0.02, D = 3, m = c.createGain(), k = c.createDynamicsCompressor();
+        m.gain.setValueAtTime(0.0001, t); m.gain.exponentialRampToValueAtTime(0.9, t + 0.05);
+        m.gain.setValueAtTime(0.9, t + D - 0.25); m.gain.exponentialRampToValueAtTime(0.0001, t + D);
+        m.connect(k); k.connect(c.destination);
+        [['sawtooth', 1], ['square', 1.012]].forEach(function (s) {
+          var o = c.createOscillator(), v = c.createGain(); o.type = s[0]; v.gain.value = 0.5;
+          o.frequency.setValueAtTime(650 * s[1], t);
+          for (var i = 0; i < 4; i++) { var a = t + i * 0.75; o.frequency.linearRampToValueAtTime(1450 * s[1], a + 0.4); o.frequency.linearRampToValueAtTime(650 * s[1], a + 0.75); }
+          o.connect(v); v.connect(m); o.start(t); o.stop(t + D + 0.05);
+        });
+      } catch (e) { }
+    }
+    function siren() {
+      var c = ac(); if (!c) return;
+      if (c.state === 'running') { PEND = false; wail(); return; }
+      PEND = true;   // iPad: plays as soon as the page may make sound again (at the latest, the next tap)
+      try { var r = c.resume(); if (r && r.then) r.then(function () { if (PEND && c.state === 'running') { PEND = false; wail(); } }, function () { }); } catch (e) { }
+    }
+    function prime() {   // unlock sound while the boy is tapping (iPads only allow sound after a tap)
+      var c = ac(); if (!c) return;
+      try { if (c.state !== 'running') c.resume(); } catch (e) { }
+      try { var b = c.createBuffer(1, 1, 22050), s = c.createBufferSource(); s.buffer = b; s.connect(c.destination); s.start(0); } catch (e) { }
+      wrapPdf();
+    }
+    function hhmm(x) { var d = new Date(x); return ('0' + d.getHours()).slice(-2) + ':' + ('0' + d.getMinutes()).slice(-2); }
+    function away(ms) { var s = Math.round(ms / 1000); return s < 60 ? s + ' s' : Math.floor(s / 60) + ' min ' + (s % 60) + ' s'; }
+    function warn(n) {
+      var w = document.getElementById('aptg-warn'); if (w) w.remove();
+      w = document.createElement('div'); w.id = 'aptg-warn'; w.setAttribute('role', 'alertdialog'); w.setAttribute('aria-modal', 'true'); w.setAttribute('data-nogrow', '1');
+      w.style.cssText = 'position:fixed;inset:0;z-index:2147483600;display:flex;align-items:center;justify-content:center;padding:16px;background:#b71c1c;animation:aptgFlash .4s steps(1) 10;font-family:var(--aph-body,system-ui,sans-serif)';
+      w.innerHTML = '<style>@keyframes aptgFlash{50%{background:#ff1744}}</style>'
+        + '<div style="background:#fff;border:5px solid #b71c1c;border-radius:16px;max-width:520px;width:100%;padding:22px 20px;text-align:center;box-shadow:0 20px 60px rgba(0,0,0,.45)">'
+        + '<div style="font-size:3.5rem;line-height:1">⚠️</div>'
+        + '<div style="font:800 1.6rem/1.2 var(--aph-display,Georgia,serif);color:#b71c1c;margin:8px 0 10px">Do not leave this page during the test</div>'
+        + '<div style="font-size:1.15rem;font-weight:800;color:#1a2744;margin:0 0 8px">This attempt has been logged and recorded.</div>'
+        + '<div style="font-size:1rem;color:#1a2744;margin:0 0 16px">Attempts to leave this test: <b style="color:#b71c1c;font-size:1.25rem">' + n + '</b><br>They will be shown on your PDF for AP.</div>'
+        + '<button type="button" style="border:0;border-radius:10px;background:#1a2744;color:#fff;font:800 1.0625rem var(--aph-body,system-ui,sans-serif);padding:14px 22px;min-height:48px;cursor:pointer">Back to my test</button></div>';
+      w.addEventListener('keydown', function (e) { e.stopPropagation(); });
+      w.querySelector('button').addEventListener('click', function () { w.remove(); if (PEND) siren(); });
+      document.body.appendChild(w);
+      try { w.querySelector('button').focus({ preventScroll: true }); } catch (e) { }
+    }
+    function record(id) { var o = log(id); o.n++; o.at.push(Date.now()); put(id, o); return o; }
+    function leave() {
+      if (AWAY || IGN > 0) return;
+      var pr = cur(), id = pr && pr.id(); if (!id) return;
+      record(id); AWAY = { id: id, t: Date.now() }; siren();
+    }
+    function back() {
+      if (!AWAY) return; var a = AWAY; AWAY = null;
+      var o = log(a.id); o.away = (o.away || 0) + (Date.now() - a.t); put(a.id, o);
+      warn(o.n); if (Date.now() - LAST > 4000) siren();
+    }
+    function backOut() {   // ⌂ Back / Escape while answering
+      var pr = cur(), id = pr && pr.id(); if (!id) return true;
+      if (!window.confirm('Leave the test now?\n\nLeaving the test page during the test is logged and recorded, and it will be shown on your PDF.')) return false;
+      record(id); siren(); return true;
+    }
+    function note(id) {
+      var o = log(id); if (!o.n) return '';
+      return '<div style="display:inline-block;font-size:13pt;font-weight:900;letter-spacing:.03em;color:#fff;background:#c0392b;border-radius:2mm;padding:1mm 4mm;margin:0 0 1mm">🚨 LEFT THE TEST PAGE ' + o.n + (o.n > 1 ? ' TIMES' : ' TIME') + ': LOGGED AND RECORDED</div>'
+        + '<div style="font-size:9.5pt;font-weight:700;color:#c0392b;margin:0 0 2mm">Attempts to leave the page at ' + o.at.map(hhmm).join(', ') + (o.away >= 1000 ? ' &middot; ' + away(o.away) + ' away from the test in total' : '') + '</div>';
+    }
+    function wrapPdf() {
+      var M = window.APMP; if (!M || typeof M.save !== 'function' || M.save.__aptg) return;
+      var orig = M.save, w = function (build) {
+        return orig.call(M, function () { var o = build.apply(this, arguments), id = openId(); if (o && id) { var n = note(id); if (n) o.summary = n + (o.summary || ''); } return o; });
+      };
+      w.__aptg = 1; M.save = w;
+    }
+    ['alert', 'confirm', 'prompt', 'print'].forEach(function (f) {   // the app's own pop-ups are not leaving the page
+      var o = window[f]; if (typeof o !== 'function' || o.__aptg) return;
+      var w = function () { IGN++; try { return o.apply(window, arguments); } finally { setTimeout(function () { IGN = Math.max(0, IGN - 1); }, 400); } };
+      w.__aptg = 1; window[f] = w;
+    });
+    try {
+      document.addEventListener('visibilitychange', function () { if (document.visibilityState === 'hidden') leave(); else back(); });
+      window.addEventListener('blur', function () { setTimeout(function () { try { if (!document.hasFocus()) leave(); } catch (e) { } }, 0); });
+      window.addEventListener('focus', function () { if (document.visibilityState !== 'hidden') back(); });
+      window.addEventListener('pagehide', leave);
+      window.addEventListener('pageshow', function (e) { if (e.persisted) back(); });
+      ['pointerdown', 'touchend', 'click'].forEach(function (t) {
+        document.addEventListener(t, function () { if (PEND) siren(); else if (cur()) prime(); }, true);
+      });
+      window.addEventListener('load', wrapPdf);
+    } catch (e) { }
+    wrapPdf();
+    return { register: function (pr) { P.push(pr); }, prime: prime, backOut: backOut, note: note, siren: siren };
+  })();
+  try { APTG.register({ active: function () { return !!(S && S.mode && !S.locked && $('aptt-ov')); }, id: function () { return S && S.mode && $('aptt-ov') ? S.key + ':' + S.t0 : ''; } }); } catch (e) { }
+  /* ── END AP TEST GUARD ── */
   function esc(s) { return String(s == null ? '' : s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;'); }
   function plain(h) { var d = document.createElement('div'); d.innerHTML = String(h == null ? '' : h); return (d.textContent || '').replace(/\s+/g, ' ').trim(); }
   function h32(s) { var h = 0x811c9dc5; s = String(s); for (var i = 0; i < s.length; i++) { h ^= s.charCodeAt(i); h = Math.imul(h, 16777619); } return (h >>> 0).toString(36); }
@@ -1971,6 +2081,7 @@ var APTT = (function () {
     }, 1000);
   }
   function close() {
+    if (window.APTG && !APTG.backOut()) return;
     clearInterval(TICK); TICK = null; save();
     var k = $('aptt-key'); if (k) k.remove();
     var ov = $('aptt-ov'); if (ov) ov.remove();
@@ -2078,7 +2189,7 @@ var APTT = (function () {
   function mode(m) {
     if (!S || S.mode || (m !== 'timed' && m !== 'free')) return;
     if (m === 'timed' && !window.confirm('Start the ' + (limit() / 60) + '-minute timer now?\n\nThe clock starts as soon as you tap OK and cannot be paused.')) return;
-    S.mode = m; S.t0 = Date.now();
+    S.mode = m; S.t0 = Date.now(); try { APTG.prime(); } catch (e) { }
     try { var ak = 'apttAttempts:' + S.key, A = JSON.parse(lsGet(ak) || '{}') || {}; A[m] = (A[m] || 0) + 1; lsSet(ak, JSON.stringify(A)); S.att = A[m]; } catch (e) { S.att = 0; }
     save(); modeUI(); clock(); steps();
     var ab = $('aptt-att'); if (ab) { ab.textContent = '⚠ ATTEMPT ' + S.att + ' ON THIS TEST'; ab.hidden = !(S.att > 1); }
