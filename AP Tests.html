@@ -2025,9 +2025,24 @@ function aptRun(token, code) {
     APTT.openSet(o, c);
   }).catch(aptFail);
 }
+// DEMO: a fixed practice test built into this page (no teacher key needed): 15 basic words, a new order each time, 2 minutes
+var APT_DEMO = [
+  ['French', 'yes', 'oui'], ['French', 'no', 'non'], ['French', 'please', "s'il vous plaît (also: s'il te plaît)"], ['French', 'goodbye', 'au revoir'],
+  ['French', 'a raspberry', 'une framboise'], ['French', 'I am 15', "j'ai quinze ans"], ['French', 'the school', "l'école"], ['French', 'my brother', 'mon frère'],
+  ['French', 'Christmas', 'Noël'], ['Spanish', 'yes', 'sí'], ['Spanish', 'thank you, sir', 'gracias, señor'], ['Italian', 'yes', 'sì'],
+  ['Italian', 'goodbye', 'arrivederci (also: ciao)'], ['Italian', 'I am 15', 'ho quindici anni'], ['Italian', 'two pizzas', 'due pizze']
+];
+function aptDemo() {
+  var L = APT_DEMO.slice();
+  for (var i = L.length - 1; i > 0; i--) { var j = Math.floor(Math.random() * (i + 1)), t = L[i]; L[i] = L[j]; L[j] = t; }
+  return { v: 1, n: 'AP Demo Spot Test', c: 'STD101', a: 'AP Tests', k: 'AP Spot Test: timed &amp; submitted', t: 'Demo: basic French, Spanish &amp; Italian',
+    m: '15 words · 2 minutes', d: '', l: '', lc: '', lv: '', s: 120, q: 'same', id: 'demo', cat: 'Demo', f: '',
+    V: [L.map(function (x) { return ['How do you say “' + x[1] + '” in ' + x[0] + '?', x[2], 0, x[0], 0]; })] };
+}
 function aptCode(c) {
   c = String(c || '').replace(/\s+/g, '').toUpperCase();
   if (!c) { aptMsg('Type the code AP gave you first.'); return; }
+  if (c === 'STD101' || c === 'DEMO') { c = 'STD101'; aptMsg(''); var g = APTT.inProgress().filter(function (x) { return x.code === c; })[0]; if (g && APTT.resume(g.key)) return; APTT.openSet(aptDemo(), c); return; }
   aptMsg('Looking up ' + aptEsc(c) + '…', 'wait');
   aptCodes().then(function (o) {
     var e = o[c];
