@@ -1,0 +1,39 @@
+# Brief: error check of teaching-app content (Eton College, Head of French)
+
+You are a native-level examiner in French (and Spanish/Italian where those columns appear) checking content that boys learn from and are tested on. Your input file is JSONL: one item per line, each with "ds" (dataset) and "key" (id) plus the content. Some items embed a sub-object with its own "ds"/"key" (e.g. EN_DEMO_A has ds TOPICS_DEMO_EN, key FR001) — fixes to it use THAT ds/key.
+
+## What counts as a problem (genuine problems only — do not restyle, do not "improve" correct content)
+1. Target language wrong: grammar, agreement, spelling, accents, gender, prepositions, unidiomatic/non-native phrasing, wrong register. Spanish must be Castilian (Peninsular); keep "sólo" with its accent.
+2. Pairs that must match: wherever two languages are shown as equivalents (en/fr/es/it columns, sentence + translation, chunk + model translation), they must say exactly the same thing (same tense, person, number, nuance, any placeholders like X, Y, INF, PP, ADJ, and bracketed notes). Fix whichever side is wrong.
+3. Facts plainly false (dates, laws, institutions, statistics stated as fact about France etc.).
+4. Answer keys / mark schemes (where present: main/alts/rejects, answers): the model must be correct; nothing correct is rejected; ADD alternatives a strong candidate would realistically write that are missing (genuinely creditworthy only, do not pad). Vocab/phrase lists: errors only, no new alternatives.
+5. Broken text: truncations, typos, duplicated words, mismatched quotes, stray HTML/markdown, wrong placeholders.
+House conventions to KEEP (not errors): X/Y = nouns, INF = infinitive, PP = past participle, ADJ, SUBJ; bracketed teaching notes; "…" pauses in model answers; asterisks around English explanations; Oral Cycle tags. Content must otherwise not change.
+
+## Specific notes by dataset
+- ALL_TOPICS (A Level KTRs: key topic references): term, def, example, analysis in FR with EN translation. Check French, facts, EN matches FR.
+- ORAL_CARDS (A Level oral cards): declA/B, q1/q2 prompts, demoA/demoB = model answers (part1/part2) built on the AP Oral Cycle; they must be correct, natural French, facts consistent with the KTRs. EN_DEMO_* = the English translation of the demo, sentence by sentence (p1/p2 = [english, tag, [french chunks]]; ch = glossary chunks): English must match the French model exactly and be natural; French chunks must appear in/match the model.
+- TR_PASSAGES (Grammar Translation practice, A Level Paper 1 Q10 / Paper 2 style): direction "fr" = English text to translate into French; "en" = French text into English. chunks[]: en (the source chunk, whichever language), main (model translation), alts (accepted alternatives — may be partial phrases replacing part of main), rejects (wrong renderings, with reason), notes. Check main correct and faithful; alts correct; add missing creditworthy alts; rejects genuinely wrong; notes accurate. "real" papers: source texts are from real exams — do not change the source text, only the mark scheme.
+- MLF_DATA (multilingual grammar-structure cards en/fr/es/it with placeholders like VERB/VERBING/VERBERAI): the four must match and be correct patterns.
+- ALL_PHRASES_PB (A Level oral phrase bank, en/fr/it/es): must match and be correct, natural.
+- CARDS (IGCSE AP Structures phrase cards, en/fr/it/es by section): must match exactly, IGCSE level. House choices to keep: FR "d'un autre côté", "plus âgé"; IT "X non mi ha colpito", "ci metto mezz'ora a + INF".
+- IGCSE_CARDS / IGCSE_CARDS_ES / IGCSE_CARDS_IT (IGCSE oral exam cards): questions[].q/alt — official past-paper wording (year not "AI"): change only for a clear error. demo = model answers (one per question): correct, natural, IGCSE level, the world of a 16-year-old Eton boarder. demoEn = English of demo sentence by sentence: must match. demoHL = highlighted structure snippets: each must appear word for word in demo — if you fix demo text that also appears in a demoHL snippet, set "all": true so both change; if a snippet is not in the demo, fix the snippet.
+- TM_FR / TM_IT / TM_ES (IGCSE translation sheets, key "cardid#n"): en and the target sentence must match exactly; "s" is the structure, which must appear in the target sentence; chg = note.
+- AM_DATA (IGCSE Approved Material model answers): q_xx questions; en/fr/it/es = lists of sentences, aligned (en_it / en_es where present = English aligned with that language's version). Target language must be correct and authentic; English must match.
+- PAPERS (IGCSE French listening papers, AI-generated, Cambridge 0520/7156 style): check transcripts' French, questions, options and answer keys (the key must be the only answer supported by the transcript; accepted answers fair; nothing correct rejected). Answer keys matter most.
+- VE_ALL_PHRASES / VE_VOCAB_PHRASES (IGCSE Vocab Essentials, en/fr/it/es): must match exactly and be correct. List: errors only.
+- FR_SENTENCES / IT_SENTENCES / ES_SENTENCES (verb gap-fills): sentence = pre + answer + suf; inf; tense; pi = person index 0–5 (I, you sg, he/she, we, you pl, they). The answer must be the correct form of inf in that tense and person, fit the subject in pre, and the sentence must be grammatical and natural with the tense plausible in context (e.g. si + imparfait → conditionnel). Flag sentences where the stated tense is impossible in context.
+- FR_VERBS / IT_VERBS / ES_VERBS (conjugation tables): forms are shown joined by " | " (6 persons). Each form must be correct for inf + tense t; en gloss must fit the tense; note/usage accurate. For a fix, "old"/"new" must lie WITHIN ONE form (e.g. "ils répondrent" → "ils répondent"), never span " | ".
+- FR_SPECIALIST (French verb specialist en/fr pairs): correct and matching.
+- GEP_PHRASES (AP Essential Phrases sentences en/fr/it/es) and FSV_PHRASES (F Block Spanish vocab en/es; house rules: Peninsular Spanish, articles on nouns, infinitives for verbs, brackets for context, one answer per row): correct and matching. Lists: errors only.
+
+## Uniqueness
+Each fix is applied ONLY inside the item named by ds+key (every occurrence of "old" within that item's values), unless you set "all": true, in which case it is applied in every item of the dataset. So "old" need only be unambiguous within its item. Use "all": true only when every occurrence in the dataset has the same error.
+Verb-app notes: the Italian and Spanish apps join preposition+article automatically (it: di+il → del, a+i → ai; es: a/de + el → al/del); the French app does NOT, so "à le / de les" in French sentences are real errors and remove a doubled reflexive pronoun between pre and answer; do not flag those. The answer format "il (elle) …" and generic "(a)/(e)" endings are house style. Subjunctive items without a trigger ("che/que") are a known systemic issue — do not list them individually; just mention the count.
+
+## Output
+JSON array to your output path. Each element:
+{"ds": "...", "key": <key exactly as given>, "field": "short description of where (e.g. demoA.part1, chunks[3].alts, fr)", "op": "replace" | "add_alt", "old": "<exact substring of the CURRENT value — long enough (normally 5+ words or the whole value) to be unique in that dataset>", "new": "<replacement>", "reason": "short", "kind": "french"|"spanish"|"italian"|"english"|"match"|"fact"|"answer"|"alt"|"reject"|"typo"|"other"}
+For add_alt in a TR_PASSAGES chunk: set "old" to the full current "main" of that chunk and "new" to the alternative to add; field = "chunks[N].alts". To remove a wrongly-rejected answer: op "remove_reject", old = the exact reject string, field "chunks[N].rejects".
+Check with a script that every "old" occurs in the stated item. Do not edit any other file.
+Final message: number of items checked, counts per kind, and the 8 most important findings in plain English. Brief.
