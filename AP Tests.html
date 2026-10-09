@@ -2018,16 +2018,20 @@ function aptFail(e) {
     : m === 'nocrypto' ? '⚠️ This browser cannot check AP test links. Open this page from the link AP gave you (https), or tell AP.'
     : '⚠️ Sorry, this test could not be opened. Check the code, or tell AP.');
 }
-// corrections to answers already baked into saved test links (the links are signed, so they are put right here as they open)
+// corrections to answers (and, where an array, prompt + answer) already baked into saved test links: the links are signed, so they are put right here as they open
 var APT_FIX = {
-  'I had done it.|J\'avais fait.': 'Je l\'avais fait.',
-  'I will have done it.|J\'aurai fait.': 'Je l\'aurai fait.',
-  'I would have done it.|J\'aurais fait.': 'Je l\'aurais fait.',
-  'He hurt himself.|Il s\'est blessé.': 'Il s\'est blessé. / Il s\'est fait mal.',
-  'She hurt herself.|Elle s\'est blessée.': 'Elle s\'est blessée. / Elle s\'est fait mal.'
+  "Does 'PRÉFÉRER' become 'je préfèrerai' or 'je préférerai' in the future?|PRÉFÉRERAI. Verbs with é in the INFINTIVE form (not e) DO NOT change to è in the future/conditional, unlike the present. j'espère but j'espérerai; je préfère but je préférerai.": "PRÉFÉRERAI. Verbs with é in the INFINITIVE (not e) do NOT change to è in the future/conditional, unlike the present: j'espère but j'espérerai; je préfère but je préférerai. (Since the 1990 spelling reform je préfèrerai is also accepted.)",
+  "What happens to 'ENVOYER' in the future and conditional?|y → i THROUGHOUT: j'enverrai (NOTE: envoyer is fully irregular — stem is ENVERR-). For -OYER/-UYER in general: j'essuierai, nous essuierons, etc.": "Trick question: ENVOYER is irregular — the stem is ENVERR- throughout (j'enverrai, tu enverrais), NOT *envoierai. Other -OYER/-UYER verbs change y → i throughout: j'emploierai, j'essuierai, nous nettoierons.",
+  "The shelves were littered with books.|Les étagères étaient encombrées de livres.": "Les étagères étaient encombrées de livres. (also: Les étagères étaient couvertes de livres. / jonchées de livres)",
+  "Many people came.|Bien des gens sont venus.": "Bien des gens sont venus. (also: Beaucoup de gens sont venus. / De nombreuses personnes sont venues.)",
+  "I had done it.|J'avais fait.": "Je l'avais fait.",
+  "I will have done it.|J'aurai fait.": "Je l'aurai fait.",
+  "I would have done it.|J'aurais fait.": "Je l'aurais fait.",
+  "He hurt himself.|Il s'est blessé.": "Il s'est blessé. (also: Il s'est fait mal.)",
+  "She hurt herself.|Elle s'est blessée.": "Elle s'est blessée. (also: Elle s'est fait mal.)"
 };
 function aptFix(o) {
-  (o && o.V || []).forEach(function (V) { (V || []).forEach(function (r) { var k = r[0] + '|' + String(r[1]).replace(/<[^>]+>/g, ''); if (APT_FIX[k]) r[1] = APT_FIX[k]; }); });
+  (o && o.V || []).forEach(function (V) { (V || []).forEach(function (r) { var k = r[0] + '|' + String(r[1]).replace(/<[^>]+>/g, ''); var f = APT_FIX[k]; if (f) { if (typeof f === 'string') r[1] = f; else { r[0] = f[0]; r[1] = f[1]; } } }); });
   return o;
 }
 function aptRun(token, code) {
