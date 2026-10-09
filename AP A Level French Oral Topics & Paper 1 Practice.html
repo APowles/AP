@@ -3706,7 +3706,7 @@ var APTT = (function () {
   }
   // pen-up anywhere ends a stroke (the automatic lock waits for it)
   try { ['pointerup', 'pointercancel'].forEach(function (t) { document.addEventListener(t, function () { PEN = false; }, true); }); } catch (e) { }
-  return { open: open, close: close, mode: mode, lock: lock, show: showAns, mark: mark, next: next, verbDetail: verbDetail, pdf: pdf, teacher: teacher, maker: maker, openSet: openSet, cmSVG: cmSVG, cmBand: cmBand, cmReload: function () { CM = null; cmLoad(); }, inProgress: inProgress, resume: resume, copyLink: copyLink, copyHTML: copyHTML, checkGit: checkGit, ghRemove: ghRemove, ghReplace: ghReplace, pack: pack, minsTxt: minsTxt, bigOf: function (answer, kind, srcId) { return kind === 'sentence' || (!{ conj: 1, it: 1, spot: 1 }[String(srcId || '').split('|')[0]] && nWords(answer) > 2); }, catOf: catOf, CATS: CATS, unpack: unpack, checkKey: checkKey, list: listGet, linkFor: linkFor, copy: copyText, ghAdd: ghAdd, listAdd: listAdd, folders: folders, gkey: gkey, nextCodeFor: nextCodeFor, lastRun: null, capturing: null, LABEL: LBL, state: function () { return S; } };
+  return { open: open, close: close, mode: mode, lock: lock, show: showAns, mark: mark, next: next, verbDetail: verbDetail, pdf: pdf, teacher: teacher, maker: maker, openSet: openSet, cmSVG: cmSVG, cmBand: cmBand, cmPick: function (s20, seed) { if (!CM) cmLoad(); return cmPick(s20, seed); }, cmReload: function () { CM = null; cmLoad(); }, inProgress: inProgress, resume: resume, copyLink: copyLink, copyHTML: copyHTML, checkGit: checkGit, ghRemove: ghRemove, ghReplace: ghReplace, pack: pack, minsTxt: minsTxt, bigOf: function (answer, kind, srcId) { return kind === 'sentence' || (!{ conj: 1, it: 1, spot: 1 }[String(srcId || '').split('|')[0]] && nWords(answer) > 2); }, catOf: catOf, CATS: CATS, unpack: unpack, checkKey: checkKey, list: listGet, linkFor: linkFor, copy: copyText, ghAdd: ghAdd, listAdd: listAdd, folders: folders, gkey: gkey, nextCodeFor: nextCodeFor, lastRun: null, capturing: null, LABEL: LBL, state: function () { return S; } };
 })();
 /* ===== END AP TIMED TEST ===== */
 </script>
@@ -10916,14 +10916,14 @@ setInterval(function(){
    closes (anything not marked scores 0); then the boy's notes and the PDF. The link carries only the question ids and the
    times (signed with AP's key); the questions themselves come from this page. Progress is kept in localStorage p1set:<key>
    so a reload carries on; leaving the page while answering is logged by the AP TEST GUARD and printed on the PDF. */
-var P1SET_MARK = {l1:1, l2:2, l3:4, l4:5, q5:1, q6:1, q7:3, q8:3, q9:3, q10:6};   // minutes to mark, per question type
+var P1SET_MARK = {l1:0, l2:2, l3:4, l4:5, q5:0, q6:0, q7:3, q8:3, q9:3, q10:6};   // minutes to mark, per question type (0 = it marks itself: no marking stage)
 var P1SET_GRACE = 30, P1SET_NOTES = 120, P1SET_UP = 60, P1SET_KEEP = 12*3600e3;
 var P1S = null;   // the set test open on this page: {o, code, key, st}
 function p1sTeacher(){ try { return !!localStorage.getItem('apTeacherKey'); } catch(e){ return false; } }
 function p1sTimes(ids){
-  var a=0, m=0, ty={}; ids.forEach(function(id){ var t=(P1Q[id]||{}).type; ty[t]=1; a+=(P1T_REC[t]||10)*60; m+=(P1SET_MARK[t]||3)*60; });
+  var a=0, m=0, ty={}; ids.forEach(function(id){ var t=(P1Q[id]||{}).type; ty[t]=1; a+=(P1T_REC[t]||10)*60; m+=(t in P1SET_MARK ? P1SET_MARK[t] : 3)*60; });
   if(Object.keys(P1_TYPES).every(function(t){ return ty[t]; })) a=Math.max(a, 120*60);   // a whole paper: the real exam's 2 hours
-  return {ans:a, mark:m, grace:P1SET_GRACE, notes:P1SET_NOTES, up:P1SET_UP, total:a+P1SET_GRACE+m+P1SET_GRACE+P1SET_NOTES+P1SET_UP};
+  return {ans:a, mark:m, grace:P1SET_GRACE, notes:P1SET_NOTES, up:P1SET_UP, total:a+P1SET_GRACE+(m?m+P1SET_GRACE:0)+P1SET_NOTES+P1SET_UP};
 }
 function p1sMin(sec){ var m=Math.floor(sec/60), s=sec%60; return s ? (m ? m+' min '+s+' s' : s+' s') : m+' min'; }
 function p1sClock(ms){ var s=Math.max(0,Math.ceil(ms/1000)); return Math.floor(s/60)+':'+String(s%60).padStart(2,'0'); }
@@ -10939,8 +10939,7 @@ function p1sBreak(T, forBoy){
   return '<table class="p1s-tbl">'
     + r('✍️ Answering (the recommended time)', p1sMin(T.ans))
     + r('&nbsp;&nbsp;+ to finish off, then the answers lock', '30 s', 'g')
-    + r('✔ Marking with the mark scheme', p1sMin(T.mark))
-    + r('&nbsp;&nbsp;+ to finish marking, then marking closes', '30 s', 'g')
+    + (T.mark ? r('✔ Marking with the mark scheme', p1sMin(T.mark)) + r('&nbsp;&nbsp;+ to finish marking, then marking closes', '30 s', 'g') : r('✔ Marking: automatic (this question marks itself)', '–'))
     + r('📝 What I learned: notes', p1sMin(T.notes))
     + r('📄 Save the PDF and upload it to OneNote', p1sMin(T.up))
     + r('<b>'+(forBoy?'Whole thing, start to PDF uploaded':'Whole process, from Start to PDF uploaded')+'</b>', '<b>'+p1sMin(T.total)+'</b>', 't')
@@ -11011,7 +11010,7 @@ try { if(window.APTG) APTG.register({ active:function(){ return !!(P1S && P1S.st
 
 function p1sBoot(){
   var m=/^#p1t=([^&]+)(?:&c=([^&]*))?/.exec(location.hash||''); if(!m || !window.APTT || !APTT.unpack) return;
-  var code=decodeURIComponent(m[2]||'');
+  var code=decodeURIComponent(m[2]||''); try { if(APTT.cmReload) APTT.cmReload(); } catch(e){}
   app().innerHTML='<div class="p1-wrap"><div class="p1-inner"><div class="p1-h">Opening your test…</div></div></div>';
   APTT.unpack(decodeURIComponent(m[1])).then(function(o){
     if(o.kind!=='p1' || !(o.ids||[]).every(function(id){ return P1Q[id]; })) throw new Error('bad');
@@ -11029,18 +11028,18 @@ window.p1sBack = function(){
   P1S=null; clearInterval(window._p1sTick); history.replaceState(null,'',location.pathname+location.search); showPaper1();
 };
 function p1sHead(){
-  var o=P1S.o, T={total:o.s||((o.sa||0)+(o.sm||0)+2*(o.g||30)+(o.sn||P1SET_NOTES)+(o.su||P1SET_UP))};
+  var o=P1S.o, T={total:o.s||((o.sa||0)+(o.g||30)+(o.sm?o.sm+(o.g||30):0)+(o.sn||P1SET_NOTES)+(o.su||P1SET_UP))};
   return '<div class="p1s-set">✅ TEST SET BY AP'+(P1S.code?': <b>'+esc(P1S.code)+'</b>':'')+'<span>'+esc(o.n||o.t)+'</span></div>'
     + '<div class="p1-sub">'+esc(o.t)+' · '+(o.mk||p1sMarks(o.ids))+' marks · whole process '+p1sMin(T.total)+'</div>';
 }
 function p1sIntro(){
-  var o=P1S.o, T={ans:o.sa, mark:o.sm, grace:o.g||30, notes:o.sn||P1SET_NOTES, up:o.su||P1SET_UP}; T.total=T.ans+T.grace+T.mark+T.grace+T.notes+T.up;
+  var o=P1S.o, T={ans:o.sa, mark:o.sm, grace:o.g||30, notes:o.sn||P1SET_NOTES, up:o.su||P1SET_UP}; T.total=T.ans+T.grace+(T.mark?T.mark+T.grace:0)+T.notes+T.up;
   var att=0; try { att=+(localStorage.getItem('p1setAtt:'+P1S.key)||0); } catch(e){}
   app().innerHTML='<div class="p1-wrap p1-set"><div class="p1-inner">'+p1sTop()
     + '<div class="p1-h">Timed AP Past Paper '+(o.ids.length>1?'':'Question')+'</div>'+p1sHead()
     + '<div class="p1-card">'+p1sBreak(T,true)
     + '<ol class="p1s-rules"><li>The clock starts as soon as you tap <b>Start</b>. When the time is up you get <b>30 more seconds</b>, then your answers <b>lock by themselves</b>.</li>'
-    + '<li>Then the mark scheme opens: mark yourself honestly. When marking time is up (plus 30 seconds), <b>marking closes</b> and anything not marked scores 0.</li>'
+    + (o.sm ? '<li>Then the mark scheme opens: mark yourself honestly. When marking time is up (plus 30 seconds), <b>marking closes</b> and anything not marked scores 0.</li>' : '<li>Then the mark scheme opens with your score: this question marks itself.</li>')
     + '<li>Then write your notes on what you learned, save your PDF and put it in <b>OneNote</b>.</li>'
     + '<li>🚨 Leaving this page while you are answering sounds an alarm, is logged and is printed on your PDF.</li></ol>'
     + (att ? '<div class="p1s-att">⚠ You have already started this test '+att+' time'+(att>1?'s':'')+'. Your attempt number is printed on your PDF.</div>' : '')
@@ -11067,7 +11066,7 @@ function p1sBuild(resumed){
   });
   h+='</div>';
   h+='<div class="p1-card p1s-actions" id="p1s-act"></div>';
-  h+='<div class="p1-card p1s-end" id="p1s-end" hidden>'
+  h+='<div class="p1-card p1s-end" id="p1s-end" hidden><div class="aptt-cm p1s-cm" id="p1s-cm" hidden></div>'
     + '<div class="p1s-learn"><div class="p1s-learn-h">📝 What I learned: the most useful part of the whole test</div>'
     + '<div class="p1s-learn-q">These notes are <b>for you, not for AP</b>, so note form is fine. Go back through your mistakes and take stock: what caught you out, what the right answer is, and how you’ll remember it. Write it in your own way.</div>'
     + '<div class="p1s-learn-q">This box is <b>not timed and not locked</b>. <b>In class</b>, take a couple of minutes, then save and upload your PDF when AP says. <b>In your House</b>, take as long as you need. Even later, once it is a PDF in OneNote, you can go back whenever you like and add more notes with your Apple Pencil.</div>'
@@ -11107,6 +11106,7 @@ function p1sToMark(){
   stopAudio(); st.phase='mark'; st.lockAt=st.lockAt||Date.now(); st.auto=!!st.auto;
   P1B.forEach(function(b,i){ if(b && !b.locked) p1Lock(i, true); });
   P1B.forEach(function(b,i){ if(b && !b.checked) p1Check(i); });
+  if(!P1S.o.sm){ st.markEnd=st.lockAt; p1sMarkDone(false); return; }   // marks itself: straight on to the notes
   p1sCapture(); p1sTick();
   var w=document.getElementById('p1b0_wrap'); if(w) w.scrollIntoView({behavior:'smooth', block:'start'});
 }
@@ -11136,13 +11136,20 @@ function p1sTick(){
     ban.innerHTML = ml>0 ? '✔ Marking: <b>'+p1sClock(ml)+'</b> left · give every answer a mark' : '⏳ Marking time’s up: <b>'+p1sClock(ml+g)+'</b> to finish, then marking closes';
     act.innerHTML='<button class="p1-chk ready" onclick="p1sMarkDone(true)">✔ I’ve finished marking</button><div class="p1-note">Anything not marked when marking closes scores 0.</div>';
   } else {
-    ban.className='p1s-ban d';
+    ban.className='p1s-ban d'; p1sComment();
     var left2=P1B.reduce(function(a,b){ return a+(b?p1UnselfOf(b):0); },0);
-    ban.innerHTML='✔ <b>Marking closed.</b>'+(left2?' '+left2+' answer'+(left2>1?'s':'')+' not marked in time: 0.':'')+' Now write your notes in <b>What I learned</b> (<b>in class</b>, a couple of minutes; <b>in your House</b>, as long as you need), then save your PDF.';
+    ban.innerHTML=(o.sm?'✔ <b>Marking closed.</b>':'✔ <b>Marked automatically.</b>')+(left2?' '+left2+' answer'+(left2>1?'s':'')+' not marked in time: 0.':'')+' Now write your notes in <b>What I learned</b> (<b>in class</b>, a couple of minutes; <b>in your House</b>, as long as you need), then save your PDF.';
     act.innerHTML=''; var e=document.getElementById('p1s-end'); if(e) e.hidden=false;
     document.querySelectorAll('#p1s-page .p1-self button').forEach(function(x){ x.disabled=true; });
   }
   if(st.phase!=='done' || !st._cap){ p1sCapture(); if(st.phase==='done') st._cap=1; }
+}
+function p1sScore(){ var got=0, max=0; P1B.forEach(function(b){ if(!b) return; max+=P1_TYPES[b.q.type].marks; got+=b.score||0; }); return {got:got, max:max}; }
+function p1sCm(){ if(!P1S || !window.APTT || !APTT.cmPick) return null; var r=p1sScore(); return r.max ? APTT.cmPick(r.got/r.max*20, P1S.key+':'+P1S.st.t0) : null; }
+function p1sComment(){
+  var el=document.getElementById('p1s-cm'); if(!el || el.dataset.done) return;
+  var c=p1sCm(); if(!c) return;
+  el.innerHTML='<span>AP says:</span>'+APTT.cmSVG(c); el.hidden=false; el.dataset.done='1';
 }
 window.p1sSavePdf = function(){
   var inf=APPEN.info(p1sLearnKey());
@@ -11157,9 +11164,10 @@ window.p1SetPdf = function(R){
   if(!P1S || p1Ctx.kind!=='set') return R;
   var o=P1S.o, st=P1S.st, hm=function(t){ if(!t) return '–'; var d=new Date(t); return String(d.getHours()).padStart(2,'0')+':'+String(d.getMinutes()).padStart(2,'0'); };
   R.title=esc(o.n||o.t); R.docTitle=(o.n||o.t)+' – marked'; R.pageTitle=o.n||o.t;
+  var cm=p1sCm(); if(cm) R.stamp=APTT.cmSVG(cm);
   R.meta='Timed AP Past Paper &middot; '+esc(o.t)+' &middot; '+p1sMarks(o.ids)+' marks';
   R.summary='<b>✅ Set by AP'+(P1S.code?': '+esc(P1S.code):'')+'</b> &middot; attempt '+(st.att||1)+' &middot; started '+hm(st.t0)+' &middot; answers locked '+hm(st.lockAt)+(st.auto?' (automatically, time up)':' (by him)')
-    +' &middot; marking closed '+hm(st.markEnd)+' &middot; time allowed: '+p1sMin(o.sa)+' + '+p1sMin(o.g||30)+' to answer, '+p1sMin(o.sm)+' + '+p1sMin(o.g||30)+' to mark<br>'+(R.summary||'');
+    +' &middot; marking closed '+hm(st.markEnd)+' &middot; time allowed: '+p1sMin(o.sa)+' + '+p1sMin(o.g||30)+' to answer, '+(o.sm?p1sMin(o.sm)+' + '+p1sMin(o.g||30)+' to mark':'marked automatically')+'<br>'+(R.summary||'');
   var notes=APPEN.pdf(p1sLearnKey());
   R.body=(R.body||'')+'<div class="apmp-sec"><span>📝 What I learned</span></div><div class="appen-pbox">'+(notes||'<span class="apmp-blank">(nothing written)</span>')+'</div>';
   return R;
