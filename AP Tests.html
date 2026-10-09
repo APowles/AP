@@ -2101,7 +2101,9 @@ function aptLibLoad() {
     var E = Object.keys(codes).map(function (c) { var x = codes[c]; return { c: c, n: x.n, cat: x.cat, f: x.f, tok: x.tok, site: true }; });
     var have = {}; E.forEach(function (e) { have[e.c] = 1; });
     APTT.list().forEach(function (e, i) { if (!e.c || !have[e.c]) E.push({ c: e.c, n: e.n, cat: e.cat, f: e.f, tok: e.tok, local: i }); });
+    var d = aptDemo(); E.push({ c: 'STD101', n: 'AP Demo Spot Test', cat: 'Demo ▸ Practice test for the boys', f: '', builtin: true, o: d, made: '', lv: '', s: d.s, q: d.q, v: 1, items: APT_DEMO.length, t: d.t });   // built into this page
     return Promise.all(E.map(function (e) {
+      if (e.builtin) return e;
       return APTT.unpack(e.tok).then(function (o) {
         e.o = o; e.cat = e.cat || o.cat || APTT.catOf({ id: o.id, lang: o.l, meta: o.m, title: o.t, app: o.a }); e.f = e.f || o.f || '';
         e.made = o.made || ''; e.lv = o.lv; e.s = o.s; e.q = o.q; e.v = (o.V || []).length; e.items = o.V && o.V[0] ? o.V[0].length : 0; e.t = o.t;
@@ -2140,7 +2142,7 @@ function aptLibDraw() {
 }
 function aptItem(e) {
   var i = APT_LIB.indexOf(e);
-  var meta = e.bad ? '⚠️ this test could not be read' : [e.lv, (e.items || '?') + ' items', e.s ? (e.s % 60 ? Math.floor(e.s / 60) + '½' : e.s / 60) + ' min' : '', e.q === 'draw' ? 'own draw (' + e.v + ' versions)' : 'same questions', e.made ? 'made ' + e.made.split('-').reverse().join('/') : '', e.site ? '' : 'on this device only'].filter(Boolean).join(' · ');
+  var meta = e.bad ? '⚠️ this test could not be read' : [e.lv, (e.items || '?') + ' items', e.s ? (e.s % 60 ? Math.floor(e.s / 60) + '½' : e.s / 60) + ' min' : '', e.q === 'draw' ? 'own draw (' + e.v + ' versions)' : 'same questions', e.made ? 'made ' + e.made.split('-').reverse().join('/') : '', e.builtin ? 'built into this page: code STD101' : e.site ? '' : 'on this device only'].filter(Boolean).join(' · ');
   return '<div class="apt-it"><div class="apt-it-h"><span class="apt-it-c' + (e.c ? '' : ' none') + '">' + aptEsc(e.c || 'no code') + '</span><span class="apt-it-n">' + aptEsc(e.n || aptPlain(e.t)) + '</span></div>'
     + '<div class="apt-it-m">' + aptEsc(meta) + '</div><div class="apt-acts">'
     + '<button class="aph-btn aph-btn-primary" type="button" onclick="aptCopyLink(' + i + ',this)">📋 Copy link</button>'
@@ -2152,7 +2154,8 @@ function aptItem(e) {
     + (e.site && aptGit() ? '<button class="aph-btn apt-del" type="button" title="Delete this test" onclick="aptDelSite(' + i + ',this)">✖ Delete</button>' : '')
     + '</div></div>';
 }
-function aptCopyLink(i, btn) { var e = APT_LIB[i]; APTT.copyLink(aptLinkName(e), APTT.linkFor(e.tok), btn); }
+function aptHref(e) { return e.builtin ? APTT.linkFor('').replace(/#t=$/, '#c=' + e.c) : APTT.linkFor(e.tok); }
+function aptCopyLink(i, btn) { var e = APT_LIB[i]; APTT.copyLink(aptLinkName(e), aptHref(e), btn); }
 function aptCopyLine(i, btn) { var e = APT_LIB[i]; APTT.copy((e.c || 'ST???') + ' | ' + String(e.n || '').replace(/\|/g, '/') + ' | ' + (e.cat || '') + ' | ' + (e.f || '') + ' | ' + e.tok, btn); }
 // 🖨 a paper copy for a boy without an iPad: student sheet (questions + lines) and/or answer sheet
 function aptPrintAsk(i) {
@@ -2195,13 +2198,13 @@ function aptPrint(i, what) {
   var f = document.createElement('iframe'); f.srcdoc = html; ov.appendChild(f); document.body.appendChild(ov);
   var bs = ov.querySelectorAll('button'); bs[0].onclick = function () { try { f.contentWindow.print(); } catch (x) { } }; bs[1].onclick = function () { ov.remove(); };
 }
-function aptTry(i) { var e = APT_LIB[i]; aptRun(e.tok, e.c || ''); }
+function aptTry(i) { var e = APT_LIB[i]; if (e.builtin) { aptCode(e.c); return; } aptRun(e.tok, e.c || ''); }
 function aptCopyGroup(btn) {   // pastes into OneNote as a tidy list: each test's name is the link
   var c = btn.getAttribute('data-cat'), f = btn.getAttribute('data-f');
   var L = APT_LIB.filter(function (e) { return e.cat === c && (e.f || '') === f && !e.bad; });
   var info = function (e) { return [e.lv, e.s ? (e.s / 60) + ' min' : '', e.q === 'draw' ? 'own draw' : 'same questions'].filter(Boolean).join(', '); };
-  var html = '<p><b>' + aptEsc(c + (f ? ' ▸ ' + f : '')) + '</b></p><ul>' + L.map(function (e) { return '<li><a href="' + aptEsc(APTT.linkFor(e.tok)) + '">' + aptEsc(aptLinkName(e)) + '</a> &ndash; ' + aptEsc(info(e)) + '</li>'; }).join('') + '</ul>';
-  var txt = c + (f ? ' ▸ ' + f : '') + '\n\n' + L.map(function (e) { return aptLinkName(e) + ' – ' + info(e) + '\n' + APTT.linkFor(e.tok); }).join('\n\n');
+  var html = '<p><b>' + aptEsc(c + (f ? ' ▸ ' + f : '')) + '</b></p><ul>' + L.map(function (e) { return '<li><a href="' + aptEsc(aptHref(e)) + '">' + aptEsc(aptLinkName(e)) + '</a> &ndash; ' + aptEsc(info(e)) + '</li>'; }).join('') + '</ul>';
+  var txt = c + (f ? ' ▸ ' + f : '') + '\n\n' + L.map(function (e) { return aptLinkName(e) + ' – ' + info(e) + '\n' + aptHref(e); }).join('\n\n');
   APTT.copyHTML(html, txt, btn);
 }
 // ✏️ change a test's name, heading, folder or time limit (same code; the test is signed again with the teacher key)
