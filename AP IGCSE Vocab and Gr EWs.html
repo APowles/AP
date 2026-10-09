@@ -2102,7 +2102,7 @@ var APTT = (function () {
           + ' &middot; Marking: <b>' + dur(S.tMark) + '</b>' + (timed ? ' (limit ' + dur(ml) + ')' : ''),
         body: body, foot: S.m.app + ' &middot; AP Spot Test: timed &amp; submitted',
         docTitle: 'AP Spot Test — ' + plain(S.m.title), lang: S.m.lang,
-        pageTitle: 'AP Spot Test ' + (S.m.set && S.m.set.code ? S.m.set.code + ' ' : '') + 'on ' + plain(S.m.title) + (S.m.level && plain(S.m.title).toLowerCase().indexOf(S.m.level.toLowerCase()) < 0 ? ' (' + S.m.level + ')' : '') + (S.att > 1 ? ' – ATTEMPT ' + S.att : '')
+        pageTitle: (S.m.set && S.m.set.name ? (S.m.set.code && S.m.set.name.replace(/\s+/g, '').toUpperCase().indexOf(S.m.set.code.toUpperCase()) < 0 ? S.m.set.code + ' ' : '') + S.m.set.name : 'AP Spot Test ' + (S.m.set && S.m.set.code ? S.m.set.code + ' ' : '') + 'on ' + plain(S.m.title) + (S.m.level && plain(S.m.title).toLowerCase().indexOf(S.m.level.toLowerCase()) < 0 ? ' (' + S.m.level + ')' : '')) + (S.att > 1 ? ' – ATTEMPT ' + S.att : '')
       };
     });
   }
@@ -2266,7 +2266,7 @@ var APTT = (function () {
       + '<label>Library heading</label><select id="aptt-mk-cat">' + (function () { var c = catOf(S.m), L = CATS.indexOf(c) < 0 ? [c].concat(CATS) : CATS; return L.map(function (x) { return '<option' + (x === c ? ' selected' : '') + '>' + esc(x) + '</option>'; }).join(''); })() + '</select>'
       + '<label>Folder inside it (optional: e.g. C Block Set 2, Autumn 2026)</label><input id="aptt-mk-f" type="text" list="aptt-mk-fl" maxlength="40" placeholder="none"><datalist id="aptt-mk-fl">' + folders().map(function (x) { return '<option value="' + esc(x) + '">'; }).join('') + '</datalist>'
       + '<label>Code (for the AP Tests page: the next free number is filled in' + (gkey() ? '; it is added automatically' : '') + ')</label><input id="aptt-mk-c" type="text" placeholder="e.g. STF101" autocapitalize="characters" maxlength="12">'
-      + '<div class="aptt-mkact"><button type="button" class="aph-btn" id="aptt-mk-x" onclick="document.getElementById(\'aptt-mk\').remove()">Cancel</button><button type="button" class="aph-btn aph-btn-primary" id="aptt-mk-go">🔑 Make link</button></div>'
+      + '<div class="aptt-mkact"><button type="button" class="aph-btn" id="aptt-mk-x" onclick="document.getElementById(\'aptt-mk\').remove()">Close</button><button type="button" class="aph-btn aph-btn-primary" id="aptt-mk-go">🔑 Make link</button></div>'
       + '<div id="aptt-mk-out"></div></div>';
     document.body.appendChild(d);
     var esc0 = function (e) { if (e.key !== 'Escape') return; if (document.getElementById('aptt-mk') === d) d.remove(); document.removeEventListener('keydown', esc0); };
@@ -2295,8 +2295,8 @@ var APTT = (function () {
         $('aptt-mk-out').querySelector('.aptt-mkplain').onclick = function () { copyText(link, this); };
         rows[1].querySelector('button').onclick = function () { copyText(line, this); };
         b.textContent = '✓ Made';
-        // the link is made and saved: the way out is now a clear Close (it never undoes anything)
-        var cx = $('aptt-mk-x'); if (cx) { cx.textContent = '✓ Done: close'; cx.className = 'aph-btn aph-btn-primary'; b.style.display = 'none'; }
+        // the link is made and saved: Close turns gold (it never undoes anything)
+        var cx = $('aptt-mk-x'); if (cx) { cx.textContent = '✓ Close'; cx.className = 'aph-btn aph-btn-primary'; b.style.display = 'none'; }
         if (code && gkey()) {
           var st = document.createElement('div'); st.className = 'aptt-mkgh'; st.textContent = '⏳ Adding code ' + code + ' to the AP Tests page…';
           $('aptt-mk-out').insertBefore(st, $('aptt-mk-out').children[1]);
