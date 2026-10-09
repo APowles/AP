@@ -2018,9 +2018,22 @@ function aptFail(e) {
     : m === 'nocrypto' ? '⚠️ This browser cannot check AP test links. Open this page from the link AP gave you (https), or tell AP.'
     : '⚠️ Sorry, this test could not be opened. Check the code, or tell AP.');
 }
+// corrections to answers already baked into saved test links (the links are signed, so they are put right here as they open)
+var APT_FIX = {
+  'I had done it.|J\'avais fait.': 'Je l\'avais fait.',
+  'I will have done it.|J\'aurai fait.': 'Je l\'aurai fait.',
+  'I would have done it.|J\'aurais fait.': 'Je l\'aurais fait.',
+  'He hurt himself.|Il s\'est blessé.': 'Il s\'est blessé. / Il s\'est fait mal.',
+  'She hurt herself.|Elle s\'est blessée.': 'Elle s\'est blessée. / Elle s\'est fait mal.'
+};
+function aptFix(o) {
+  (o && o.V || []).forEach(function (V) { (V || []).forEach(function (r) { var k = r[0] + '|' + String(r[1]).replace(/<[^>]+>/g, ''); if (APT_FIX[k]) r[1] = APT_FIX[k]; }); });
+  return o;
+}
 function aptRun(token, code) {
   aptMsg('Opening your test…', 'wait');
   return APTT.unpack(token).then(function (o) {
+    aptFix(o);
     if (code && o.c && o.c !== code) o.c = code;
     aptMsg('');
     var c = code || o.c || '', go = APTT.inProgress().filter(function (x) { return c && x.code === c; })[0];
@@ -2107,7 +2120,7 @@ function aptLibLoad() {
     return Promise.all(E.map(function (e) {
       if (e.builtin) return e;
       return APTT.unpack(e.tok).then(function (o) {
-        e.o = o; e.cat = e.cat || o.cat || APTT.catOf({ id: o.id, lang: o.l, meta: o.m, title: o.t, app: o.a }); e.f = e.f || o.f || '';
+        e.o = aptFix(o); e.cat = e.cat || o.cat || APTT.catOf({ id: o.id, lang: o.l, meta: o.m, title: o.t, app: o.a }); e.f = e.f || o.f || '';
         e.made = o.made || ''; e.lv = o.lv; e.s = o.s; e.q = o.q; e.v = (o.V || []).length; e.items = o.V && o.V[0] ? o.V[0].length : 0; e.t = o.t;
         return e;
       }).catch(function () { e.bad = true; e.cat = e.cat || 'Other ▸ Unreadable'; return e; });
