@@ -10678,9 +10678,9 @@ window.p1SavePDF = function(){
 };
 
 /* ---------- ✍️ ANSWER PADS (shared APPEN) + ⏱ OPTIONAL TIMER PER QUESTION + 📝 SECTION NOTES ---------- */
-var P1T_REC = {l1:8, l2:10, l3:14, l4:18, q5:7, q6:8, q7:11, q8:12, q9:12, q10:20};
-var P1T_HINT = {l4:'about 8 min for 4(a), 10 for 4(b)'};
-var P1T_MILE = {l4:[[8,'8 minutes gone: about time to move on to 4(b).']], q10:[[3,'Now start translating.'],[16,'Now check your translation.']]};
+var P1T_REC = {l1:5, l2:7, l3:11, l4:15, q5:5, q6:6, q7:9, q8:10, q9:10, q10:20};   // a whole paper (Q1–Q10) still gets the exam's 2 hours: the time saved is banked for Q10 and checking
+var P1T_HINT = {l4:'about 7 min for 4(a), 8 for 4(b)'};
+var P1T_MILE = {l4:[[7,'7 minutes gone: about time to move on to 4(b).']], q10:[[3,'Now start translating.'],[16,'Now check your translation.']]};
 var P1_SECMIN = {A:50, B:50, C:20};
 var p1NotesCtx = '';
 var P1T = null;
@@ -10921,7 +10921,8 @@ var P1SET_GRACE = 30, P1SET_NOTES = 120, P1SET_UP = 60, P1SET_KEEP = 12*3600e3;
 var P1S = null;   // the set test open on this page: {o, code, key, st}
 function p1sTeacher(){ try { return !!localStorage.getItem('apTeacherKey'); } catch(e){ return false; } }
 function p1sTimes(ids){
-  var a=0, m=0; ids.forEach(function(id){ var t=(P1Q[id]||{}).type; a+=(P1T_REC[t]||10)*60; m+=(P1SET_MARK[t]||3)*60; });
+  var a=0, m=0, ty={}; ids.forEach(function(id){ var t=(P1Q[id]||{}).type; ty[t]=1; a+=(P1T_REC[t]||10)*60; m+=(P1SET_MARK[t]||3)*60; });
+  if(Object.keys(P1_TYPES).every(function(t){ return ty[t]; })) a=Math.max(a, 120*60);   // a whole paper: the real exam's 2 hours
   return {ans:a, mark:m, grace:P1SET_GRACE, notes:P1SET_NOTES, up:P1SET_UP, total:a+P1SET_GRACE+m+P1SET_GRACE+P1SET_NOTES+P1SET_UP};
 }
 function p1sMin(sec){ var m=Math.floor(sec/60), s=sec%60; return s ? (m ? m+' min '+s+' s' : s+' s') : m+' min'; }
