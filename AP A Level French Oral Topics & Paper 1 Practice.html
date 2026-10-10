@@ -3,7 +3,7 @@
 <script id="ap-update">
 /* AP auto-update: if this copy is older than the published version, reload once with the new one (saved answers are kept) */
 (function () {
-  var B = 'a71349bd42'; window.AP_BUILD = B;
+  var B = '45c0dab4a5'; window.AP_BUILD = B;
   function check() {
     if (!/^https?:$/.test(location.protocol) || !window.fetch) return;
     var f = decodeURIComponent(location.pathname.split('/').pop() || '');
@@ -11548,7 +11548,7 @@ function ocLeisureStart(section, cards) {
    (APTT token, kind 'speed') for exactly the game's selection on screen: lists, language, word type, level and direction.
    Boys: the link (AP Tests.html#t=…, or the code on the AP Tests page) comes here as #spt=<token>&c=<code>. The game opens on that
    selection, locked for pair work: no list chooser, no way back to the app, no tests or printing. The bottom controls still work
-   (level, 🔀 New set, the wrong ones, tiles, time, teams, direction). No session timer: the boys stay until AP says stop.
+   (level, 🔀 New set, the wrong ones, tiles, time, teams, direction). It always starts with 2 teams, 16 tiles and English → the language. No session timer: the boys stay until AP says stop.
    Leaving the page sounds the AP TEST GUARD siren and is logged (aptgLog:apss:<code>:<start>), as in the timed tests.
    ⏹ End session (ask AP first) works like ⌂ Back in a timed test: confirm, logged and recorded, then the session ends. */
 (function () {
@@ -11618,7 +11618,7 @@ function ocLeisureStart(section, cards) {
     d = document.createElement('div'); d.id = 'apss-mk'; d.className = 'aptt-mkov';
     d.innerHTML = '<div class="aptt-mkbox" role="dialog" aria-modal="true"><div class="aptt-mkh">🔗 Make a Speed session link</div>'
       + '<div class="aptt-mks">⚡ ' + esc(title) + '</div>'
-      + '<div class="aptt-mkhint" style="margin:0 0 6px">The boys go straight into this game on exactly this selection (lists, language, level, direction) and cannot change it. They can still change the level, deal a new set, play the wrong ones, change tiles, time and teams. No time limit: they stay until you say stop. Leaving the page sounds the alarm and is logged and recorded.</div>'
+      + '<div class="aptt-mkhint" style="margin:0 0 6px">The boys go straight into this game on exactly this selection (lists, language, level) and cannot change it. It always starts with <b>2 teams, 16 tiles and English → ' + esc(LN) + '</b>. They can still change the level, deal a new set, play the wrong ones, change tiles, time, teams and direction. No time limit: they stay until you say stop. Leaving the page sounds the alarm and is logged and recorded.</div>'
       + '<label>Name (for your list; the boys see it at the top)</label><input id="apss-mk-n" type="text" value="' + esc(name) + '">'
       + '<label>Library heading</label><select id="apss-mk-cat">' + (cats.indexOf(cat) < 0 ? [cat].concat(cats) : cats).map(function (x) { return '<option' + (x === cat ? ' selected' : '') + '>' + esc(x) + '</option>'; }).join('') + '</select>'
       + '<label>Folder inside it (optional: e.g. C Block Set 2, Autumn 2026)</label><input id="apss-mk-f" type="text" list="apss-mk-fl" maxlength="40" placeholder="none"><datalist id="apss-mk-fl">' + ((APTT.folders && APTT.folders()) || []).map(function (x) { return '<option value="' + esc(x) + '">'; }).join('') + '</datalist>'
@@ -11665,11 +11665,12 @@ function ocLeisureStart(section, cards) {
       if (g.cv && g.cfg && w[g.cv] && typeof w[g.cv] === 'object') { var c = JSON.parse(JSON.stringify(g.cfg)); Object.keys(c).forEach(function (k) { w[g.cv][k] = c[k]; }); }
       if (g.VLV) w.VLV = g.VLV;
       if (g.LV) w.LV = g.LV;
-      if (g.rev != null && w.Q) w.Q.rev = g.rev;
+      if (w.Q) { w.Q.n = 16; w.Q.teams = 2; w.Q.rev = 0; }   // AP's standing default for every Speed session: 2 teams, 16 tiles, English → language (not saved over the boy's own settings)
       var ap = typeof w.vApply === 'function' ? w.vApply : typeof w.oApply === 'function' ? w.oApply : null;
       if (ap) ap();
       if (g.cfg && g.cfg.lvl && typeof w.vSetLvl === 'function') w.vSetLvl(g.cfg.lvl);
       if (g.LV && typeof w.qfLv === 'function') w.qfLv(g.LV);
+      if (!ap && !g.LV && typeof w.qfNew === 'function') w.qfNew();
     } catch (e) { }
     if (SS.ck) lsSet(SS.ck, SS.prev);   // the boy's own game settings back as they were
     ['vOpen', 'oOpen', 'qfTest', 'qfPrint'].forEach(function (k) { if (typeof w[k] === 'function') w[k] = function () { }; });
