@@ -3,7 +3,7 @@
 <script id="ap-update">
 /* AP auto-update: if this copy is older than the published version, reload once with the new one (saved answers are kept) */
 (function () {
-  var B = '13b888c3bc'; window.AP_BUILD = B;
+  var B = 'be22abc57b'; window.AP_BUILD = B;
   function check() {
     if (!/^https?:$/.test(location.protocol) || !window.fetch) return;
     var f = decodeURIComponent(location.pathname.split('/').pop() || '');
@@ -2200,19 +2200,25 @@ var APTT = (function () {
       if (!CTX) { var A = window.AudioContext || window.webkitAudioContext; if (!A) return null; try { CTX = new A(); } catch (e) { return null; } }
       return CTX;
     }
-    function wail() {   // one long, loud, rising-and-falling siren (3 s)
+    function wail() {   // the klaxon: three harsh rising "ah-oo-gah" blasts (about 3 s), chosen by AP 10 Oct 2026
       var c = CTX; if (!c) return; LAST = Date.now();
       try {
-        var t = c.currentTime + 0.02, D = 3, m = c.createGain(), k = c.createDynamicsCompressor();
+        var t = c.currentTime + 0.02, D = 3.1, m = c.createGain(), k = c.createDynamicsCompressor(), d = c.createWaveShaper(), n = 1024, cu = new Float32Array(n);
+        for (var j = 0; j < n; j++) { var x = j * 2 / n - 1; cu[j] = 19 * x / (1 + 18 * Math.abs(x)); }
+        d.curve = cu; d.connect(m);
         m.gain.setValueAtTime(0.0001, t); m.gain.exponentialRampToValueAtTime(0.9, t + 0.05);
-        m.gain.setValueAtTime(0.9, t + D - 0.25); m.gain.exponentialRampToValueAtTime(0.0001, t + D);
+        m.gain.setValueAtTime(0.9, t + D - 0.2); m.gain.exponentialRampToValueAtTime(0.0001, t + D);
         m.connect(k); k.connect(c.destination);
-        [['sawtooth', 1], ['square', 1.012]].forEach(function (s) {
-          var o = c.createOscillator(), v = c.createGain(); o.type = s[0]; v.gain.value = 0.5;
-          o.frequency.setValueAtTime(650 * s[1], t);
-          for (var i = 0; i < 4; i++) { var a = t + i * 0.75; o.frequency.linearRampToValueAtTime(1450 * s[1], a + 0.4); o.frequency.linearRampToValueAtTime(650 * s[1], a + 0.75); }
-          o.connect(v); v.connect(m); o.start(t); o.stop(t + D + 0.05);
-        });
+        for (var b = 0; b < 3; b++) {
+          var s = t + b * 1.02, e = s + 0.85, g = c.createGain();
+          g.gain.setValueAtTime(0.0001, s); g.gain.exponentialRampToValueAtTime(0.6, s + 0.04); g.gain.setValueAtTime(0.6, e - 0.08); g.gain.exponentialRampToValueAtTime(0.0001, e); g.connect(d);
+          [1, 1.5].forEach(function (r) {
+            var o = c.createOscillator(), lfo = c.createOscillator(), lg = c.createGain(), v = c.createGain(); o.type = 'sawtooth';
+            o.frequency.setValueAtTime(150 * r, s); o.frequency.exponentialRampToValueAtTime(330 * r, s + 0.3); o.frequency.setValueAtTime(330 * r, e - 0.15); o.frequency.exponentialRampToValueAtTime(260 * r, e);
+            lfo.frequency.value = 32; lg.gain.value = 0.35; lfo.connect(lg); v.gain.value = 0.5; lg.connect(v.gain);
+            o.connect(v); v.connect(g); o.start(s); o.stop(e + 0.02); lfo.start(s); lfo.stop(e + 0.02);
+          });
+        }
       } catch (e) { }
     }
     function siren() {
@@ -31589,19 +31595,25 @@ var APTT = (function () {
       if (!CTX) { var A = window.AudioContext || window.webkitAudioContext; if (!A) return null; try { CTX = new A(); } catch (e) { return null; } }
       return CTX;
     }
-    function wail() {   // one long, loud, rising-and-falling siren (3 s)
+    function wail() {   // the klaxon: three harsh rising "ah-oo-gah" blasts (about 3 s), chosen by AP 10 Oct 2026
       var c = CTX; if (!c) return; LAST = Date.now();
       try {
-        var t = c.currentTime + 0.02, D = 3, m = c.createGain(), k = c.createDynamicsCompressor();
+        var t = c.currentTime + 0.02, D = 3.1, m = c.createGain(), k = c.createDynamicsCompressor(), d = c.createWaveShaper(), n = 1024, cu = new Float32Array(n);
+        for (var j = 0; j < n; j++) { var x = j * 2 / n - 1; cu[j] = 19 * x / (1 + 18 * Math.abs(x)); }
+        d.curve = cu; d.connect(m);
         m.gain.setValueAtTime(0.0001, t); m.gain.exponentialRampToValueAtTime(0.9, t + 0.05);
-        m.gain.setValueAtTime(0.9, t + D - 0.25); m.gain.exponentialRampToValueAtTime(0.0001, t + D);
+        m.gain.setValueAtTime(0.9, t + D - 0.2); m.gain.exponentialRampToValueAtTime(0.0001, t + D);
         m.connect(k); k.connect(c.destination);
-        [['sawtooth', 1], ['square', 1.012]].forEach(function (s) {
-          var o = c.createOscillator(), v = c.createGain(); o.type = s[0]; v.gain.value = 0.5;
-          o.frequency.setValueAtTime(650 * s[1], t);
-          for (var i = 0; i < 4; i++) { var a = t + i * 0.75; o.frequency.linearRampToValueAtTime(1450 * s[1], a + 0.4); o.frequency.linearRampToValueAtTime(650 * s[1], a + 0.75); }
-          o.connect(v); v.connect(m); o.start(t); o.stop(t + D + 0.05);
-        });
+        for (var b = 0; b < 3; b++) {
+          var s = t + b * 1.02, e = s + 0.85, g = c.createGain();
+          g.gain.setValueAtTime(0.0001, s); g.gain.exponentialRampToValueAtTime(0.6, s + 0.04); g.gain.setValueAtTime(0.6, e - 0.08); g.gain.exponentialRampToValueAtTime(0.0001, e); g.connect(d);
+          [1, 1.5].forEach(function (r) {
+            var o = c.createOscillator(), lfo = c.createOscillator(), lg = c.createGain(), v = c.createGain(); o.type = 'sawtooth';
+            o.frequency.setValueAtTime(150 * r, s); o.frequency.exponentialRampToValueAtTime(330 * r, s + 0.3); o.frequency.setValueAtTime(330 * r, e - 0.15); o.frequency.exponentialRampToValueAtTime(260 * r, e);
+            lfo.frequency.value = 32; lg.gain.value = 0.35; lfo.connect(lg); v.gain.value = 0.5; lg.connect(v.gain);
+            o.connect(v); v.connect(g); o.start(s); o.stop(e + 0.02); lfo.start(s); lfo.stop(e + 0.02);
+          });
+        }
       } catch (e) { }
     }
     function siren() {
