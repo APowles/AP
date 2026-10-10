@@ -565,6 +565,8 @@ textarea.p1-in{border:1px solid #bbb;border-radius:4px;min-height:44px}
 .p1-self{display:flex;gap:6px;align-items:center;margin-top:8px;flex-wrap:wrap}
 .p1-self span{font-size:0.8125rem;font-weight:700;color:#555}
 .p1-self button{border:1.5px solid var(--border);background:#fff;border-radius:20px;padding:4px 12px;min-height:32px;font-weight:700;cursor:pointer;font-family:inherit;font-size:0.875rem;color:var(--text2)}
+.p1-unsure{margin-top:10px;padding:8px 11px;border-left:4px solid #c9a227;background:#fff8e1;border-radius:0 8px 8px 0;font-weight:500;font-size:.8125rem;line-height:1.4;color:#4a3d0e}
+@media print{.p1-unsure{display:none!important}}
 .p1-self button.on{background:var(--navy);border-color:var(--navy);color:var(--gold2)}
 .p1-verdict{font-weight:700;font-size:0.875rem;margin-left:6px}
 .p1-verdict.ok{color:var(--correct)}.p1-verdict.no{color:var(--wrong)}
@@ -2055,7 +2057,7 @@ aphWatchHome(document.getElementById('app'), '.ot-home');
    (pageTitle: the OneNote page title after today's date dd/mm/yyyy; default = docTitle without '– marked'; a Copy
    button for it is shown in the name dialog and on the PDF page) and the marked paper opens as a print-ready page with the print dialog (Save as PDF). If pop-ups are blocked,
    the same page opens in an in-page overlay with its own Print button. Nothing here marks anything: the app's own
-   score is passed in. */
+   score is passed in. top (optional): HTML put straight under the name and score, before the key and the questions. */
 var APMP = (function () {
   var KEY = 'apStudentName';
   function esc(s) { return String(s == null ? '' : s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;'); }
@@ -2234,7 +2236,7 @@ var APMP = (function () {
       + (o.summary ? '<div class="apmp-sum">' + o.summary + '</div>' : '')
       + (o.partial ? '<div class="apmp-pnote">Marked so far: ' + (o.partNote || '') + '</div>' : '') + '</div>'
       + '<div class="apmp-scol">' + circle(o.got, o.max, o.partial, o.raw) + (o.stamp ? '<div class="apmp-stamp">' + o.stamp + '</div>' : '') + '</div></div>'
-      + '<div class="apmp-key"><span><i class="apmp-ok">✓</i> correct</span><span><i class="apmp-bad">✗</i> wrong</span><span><i style="color:#8a5c00">~</i> partly right</span><span><i style="color:#8a93a8">—</i> no mark given</span><span>&#9746; = your choice</span></div>'
+      + (o.top || '') + '<div class="apmp-key"><span><i class="apmp-ok">✓</i> correct</span><span><i class="apmp-bad">✗</i> wrong</span><span><i style="color:#8a5c00">~</i> partly right</span><span><i style="color:#8a93a8">—</i> no mark given</span><span>&#9746; = your choice</span></div>'
       + o.body
       + '<div class="apmp-foot"><span>' + o.foot + '</span><span>Generated ' + stamp + '</span></div>'
       + '</div>' + auto + '</body></html>';
@@ -2888,6 +2890,8 @@ html.aptt-open,html.aptt-open body{overflow:hidden}
 .aptt-learn.aptt-shake{animation:apttShake .45s ease, apttGlow 1.3s ease-in-out infinite}
 .aptt-learn-h{font-size:1rem;font-weight:800;color:var(--navy);margin:0 0 2px}
 .aptt-learn-q{font-size:.9375rem;color:var(--text2);margin:0 0 4px}
+.aptt-learn-why{font-size:.9375rem;line-height:1.45;color:#4a3d0e;background:#fff8e1;border-left:4px solid #c9a227;border-radius:0 8px 8px 0;padding:8px 11px;margin:6px 0 8px}
+.aptt-save .apmp-btn.aptt-wait{background:#8a93a8;border-color:#8a93a8;color:#fff;cursor:not-allowed}
 .aptt-learn-must{font-size:.9375rem;font-weight:700;color:#a32116;margin:2px 0 8px}
 .aptt-learn-must.now{background:#fdecea;border-radius:8px;padding:6px 10px}
 .aptt-learn.done .aptt-learn-must{display:none}
@@ -3061,7 +3065,7 @@ var APTT = (function () {
   function padKeys(st) { return st.items.map(function (it, i) { return st.key + ':' + (i + 1); }).concat([st.key + ':learn']); }
   function forget(st) { if (!st) return; APPEN.reset(padKeys(st)); lsDel('apttState:' + st.key); if (lsGet('apttCur:' + st.sel) === st.key) lsDel('apttCur:' + st.sel); }
   function fresh(key, sel, m, items) {
-    return { v: 1, key: key, sel: sel, m: m, items: items, mode: '', t0: 0, at: 0, locked: false, lockAt: 0, endAt: 0, auto: false, na: [], shown: false, m0: 0, markDone: false, unm: [], marks: [], tAns: 0, tMark: 0, att: 0, done: false };
+    return { v: 1, key: key, sel: sel, m: m, items: items, mode: '', t0: 0, at: 0, locked: false, lockAt: 0, endAt: 0, auto: false, na: [], shown: false, m0: 0, markDone: false, unm: [], marks: [], tAns: 0, tMark: 0, att: 0, done: false, lt0: 0 };
   }
   function norm(it) { return { prompt: String(it.prompt == null ? '' : it.prompt), answer: String(it.answer == null ? '' : it.answer), kind: it.kind === 'sentence' ? 'sentence' : 'word', label: it.label ? String(it.label) : '', html: !!it.html }; }
   function show(it, f) { return it.html ? it[f] : esc(it[f]); }
@@ -3141,6 +3145,7 @@ var APTT = (function () {
       if (!S || !$('aptt-ov')) return;
       clock();
       try { var lb = $('aptt-learn'); if (lb) lb.classList.toggle('done', filled('learn')); } catch (e) { }
+      try { learnUI(); } catch (e) { }
       if (document.visibilityState && document.visibilityState !== 'visible') return;
       if (!S.mode) return;
       if (!S.locked) S.tAns++; else if (S.shown && !(S.mode === 'timed' && S.markDone)) S.tMark++; else return;
@@ -3212,10 +3217,11 @@ var APTT = (function () {
       + '<div class="aptt-lock-n" id="aptt-lockn"></div>'
       + '<div class="aptt-after" id="aptt-after"' + (S.shown ? '' : ' hidden') + '>'
       + '<div class="aptt-score" id="aptt-score2"></div><div class="aptt-cm" id="aptt-cm" hidden></div>'
-      + '<div class="aptt-learn" id="aptt-learn"><div class="aptt-learn-h">📝 What I learned: the most useful part of the whole test</div><div class="aptt-learn-q">These notes are <b>for you, not for AP</b>, so note form is fine. Go back through your mistakes and take stock: which words or structures caught you out, what the correct version is, and how you’ll remember it. Write it in your own way.</div><div class="aptt-learn-q">This box is <b>not timed and not locked</b>. <b>In class</b>, take a couple of minutes, then save and upload your PDF when AP says. <b>In your House</b>, take as long as you need. Even later, once it is a PDF in OneNote, you can go back whenever you like and add more notes with your Apple Pencil.</div>'
+      + '<div class="aptt-learn" id="aptt-learn"><div class="aptt-learn-h">📝 What I learned: the most useful part of the whole test</div><div class="aptt-learn-q">These notes are <b>for you</b>, so note form is fine. Go back through your mistakes and take stock: which words or structures caught you out, what the correct version is, and how you’ll remember it. Write it in your own way.</div><div class="aptt-learn-q">This box has <b>no time limit</b>. <b>In class</b>, take a couple of minutes, then save and upload your PDF when AP says. <b>In your House</b>, take as long as you need. Even later, once it is a PDF in OneNote, you can go back whenever you like and add more notes with your Apple Pencil.</div>'
+      + (demo() ? '' : '<div class="aptt-learn-why">' + LEARN_WHY + '</div>')
       + '<div class="aptt-learn-must" id="aptt-learn-must">✋ Before you save your PDF there must be clear evidence here that you have engaged with your mistakes and what you learned: some notes, in your own way.</div>'
       + APPEN.html({ key: S.key + ':learn', lines: 4, label: 'What I learned', typed: '<textarea class="appen-ta" rows="4" spellcheck="false" autocomplete="off" placeholder="Notes for you: what caught you out, the correct version, how you’ll remember it…"></textarea>' }) + '</div>'
-      + '<div class="aptt-save"><button type="button" class="apmp-btn lg" onclick="APTT.pdf()">📄 Save my work as PDF</button>'
+      + '<div class="aptt-save"><button type="button" class="apmp-btn lg" id="aptt-pdfbtn" onclick="APTT.pdf()">📄 Save my work as PDF</button>'
       + '<div class="aptt-save-n">' + ((/iPad|iPhone|iPod/.test(navigator.userAgent || '') || (/Macintosh/.test(navigator.userAgent || '') && navigator.maxTouchPoints > 1)) ? 'then Share &rsaquo; OneNote (see above). Open OneNote, go to your Classwork or EW folder, find the new page, tap the PDF icon and tap Printout. Otherwise, see the help on the next page.' : 'then put it into OneNote on a new page: Insert &rsaquo; File Printout') + '</div></div></div>'
       + '</div>';
     ov.innerHTML = h;
@@ -3236,6 +3242,30 @@ var APTT = (function () {
     if (S.locked) { APPEN.lockIn(itemsEl); naUI(); }
     modeUI(); steps(); score(); clock();
     if (S.shown && S.markDone) markEndUI();
+    learnWire(); learnUI();
+  }
+  // 📝 What I learned: the PDF button stays locked until he has been writing here for at least LEARN_MIN seconds (from his first pen stroke
+  // or keystroke in the box, kept in his saved test as lt0, so a reload neither resets nor skips it) and the box is not empty. No time limit,
+  // no alarm. Not in the demo test (DEMO101).
+  var LEARN_MIN = 30, LPD = 0, LEARN_WHY = '⏳ <b>This is the most important stage of the test.</b> Your PDF button unlocks 30 seconds after you start writing here. 30 seconds is a minimum, not a target: <b>in class (Birley 12)</b>, take at least 30 seconds; <b>anywhere else</b>, take as long as you need. AP will review the quality of your engagement with your self-reflection.';
+  function demo() { return !!(S && S.m && S.m.set && S.m.set.code === 'DEMO101'); }
+  function learnMark() { if (!S || S.lt0 || demo() || !filled('learn')) return; S.lt0 = LPD && Date.now() - LPD < 120e3 ? LPD : Date.now(); save(); }
+  function learnLeft() {   // -1: nothing written yet · n > 0: seconds still to go · 0: he can save
+    if (!S || demo()) return 0;
+    if (!filled('learn')) return -1;
+    learnMark(); return Math.max(0, LEARN_MIN - Math.floor((Date.now() - (S.lt0 || Date.now())) / 1000));
+  }
+  function learnUI() {
+    var b = $('aptt-pdfbtn'); if (!b || !S) return;
+    var l = learnLeft(), t = l < 0 ? '✍️ Write your notes first' : l > 0 ? '⏳ Keep writing… ' + mmss(l) : '📄 Save my work as PDF';
+    if (b.textContent !== t) b.textContent = t;
+    b.classList.toggle('aptt-wait', l !== 0); b.setAttribute('aria-disabled', l !== 0 ? 'true' : 'false');
+  }
+  function learnWire() {
+    var lb = $('aptt-learn'); if (!lb || lb.__lw) return; lb.__lw = 1;
+    lb.addEventListener('pointerdown', function (e) { if (e.target.closest && e.target.closest('.appen-cv')) LPD = Date.now(); }, true);
+    var k = function () { setTimeout(function () { try { learnMark(); learnUI(); } catch (x) { } }, 30); };
+    ['pointerup', 'input', 'keyup'].forEach(function (t) { lb.addEventListener(t, k); });
   }
   function afresh() {   // the same items again, from the mode choice (the next attempt)
     var st = S; forget(st);
@@ -3454,6 +3484,11 @@ var APTT = (function () {
       if (lb) { try { lb.scrollIntoView({ behavior: 'smooth', block: 'center' }); } catch (e) { } lb.classList.remove('aptt-shake'); void lb.offsetWidth; lb.classList.add('aptt-shake'); }
       return;
     }
+    if (learnLeft() !== 0) {   // not yet 30 seconds since his first stroke in What I learned
+      learnUI(); var lw = $('aptt-learn');
+      if (lw) { try { lw.scrollIntoView({ behavior: 'smooth', block: 'center' }); } catch (e) { } lw.classList.remove('aptt-shake'); void lw.offsetWidth; lw.classList.add('aptt-shake'); }
+      return;
+    }
     APMP.save(function () {
       var r = sum(), T = S.m.total || 10, timed = S.mode === 'timed', mins = minsTxt(limit()), ml = markLimit();
       var q = function (it, i) {
@@ -3470,8 +3505,9 @@ var APTT = (function () {
         + '.aptt-on b{color:#c0392b!important}.aptt-pa{color:#1a2744}.aptt-plegend{font-size:8.5pt;color:#4a5a7a;margin:0 0 2mm}.aptt-plegend b{color:#1a2744}</style>'
         + '<div class="aptt-plegend">Marks: ' + (w ? (s ? 'words ' : '') + '<b>2</b> right: perfect in every way · <b>1</b> nearly: instantly recognisable as a solid attempt, but with minor errors · <b>0</b> wrong: a different word, or not recognisable' : '') + (w && s ? ' &middot; ' : '') + (s ? (w ? 'sentences ' : '') + '<b>4</b> perfect in every way · <b>3</b> mostly right (about 75%+) · <b>2</b> about half right (50/50) · <b>1</b> only a word or two right · <b>0</b> nothing right' : '')
         + ' &middot; each ' + noun(1) + ' is worth ' + r1(val()) + ' of ' + T + (timed ? ' &middot; ' + dur(ml) + ' to mark (anything not marked in time scores 0)' : '') + '</div>'
-        + APMP.sec(S.items.length + ' ' + noun(S.items.length), r1(r.score), T, true) + S.items.map(q).join('')
-        + '<div class="apmp-sec"><span>📝 What I learned</span></div><div class="appen-pbox">' + (learn || '<span class="apmp-blank">(nothing written)</span>') + '</div>';
+        + APMP.sec(S.items.length + ' ' + noun(S.items.length), r1(r.score), T, true) + S.items.map(q).join('');
+      var top = '<div class="apmp-sec"><span>📝 What I learned</span></div><div class="appen-pbox">' + (learn || '<span class="apmp-blank">(nothing written)</span>') + '</div>';
+      if (demo()) { body += top; top = ''; }   // the demo keeps it at the end
       S.done = true; save();
       return {
         app: plain(S.m.app), kicker: S.m.kicker + ' &middot; AP Spot Test: timed &amp; submitted' + (S.m.set ? ' &middot; SET BY AP' + (S.m.set.code ? ': ' + esc(S.m.set.code) : '') : ''),
@@ -3487,7 +3523,7 @@ var APTT = (function () {
           + '<br>⏱ ' + (S.auto ? '<b class="apmp-bad">Locked automatically at ' + dur(S.lockAt) + '</b> (time limit ' + mins + ' min + 30 s)' : 'Translating: <b>' + dur(S.lockAt || S.tAns) + '</b>' + (timed ? ' (limit ' + mins + ' min)' : ' (no time limit)'))
           + (S.na && S.na.length ? ' &middot; <span class="apmp-bad">not attempted: ' + noun(S.na.length) + ' ' + S.na.join(', ') + '</span>' : '')
           + ' &middot; Marking: <b>' + dur(S.tMark) + '</b>' + (timed ? ' (limit ' + dur(ml) + ')' : ''),
-        body: body, foot: S.m.app + ' &middot; AP Spot Test: timed &amp; submitted',
+        body: body, top: top, foot: S.m.app + ' &middot; AP Spot Test: timed &amp; submitted',
         docTitle: S.m.set && S.m.set.name ? (S.m.set.code && S.m.set.name.replace(/\s+/g, '').toUpperCase().indexOf(S.m.set.code.toUpperCase()) < 0 ? S.m.set.code + ' ' : '') + S.m.set.name : 'AP Spot Test — ' + plain(S.m.title), lang: S.m.lang,
         pageTitle: (S.m.set && S.m.set.name ? (S.m.set.code && S.m.set.name.replace(/\s+/g, '').toUpperCase().indexOf(S.m.set.code.toUpperCase()) < 0 ? S.m.set.code + ' ' : '') + S.m.set.name : 'AP Spot Test ' + (S.m.set && S.m.set.code ? S.m.set.code + ' ' : '') + 'on ' + plain(S.m.title) + (S.m.level && plain(S.m.title).toLowerCase().indexOf(S.m.level.toLowerCase()) < 0 ? ' (' + S.m.level + ')' : '')) + (S.att > 1 ? ' – ATTEMPT ' + S.att : '')
       };
@@ -3814,6 +3850,8 @@ function apttLevel(sc, run) {
 .p1s-ban:empty{display:none}.p1s-ban b{font-size:1.25rem}.p1s-ban.a{background:#1a2744;color:#fff}.p1s-ban.w{background:#c0392b;color:#fff}.p1s-ban.m{background:#2e7d52;color:#fff}.p1s-ban.d{background:#fff4c2;color:#5a3d00;border:2px solid #e0a800}
 .p1s-actions{text-align:center}.p1s-actions:empty{display:none}.p1s-actions .p1-note{margin-top:6px}
 .p1s-learn{background:#fff;border:3px solid #c0392b;border-radius:12px;padding:12px 14px}.p1s-learn-h{font-weight:800;color:#1a2744;margin:0 0 4px}.p1s-learn-q{font-size:.92rem;color:#4a5368;margin:0 0 6px}
+.p1s-learn-why{font-size:.92rem;line-height:1.45;color:#4a3d0e;background:#fff8e1;border-left:4px solid #c9a227;border-radius:0 8px 8px 0;padding:8px 11px;margin:6px 0 8px}
+.apmp-btn.p1s-wait{background:#8a93a8;border-color:#8a93a8;color:#fff;cursor:not-allowed}
 .p1s-learn-must{font-weight:700;color:#a32116;margin:2px 0 8px}.p1s-learn-must.now{background:#fdecea;border-radius:8px;padding:6px 10px}
 .p1-set .p1t-rec,.p1-set .p1t-btn,.p1-set .p1-hint,.p1-set .p1-fin,.p1-set .p1-kept,.p1-set .p1-q .p1-steps,.p1-set .p1-lock-n{display:none!important}
 </style>
@@ -10175,6 +10213,7 @@ function msList(arr, cls, label){
   if(!arr || !arr.length) return '';
   return '<div class="k '+cls+'">'+label+'</div><ul>'+arr.map(function(x){return '<li>'+br(x)+'</li>';}).join('')+'</ul>';
 }
+var P1_UNSURE = '<div class="p1-unsure"><b>Unsure about your answer?</b> Don’t interrupt this marking session by asking AP now. Use your best judgement and, if in doubt, mark it wrong. Ask AP once you have submitted and uploaded your PDF as requested. The same goes if you think you’ve spotted an error in the paper: show AP your PDF at the end and he will advise.</div>';   // in every self-marking box (on screen only)
 function selfHtml(bi, key, max){
   var h = '<div class="p1-self"><span>Your mark:</span>';
   for(var k=0;k<=max;k++) h += '<button data-k="'+key+'" data-v="'+k+'" onclick="p1Self('+bi+',\''+key+'\','+k+',this)">'+k+'</button>';
@@ -10194,7 +10233,7 @@ function p1GistBox(g){
 }
 function openMS(it, id, bi, key){
   var el=document.getElementById(id+'_ms'); if(!el) return;
-  el.innerHTML = '<div class="p1-ms"><div class="k ans">Mark scheme</div><div>'+br(it.answer)+'</div>'+p1GistBox(it.gist)+msList(it.accept,'ok','Accept')+msList(it.reject,'no','Reject')+selfHtml(bi,key,it.marks||1)+'</div>';
+  el.innerHTML = '<div class="p1-ms"><div class="k ans">Mark scheme</div><div>'+br(it.answer)+'</div>'+p1GistBox(it.gist)+msList(it.accept,'ok','Accept')+msList(it.reject,'no','Reject')+selfHtml(bi,key,it.marks||1)+P1_UNSURE+'</div>';
   showTip(id);
 }
 window.p1Lock = function(bi, quiet){
@@ -10242,12 +10281,13 @@ window.p1Check = function(bi){
       t += '<tr><td><b>'+s.n+'</b></td><td class="fr">'+esc(s.fr)+'</td><td><b>'+br(s.answer)+'</b>'+(s.accept&&s.accept.length?'<div style="color:#2e7d32;margin-top:3px">'+s.accept.map(esc).join(' / ')+'</div>':'')+'<div class="p1-tip" style="margin-top:5px">💡 '+esc(s.tip)+'</div></td><td style="color:#c62828">'+(s.reject||[]).map(esc).join('<br>')+'</td><td>'+selfHtml(bi,'s'+i,1).replace('<span>Your mark:</span>','')+'</td></tr>';
     });
     t += '</tbody></table><div class="p1-note" style="font-size:.75rem;color:#777;margin-top:6px">Marking principle (Pearson): a section scores if an English speaker would understand it without seeing the French. Misspellings are tolerated unless they cause ambiguity.</div>';
+    t += P1_UNSURE;
     document.getElementById(P+'tr_ms').innerHTML=t;
   } else {
     var items = q.type==='l4' ? q.partA.items : q.items, pre = q.type==='l4' ? 'a' : 'o';
     items.forEach(function(it,i){ openMS(it, P+pre+i, bi, pre+i); });
     if(q.type==='l4') q.partB.summary.forEach(function(sm,si){ sm.bullets.forEach(function(bu,bj){
-      var id=P+'s'+si+'_'+bj; document.getElementById(id+'_ms').innerHTML='<div class="p1-ms"><div class="k ans">Mark scheme</div><div>'+br(bu.answer)+'</div>'+p1GistBox(bu.gist)+msList(bu.accept,'ok','Accept')+msList(bu.reject,'no','Reject')+selfHtml(bi,'s'+si+'_'+bj,1)+'</div>'; showTip(id);
+      var id=P+'s'+si+'_'+bj; document.getElementById(id+'_ms').innerHTML='<div class="p1-ms"><div class="k ans">Mark scheme</div><div>'+br(bu.answer)+'</div>'+p1GistBox(bu.gist)+msList(bu.accept,'ok','Accept')+msList(bu.reject,'no','Reject')+selfHtml(bi,'s'+si+'_'+bj,1)+P1_UNSURE+'</div>'; showTip(id);
     }); });
   }
   disableInputs(P);
@@ -11074,17 +11114,41 @@ function p1sBuild(resumed){
   h+='<div class="p1-card p1s-actions" id="p1s-act"></div>';
   h+='<div class="p1-card p1s-end" id="p1s-end" hidden><div class="aptt-cm p1s-cm" id="p1s-cm" hidden></div>'
     + '<div class="p1s-learn"><div class="p1s-learn-h">📝 What I learned: the most useful part of the whole test</div>'
-    + '<div class="p1s-learn-q">These notes are <b>for you, not for AP</b>, so note form is fine. Go back through your mistakes and take stock: what caught you out, what the right answer is, and how you’ll remember it. Write it in your own way.</div>'
-    + '<div class="p1s-learn-q">This box is <b>not timed and not locked</b>. <b>In class</b>, take a couple of minutes, then save and upload your PDF when AP says. <b>In your House</b>, take as long as you need. Even later, once it is a PDF in OneNote, you can go back whenever you like and add more notes with your Apple Pencil.</div>'
+    + '<div class="p1s-learn-q">These notes are <b>for you</b>, so note form is fine. Go back through your mistakes and take stock: what caught you out, what the right answer is, and how you’ll remember it. Write it in your own way.</div>'
+    + '<div class="p1s-learn-q">This box has <b>no time limit</b>. <b>In class</b>, take a couple of minutes, then save and upload your PDF when AP says. <b>In your House</b>, take as long as you need. Even later, once it is a PDF in OneNote, you can go back whenever you like and add more notes with your Apple Pencil.</div>'
+    + '<div class="p1s-learn-why">'+P1S_LEARN_WHY+'</div>'
     + '<div class="p1s-learn-must" id="p1s-must">✋ Before you save your PDF there must be clear evidence here that you have engaged with your mistakes and what you learned: some notes, in your own way.</div>'
     + APPEN.html({key:p1sLearnKey(), lines:5, label:'What I learned', typed:'<textarea class="appen-ta" rows="5" spellcheck="false" autocomplete="off" placeholder="Notes for you: what caught you out, the correct version, how you’ll remember it…"></textarea>'})
-    + '</div><div style="text-align:center;margin-top:14px"><button class="apmp-btn lg" onclick="p1sSavePdf()">📄 Save marked paper as PDF</button>'
+    + '</div><div style="text-align:center;margin-top:14px"><button class="apmp-btn lg" id="p1s-pdfbtn" onclick="p1sSavePdf()">📄 Save marked paper as PDF</button>'
     + '<div class="p1-note" style="margin:8px 0 0">Copy the page title you are given, make a new page in OneNote with it, then Insert › PDF.</div></div></div>';
   h+='</div></div>';
   app().innerHTML=h; window.scrollTo(0,0); p1Total(); p1VoicesInit(); APPEN.mount(app());
   if(resumed) p1sRestore();
   clearInterval(window._p1sTick); window._p1sTick=setInterval(p1sTick, 500); p1sTick();
   if(!app().__p1s){ app().__p1s=1; app().addEventListener('change', p1sCapture, true); }
+  p1sLearnWire(); p1sLearnUI();
+}
+/* 📝 What I learned: the PDF button stays locked until he has been writing here for at least 30 seconds (from his first pen stroke or
+   keystroke in the box, kept in the saved test as lt0, so a reload neither resets nor skips it) and the box is not empty. No time limit, no alarm. */
+var P1S_LEARN_MIN = 30, P1S_LPD = 0, P1S_LEARN_WHY = '⏳ <b>This is the most important stage of the test.</b> Your PDF button unlocks 30 seconds after you start writing here. 30 seconds is a minimum, not a target: <b>in class (Birley 12)</b>, take at least 30 seconds; <b>anywhere else</b>, take as long as you need. AP will review the quality of your engagement with your self-reflection.';
+function p1sLearnFilled(){ var inf=APPEN.info(p1sLearnKey()); return inf.ink>0 || !!(inf.typed||[]).join('').replace(/\s+/g,''); }
+function p1sLearnLeft(){   // -1: nothing written yet · n > 0: seconds still to go · 0: he can save
+  if(!P1S || !P1S.st || !P1S.st.t0) return 0;
+  if(!p1sLearnFilled()) return -1;
+  var st=P1S.st; if(!st.lt0){ st.lt0 = P1S_LPD && Date.now()-P1S_LPD < 120e3 ? P1S_LPD : Date.now(); p1sSave(); }
+  return Math.max(0, P1S_LEARN_MIN - Math.floor((Date.now()-st.lt0)/1000));
+}
+function p1sLearnUI(){
+  var b=document.getElementById('p1s-pdfbtn'); if(!b || !P1S) return;
+  var l=p1sLearnLeft(), t = l<0 ? '✍️ Write your notes first' : l>0 ? '⏳ Keep writing… '+p1sClock(l*1000) : '📄 Save marked paper as PDF';
+  if(b.textContent!==t) b.textContent=t;
+  b.classList.toggle('p1s-wait', l!==0); b.setAttribute('aria-disabled', l!==0 ? 'true' : 'false');
+}
+function p1sLearnWire(){
+  var lb=document.querySelector('#p1s-end .p1s-learn'); if(!lb || lb.__lw) return; lb.__lw=1;
+  lb.addEventListener('pointerdown', function(e){ if(e.target.closest && e.target.closest('.appen-cv')) P1S_LPD=Date.now(); }, true);
+  var k=function(){ setTimeout(function(){ try { p1sLearnUI(); } catch(x){} }, 30); };
+  ['pointerup','input','keyup'].forEach(function(t){ lb.addEventListener(t, k); });
 }
 function p1sCapture(){
   if(!P1S || !P1S.st || P1S.st.phase==='intro') return;
@@ -11150,6 +11214,7 @@ function p1sTick(){
     document.querySelectorAll('#p1s-page .p1-self button').forEach(function(x){ x.disabled=true; });
   }
   if(st.phase!=='done' || !st._cap){ p1sCapture(); if(st.phase==='done') st._cap=1; }
+  if(st.phase==='done') p1sLearnUI();
 }
 function p1sScore(){ var got=0, max=0; P1B.forEach(function(b){ if(!b) return; max+=P1_TYPES[b.q.type].marks; got+=b.score||0; }); return {got:got, max:max}; }
 function p1sCm(){ if(!P1S || !window.APTT || !APTT.cmPick) return null; var r=p1sScore(); return r.max ? APTT.cmPick(r.got/r.max*20, P1S.key+':'+P1S.st.t0) : null; }
@@ -11164,6 +11229,7 @@ window.p1sSavePdf = function(){
     var mu=document.getElementById('p1s-must'); if(mu){ mu.textContent='✋ Not yet: first go through your mistakes and write some notes here on what you learned. These notes are for you, and note form is fine.'; mu.classList.add('now'); mu.scrollIntoView({behavior:'smooth', block:'center'}); }
     return;
   }
+  if(p1sLearnLeft()!==0){ p1sLearnUI(); var lw=document.querySelector('#p1s-end .p1s-learn'); if(lw) lw.scrollIntoView({behavior:'smooth', block:'center'}); return; }   // not yet 30 seconds since his first stroke
   P1S.st.saved=Date.now(); p1sSave(); p1SavePDF();
 };
 // the PDF: AP's name for the test as title and OneNote page title, the set details, the times and the boy's notes
@@ -11176,7 +11242,7 @@ window.p1SetPdf = function(R){
   R.summary='<b>✅ Set by AP'+(P1S.code?': '+esc(P1S.code):'')+'</b> &middot; attempt '+(st.att||1)+' &middot; started '+hm(st.t0)+' &middot; answers locked '+hm(st.lockAt)+(st.auto?' (automatically, time up)':' (by him)')
     +' &middot; marking closed '+hm(st.markEnd)+' &middot; time allowed: '+p1sMin(o.sa)+' + '+p1sMin(o.g||30)+' to answer, '+(o.sm?p1sMin(o.sm)+' + '+p1sMin(o.g||30)+' to mark':'marked automatically')+'<br>'+(R.summary||'');
   var notes=APPEN.pdf(p1sLearnKey());
-  R.body=(R.body||'')+'<div class="apmp-sec"><span>📝 What I learned</span></div><div class="appen-pbox">'+(notes||'<span class="apmp-blank">(nothing written)</span>')+'</div>';
+  R.top='<div class="apmp-sec"><span>📝 What I learned</span></div><div class="appen-pbox">'+(notes||'<span class="apmp-blank">(nothing written)</span>')+'</div>';   // straight under the name and score
   return R;
 };
 if(document.readyState==='complete') setTimeout(p1sBoot, 60); else window.addEventListener('load', function(){ setTimeout(p1sBoot, 60); });
