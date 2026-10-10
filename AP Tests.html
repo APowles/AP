@@ -5,7 +5,7 @@
 <script id="ap-update">
 /* AP auto-update: if this copy is older than the published version, reload once with the new one (saved answers are kept) */
 (function () {
-  var B = '9c305a8b3b'; window.AP_BUILD = B;
+  var B = 'dcf72f94eb'; window.AP_BUILD = B;
   function check() {
     if (!/^https?:$/.test(location.protocol) || !window.fetch) return;
     var f = decodeURIComponent(location.pathname.split('/').pop() || '');
@@ -2421,23 +2421,24 @@ function aptCopyGroup(btn) {   // pastes into OneNote as a tidy list: each test'
 // ✏️ change a test's name, heading, folder or time limit (same code; the test is signed again with the teacher key)
 function aptEdit(i) {
   var e = APT_LIB[i], o = e.o, d = document.getElementById('apt-ed'); if (d) d.remove();
+  var timed = !!(o && o.V), kind = o && o.kind === 'speed' ? 'Speed session' : o && o.kind === 'p1' ? 'Timed Past Paper' : '';   // a Speed session or past paper: name, heading and folder (its time is set by the game / the paper)
   var opts = ''; for (var x = 60; x <= 1200; x += 30) opts += '<option value="' + x + '"' + (x === +o.s ? ' selected' : '') + '>' + APTT.minsTxt(x) + ' min</option>';
   var cats = APTT.CATS.indexOf(e.cat) < 0 ? [e.cat].concat(APTT.CATS) : APTT.CATS;
   d = document.createElement('div'); d.id = 'apt-ed'; d.className = 'aptt-mkov';
-  d.innerHTML = '<div class="aptt-mkbox" role="dialog" aria-modal="true"><div class="aptt-mkh">✏️ Edit ' + aptEsc(e.c) + '</div><div class="aptt-mks">' + aptEsc(aptPlain(o.t)) + ' · ' + (e.items || '?') + ' items</div>'
+  d.innerHTML = '<div class="aptt-mkbox" role="dialog" aria-modal="true"><div class="aptt-mkh">✏️ Edit ' + aptEsc(e.c) + '</div><div class="aptt-mks">' + aptEsc(aptPlain(o.t)) + (kind ? ' · ' + kind : ' · ' + (e.items || '?') + ' items') + '</div>'
     + '<label>Name</label><input id="apt-ed-n" type="text" value="' + aptEsc(e.n || '') + '">'
-    + '<label>Time limit</label><select id="apt-ed-s">' + opts + '</select>'
+    + (timed ? '<label>Time limit</label><select id="apt-ed-s">' + opts + '</select>' : '')
     + '<label>Library heading</label><select id="apt-ed-cat">' + cats.map(function (c) { return '<option' + (c === e.cat ? ' selected' : '') + '>' + aptEsc(c) + '</option>'; }).join('') + '</select>'
     + '<label>Folder (optional)</label><input id="apt-ed-f" type="text" maxlength="40" value="' + aptEsc(e.f || '') + '" placeholder="none">'
-    + '<div class="aptt-mkhint">The code ' + aptEsc(e.c) + ' opens the changed test within a minute or two. Links you have already posted keep the old name and time; copy the link again to get the new one.</div>'
+    + '<div class="aptt-mkhint">The code ' + aptEsc(e.c) + ' opens the changed test within a minute or two. Links you have already posted keep the old name' + (timed ? ' and time' : '') + '; copy the link again to get the new one.</div>'
     + '<div class="aptt-mkact"><button type="button" class="aph-btn" onclick="document.getElementById(\'apt-ed\').remove()">Cancel</button><button type="button" class="aph-btn aph-btn-primary" id="apt-ed-go">💾 Save</button></div></div>';
   document.body.appendChild(d);
   var nm = document.getElementById('apt-ed-n'), sl = document.getElementById('apt-ed-s');
-  sl.addEventListener('change', function () { nm.value = nm.value.replace(/\s*·\s*\d+½?\s*min\s*$/, '') + ' · ' + APTT.minsTxt(+sl.value) + ' min'; });
+  if (sl) sl.addEventListener('change', function () { nm.value = nm.value.replace(/\s*·\s*\d+½?\s*min\s*$/, '') + ' · ' + APTT.minsTxt(+sl.value) + ' min'; });
   document.getElementById('apt-ed-go').onclick = function () {
-    var b = this, n2 = nm.value.trim(), s2 = +sl.value, c2 = document.getElementById('apt-ed-cat').value, f2 = document.getElementById('apt-ed-f').value.replace(/\|/g, '/').trim();
+    var b = this, n2 = nm.value.trim(), s2 = sl ? +sl.value : o.s, c2 = document.getElementById('apt-ed-cat').value, f2 = document.getElementById('apt-ed-f').value.replace(/\|/g, '/').trim();
     var o2 = {}; Object.keys(o).forEach(function (k) { if (k !== 'tok') o2[k] = o[k]; });
-    o2.n = n2; o2.s = s2; o2.cat = c2; o2.f = f2;
+    o2.n = n2; if (s2 != null) o2.s = s2; o2.cat = c2; o2.f = f2;
     b.disabled = true; b.textContent = 'Saving…';
     APTT.pack(o2).then(function (tok) {
       return APTT.ghReplace(e.c, e.c + ' | ' + n2.replace(/\|/g, '/') + ' | ' + c2 + ' | ' + f2 + ' | ' + tok).then(function () { return tok; });
@@ -2920,6 +2921,7 @@ function aplMenu(btn, x) {
   if (x.set) {
     ['P1', 'P2', 'P3'].forEach(function (s) { var y = x.m[s]; if (y && y.e.c) it.push(['Copy code ' + y.e.c + ' (practice ' + s.slice(1) + ')', function () { APTT.copy(y.e.c, btn); }]); });
     if (x.m.A && x.m.A.e.c) it.push(['Copy ACTUAL TEST code ' + x.m.A.e.c, function () { APTT.copy(x.m.A.e.c, btn); }]);
+    if (aptGit()) ['P1', 'P2', 'P3', 'A'].forEach(function (s) { var y = x.m[s]; if (y && y.e.site && y.e.o && !y.e.bad) it.push(['Edit ' + (s === 'A' ? 'the ACTUAL TEST' : 'practice ' + s.slice(1)) + ' (' + y.e.c + ')', function () { aptEdit(y.i); }]); });
     if (x.m.A) it.push(['Try the ACTUAL TEST as a boy', function () { aplClose(); aptTry(x.m.A.i); }]);
     if (x.m.A && x.m.A.e.site && !x.m.A.e.held) it.push(['🔒 Take the ACTUAL TEST code off the AP Tests page', function () { aplHoldBack(x.m.A.e); }]);
     if (x.m.A && x.m.A.e.held) it.push(['Release the ACTUAL TEST code now', function () { aplRelease(x.m.A.e); }]);
@@ -2928,7 +2930,7 @@ function aplMenu(btn, x) {
     if (e.c) it.push(['Copy code ' + e.c, function () { APTT.copy(e.c, btn); }]);
     if (!e.bad) it.push(['Try it as a boy', function () { aplClose(); aptTry(i); }]);
     if (e.o && e.o.V) it.push(['Print a paper copy', function () { aptPrintAsk(i); }]);
-    if (e.site && aptGit() && e.o && e.o.V) it.push(['Edit name, time, heading, folder', function () { aptEdit(i); }]);
+    if (e.site && aptGit() && e.o && !e.bad) it.push([e.o.V ? 'Edit name, time, heading, folder' : 'Edit name, heading, folder', function () { aptEdit(i); }]);
     if (e.local != null) it.push(['Copy the line for tests.txt', function () { aptCopyLine(i, btn); }]);
     if (!e.builtin) it.push('-');
   }
