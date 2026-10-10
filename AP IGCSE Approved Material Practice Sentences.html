@@ -3,7 +3,7 @@
 <script id="ap-update">
 /* AP auto-update: if this copy is older than the published version, reload once with the new one (saved answers are kept) */
 (function () {
-  var B = 'e9cc06f2c1'; window.AP_BUILD = B;
+  var B = '5b95dbe6eb'; window.AP_BUILD = B;
   function check() {
     if (!/^https?:$/.test(location.protocol) || !window.fetch) return;
     var f = decodeURIComponent(location.pathname.split('/').pop() || '');
@@ -3589,16 +3589,79 @@ var APTT = (function () {
   }
   function folders() { var o = {}; listGet().forEach(function (e) { if (e.f) o[e.f] = 1; }); return Object.keys(o).sort(); }
   function draws(n) {   // more draws with the teacher's current settings (the same button, run again quietly)
-    var out = [], seen = {}, sig = function (its) { return its.map(function (it) { return it.prompt + '\u0001' + it.answer; }).join('\u0002'); };
-    seen[sig(S.items)] = 1; out.push(S.items);
-    if (!RUN) return out;
+    // fresh every time: never the draw on screen, never a version already put in a link from this page (so 3 practice tests + the actual test share no version)
+    var out = [], seen = DRAWN, sig = function (its) { return its.map(function (it) { return it.prompt + '\u0001' + it.answer; }).slice().sort().join('\u0002'); };
+    seen[sig(S.items)] = 1;
+    if (!RUN) return [S.items];
     for (var k = 0; k < n * 3 && out.length < n; k++) {
       window.APTT.capturing = [];
       try { RUN(); } catch (e) { }
       var got = window.APTT.capturing; window.APTT.capturing = null;
       if (got && got[0] && got[0].items.length === S.items.length) { var h = sig(got[0].items); if (!seen[h]) { seen[h] = 1; out.push(got[0].items); } }
     }
-    return out;
+    return out.length ? out : [S.items];
+  }
+  var DRAWN = {};
+  // several codes added to the AP Tests page in one save
+  function ghAddMany(L) {   // L = [{ code, line }]
+    return ghGet().then(function (f) {
+      var have = {}; f.text.split(/\r?\n/).forEach(function (l) { have[l.split('|')[0].trim().toUpperCase()] = 1; });
+      var used = L.filter(function (x) { return have[x.code]; }).map(function (x) { return x.code; });
+      if (used.length) throw new Error('used:' + used.join(', '));
+      var txt = f.text.replace(/\s*$/, '\n') + L.map(function (x) { return x.line; }).join('\n') + '\n';
+      return fetch(GH, { method: 'PUT', headers: ghHead(), body: JSON.stringify({ message: 'Test codes ' + L.map(function (x) { return x.code; }).join(', '), content: btoa(String.fromCharCode.apply(null, Array.from(utf8(txt)))), sha: f.sha, branch: 'main' }) })
+        .then(function (r) { if (!r.ok) throw new Error('GitHub ' + r.status); return true; });
+    });
+  }
+  // 3 practice tests + the actual test in one go: same settings, names … PRACTICE 1 / 2 / 3 and … ACTUAL TEST, 4 codes in a row, each its own random versions
+  function makeSet(d, b) {
+    var out = $('aptt-mk-out'), say = function (h) { out.innerHTML = '<div class="aptt-mkwarn">' + h + '</div>'; };
+    var c0 = $('aptt-mk-c').value.replace(/\s+/g, '').toUpperCase(), m = /^([A-Z]*)(\d+)$/.exec(c0);
+    if (!m) { say('Give the first code as letters and a number (e.g. STF107): the four tests get that code and the next three.'); return; }
+    var name = $('aptt-mk-n').value.trim(), s2 = +$('aptt-mk-s').value, cat = $('aptt-mk-cat').value, fol = $('aptt-mk-f').value.replace(/\|/g, '/').trim(), title = plain(S.m.title);
+    var taken = {}; listGet().forEach(function (e) { if (e.c) taken[String(e.c).toUpperCase()] = 1; });
+    var LBL2 = ['PRACTICE 1', 'PRACTICE 2', 'PRACTICE 3', 'ACTUAL TEST'], made = new Date().toISOString().slice(0, 10);
+    var T = LBL2.map(function (l, i) {
+      var nm = title && name.indexOf(title) >= 0 ? name.replace(title, title + ' ' + l) : name.replace(/( · |$)/, ' ' + l + '$1');
+      return { lab: l, n: nm, c: m[1] + (+m[2] + i) };
+    });
+    var clash = T.filter(function (t) { return taken[t.c]; }).map(function (t) { return t.c; });
+    if (clash.length) { say('Code ' + clash.join(', ') + ' is already in your list. Change the first code and try again.'); return; }
+    b.disabled = true; b.textContent = 'Making 4 tests…';
+    var chain = Promise.resolve();
+    T.forEach(function (t) {
+      chain = chain.then(function () {
+        var V = draws(VERSIONS);
+        var o = { v: 1, n: t.n, c: t.c, a: S.m.app, k: S.m.kicker, t: S.m.title, m: S.m.meta, d: S.m.detail, l: S.m.lang, lc: S.m.code, lv: S.m.level, s: s2, q: 'draw', id: S.m.id, cat: cat, f: fol, made: made,
+          V: V.map(function (its) { return its.map(function (it) { return [it.prompt, it.answer, it.kind === 'sentence' ? 1 : 0, it.label || '', it.html ? 1 : 0]; }); }) };
+        return pack(o).then(function (tok) {
+          t.tok = tok; t.link = linkFor(tok); t.v = V.length; t.line = t.c + ' | ' + t.n.replace(/\|/g, '/') + ' | ' + cat + ' | ' + fol + ' | ' + tok;
+          listAdd({ n: t.n, c: t.c, cat: cat, f: fol, made: made, s: s2, q: 'draw', v: V.length, items: S.items.length, t: plain(S.m.title), lv: S.m.level, app: plain(S.m.app), tok: tok });
+        });
+      });
+    });
+    chain.then(function () {
+      out.innerHTML = '<div class="aptt-mkok">✅ 4 tests made, each with its own ' + VERSIONS + ' random versions. They are also saved in your list on the AP Tests page.</div>'
+        + T.map(function (t) { return '<div class="aptt-mkrow"><div class="aptt-mklink">🔗 <a href="' + esc(t.link) + '" target="_blank" rel="noopener">' + esc(t.n + ' (' + t.c + ')') + '</a></div><button type="button" class="aph-btn aph-btn-primary">📋 Copy link</button></div>'; }).join('')
+        + '<div class="aptt-mkact" style="justify-content:flex-start"><button type="button" class="aph-btn aph-btn-primary" id="aptt-mk-all">📋 Copy all 4 as links</button></div>'
+        + '<div class="aptt-mkhint">Each pastes as its name, with the long address hidden inside it.</div>'
+        + '<label>Lines for tests.txt (for the codes)</label><div class="aptt-mkrow"><textarea readonly rows="4" style="flex:1;min-width:0;font-size:.75rem">' + esc(T.map(function (t) { return t.line; }).join('\n')) + '</textarea><button type="button" class="aph-btn">📋 Copy lines</button></div>';
+      var rows = out.querySelectorAll('.aptt-mkrow');
+      T.forEach(function (t, i) { rows[i].querySelector('button').onclick = function () { copyLink(t.n + ' (' + t.c + ')', t.link, this); }; });
+      rows[4].querySelector('button').onclick = function () { copyText(T.map(function (t) { return t.line; }).join('\n'), this); };
+      $('aptt-mk-all').onclick = function () {
+        copyHTML('<ul>' + T.map(function (t) { return '<li><a href="' + esc(t.link) + '">' + esc(t.n + ' (' + t.c + ')') + '</a></li>'; }).join('') + '</ul>', T.map(function (t) { return t.n + ' (' + t.c + ')\n' + t.link; }).join('\n\n'), this);
+      };
+      b.textContent = '✓ Made'; b.style.display = 'none';
+      var cx = $('aptt-mk-x'); if (cx) { cx.textContent = '✓ Close'; cx.className = 'aph-btn aph-btn-primary'; }
+      if (gkey()) {
+        var st = document.createElement('div'); st.className = 'aptt-mkgh'; st.textContent = '⏳ Adding codes ' + T.map(function (t) { return t.c; }).join(', ') + ' to the AP Tests page…'; out.insertBefore(st, out.children[1]);
+        ghAddMany(T.map(function (t) { return { code: t.c, line: t.line }; })).then(function () {
+          st.className = 'aptt-mkgh ok'; st.innerHTML = '✅ Codes <b>' + esc(T.map(function (t) { return t.c; }).join(', ')) + '</b> added. Boys can type them on the AP Tests page in about a minute.<br><span style="font-weight:600">Nothing else to do: you can close this box.</span>';
+          var r = out.querySelectorAll('.aptt-mkrow')[4]; if (r) { r.style.display = 'none'; if (r.previousElementSibling) r.previousElementSibling.style.display = 'none'; }
+        }).catch(function (e) { st.className = 'aptt-mkgh bad'; st.innerHTML = e && /^used:/.test(e.message) ? '⚠️ Code ' + esc(e.message.slice(5)) + ' is already taken on the AP Tests page. Use Copy lines and paste them into tests.txt with new codes, or make the four tests again with another first code.' : '⚠️ The codes could not be added automatically (' + esc(e && e.message || e) + '). Use Copy lines and paste them into tests.txt.'; });
+      }
+    }).catch(function (e) { b.disabled = false; b.textContent = '🔑 Make link'; say('Sorry, the tests could not be made (' + esc(e && e.message || e) + '). Is your teacher key set on this device?'); });
   }
   function maker() {
     if (!S || !tkey()) return;
@@ -3611,7 +3674,9 @@ var APTT = (function () {
       + '<label>Name (for your list)</label><input id="aptt-mk-n" type="text" value="' + esc('AP Timed Spot Test: ' + plain(S.m.title) + (S.m.level && plain(S.m.title).indexOf(S.m.level) < 0 ? ' · ' + S.m.level : '')) + '">'
       + '<label>Time limit</label><select id="aptt-mk-s">' + opts + '</select>'
       + '<label>Questions</label><div class="aptt-mkq"><label><input type="radio" name="aptt-mk-q" value="same"' + (RUN ? '' : ' checked') + '> Same questions for everyone <small>(you can go through the answers on the board)</small></label>'
-      + '<label' + (RUN ? '' : ' class="off"') + '><input type="radio" name="aptt-mk-q" value="draw"' + (RUN ? ' checked' : ' disabled') + '> Each boy gets his own draw <small>(' + VERSIONS + ' different versions from these settings)</small></label></div>'
+      + '<label' + (RUN ? '' : ' class="off"') + '><input type="radio" name="aptt-mk-q" value="draw"' + (RUN ? ' checked' : ' disabled') + '> Each boy gets his own draw <small>(' + VERSIONS + ' different versions from these settings, questions in a random order)</small></label></div>'
+      + '<label>Make</label><div class="aptt-mkq"><label><input type="radio" name="aptt-mk-m" value="1" checked> One test</label>'
+      + '<label' + (RUN ? '' : ' class="off"') + '><input type="radio" name="aptt-mk-m" value="set"' + (RUN ? '' : ' disabled') + '> 3 practice tests + the actual test <small>(PRACTICE 1, 2, 3 for EW and ACTUAL TEST for the lesson: 4 codes in a row, each with its own ' + VERSIONS + ' random versions)</small></label></div>'
       + '<label>Library heading</label><select id="aptt-mk-cat">' + (function () { var c = catOf(S.m), L = CATS.indexOf(c) < 0 ? [c].concat(CATS) : CATS; return L.map(function (x) { return '<option' + (x === c ? ' selected' : '') + '>' + esc(x) + '</option>'; }).join(''); })() + '</select>'
       + '<label>Folder inside it (optional: e.g. C Block Set 2, Autumn 2026)</label><input id="aptt-mk-f" type="text" list="aptt-mk-fl" maxlength="40" placeholder="none"><datalist id="aptt-mk-fl">' + folders().map(function (x) { return '<option value="' + esc(x) + '">'; }).join('') + '</datalist>'
       + '<label>Code (for the AP Tests page: the next free number is filled in' + (gkey() ? '; it is added automatically' : '') + ')</label><input id="aptt-mk-c" type="text" placeholder="e.g. STF101" autocapitalize="characters" maxlength="12">'
@@ -3626,6 +3691,7 @@ var APTT = (function () {
     tl(); sl.addEventListener('change', tl);
     $('aptt-mk-c').addEventListener('input', function () { this.dataset.typed = '1'; });
     $('aptt-mk-go').onclick = function () {
+      if (((d.querySelector('input[name=aptt-mk-m]:checked') || {}).value || '1') === 'set') { makeSet(d, this); return; }
       var b = this, q = (d.querySelector('input[name=aptt-mk-q]:checked') || {}).value || 'same', code = $('aptt-mk-c').value.replace(/\s+/g, '').toUpperCase(), name = $('aptt-mk-n').value.trim(), s2 = +$('aptt-mk-s').value, cat = $('aptt-mk-cat').value, fol = $('aptt-mk-f').value.replace(/\|/g, '/').trim();
       b.disabled = true; b.textContent = 'Making…';
       var V = q === 'draw' ? draws(VERSIONS) : [S.items];
@@ -3665,7 +3731,8 @@ var APTT = (function () {
   function resume(key) { var st = load(key); if (!st) return false; S = st; S.resumed = true; RUN = null; build(); return true; }
   // open a test from a signed token (the AP Tests page); version: which draw (own-draw links), chosen at random if not given
   function openSet(o, code) {
-    var V = o.V || [], k = o.q === 'draw' ? Math.floor(Math.random() * V.length) : 0, its = V[k] || [];
+    var V = o.V || [], k = o.q === 'draw' ? Math.floor(Math.random() * V.length) : 0, its = (V[k] || []).slice();
+    if (o.q === 'draw') for (var z = its.length - 1; z > 0; z--) { var y = Math.floor(Math.random() * (z + 1)), t = its[z]; its[z] = its[y]; its[y] = t; }   // and his questions in his own order
     open({ id: 'set|' + (code || o.c || h32(o.tok || '')) + '|' + (o.q || 'same'), app: o.a, kicker: o.k, title: o.t, meta: o.m, detail: o.d, lang: o.l, langCode: o.lc, level: o.lv, total: 10,
       items: its.map(function (r) { return { prompt: r[0], answer: r[1], kind: r[2] ? 'sentence' : 'word', label: r[3], html: !!r[4] }; }),
       set: { src: o.id || '', code: code || o.c || '', secs: +o.s || 0, name: o.n || '', q: o.q, ver: k + 1, of: V.length } });
