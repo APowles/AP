@@ -27,3 +27,6 @@ Other ops:
 - remove an item from a list: {"op":"list_remove","path":[...],"old":"<exact element>"}.
 A "replace" is applied to every string inside the item that contains "old" (set "all": true only if the same error must be fixed in every item of the dataset). Check with a script that every "old" occurs in the item and every path exists. Do not edit any other file. Keep scratch files in your own subfolder r3/work2_<chunk>/.
 Final message: items checked, counts per kind, the most important findings in plain English. Brief.
+
+## ABSOLUTE RULE (from AP)
+Never change AP's set structures: anything highlighted as a structure (demoHL / "s" fields / <mark> structure spans), AP Structures phrases (e.g. "Quand je quitterai l'école", "j'envisagerais certainement de", "Je n'ai pas été impressionné par", "celui/celle que je préfère … serait"), Oral Cycle phrases and phrase-bank phrases. If a sentence containing one seems wrong, change only the words around it, or leave it and mention it in your final message.
