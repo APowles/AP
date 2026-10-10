@@ -145,11 +145,34 @@ function stopTimer(){clearInterval(timerId);timerId=null}
 $("timerBtn").onclick=()=>{stopTimer();let s=120;const t=$("timer");const show=()=>{t.textContent=Math.floor(s/60)+":"+String(s%60).padStart(2,"0");t.classList.toggle("low",s<=30)};show();
   timerId=setInterval(()=>{s--;show();if(s<=0){stopTimer();t.textContent="Time!"}},1000)};
 $("pdf").onclick=()=>{
-  $("printhead").innerHTML="<b>"+($("name").value||"Name: __________")+"</b> · "+ds;
+  $("printhead").innerHTML="<b>"+($("name").value||"Name: __________")+"</b> · "+ds+" · Attempts to leave the test: "+LEFT;
   document.title=ds.replace(/\//g,"-")+" AP Demo Spot Test";
   window.print();document.title="AP Demo Spot Test";
 };
 shuffle();
+
+/* ===== leave-the-page alarm (the same klaxon and warning as the AP apps): on while answering, off once answers are checked ===== */
+let CTX=null,LEFT=0,AWAY=false,LASTK=0;
+function actx(){if(!CTX){const A=window.AudioContext||window.webkitAudioContext;if(A)CTX=new A()}return CTX}
+function guardOn(){return !$("app").classList.contains("checked-all")}
+function klaxon(){const c=actx();if(!c)return;try{if(c.state!=="running")c.resume()}catch(e){}LASTK=Date.now();
+  try{const t=c.currentTime+0.02,D=3.1,m=c.createGain(),k=c.createDynamicsCompressor(),d=c.createWaveShaper(),n=1024,cu=new Float32Array(n);
+    for(let j=0;j<n;j++){const x=j*2/n-1;cu[j]=19*x/(1+18*Math.abs(x))}d.curve=cu;d.connect(m);
+    m.gain.setValueAtTime(0.0001,t);m.gain.exponentialRampToValueAtTime(0.9,t+0.05);m.gain.setValueAtTime(0.9,t+D-0.2);m.gain.exponentialRampToValueAtTime(0.0001,t+D);m.connect(k);k.connect(c.destination);
+    for(let b=0;b<3;b++){const s=t+b*1.02,e=s+0.85,g=c.createGain();g.gain.setValueAtTime(0.0001,s);g.gain.exponentialRampToValueAtTime(0.6,s+0.04);g.gain.setValueAtTime(0.6,e-0.08);g.gain.exponentialRampToValueAtTime(0.0001,e);g.connect(d);
+      [1,1.5].forEach(r=>{const o=c.createOscillator(),lfo=c.createOscillator(),lg=c.createGain(),v=c.createGain();o.type="sawtooth";
+        o.frequency.setValueAtTime(150*r,s);o.frequency.exponentialRampToValueAtTime(330*r,s+0.3);o.frequency.setValueAtTime(330*r,e-0.15);o.frequency.exponentialRampToValueAtTime(260*r,e);
+        lfo.frequency.value=32;lg.gain.value=0.35;lfo.connect(lg);v.gain.value=0.5;lg.connect(v.gain);o.connect(v);v.connect(g);o.start(s);o.stop(e+0.02);lfo.start(s);lfo.stop(e+0.02)})}
+  }catch(e){}}
+function primeSound(){const c=actx();if(!c)return;try{if(c.state!=="running")c.resume();const b=c.createBuffer(1,1,22050),x=c.createBufferSource();x.buffer=b;x.connect(c.destination);x.start(0)}catch(e){}}
+["pointerdown","touchend","keydown"].forEach(t=>document.addEventListener(t,primeSound,true));
+function leaveWarn(){const old=$("lv-warn");if(old)old.remove();const w=document.createElement("div");w.id="lv-warn";w.setAttribute("role","alertdialog");w.setAttribute("aria-modal","true");
+  w.style.cssText="position:fixed;inset:0;z-index:99999;display:flex;align-items:center;justify-content:center;padding:16px;background:#b71c1c;animation:lvFlash .4s steps(1) 10;font-family:inherit";
+  w.innerHTML='<style>@keyframes lvFlash{50%{background:#ff1744}}</style><div style="background:#fff;border:5px solid #b71c1c;border-radius:16px;max-width:520px;width:100%;padding:22px 20px;text-align:center;box-shadow:0 20px 60px rgba(0,0,0,.45)"><div style="font-size:3.5rem;line-height:1">⚠️</div><div style="font-weight:800;font-size:1.6rem;line-height:1.2;color:#b71c1c;margin:8px 0 10px">Do not leave this page during the test</div><div style="font-size:1.15rem;font-weight:800;color:#1a2744;margin:0 0 8px">This attempt has been recorded.</div><div style="font-size:1rem;color:#1a2744;margin:0 0 16px">Attempts to leave this test: <b style="color:#b71c1c;font-size:1.25rem">'+LEFT+'</b><br>They will be shown on your PDF for AP.</div><button type="button" style="border:0;border-radius:10px;background:#1a2744;color:#fff;font-weight:800;font-size:1.0625rem;padding:14px 22px;min-height:48px;cursor:pointer">Back to my test</button></div>';
+  w.querySelector("button").onclick=()=>{w.remove();primeSound()};document.body.appendChild(w);try{w.querySelector("button").focus({preventScroll:true})}catch(e){}}
+document.addEventListener("visibilitychange",()=>{if(!guardOn())return;
+  if(document.visibilityState==="hidden"){if(!AWAY){AWAY=true;LEFT++;klaxon()}}
+  else if(AWAY){AWAY=false;leaveWarn();if(Date.now()-LASTK>4000)klaxon()}});
 </script>
 </body>
 </html>
