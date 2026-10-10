@@ -5,7 +5,7 @@
 <script id="ap-update">
 /* AP auto-update: if this copy is older than the published version, reload once with the new one (saved answers are kept) */
 (function () {
-  var B = 'a23cd735b7'; window.AP_BUILD = B;
+  var B = '4e0ea04d7a'; window.AP_BUILD = B;
   function check() {
     if (!/^https?:$/.test(location.protocol) || !window.fetch) return;
     var f = decodeURIComponent(location.pathname.split('/').pop() || '');
@@ -2389,6 +2389,38 @@ var APTT = (function () {
     return out.length ? out : [S.items];
   }
   var DRAWN = {};
+  // ── held tests (an ACTUAL TEST kept off the AP Tests page until AP releases it): library.json, encrypted with the teacher key ──
+  var GHL = GH.replace('tests.txt', 'library.json');
+  function libGet() {   // → { d, sha }
+    return fetch(GHL + '?ref=main&t=' + Date.now(), { headers: ghHead(), cache: 'no-store' }).then(function (r) {
+      if (r.status === 404) return { d: { v: 1, pins: [], arch: [], held: [] }, sha: null };
+      if (!r.ok) throw new Error('GitHub ' + r.status);
+      return r.json().then(function (j) { var d = JSON.parse(new TextDecoder().decode(unb64u(String(j.content || '').replace(/\s+/g, '').replace(/\+/g, '-').replace(/\//g, '_')))); d.held = d.held || []; d.pins = d.pins || []; d.arch = d.arch || []; return { d: d, sha: j.sha }; });
+    });
+  }
+  function libPut(d, sha, msg) {
+    var body = { message: msg || 'Test Library', content: btoa(String.fromCharCode.apply(null, Array.from(utf8(JSON.stringify(d))))), branch: 'main' }; if (sha) body.sha = sha;
+    return fetch(GHL, { method: 'PUT', headers: ghHead(), body: JSON.stringify(body) }).then(function (r) { if (!r.ok) throw new Error('GitHub ' + r.status); return r.json(); }).then(function (j) { return j.content && j.content.sha; });
+  }
+  function holdKey() {
+    return crypto.subtle.digest('SHA-256', utf8('aphold|' + tkey())).then(function (h) { return crypto.subtle.importKey('raw', h, { name: 'AES-GCM' }, false, ['encrypt', 'decrypt']); });
+  }
+  function holdEnc(o) {
+    var iv = crypto.getRandomValues(new Uint8Array(12));
+    return holdKey().then(function (k) { return crypto.subtle.encrypt({ name: 'AES-GCM', iv: iv }, k, utf8(JSON.stringify(o))); }).then(function (ct) { return { id: h32('hold|' + o.c), iv: b64u(iv), ct: b64u(ct) }; });
+  }
+  function holdDec(r) {
+    return holdKey().then(function (k) { return crypto.subtle.decrypt({ name: 'AES-GCM', iv: unb64u(r.iv) }, k, unb64u(r.ct)); }).then(function (b) { var o = JSON.parse(new TextDecoder().decode(b)); o.hid = r.id; return o; }).catch(function () { return null; });
+  }
+  function holdAdd(o) {   // o = { c, n, cat, f, tok, made, line }
+    return holdEnc(o).then(function (rec) {
+      var go = function () { return libGet().then(function (x) { x.d.held = x.d.held.filter(function (r) { return r.id !== rec.id; }).concat([rec]); return libPut(x.d, x.sha, 'Test Library: hold ' + o.c); }); };
+      return go().catch(go);
+    });
+  }
+  function holdLoad() {   // → { d, sha, items: [decrypted held tests] }
+    return libGet().then(function (x) { return Promise.all(x.d.held.map(holdDec)).then(function (items) { x.items = items.filter(Boolean); return x; }); });
+  }
   // several codes added to the AP Tests page in one save
   function ghAddMany(L) {   // L = [{ code, line }]
     return ghGet().then(function (f) {
@@ -2407,7 +2439,7 @@ var APTT = (function () {
     if (!m) { say('Give the first code as letters and a number (e.g. STF107): the three practice tests get that code and the next two; the actual test gets its own code that cannot be guessed.'); return; }
     var name = $('aptt-mk-n').value.trim(), s2 = +$('aptt-mk-s').value, cat = $('aptt-mk-cat').value, fol = $('aptt-mk-f').value.replace(/\|/g, '/').trim(), title = plain(S.m.title);
     var taken = {}; listGet().forEach(function (e) { if (e.c) taken[String(e.c).toUpperCase()] = 1; });
-    var LBL2 = ['PRACTICE 1', 'PRACTICE 2', 'PRACTICE 3', 'ACTUAL TEST'], made = new Date().toISOString().slice(0, 10);
+    var LBL2 = ['PRACTICE 1', 'PRACTICE 2', 'PRACTICE 3', 'ACTUAL TEST'], made = new Date().toISOString().slice(0, 10), PSID = 'ps' + Date.now().toString(36);   // the set tag: keeps the four together in the Test Library
     // the actual test gets a code that cannot be guessed from the practice codes (letters + 3 random characters starting with a letter, e.g. STFK7Q)
     var AZ = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789', rnd = function () { var x = AZ.charAt(Math.floor(Math.random() * 24)); for (var j = 0; j < 2; j++) x += AZ.charAt(Math.floor(Math.random() * AZ.length)); return x; };
     var secret = m[1] + rnd(); while (taken[secret]) secret = m[1] + rnd();
@@ -2422,7 +2454,7 @@ var APTT = (function () {
     T.forEach(function (t) {
       chain = chain.then(function () {
         var V = draws(VERSIONS);
-        var o = { v: 1, n: t.n, c: t.c, a: S.m.app, k: S.m.kicker, t: S.m.title, m: S.m.meta, d: S.m.detail, l: S.m.lang, lc: S.m.code, lv: S.m.level, s: s2, q: 'draw', id: S.m.id, cat: cat, f: fol, made: made,
+        var o = { v: 1, ps: PSID, n: t.n, c: t.c, a: S.m.app, k: S.m.kicker, t: S.m.title, m: S.m.meta, d: S.m.detail, l: S.m.lang, lc: S.m.code, lv: S.m.level, s: s2, q: 'draw', id: S.m.id, cat: cat, f: fol, made: made,
           V: V.map(function (its) { return its.map(function (it) { return [it.prompt, it.answer, it.kind === 'sentence' ? 1 : 0, it.label || '', it.html ? 1 : 0]; }); }) };
         return pack(o).then(function (tok) {
           t.tok = tok; t.link = linkFor(tok); t.v = V.length; t.line = t.c + ' | ' + t.n.replace(/\|/g, '/') + ' | ' + cat + ' | ' + fol + ' | ' + tok;
@@ -2435,10 +2467,11 @@ var APTT = (function () {
         + T.map(function (t) { return '<div class="aptt-mkrow"><div class="aptt-mklink">🔗 <a href="' + esc(t.link) + '" target="_blank" rel="noopener">' + esc(t.n + ' (' + t.c + ')') + '</a></div><button type="button" class="aph-btn aph-btn-primary">📋 Copy link</button></div>'; }).join('')
         + '<div class="aptt-mkact" style="justify-content:flex-start"><button type="button" class="aph-btn aph-btn-primary" id="aptt-mk-all">📋 Copy the 3 PRACTICE tests as links</button></div>'
         + '<div class="aptt-mkhint">For OneNote (EW): the three practice tests only, each pasted as its name with the long address hidden inside it. The ACTUAL TEST is never in this copy: copy its own link in the lesson.</div>'
-        + '<label>Lines for tests.txt (for the codes)</label><div class="aptt-mkrow"><textarea readonly rows="4" style="flex:1;min-width:0;font-size:.75rem">' + esc(T.map(function (t) { return t.line; }).join('\n')) + '</textarea><button type="button" class="aph-btn">📋 Copy lines</button></div>';
+        + '<label>Lines for tests.txt (the 3 practice codes only)</label><div class="aptt-mkrow"><textarea readonly rows="3" style="flex:1;min-width:0;font-size:.75rem">' + esc(T.slice(0, 3).map(function (t) { return t.line; }).join('\n')) + '</textarea><button type="button" class="aph-btn">📋 Copy lines</button></div>'
+        + '<div class="aptt-mkhint" style="color:#b42318;font-weight:700">🔒 The ACTUAL TEST (' + esc(T[3].c) + ') is not on the AP Tests page yet, so the boys cannot use it. In the lesson: Test Library › its yellow box › Release code now (or Copy ACTUAL TEST link).</div>';
       var rows = out.querySelectorAll('.aptt-mkrow');
       T.forEach(function (t, i) { rows[i].querySelector('button').onclick = function () { copyLink(t.n + ' (' + t.c + ')', t.link, this); }; });
-      rows[4].querySelector('button').onclick = function () { copyText(T.map(function (t) { return t.line; }).join('\n'), this); };
+      rows[4].querySelector('button').onclick = function () { copyText(T.slice(0, 3).map(function (t) { return t.line; }).join('\n'), this); };
       $('aptt-mk-all').onclick = function () {
         var P = T.slice(0, 3);
         copyHTML('<ul>' + P.map(function (t) { return '<li><a href="' + esc(t.link) + '">' + esc(t.n + ' (' + t.c + ')') + '</a></li>'; }).join('') + '</ul>', P.map(function (t) { return t.n + ' (' + t.c + ')\n' + t.link; }).join('\n\n'), this);
@@ -2446,9 +2479,11 @@ var APTT = (function () {
       b.textContent = '✓ Made'; b.style.display = 'none';
       var cx = $('aptt-mk-x'); if (cx) { cx.textContent = '✓ Close'; cx.className = 'aph-btn aph-btn-primary'; }
       if (gkey()) {
-        var st = document.createElement('div'); st.className = 'aptt-mkgh'; st.textContent = '⏳ Adding codes ' + T.map(function (t) { return t.c; }).join(', ') + ' to the AP Tests page…'; out.insertBefore(st, out.children[1]);
-        ghAddMany(T.map(function (t) { return { code: t.c, line: t.line }; })).then(function () {
-          st.className = 'aptt-mkgh ok'; st.innerHTML = '✅ Codes <b>' + esc(T.map(function (t) { return t.c; }).join(', ')) + '</b> added. Boys can type them on the AP Tests page in about a minute.<br><span style="font-weight:600">Nothing else to do: you can close this box.</span>';
+        var st = document.createElement('div'); st.className = 'aptt-mkgh'; st.textContent = '⏳ Adding codes ' + T.slice(0, 3).map(function (t) { return t.c; }).join(', ') + ' to the AP Tests page and keeping the ACTUAL TEST back…'; out.insertBefore(st, out.children[1]);
+        ghAddMany(T.slice(0, 3).map(function (t) { return { code: t.c, line: t.line }; })).then(function () {
+          return holdAdd({ c: T[3].c, n: T[3].n, cat: cat, f: fol, tok: T[3].tok, made: made, line: T[3].line });
+        }).then(function () {
+          st.className = 'aptt-mkgh ok'; st.innerHTML = '✅ Practice codes <b>' + esc(T.slice(0, 3).map(function (t) { return t.c; }).join(', ')) + '</b> added: boys can type them on the AP Tests page in about a minute.<br>🔒 The ACTUAL TEST <b>' + esc(T[3].c) + '</b> is kept back: release it in the lesson from your Test Library.<br><span style="font-weight:600">Nothing else to do: you can close this box.</span>';
           var r = out.querySelectorAll('.aptt-mkrow')[4]; if (r) { r.style.display = 'none'; if (r.previousElementSibling) r.previousElementSibling.style.display = 'none'; }
         }).catch(function (e) { st.className = 'aptt-mkgh bad'; st.innerHTML = e && /^used:/.test(e.message) ? '⚠️ Code ' + esc(e.message.slice(5)) + ' is already taken on the AP Tests page. Use Copy lines and paste them into tests.txt with new codes, or make the four tests again with another first code.' : '⚠️ The codes could not be added automatically (' + esc(e && e.message || e) + '). Use Copy lines and paste them into tests.txt.'; });
       }
@@ -2467,7 +2502,7 @@ var APTT = (function () {
       + '<label>Questions</label><div class="aptt-mkq"><label><input type="radio" name="aptt-mk-q" value="same"' + (RUN ? '' : ' checked') + '> Same questions for everyone <small>(you can go through the answers on the board)</small></label>'
       + '<label' + (RUN ? '' : ' class="off"') + '><input type="radio" name="aptt-mk-q" value="draw"' + (RUN ? ' checked' : ' disabled') + '> Each boy gets his own draw <small>(' + VERSIONS + ' different versions from these settings, questions in a random order)</small></label></div>'
       + '<label>Make</label><div class="aptt-mkq"><label><input type="radio" name="aptt-mk-m" value="1" checked> One test</label>'
-      + '<label' + (RUN ? '' : ' class="off"') + '><input type="radio" name="aptt-mk-m" value="set"' + (RUN ? '' : ' disabled') + '> 3 practice tests + the actual test <small>(PRACTICE 1, 2, 3 for EW, with codes in a row, and the ACTUAL TEST for the lesson, with a code the boys cannot guess; each has its own ' + VERSIONS + ' random versions)</small></label></div>'
+      + '<label' + (RUN ? '' : ' class="off"') + '><input type="radio" name="aptt-mk-m" value="set"' + (RUN ? '' : ' disabled') + '> 3 practice tests + the actual test <small>(PRACTICE 1, 2, 3 for EW, with codes in a row; the ACTUAL TEST gets a code the boys cannot guess and stays off the AP Tests page until you release it in the lesson; each has its own ' + VERSIONS + ' random versions)</small></label></div>'
       + '<label>Library heading</label><select id="aptt-mk-cat">' + (function () { var c = catOf(S.m), L = CATS.indexOf(c) < 0 ? [c].concat(CATS) : CATS; return L.map(function (x) { return '<option' + (x === c ? ' selected' : '') + '>' + esc(x) + '</option>'; }).join(''); })() + '</select>'
       + '<label>Folder inside it (optional: e.g. C Block Set 2, Autumn 2026)</label><input id="aptt-mk-f" type="text" list="aptt-mk-fl" maxlength="40" placeholder="none"><datalist id="aptt-mk-fl">' + folders().map(function (x) { return '<option value="' + esc(x) + '">'; }).join('') + '</datalist>'
       + '<label>Code (for the AP Tests page: the next free number is filled in' + (gkey() ? '; it is added automatically' : '') + ')</label><input id="aptt-mk-c" type="text" placeholder="e.g. STF101" autocapitalize="characters" maxlength="12">'
@@ -2530,7 +2565,7 @@ var APTT = (function () {
   }
   // pen-up anywhere ends a stroke (the automatic lock waits for it)
   try { ['pointerup', 'pointercancel'].forEach(function (t) { document.addEventListener(t, function () { PEN = false; }, true); }); } catch (e) { }
-  return { open: open, close: close, mode: mode, lock: lock, show: showAns, mark: mark, next: next, verbDetail: verbDetail, pdf: pdf, teacher: teacher, maker: maker, openSet: openSet, cmSVG: cmSVG, cmBand: cmBand, cmPick: function (s20, seed) { if (!CM) cmLoad(); return cmPick(s20, seed); }, cmReload: function () { CM = null; cmLoad(); }, inProgress: inProgress, resume: resume, copyLink: copyLink, copyHTML: copyHTML, checkGit: checkGit, ghRemove: ghRemove, ghReplace: ghReplace, pack: pack, minsTxt: minsTxt, bigOf: function (answer, kind, srcId) { return kind === 'sentence' || (!{ conj: 1, it: 1, spot: 1 }[String(srcId || '').split('|')[0]] && nWords(answer) > 2); }, catOf: catOf, CATS: CATS, unpack: unpack, checkKey: checkKey, list: listGet, linkFor: linkFor, copy: copyText, ghAdd: ghAdd, listAdd: listAdd, folders: folders, gkey: gkey, nextCodeFor: nextCodeFor, lastRun: null, capturing: null, LABEL: LBL, state: function () { return S; } };
+  return { open: open, close: close, mode: mode, lock: lock, show: showAns, mark: mark, next: next, verbDetail: verbDetail, pdf: pdf, teacher: teacher, maker: maker, openSet: openSet, cmSVG: cmSVG, cmBand: cmBand, cmPick: function (s20, seed) { if (!CM) cmLoad(); return cmPick(s20, seed); }, cmReload: function () { CM = null; cmLoad(); }, inProgress: inProgress, resume: resume, copyLink: copyLink, copyHTML: copyHTML, checkGit: checkGit, ghRemove: ghRemove, ghReplace: ghReplace, pack: pack, minsTxt: minsTxt, bigOf: function (answer, kind, srcId) { return kind === 'sentence' || (!{ conj: 1, it: 1, spot: 1 }[String(srcId || '').split('|')[0]] && nWords(answer) > 2); }, catOf: catOf, CATS: CATS, unpack: unpack, checkKey: checkKey, list: listGet, linkFor: linkFor, copy: copyText, ghAdd: ghAdd, holdAdd: holdAdd, holdLoad: holdLoad, libGet: libGet, libPut: libPut, listAdd: listAdd, folders: folders, gkey: gkey, nextCodeFor: nextCodeFor, lastRun: null, capturing: null, LABEL: LBL, state: function () { return S; } };
 })();
 /* ===== END AP TIMED TEST ===== */
 </script>
