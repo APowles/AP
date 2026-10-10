@@ -5,7 +5,7 @@
 <script id="ap-update">
 /* AP auto-update: if this copy is older than the published version, reload once with the new one (saved answers are kept) */
 (function () {
-  var B = 'cb62c776cd'; window.AP_BUILD = B;
+  var B = '3437586690'; window.AP_BUILD = B;
   function check() {
     if (!/^https?:$/.test(location.protocol) || !window.fetch) return;
     var f = decodeURIComponent(location.pathname.split('/').pop() || '');
@@ -2233,8 +2233,7 @@ function aptTRender() {
     return;
   }
   t.innerHTML = '<h3>📚 Test Library</h3><p>Every test you have made, sorted by course and type. To make a new one: set the test up in an app, tap <b>⏱ AP Spot Test: timed &amp; submitted</b>, then <b>🔑 Teacher: make a test link</b>.</p>'
-    + '<input class="apt-key apt-search" id="apt-q" type="search" placeholder="🔎 Search: code, name, VV10, Present, folder…" oninput="aptLibDraw()">'
-    + '<div id="apt-lib"><div class="apt-empty">Loading your tests…</div></div>'
+    + '<div id="apt-lib" class="apt-acts"><button class="aph-btn aph-btn-primary" type="button" onclick="aplOpen()" style="font-size:1.05rem;padding:12px 18px">📚 Open the Test Library</button><span id="apl-count" style="align-self:center;color:#5b6478;font-weight:600">loading…</span></div>'
     + '<h4>✍️ My handwritten comments</h4><div id="apt-cm"></div>'
     + '<h4>Automatic codes</h4>' + (aptGit() ? '<p>✅ GitHub key saved on this device: every new code is added to the AP Tests page by itself.</p><div class="apt-acts"><button class="aph-btn" type="button" onclick="aptGitForget()">Remove GitHub key</button></div>'
       : '<p>Save your GitHub key here once (on each device and browser) and every code you make is added to the AP Tests page by itself.</p><input class="apt-key" id="apt-git" type="password" autocomplete="new-password" name="apgit" placeholder="GitHub key (github_pat_…)"><div class="apt-acts"><button class="aph-btn aph-btn-primary" type="button" onclick="aptGitSave(this)">Save GitHub key</button></div>')
@@ -2524,5 +2523,381 @@ function aptGitSave(btn) {
 function aptGitForget() { if (!confirm('Remove the GitHub key from this device?')) return; try { localStorage.removeItem('apGitKey'); } catch (e) { } aptTRender(); }
 function aptForget() { if (!confirm('Remove the teacher key from this device?')) return; try { localStorage.removeItem('apTeacherKey'); } catch (e) { } aptTRender(); }
 </script>
+<style id="apl-style">
+/* ===== 📚 TEST LIBRARY (AP Tests page, teacher only): course › topic down the side, sets grouped, practice sets as one card ===== */
+#apl{position:fixed;inset:0;z-index:12000;background:#f4f2ec;color:#1a2744;overflow-y:auto;overflow-x:hidden;font-family:var(--aph-body,'DM Sans',system-ui,sans-serif);font-size:15px;line-height:1.45}
+#apl *{box-sizing:border-box}
+#apl button{font-family:inherit;cursor:pointer}
+#apl .apl-top{position:sticky;top:0;z-index:3;background:#1a2744;color:#fff;display:flex;flex-wrap:wrap;align-items:center;gap:12px 20px;padding:12px 24px;padding-top:calc(12px + env(safe-area-inset-top,0px));border-bottom:3px solid #c9a84c}
+#apl .apl-brand{font-family:var(--aph-display,'Playfair Display',Georgia,serif);font-size:24px;font-weight:700;white-space:nowrap}
+#apl .apl-brand small{display:block;font-family:var(--aph-body,system-ui,sans-serif);font-size:12px;font-weight:600;letter-spacing:.06em;color:#c9cfdd}
+#apl .apl-search{flex:1 1 320px;display:flex;align-items:center;gap:10px;background:#243260;border:1px solid #3a4a7a;border-radius:10px;padding:0 12px;height:44px}
+#apl .apl-search input{flex:1;min-width:0;background:transparent;border:0;color:#fff;font:inherit;font-size:15px;outline:none}
+#apl .apl-search input::placeholder{color:#b8c0d4}
+#apl .apl-tbtn{height:44px;padding:0 14px;border-radius:10px;border:1.5px solid #c9a84c;background:transparent;color:#f0d78c;font-weight:700;font-size:14px}
+#apl .apl-tbtn.on{background:#c9a84c;color:#1a2744}
+#apl .apl-wrap{display:flex;flex-wrap:wrap;align-items:flex-start;gap:24px;padding:20px 24px 60px}
+#apl .apl-side{flex:1 1 220px;max-width:260px;display:flex;flex-direction:column;gap:18px}
+#apl .apl-main{flex:999 1 480px;min-width:0;display:flex;flex-direction:column;gap:16px}
+#apl .apl-lab{font-size:12px;font-weight:800;letter-spacing:.08em;color:#8a6d1f;margin:0 0 4px}
+#apl .apl-pin{display:flex;align-items:center;gap:8px;width:100%;text-align:left;background:#fff;border:1px solid #e2ddd0;border-radius:10px;padding:9px 11px;color:#1a2744;font-size:14px}
+#apl .apl-pin small{display:block;color:#5b6478;font-size:12px}
+#apl .apl-nav{display:flex;flex-direction:column;gap:2px}
+#apl .apl-co{display:flex;justify-content:space-between;align-items:center;width:100%;border:0;background:transparent;padding:7px 10px;border-radius:8px;font-weight:800;font-size:15px;color:#1a2744;text-align:left}
+#apl .apl-co span,#apl .apl-tp span{font-weight:600;font-size:13px;color:#5b6478}
+#apl .apl-tp{display:flex;justify-content:space-between;align-items:center;width:100%;border:0;background:transparent;padding:6px 10px 6px 22px;border-radius:8px;font-size:14px;color:#1a2744;text-align:left}
+#apl .apl-tp:hover,#apl .apl-co:hover{background:#ebe7dc}
+#apl .apl-tp.on{background:#1a2744;color:#fff;font-weight:700}
+#apl .apl-tp.on span{color:#f0d78c}
+#apl .apl-head{display:flex;flex-wrap:wrap;align-items:flex-end;justify-content:space-between;gap:12px}
+#apl .apl-crumb{font-size:13px;color:#5b6478;font-weight:600}
+#apl h1.apl-h1{margin:0;font-family:var(--aph-display,'Playfair Display',Georgia,serif);font-size:32px;line-height:1.1}
+#apl .apl-chips{display:flex;flex-wrap:wrap;gap:8px}
+#apl .apl-chip{height:36px;padding:0 14px;border-radius:999px;border:1px solid #d8d3c4;background:#fff;color:#1a2744;font-weight:700;font-size:14px}
+#apl .apl-chip.on{background:#1a2744;border-color:#1a2744;color:#fff}
+#apl .apl-g{display:flex;flex-direction:column;gap:8px}
+#apl .apl-gh{display:flex;align-items:baseline;gap:10px;border-bottom:2px solid #1a2744;padding-bottom:5px}
+#apl .apl-gh h2{margin:0;font-size:19px;font-weight:800}
+#apl .apl-gh span{font-size:13px;color:#5b6478}
+#apl .apl-row{background:#fff;border:1px solid #e2ddd0;border-radius:12px;display:flex;flex-wrap:wrap;align-items:center;gap:8px 14px;padding:10px 14px}
+#apl .apl-row.arch{opacity:.72;border-style:dashed}
+#apl .apl-ty{font-size:11px;font-weight:800;letter-spacing:.06em;border-radius:6px;padding:3px 8px;white-space:nowrap}
+#apl .t-spot{color:#1f5fa8;background:#e5eef9}#apl .t-speed{color:#7a5200;background:#fbf1d8}#apl .t-paper{color:#5b3aa8;background:#efebf8}#apl .t-set{color:#1e6b43;background:#d3eadb}#apl .t-demo{color:#1a2744;background:#f0d78c}
+#apl .apl-code{font-weight:800;font-size:14px;color:#5b6478;min-width:62px}
+#apl .apl-txt{flex:1 1 220px;min-width:0}
+#apl .apl-txt b{font-size:15px}
+#apl .apl-txt small{display:block;font-size:13px;color:#5b6478}
+#apl .apl-txt .dev{color:#b45309;font-weight:700}
+#apl .apl-b{height:40px;padding:0 13px;border-radius:10px;border:1px solid #d8d3c4;background:#fff;color:#1a2744;font-weight:700;font-size:14px;white-space:nowrap}
+#apl .apl-b.pri{border:0;background:#1a2744;color:#f0d78c}
+#apl .apl-acts{display:flex;gap:8px;flex:none;margin-left:auto}
+#apl .apl-more{width:40px;padding:0;display:inline-flex;align-items:center;justify-content:center}
+#apl .apl-set{background:#fff;border:1.5px solid #b9d9c5;border-radius:14px;overflow:hidden}
+#apl .apl-set.arch{opacity:.72;border-style:dashed}
+#apl .apl-seth{display:flex;flex-wrap:wrap;align-items:center;gap:10px 14px;padding:12px 14px;background:#f2f8f4;border-bottom:1px solid #d6e9dc}
+#apl .apl-mem{display:grid;grid-template-columns:repeat(4,minmax(0,1fr))}
+#apl .apl-m{padding:10px 14px;border-right:1px solid #eef0f3;display:flex;flex-direction:column;gap:4px;min-width:0}
+#apl .apl-m:last-child{border-right:0}
+#apl .apl-ml{font-size:12px;font-weight:800;color:#1e6b43;letter-spacing:.04em}
+#apl .apl-mc{font-weight:800}
+#apl .apl-ma{display:flex;flex-wrap:wrap;gap:6px}
+#apl .apl-ma .apl-b{height:34px;padding:0 10px;font-size:13px}
+#apl .apl-m.actual{background:#fff59d;border-left:3px solid #c62828}
+#apl .apl-actual{display:inline-block;background:#ffeb3b;color:#c62828;font-weight:900;font-size:13px;letter-spacing:.06em;border:2px solid #c62828;border-radius:6px;padding:2px 8px;white-space:nowrap}
+#apl .apl-m.actual .apl-b.pri{background:#c62828;color:#ffeb3b}
+#apl .apl-m.missing{color:#8a93a8;font-style:italic}
+#apl .apl-more-sets{background:#fff;border:1px solid #e2ddd0;border-radius:12px;padding:10px 14px}
+#apl .apl-more-sets summary{font-weight:800;cursor:pointer}
+#apl .apl-empty{padding:28px;text-align:center;color:#5b6478;background:#fff;border:1px dashed #d8d3c4;border-radius:12px}
+#apl .apl-rh{font-size:12px;font-weight:800;letter-spacing:.08em;color:#8a6d1f;margin-top:6px}
+#apl mark{background:#f6e3a6;color:inherit;border-radius:3px;padding:0 2px}
+#apl-menu{position:fixed;z-index:12500;min-width:230px;max-width:calc(100vw - 24px);background:#fff;border:1px solid #d8d3c4;border-radius:12px;box-shadow:0 14px 36px rgba(26,39,68,.22);padding:6px;display:flex;flex-direction:column;font-family:var(--aph-body,system-ui,sans-serif)}
+#apl-menu button{text-align:left;min-height:40px;padding:0 12px;border:0;background:transparent;border-radius:8px;font:inherit;font-size:14px;color:#1a2744;cursor:pointer}
+#apl-menu button:hover,#apl-menu button:focus-visible{background:#eef1f7;outline:none}
+#apl-menu button.del{color:#b42318;font-weight:700}
+#apl-menu hr{border:0;height:1px;background:#eceae3;margin:4px 6px}
+#apl :focus-visible{outline:3px solid #c9a84c;outline-offset:2px}
+@media (max-width:760px){
+  #apl .apl-top{padding-left:16px;padding-right:16px}
+  #apl .apl-wrap{padding:16px 16px 60px;gap:16px}
+  #apl .apl-side{max-width:none}
+  #apl .apl-nav.collapsed{display:none}
+  #apl .apl-mem{grid-template-columns:repeat(2,minmax(0,1fr))}
+  #apl .apl-m:nth-child(2){border-right:0}
+  #apl .apl-m:nth-child(-n+2){border-bottom:1px solid #eef0f3}
+}
+</style>
+<script id="apl-script">
+/* ===== 📚 TEST LIBRARY =====
+   Opened from 🔑 Teacher. Same tests as before (tests.txt + this device's list + DEMO101), organised for hundreds:
+   - down the side: This week (pinned), courses › topics with counts, classes (folders); one topic shown at a time
+   - in a topic: grouped by set (VV11b, Gr 16, Paper 4.1-B…), newest set first; older sets folded away
+   - a practice set (… PRACTICE 1/2/3 + … ACTUAL TEST) is one card: Copy 3 practice links for EW; the ACTUAL TEST in red on yellow
+   - search covers everything (codes, names, sets, topics, classes); typing a code shows that test
+   - pins and the archive are kept in library.json on the site with the GitHub key (on this device only without it); ids are hashed,
+     so nothing in it gives a code away. Archived tests leave the library but their codes keep working. */
+var APL = { open: false, course: '', topic: '', type: 'all', q: '', arch: false, cls: '', st: { v: 1, pins: [], arch: [] }, sha: null, loaded: false };
+var GHL = 'https://api.github.com/repos/APowles/AP/contents/library.json';
+function aplH(s) { var h = 0x811c9dc5; s = String(s); for (var i = 0; i < s.length; i++) { h ^= s.charCodeAt(i); h = Math.imul(h, 16777619); } return (h >>> 0).toString(36); }
+function aplId(e) { return 'i' + aplH(e.c || e.tok || e.n || ''); }
+function aplType(e) { return e.builtin ? 'demo' : e.o && e.o.kind === 'speed' ? 'speed' : e.o && e.o.kind === 'p1' ? 'paper' : 'spot'; }
+var APL_TN = { set: 'PRACTICE SET', spot: 'SPOT TEST', speed: 'SPEED', paper: 'PAST PAPER', demo: 'DEMO' };
+var APL_TC = { set: 'Practice sets', spot: 'Spot tests', speed: 'Speed sessions', paper: 'Past papers' };
+// a Speed session made under "… ▸ Speed sessions" goes into the topic its game belongs to
+var APL_FNT = { openVVChallenge: 'VVs', openGrChallenge: 'Gr EWs', openGdChallenge: 'Grammar', openMlfChallenge: 'Metalanguage', openOCChallenge: 'Oral topics & KTRs', openGgChallenge: 'Gr EWs', openStructureChallenge: 'AP Structures', openSpanishChallenge: 'Vocab' };
+var APL_PGT = [[/Phrase Bank/i, 'Oral phrases'], [/Vocab Essentials/i, 'Vocab Essentials'], [/Vocab and Gr EWs/i, 'Vocab EWs'], [/Essential Phrases/i, 'Essential Phrases'], [/F Spanish Vocab/i, 'Vocab']];
+function aplPlace(e) {
+  var p = String(e.cat || 'Other ▸ Other').split(' ▸ '), co = p[0] || 'Other', tp = p.slice(1).join(' ▸ ') || 'Other';
+  if (e.builtin) return { co: 'Demo', tp: 'Demo' };
+  if (/speed/i.test(tp) && e.o && e.o.kind === 'speed') {
+    var t = APL_FNT[e.o.fn];
+    if (e.o.fn === 'openVocabChallenge') APL_PGT.forEach(function (x) { if (!t && x[0].test(e.o.p || '')) t = x[1]; });
+    if (t) tp = t;
+  }
+  return { co: co, tp: tp };
+}
+var APL_SETRX = /\s*\b(PRACTICE\s*([123])|ACTUAL\s*TEST)\b/i;
+function aplGroupName(e) {
+  var t = aptPlain(e.t || e.n || '');
+  if (aplType(e) === 'paper') { var m = /Paper\s*[\d.]+-?[A-Z]?/i.exec(t + ' ' + (e.n || '')); if (m) return m[0]; }
+  t = t.replace(APL_SETRX, '');
+  return (t.split(' · ')[0] || t || 'Other').trim();
+}
+function aplDate(d) { return d ? d.split('-').reverse().join('/') : ''; }
+function aplMeta(e) {
+  var ty = aplType(e), dev = e.site || e.builtin ? '' : '<span class="dev">this device only</span>';
+  var a = ty === 'speed' ? ['pair work', '2 teams · 16 tiles · 3 min', e.made ? 'made ' + aplDate(e.made) : '']
+    : ty === 'paper' ? [e.items + ' question' + (e.items > 1 ? 's' : ''), e.o && e.o.mk ? e.o.mk + ' marks' : '', 'whole process ' + Math.round((e.s || 0) / 60) + ' min', e.made ? 'made ' + aplDate(e.made) : '']
+    : [(e.items || '?') + ' items', e.q === 'draw' ? 'own draw · ' + e.v + ' versions' : 'same questions', e.made ? 'made ' + aplDate(e.made) : '', e.builtin ? 'built into this page' : ''];
+  if (e.f) a.push(aptEsc(e.f));
+  return a.filter(Boolean).map(function (x) { return x.indexOf('<') === 0 ? x : aptEsc(x); }).join(' · ') + (dev ? ' · ' + dev : '');
+}
+// ── entries → places, groups and practice sets ──
+function aplBuild() {
+  var L = (APT_LIB || []).map(function (e, i) { var pl = aplPlace(e); return { e: e, i: i, id: aplId(e), co: pl.co, tp: pl.tp, ty: aplType(e), g: aplGroupName(e) }; });
+  var sets = {}, out = [];
+  L.forEach(function (x) {
+    var m = APL_SETRX.exec(x.e.n || '');
+    if (m && x.ty === 'spot') {
+      var base = String(x.e.n).replace(APL_SETRX, '').replace(/\s+/g, ' ').trim(), k = x.co + '|' + x.tp + '|' + base;
+      var s = sets[k] || (sets[k] = { set: true, id: 's' + aplH(k), co: x.co, tp: x.tp, g: x.g, ty: 'set', base: base, m: {}, list: [] });
+      var slot = m[2] ? 'P' + m[2] : 'A';
+      if (s.m[slot]) { out.push(x); return; }   // two tests with the same name: the second stays on its own
+      s.m[slot] = x; s.list.push(x);
+    } else out.push(x);
+  });
+  Object.keys(sets).forEach(function (k) { var s = sets[k]; if (s.list.length > 1) out.push(s); else out.push(s.list[0]); });
+  out.forEach(function (x) {
+    var ms = x.set ? x.list : [x];
+    x.made = ms.map(function (y) { return y.e.made || ''; }).sort().pop() || '';
+    x.ord = Math.max.apply(null, ms.map(function (y) { return y.i; }));   // later in the list = made later (same day)
+    x.code = x.set ? (x.m.P1 || x.list[0]).e.c || '' : x.e.c || '';
+    x.text = (x.set ? ms.map(function (y) { return [y.e.c, y.e.n].join(' '); }).join(' ') + ' practice set' : [x.e.c, x.e.n, aptPlain(x.e.t || ''), x.e.lv, x.e.f, APL_TN[x.ty]].join(' ')) + ' ' + x.co + ' ' + x.tp + ' ' + x.g;
+    x.f = x.set ? (ms[0].e.f || '') : x.e.f || '';
+    x.arch = APL.st.arch.indexOf(x.id) >= 0;
+    x.pin = APL.st.pins.indexOf(x.id) >= 0;
+  });
+  return out;
+}
+// ── pins and archive: library.json on the site (GitHub key), else this device ──
+function aplLoadState() {
+  var local = null; try { local = JSON.parse(localStorage.getItem('aplState') || 'null'); } catch (e) { }
+  if (local && local.pins) APL.st = local;
+  var base = String(document.baseURI || location.href).replace(/[#?].*$/, '').replace(/[^\/]*$/, '');
+  var p = aptGit() ? fetch(GHL + '?ref=main&t=' + Date.now(), { headers: aptGh(), cache: 'no-store' }).then(function (r) { if (r.status === 404) return null; if (!r.ok) throw new Error('GitHub ' + r.status); return r.json().then(function (j) { APL.sha = j.sha; return JSON.parse(aptUnB64(j.content)); }); })
+    : /^https?:/.test(base) ? fetch(base + 'library.json?t=' + Date.now(), { cache: 'no-store' }).then(function (r) { return r.ok ? r.json() : null; }) : Promise.resolve(null);
+  return p.then(function (d) { if (d && d.pins) { APL.st = d; try { localStorage.setItem('aplState', JSON.stringify(d)); } catch (e) { } } APL.loaded = true; }).catch(function () { APL.loaded = true; });
+}
+function aplSaveState(msg) {
+  try { localStorage.setItem('aplState', JSON.stringify(APL.st)); } catch (e) { }
+  if (!aptGit()) return;
+  var put = function () {
+    var body = { message: msg || 'Test Library: pins and archive', content: aptB64(JSON.stringify(APL.st)), branch: 'main' }; if (APL.sha) body.sha = APL.sha;
+    return fetch(GHL, { method: 'PUT', headers: aptGh(), body: JSON.stringify(body) }).then(function (r) { if (!r.ok) throw new Error('GitHub ' + r.status); return r.json(); }).then(function (j) { APL.sha = j.content && j.content.sha || APL.sha; });
+  };
+  put().catch(function () {   // someone else saved first: take theirs, apply ours again, save
+    return fetch(GHL + '?ref=main&t=' + Date.now(), { headers: aptGh(), cache: 'no-store' }).then(function (r) { return r.ok ? r.json() : null; }).then(function (j) { if (j) APL.sha = j.sha; return put(); });
+  }).catch(function () { aplToast('⚠️ Saved on this device only (the site could not be reached).'); });
+}
+function aplToggle(list, id) { var a = APL.st[list], k = a.indexOf(id); if (k >= 0) a.splice(k, 1); else a.push(id); }
+// ── open / close ──
+function aplOpen() {
+  APL.open = true; var o = document.getElementById('apl'); if (!o) { o = document.createElement('div'); o.id = 'apl'; o.setAttribute('role', 'dialog'); o.setAttribute('aria-label', 'Test Library'); document.body.appendChild(o); }
+  document.documentElement.style.overflow = 'hidden';
+  o.innerHTML = '<div class="apl-top"><div class="apl-brand">Test Library<small>Loading your tests…</small></div></div>';
+  var ready = APT_LIB ? Promise.resolve() : aptLibLoad();
+  Promise.all([ready, APL.loaded ? null : aplLoadState()]).then(aplDraw).catch(function () { o.querySelector('small').textContent = 'The library could not be loaded. Check the internet connection.'; });
+  try { if (location.hash !== '#library') history.replaceState(null, '', '#library'); } catch (e) { }
+}
+function aplClose() {
+  APL.open = false; aplMenuClose(); var o = document.getElementById('apl'); if (o) o.remove(); document.documentElement.style.overflow = '';
+  try { if (location.hash === '#library') history.replaceState(null, '', location.pathname + location.search); } catch (e) { }
+}
+document.addEventListener('keydown', function (e) {
+  if (!APL.open) return;
+  if (e.key === 'Escape') { if (document.getElementById('apl-menu')) aplMenuClose(); else if (!document.querySelector('.aptt-mkov,.apmp-frame,#aptt-ov')) aplClose(); }
+  if (e.key === '/' && document.activeElement && !/INPUT|TEXTAREA|SELECT/.test(document.activeElement.tagName)) { var s = document.getElementById('apl-q'); if (s) { e.preventDefault(); s.focus(); } }
+});
+// ── drawing ──
+var APL_ICON = { more: '<svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><circle cx="5" cy="12" r="2"/><circle cx="12" cy="12" r="2"/><circle cx="19" cy="12" r="2"/></svg>', search: '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#c9cfdd" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/></svg>', pin: '<svg width="15" height="15" viewBox="0 0 24 24" fill="#c9a84c" aria-hidden="true"><path d="M14 3l7 7-4 1-4 4 1 5-2 1-4-6-5 5-1-1 5-5-6-4 1-2 5 1 4-4z"/></svg>' };
+function aplDraw() {
+  var o = document.getElementById('apl'); if (!o || !APT_LIB) return;
+  var all = aplBuild(), live = all.filter(function (x) { return !x.arch; });
+  var focusQ = document.activeElement && document.activeElement.id === 'apl-q', caret = focusQ ? document.activeElement.selectionStart : 0;
+  // courses and topics (from what exists), in the apps' order
+  var order = APTT.CATS || [], tree = {}, courses = [];
+  live.forEach(function (x) { if (x.ty === 'demo') return; if (!tree[x.co]) { tree[x.co] = {}; courses.push(x.co); } tree[x.co][x.tp] = (tree[x.co][x.tp] || 0) + 1; });
+  var rank = function (c, t) { var i = order.indexOf(c + ' ▸ ' + t); if (i >= 0) return i; var j = -1; order.forEach(function (k, n) { if (j < 0 && k.indexOf(c + ' ▸ ') === 0) j = n; }); return (j < 0 ? 900 : j) + 0.5; };
+  courses.sort(function (a, b) { return rank(a, '') - rank(b, '') || (a < b ? -1 : 1); });
+  if (!APL.course || !tree[APL.course]) { var nw = live.filter(function (x) { return x.ty !== 'demo'; }).sort(function (a, b) { return b.made.localeCompare(a.made) || b.ord - a.ord; })[0]; APL.course = nw ? nw.co : courses[0] || ''; APL.topic = nw ? nw.tp : ''; }
+  var topics = APL.course ? Object.keys(tree[APL.course]).sort(function (a, b) { return rank(APL.course, a) - rank(APL.course, b) || (a < b ? -1 : 1); }) : [];
+  if (topics.indexOf(APL.topic) < 0) APL.topic = topics[0] || '';
+  var folders = {}; live.forEach(function (x) { if (x.f) folders[x.f] = (folders[x.f] || 0) + 1; });
+  var narrow = window.innerWidth <= 760;
+  var h = '<div class="apl-top"><div class="apl-brand">Test Library<small>AP TESTS · ' + live.filter(function (x) { return x.ty !== 'demo'; }).reduce(function (n, x) { return n + (x.set ? x.list.length : 1); }, 0) + ' TESTS</small></div>'
+    + '<label class="apl-search">' + APL_ICON.search + '<input id="apl-q" type="search" autocomplete="off" placeholder="Search everything: code, set, topic, class…" value="' + aptEsc(APL.q) + '" aria-label="Search the Test Library"></label>'
+    + '<button type="button" class="apl-tbtn' + (APL.arch ? ' on' : '') + '" id="apl-arch">Archive (' + all.filter(function (x) { return x.arch; }).length + ')</button>'
+    + '<button type="button" class="apl-tbtn" id="apl-x" aria-label="Close the Test Library">✕ Close</button></div>';
+  h += '<div class="apl-wrap"><nav class="apl-side" aria-label="Courses and topics">';
+  var pins = all.filter(function (x) { return x.pin; });
+  if (pins.length) h += '<section><div class="apl-lab">THIS WEEK</div><div class="apl-nav" style="gap:6px">' + pins.map(function (x) { return '<button type="button" class="apl-pin" data-go="' + x.id + '">' + APL_ICON.pin + '<span><b>' + aptEsc(x.set ? x.base.replace(/^AP Timed Spot Test:\s*/i, '') + ' · practice set' : (x.e.n || '').replace(/^AP (Timed Spot Test|Speed session|Timed Past Paper):\s*/i, '')) + '</b><small>' + aptEsc(x.co + ' › ' + x.tp) + '</small></span></button>'; }).join('') + '</div></section>';
+  h += '<section><div class="apl-lab">COURSES</div>';
+  if (narrow) h += '<label style="display:block"><span class="apl-lab" style="display:none">Course</span><select id="apl-cosel" style="width:100%;height:46px;border-radius:10px;border:1px solid #d8d3c4;background:#fff;font:inherit;font-weight:700;padding:0 10px;color:#1a2744">' + courses.map(function (c) { return '<option' + (c === APL.course ? ' selected' : '') + '>' + aptEsc(c) + '</option>'; }).join('') + '</select></label><div class="apl-chips" style="margin-top:10px;flex-wrap:nowrap;overflow-x:auto;padding-bottom:4px">' + topics.map(function (t) { return '<button type="button" class="apl-chip' + (t === APL.topic && !APL.q && !APL.cls ? ' on' : '') + '" style="flex:none" data-tp="' + aptEsc(t) + '">' + aptEsc(t) + ' ' + tree[APL.course][t] + '</button>'; }).join('') + '</div>';
+  else h += '<div class="apl-nav">' + courses.map(function (c) {
+    var n = Object.keys(tree[c]).reduce(function (s, t) { return s + tree[c][t]; }, 0), r = '<button type="button" class="apl-co" data-co="' + aptEsc(c) + '">' + aptEsc(c) + ' <span>' + n + '</span></button>';
+    if (c === APL.course) r += topics.map(function (t) { return '<button type="button" class="apl-tp' + (t === APL.topic && !APL.q && !APL.cls ? ' on' : '') + '" data-tp="' + aptEsc(t) + '">' + aptEsc(t) + ' <span>' + tree[c][t] + '</span></button>'; }).join('');
+    return r;
+  }).join('') + '</div>';
+  h += '</section>';
+  var fk = Object.keys(folders).sort();
+  if (fk.length) h += '<section><div class="apl-lab">CLASSES</div><div class="apl-nav">' + fk.map(function (f) { return '<button type="button" class="apl-tp' + (APL.cls === f && !APL.q ? ' on' : '') + '" style="padding-left:10px" data-cls="' + aptEsc(f) + '">' + aptEsc(f) + ' <span>' + folders[f] + '</span></button>'; }).join('') + '</div></section>';
+  var demo = all.filter(function (x) { return x.ty === 'demo'; })[0];
+  if (demo) h += '<section><div class="apl-lab">DEMO</div><div class="apl-pin" style="flex-wrap:wrap"><span style="flex:1 1 100%;min-width:0"><b>DEMO101</b><small>for practising the test routine</small></span><button type="button" class="apl-b pri" style="height:34px;font-size:13px" data-act="copy" data-i="' + demo.i + '">Copy link</button><button type="button" class="apl-b" style="height:34px;font-size:13px" data-act="view" data-i="' + demo.i + '">View</button></div></section>';
+  h += '</nav><main class="apl-main">';
+  // what to show
+  var q = APL.q.trim().toLowerCase(), pool = (APL.arch ? all.filter(function (x) { return x.arch; }) : live).filter(function (x) { return x.ty !== 'demo'; }), shown, title, crumb;
+  if (q) {
+    var words = q.split(/\s+/);
+    shown = (APL.arch ? all : live).filter(function (x) { return x.ty !== 'demo'; }).filter(function (x) { var t = x.text.toLowerCase(); return words.every(function (w) { return t.indexOf(w) >= 0; }); });
+    var exact = shown.filter(function (x) { return (x.set ? x.list.map(function (y) { return String(y.e.c || '').toLowerCase(); }) : [String(x.code).toLowerCase()]).indexOf(q) >= 0; });
+    if (exact.length) shown = exact;
+    title = shown.length + ' result' + (shown.length === 1 ? '' : 's') + ' for “' + aptEsc(APL.q.trim()) + '”'; crumb = APL.arch ? 'Searching everything, the Archive included' : 'Searching every course';
+  } else if (APL.arch) { shown = pool; title = 'Archive'; crumb = 'Codes still work · use the ⋯ menu to bring a test back'; }
+  else if (APL.cls) { shown = pool.filter(function (x) { return x.f === APL.cls; }); title = aptEsc(APL.cls); crumb = 'Class'; }
+  else { shown = pool.filter(function (x) { return x.co === APL.course && x.tp === APL.topic; }); title = aptEsc(APL.topic); crumb = aptEsc(APL.course) + ' ›'; }
+  var tcount = {}; shown.forEach(function (x) { tcount[x.ty] = (tcount[x.ty] || 0) + 1; });
+  if (APL.type !== 'all' && !tcount[APL.type]) APL.type = 'all';
+  var vis = APL.type === 'all' ? shown : shown.filter(function (x) { return x.ty === APL.type; });
+  h += '<div class="apl-head"><div><div class="apl-crumb">' + crumb + '</div><h1 class="apl-h1">' + title + '</h1></div><div class="apl-chips" role="group" aria-label="Show">'
+    + '<button type="button" class="apl-chip' + (APL.type === 'all' ? ' on' : '') + '" data-ty="all">All ' + shown.length + '</button>'
+    + ['set', 'spot', 'paper', 'speed'].filter(function (t) { return tcount[t]; }).map(function (t) { return '<button type="button" class="apl-chip' + (APL.type === t ? ' on' : '') + '" data-ty="' + t + '">' + APL_TC[t] + ' ' + tcount[t] + '</button>'; }).join('') + '</div></div>';
+  if (!vis.length) h += '<div class="apl-empty">' + (q ? 'Nothing matches. Try part of a code (STF1), a set (VV11b) or a topic (Gr EWs).' : APL.arch ? 'Nothing archived yet.' : 'No tests here yet. Make one in an app with ⏱ AP Spot Test: timed &amp; submitted, then 🔑 Teacher: make a test link.') + '</div>';
+  else if (q || APL.cls || APL.arch) {   // results: grouped by course › topic
+    var by = {}, keys = []; vis.sort(function (a, b) { return b.made.localeCompare(a.made) || b.ord - a.ord; }).forEach(function (x) { var k = x.co + ' › ' + x.tp; if (!by[k]) { by[k] = []; keys.push(k); } by[k].push(x); });
+    keys.forEach(function (k) { h += '<div class="apl-g"><div class="apl-rh">' + aptEsc(k.toUpperCase()) + '</div>' + by[k].map(aplCard).join('') + '</div>'; });
+  } else {   // a topic: grouped by set, newest set first, older sets folded away
+    var gs = {}, gk = []; vis.forEach(function (x) { if (!gs[x.g]) { gs[x.g] = []; gk.push(x.g); } gs[x.g].push(x); });
+    gk.forEach(function (g) { gs[g].sort(function (a, b) { return (b.set ? 1 : 0) - (a.set ? 1 : 0) || b.made.localeCompare(a.made) || b.ord - a.ord || String(b.code).localeCompare(String(a.code), undefined, { numeric: true }); }); gs[g].made = gs[g].map(function (x) { return x.made; }).sort().pop(); gs[g].ord = Math.max.apply(null, gs[g].map(function (x) { return x.ord; })); });
+    gk.sort(function (a, b) { return gs[b].made.localeCompare(gs[a].made) || gs[b].ord - gs[a].ord || b.localeCompare(a, undefined, { numeric: true }); });
+    var grp = function (g) { return '<section class="apl-g" aria-label="' + aptEsc(g) + '"><div class="apl-gh"><h2>' + aptEsc(g) + '</h2><span>' + gs[g].length + ' item' + (gs[g].length > 1 ? 's' : '') + '</span></div>' + gs[g].map(aplCard).join('') + '</section>'; };
+    h += gk.slice(0, 6).map(grp).join('');
+    if (gk.length > 6) h += '<details class="apl-more-sets"' + (APL.moreOpen ? ' open' : '') + ' id="apl-more"><summary>' + aptEsc(gk.slice(6, 7)[0]) + (gk.length > 7 ? ' to ' + aptEsc(gk[gk.length - 1]) : '') + ' <span style="font-weight:500;color:#5b6478">· ' + (gk.length - 6) + ' more, newest first</span></summary><div style="display:flex;flex-direction:column;gap:16px;margin-top:12px">' + gk.slice(6).map(grp).join('') + '</div></details>';
+  }
+  h += '</main></div>';
+  APL.view = {}; all.forEach(function (x) { APL.view[x.id] = x; });
+  o.innerHTML = h;
+  aplWire(o);
+  if (focusQ) { var s = document.getElementById('apl-q'); s.focus(); try { s.setSelectionRange(caret, caret); } catch (e) { } }
+}
+function aplRow(x) {
+  var e = x.e, ty = x.ty;
+  return '<article class="apl-row' + (x.arch ? ' arch' : '') + '" id="apl-' + x.id + '"><span class="apl-ty t-' + ty + '">' + APL_TN[ty] + '</span><span class="apl-code">' + aptEsc(e.c || 'no code') + '</span>'
+    + '<div class="apl-txt"><b>' + aptEsc((e.n || aptPlain(e.t) || '').replace(/^AP (Timed Spot Test|Speed session|Timed Past Paper):\s*/i, '')) + '</b><small>' + (e.bad ? '⚠️ this test could not be read' : aplMeta(e)) + '</small></div>'
+    + '<span class="apl-acts">' + (e.bad ? '' : '<button type="button" class="apl-b pri" data-act="copy" data-i="' + x.i + '">Copy link</button><button type="button" class="apl-b" data-act="view" data-i="' + x.i + '">View</button>')
+    + '<button type="button" class="apl-b apl-more" aria-label="More for ' + aptEsc(e.c || 'this test') + '" aria-haspopup="menu" data-menu="' + x.id + '">' + APL_ICON.more + '</button></span></article>';
+}
+function aplCard(x) {
+  if (!x.set) return aplRow(x);
+  var f = x.m.P1 || x.list[0], e0 = f.e, cell = function (slot, lab) {
+    var y = x.m[slot]; if (!y) return '<div class="apl-m missing"><div class="apl-ml">' + lab + '</div>not made</div>';
+    var act = slot === 'A';
+    return '<div class="apl-m' + (act ? ' actual' : '') + '">' + (act ? '<span class="apl-actual">⚠ ACTUAL TEST</span>' : '<div class="apl-ml">' + lab + '</div>') + '<div class="apl-mc">' + aptEsc(y.e.c || 'no code') + (y.e.site ? '' : ' <small style="color:#b45309">(this device)</small>') + '</div>'
+      + '<div class="apl-ma"><button type="button" class="apl-b' + (act ? ' pri' : '') + '" data-act="copy" data-i="' + y.i + '">' + (act ? 'Copy ACTUAL TEST link' : 'Copy') + '</button><button type="button" class="apl-b" data-act="view" data-i="' + y.i + '">View</button></div></div>';
+  };
+  var n = ['P1', 'P2', 'P3'].filter(function (s) { return x.m[s]; }).length;
+  return '<article class="apl-set' + (x.arch ? ' arch' : '') + '" id="apl-' + x.id + '"><div class="apl-seth"><span class="apl-ty t-set">PRACTICE SET</span>'
+    + '<div class="apl-txt"><b>' + aptEsc(x.base.replace(/^AP Timed Spot Test:\s*/i, '')) + '</b><small>' + n + ' practice test' + (n === 1 ? '' : 's') + ' for EW' + (x.m.A ? ' + the actual test' : '') + ' · ' + (e0.q === 'draw' ? e0.v + ' random versions each' : 'same questions') + (x.made ? ' · made ' + aplDate(x.made) : '') + (x.f ? ' · ' + aptEsc(x.f) : '') + '</small></div>'
+    + (n ? '<button type="button" class="apl-b pri" data-act="copy3" data-set="' + x.id + '">📋 Copy ' + n + ' practice link' + (n === 1 ? '' : 's') + ' for EW</button>' : '')
+    + '<button type="button" class="apl-b apl-more" aria-label="More for this practice set" aria-haspopup="menu" data-menu="' + x.id + '">' + APL_ICON.more + '</button></div>'
+    + '<div class="apl-mem">' + cell('P1', 'PRACTICE 1') + cell('P2', 'PRACTICE 2') + cell('P3', 'PRACTICE 3') + cell('A', 'ACTUAL TEST') + '</div></article>';
+}
+function aplWire(o) {
+  var q = document.getElementById('apl-q');
+  q.addEventListener('input', function () { APL.q = this.value; APL.type = 'all'; aplDraw(); });
+  document.getElementById('apl-x').onclick = aplClose;
+  document.getElementById('apl-arch').onclick = function () { APL.arch = !APL.arch; APL.type = 'all'; aplDraw(); };
+  var more = document.getElementById('apl-more'); if (more) more.addEventListener('toggle', function () { APL.moreOpen = more.open; });
+  var cs = document.getElementById('apl-cosel'); if (cs) cs.onchange = function () { APL.course = this.value; APL.topic = ''; APL.q = ''; APL.cls = ''; APL.arch = false; APL.type = 'all'; aplDraw(); };
+  o.querySelector('.apl-wrap').addEventListener('click', function (ev) {
+    var b = ev.target.closest('button'); if (!b) return;
+    if (b.dataset.co) { APL.course = b.dataset.co; APL.topic = ''; APL.q = ''; APL.cls = ''; APL.arch = false; APL.type = 'all'; aplDraw(); return; }
+    if (b.dataset.tp) { APL.topic = b.dataset.tp; APL.q = ''; APL.cls = ''; APL.arch = false; APL.type = 'all'; aplDraw(); window.scrollTo(0, 0); o.scrollTop = 0; return; }
+    if (b.dataset.cls) { APL.cls = APL.cls === b.dataset.cls ? '' : b.dataset.cls; APL.q = ''; APL.arch = false; APL.type = 'all'; aplDraw(); return; }
+    if (b.dataset.ty) { APL.type = b.dataset.ty; aplDraw(); return; }
+    if (b.dataset.go) { var x = APL.view[b.dataset.go]; if (x) { APL.course = x.co; APL.topic = x.tp; APL.q = ''; APL.cls = ''; APL.arch = x.arch; APL.type = 'all'; aplDraw(); var el = document.getElementById('apl-' + x.id); if (el) { el.scrollIntoView({ block: 'center' }); el.style.boxShadow = '0 0 0 4px #c9a84c'; } } return; }
+    if (b.dataset.menu) { aplMenu(b, APL.view[b.dataset.menu]); return; }
+    if (b.dataset.act === 'copy') { aptCopyLink(+b.dataset.i, b); return; }
+    if (b.dataset.act === 'view') { aptView(+b.dataset.i); return; }
+    if (b.dataset.act === 'copy3') { aplCopy3(APL.view[b.dataset.set], b); return; }
+  });
+}
+// 📋 the practice tests only (never the actual test), as a tidy list of named links for OneNote
+function aplCopy3(x, btn) {
+  var P = ['P1', 'P2', 'P3'].map(function (s) { return x.m[s]; }).filter(Boolean).map(function (y) { return y.e; });
+  var html = '<p><b>' + aptEsc(x.base.replace(/^AP Timed Spot Test:\s*/i, '')) + ': practice tests</b></p><ul>' + P.map(function (e) { return '<li><a href="' + aptEsc(aptHref(e)) + '">' + aptEsc(aptLinkName(e)) + '</a></li>'; }).join('') + '</ul>';
+  var txt = P.map(function (e) { return aptLinkName(e) + '\n' + aptHref(e); }).join('\n\n');
+  APTT.copyHTML(html, txt, btn);
+}
+// ⋯ menu
+function aplMenuClose() { var m = document.getElementById('apl-menu'); if (m) m.remove(); document.removeEventListener('click', aplMenuOut, true); }
+function aplMenuOut(ev) { var m = document.getElementById('apl-menu'); if (m && !m.contains(ev.target) && !ev.target.closest('[data-menu]')) aplMenuClose(); }
+function aplMenu(btn, x) {
+  var was = document.getElementById('apl-menu'), same = was && was.dataset.for === x.id; aplMenuClose(); if (same) return;
+  var it = [], e = x.set ? null : x.e, i = x.set ? -1 : x.i;
+  if (x.set) {
+    ['P1', 'P2', 'P3'].forEach(function (s) { var y = x.m[s]; if (y && y.e.c) it.push(['Copy code ' + y.e.c + ' (practice ' + s.slice(1) + ')', function () { APTT.copy(y.e.c, btn); }]); });
+    if (x.m.A && x.m.A.e.c) it.push(['Copy ACTUAL TEST code ' + x.m.A.e.c, function () { APTT.copy(x.m.A.e.c, btn); }]);
+    if (x.m.A) it.push(['Try the ACTUAL TEST as a boy', function () { aplClose(); aptTry(x.m.A.i); }]);
+    it.push('-');
+  } else {
+    if (e.c) it.push(['Copy code ' + e.c, function () { APTT.copy(e.c, btn); }]);
+    if (!e.bad) it.push(['Try it as a boy', function () { aplClose(); aptTry(i); }]);
+    if (e.o && e.o.V) it.push(['Print a paper copy', function () { aptPrintAsk(i); }]);
+    if (e.site && aptGit() && e.o && e.o.V) it.push(['Edit name, time, heading, folder', function () { aptEdit(i); }]);
+    if (e.local != null) it.push(['Copy the line for tests.txt', function () { aptCopyLine(i, btn); }]);
+    if (!e.builtin) it.push('-');
+  }
+  if (!(e && e.builtin)) {
+    it.push([x.pin ? 'Unpin from This week' : 'Pin to This week', function () { aplToggle('pins', x.id); aplSaveState(); aplDraw(); }]);
+    it.push([x.arch ? 'Bring back from the Archive' : 'Archive (the code keeps working)', function () { aplToggle('arch', x.id); if (!x.arch) { var k = APL.st.pins.indexOf(x.id); if (k >= 0) APL.st.pins.splice(k, 1); } aplSaveState(); aplDraw(); aplToast(x.arch ? 'Back in the library.' : 'Archived. Its code still works; tap Archive at the top to see it.'); }]);
+    var ms = x.set ? x.list.map(function (y) { return y.e; }) : [e];
+    if (ms.some(function (m) { return m.site ? aptGit() : m.local != null; })) it.push(['del', x.set ? 'Delete the whole practice set…' : (e.site ? 'Delete…' : 'Remove from this device…'), function () { aplDelete(ms, x.set ? 'the practice set ' + x.base.replace(/^AP Timed Spot Test:\s*/i, '') + ' (' + ms.map(function (m) { return m.c; }).join(', ') + ')' : (e.c || '') + ' (' + (e.n || '') + ')'); }]);
+  }
+  var m = document.createElement('div'); m.id = 'apl-menu'; m.setAttribute('role', 'menu'); m.dataset.for = x.id;
+  m.innerHTML = it.map(function (r, k) { return r === '-' ? '<hr>' : '<button type="button" role="menuitem" data-k="' + k + '"' + (r[0] === 'del' ? ' class="del"' : '') + '>' + aptEsc(r[0] === 'del' ? r[1] : r[0]) + '</button>'; }).join('');
+  document.body.appendChild(m);
+  var r = btn.getBoundingClientRect(), mw = m.offsetWidth, mh = m.offsetHeight;
+  m.style.left = Math.max(12, Math.min(window.innerWidth - mw - 12, r.right - mw)) + 'px';
+  m.style.top = (r.bottom + mh + 8 < window.innerHeight ? r.bottom + 6 : Math.max(12, r.top - mh - 6)) + 'px';
+  m.addEventListener('click', function (ev) { var b = ev.target.closest('button'); if (!b) return; var r2 = it[+b.dataset.k]; aplMenuClose(); (r2[0] === 'del' ? r2[2] : r2[1])(); });
+  setTimeout(function () { document.addEventListener('click', aplMenuOut, true); }, 0);
+  var first = m.querySelector('button'); if (first) first.focus();
+}
+function aplDelete(ms, label) {
+  if (!confirm('Delete ' + label + '?\n\nCodes on the AP Tests page stop working within a minute or two. Links you have already posted keep working.')) return;
+  var chain = Promise.resolve();
+  ms.forEach(function (e) { chain = chain.then(function () { return e.site && e.c ? APTT.ghRemove(e.c).catch(function (x) { if (!/not found/.test(x && x.message)) throw x; }) : null; }); });
+  chain.then(function () {
+    var gone = {}; ms.forEach(function (e) { if (e.c) gone[e.c] = 1; });
+    var l = APTT.list().filter(function (x) { return !gone[x.c] && ms.every(function (e) { return e.tok !== x.tok; }); }); try { localStorage.setItem('apTestLinks', JSON.stringify(l)); } catch (x) { }
+    APT_LIB = APT_LIB.filter(function (e) { return ms.indexOf(e) < 0; }); APT_CODES = null;
+    aplDraw(); aplToast('Deleted.');
+  }).catch(function (x) { alert('Sorry, it could not be deleted (' + (x && x.message || x) + ').'); });
+}
+function aplToast(t) {
+  var d = document.getElementById('apl-toast'); if (d) d.remove();
+  d = document.createElement('div'); d.id = 'apl-toast'; d.setAttribute('role', 'status'); d.textContent = t;
+  d.style.cssText = 'position:fixed;left:50%;bottom:calc(20px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);z-index:12600;background:#1a2744;color:#fff;border:2px solid #c9a84c;border-radius:12px;padding:10px 16px;font:600 14px var(--aph-body,system-ui,sans-serif);max-width:calc(100vw - 32px)';
+  document.body.appendChild(d); setTimeout(function () { if (d.parentNode) d.remove(); }, 3500);
+}
+// the old in-panel list becomes a button; anything that redrew the old list now redraws this one
+aptLibDraw = function () {
+  var c = document.getElementById('apl-count'); if (c && APT_LIB) c.textContent = APT_LIB.filter(function (e) { return !e.builtin; }).length + ' tests';
+  if (APL.open) aplDraw();
+};
+window.addEventListener('resize', function () { if (APL.open && !document.getElementById('apl-menu')) { var w = window.innerWidth <= 760; if (w !== APL.narrow) { APL.narrow = w; aplDraw(); } } });
+if (location.hash === '#library') setTimeout(function () { if (aptKey()) aplOpen(); }, 50);
+</script>
+
 </body>
 </html>
