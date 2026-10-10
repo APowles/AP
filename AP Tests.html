@@ -5,7 +5,7 @@
 <script id="ap-update">
 /* AP auto-update: if this copy is older than the published version, reload once with the new one (saved answers are kept) */
 (function () {
-  var B = '6dcf00fd00'; window.AP_BUILD = B;
+  var B = '201d61e8a7'; window.AP_BUILD = B;
   function check() {
     if (!/^https?:$/.test(location.protocol) || !window.fetch) return;
     var f = decodeURIComponent(location.pathname.split('/').pop() || '');
@@ -2222,6 +2222,7 @@ function aptItem(e) {
     + '<button class="aph-btn aph-btn-primary" type="button" onclick="aptCopyLink(' + i + ',this)">📋 Copy link</button>'
     + (e.c ? '<button class="aph-btn" type="button" onclick="APTT.copy(\'' + aptEsc(e.c) + '\',this)">📋 Copy code</button>' : '')
     + '<button class="aph-btn" type="button" onclick="aptTry(' + i + ')">▶ Try it</button>'
+    + (e.bad ? '' : '<button class="aph-btn" type="button" title="See it as the boys will: nothing is timed, alarmed, logged or recorded" onclick="aptView(' + i + ')">👁 View it</button>')
     + (e.o && e.o.V ? '<button class="aph-btn" type="button" onclick="aptPrintAsk(' + i + ')">🖨 Print</button>' : '')
     + (e.local != null ? '<button class="aph-btn" type="button" title="Line for tests.txt" onclick="aptCopyLine(' + i + ',this)">📋 Line</button><button class="aph-btn apt-del" type="button" title="Remove from this device\'s list" onclick="aptDel(' + e.local + ')">✖ Remove</button>' : '')
     + (e.site && aptGit() && e.o && e.o.V ? '<button class="aph-btn" type="button" onclick="aptEdit(' + i + ')">✏️ Edit</button>' : '')
@@ -2253,15 +2254,18 @@ function aptSheet(e, k, ans) {
   }).join('');
   return '<section class="apr-sheet">' + head + (o.d ? '<div class="apr-d">' + o.d + '</div>' : '') + leg + rows + aphPrintFoot('AP Tests &middot; ' + aptEsc(aptLinkName(e)) + (ans ? ' &middot; Answer sheet' : ' &middot; Student sheet')) + '</section>';
 }
-function aptPrint(i, what) {
-  var e = APT_LIB[i], v = document.getElementById('apt-pr-v'), k = v ? +v.value : 0;
-  var body = (what !== 'a' ? aptSheet(e, k, false) : '') + (what !== 's' ? aptSheet(e, k, true) : '');
-  var css = '@page{size:A4;margin:12mm}body{margin:0;font-family:var(--aph-body);color:#1a2744;-webkit-print-color-adjust:exact;print-color-adjust:exact}.apr-sheet{max-width:186mm;margin:0 auto;padding:6mm 0}.apr-sheet+.apr-sheet{break-before:page;page-break-before:always}'
+function aptPrintCSS() {
+  return '@page{size:A4;margin:12mm}body{margin:0;font-family:var(--aph-body);color:#1a2744;-webkit-print-color-adjust:exact;print-color-adjust:exact}.apr-sheet{max-width:186mm;margin:0 auto;padding:6mm 0}.apr-sheet+.apr-sheet{break-before:page;page-break-before:always}'
     + '.apr-d{font-size:9pt;color:#c0392b;font-weight:600;margin:3mm 0 1mm}.apr-leg{font-size:9pt;color:#4a5a7a;margin:3mm 0 4mm}.apr-leg b{color:#1a2744}'
     + '.apr-it{display:flex;gap:3mm;align-items:flex-start;border-bottom:1px solid #e3e6ee;padding:2.5mm 0;break-inside:avoid;page-break-inside:avoid}.apr-n{flex:none;width:8mm;font-weight:800;color:#a8862e;font-size:11pt}.apr-b{flex:1;min-width:0}'
     + '.apr-q{font-size:11pt;font-weight:600}.apr-chip{display:inline-block;font-size:8pt;font-style:italic;color:#4a5a7a;background:#f7f3e8;border:1px solid #e6d8ad;border-radius:3mm;padding:0 2mm;margin-bottom:1mm}'
     + '.apr-l{border-bottom:1px solid #9aa3b8;height:9mm}.apr-a{font-size:11pt;font-weight:700;color:#1e7a46;margin-top:1mm}.apr-mk{flex:none;width:12mm;text-align:right;font-size:9pt;color:#8a93a8;padding-top:1mm}'
     + '.apr-bar{background:#1a2744;color:#fff;padding:10px 14px;font:600 15px var(--aph-body)}.apr-bar button{margin-left:8px;background:#c9a84c;color:#1a2744;border:0;border-radius:6px;padding:8px 12px;font:700 14px var(--aph-body)}@media print{.apr-bar{display:none}}';
+}
+function aptPrint(i, what) {
+  var e = APT_LIB[i], v = document.getElementById('apt-pr-v'), k = v ? +v.value : 0;
+  var body = (what !== 'a' ? aptSheet(e, k, false) : '') + (what !== 's' ? aptSheet(e, k, true) : '');
+  var css = aptPrintCSS();
   var html = '<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>' + aptEsc(aptLinkName(e)) + '</title><style>' + aphCSS() + '</style><style>' + css + '</style></head><body>'
     + '<div class="apr-bar">🖨 Paper copy &middot; ' + aptEsc(aptLinkName(e)) + '<button onclick="window.print()">🖨 Print</button></div>' + body
     + '<scr' + 'ipt>window.addEventListener("load",function(){setTimeout(function(){try{window.print()}catch(e){}},400)});</scr' + 'ipt></body></html>';
@@ -2271,6 +2275,28 @@ function aptPrint(i, what) {
   var ov = document.createElement('div'); ov.className = 'apmp-frame'; ov.innerHTML = '<div class="apmp-frame-bar"><button type="button" class="apmp-btn on-dark">🖨 Print</button><span>Pop-ups are blocked, so the paper copy is shown here.</span><button type="button" class="aph-btn aph-btn-sm">✕ Close</button></div>';
   var f = document.createElement('iframe'); f.srcdoc = html; ov.appendChild(f); document.body.appendChild(ov);
   var bs = ov.querySelectorAll('button'); bs[0].onclick = function () { try { f.contentWindow.print(); } catch (x) { } }; bs[1].onclick = function () { ov.remove(); };
+}
+// 👁 View it: see a test as the boys will, without starting it (nothing timed, alarmed, logged or recorded)
+//   Timed AP Past Paper → the Paper 1 app (#p1v=…); AP Speed session → its app (#spv=…); spot tests → the questions and answers here
+function aptView(i) {
+  var e = APT_LIB[i], o = e.o || {}, base = String(document.baseURI || location.href).replace(/[#?].*$/, '').replace(/[^\/]*$/, ''), c = encodeURIComponent(e.c || o.c || '');
+  if (!e.builtin && o.kind === 'p1') { location.href = base + 'AP%20A%20Level%20French%20Oral%20Topics%20%26%20Paper%201%20Practice.html#p1v=' + encodeURIComponent(e.tok) + '&c=' + c; return; }
+  if (!e.builtin && o.kind === 'speed') { if (!/^[^\/\\]+\.html?$/i.test(String(o.p || ''))) { alert('This Speed session cannot be opened.'); return; } location.href = base + encodeURIComponent(o.p) + '#spv=' + encodeURIComponent(e.tok) + '&c=' + c; return; }
+  if (!o.V || !o.V.length) { alert('This test cannot be shown.'); return; }
+  var n = o.V.length, k = 0, ans = true, ov = document.getElementById('apt-view'); if (ov) ov.remove();
+  ov = document.createElement('div'); ov.id = 'apt-view'; ov.className = 'apmp-frame';
+  ov.innerHTML = '<div class="apmp-frame-bar" style="flex-wrap:wrap;gap:8px"><span style="font-weight:800">👁 View only</span><span style="flex:1;min-width:120px">' + aptEsc(aptLinkName(e)) + ' · nothing is timed or recorded</span>'
+    + (n > 1 ? '<select id="apt-view-v" style="font:600 14px var(--aph-body);border-radius:6px;padding:6px">' + o.V.map(function (x, j) { return '<option value="' + j + '">Version ' + (j + 1) + ' of ' + n + '</option>'; }).join('') + '</select>' : '')
+    + '<button type="button" class="apmp-btn on-dark" id="apt-view-a">🙈 Hide answers</button><button type="button" class="apmp-btn on-dark" id="apt-view-x">✕ Close</button></div>';
+  var f = document.createElement('iframe'); f.title = 'View: ' + aptLinkName(e); ov.appendChild(f); document.body.appendChild(ov);
+  var draw = function () {
+    f.srcdoc = '<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><style>' + aphCSS() + '</style><style>' + aptPrintCSS() + 'body{padding:10px 14px}</style></head><body>' + aptSheet(e, k, ans) + '</body></html>';
+    document.getElementById('apt-view-a').textContent = ans ? '🙈 Hide answers' : '👁 Show answers';
+  };
+  var v = document.getElementById('apt-view-v'); if (v) v.onchange = function () { k = +this.value; draw(); };
+  document.getElementById('apt-view-a').onclick = function () { ans = !ans; draw(); };
+  document.getElementById('apt-view-x').onclick = function () { ov.remove(); };
+  draw();
 }
 function aptTry(i) { var e = APT_LIB[i]; if (e.builtin) { aptCode(e.c); return; } aptRun(e.tok, e.c || ''); }
 function aptCopyGroup(btn) {   // pastes into OneNote as a tidy list: each test's name is the link

@@ -3,7 +3,7 @@
 <script id="ap-update">
 /* AP auto-update: if this copy is older than the published version, reload once with the new one (saved answers are kept) */
 (function () {
-  var B = '45c0dab4a5'; window.AP_BUILD = B;
+  var B = '51fd1b3e43'; window.AP_BUILD = B;
   function check() {
     if (!/^https?:$/.test(location.protocol) || !window.fetch) return;
     var f = decodeURIComponent(location.pathname.split('/').pop() || '');
@@ -11048,22 +11048,23 @@ window.p1SetMake = function(ids){
 
 /* ---- the boy's side ---- */
 function p1sLoad(k){ try { return JSON.parse(localStorage.getItem('p1set:'+k)||'null'); } catch(e){ return null; } }
-function p1sSave(){ if(!P1S) return; try { localStorage.setItem('p1set:'+P1S.key, JSON.stringify(P1S.st)); } catch(e){} }
+function p1sSave(){ if(!P1S || P1S.view) return; try { localStorage.setItem('p1set:'+P1S.key, JSON.stringify(P1S.st)); } catch(e){} }
 function p1sKey(o, code){ var h=0, s=String(o.tok||''); for(var i=0;i<s.length;i++){ h=(h*31+s.charCodeAt(i))|0; } return (code||o.c||'link')+'-'+(h>>>0).toString(36); }
 function p1sLearnKey(){ return 'p1set:'+P1S.key+':'+P1S.st.t0+':learn'; }
 function p1sPadKeys(ids){ var out=[]; try { for(var i=0;i<localStorage.length;i++){ var k=localStorage.key(i)||''; ids.forEach(function(id){ if(k.indexOf('appen:p1:'+id+':')===0) out.push(k.slice(6)); }); } } catch(e){} return out; }
-try { if(window.APTG) APTG.register({ active:function(){ return !!(P1S && P1S.st && P1S.st.phase==='answer' && document.getElementById('p1s-page')); },
-  id:function(){ return P1S && P1S.st && P1S.st.t0 && document.getElementById('p1s-page') ? 'p1set:'+P1S.key+':'+P1S.st.t0 : ''; } }); } catch(e){}
+try { if(window.APTG) APTG.register({ active:function(){ return !!(P1S && !P1S.view && P1S.st && P1S.st.phase==='answer' && document.getElementById('p1s-page')); },
+  id:function(){ return P1S && !P1S.view && P1S.st && P1S.st.t0 && document.getElementById('p1s-page') ? 'p1set:'+P1S.key+':'+P1S.st.t0 : ''; } }); } catch(e){}
 
 function p1sBoot(){
-  var m=/^#p1t=([^&]+)(?:&c=([^&]*))?/.exec(location.hash||''); if(!m || !window.APTT || !APTT.unpack) return;
+  var m=/^#p1([tv])=([^&]+)(?:&c=([^&]*))?/.exec(location.hash||''); if(!m || !window.APTT || !APTT.unpack) return;
+  var view=m[1]==='v'; m=[m[0], m[2], m[3]];   // #p1v=…: AP's 👁 View it (AP Tests library): the real test pages, but nothing saved, counted, alarmed or logged
   var code=decodeURIComponent(m[2]||''); try { if(APTT.cmReload) APTT.cmReload(); } catch(e){}
   app().innerHTML='<div class="p1-wrap"><div class="p1-inner"><div class="p1-h">Opening your test…</div></div></div>';
   APTT.unpack(decodeURIComponent(m[1])).then(function(o){
     if(o.kind!=='p1' || !(o.ids||[]).every(function(id){ return P1Q[id]; })) throw new Error('bad');
-    var key=p1sKey(o, code), st=p1sLoad(key);
+    var key=p1sKey(o, code), st=view ? null : p1sLoad(key);
     if(st && st.t0 && Date.now()-st.t0 > P1SET_KEEP) st=null;
-    P1S={o:o, code:code||o.c||'', key:key, st:st||{phase:'intro'}};
+    P1S={o:o, code:code||o.c||'', key:key, st:st||{phase:'intro'}, view:view};
     if(P1S.st.phase==='intro') p1sIntro(); else p1sBuild(true);
   }).catch(function(){
     app().innerHTML='<div class="p1-wrap"><div class="p1-inner"><div class="p1-h">This test link does not work</div><p class="p1-note">Ask AP for the link again, or type the code on the AP Tests page.</p><button class="p1-btn" onclick="location.hash=\'\';showPaper1()">Paper 1 practice</button></div></div>';
@@ -11071,17 +11072,19 @@ function p1sBoot(){
 }
 function p1sTop(){ return '<div class="p1-top"><button class="p1-btn ghost sm" onclick="p1sBack()">⌂ Back</button><span class="sp"></span><span class="p1-score" id="p1-total">–</span></div>'; }
 window.p1sBack = function(){
+  if(P1S && P1S.view){ P1S=null; clearInterval(window._p1sTick); location.href=String(location.href).replace(/[#?].*$/,'').replace(/[^\/]*$/,'')+'AP%20Tests.html'; return; }
   if(P1S && P1S.st.phase==='answer' && window.APTG && !APTG.backOut()) return;
   P1S=null; clearInterval(window._p1sTick); history.replaceState(null,'',location.pathname+location.search); showPaper1();
 };
 function p1sHead(){
   var o=P1S.o, T={total:o.s||((o.sa||0)+(o.g||30)+(o.sm?o.sm+(o.g||30):0)+(o.sn||P1SET_NOTES)+(o.su||P1SET_UP))};
-  return '<div class="p1s-set">✅ TEST SET BY AP'+(P1S.code?': <b>'+esc(P1S.code)+'</b>':'')+'<span>'+esc(o.n||o.t)+'</span></div>'
+  return (P1S.view ? '<div class="p1s-set" style="background:#1a2744;color:#fff">👁 VIEW ONLY: what the boys see<span style="color:#e8edf7">No alarm, nothing logged, saved or counted. ⌂ Back takes you to AP Tests.</span></div>' : '')
+    + '<div class="p1s-set">✅ TEST SET BY AP'+(P1S.code?': <b>'+esc(P1S.code)+'</b>':'')+'<span>'+esc(o.n||o.t)+'</span></div>'
     + '<div class="p1-sub">'+esc(o.t)+' · '+(o.mk||p1sMarks(o.ids))+' marks · whole process '+p1sMin(T.total)+'</div>';
 }
 function p1sIntro(){
   var o=P1S.o, T={ans:o.sa, mark:o.sm, grace:o.g||30, notes:o.sn||P1SET_NOTES, up:o.su||P1SET_UP}; T.total=T.ans+T.grace+(T.mark?T.mark+T.grace:0)+T.notes+T.up;
-  var att=0; try { att=+(localStorage.getItem('p1setAtt:'+P1S.key)||0); } catch(e){}
+  var att=0; try { if(!P1S.view) att=+(localStorage.getItem('p1setAtt:'+P1S.key)||0); } catch(e){}
   app().innerHTML='<div class="p1-wrap p1-set"><div class="p1-inner">'+p1sTop()
     + '<div class="p1-h">Timed AP Past Paper '+(o.ids.length>1?'':'Question')+'</div>'+p1sHead()
     + '<div class="p1-card">'+p1sBreak(T,true)
@@ -11095,10 +11098,10 @@ function p1sIntro(){
   window.scrollTo(0,0);
 }
 window.p1sStart = function(){
-  var o=P1S.o, att=0; try { att=+(localStorage.getItem('p1setAtt:'+P1S.key)||0)+1; localStorage.setItem('p1setAtt:'+P1S.key, att); } catch(e){}
-  try { APPEN.reset(p1sPadKeys(o.ids)); } catch(e){}   // a clean paper: no practice ink on these questions
+  var o=P1S.o, att=0; if(!P1S.view){ try { att=+(localStorage.getItem('p1setAtt:'+P1S.key)||0)+1; localStorage.setItem('p1setAtt:'+P1S.key, att); } catch(e){}
+  try { APPEN.reset(p1sPadKeys(o.ids)); } catch(e){} }   // a clean paper: no practice ink on these questions
   P1S.st={phase:'answer', t0:Date.now(), att:att, blocks:{}, inputs:{}};
-  try { if(window.APTG) APTG.prime(); } catch(e){}
+  try { if(window.APTG && !P1S.view) APTG.prime(); } catch(e){}
   p1sSave(); p1sBuild(false);
 };
 function p1sBuild(resumed){
@@ -11247,7 +11250,7 @@ window.p1SetPdf = function(R){
   return R;
 };
 if(document.readyState==='complete') setTimeout(p1sBoot, 60); else window.addEventListener('load', function(){ setTimeout(p1sBoot, 60); });
-window.addEventListener('hashchange', function(){ if(/^#p1t=/.test(location.hash)) p1sBoot(); });
+window.addEventListener('hashchange', function(){ if(/^#p1[tv]=/.test(location.hash)) p1sBoot(); });
 
 window.showPaper1 = renderP1List;
 })();
@@ -11550,7 +11553,8 @@ function ocLeisureStart(section, cards) {
    selection, locked for pair work: no list chooser, no way back to the app, no tests or printing. The bottom controls still work
    (level, 🔀 New set, the wrong ones, tiles, time, teams, direction). It always starts with 2 teams, 16 tiles and English → the language. No session timer: the boys stay until AP says stop.
    Leaving the page sounds the AP TEST GUARD siren and is logged (aptgLog:apss:<code>:<start>), as in the timed tests.
-   ⏹ End session (ask AP first) works like ⌂ Back in a timed test: confirm, logged and recorded, then the session ends. */
+   ⏹ End session (ask AP first) works like ⌂ Back in a timed test: confirm, logged and recorded, then the session ends.
+   AP's 👁 View it (AP Tests library) comes here as #spv=…: the same locked game, but no alarm, nothing logged or recorded, and ✕ Close view. */
 (function () {
   if (window.APSS) return;
   var OPEN = ['openVocabChallenge', 'openSpanishChallenge', 'openOCChallenge', 'openVVChallenge', 'openGrChallenge', 'openGdChallenge', 'openMlfChallenge', 'openGgChallenge', 'openStructureChallenge'];
@@ -11679,21 +11683,29 @@ function ocLeisureStart(section, cards) {
     st.textContent = '.top .selb,#qftests,#cfgm,#apss-mkb,.qfbar button[onclick="window.print()"]{display:none!important}';
     d.head.appendChild(st);
     [].forEach.call(d.querySelectorAll('.top button'), function (b) { if (/Back to app/.test(b.textContent)) b.style.display = 'none'; });
-    var p = function () { try { if (window.APTG) APTG.prime(); } catch (e) { } };
-    ['pointerdown', 'touchend', 'click'].forEach(function (t) { d.addEventListener(t, p, true); });
+    var p = function () { try { if (window.APTG && !SS.view) APTG.prime(); } catch (e) { } };
+    if (!SS.view) ['pointerdown', 'touchend', 'click'].forEach(function (t) { d.addEventListener(t, p, true); });
     SS.ready = true; try { document.documentElement.setAttribute('data-apss', 'on'); } catch (e) { }
   }
   function bar() {
     var o = SS.o, b = $('apss-bar'); if (b) b.remove();
     b = document.createElement('div'); b.id = 'apss-bar'; b.setAttribute('role', 'banner');
     b.style.cssText = 'position:fixed;left:0;right:0;top:0;height:' + BAR + 'px;z-index:12500;display:flex;align-items:center;gap:10px;padding:0 12px;box-sizing:border-box;background:#c9a84c;color:#1a2744;font:700 15px/1.2 var(--aph-body,system-ui,sans-serif)';
+    if (SS.view) {   // AP's 👁 View it: what the boys see, nothing triggered
+      b.style.background = '#1a2744'; b.style.color = '#fff';
+      b.innerHTML = '<span style="flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">👁 VIEW ONLY: what the boys see' + (SS.code ? ' (' + esc(SS.code) + ')' : '') + ': <b>' + esc(plain(o.n || o.t).replace(/^AP Speed session:\s*/i, '')) + '</b> · no alarm, nothing logged or recorded</span>'
+        + '<button type="button" id="apss-end" style="flex:none;border:2px solid #c9a84c;border-radius:8px;background:#c9a84c;color:#1a2744;font:800 12px var(--aph-body,system-ui,sans-serif);padding:5px 10px;cursor:pointer">✕ Close view</button>';
+      document.body.appendChild(b);
+      $('apss-end').onclick = function () { SS.on = false; if (SS.ck) lsSet(SS.ck, SS.prev); location.href = String(location.href).replace(/[#?].*$/, '').replace(/[^\/]*$/, '') + 'AP%20Tests.html'; };
+      return;
+    }
     b.innerHTML = '<span style="flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">⚡ AP Speed session — set by AP' + (SS.code ? ' (' + esc(SS.code) + ')' : '') + ': <b>' + esc(plain(o.n || o.t).replace(/^AP Speed session:\s*/i, '')) + '</b></span>'
       + '<button type="button" id="apss-end" style="flex:none;border:2px solid #1a2744;border-radius:8px;background:transparent;color:#1a2744;font:700 12px var(--aph-body,system-ui,sans-serif);padding:5px 9px;cursor:pointer">End session (ask AP first)</button>';
     document.body.appendChild(b);
     $('apss-end').onclick = end;
   }
   function end() {
-    if (!SS || !SS.on) return;
+    if (!SS || !SS.on || SS.view) return;
     if (window.APTG && !APTG.backOut()) return;   // the same as ⌂ Back in a timed test: confirm, logged and recorded, siren
     SS.on = false;
     var t = Date.now(), n = 0; try { n = (JSON.parse(lsGet('aptgLog:apss:' + SS.key + ':' + SS.t0) || 'null') || {}).n || 0; } catch (e) { }
@@ -11712,24 +11724,25 @@ function ocLeisureStart(section, cards) {
     document.body.appendChild(x);
   }
   function boot() {
-    var m = /^#spt=([^&]+)(?:&c=([^&]*))?/.exec(location.hash || ''); if (!m || SS) return;
+    var m = /^#sp([tv])=([^&]+)(?:&c=([^&]*))?/.exec(location.hash || ''); if (!m || SS) return;
+    var view = m[1] === 'v'; m = [m[0], m[2], m[3]];
     if (!window.APTT || !APTT.unpack) { fail(); return; }
     APTT.unpack(decodeURIComponent(m[1])).then(function (o) {
       if (o.kind !== 'speed' || typeof window[o.fn] !== 'function') throw new Error('bad');
       var code = ''; try { code = decodeURIComponent(m[2] || ''); } catch (e) { }
       code = code || o.c || '';
-      SS = { o: o, code: code, key: code || h32(o.tok || ''), t0: Date.now(), on: true };
-      try { document.title = 'AP Speed session · ' + plain(o.n || o.t); } catch (e) { }
+      SS = { o: o, code: code, key: code || h32(o.tok || ''), t0: Date.now(), on: true, view: view };
+      try { document.title = (view ? '👁 View: ' : 'AP Speed session · ') + plain(o.n || o.t); } catch (e) { }
       var g = o.g || {};
       if (g.ck && g.cfg) { SS.ck = g.ck; SS.prev = lsGet(g.ck); lsSet(g.ck, JSON.stringify(g.cfg)); }   // the game starts on AP's selection
       bar();
       window[o.fn].apply(window, o.args || []);
     }).catch(function () { SS = null; fail(); });
   }
-  try { if (window.APTG) APTG.register({ active: function () { return !!(SS && SS.on); }, id: function () { return SS && SS.on ? 'apss:' + SS.key + ':' + SS.t0 : ''; } }); } catch (e) { }
+  try { if (window.APTG) APTG.register({ active: function () { return !!(SS && SS.on && !SS.view); }, id: function () { return SS && SS.on && !SS.view ? 'apss:' + SS.key + ':' + SS.t0 : ''; } }); } catch (e) { }
   function go() { wrap(); boot(); }
   if (document.readyState === 'complete') setTimeout(go, 0); else window.addEventListener('load', function () { setTimeout(go, 0); });
-  window.addEventListener('hashchange', function () { if (/^#spt=/.test(location.hash)) boot(); });
+  window.addEventListener('hashchange', function () { if (/^#sp[tv]=/.test(location.hash)) boot(); });
   window.APSS = { session: function () { return SS; }, wrap: wrap };
 })();
 /* ===== END AP SPEED SESSION ===== */
