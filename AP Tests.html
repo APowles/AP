@@ -5,7 +5,7 @@
 <script id="ap-update">
 /* AP auto-update: if this copy is older than the published version, reload once with the new one (saved answers are kept) */
 (function () {
-  var B = '00cff21b0e'; window.AP_BUILD = B;
+  var B = '155dafdc19'; window.AP_BUILD = B;
   function check() {
     if (!/^https?:$/.test(location.protocol) || !window.fetch) return;
     var f = decodeURIComponent(location.pathname.split('/').pop() || '');
@@ -2084,6 +2084,12 @@ function aptRun(token, code) {
       location.href = base + 'AP%20A%20Level%20French%20Oral%20Topics%20%26%20Paper%201%20Practice.html#p1t=' + encodeURIComponent(o.tok) + '&c=' + encodeURIComponent(code || o.c || '');
       return;
     }
+    if (o.kind === 'speed') {   // an AP Speed session: the Speed Challenge game, locked on AP's selection, in the app it was made in
+      if (!/^[^\/\\]+\.html?$/i.test(String(o.p || ''))) throw new Error('bad');
+      var base2 = String(document.baseURI || location.href).replace(/[#?].*$/, '').replace(/[^\/]*$/, '');
+      location.href = base2 + encodeURIComponent(o.p) + '#spt=' + encodeURIComponent(o.tok) + '&c=' + encodeURIComponent(code || o.c || '');
+      return;
+    }
     if (code && o.c && o.c !== code) o.c = code;
     aptMsg('');
     var c = code || o.c || '', go = APTT.inProgress().filter(function (x) { return c && x.code === c; })[0];
@@ -2171,7 +2177,7 @@ function aptLibLoad() {
       if (e.builtin) return e;
       return APTT.unpack(e.tok).then(function (o) {
         e.o = aptFix(o); e.cat = e.cat || o.cat || APTT.catOf({ id: o.id, lang: o.l, meta: o.m, title: o.t, app: o.a }); e.f = e.f || o.f || '';
-        e.made = o.made || ''; e.lv = o.lv; e.s = o.s; e.q = o.q; e.v = (o.V || []).length; e.items = o.V && o.V[0] ? o.V[0].length : 0; e.t = o.t; if (o.kind === 'p1') { e.items = (o.ids || []).length; e.v = 1; }
+        e.made = o.made || ''; e.lv = o.lv; e.s = o.s; e.q = o.q; e.v = (o.V || []).length; e.items = o.V && o.V[0] ? o.V[0].length : 0; e.t = o.t; if (o.kind === 'p1') { e.items = (o.ids || []).length; e.v = 1; } if (o.kind === 'speed') { e.items = 0; e.v = 1; e.s = 0; }
         return e;
       }).catch(function () { e.bad = true; e.cat = e.cat || 'Other ▸ Unreadable'; return e; });
     })).then(function (L) { APT_LIB = L; });
@@ -2209,7 +2215,7 @@ function aptLibDraw() {
 }
 function aptItem(e) {
   var i = APT_LIB.indexOf(e);
-  var meta = e.bad ? '⚠️ this test could not be read' : e.o && e.o.kind === 'p1' ? ['Timed AP Past Paper', e.items + ' question' + (e.items > 1 ? 's' : ''), e.o.mk ? e.o.mk + ' marks' : '', 'whole process ' + Math.round((e.s || 0) / 60) + ' min', e.made ? 'made ' + e.made.split('-').reverse().join('/') : '', e.site ? '' : 'on this device only'].filter(Boolean).join(' · ') : [e.lv, (e.items || '?') + ' items', e.s ? (e.s % 60 ? Math.floor(e.s / 60) + '½' : e.s / 60) + ' min' : '', e.q === 'draw' ? 'own draw (' + e.v + ' versions)' : 'same questions', e.made ? 'made ' + e.made.split('-').reverse().join('/') : '', e.builtin ? 'built into this page: code DEMO101' : e.site ? '' : 'on this device only'].filter(Boolean).join(' · ');
+  var meta = e.bad ? '⚠️ this test could not be read' : e.o && e.o.kind === 'speed' ? ['⚡ AP Speed session', 'pair work, no time limit', e.o.a || '', e.made ? 'made ' + e.made.split('-').reverse().join('/') : '', e.site ? '' : 'on this device only'].filter(Boolean).join(' · ') : e.o && e.o.kind === 'p1' ? ['Timed AP Past Paper', e.items + ' question' + (e.items > 1 ? 's' : ''), e.o.mk ? e.o.mk + ' marks' : '', 'whole process ' + Math.round((e.s || 0) / 60) + ' min', e.made ? 'made ' + e.made.split('-').reverse().join('/') : '', e.site ? '' : 'on this device only'].filter(Boolean).join(' · ') : [e.lv, (e.items || '?') + ' items', e.s ? (e.s % 60 ? Math.floor(e.s / 60) + '½' : e.s / 60) + ' min' : '', e.q === 'draw' ? 'own draw (' + e.v + ' versions)' : 'same questions', e.made ? 'made ' + e.made.split('-').reverse().join('/') : '', e.builtin ? 'built into this page: code DEMO101' : e.site ? '' : 'on this device only'].filter(Boolean).join(' · ');
   return '<div class="apt-it"><div class="apt-it-h"><span class="apt-it-c' + (e.c ? '' : ' none') + '">' + aptEsc(e.c || 'no code') + '</span><span class="apt-it-n">' + aptEsc(e.n || aptPlain(e.t)) + '</span></div>'
     + '<div class="apt-it-m">' + aptEsc(meta) + '</div><div class="apt-acts">'
     + '<button class="aph-btn aph-btn-primary" type="button" onclick="aptCopyLink(' + i + ',this)">📋 Copy link</button>'
