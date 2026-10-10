@@ -116,7 +116,18 @@ def py_item(data, ds, key):
 
 CH = re.compile(r'chunks\[(\d+)\]')
 
+def _norm(fixes):
+    for fx in fixes:
+        if isinstance(fx.get('key'), list): fx['key'] = '/'.join(str(x) for x in fx['key'])
+
+def _sub(node, path):
+    for seg in path:
+        if node is None: return None
+        node = node.items[int(seg)] if node.kind == 'arr' else get(node, str(seg))
+    return node
+
 def apply_all(fixes, dry=False):
+    _norm(fixes)
     log = []
     byfile = {}
     for i, fx in enumerate(fixes): byfile.setdefault(CFG[fx['ds']][0], []).append((i, fx))
@@ -138,6 +149,38 @@ def apply_all(fixes, dry=False):
                 else:
                     it = find_item(root, ds, fx['key']); items = [it] if it is not None else []
                 for it in items:
+                    if op in ('list_add', 'list_remove', 'set', 'add_field'):
+                        if op == 'add_field' or (op == 'set' and _sub(it, fx['path']) is None):
+                            fld = fx.get('path', [fx.get('field')])[-1] if op == 'set' else fx.get('field')
+                            if get(it, fld) is not None:
+                                lf = get(it, fld); cur[lf.start] = new; leafmap[lf.start] = lf; hits += 1; continue
+                            st = [x for x in leaves(it)]
+                            q = st[0].quote if st else '"'
+                            quoted = s[it.items[0][1].start - 2:it.items[0][1].start].strip().startswith(('"', "'")) or s[skip_ws(s, it.start + 1)] in '"\''
+                            kraw = (q + fld + q) if quoted else fld
+                            last = it.items[-1][1]
+                            inserts.append((last.end, last.end, ', ' + kraw + ': ' + encode(new, q))); hits += 1; continue
+                        if op == 'set':
+                            lf = _sub(it, fx['path'])
+                            if lf is None or lf.kind != 'str': continue
+                            if cur.get(lf.start, lf.val) == new: already += 1; continue
+                            cur[lf.start] = new; leafmap[lf.start] = lf; hits += 1; continue
+                        lst = _sub(it, fx['path'])
+                        if lst is None or lst.kind != 'arr': continue
+                        if op == 'list_add':
+                            if any(x.kind == 'str' and cur.get(x.start, x.val) == new for x in lst.items): already += 1; continue
+                            q = lst.items[0].quote if lst.items and lst.items[0].kind == 'str' else '"'
+                            if lst.items: inserts.append((lst.items[-1].end, lst.items[-1].end, ', ' + encode(new, q)))
+                            else: inserts.append((lst.start + 1, lst.start + 1, encode(new, q)))
+                            hits += 1
+                        else:
+                            for k, x in enumerate(lst.items):
+                                if x.kind == 'str' and x.val == old:
+                                    if k + 1 < len(lst.items): inserts.append((x.start, lst.items[k + 1].start, ''))
+                                    elif k > 0: inserts.append((lst.items[k - 1].end, x.end, ''))
+                                    else: inserts.append((x.start, x.end, ''))
+                                    hits += 1; break
+                        continue
                     if op in ('add_alt', 'remove_reject', 'remove_alt'):
                         m = CH.search(fx.get('field', ''))
                         if not m: continue
@@ -203,7 +246,17 @@ def apply_all(fixes, dry=False):
         if not dry: open(AP + f, 'w').write(s2)
     return log
 
+def skip_ws(s, i):
+    while s[i] in ' \t\r\n': i += 1
+    return i
+
+def _psub(o, path):
+    for seg in path:
+        o = o[int(seg)] if isinstance(o, list) else o[str(seg)]
+    return o
+
 def expected(fixes, dumps):
+    _norm(fixes)
     """Apply the same semantics to decoded dumps -> {ds: data}."""
     data = {ds: copy.deepcopy(d) for ds, d in dumps.items()}
     def strs(o, fn):
@@ -220,6 +273,20 @@ def expected(fixes, dumps):
         items = (list(d) if isinstance(d, list) else list(d.values())) if fx.get('all') else [py_item(d, ds, fx['key'])]
         for it in items:
             if it is None: continue
+            if op in ('list_add', 'list_remove', 'set', 'add_field'):
+                if op == 'add_field':
+                    it[fx.get('field')] = new; continue
+                if op == 'set':
+                    try:
+                        par = _psub(it, fx['path'][:-1]); par[fx['path'][-1] if isinstance(par, dict) else int(fx['path'][-1])] = new
+                    except (KeyError, IndexError):
+                        it[fx['path'][-1]] = new
+                    continue
+                lst = _psub(it, fx['path'])
+                if op == 'list_add':
+                    if new not in lst: lst.append(new)
+                elif old in lst: lst.remove(old)
+                continue
             if op in ('add_alt', 'remove_reject', 'remove_alt'):
                 m = CH.search(fx.get('field', ''))
                 if not m: continue
