@@ -3,7 +3,7 @@
 <script id="ap-update">
 /* AP auto-update: if this copy is older than the published version, reload once with the new one (saved answers are kept) */
 (function () {
-  var B = 'af32b440c9'; window.AP_BUILD = B;
+  var B = '0cb720cb4b'; window.AP_BUILD = B;
   function check() {
     if (!/^https?:$/.test(location.protocol) || !window.fetch) return;
     var f = decodeURIComponent(location.pathname.split('/').pop() || '');
@@ -12904,7 +12904,7 @@ function sSay(k){
 }
 function endCard(d,total,label){
   return `<div class="prog">${label}</div><div class="score">${d.score}/${total}</div>
-  <div class="row"><button class="btn pri" onclick="D['${S.drill}']=null;render()">Go again</button></div>`;
+  <div class="row"><button class="btn pri" onclick="${S.drill==='recall'?"S.drill='gaps'":S.drill==='gaps'?"S.drill='scramble'":"S.stage='u'"};render();window.scrollTo(0,0)">${S.drill==='recall'?'Next drill: Trous (Gaps)':S.drill==='gaps'?'Next drill: Remettre en ordre (Rebuild)':'Next step: Utiliser (Use it)'}</button><button class="btn" onclick="D['${S.drill}']=null;render()">Go again</button></div>`;
 }
 function pts(m){return m==='ok'?1:m==='near'?0.5:0}
 /* recall */
@@ -12948,6 +12948,7 @@ function dScr(k){
   if(!d.pool){const w=it.fr.split(' ');let p=shuffle(w.map((t,i)=>({t,i})));let tries=0;while(p.map(x=>x.i).join()===w.map((_,i)=>i).join()&&tries++<20)p=shuffle(p);d.pool=p;d.built=[]}
   const left=d.pool.filter(x=>!d.built.includes(x.i));
   return `<div class="prog">${d.i+1} of ${items.length} · put the sentence back in order</div>
+  <div class="mw" style="margin:4px 0 8px">Click the words below in the right order. Then press Check. A wrong word? Click it in the top box to take it back.</div>
   <div class="prog">${FL({fr:'Click for the English',en:it.en})}</div>
   <div class="build chips">${d.built.map(i=>`<button class="chip" ${d.res?'disabled':''} onclick="scrUndo(${i})">${esc(d.pool.find(x=>x.i===i).t)}</button>`).join('')}</div>
   <div class="chips">${left.map(x=>`<button class="chip" ${d.res?'disabled':''} onclick="scrAdd(${x.i})">${esc(x.t)}</button>`).join('')}</div>
