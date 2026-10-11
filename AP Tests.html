@@ -5,7 +5,7 @@
 <script id="ap-update">
 /* AP auto-update: if this copy is older than the published version, reload once with the new one (saved answers are kept) */
 (function () {
-  var B = 'a25846335b'; window.AP_BUILD = B;
+  var B = '09d7119e61'; window.AP_BUILD = B;
   function check() {
     if (!/^https?:$/.test(location.protocol) || !window.fetch) return;
     var f = decodeURIComponent(location.pathname.split('/').pop() || '');
@@ -1935,7 +1935,7 @@ var APTT = (function () {
     ms: 'AP Structures', voc: 'Vocab EWs', gg: 'Gr EWs', ig: 'Vocab Essentials', am: 'Approved Material', essphr: 'Essential Phrases', esvocab: 'Essential Phrases', conj: 'Verbs', it: 'Verbs', spot: 'Verbs', sv: 'Vocab', p1: 'Paper 1' };
   var ALEVEL = { vv: 1, grews: 1, gr: 1, sd: 1, mlf: 1, oc: 1, ktr: 1, opb: 1, p1: 1 };
   var CATS = ['A Level French ▸ VVs', 'A Level French ▸ Gr EWs', 'A Level French ▸ Grammar', 'A Level French ▸ VV sentences', 'A Level French ▸ Metalanguage', 'A Level French ▸ Oral topics & KTRs', 'A Level French ▸ Oral phrases', 'A Level French ▸ Paper 1',
-    'IGCSE French ▸ AP Structures', 'IGCSE French ▸ Vocab EWs', 'IGCSE French ▸ Gr EWs', 'IGCSE French ▸ Vocab Essentials', 'IGCSE French ▸ Approved Material', 'IGCSE French ▸ Essential Phrases', 'IGCSE French ▸ Verbs',
+    'IGCSE French ▸ AP Structures', 'IGCSE French ▸ Vocab EWs', 'IGCSE French ▸ Gr EWs', 'IGCSE French ▸ Vocab Essentials', 'IGCSE French ▸ Approved Material', 'IGCSE French ▸ Essential Phrases', 'IGCSE French ▸ Verbs', 'IGCSE French ▸ Reading',
     'IGCSE Spanish ▸ AP Structures', 'IGCSE Spanish ▸ Vocab', 'IGCSE Spanish ▸ Verbs', 'IGCSE Spanish ▸ Approved Material', 'IGCSE Spanish ▸ Essential Phrases',
     'IGCSE Italian ▸ AP Structures', 'IGCSE Italian ▸ Verbs', 'IGCSE Italian ▸ Approved Material', 'IGCSE Italian ▸ Essential Phrases'];
   function catOf(m) {   // m: { id, lang, meta, title, app }
@@ -2201,6 +2201,12 @@ function aptRun(token, code) {
       location.href = base + 'AP%20A%20Level%20French%20Oral%20Topics%20%26%20Paper%201%20Practice.html#p1t=' + encodeURIComponent(o.tok) + '&c=' + encodeURIComponent(code || o.c || '');
       return;
     }
+    if (o.kind === 'rd') {   // a Timed Reading Paper: it runs in the Reading app (the IGCSE French Listening page)
+      if (!/^[^\/\\]+\.html?$/i.test(String(o.p || ''))) throw new Error('bad');
+      var base3 = String(document.baseURI || location.href).replace(/[#?].*$/, '').replace(/[^\/]*$/, '');
+      location.href = base3 + encodeURIComponent(o.p) + '#rdt=' + encodeURIComponent(o.tok) + '&c=' + encodeURIComponent(code || o.c || '');
+      return;
+    }
     if (o.kind === 'speed') {   // an AP Speed session: the Speed Challenge game, locked on AP's selection, in the app it was made in
       if (!/^[^\/\\]+\.html?$/i.test(String(o.p || ''))) throw new Error('bad');
       var base2 = String(document.baseURI || location.href).replace(/[#?].*$/, '').replace(/[^\/]*$/, '');
@@ -2293,7 +2299,7 @@ function aptLibLoad() {
       if (e.builtin) return e;
       return APTT.unpack(e.tok).then(function (o) {
         e.o = aptFix(o); e.cat = e.cat || o.cat || APTT.catOf({ id: o.id, lang: o.l, meta: o.m, title: o.t, app: o.a }); e.f = e.f || o.f || '';
-        e.made = o.made || ''; e.lv = o.lv; e.s = o.s; e.q = o.q; e.v = (o.V || []).length; e.items = o.V && o.V[0] ? o.V[0].length : 0; e.t = o.t; if (o.kind === 'p1') { e.items = (o.ids || []).length; e.v = 1; } if (o.kind === 'speed') { e.items = 0; e.v = 1; e.s = 0; }
+        e.made = o.made || ''; e.lv = o.lv; e.s = o.s; e.q = o.q; e.v = (o.V || []).length; e.items = o.V && o.V[0] ? o.V[0].length : 0; e.t = o.t; if (o.kind === 'p1' || o.kind === 'rd') { e.items = (o.ids || []).length; e.v = 1; } if (o.kind === 'speed') { e.items = 0; e.v = 1; e.s = 0; }
         return e;
       }).catch(function () { e.bad = true; e.cat = e.cat || 'Other ▸ Unreadable'; return e; });
     })).then(function (L) { APT_LIB = L; });
@@ -2331,7 +2337,7 @@ function aptLibDraw() {
 }
 function aptItem(e) {
   var i = APT_LIB.indexOf(e);
-  var meta = e.bad ? '⚠️ this test could not be read' : e.o && e.o.kind === 'speed' ? ['⚡ AP Speed session', 'pair work, no time limit', e.o.a || '', e.made ? 'made ' + e.made.split('-').reverse().join('/') : '', e.site ? '' : 'on this device only'].filter(Boolean).join(' · ') : e.o && e.o.kind === 'p1' ? ['Timed AP Past Paper', e.items + ' question' + (e.items > 1 ? 's' : ''), e.o.mk ? e.o.mk + ' marks' : '', 'whole process ' + Math.round((e.s || 0) / 60) + ' min', e.made ? 'made ' + e.made.split('-').reverse().join('/') : '', e.site ? '' : 'on this device only'].filter(Boolean).join(' · ') : [e.lv, (e.items || '?') + ' items', e.s ? (e.s % 60 ? Math.floor(e.s / 60) + '½' : e.s / 60) + ' min' : '', e.q === 'draw' ? 'own draw (' + e.v + ' versions)' : 'same questions', e.made ? 'made ' + e.made.split('-').reverse().join('/') : '', e.builtin ? 'built into this page: code DEMO101' : e.site ? '' : 'on this device only'].filter(Boolean).join(' · ');
+  var meta = e.bad ? '⚠️ this test could not be read' : e.o && e.o.kind === 'speed' ? ['⚡ AP Speed session', 'pair work, no time limit', e.o.a || '', e.made ? 'made ' + e.made.split('-').reverse().join('/') : '', e.site ? '' : 'on this device only'].filter(Boolean).join(' · ') : e.o && (e.o.kind === 'p1' || e.o.kind === 'rd') ? [e.o.kind === 'rd' ? 'Timed Reading Paper' : 'Timed AP Past Paper', (e.o && e.o.kind === 'rd' ? e.items + ' section' + (e.items > 1 ? 's' : '') : e.items + ' question' + (e.items > 1 ? 's' : '')), e.o.mk ? e.o.mk + ' marks' : '', (e.o && e.o.kind === 'rd' ? 'timed ' : 'whole process ') + Math.round((e.s || 0) / 60) + ' min', e.made ? 'made ' + e.made.split('-').reverse().join('/') : '', e.site ? '' : 'on this device only'].filter(Boolean).join(' · ') : [e.lv, (e.items || '?') + ' items', e.s ? (e.s % 60 ? Math.floor(e.s / 60) + '½' : e.s / 60) + ' min' : '', e.q === 'draw' ? 'own draw (' + e.v + ' versions)' : 'same questions', e.made ? 'made ' + e.made.split('-').reverse().join('/') : '', e.builtin ? 'built into this page: code DEMO101' : e.site ? '' : 'on this device only'].filter(Boolean).join(' · ');
   return '<div class="apt-it"><div class="apt-it-h"><span class="apt-it-c' + (e.c ? '' : ' none') + '">' + aptEsc(e.c || 'no code') + '</span><span class="apt-it-n">' + aptEsc(e.n || aptPlain(e.t)) + '</span></div>'
     + '<div class="apt-it-m">' + aptEsc(meta) + '</div><div class="apt-acts">'
     + '<button class="aph-btn aph-btn-primary" type="button" onclick="aptCopyLink(' + i + ',this)">📋 Copy link</button>'
@@ -2396,6 +2402,7 @@ function aptPrint(i, what) {
 function aptView(i) {
   var e = APT_LIB[i], o = e.o || {}, base = String(document.baseURI || location.href).replace(/[#?].*$/, '').replace(/[^\/]*$/, ''), c = encodeURIComponent(e.c || o.c || '');
   if (!e.builtin && o.kind === 'p1') { location.href = base + 'AP%20A%20Level%20French%20Oral%20Topics%20%26%20Paper%201%20Practice.html#p1v=' + encodeURIComponent(e.tok) + '&c=' + c; return; }
+  if (!e.builtin && o.kind === 'rd') { if (!/^[^\/\\]+\.html?$/i.test(String(o.p || ''))) { alert('This Reading paper cannot be opened.'); return; } location.href = base + encodeURIComponent(o.p) + '#rdv=' + encodeURIComponent(e.tok) + '&c=' + c; return; }
   if (!e.builtin && o.kind === 'speed') { if (!/^[^\/\\]+\.html?$/i.test(String(o.p || ''))) { alert('This Speed session cannot be opened.'); return; } location.href = base + encodeURIComponent(o.p) + '#spv=' + encodeURIComponent(e.tok) + '&c=' + c; return; }
   if (!o.V || !o.V.length) { alert('This test cannot be shown.'); return; }
   var n = o.V.length, k = 0, ans = true, ov = document.getElementById('apt-view'); if (ov) ov.remove();
@@ -2425,7 +2432,7 @@ function aptCopyGroup(btn) {   // pastes into OneNote as a tidy list: each test'
 // ✏️ change a test's name, heading, folder or time limit (same code; the test is signed again with the teacher key)
 function aptEdit(i) {
   var e = APT_LIB[i], o = e.o, d = document.getElementById('apt-ed'); if (d) d.remove();
-  var timed = !!(o && o.V), kind = o && o.kind === 'speed' ? 'Speed session' : o && o.kind === 'p1' ? 'Timed Past Paper' : '';   // a Speed session or past paper: name, heading and folder (its time is set by the game / the paper)
+  var timed = !!(o && o.V), kind = o && o.kind === 'speed' ? 'Speed session' : o && o.kind === 'p1' ? 'Timed Past Paper' : o && o.kind === 'rd' ? 'Timed Reading Paper' : '';   // a Speed session or past paper: name, heading and folder (its time is set by the game / the paper)
   var opts = ''; for (var x = 60; x <= 1200; x += 30) opts += '<option value="' + x + '"' + (x === +o.s ? ' selected' : '') + '>' + APTT.minsTxt(x) + ' min</option>';
   var cats = APTT.CATS.indexOf(e.cat) < 0 ? [e.cat].concat(APTT.CATS) : APTT.CATS;
   d = document.createElement('div'); d.id = 'apt-ed'; d.className = 'aptt-mkov';
@@ -2660,7 +2667,7 @@ var APL = { open: false, course: '', topic: '', type: 'all', q: '', arch: false,
 var GHL = 'https://api.github.com/repos/APowles/AP/contents/library.json';
 function aplH(s) { var h = 0x811c9dc5; s = String(s); for (var i = 0; i < s.length; i++) { h ^= s.charCodeAt(i); h = Math.imul(h, 16777619); } return (h >>> 0).toString(36); }
 function aplId(e) { return 'i' + aplH(e.c || e.tok || e.n || ''); }
-function aplType(e) { return e.builtin ? 'demo' : e.o && e.o.kind === 'speed' ? 'speed' : e.o && e.o.kind === 'p1' ? 'paper' : 'spot'; }
+function aplType(e) { return e.builtin ? 'demo' : e.o && e.o.kind === 'speed' ? 'speed' : e.o && (e.o.kind === 'p1' || e.o.kind === 'rd') ? 'paper' : 'spot'; }
 var APL_TN = { set: 'PRACTICE SET', spot: 'SPOT TEST', speed: 'SPEED', paper: 'PAST PAPER', demo: 'DEMO' };
 var APL_TC = { set: 'Practice sets', spot: 'Spot tests', speed: 'Speed sessions', paper: 'Past papers' };
 // a Speed session made under "… ▸ Speed sessions" goes into the topic its game belongs to
@@ -2687,7 +2694,7 @@ function aplDate(d) { return d ? d.split('-').reverse().join('/') : ''; }
 function aplMeta(e) {
   var ty = aplType(e), dev = e.site || e.builtin ? '' : '<span class="dev">this device only</span>';
   var a = ty === 'speed' ? ['pair work', '2 teams · 16 tiles · 3 min', e.made ? 'made ' + aplDate(e.made) : '']
-    : ty === 'paper' ? [e.items + ' question' + (e.items > 1 ? 's' : ''), e.o && e.o.mk ? e.o.mk + ' marks' : '', 'whole process ' + Math.round((e.s || 0) / 60) + ' min', e.made ? 'made ' + aplDate(e.made) : '']
+    : ty === 'paper' ? [(e.o && e.o.kind === 'rd' ? e.items + ' section' + (e.items > 1 ? 's' : '') : e.items + ' question' + (e.items > 1 ? 's' : '')), e.o && e.o.mk ? e.o.mk + ' marks' : '', (e.o && e.o.kind === 'rd' ? 'timed ' : 'whole process ') + Math.round((e.s || 0) / 60) + ' min', e.made ? 'made ' + aplDate(e.made) : '']
     : [(e.items || '?') + ' items', e.q === 'draw' ? 'own draw · ' + e.v + ' versions' : 'same questions', e.made ? 'made ' + aplDate(e.made) : '', e.builtin ? 'built into this page' : ''];
   if (e.f) a.push(aptEsc(e.f));
   return a.filter(Boolean).map(function (x) { return x.indexOf('<') === 0 ? x : aptEsc(x); }).join(' · ') + (dev ? ' · ' + dev : '');
