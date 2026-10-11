@@ -3,7 +3,7 @@
 <script id="ap-update">
 /* AP auto-update: if this copy is older than the published version, reload once with the new one (saved answers are kept) */
 (function () {
-  var B = 'cf5e28b70c'; window.AP_BUILD = B;
+  var B = 'af32b440c9'; window.AP_BUILD = B;
   function check() {
     if (!/^https?:$/.test(location.protocol) || !window.fetch) return;
     var f = decodeURIComponent(location.pathname.split('/').pop() || '');
@@ -12561,6 +12561,7 @@ body.rv .src{display:inline-block}
 .mk{border:1.5px solid var(--line);border-radius:10px;padding:9px 16px;font-weight:700;background:var(--surface)}
 .mk.bad{color:var(--bad)}.mk.near{color:var(--near)}.mk.ok{color:var(--good)}
 .keys{font-size:.8rem;color:var(--ink2)}
+.gap-blank{display:inline-block;border-bottom:3px solid var(--gold);color:transparent;letter-spacing:0;overflow:hidden;vertical-align:bottom;max-width:100%;line-height:1.1;user-select:none}
 .gap-in{font:inherit;font-size:inherit;border:0;border-bottom:3px solid var(--gold);background:var(--surface2);color:var(--ink);padding:2px 8px;width:11ch;max-width:100%;border-radius:6px 6px 0 0}
 .res{border-radius:12px;padding:12px 16px;font-weight:600}
 .res.ok{background:var(--good-bg);color:var(--good)}.res.near{background:var(--near-bg);color:var(--near)}.res.bad{background:var(--bad-bg);color:var(--bad)}
@@ -12920,29 +12921,23 @@ function dRecall(k){
    :`<div class="row"><button class="btn pri" onclick="D.recall.rev=true;render()">Show the French</button><span class="keys">Space or Enter</span></div>`}`;
 }
 function recMark(m){const d=D.recall;d.sc+=pts(m);d.i++;d.rev=false;render()}
-/* gaps */
+/* gaps: say the missing word aloud, then check, like Recall (no typing) */
 function dGaps(k){
   const items=k.say.gaps;
-  if(!D.gaps)D.gaps={order:shuffle(items.map((_,i)=>i)),i:0,res:null,sc:0};
+  if(!D.gaps)D.gaps={order:shuffle(items.map((_,i)=>i)),i:0,rev:false,sc:0};
   const d=D.gaps;
-  if(d.i>=items.length){d.score=d.sc;mark(k.n,'d');return endCard(d,items.length,'Gaps finished. Accents wrong counts as nearly.')}
+  if(d.i>=items.length){d.score=d.sc;mark(k.n,'d');return endCard(d,items.length,'Gaps finished. A half point counts for nearly.')}
   const it=items[d.order[d.i]];
   const parts=it.fr.split('____');
-  const inp=d.res?`<b>${esc(it.answer)}</b>`:`<input class="gap-in" id="gapIn" autocomplete="off" autocapitalize="off" spellcheck="false" aria-label="Missing word" style="width:${Math.max(8,it.answer.length+3)}ch">`;
-  return `<div class="prog">${d.i+1} of ${items.length} · type the missing French</div>
-  <div class="prompt">${esc(parts[0])}${inp}${esc(parts.slice(1).join('____'))}</div>
+  const mid=d.rev?`<b>${esc(it.answer)}</b>`:`<span class="gap-blank" aria-label="Missing word">${'_'.repeat(Math.max(5,it.answer.length))}</span>`;
+  return `<div class="prog">${d.i+1} of ${items.length} · say the missing French aloud</div>
+  <div class="prompt">${esc(parts[0])}${mid}${esc(parts.slice(1).join('____'))}</div>
   <div class="prog">${FL({fr:'Click for the English',en:it.en})}</div>
-  ${d.res?`<div class="res ${d.res}">${d.res==='ok'?'Correct.':d.res==='near'?'Nearly: check the accents.':'Not this time.'}</div>
-   <div class="row"><button class="btn pri" onclick="gapNext()">Next</button><button class="spk" data-t="${esc(it.fr.replace('____',it.answer))}" onclick="spk(this)" aria-label="Hear the sentence">${SPK}</button></div>`
-  :`<div class="row"><button class="btn pri" onclick="gapCheck()">Check</button><span class="keys">Enter</span></div>`}`;
+  ${d.rev?`<div class="row" style="margin:6px 0"><button class="spk" data-t="${esc(it.fr.replace('____',it.answer))}" onclick="spk(this)" aria-label="Hear the sentence">${SPK}</button><span class="keys">Hear the sentence</span></div>
+   <div class="marks"><button class="mk bad" onclick="gapMark('bad')">Major error ←</button><button class="mk near" onclick="gapMark('near')">Nearly ↓</button><button class="mk ok" onclick="gapMark('ok')">Got it →</button></div>`
+  :`<div class="row"><button class="btn pri" onclick="D.gaps.rev=true;render()">Show the answer</button><span class="keys">Space or Enter</span></div>`}`;
 }
-function gapCheck(){
-  const k=ktr(),d=D.gaps,it=k.say.gaps[d.order[d.i]],v=($('gapIn')||{}).value||'';
-  if(!v.trim())return;
-  d.res=raw(v)===raw(it.answer)?'ok':norm(v)===norm(it.answer)?'near':'bad';
-  d.sc+=pts(d.res);render();
-}
-function gapNext(){D.gaps.i++;D.gaps.res=null;render()}
+function gapMark(m){const d=D.gaps;d.sc+=pts(m);d.i++;d.rev=false;render()}
 /* scramble */
 function dScr(k){
   const items=k.say.scramble;
@@ -12968,7 +12963,7 @@ function scrCheck(){
   d.res=norm(got)===norm(it.fr)?'ok':'bad';if(d.res==='ok')d.sc++;render();
 }
 function scrNext(){const d=D.scramble;d.i++;d.pool=null;d.built=[];d.res=null;render()}
-function bindDrill(){const g=$('gapIn');if(g){g.focus()}}
+function bindDrill(){}
 
 /* use it */
 function sUse(k){
@@ -13015,13 +13010,21 @@ function vReview(){
 /* keys */
 document.addEventListener('keydown',e=>{
   const t=e.target&&e.target.tagName;
-  if(t==='INPUT'){ if(e.key==='Enter'&&S.view==='ktr'&&S.stage==='d'&&S.drill==='gaps'){e.preventDefault();D.gaps&&!D.gaps.res?gapCheck():D.gaps&&gapNext()} return; }
+  if(t==='INPUT')return;
   if(S.view!=='ktr')return;
   if(e.target&&e.target.classList&&e.target.classList.contains('fl'))return;
   if(S.stage==='c'&&S.mode==='deck'){
     const n=steps(ktr()).length;
     if(e.key==='ArrowRight'||(e.key===' '&&t!=='BUTTON')){if(S.step<n-1){S.step++;render();e.preventDefault()}}
     if(e.key==='ArrowLeft'){if(S.step>0){S.step--;render();e.preventDefault()}}
+  }
+  if(S.stage==='d'&&S.drill==='gaps'&&D.gaps&&D.gaps.i<ktr().say.gaps.length){
+    if(!D.gaps.rev&&(e.key===' '||e.key==='Enter')&&t!=='BUTTON'){D.gaps.rev=true;render();e.preventDefault()}
+    else if(D.gaps.rev){
+      if(e.key==='ArrowLeft'){gapMark('bad');e.preventDefault()}
+      if(e.key==='ArrowDown'){gapMark('near');e.preventDefault()}
+      if(e.key==='ArrowRight'){gapMark('ok');e.preventDefault()}
+    }
   }
   if(S.stage==='d'&&S.drill==='recall'&&D.recall&&D.recall.i<ktr().say.recall.length){
     if(!D.recall.rev&&(e.key===' '||e.key==='Enter')&&t!=='BUTTON'){D.recall.rev=true;render();e.preventDefault()}
