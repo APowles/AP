@@ -8,4 +8,16 @@ All 196 sections are now reviewed twice and applied. Verb apps (French, Italian,
 
 Files: _review/pass2/out_calib (reviewer outputs), out_script (scripted flags), pass3/merged.json (all 192 distinct proposals), decisions.json (accept / ask / dupe / drop), fixes_pass3.json + fixes_pass3b.json (what was applied), check_in/out (independent check).
 
-Held back for AP (not applied): see decisions.json "ask": A After finishing eating; B #BalanceTonPorc wording; C "got stuck" tense (VE 2607 fr/it); D prometieron/han prometido (VE 3018); E capital L in "Loi X" names; F "non seulement ... mais aussi il est beau" word order; G Libération founded in 1973; H SMIC figure; I "d'abord" in the "at first" example.
+Held-back questions: ALL DECIDED by AP on Sun 11 Oct 2026.
+- A "After finishing our meal" -> "After finishing eating" (Structures TM_FR): APPLIED.
+- B #BalanceTonPorc "launched after #MeToo": LEFT as it is.
+- C VE 2607 "got stuck in heavy traffic": FR/IT changed to passé composé / passato prossimo to match the English: APPLIED.
+- D VE 3018 Spanish "prometieron" -> "han prometido": APPLIED.
+- E "loi" lower-case in law names (15 VV leaves): APPLIED.
+- F "non seulement ... mais aussi il est beau": LEFT as it is.
+- G Libération "founded after WWII": LEFT as it is.
+- H SMIC EUR1,426.40 (Feb 2025): LEFT (about ten cents off 1,426.30).
+- I "d'abord," added to the French "at first" example in ALL 7 VV copies (VV1_Entire, VV1b, Michaelmas_Trials, VV7_Entire, VV7a, VV12_Entire, VV12b): APPLIED.
+- Pinstriped trousers in every language, all apps: FR "pantalon à fines rayures", IT "pantaloni a righe sottili", ES "pantalones de rayas finas", EN "pinstriped trousers" (the "de rayas (striped)" pattern list in Vocab and Gr EWs deliberately unchanged): APPLIED. Closes the old pantalon noir/gris question.
+Main at 9d2afb2; all 14 build stamps in versions.json match their files; every page loads with no errors.
+Lesson: read versions.json before writing it (a truncating write once left it empty on main for ~3 minutes, 10:19-10:22). Another chat also pushes to main: fetch before pushing.
