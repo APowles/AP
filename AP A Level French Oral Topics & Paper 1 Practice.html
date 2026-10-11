@@ -3,7 +3,7 @@
 <script id="ap-update">
 /* AP auto-update: if this copy is older than the published version, reload once with the new one (saved answers are kept) */
 (function () {
-  var B = 'd8faebb323'; window.AP_BUILD = B;
+  var B = 'ea47f08b8f'; window.AP_BUILD = B;
   function check() {
     if (!/^https?:$/.test(location.protocol) || !window.fetch) return;
     var f = decodeURIComponent(location.pathname.split('/').pop() || '');
@@ -2112,12 +2112,12 @@ var APMP = (function () {
       + '<li>Set <b>Destination</b> (or Printer) to <b>Save as PDF</b> (or <i>Microsoft Print to PDF</i>), then <b>Save</b>. Your computer remembers this choice next time.</li>'
       + po.replace('<li>Tap <b>', '<li>Click <b>') + '</ol></div>';
   }
-  function ask(cb, pt) {
+  function ask(cb, pt, txt) {
     closeAsk();
     var o = document.createElement('div'); o.id = 'apmp-ask'; o.className = 'apmp-ov';
     o.innerHTML = '<div class="apmp-box" role="dialog" aria-modal="true" aria-labelledby="apmp-ask-h">'
-      + '<h3 id="apmp-ask-h">&#128196; Save marked paper as PDF</h3>'
-      + '<p>Your answers, the mark scheme and your score go on one page.</p>'
+      + '<h3 id="apmp-ask-h">' + ((txt && txt.h) || '&#128196; Save marked paper as PDF') + '</h3>'
+      + '<p>' + ((txt && txt.p) || 'Your answers, the mark scheme and your score go on one page.') + '</p>'
       + (pt ? ptBox(pt, 'apmp-pta') : '')
       + (apmpPad() ? '<p class="apmp-next">Next, the print screen opens. <b>Do not print.</b> Tap the <b>Share button &#11014;&#65038;</b> at the top, then tap the <b>OneNote</b> icon. Find your <b>AP OneNote</b> (French, Spanish or Italian), select <b>your name</b>, then select <b>AP Classwork / EW</b>. ' + FOLDER + ' Then paste the Test Title you have already copied into the <b>title box</b>. Then tap <b>Send</b>.</p>'
                    + '<p class="apmp-next">Then open <b>OneNote</b>, go to your <b>Classwork</b> or <b>EW</b> folder and find the page you have just created. Tap the <b>PDF icon</b>, tap <b>Printout</b> and you should be done. Otherwise, see the help at the top of the next page.</p>'
@@ -2231,13 +2231,13 @@ var APMP = (function () {
       + 'if(document.readyState==="complete")ready();else window.addEventListener("load",ready);})();</scr' + 'ipt>';
     return '<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>' + esc(o.docTitle + (o.name ? ' — ' + o.name : '')) + '</title>'
       + '<style>' + aphCSS() + '</style><style>' + CSS + '</style></head><body>'
-      + '<div class="apmp-bar aph-noprint">' + howTo(o.pt || pageTitle(o)) + '</div>'
+      + '<div class="apmp-bar aph-noprint">' + (o.noScore ? howTo(o.pt || pageTitle(o)).replace('with your name and red score at the top', 'with your name at the top') : howTo(o.pt || pageTitle(o))) + (o.how || '') + '</div>'
       + '<div class="apmp-page">' + head
       + '<div class="apmp-res"><div class="apmp-who">' + who + '<div class="apmp-when">Completed ' + stamp + (o.lang ? ' &middot; ' + o.lang : '') + '</div>'
       + (o.summary ? '<div class="apmp-sum">' + o.summary + '</div>' : '')
       + (o.partial ? '<div class="apmp-pnote">Marked so far: ' + (o.partNote || '') + '</div>' : '') + '</div>'
-      + '<div class="apmp-scol">' + circle(o.got, o.max, o.partial, o.raw) + (o.stamp ? '<div class="apmp-stamp">' + o.stamp + '</div>' : '') + '</div></div>'
-      + (o.top || '') + '<div class="apmp-key"><span><i class="apmp-ok">✓</i> correct</span><span><i class="apmp-bad">✗</i> wrong</span><span><i style="color:#8a5c00">~</i> partly right</span><span><i style="color:#8a93a8">—</i> no mark given</span><span>&#9746; = your choice</span></div>'
+      + (o.noScore ? '</div>' : '<div class="apmp-scol">' + circle(o.got, o.max, o.partial, o.raw) + (o.stamp ? '<div class="apmp-stamp">' + o.stamp + '</div>' : '') + '</div></div>')
+      + (o.top || '') + (o.noScore ? '' : '<div class="apmp-key"><span><i class="apmp-ok">✓</i> correct</span><span><i class="apmp-bad">✗</i> wrong</span><span><i style="color:#8a5c00">~</i> partly right</span><span><i style="color:#8a93a8">—</i> no mark given</span><span>&#9746; = your choice</span></div>')
       + o.body
       + '<div class="apmp-foot"><span>' + o.foot + '</span><span>Generated ' + stamp + '</span></div>'
       + '</div>' + auto + '</body></html>';
@@ -2259,7 +2259,7 @@ var APMP = (function () {
     var o; try { o = build(); } catch (e) { alert('Sorry, the marked paper could not be built.'); if (window.console) console.error(e); return; }
     if (!o) return;
     o.pt = pageTitle(o);
-    ask(function (name) { o.name = name; APMP.last = o; open(doc(o)); }, o.pt);
+    ask(function (name) { o.name = name; APMP.last = o; open(doc(o)); }, o.pt, o.askText);
   }
   return { save: save, pageTitle: pageTitle, esc: esc, q: q, sec: sec, opts: opts, answer: answer, verdict: verdict, when: when, doc: doc, SYM: SYM };
 })();
@@ -8742,6 +8742,8 @@ function pickDeclaration(uid, choice) {
     + '<button class="aph-btn" onclick="startPrepTimer(\'' + uid + '\',\'' + choice + '\')" style="flex:1;">&#9201; Start 5-min prep</button>'
     + '<button class="aph-btn aph-btn-primary" onclick="startExamSim(\'' + uid + '\',\'' + choice + '\')" style="flex:1;min-height:44px;padding:10px 16px;font-size:.9375rem;">&#9654; Ready &#8212; simulate exam</button>'
     + '</div>'
+    + ((window.APAL && APAL.supported()) ? '<div style="display:flex;gap:8px;flex-wrap:wrap;"><button class="aph-btn aporal-recbtn" onclick="APAL.start(\'' + uid + '\',\'' + choice + '\')" style="flex:1;background:#fdecea;border-color:#b71c1c;color:#b71c1c;font-weight:700;">&#127897; Record my oral</button>'
+      + (APAL.teacher() ? '<button class="aph-btn" onclick="APAL.makeLink(\'' + uid + '\',\'' + choice + '\')" style="flex:0 0 auto;">&#128273; Teacher: oral link for this declaration</button>' : '') + '</div>' : '')
     + (hasDemo ? '<div style="display:flex;gap:8px;flex-wrap:wrap;"><button class="aph-btn" onclick="playDemoAnswer(\'' + uid + '\',\'' + choice + '\')" style="flex:1;background:#eaf5ef;border-color:#2e7d52;color:#2e7d52;font-weight:700;">&#127911; Demo Mode</button>'
       + ((typeof TOPICS_DEMO_EN !== 'undefined' && TOPICS_DEMO_EN[card['code' + choice]]) ? '<button class="aph-btn" onclick="openTopicsTranslationSheet(\'' + uid + '\',\'' + choice + '\')" style="flex:0 0 auto;">&#128424; Translation sheet</button>' : '')
       + '</div>' : '')
@@ -11372,6 +11374,440 @@ window.addEventListener('hashchange', function(){ if(/^#p1[tv]=/.test(location.h
 
 window.showPaper1 = renderP1List;
 })();
+</script>
+
+<style id="aporal-style">
+/* ===== AP ORAL RECORDING ===== */
+.aporal-ov{position:fixed;inset:0;z-index:12500;background:rgba(11,18,38,.72);display:flex;align-items:flex-start;justify-content:center;padding:14px;overflow-y:auto;-webkit-overflow-scrolling:touch}
+.aporal-box{background:#fff;color:#1a2744;border-radius:14px;max-width:560px;width:100%;padding:18px 18px 16px;margin:auto;font-family:var(--aph-body,system-ui,sans-serif);font-size:1rem;line-height:1.45;box-shadow:0 10px 40px rgba(0,0,0,.35)}
+.aporal-box h3{margin:0 0 8px;font:800 1.25rem/1.2 var(--aph-display,Georgia,serif);color:#1a2744}
+.aporal-box p{margin:8px 0}
+.aporal-len{font:700 1rem var(--aph-body,sans-serif);color:#2e7d52;margin-left:6px}
+.aporal-card{display:inline-block;background:#f7f3e8;border:1px solid #e6d8ad;border-radius:8px;padding:4px 10px;font-size:.9rem;margin:0 0 6px}
+.aporal-ol{margin:6px 0 10px;padding-left:1.3em}.aporal-ol li{margin:4px 0}
+.aporal-lab{display:block;font-weight:700;font-size:.85rem;margin:8px 0 3px;color:#4a5a7a}
+.aporal-in{width:100%;box-sizing:border-box;font:600 1rem var(--aph-body,sans-serif);padding:9px 10px;border:2px solid #c9a84c;border-radius:8px;color:#1a2744;min-height:42px}
+.aporal-test{display:flex;flex-wrap:wrap;align-items:center;gap:8px;margin:12px 0 4px}
+.aporal-meter{flex:1 1 120px;min-width:100px;height:14px;background:#e8ecf4;border-radius:7px;overflow:hidden}
+.aporal-meter i{display:block;height:100%;width:0;background:#2e7d52;border-radius:7px;transition:width .1s linear}
+.aporal-meter.dark{background:rgba(255,255,255,.25);max-width:160px;height:10px}.aporal-meter.dark i{background:#7ee0a3}
+.aporal-tmsg{flex:1 1 100%;font-size:.85rem;color:#4a5a7a;margin:2px 0}.aporal-tmsg.ok{color:#2e7d52;font-weight:700}
+.aporal-bad{background:#fdecea;color:#b71c1c;border:1px solid #f0b4ae;border-radius:8px;padding:8px 10px;margin:8px 0;font-size:.92rem}
+.aporal-ok{color:#2e7d52}
+.aporal-acts{display:flex;flex-wrap:wrap;gap:8px;justify-content:flex-end;margin:12px 0 4px}
+.aporal-acts .aph-btn{min-height:42px}
+.aporal-step{margin:14px 0 4px}
+.aporal-note{font-size:.88rem;color:#4a5a7a}
+.aporal-file{font-size:.85rem;background:#f4f6fb;border:1px solid #dfe3ec;border-radius:8px;padding:6px 9px;word-break:break-all;margin:4px 0}
+.aporal-audio{width:100%;margin:4px 0}
+.aporal-guide{background:#fdf6e3;border:1px solid #e6cf8f;border-radius:10px;padding:10px 12px;margin:12px 0}
+.aporal-guide-h{font-weight:800;margin:0 0 4px}.aporal-guide ol{margin:0;padding-left:1.3em}.aporal-guide li{margin:5px 0}
+.aporal-det{margin:8px 0;font-size:.9rem}.aporal-ul{margin:4px 0;padding-left:1.2em}
+.aporal-bar{position:fixed;top:0;left:0;right:0;z-index:12400;background:#b71c1c;color:#fff;display:flex;align-items:center;gap:10px;padding:6px 12px;font:700 .95rem var(--aph-body,sans-serif)}
+.aporal-dot{width:12px;height:12px;border-radius:50%;background:#fff;animation:aporalpulse 1s infinite}
+@keyframes aporalpulse{50%{opacity:.25}}
+.aporal-time{font-variant-numeric:tabular-nums;min-width:3.2em}
+.aporal-mid{margin-left:auto;font-weight:600;opacity:.9}
+.aporal-stop{background:#fff;color:#b71c1c;border:0;border-radius:8px;padding:7px 10px;font:700 .85rem var(--aph-body,sans-serif);cursor:pointer;min-height:36px}
+body.aporal-on{padding-top:46px}
+.aporal-reopen{position:fixed;right:14px;bottom:14px;z-index:12300;background:#1a2744;color:#ffd76a;border:0;border-radius:24px;padding:11px 16px;font:700 .95rem var(--aph-body,sans-serif);box-shadow:0 4px 14px rgba(0,0,0,.3);cursor:pointer;min-height:44px}
+
+.aporal-disc{background:#fdecea;border:1.5px solid #b71c1c;border-radius:10px;padding:9px 11px;margin:8px 0;color:#7a1010;font-size:.95rem}
+.aporal-demo{background:#eaf5ef;border:1px solid #2e7d52;border-radius:10px;padding:9px 11px;margin:12px 0;font-size:.92rem}
+body.aporal-on #demo-all-struct-panel{display:none!important}
+
+body.aporal-on [id$="_q2btn"]{display:none!important}
+body.aporal-on [id$="_exambar"] button{pointer-events:none;opacity:.45}
+body.aporal-on [id$="_demoPlayer"]{display:none!important}
+</style>
+<script id="aporal">
+/* ===== AP A LEVEL ORAL RECORDING: record the boy's answers to an A Level oral card (iPad Safari / Prisma), PDF, OneNote guide, teacher link ===== */
+(function () {
+  'use strict';
+  if (window.APAL) return;
+
+  // The microphone is opened with echo cancellation OFF so the examiner's voice stays faintly audible on the recording
+  // (the boy's own voice is the main thing). Change echoCancellation to true if the examiner is too loud on a real iPad.
+  var AUDIO = { echoCancellation: false, noiseSuppression: false, autoGainControl: true };
+  var LIMIT = 125;      // seconds for each answer in a recording: the "teacher would interrupt you" point (2:00) plus 5 seconds, then the next question comes by itself
+  var R = null;         // the recording in progress or just finished
+  var T = null;         // the microphone test in the set-up box
+  var DEAD = 0;         // until this time (ms), the exam's own talking and timers are switched off, so a recording that was thrown away cannot carry on
+
+  function $(id) { return document.getElementById(id); }
+  function esc(s) { return String(s == null ? '' : s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;'); }
+  function p2(n) { return (n < 10 ? '0' : '') + n; }
+  function mmss(s) { s = Math.max(0, Math.round(s)); return Math.floor(s / 60) + ':' + p2(s % 60); }
+  function dmyDash(d) { d = d || new Date(); return p2(d.getDate()) + '-' + p2(d.getMonth() + 1) + '-' + d.getFullYear(); }
+  function isPad() { var ua = navigator.userAgent || ''; return /iPad|iPhone|iPod/.test(ua) || (/Macintosh/.test(ua) && navigator.maxTouchPoints > 1); }
+  function lsGet(k) { try { return localStorage.getItem(k) || ''; } catch (e) { return ''; } }
+  function lsSet(k, v) { try { localStorage.setItem(k, v); } catch (e) { } }
+  function teacher() { return !!lsGet('apTeacherKey'); }
+  function supported() { return !!(navigator.mediaDevices && navigator.mediaDevices.getUserMedia && window.MediaRecorder); }
+  function pickType() {
+    var c = ['audio/mp4;codecs=mp4a.40.2', 'audio/mp4', 'audio/webm;codecs=opus', 'audio/webm', 'audio/ogg;codecs=opus'];
+    try { for (var i = 0; i < c.length; i++) if (MediaRecorder.isTypeSupported && MediaRecorder.isTypeSupported(c[i])) return c[i]; } catch (e) { }
+    return '';
+  }
+  function extOf(t) { return /mp4|aac/.test(t || '') ? 'm4a' : /ogg/.test(t || '') ? 'ogg' : /webm/.test(t || '') ? 'webm' : 'm4a'; }
+  function cleanName(s) { return String(s || '').replace(/[\\\/:*?"<>|]+/g, '').replace(/\s+/g, ' ').trim(); }
+  function plain(s) { return String(s == null ? '' : s).replace(/<[^>]*>/g, ''); }
+  function codeOf(card, choice) { return card['code' + choice] || ''; }
+
+  // ── level meter ──
+  function meterOn(stream, fill, count) {
+    var AC = window.AudioContext || window.webkitAudioContext, m = { peak: 0, loud: 0, n: 0 };
+    try {
+      m.ctx = new AC(); try { m.ctx.resume(); } catch (e) { }
+      var src = m.ctx.createMediaStreamSource(stream), an = m.ctx.createAnalyser();
+      an.fftSize = 4096; src.connect(an);   // 4096 samples is about 85 ms of sound per reading, so the 100 ms checks do not miss short words
+      m.src = src; m.an = an;   // keep both nodes referenced: a browser can otherwise discard a source that is not wired to the speakers, and the meter goes dead
+      var buf = new Float32Array(an.fftSize);
+      m.iv = setInterval(function () {
+        try { an.getFloatTimeDomainData(buf); } catch (e) { return; }
+        var s = 0, i; for (i = 0; i < buf.length; i++) s += buf[i] * buf[i];
+        var r = Math.sqrt(s / buf.length);
+        if (fill) fill(Math.min(1, r * 6));
+        var talking = false; try { talking = !!(window.speechSynthesis && window.speechSynthesis.speaking); } catch (e) { }   // the examiner's voice does not count as the boy's
+        if (count && !talking) { m.n++; if (r > m.peak) m.peak = r; if (r > 0.02) m.loud++; }
+        else if (!count) { if (r > m.peak) m.peak = r; }
+      }, 100);
+    } catch (e) { }
+    return m;
+  }
+  function meterOff(m) {
+    if (!m || m.closed) return; m.closed = true;
+    try { clearInterval(m.iv); } catch (e) { }
+    try { if (m.ctx && m.ctx.state !== 'closed') { var pr = m.ctx.close(); if (pr && pr.catch) pr.catch(function () { }); } } catch (e) { }
+  }
+  function stopStream(s) { try { s && s.getTracks().forEach(function (t) { t.stop(); }); } catch (e) { } }
+  function micError(e) {
+    var n = e && e.name || '';
+    if (n === 'NotAllowedError' || n === 'SecurityError') return 'The microphone is blocked. Allow it for this page: tap <b>Settings</b> on the iPad, find your browser (<b>Safari</b> or <b>Prisma</b>), tap <b>Microphone</b> and choose <b>Allow</b>. Then reload this page.';
+    if (n === 'NotFoundError') return 'No microphone was found on this device.';
+    return 'The microphone could not be started (' + esc(n || 'unknown error') + ').';
+  }
+
+  // ── overlay box ──
+  function box(html) {
+    var o = $('aporal-ov'); if (o) o.remove();
+    o = document.createElement('div'); o.id = 'aporal-ov'; o.className = 'aporal-ov';
+    o.innerHTML = '<div class="aporal-box" role="dialog" aria-modal="true">' + html + '</div>';
+    document.body.appendChild(o); return o.firstChild;
+  }
+  function closeBox() { var o = $('aporal-ov'); if (o) o.remove(); }
+
+  // ── step 1: the set-up box ──
+  function start(uid, choice) {
+    var card = window['_ocard_' + uid]; if (!card) return;
+    if (R && R.on) return;
+    stopTest();
+    var b = box('');
+    if (!supported()) {
+      b.innerHTML = '<h3>🎙 Record my oral</h3><p class="aporal-bad">This browser cannot record sound. On the iPad, open this page in <b>Safari</b> and try again. If that does not work, tell AP.</p>'
+        + '<div class="aporal-acts"><button type="button" class="aph-btn" id="aporal-x">Close</button></div>';
+      $('aporal-x').onclick = closeBox; return;
+    }
+    b.innerHTML = '<h3>🎙 Record my oral</h3>'
+      + '<div class="aporal-card">Card <b>' + esc(codeOf(card, choice)) + '</b> · Topic ' + esc(card.topic) + ' · declaration ' + esc(choice) + '</div>'
+      + '<p>The iPad plays the examiner for you. It reads your declaration, asks Question 1, and then times your answer. After about <b>2 minutes</b> it asks Question 2, and you answer for another 2 minutes. The whole recording is about <b>5 minutes</b>. <b>Fill the whole time</b> for each answer, just like the real oral.</p>'
+      + '<div class="aporal-disc">⚠ <b>Your answers must be completely your own and completely different from the Demo Mode answers.</b> Do <b>not</b> listen to the demo before you record. The demo is only for listening to <b>afterwards</b>, if you want to.</div>'
+      + '<ol class="aporal-ol"><li>Take the <b>5-minute preparation</b> first, if you want to (the <b>Start 5-min prep</b> button on the card). The preparation is not recorded.</li>'
+      + '<li>Find a <b>quiet room</b> and put the iPad on the desk, about an arm&rsquo;s length away.</li>'
+      + '<li>Turn the volume <b>up</b> and use the <b>iPad speaker</b> (no headphones), so the examiner is on your recording too.</li>'
+      + '<li>Do <b>not</b> lock the iPad or leave this page while it is recording.</li></ol>'
+      + '<label class="aporal-lab" for="aporal-name">Your name</label>'
+      + '<input id="aporal-name" class="aporal-in" type="text" autocomplete="name" autocapitalize="words" spellcheck="false" maxlength="60" placeholder="e.g. A. Smith">'
+      + '<div class="aporal-test"><button type="button" class="aph-btn" id="aporal-test">🔈 Test my microphone</button>'
+      + '<div class="aporal-meter"><i id="aporal-tfill"></i></div><div id="aporal-tmsg" class="aporal-tmsg">Tap, then say a few words. The bar should move.</div></div>'
+      + '<div id="aporal-err" class="aporal-bad" style="display:none"></div>'
+      + '<div class="aporal-acts"><button type="button" class="aph-btn" id="aporal-cancel">Cancel</button><button type="button" class="aph-btn aph-btn-primary" id="aporal-go">● Start recording</button></div>';
+    var nm = $('aporal-name'); nm.value = lsGet('apStudentName');
+    $('aporal-cancel').onclick = function () { stopTest(); closeBox(); };
+    $('aporal-test').onclick = testMic;
+    $('aporal-go').onclick = function () {
+      var n = nm.value.replace(/\s+/g, ' ').trim();
+      if (!n) { var e = $('aporal-err'); e.style.display = ''; e.innerHTML = 'Please type your name first, so your recording and PDF carry it.'; nm.focus(); return; }
+      lsSet('apStudentName', n);
+      begin(uid, choice, n);
+    };
+  }
+  function stopTest() { if (T) { meterOff(T.m); stopStream(T.stream); T = null; } }
+  function testMic() {
+    stopTest();
+    var msg = $('aporal-tmsg'), fill = $('aporal-tfill');
+    navigator.mediaDevices.getUserMedia({ audio: AUDIO }).then(function (stream) {
+      if (!$('aporal-ov')) { stopStream(stream); return; }
+      T = { stream: stream };
+      T.m = meterOn(stream, function (v) { if (fill) fill.style.width = Math.round(v * 100) + '%'; if (msg && T && T.m && T.m.peak > 0.03) { msg.className = 'aporal-tmsg ok'; msg.innerHTML = '✓ I can hear you. The microphone works.'; } }, false);
+      if (msg) { msg.className = 'aporal-tmsg'; msg.textContent = 'Listening… say a few words.'; }
+    }).catch(function (e) { var er = $('aporal-err'); if (er) { er.style.display = ''; er.innerHTML = micError(e); } });
+  }
+
+  // ── step 2: recording (the exam simulation runs by itself, and the page records) ──
+  function begin(uid, choice, name) {
+    var card = window['_ocard_' + uid], type = pickType();
+    var reuse = T && T.stream && T.stream.active ? T.stream : null;
+    var go = function (stream) {
+      if (T && T.stream === stream) { meterOff(T.m); T = null; } else stopTest();   // keep the tested microphone running into the recording
+      if (R && R.url) { try { URL.revokeObjectURL(R.url); } catch (e) { } }
+      var rb = $('aporal-reopen'); if (rb) rb.remove();
+      R = { on: true, name: name, uid: uid, choice: choice, card: card, stream: stream, type: type, chunks: [], marks: {}, t0: Date.now(), blob: null, url: '' };
+      try { R.rec = type ? new MediaRecorder(stream, { mimeType: type }) : new MediaRecorder(stream); } catch (e) { stopStream(stream); R.on = false; var er = $('aporal-err'); if (er) { er.style.display = ''; er.innerHTML = 'Recording could not be started on this browser.'; } return; }
+      R.type = R.rec.mimeType || type;
+      var chunks = R.chunks;   // a closure copy, so a recording that is thrown away cannot trip over a late chunk
+      R.rec.ondataavailable = function (ev) { if (ev.data && ev.data.size) chunks.push(ev.data); };
+      R.m = meterOn(stream, function (v) { var f = $('aporal-bfill'); if (f) f.style.width = Math.round(v * 100) + '%'; }, true);
+      R.rec.start(1000);
+      closeBox(); barOn();
+      document.body.classList.add('aporal-on');
+      window.addEventListener('beforeunload', warnLeave);
+      try { stopDemoAnswer(uid); } catch (e) { }   // the demo cannot run, or be seen, while a boy is recording
+      try { stopPrepTimer(uid); } catch (e) { }
+      window._examUID = uid; window._examChoice = choice; window._examCard = card;
+      startExamSim(uid, choice);
+    };
+    if (reuse) { go(reuse); return; }
+    navigator.mediaDevices.getUserMedia({ audio: AUDIO }).then(go).catch(function (e) { var er = $('aporal-err'); if (er) { er.style.display = ''; er.innerHTML = micError(e); } });
+  }
+  function warnLeave(e) { if (R && R.on) { e.preventDefault(); e.returnValue = ''; return ''; } }
+  function elapsed() { return R ? (Date.now() - R.t0) / 1000 : 0; }
+  function barOn() {
+    var b = $('aporal-bar'); if (b) b.remove();
+    b = document.createElement('div'); b.id = 'aporal-bar'; b.className = 'aporal-bar';
+    b.innerHTML = '<span class="aporal-dot"></span><b>REC</b><span id="aporal-time" class="aporal-time">0:00</span>'
+      + '<div class="aporal-meter dark"><i id="aporal-bfill"></i></div>'
+      + '<span class="aporal-mid">Card ' + esc(codeOf(R.card, R.choice)) + '</span>'
+      + '<button type="button" id="aporal-stop" class="aporal-stop">■ Stop and throw away</button>';
+    document.body.appendChild(b);
+    R.iv = setInterval(function () { var t = $('aporal-time'); if (t && R) t.textContent = mmss(elapsed()); }, 500);
+    $('aporal-stop').onclick = function () {
+      if (!window.confirm('Stop now and throw this recording away?')) return;
+      discard();
+    };
+  }
+  function barOff() { var b = $('aporal-bar'); if (b) b.remove(); document.body.classList.remove('aporal-on'); window.removeEventListener('beforeunload', warnLeave); }
+  function stopExam(uid) {   // the exam simulation's own timers and talking
+    try { if (window._qInterval) { clearInterval(window._qInterval); window._qInterval = null; } } catch (e) { }
+    try { if (window._prepInterval) { clearInterval(window._prepInterval); window._prepInterval = null; } } catch (e) { }
+    try { window.speechSynthesis && window.speechSynthesis.cancel(); } catch (e) { }
+    if (R && R.adv) { try { clearInterval(R.adv); } catch (e) { } R.adv = null; }
+  }
+  function discard() {
+    var uid = R && R.uid;
+    DEAD = Date.now() + 2500;   // a talking chain that has already started must not carry on
+    stopExam(uid);
+    if (R) {
+      R.on = false; try { clearInterval(R.iv); } catch (e) { }
+      meterOff(R.m); try { if (R.rec && R.rec.state !== 'inactive') R.rec.stop(); } catch (e) { }
+      stopStream(R.stream);
+    }
+    barOff(); R = null;
+    var pn = uid && $(uid + '_examPanel'); if (pn) pn.remove();
+    ['q1', 'q2'].forEach(function (q) { ['A', 'B'].forEach(function (c) { var el = uid && $(uid + '_' + c + q); if (el) { el.style.backgroundColor = ''; el.style.fontWeight = ''; el.style.fontStyle = ''; } }); });
+    var rb = $('aporal-reopen'); if (rb) rb.remove();
+  }
+  // the second answer ended (called from the wrapped finishExamSim, after the exam's own finish has run)
+  function finish() {
+    var dur = elapsed();
+    stopExam(R && R.uid);
+    if (!R) return;
+    R.on = false; try { clearInterval(R.iv); } catch (e) { }
+    meterOff(R.m);
+    R.dur = dur;
+    R.quiet = !(R.m && R.m.n > 0) ? false : (R.m.peak < 0.03 || R.m.loud / R.m.n < 0.03);
+    var done = function () {
+      stopStream(R.stream);
+      R.blob = new Blob(R.chunks, { type: R.type || 'audio/mp4' });
+      try { R.url = URL.createObjectURL(R.blob); } catch (e) { R.url = ''; }
+      barOff(); review(); reopenBtn();
+    };
+    try {
+      if (R.rec && R.rec.state !== 'inactive') { R.rec.onstop = done; R.rec.stop(); } else done();
+    } catch (e) { done(); }
+  }
+
+  // ── step 3: listen back, keep or try again, save, PDF ──
+  function fileName() { return cleanName(dmyDash() + ' AP A Level Oral ' + codeOf(R.card, R.choice) + ' ' + R.name) + '.' + extOf(R.type); }
+  function review() {
+    if (!R) return;
+    var fn = fileName();
+    var b = box('<h3>✅ Recording finished <span class="aporal-len">' + mmss(R.dur) + '</span></h3>'
+      + (R.quiet ? '<div class="aporal-bad">⚠ I could hardly hear your voice on this recording. Listen to it below. If it is silent or very faint, check the microphone and <b>try again</b>.</div>' : '')
+      + '<p class="aporal-step"><b>1 · Listen to it</b> (you will hear the examiner faintly, and you much louder)</p>'
+      + (R.url ? '<audio controls preload="auto" src="' + esc(R.url) + '" class="aporal-audio"></audio>' : '<p class="aporal-bad">The recording could not be played here.</p>')
+      + '<div class="aporal-acts"><button type="button" class="aph-btn" id="aporal-again">🔁 Not happy: try again</button></div>'
+      + '<p class="aporal-step"><b>2 · Happy with it? Save your recording</b></p>'
+      + '<div class="aporal-file">File name: <b>' + esc(fn) + '</b></div>'
+      + '<div class="aporal-acts"><button type="button" class="aph-btn aph-btn-primary" id="aporal-share">📤 Share recording</button><button type="button" class="aph-btn" id="aporal-save">💾 Save to Files</button></div>'
+      + '<div id="aporal-smsg" class="aporal-tmsg"></div>'
+      + '<p class="aporal-step"><b>3 · Make your PDF</b></p>'
+      + '<p class="aporal-note">The PDF shows your card, your declaration and the two questions, with the time each one starts on your recording. Tap the button, then follow the instructions on the screen that opens.</p>'
+      + '<div class="aporal-acts"><button type="button" class="aph-btn aph-btn-primary" id="aporal-pdf">📄 Make my PDF</button></div>'
+      + '<div class="aporal-guide"><div class="aporal-guide-h">Then, in OneNote (a new page in your <b>EW</b> folder)</div><ol>'
+      + '<li>Make the new page with the <b>PDF</b>, as the PDF screen explains: paste the page title it gave you, then <b>Insert › PDF › Printout</b>.</li>'
+      + '<li>On <b>that same page</b>, tap <b>Insert</b>, then the <b>paper-clip 📎 File</b> button, and choose your recording <b>' + esc(fn) + '</b> from <b>Recents</b> (or <i>Downloads</i>) in Files.</li>'
+      + '<li>Check the page shows your PDF and your recording. <span class="aporal-ok">(Use the paper-clip for the <b>recording</b> only. The PDF goes in as a Printout.)</span></li></ol></div>'
+      + '<div class="aporal-demo"><b>4 · Only when you have saved everything (optional)</b><br>Your answers must be completely different from the demo. If you want to, you can now <b>listen</b> to the Demo Mode answer for this declaration.'
+      + '<div class="aporal-acts" style="justify-content:flex-start"><button type="button" class="aph-btn" id="aporal-demo">🎧 Listen to the demo</button></div></div>'
+      + '<details class="aporal-det"><summary>When each question starts</summary><ul class="aporal-ul"><li><b>Question 1</b> starts at ' + mmss(R.marks.q1 || 0) + '</li><li><b>Question 2</b> starts at ' + mmss(R.marks.q2 || 0) + '</li></ul></details>'
+      + '<div class="aporal-acts"><button type="button" class="aph-btn" id="aporal-close">Close (your recording stays until you leave this page)</button></div>');
+    $('aporal-close').onclick = closeBox;
+    $('aporal-again').onclick = function () { if (!window.confirm('Throw this recording away and record again?')) return; var u = R.uid, c = R.choice; discard(); start(u, c); };
+    $('aporal-save').onclick = saveFile;
+    $('aporal-share').onclick = shareFile;
+    $('aporal-pdf').onclick = makePdf;
+    var db = $('aporal-demo'), has = !!(R.card && R.card['demo' + R.choice]);
+    if (!has) { var dd = db.closest('.aporal-demo'); if (dd) dd.style.display = 'none'; }
+    db.onclick = function () { closeBox(); try { playDemoAnswer(R.uid, R.choice); } catch (e) { } };
+  }
+  function say(h, ok) { var m = $('aporal-smsg'); if (m) { m.className = 'aporal-tmsg' + (ok ? ' ok' : ''); m.innerHTML = h; } }
+  function saveFile() {
+    if (!R || !R.url) return;
+    try {
+      var a = document.createElement('a'); a.href = R.url; a.download = fileName(); document.body.appendChild(a); a.click(); a.remove();
+      say('✓ Saved (look in <b>Files › Downloads</b>). It is called <b>' + esc(fileName()) + '</b>.', true);
+    } catch (e) { say('Could not save here. Try <b>Share recording</b>.'); }
+  }
+  function shareFile() {
+    if (!R || !R.blob) return;
+    var f; try { f = new File([R.blob], fileName(), { type: R.blob.type || 'audio/mp4' }); } catch (e) { f = null; }
+    if (f && navigator.canShare && navigator.canShare({ files: [f] }) && navigator.share) {
+      navigator.share({ files: [f], title: fileName() }).then(function () { say('✓ Shared.', true); }).catch(function (e) { if (e && e.name !== 'AbortError') say('Sharing did not work. Use <b>Save to Files</b> instead.'); });
+    } else { say('Sharing is not available here. Use <b>Save to Files</b> instead.'); }
+  }
+  function makePdf() {
+    if (!R) return;
+    if (typeof APMP === 'undefined' || !APMP.save) { alert('Sorry, the PDF maker is not available.'); return; }
+    var card = R.card, ch = R.choice, code = codeOf(card, ch), fn = fileName(), rr = R;
+    var decl = card['decl' + ch], q1 = card['q1' + ch], q2 = card['q2' + ch];
+    APMP.save(function () {
+      function qrow(n, q, mark) {
+        return '<div class="apmp-q"><div class="apmp-qh"><span class="apmp-qn">' + n + '</span><span class="apmp-qt">' + esc(q) + '</span></div>'
+          + '<div class="apmp-row"><span class="apmp-lab">Aim for</span><div class="apmp-val">2 minutes</div></div>'
+          + '<div class="apmp-row"><span class="apmp-lab">On my recording</span><div class="apmp-val"><b>' + mmss(mark || 0) + '</b> (the examiner asks the question here)</div></div></div>';
+      }
+      return {
+        app: 'AP A Level French Oral Topics', kicker: 'AP A Level French &middot; Oral practice &middot; recorded',
+        title: 'Oral recording — ' + esc(code) + ' · <em>' + esc(card.topicName || '') + '</em>',
+        meta: 'French · A Level · Task 1 · declaration ' + esc(ch) + ' · 2 questions', noScore: true,
+        summary: '🎙 <b>Recorded by the iPad examiner</b> (about 2 minutes for each answer) &middot; length <b>' + mmss(rr.dur) + '</b><br>Recording file: <b>' + esc(fn) + '</b>',
+        body: '<div class="apmp-sec"><span>My declaration</span><span class="apmp-secmk">' + esc(code) + '</span></div>'
+          + '<div class="apmp-q"><div class="apmp-qh"><span class="apmp-qn">' + esc(ch) + '</span><span class="apmp-qt">' + esc(decl) + '</span></div>'
+          + '<div class="apmp-row"><span class="apmp-lab">Topic</span><div class="apmp-val">' + esc(card.topic) + ' · ' + esc(card.topicEn || card.topicName || '') + '</div></div></div>'
+          + '<div class="apmp-sec"><span>The two questions</span><span class="apmp-secmk">' + esc(code) + '</span></div>'
+          + qrow(1, q1, rr.marks.q1) + qrow(2, q2, rr.marks.q2)
+          + '<div class="apmp-info">The recording is on the same OneNote page as this PDF.</div>',
+        foot: 'AP A Level French Oral Topics &middot; Oral recording &middot; ' + esc(code),
+        docTitle: 'AP A Level French Oral Topics — Oral recording ' + code, lang: 'French',
+        pageTitle: 'A Level oral recording ' + code + (card.topicName ? ' · ' + card.topicName : ''),
+        askText: { h: '&#128196; Save my oral PDF', p: 'Your card, your name, your declaration and the two questions go on one page. Your recording is saved separately.' },
+        how: '<div class="apmp-how" style="margin-top:10px"><div class="apmp-how-h">&#127908; Your recording</div><ol><li>Your recording is a separate file called <b>' + esc(fn) + '</b>. On the same OneNote page, tap <b>Insert</b> then the <b>paper-clip &#128206; File</b> button and choose it from Files (<b>Recents</b> or <i>Downloads</i>).</li></ol></div>'
+      };
+    });
+  }
+  function reopenBtn() {
+    var o = $('aporal-reopen'); if (o) o.remove();
+    o = document.createElement('button'); o.id = 'aporal-reopen'; o.type = 'button'; o.className = 'aporal-reopen';
+    o.textContent = '🎙 My recording'; o.onclick = review; document.body.appendChild(o);
+  }
+
+  // ── teacher: make a link for one declaration ──
+  function copyText(t, btn) {
+    function ok() { if (btn) { var o = btn.textContent; btn.textContent = '✓ Copied'; setTimeout(function () { btn.textContent = o; }, 2000); } }
+    function fb() {
+      var a = document.createElement('textarea'); a.value = t; a.setAttribute('readonly', ''); a.style.position = 'fixed'; a.style.top = '-200px'; document.body.appendChild(a);
+      a.select(); a.setSelectionRange(0, t.length); var d = false; try { d = document.execCommand('copy'); } catch (e) { } a.remove(); if (d) ok(); else window.prompt('Copy this:', t);
+    }
+    try { if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(t).then(ok, fb); else fb(); } catch (e) { fb(); }
+  }
+  function copyNamed(name, url, btn) {   // pastes into OneNote / Teams as the NAME, with the address hidden inside
+    var html = '<a href="' + esc(url) + '">' + esc(name) + '</a>';
+    function ok() { if (btn) { var o = btn.textContent; btn.textContent = '✓ Copied'; setTimeout(function () { btn.textContent = o; }, 2000); } }
+    try {
+      if (window.ClipboardItem && navigator.clipboard && navigator.clipboard.write) {
+        navigator.clipboard.write([new ClipboardItem({ 'text/html': new Blob([html], { type: 'text/html' }), 'text/plain': new Blob([url], { type: 'text/plain' }) })]).then(ok, function () { copyText(url, btn); });
+      } else copyText(url, btn);
+    } catch (e) { copyText(url, btn); }
+  }
+  function linkFor(code) { return String(location.href).replace(/[#?].*$/, '') + '#oral=' + encodeURIComponent(code); }
+  function makeLink(uid, choice) {
+    var card = window['_ocard_' + uid]; if (!card) return;
+    var code = codeOf(card, choice); if (!code) return;
+    var url = linkFor(code), name = 'AP A Level Oral: record ' + code + ' · ' + (card.topicName || '') + ' (EW)';
+    var b = box('<h3>🔑 Oral link for card ' + esc(code) + '</h3>'
+      + '<div class="aporal-card">Topic ' + esc(card.topic) + ' · declaration ' + esc(choice) + '</div>'
+      + '<p>' + esc(plain(card['decl' + choice])) + '</p>'
+      + '<p>The boy opens this link and lands on this declaration with the recording box ready. He types his name, records, and sends you the PDF and the recording.</p>'
+      + '<div class="aporal-acts" style="justify-content:flex-start"><button type="button" class="aph-btn aph-btn-primary" id="aporal-cl">📋 Copy link (pastes as its name)</button><button type="button" class="aph-btn" id="aporal-cp">Copy plain address</button></div>'
+      + '<div class="aporal-file">' + esc(url) + '</div>'
+      + '<div class="aporal-acts"><button type="button" class="aph-btn" id="aporal-lx">Close</button></div>');
+    $('aporal-cl').onclick = function () { copyNamed(name, url, this); };
+    $('aporal-cp').onclick = function () { copyText(url, this); };
+    $('aporal-lx').onclick = closeBox;
+  }
+
+  // ── opening a link: #oral=FR001 (the code of one declaration) ──
+  function findCard(code) {
+    code = String(code || '').trim().toUpperCase();
+    var all = window.ORAL_CARDS || (typeof ORAL_CARDS !== 'undefined' ? ORAL_CARDS : []);
+    for (var i = 0; i < all.length; i++) {
+      if ((all[i].codeA || '').toUpperCase() === code) return { card: all[i], choice: 'A' };
+      if ((all[i].codeB || '').toUpperCase() === code) return { card: all[i], choice: 'B' };
+    }
+    return null;
+  }
+  function boot() {
+    var m = /^#oral=([A-Za-z]{2}\d{3,4})/.exec(location.hash || ''); if (!m) return;
+    var f = findCard(m[1]); if (!f) { alert('Sorry, this oral link does not match a card.'); return; }
+    try {
+      showOralCards();
+      renderOralCardView([f.card], 'Topic ' + f.card.topic + ' · ' + f.card.year, false);
+      var uid = 'card_' + f.card.topic + '_' + f.card.year;
+      pickDeclaration(uid, f.choice);
+      document.title = 'AP A Level Oral recording · ' + codeOf(f.card, f.choice);
+      setTimeout(function () { start(uid, f.choice); }, 300);
+    } catch (e) { }
+  }
+
+  // wrap the exam simulation's own functions (unchanged unless a recording is running)
+  var _speak = window.speak;
+  if (typeof _speak === 'function') window.speak = function () { if (Date.now() < DEAD) return; return _speak.apply(this, arguments); };
+  var _tp = window._tpSpeak;   // the demo's speaker: it cannot talk while a recording runs, even if a demo chain was still waiting to start
+  if (typeof _tp === 'function') window._tpSpeak = function () { if ((R && R.on) || Date.now() < DEAD) return; return _tp.apply(this, arguments); };
+  var _q1 = window.startQ1;
+  if (typeof _q1 === 'function') window.startQ1 = function (uid, choice, q1) { if (Date.now() < DEAD) return; if (R && R.on && R.marks.q1 == null) R.marks.q1 = elapsed(); return _q1.apply(this, arguments); };
+  var _l2 = window.launchQ2;
+  if (typeof _l2 === 'function') window.launchQ2 = function (uid, choice) { if (Date.now() < DEAD) return; if (R && R.on && R.marks.q2 == null) R.marks.q2 = elapsed(); return _l2.apply(this, arguments); };
+  var _qt = window.startQTimer;
+  if (typeof _qt === 'function') window.startQTimer = function (uid, choice, qNum) {
+    if (Date.now() < DEAD) return;
+    var out = _qt.apply(this, arguments);
+    if (R && R.on) {   // a recording is Autotime: the exam moves on by itself after the answer time
+      if (R.adv) { try { clearInterval(R.adv); } catch (e) { } }
+      var n = 0, h;
+      h = R.adv = setInterval(function () {
+        if (!R || !R.on || R.adv !== h) { clearInterval(h); return; }
+        if (++n >= LIMIT) {
+          clearInterval(h); R.adv = null;
+          if (qNum === 'q1') window.launchQ2(uid, choice); else window.finishExamSim(uid);
+        }
+      }, 1000);
+    }
+    return out;
+  };
+  var _fin = window.finishExamSim;
+  if (typeof _fin === 'function') window.finishExamSim = function (uid) {
+    var out = _fin.apply(this, arguments);
+    if (R && R.on) finish();
+    return out;
+  };
+
+  window.addEventListener('load', function () { setTimeout(boot, 0); });
+  window.addEventListener('hashchange', function () { if (/^#oral=/.test(location.hash)) boot(); });
+  window.APAL = { limit: function (n) { LIMIT = n; }, start: start, makeLink: makeLink, teacher: teacher, supported: supported, boot: boot, state: function () { return R; } };
+})();
+/* ===== END AP A LEVEL ORAL RECORDING ===== */
 </script>
 </body></html>
 <script>

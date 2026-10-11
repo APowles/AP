@@ -3,7 +3,7 @@
 <script id="ap-update">
 /* AP auto-update: if this copy is older than the published version, reload once with the new one (saved answers are kept) */
 (function () {
-  var B = 'a3ca3aecf3'; window.AP_BUILD = B;
+  var B = '387b1a85fb'; window.AP_BUILD = B;
   function check() {
     if (!/^https?:$/.test(location.protocol) || !window.fetch) return;
     var f = decodeURIComponent(location.pathname.split('/').pop() || '');
@@ -13193,6 +13193,7 @@ body.aporal-on #demo-all-struct-panel{display:none!important}
   var AUDIO = { echoCancellation: false, noiseSuppression: false, autoGainControl: true };
   var TARGETS = [25, 25, 50, 50, 50];   // seconds: the same as the Autotime timer (Q_TARGETS)
   var R = null;                          // the recording in progress or just finished
+  var DEAD = 0;   // until this time (ms) the simulation's own talking and timers are switched off, so a recording that was thrown away cannot carry on
   var T = null;                          // the microphone test in the set-up box
 
   function $(id) { return document.getElementById(id); }
@@ -13352,6 +13353,7 @@ body.aporal-on #demo-all-struct-panel{display:none!important}
     stopStream(R.stream);
   }
   function discard() {
+    DEAD = Date.now() + 2500;
     try { window.__aporalFin.call(window); } catch (e) { }   // the simulation's own stop (timers and voice)
     endRec(); barOff(); R = null;
     var w = document.getElementById('igcse-exam-wrap'); if (w) w.innerHTML = '';
@@ -13506,8 +13508,12 @@ body.aporal-on #demo-all-struct-panel{display:none!important}
   }
 
   // wrap the simulation's own functions (unchanged unless a recording is running)
+  var _spk = window.speak;
+  if (typeof _spk === 'function') window.speak = function () { if (Date.now() < DEAD) return; return _spk.apply(this, arguments); };
+  var _dq = window.demoAskQuestion;   // the demo cannot talk while a recording runs, even if a demo step was still waiting to start
+  if (typeof _dq === 'function') window.demoAskQuestion = function () { if ((R && R.on) || Date.now() < DEAD) return; return _dq.apply(this, arguments); };
   var _ask = window.askQuestion;
-  if (typeof _ask === 'function') window.askQuestion = function (i) { if (R && R.on && R.marks[i] == null) R.marks[i] = elapsed(); return _ask.apply(this, arguments); };
+  if (typeof _ask === 'function') window.askQuestion = function (i) { if (Date.now() < DEAD) return; if (R && R.on && R.marks[i] == null) R.marks[i] = elapsed(); return _ask.apply(this, arguments); };
   var _fin = window.finishIGCSE; window.__aporalFin = _fin;
   if (typeof _fin === 'function') window.finishIGCSE = function () { if (R && R.on) { finish(); return; } return _fin.apply(this, arguments); };
 
