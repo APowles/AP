@@ -3,7 +3,7 @@
 <script id="ap-update">
 /* AP auto-update: if this copy is older than the published version, reload once with the new one (saved answers are kept) */
 (function () {
-  var B = '387b1a85fb'; window.AP_BUILD = B;
+  var B = 'ff008ac41f'; window.AP_BUILD = B;
   function check() {
     if (!/^https?:$/.test(location.protocol) || !window.fetch) return;
     var f = decodeURIComponent(location.pathname.split('/').pop() || '');
@@ -6293,7 +6293,7 @@ function showCard(card, mode) {
         <button class="btn-new" onclick="launchCards()" style="padding:8px 10px;font-size:0.8rem;">🎲 New Card</button>
         <button class="btn-sim" onclick="startIGCSESim()" style="padding:9px 10px;font-size:0.8rem;">▶ Begin oral practice session</button>
         ${typeof APOR !== 'undefined' && APOR.supported() ? `<button onclick="APOR.start()" id="aporal-btn" style="padding:10px 10px;font-size:0.88rem;background:#fdecea;color:#b71c1c;border:1.5px solid #b71c1c;border-radius:8px;cursor:pointer;text-align:center;font-weight:700;font-family:'DM Sans',sans-serif;">🎙 Record my oral (EW)</button>` : ''}
-        ${typeof APOR !== 'undefined' && APOR.teacher() ? `<button onclick="APOR.makeLink()" id="aporal-link-btn" style="padding:7px 10px;font-size:0.72rem;background:#fff;color:#1a2744;border:1.5px dashed #1a2744;border-radius:8px;cursor:pointer;text-align:center;font-family:'DM Sans',sans-serif;">🔑 Teacher: oral link for this card</button>` : ''}
+        ${typeof APOR !== 'undefined' && APOR.teacher() ? `<button onclick="APOR.makeLink()" id="aporal-link-btn" style="padding:7px 10px;font-size:0.72rem;background:#fff;color:#1a2744;border:1.5px dashed #1a2744;border-radius:8px;cursor:pointer;text-align:center;font-family:'DM Sans',sans-serif;">🔑 Teacher: set as EW (link / code)</button>` : ''}
         ${card.demo ? `<button onclick="startDemoMode()" id="demo-mode-btn" style="background:#eaf5ef;color:#2e7d52;border:1.5px solid #2e7d52;cursor:pointer;text-align:center;">🎧 Demo Mode</button>` : ''}
         ${card.demo && typeof tmBtnHTML === 'function' ? tmBtnHTML(card, 'side') : ''}
         ${card.demo ? `<button onclick="openChallengeFromCard()" id="apc-btn" style="background:#1a2744;color:#ffd76a;border:1.5px solid #1a2744;cursor:pointer;text-align:center;">🃏 AP Structures Challenge</button>` : ''}
@@ -13181,6 +13181,8 @@ body.aporal-on .st-oral-side>button{pointer-events:none;opacity:.45}
 .aporal-disc{background:#fdecea;border:1.5px solid #b71c1c;border-radius:10px;padding:9px 11px;margin:8px 0;color:#7a1010;font-size:.95rem}
 .aporal-demo{background:#eaf5ef;border:1px solid #2e7d52;border-radius:10px;padding:9px 11px;margin:12px 0;font-size:.92rem}
 body.aporal-on #demo-all-struct-panel{display:none!important}
+
+.aporal-setnote{background:#eef2fb;border:1px solid #b8c4e4;border-radius:8px;padding:7px 10px;margin:6px 0 8px;font-size:.92rem;color:#1a2744}
 </style>
 <script id="aporal">
 /* ===== AP ORAL RECORDING: record the boy's answers to an oral card (iPad Safari / Prisma), PDF, OneNote guide, teacher link ===== */
@@ -13290,6 +13292,7 @@ body.aporal-on #demo-all-struct-panel{display:none!important}
       lsSet('apStudentName', n);
       begin(n);
     };
+    setHook(b);
   }
   function stopTest() { if (T) { meterOff(T.m); stopStream(T.stream); T = null; } }
   function testMic() {
@@ -13442,7 +13445,7 @@ body.aporal-on #demo-all-struct-panel{display:none!important}
         app: 'AP IGCSE Structures & Oral', kicker: 'AP IGCSE &middot; Oral practice &middot; recorded',
         title: 'Oral recording — ' + esc(card.code || '') + ' · <em>' + esc(card.theme || '') + '</em>',
         meta: L + ' · 5 questions · Autotime', noScore: true,
-        summary: '🎙 <b>Recorded in Autotime</b> (25 s, 25 s, 50 s, 50 s, 50 s) &middot; length <b>' + mmss(rr.dur) + '</b><br>Recording file: <b>' + esc(fn) + '</b>',
+        summary: '🎙 <b>Recorded in Autotime</b> (25 s, 25 s, 50 s, 50 s, 50 s) &middot; length <b>' + mmss(rr.dur) + '</b>' + setTag() + '<br>Recording file: <b>' + esc(fn) + '</b>',
         body: '<div class="apmp-sec"><span>The five questions</span><span class="apmp-secmk">' + esc(card.code || '') + '</span></div>' + rows
           + '<div class="apmp-info">The recording is on the same OneNote page as this PDF.</div>',
         foot: 'AP IGCSE Structures &amp; Oral &middot; Oral recording &middot; ' + esc(card.code || ''),
@@ -13478,7 +13481,8 @@ body.aporal-on #demo-all-struct-panel{display:none!important}
     } catch (e) { copyText(url, btn); }
   }
   function linkFor(code) { return String(location.href).replace(/[#?].*$/, '') + '#oral=' + encodeURIComponent(code); }
-  function makeLink() {
+  function makeLink() { if (canSign()) mkSet(setInfo()); else makeLinkPlain(); }
+  function makeLinkPlain() {
     var card = _currentCard; if (!card || !card.code) return;
     var url = linkFor(card.code), name = 'AP IGCSE Oral: record ' + card.code + ' · ' + (card.theme || '') + ' (EW)';
     var b = box('<h3>🔑 Oral link for card ' + esc(card.code) + '</h3>'
@@ -13507,6 +13511,95 @@ body.aporal-on #demo-all-struct-panel{display:none!important}
     setTimeout(start, 300);
   }
 
+  // ── AP set task: a signed link / code that opens ONE card on the AP Tests page (needs the teacher key and the page's APTT) ──
+  var SETO = null;   // the set task this page was opened from { o, code, view }
+  function pageName() { try { return decodeURIComponent(String(location.pathname).split('/').pop() || ''); } catch (e) { return ''; } }
+  function canSign() { return !!(teacher() && window.APTT && APTT.pack); }
+  function setHook(b) {   // the set-up box of a card opened from an AP link: the card is fixed; a 👁 view shows it without recording
+    if (!SETO || !b) return;
+    var n = document.createElement('div'); n.className = 'aporal-setnote';
+    n.innerHTML = SETO.view ? '👁 <b>VIEW ONLY</b>: this is what the boys see' + (SETO.code ? ' (' + esc(SETO.code) + ')' : '') + '. Nothing can be recorded here.'
+      : '📌 <b>Set by AP</b>' + (SETO.code ? ' (' + esc(SETO.code) + ')' : '') + ': this is your card. Record your answers, then follow the steps to send your PDF and recording.';
+    b.insertBefore(n, b.children[1] || null);
+    if (SETO.view) { ['aporal-go', 'aporal-test', 'aporal-name'].forEach(function (id) { var e = $(id); if (e) e.style.display = 'none'; }); var lb = b.querySelector('.aporal-lab'); if (lb) lb.style.display = 'none'; var tm = b.querySelector('.aporal-test'); if (tm) tm.style.display = 'none'; }
+  }
+  function setTag() { return SETO && SETO.code ? ' &middot; AP task <b>' + esc(SETO.code) + '</b>' : ''; }
+  function mkSet(info) {
+    if (!info) return;
+    var d = $('aporal-mk'); if (d) d.remove();
+    var cats = (window.APTT && APTT.CATS) || [], name = 'AP Oral recording: ' + info.cardCode + ' · ' + info.title, ct0 = info.cat;
+    d = document.createElement('div'); d.id = 'aporal-mk'; d.className = 'aptt-mkov';
+    d.innerHTML = '<div class="aptt-mkbox" role="dialog" aria-modal="true"><div class="aptt-mkh">🎙 Set this oral as an EW</div>'
+      + '<div class="aptt-mks">' + esc(info.cardCode) + ' &middot; ' + esc(info.title) + '</div>'
+      + '<div class="aptt-mkhint" style="margin:0 0 6px">The boys open the link (or type the code on the AP Tests page) and land on <b>this card</b>, which they cannot change. The iPad examiner runs the oral in Autotime and records them; at the end they save the <b>recording</b> and the <b>PDF</b> and put both on their EW page in OneNote.</div>'
+      + '<label>Name (for your list; the boys see it at the top)</label><input id="aporal-mk-n" type="text" value="' + esc(name) + '">'
+      + '<label>Library heading</label><select id="aporal-mk-cat">' + (cats.indexOf(ct0) < 0 ? [ct0].concat(cats) : cats).map(function (x) { return '<option' + (x === ct0 ? ' selected' : '') + '>' + esc(x) + '</option>'; }).join('') + '</select>'
+      + '<label>Folder inside it (optional: e.g. C Block Set 2, Autumn 2026)</label><input id="aporal-mk-f" type="text" list="aporal-mk-fl" maxlength="40" placeholder="none"><datalist id="aporal-mk-fl">' + ((APTT.folders && APTT.folders()) || []).map(function (x) { return '<option value="' + esc(x) + '">'; }).join('') + '</datalist>'
+      + '<label>Code (for the AP Tests page: the next free number is filled in' + (APTT.gkey && APTT.gkey() ? '; it is added automatically' : '') + ')</label><input id="aporal-mk-c" type="text" placeholder="e.g. ' + esc(info.prefix) + '101" autocapitalize="characters" maxlength="12">'
+      + '<div class="aptt-mkact"><button type="button" class="aph-btn" id="aporal-mk-x">Close</button><button type="button" class="aph-btn aph-btn-primary" id="aporal-mk-go">🔗 Make link</button></div>'
+      + '<div id="aporal-mk-out"></div></div>';
+    document.body.appendChild(d);
+    $('aporal-mk-x').onclick = function () { d.remove(); };
+    if (APTT.nextCodeFor) APTT.nextCodeFor(info.prefix, function (c) { var i = $('aporal-mk-c'); if (i && !i.dataset.typed) i.value = c; });
+    $('aporal-mk-c').addEventListener('input', function () { this.dataset.typed = '1'; });
+    $('aporal-mk-go').onclick = function () {
+      var b = this, code = $('aporal-mk-c').value.replace(/\s+/g, '').toUpperCase(), nm = $('aporal-mk-n').value.trim() || name, ct = $('aporal-mk-cat').value, fol = $('aporal-mk-f').value.replace(/\|/g, '/').trim();
+      if (!pageName()) { alert('This page has no file name, so a link cannot be made from it.'); return; }
+      b.disabled = true; b.textContent = 'Making…';
+      var made = new Date().toISOString().slice(0, 10);
+      var o = { v: 1, kind: 'orec', n: nm, c: code, a: info.app, t: info.title, l: info.lang, r: info.cardCode, ch: info.choice || '', p: pageName(), s: 0, q: 'same', id: 'orec|' + info.cardCode + '|' + (info.choice || ''), cat: ct, f: fol, made: made };
+      APTT.pack(o).then(function (tok) {
+        var link = APTT.linkFor(tok), line = (code || info.prefix + '???') + ' | ' + nm.replace(/\|/g, '/') + ' | ' + ct + ' | ' + fol + ' | ' + tok;
+        if (APTT.listAdd) APTT.listAdd({ n: nm, c: code, cat: ct, f: fol, made: made, s: 0, q: 'same', v: 1, items: 0, t: info.title, lv: '', app: info.app, tok: tok });
+        var out = $('aporal-mk-out');
+        out.innerHTML = '<div class="aptt-mkok">✅ Link made. It is also saved in your list on the AP Tests page.</div>'
+          + '<label>Link for OneNote / Teams</label><div class="aptt-mkrow"><div class="aptt-mklink">🔗 <a href="' + esc(link) + '" target="_blank" rel="noopener">' + esc(nm + (code ? ' (' + code + ')' : '')) + '</a></div><button type="button" class="aph-btn aph-btn-primary">📋 Copy link</button></div>'
+          + '<div class="aptt-mkhint">Pastes as the name above, with the long address hidden inside it.</div>'
+          + '<label>Line for tests.txt (for a code)</label><div class="aptt-mkrow"><input readonly value="' + esc(line) + '"><button type="button" class="aph-btn">📋 Copy line</button></div>';
+        var rows = out.querySelectorAll('.aptt-mkrow');
+        rows[0].querySelector('button').onclick = function () { APTT.copyLink(nm + (code ? ' (' + code + ')' : ''), link, this); };
+        rows[1].querySelector('button').onclick = function () { APTT.copy(line, this); };
+        b.textContent = '✓ Made'; b.style.display = 'none';
+        var cx = $('aporal-mk-x'); cx.textContent = '✓ Close'; cx.className = 'aph-btn aph-btn-primary';
+        if (code && APTT.gkey && APTT.gkey() && APTT.ghAdd) {
+          var st = document.createElement('div'); st.className = 'aptt-mkgh'; st.textContent = '⏳ Adding code ' + code + ' to the AP Tests page…'; out.insertBefore(st, out.children[1]);
+          APTT.ghAdd(code, line).then(function () {
+            st.className = 'aptt-mkgh ok'; st.innerHTML = '✅ Code <b>' + esc(code) + '</b> added. Boys can type it on the AP Tests page in about a minute.<br><span style="font-weight:600">Nothing else to do: you can close this box. It is in your Test Library under ' + esc(ct) + '.</span>';
+            if (rows[1]) { rows[1].style.display = 'none'; if (rows[1].previousElementSibling) rows[1].previousElementSibling.style.display = 'none'; }
+          }).catch(function (e) { st.className = 'aptt-mkgh bad'; st.innerHTML = e && e.message === 'used' ? '⚠️ Code <b>' + esc(code) + '</b> is already taken. Change the code and make the link again.' : '⚠️ The code could not be added automatically (' + esc(e && e.message || e) + '). Use Copy line and add it to tests.txt.'; });
+        }
+      }).catch(function (e) { b.disabled = false; b.textContent = '🔗 Make link'; alert('Sorry, the link could not be made (' + (e && e.message || e) + '). Is your teacher key set on this device?'); });
+    };
+  }
+  // the boy's side: #ort=<signed task>&c=<code> (a 👁 view from AP Tests is #orv=)
+  function setFail() {
+    box('<h3>This oral link does not work</h3><p class="aporal-bad">The link was not made by AP, or it has been changed, or this copy of the page does not have that card. Ask AP for the link again, or type the code on the AP Tests page.</p>'
+      + '<div class="aporal-acts"><button type="button" class="aph-btn" id="aporal-x">Close</button></div>');
+    var x = $('aporal-x'); if (x) x.onclick = closeBox;
+  }
+  function bootSet() {
+    var m = /^#or([tv])=([^&]+)(?:&c=([^&]*))?/.exec(location.hash || ''); if (!m || SETO) return;
+    if (!window.APTT || !APTT.unpack) { setFail(); return; }
+    APTT.unpack(decodeURIComponent(m[2])).then(function (o) {
+      if (o.kind !== 'orec') throw new Error('bad');
+      var code = ''; try { code = decodeURIComponent(m[3] || ''); } catch (e) { }
+      var go = setOpen(o); if (!go) throw new Error('nocard');
+      SETO = { o: o, code: code || o.c || '', view: m[1] === 'v' };
+      document.body.classList.add('aporal-set');
+      go();
+    }).catch(function () { SETO = null; setFail(); });
+  }
+
+  function setInfo() {
+    var card = _currentCard; if (!card || !card.code) return null; var L = langName();
+    return { cardCode: card.code, title: (card.theme || '') + ' \u00B7 ' + L, lang: L, prefix: { French: 'ORF', Italian: 'ORI', Spanish: 'ORS' }[L] || 'ORF', cat: 'IGCSE ' + L + ' \u25B8 Oral recordings', app: 'AP IGCSE Structures & Oral' };
+  }
+  function setOpen(o) {   // opens the card; returns the function that shows the set-up box, or null
+    var f = findCard(o.r); if (!f) return null;
+    try { launchOral(); setLang(f.lang); showCard(f.card, 'code'); document.title = 'AP Oral recording \u00B7 ' + f.card.code; } catch (e) { return null; }
+    return function () { setTimeout(start, 300); };
+  }
+
   // wrap the simulation's own functions (unchanged unless a recording is running)
   var _spk = window.speak;
   if (typeof _spk === 'function') window.speak = function () { if (Date.now() < DEAD) return; return _spk.apply(this, arguments); };
@@ -13517,8 +13610,8 @@ body.aporal-on #demo-all-struct-panel{display:none!important}
   var _fin = window.finishIGCSE; window.__aporalFin = _fin;
   if (typeof _fin === 'function') window.finishIGCSE = function () { if (R && R.on) { finish(); return; } return _fin.apply(this, arguments); };
 
-  window.addEventListener('load', function () { setTimeout(boot, 0); });
-  window.addEventListener('hashchange', function () { if (/^#oral=/.test(location.hash)) boot(); });
+  window.addEventListener('load', function () { setTimeout(boot, 0); setTimeout(bootSet, 0); });
+  window.addEventListener('hashchange', function () { if (/^#oral=/.test(location.hash)) boot(); else if (/^#or[tv]=/.test(location.hash)) bootSet(); });
   window.APOR = { start: start, makeLink: makeLink, teacher: teacher, supported: supported, boot: boot, state: function () { return R; } };
 })();
 /* ===== END AP ORAL RECORDING ===== */
