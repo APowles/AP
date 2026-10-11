@@ -3,7 +3,7 @@
 <script id="ap-update">
 /* AP auto-update: if this copy is older than the published version, reload once with the new one (saved answers are kept) */
 (function () {
-  var B = '9bcd251f7c'; window.AP_BUILD = B;
+  var B = '1a8f25af4d'; window.AP_BUILD = B;
   function check() {
     if (!/^https?:$/.test(location.protocol) || !window.fetch) return;
     var f = decodeURIComponent(location.pathname.split('/').pop() || '');
@@ -33228,6 +33228,175 @@ function printAnswerSheet(idx,key){
 apFloat('.audio-panel', function(el){ return document.getElementById('section-card'); });
 </script>
 <!-- AP-READING:START -->
+<script id="ap-tt">
+/* ===== AP TT: signed test links, shared by the Reading and the Listening class sheets =====
+   The same tokens, keys and public key as every other AP timed test (so one teacher key signs them all): a token is
+   "payload.signature", the payload deflated JSON; only AP's teacher key (localStorage apTeacherKey) can sign, anyone can verify.
+   window.AP_TT = { tkey, canSign, pack, unpack, linkFor, pageName, listAdd, nextCode, ghAdd, gkey, copyText, copyLink, makeDialog, ls, lsSet, esc, mins, mmss, hhmm } */
+(function () {
+  'use strict';
+  if (window.AP_TT) return;
+  var PUB = { kty: 'EC', crv: 'P-256', x: 'H6tx5wdXuLRkkBsXOBDoHD0fP2DniGJLP7uIhpaDa0c', y: 'qjLwa3P_03ACVApF1cuXHkxQlz-UqsxgVfnSraPuGGs' };
+  var ALG = { name: 'ECDSA', namedCurve: 'P-256' }, SIG = { name: 'ECDSA', hash: 'SHA-256' };
+  function $(id) { return document.getElementById(id); }
+  function esc(s) { return String(s == null ? '' : s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;'); }
+  function ls(k) { try { return localStorage.getItem(k); } catch (e) { return null; } }
+  function lsSet(k, v) { try { if (v == null) localStorage.removeItem(k); else localStorage.setItem(k, v); } catch (e) { } }
+  function b64u(buf) { var b = new Uint8Array(buf), s = ''; for (var i = 0; i < b.length; i++) s += String.fromCharCode(b[i]); return btoa(s).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, ''); }
+  function unb64u(t) { t = String(t).replace(/-/g, '+').replace(/_/g, '/'); while (t.length % 4) t += '='; var s = atob(t), b = new Uint8Array(s.length); for (var i = 0; i < s.length; i++) b[i] = s.charCodeAt(i); return b; }
+  function utf8(s) { return new TextEncoder().encode(s); }
+  function subtle() { return window.crypto && window.crypto.subtle; }
+  function zip(str) {
+    if (window.CompressionStream) return new Response(new Blob([utf8(str)]).stream().pipeThrough(new CompressionStream('deflate-raw'))).arrayBuffer().then(function (a) { return 'z' + b64u(a); });
+    return Promise.resolve('j' + b64u(utf8(str)));
+  }
+  function unzip(t) {
+    var b = unb64u(t.slice(1));
+    if (t.charAt(0) === 'j') return Promise.resolve(new TextDecoder().decode(b));
+    if (!window.DecompressionStream) return Promise.reject(new Error('old'));
+    return new Response(new Blob([b]).stream().pipeThrough(new DecompressionStream('deflate-raw'))).text();
+  }
+  function tkey() { return ls('apTeacherKey') || ''; }
+  function canSign() { return !!tkey() && !!subtle(); }
+  function sign(tok, d) {
+    return subtle().importKey('jwk', { kty: 'EC', crv: 'P-256', x: PUB.x, y: PUB.y, d: String(d).replace(/^AP-/, '').trim(), ext: true }, ALG, false, ['sign'])
+      .then(function (k) { return subtle().sign(SIG, k, utf8(tok)); }).then(b64u);
+  }
+  function verify(tok, sig) {
+    if (!subtle()) return Promise.reject(new Error('nocrypto'));
+    return subtle().importKey('jwk', PUB, ALG, false, ['verify']).then(function (k) { return subtle().verify(SIG, k, unb64u(sig), utf8(tok)); });
+  }
+  function pack(o) { return zip(JSON.stringify(o)).then(function (t) { return sign(t, tkey()).then(function (g) { return t + '.' + g; }); }); }
+  function unpack(token) {
+    token = String(token || '').trim().replace(/^.*#t=/, ''); var i = token.lastIndexOf('.');
+    if (i < 2) return Promise.reject(new Error('bad'));
+    var t = token.slice(0, i), g = token.slice(i + 1);
+    return verify(t, g).then(function (ok) { if (!ok) throw new Error('unsigned'); return unzip(t); }).then(function (j) { var o = JSON.parse(j); o.tok = token; return o; });
+  }
+  function baseURL() { return String(document.baseURI || location.href).replace(/[#?].*$/, '').replace(/[^\/]*$/, ''); }
+  function linkFor(tok) { return baseURL() + 'AP%20Tests.html#t=' + tok; }
+  function pageName() { var p = ''; try { p = decodeURIComponent(String(location.pathname || '').split('/').pop() || ''); } catch (e) { } return /\.html?$/i.test(p) && !/^index\.html?$/i.test(p) ? p : 'AP IGCSE French Listening.html'; }
+  function listGet() { try { return JSON.parse(ls('apTestLinks') || '[]') || []; } catch (e) { return []; } }
+  function listAdd(e) { var l = listGet(); l.unshift(e); lsSet('apTestLinks', JSON.stringify(l)); }
+  function mins(s) { return Math.round(s / 60); }
+  function mmss(ms) { var s = Math.max(0, Math.ceil(ms / 1000)); return Math.floor(s / 60) + ':' + ('0' + (s % 60)).slice(-2); }
+  function hhmm(x) { var d = new Date(x); return ('0' + d.getHours()).slice(-2) + ':' + ('0' + d.getMinutes()).slice(-2); }
+  function copyText(t, btn) {
+    function ok() { if (btn) { var o = btn.textContent; btn.textContent = '✓ Copied'; setTimeout(function () { btn.textContent = o; }, 2000); } }
+    function fb() { var a = document.createElement('textarea'); a.value = t; a.setAttribute('readonly', ''); a.style.position = 'fixed'; a.style.top = '-200px'; document.body.appendChild(a); a.select(); a.setSelectionRange(0, t.length); try { document.execCommand('copy'); ok(); } catch (e) { } a.remove(); }
+    try { if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(t).then(ok, fb); else fb(); } catch (e) { fb(); }
+  }
+  // a link that pastes as its NAME (the long address hidden inside it), for OneNote / Teams; the plain address if the browser will not do that
+  function copyLink(name, url, btn) {
+    function ok() { if (btn) { var o = btn.textContent; btn.textContent = '✓ Copied'; setTimeout(function () { btn.textContent = o; }, 2000); } }
+    try {
+      if (window.ClipboardItem && navigator.clipboard && navigator.clipboard.write) {
+        var h = '<a href="' + esc(url) + '">' + esc(name) + '</a>';
+        navigator.clipboard.write([new ClipboardItem({ 'text/html': new Blob([h], { type: 'text/html' }), 'text/plain': new Blob([url], { type: 'text/plain' }) })]).then(ok, function () { copyText(url, btn); });
+        return;
+      }
+    } catch (e) { }
+    copyText(url, btn);
+  }
+  // automatic codes: with AP's GitHub key saved on this device (localStorage apGitKey), a new code is added to tests.txt
+  var GH = 'https://api.github.com/repos/APowles/AP/contents/tests.txt';
+  function gkey() { return ls('apGitKey') || ''; }
+  function ghHead() { return { Authorization: 'Bearer ' + gkey(), Accept: 'application/vnd.github+json' }; }
+  function ghGet() {
+    return fetch(GH + '?ref=main&t=' + Date.now(), { headers: ghHead(), cache: 'no-store' }).then(function (r) { if (!r.ok) throw new Error('GitHub ' + r.status); return r.json(); })
+      .then(function (j) { return { text: new TextDecoder().decode(unb64u(String(j.content || '').replace(/\s+/g, '').replace(/\+/g, '-').replace(/\//g, '_'))), sha: j.sha }; });
+  }
+  function ghAdd(code, line) {
+    return ghGet().then(function (f) {
+      var used = f.text.split(/\r?\n/).some(function (l) { return l.split('|')[0].trim().toUpperCase() === code; });
+      if (used) throw new Error('used');
+      var txt = f.text.replace(/\s*$/, '\n') + line + '\n';
+      return fetch(GH, { method: 'PUT', headers: ghHead(), body: JSON.stringify({ message: 'Test code ' + code, content: btoa(String.fromCharCode.apply(null, Array.from(utf8(txt)))), sha: f.sha, branch: 'main' }) })
+        .then(function (r) { if (!r.ok) throw new Error('GitHub ' + r.status); return true; });
+    });
+  }
+  function nextCode(pre, cb) {   // one more than the highest <pre>NNN in tests.txt and in this device's list
+    var hi = 100, rx = new RegExp('^' + pre + '(\\d+)$', 'i'), add = function (c) { var m = rx.exec(String(c || '').trim()); if (m) hi = Math.max(hi, +m[1]); };
+    listGet().forEach(function (e) { add(e.c); });
+    cb(pre + (hi + 1));
+    if (!window.fetch) return;
+    (gkey() ? ghGet().then(function (f) { return f.text; }) : /^https?:/.test(baseURL()) ? fetch(baseURL() + 'tests.txt?t=' + Date.now(), { cache: 'no-store' }).then(function (r) { return r.ok ? r.text() : ''; }) : Promise.resolve('')).then(function (t) {
+      t.split(/\r?\n/).forEach(function (l) { if (l.trim() && l.trim().charAt(0) !== '#') add(l.split('|')[0]); });
+      cb(pre + (hi + 1));
+    }).catch(function () { });
+  }
+
+  /* 🔑 the "set a test" box, the same for every kind.
+     cfg: { title, sub (html), help (text over the section list), sections: [{ id, label, detail, marks, mins? }], minutes (bool: a minutes box per section),
+            prefix ('RTF'), cat, nameFor(pk), tokenFor(pk, ctx{name,code,cat,fol,lim}) → the token's object }
+     pk = { ids, mn, tot (total minutes), mk (marks), all } */
+  function makeDialog(cfg) {
+    var old = $('ap-tt-mk'); if (old) old.remove();
+    var d = document.createElement('div'); d.id = 'ap-tt-mk'; d.className = 'rd-mkov';
+    var rows = cfg.sections.map(function (s) {
+      return '<div class="rd-mksec"><label class="rd-mkchk"><input type="checkbox" data-sid="' + esc(s.id) + '" checked> <b>' + esc(s.label) + '</b> <span>' + esc(s.detail || '') + ' &middot; ' + s.marks + ' mark' + (s.marks > 1 ? 's' : '') + '</span></label>'
+        + (cfg.minutes ? '<span class="rd-mkmin"><input type="number" min="1" max="120" data-sid="' + esc(s.id) + '" value="' + (s.mins || 5) + '"> min</span>' : '') + '</div>';
+    }).join('');
+    d.innerHTML = '<div class="rd-mkbox" role="dialog" aria-modal="true"><div class="rd-mkh">&#128273; ' + esc(cfg.title) + '</div><div class="rd-mks">' + cfg.sub + '</div>'
+      + '<label>' + esc(cfg.help) + '</label>' + rows + '<div class="rd-mktot" id="ap-tt-tot"></div>'
+      + '<label>Name (for your list; it is also the boys\' OneNote page title)</label><input id="ap-tt-n" type="text">'
+      + '<label>Library heading</label><input id="ap-tt-cat" type="text" value="' + esc(cfg.cat) + '">'
+      + '<label>Folder inside it (optional)</label><input id="ap-tt-f" type="text" maxlength="40" placeholder="none">'
+      + '<label>Code for the AP Tests page (the next free number is filled in' + (gkey() ? '; it is added automatically' : '') + ')</label><input id="ap-tt-c" type="text" placeholder="e.g. ' + esc(cfg.prefix) + '101" autocapitalize="characters" maxlength="12">'
+      + '<div class="rd-mkact"><button type="button" class="aph-btn" id="ap-tt-x">Close</button><button type="button" class="aph-btn aph-btn-primary" id="ap-tt-go">&#128273; Make link</button></div><div id="ap-tt-out"></div></div>';
+    document.body.appendChild(d);
+    function picked() {
+      var ids = [], mn = [], tot = 0, mk = 0;
+      cfg.sections.forEach(function (s) {
+        var c = d.querySelector('input[type=checkbox][data-sid="' + s.id + '"]'), m = d.querySelector('input[type=number][data-sid="' + s.id + '"]');
+        if (c && c.checked) { var v = cfg.minutes ? Math.max(1, Math.min(120, Math.round(+m.value || s.mins || 5))) : 0; ids.push(s.id); mn.push(v); tot += v; mk += s.marks; }
+      });
+      return { ids: ids, mn: mn, tot: tot, mk: mk, all: ids.length === cfg.sections.length };
+    }
+    function refresh() {
+      var pk = picked(), t = $('ap-tt-tot'), n = $('ap-tt-n');
+      t.innerHTML = pk.ids.length ? '<b>' + pk.ids.length + ' section' + (pk.ids.length > 1 ? 's' : '') + ' &middot; ' + pk.mk + ' marks' + (cfg.minutes ? ' &middot; &#9201; ' + pk.tot + ' minutes' : '') + '</b>' + (pk.all ? ' (the whole paper)' : '') : '<b class="bad">Tick at least one section.</b>';
+      $('ap-tt-go').disabled = !pk.ids.length;
+      if (!n.dataset.typed && pk.ids.length) n.value = cfg.nameFor(pk);
+    }
+    d.addEventListener('input', function (e) { if (e.target.getAttribute('data-sid')) refresh(); });
+    d.addEventListener('change', function (e) { if (e.target.getAttribute('data-sid')) refresh(); });
+    $('ap-tt-x').onclick = function () { d.remove(); };
+    $('ap-tt-n').addEventListener('input', function () { this.dataset.typed = '1'; });
+    $('ap-tt-c').addEventListener('input', function () { this.dataset.typed = '1'; });
+    refresh();
+    nextCode(cfg.prefix, function (c) { var el = $('ap-tt-c'); if (el && !el.dataset.typed) el.value = c; });
+    $('ap-tt-go').onclick = function () {
+      var pk = picked(), b = this, code = $('ap-tt-c').value.replace(/\s+/g, '').toUpperCase(), name = $('ap-tt-n').value.trim() || cfg.nameFor(pk),
+        cat = $('ap-tt-cat').value.trim() || cfg.cat, fol = $('ap-tt-f').value.replace(/\|/g, '/').trim();
+      b.disabled = true; b.textContent = 'Making…';
+      var o = cfg.tokenFor(pk, { name: name, code: code, cat: cat, fol: fol, lim: pk.tot * 60 });
+      o.made = new Date().toISOString().slice(0, 10);
+      pack(o).then(function (tok) {
+        var link = linkFor(tok), line = (code || cfg.prefix + '???') + ' | ' + name.replace(/\|/g, '/') + ' | ' + cat + ' | ' + fol + ' | ' + tok;
+        listAdd({ n: name, c: code, cat: cat, f: fol, made: o.made, s: o.s || 0, q: 'same', v: 1, items: (o.ids || []).length, t: o.t, lv: '', app: o.a, tok: tok });
+        var out = $('ap-tt-out');
+        out.innerHTML = '<div class="rd-mkok">&#9989; Link made. It is also saved in your list on the AP Tests page (on this device).</div>'
+          + '<label>Link for OneNote / Teams</label><div class="rd-mkrow"><div class="rd-mklink">&#128279; <a href="' + esc(link) + '" target="_blank" rel="noopener">' + esc(name + (code ? ' (' + code + ')' : '')) + '</a></div><button type="button" class="aph-btn aph-btn-primary">&#128203; Copy link</button></div>'
+          + '<div class="rd-mkhint">Pastes as the name above, with the long address hidden inside it.</div>'
+          + '<label>Line for tests.txt (for a code)</label><div class="rd-mkrow"><input readonly value="' + esc(line) + '"><button type="button" class="aph-btn">&#128203; Copy line</button></div>';
+        var rr = out.querySelectorAll('.rd-mkrow');
+        rr[0].querySelector('button').onclick = function () { copyLink(name + (code ? ' (' + code + ')' : ''), link, this); };
+        rr[1].querySelector('button').onclick = function () { copyText(line, this); };
+        b.style.display = 'none'; var cx = $('ap-tt-x'); cx.textContent = '✓ Close'; cx.className = 'aph-btn aph-btn-primary';
+        if (code && gkey()) {
+          var st = document.createElement('div'); st.className = 'rd-mkgh'; st.textContent = '⏳ Adding code ' + code + ' to the AP Tests page…'; out.insertBefore(st, out.children[1]);
+          ghAdd(code, line).then(function () { st.className = 'rd-mkgh ok'; st.innerHTML = '&#9989; Code <b>' + esc(code) + '</b> added. Boys can type it on the AP Tests page in about a minute.'; })
+            .catch(function (e) { st.className = 'rd-mkgh bad'; st.innerHTML = (e && e.message === 'used' ? 'That code is already used: pick another and make the link again.' : 'The code could not be added automatically (' + esc(e && e.message || 'error') + '). Paste the line below into tests.txt.'); });
+        }
+      }).catch(function () { b.disabled = false; b.textContent = '🔑 Make link'; alert('The link could not be made. Check that AP’s teacher key is saved on this device (AP Tests page ▸ Teacher).'); });
+    };
+  }
+  window.AP_TT = { tkey: tkey, canSign: canSign, pack: pack, unpack: unpack, linkFor: linkFor, pageName: pageName, listAdd: listAdd, nextCode: nextCode, ghAdd: ghAdd, gkey: gkey, copyText: copyText, copyLink: copyLink, makeDialog: makeDialog, ls: ls, lsSet: lsSet, esc: esc, mins: mins, mmss: mmss, hhmm: hhmm };
+})();
+/* ===== END AP TT ===== */
+
+</script>
 <script id="ap-reading">
 window.AP_RD_CSS = "/* AP Reading \u2014 styles (all selectors prefixed .rd- so nothing in the Listening app is touched) */\n.rd-modes{display:flex;gap:8px;justify-content:center;margin:0 0 1rem}\n.rd-mode{font:600 .9rem/1.2 var(--aph-body);padding:9px 20px;border-radius:999px;border:1.5px solid var(--border);background:#fff;color:var(--navy);cursor:pointer;min-height:44px}\n.rd-mode:hover{border-color:var(--navy)}\n.rd-mode.on{background:var(--navy);color:#f0d78c;border-color:var(--navy)}\n.rd-nav{display:flex;gap:6px;flex-wrap:wrap;margin:0 0 .7rem;align-items:center}\n.rd-nav .rd-done{border-color:rgba(46,125,82,.55);color:var(--correct)}\n.rd-spacer{flex:1}\n.rd-prog{display:flex;justify-content:space-between;font-size:.72rem;color:var(--text3);margin:0 0 4px}\n.rd-track{height:5px;background:var(--border);border-radius:4px;overflow:hidden;margin-bottom:.8rem}\n.rd-fill{height:100%;background:var(--gold);border-radius:4px;transition:width .4s}\n.rd-split{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:16px;align-items:start;margin-bottom:1rem}\n.rd-insert{background:#fff;border:1.5px solid var(--navy);border-radius:8px;padding:14px 16px;font-size:.95rem;line-height:1.6;color:var(--text)}\n.rd-split .rd-insert{position:sticky;top:8px;max-height:calc(100vh - 16px);overflow:auto}\n.rd-insert p{margin:0 0 .7rem}.rd-insert p:last-child{margin-bottom:0}\n.rd-text-title{text-align:center;font-weight:700;margin-bottom:.6rem}\n.rd-text{padding:0 0 .8rem;margin:0 0 .8rem;border-bottom:1px solid var(--border)}\n.rd-text:last-child{border:0;margin:0;padding:0}\n.rd-text-h{font-weight:700;margin-bottom:.2rem;color:var(--navy)}\n.rd-text-h b{display:inline-block;min-width:1.4em;color:#a8862e}\n.rd-gap{display:inline-block;border-bottom:2px solid var(--gold);min-width:5.5em;padding:0 5px;background:#fffdf5;border-radius:3px;line-height:1.35}\n.rd-gap b{font-size:.74rem;color:var(--text3);margin-right:3px}\n.rd-gap.ok{background:var(--correct-bg);border-color:var(--correct);color:var(--correct)}\n.rd-gap.bad{background:var(--wrong-bg);border-color:var(--wrong);color:var(--wrong)}\n.rd-heading{font-weight:700;color:var(--navy);margin:0 0 .5rem}\n.rd-pics{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin:0 0 1rem;max-width:720px}\n.rd-pic{position:relative;border:2px solid var(--navy);border-radius:6px;background:#fff;aspect-ratio:4/3;overflow:hidden}\n.rd-pic svg{width:100%;height:100%;display:block}\n.rd-pic-l{position:absolute;left:0;bottom:0;background:#fff;border:1.5px solid var(--navy);border-radius:0 6px 0 0;padding:0 8px;font-weight:700;font-size:.9rem;line-height:1.5}\n.rd-signs{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin:0 0 1rem;max-width:760px}\n.rd-sign{display:flex;flex-direction:column;gap:4px}\n.rd-sign-b{border:3px double var(--navy);border-radius:6px;padding:12px 4px;text-align:center;font-weight:600;font-size:1rem;background:#fff;color:var(--navy)}\n.rd-sign-l{align-self:flex-start;border:1.5px solid var(--navy);padding:0 8px;font-weight:700;font-size:.85rem;background:#fff;line-height:1.5}\n.rd-tight{gap:.7rem!important;margin-bottom:1rem}\n.rd-m-row{display:flex;gap:12px;align-items:center;flex-wrap:wrap;justify-content:space-between}\n.rd-m-row .q-text{flex:1 1 240px;margin:0}\n.rd-letters{display:flex;gap:6px;flex-wrap:wrap}\n.rd-letter{min-width:44px;min-height:44px;border:1.5px solid var(--border);border-radius:8px;background:var(--cream);font:700 .95rem var(--aph-body);color:var(--navy);cursor:pointer}\n.rd-letter:hover:not(:disabled){border-color:var(--navy);background:#f0f4fc}\n.rd-letter.selected{border-color:var(--navy);background:#e8edf8}\n.rd-letter.correct{border-color:var(--correct);background:var(--correct-bg);color:var(--correct)}\n.rd-letter.wrong{border-color:var(--wrong);background:var(--wrong-bg);color:var(--wrong)}\n.rd-letter:disabled{cursor:default}\n.rd-opts{display:flex;flex-direction:column;gap:7px}\n.rd-opts .opt-chip{width:100%;text-align:left}\n.rd-opts2{display:grid;grid-template-columns:1fr 1fr;gap:7px}\n.rd-note{font-size:.75rem;color:var(--text3);font-style:italic}\n@media (max-width:860px){\n  .rd-split{grid-template-columns:1fr}\n  .rd-split .rd-insert{position:static;max-height:none}\n  .rd-pics{grid-template-columns:repeat(2,1fr)}\n  .rd-signs{grid-template-columns:repeat(2,1fr)}\n}\n/* \u23f1 timed Reading paper */\n#rd-clock{position:fixed;top:8px;right:8px;z-index:9000;background:#1a2744;color:#f0d78c;font:800 1.1rem/1 var(--aph-body);padding:10px 14px;border-radius:10px;border:2px solid #c9a84c;box-shadow:0 4px 14px rgba(0,0,0,.3)}\n#rd-clock.warn{background:#8a5a00;color:#fff}\n#rd-clock.crit{background:#b3261e;color:#fff;animation:rdblink 1s steps(2) infinite}\n@keyframes rdblink{50%{opacity:.55}}\n#rd-warn{display:none;position:fixed;left:0;right:0;top:0;z-index:9100;background:#d0021b;color:#fff;font:800 1.1rem/1.3 var(--aph-body);padding:16px;text-align:center;animation:rdblink .6s steps(2) infinite}\n.rd-tcard{max-width:640px;margin:0 auto;text-align:center}\n.rd-tmeta{color:var(--text2)}\n.rd-trules{text-align:left;background:#fff8e1;border-left:5px solid #c9a84c;border-radius:8px;padding:14px 16px;margin:14px 0;line-height:1.5;font-size:.95rem}\n.rd-tinfo{margin:12px auto 0;max-width:520px;font-size:.9rem;line-height:1.5;color:var(--text2)}.rd-tinfo .bad,.rd-tinfo b.bad{color:#b3261e}\n.rd-mkov{position:fixed;inset:0;z-index:9500;background:rgba(26,39,68,.55);display:flex;align-items:flex-start;justify-content:center;overflow:auto;padding:24px 12px}\n.rd-mkbox{background:#fff;border:3px solid var(--gold);border-radius:14px;max-width:560px;width:100%;padding:18px 18px 14px;text-align:left}\n.rd-mkh{font:800 1.2rem/1.2 var(--aph-body);color:var(--navy)}.rd-mks{color:var(--text2);margin:4px 0 10px;font-size:.9rem}\n.rd-mkbox label{display:block;font:700 .78rem/1.3 var(--aph-body);color:var(--text3);margin:12px 0 4px}\n.rd-mkbox input,.rd-mkbox select{width:100%;box-sizing:border-box;font:500 16px var(--aph-body);border:1.5px solid var(--border);border-radius:8px;padding:10px 12px;min-height:44px}\n.rd-mkact{display:flex;gap:8px;justify-content:flex-end;margin-top:14px}\n.rd-mkok{background:#e8f5ec;border-left:5px solid #2e7d52;border-radius:8px;padding:10px 12px;margin-top:14px}\n.rd-mkrow{display:flex;gap:8px;align-items:center}.rd-mkrow>input{flex:1;min-width:0}.rd-mklink{flex:1;min-width:0;word-break:break-word}\n.rd-mkhint{font-size:.78rem;color:var(--text3);margin-top:4px}\n.rd-mkgh{margin-top:10px;font-size:.9rem;padding:8px 10px;border-radius:8px;background:#eef3fb}.rd-mkgh.ok{background:#e8f5ec}.rd-mkgh.bad{background:#fdecea}\n.rd-mksec{display:flex;align-items:center;justify-content:space-between;gap:10px;border:1px solid var(--border);border-radius:8px;padding:6px 10px;margin:0 0 6px}\n.rd-mkbox .rd-mkchk{display:flex;align-items:center;gap:8px;margin:0;font:600 .9rem/1.3 var(--aph-body);color:var(--navy);flex:1}.rd-mkbox .rd-mkchk input{width:22px;min-height:22px;height:22px;padding:0}.rd-mkchk span{color:var(--text2);font-weight:500}\n.rd-mkmin{white-space:nowrap;color:var(--text2);font-size:.9rem}.rd-mkbox .rd-mkmin input{width:70px;min-height:38px;padding:6px 8px}\n.rd-mktot{margin:8px 0 0;color:var(--navy)}.rd-mktot .bad{color:#b3261e}\n.rd-mksec{display:flex;align-items:center;justify-content:space-between;gap:10px;border:1px solid var(--border);border-radius:8px;padding:6px 10px;margin:0 0 6px}\n.rd-mkbox .rd-mkchk{display:flex;align-items:center;gap:8px;margin:0;font:600 .9rem/1.3 var(--aph-body);color:var(--navy);flex:1}.rd-mkbox .rd-mkchk input{width:22px;min-height:22px;height:22px;padding:0}.rd-mkchk span{color:var(--text2);font-weight:500}\n.rd-mkmin{white-space:nowrap;color:var(--text2);font-size:.9rem}.rd-mkbox .rd-mkmin input{width:70px;min-height:38px;padding:6px 8px}\n.rd-mktot{margin:8px 0 0;color:var(--navy)}.rd-mktot .bad{color:#b3261e}\n";
 /* Original line drawings for Question 1 (redrawn for this app; they are not the Cambridge artwork).
@@ -36666,167 +36835,27 @@ window.AP_RD_PAPERS.push({
   // #rdt=<token>&c=<code>. The paper opens locked: no marking until the end, no answer sheet or key, a clock from the moment he taps Start
   // (+30 s grace, then it locks by itself), answers kept if the page reloads (12 h), and leaving the page is sounded, logged and printed on his PDF.
   // AP's 👁 View it (AP Tests library) comes here as #rdv=…: the same paper, no clock, nothing logged. Tokens, keys and the public key are the
-  // same as in every other AP timed test, so one teacher key signs them all.
-  var PUB = { kty: 'EC', crv: 'P-256', x: 'H6tx5wdXuLRkkBsXOBDoHD0fP2DniGJLP7uIhpaDa0c', y: 'qjLwa3P_03ACVApF1cuXHkxQlz-UqsxgVfnSraPuGGs' };
-  var ALG = { name: 'ECDSA', namedCurve: 'P-256' }, SIG = { name: 'ECDSA', hash: 'SHA-256' };
+  var TT = window.AP_TT;
   var GRACE = 30, RESUME_MS = 12 * 3600e3, MK_CAT = 'IGCSE French ▸ Reading', MK_PRE = 'RTF';
   var T = null, TICK = null;   // T: the timed session on this page { o, p, code, view, limit, key, on, locked, t0, endAt, auto, att, log, away }
-  function ls(k) { try { return localStorage.getItem(k); } catch (e) { return null; } }
-  function lsSet(k, v) { try { if (v == null) localStorage.removeItem(k); else localStorage.setItem(k, v); } catch (e) { } }
-  function b64u(buf) { var b = new Uint8Array(buf), s = ''; for (var i = 0; i < b.length; i++) s += String.fromCharCode(b[i]); return btoa(s).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, ''); }
-  function unb64u(t) { t = String(t).replace(/-/g, '+').replace(/_/g, '/'); while (t.length % 4) t += '='; var s = atob(t), b = new Uint8Array(s.length); for (var i = 0; i < s.length; i++) b[i] = s.charCodeAt(i); return b; }
-  function utf8(s) { return new TextEncoder().encode(s); }
-  function subtle() { return window.crypto && window.crypto.subtle; }
-  function zip(str) {
-    if (window.CompressionStream) return new Response(new Blob([utf8(str)]).stream().pipeThrough(new CompressionStream('deflate-raw'))).arrayBuffer().then(function (a) { return 'z' + b64u(a); });
-    return Promise.resolve('j' + b64u(utf8(str)));
-  }
-  function unzip(t) {
-    var b = unb64u(t.slice(1));
-    if (t.charAt(0) === 'j') return Promise.resolve(new TextDecoder().decode(b));
-    if (!window.DecompressionStream) return Promise.reject(new Error('old'));
-    return new Response(new Blob([b]).stream().pipeThrough(new DecompressionStream('deflate-raw'))).text();
-  }
-  function tkey() { return ls('apTeacherKey') || ''; }
-  function sign(tok, d) {
-    return subtle().importKey('jwk', { kty: 'EC', crv: 'P-256', x: PUB.x, y: PUB.y, d: String(d).replace(/^AP-/, '').trim(), ext: true }, ALG, false, ['sign'])
-      .then(function (k) { return subtle().sign(SIG, k, utf8(tok)); }).then(b64u);
-  }
-  function verify(tok, sig) {
-    if (!subtle()) return Promise.reject(new Error('nocrypto'));
-    return subtle().importKey('jwk', PUB, ALG, false, ['verify']).then(function (k) { return subtle().verify(SIG, k, unb64u(sig), utf8(tok)); });
-  }
-  function pack(o) { return zip(JSON.stringify(o)).then(function (t) { return sign(t, tkey()).then(function (g) { return t + '.' + g; }); }); }
-  function unpack(token) {
-    token = String(token || '').trim().replace(/^.*#t=/, ''); var i = token.lastIndexOf('.');
-    if (i < 2) return Promise.reject(new Error('bad'));
-    var t = token.slice(0, i), g = token.slice(i + 1);
-    return verify(t, g).then(function (ok) { if (!ok) throw new Error('unsigned'); return unzip(t); }).then(function (j) { var o = JSON.parse(j); o.tok = token; return o; });
-  }
-  function baseURL() { return String(document.baseURI || location.href).replace(/[#?].*$/, '').replace(/[^\/]*$/, ''); }
-  function linkFor(tok) { return baseURL() + 'AP%20Tests.html#t=' + tok; }
-  function pageName() { var p = ''; try { p = decodeURIComponent(String(location.pathname || '').split('/').pop() || ''); } catch (e) { } return /\.html?$/i.test(p) && !/^index\.html?$/i.test(p) ? p : 'AP IGCSE French Listening.html'; }
-  function listGet() { try { return JSON.parse(ls('apTestLinks') || '[]') || []; } catch (e) { return []; } }
-  function listAdd(e) { var l = listGet(); l.unshift(e); lsSet('apTestLinks', JSON.stringify(l)); }
-  function mins(s) { return Math.round(s / 60); }
-  function mmss(ms) { var s = Math.max(0, Math.ceil(ms / 1000)); return Math.floor(s / 60) + ':' + ('0' + (s % 60)).slice(-2); }
-  function hhmm(x) { var d = new Date(x); return ('0' + d.getHours()).slice(-2) + ':' + ('0' + d.getMinutes()).slice(-2); }
-  function copyText(t, btn) {
-    function ok() { if (btn) { var o = btn.textContent; btn.textContent = '✓ Copied'; setTimeout(function () { btn.textContent = o; }, 2000); } }
-    function fb() { var a = document.createElement('textarea'); a.value = t; a.setAttribute('readonly', ''); a.style.position = 'fixed'; a.style.top = '-200px'; document.body.appendChild(a); a.select(); a.setSelectionRange(0, t.length); try { document.execCommand('copy'); ok(); } catch (e) { } a.remove(); }
-    try { if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(t).then(ok, fb); else fb(); } catch (e) { fb(); }
-  }
-  // a link that pastes as its NAME (the long address hidden inside it), for OneNote / Teams; the plain address if the browser will not do that
-  function copyLink(name, url, btn) {
-    function ok() { if (btn) { var o = btn.textContent; btn.textContent = '✓ Copied'; setTimeout(function () { btn.textContent = o; }, 2000); } }
-    try {
-      if (window.ClipboardItem && navigator.clipboard && navigator.clipboard.write) {
-        var h = '<a href="' + esc(url) + '">' + esc(name) + '</a>';
-        navigator.clipboard.write([new ClipboardItem({ 'text/html': new Blob([h], { type: 'text/html' }), 'text/plain': new Blob([url], { type: 'text/plain' }) })]).then(ok, function () { copyText(url, btn); });
-        return;
-      }
-    } catch (e) { }
-    copyText(url, btn);
-  }
-
-  // ── AP's side: make the link / code ──
-  var GH = 'https://api.github.com/repos/APowles/AP/contents/tests.txt';
-  function gkey() { return ls('apGitKey') || ''; }
-  function ghHead() { return { Authorization: 'Bearer ' + gkey(), Accept: 'application/vnd.github+json' }; }
-  function ghGet() {
-    return fetch(GH + '?ref=main&t=' + Date.now(), { headers: ghHead(), cache: 'no-store' }).then(function (r) { if (!r.ok) throw new Error('GitHub ' + r.status); return r.json(); })
-      .then(function (j) { return { text: new TextDecoder().decode(unb64u(String(j.content || '').replace(/\s+/g, '').replace(/\+/g, '-').replace(/\//g, '_'))), sha: j.sha }; });
-  }
-  function ghAdd(code, line) {
-    return ghGet().then(function (f) {
-      var used = f.text.split(/\r?\n/).some(function (l) { return l.split('|')[0].trim().toUpperCase() === code; });
-      if (used) throw new Error('used');
-      var txt = f.text.replace(/\s*$/, '\n') + line + '\n';
-      return fetch(GH, { method: 'PUT', headers: ghHead(), body: JSON.stringify({ message: 'Test code ' + code, content: btoa(String.fromCharCode.apply(null, Array.from(utf8(txt)))), sha: f.sha, branch: 'main' }) })
-        .then(function (r) { if (!r.ok) throw new Error('GitHub ' + r.status); return true; });
-    });
-  }
-  function nextCode(cb) {   // one more than the highest RTF number in tests.txt and in this device's list
-    var hi = 100, rx = new RegExp('^' + MK_PRE + '(\\d+)$', 'i'), add = function (c) { var m = rx.exec(String(c || '').trim()); if (m) hi = Math.max(hi, +m[1]); };
-    listGet().forEach(function (e) { add(e.c); });
-    cb(MK_PRE + (hi + 1));
-    if (!window.fetch) return;
-    (gkey() ? ghGet().then(function (f) { return f.text; }) : /^https?:/.test(baseURL()) ? fetch(baseURL() + 'tests.txt?t=' + Date.now(), { cache: 'no-store' }).then(function (r) { return r.ok ? r.text() : ''; }) : Promise.resolve('')).then(function (t) {
-      t.split(/\r?\n/).forEach(function (l) { if (l.trim() && l.trim().charAt(0) !== '#') add(l.split('|')[0]); });
-      cb(MK_PRE + (hi + 1));
-    }).catch(function () { });
-  }
-  function canSet() { return !!tkey() && !T && !!subtle(); }
+  var ls = TT.ls, lsSet = TT.lsSet, unpack = TT.unpack, mins = TT.mins, mmss = TT.mmss, hhmm = TT.hhmm;
+  function canSet() { return TT.canSign() && !T; }
   function setTimed(i) {
     var p = PAPERS[i]; if (!p || !canSet()) return;
-    var old = $('rd-mk'); if (old) old.remove();
-    var d = document.createElement('div'); d.id = 'rd-mk'; d.className = 'rd-mkov';
     // suggested times: the real paper is 60 minutes for 40 marks (1½ min a mark), shared out by how much there is to read
     var SM = { 1: 5, 2: 5, 3: 10, 4: 10, 5: 15, 6: 15 };
-    function dflt(sec) { return SM[sec.n] || Math.max(2, Math.round(sec.marks * 1.5)); }
-    var rows = p.sections.map(function (sec) {
-      return '<div class="rd-mksec"><label class="rd-mkchk"><input type="checkbox" data-sid="' + esc(sec.id) + '" checked> <b>Q' + sec.n + '</b> <span>' + (sec.type === 'cloze' ? 'gap-fill' : sec.type === 'match' ? 'matching' : 'multiple choice') + ' &middot; ' + sec.marks + ' marks</span></label>'
-        + '<span class="rd-mkmin"><input type="number" min="1" max="120" data-sid="' + esc(sec.id) + '" value="' + dflt(sec) + '"> min</span></div>';
-    }).join('');
-    function picked() {
-      var ids = [], mn = [], tot = 0, mk = 0;
-      p.sections.forEach(function (sec) {
-        var c = d.querySelector('input[type=checkbox][data-sid="' + sec.id + '"]'), m = d.querySelector('input[type=number][data-sid="' + sec.id + '"]');
-        if (c && c.checked) { var v = Math.max(1, Math.min(120, Math.round(+m.value || dflt(sec)))); ids.push(sec.id); mn.push(v); tot += v; mk += sec.marks; }
-      });
-      return { ids: ids, mn: mn, tot: tot, mk: mk, all: ids.length === p.sections.length };
-    }
     function qlist(pk) { return p.sections.filter(function (x) { return pk.ids.indexOf(x.id) >= 0; }).map(function (x) { return 'Q' + x.n; }).join(', '); }
-    function nm(pk) { return 'AP Timed Reading Paper: ' + p.rdcode + ' ' + p.title + (pk.all ? '' : ' · ' + qlist(pk)) + ' · ' + pk.tot + ' min'; }
-    d.innerHTML = '<div class="rd-mkbox" role="dialog" aria-modal="true"><div class="rd-mkh">&#128273; Set a Timed Reading Paper</div>'
-      + '<div class="rd-mks">' + esc(p.rdcode) + ' &middot; ' + esc(p.code) + ' &middot; ' + esc(p.title) + ' &middot; ' + p.marks + ' marks</div>'
-      + '<label>Which sections? Tick the ones to set (all six = the whole paper). The times are the exam allowance: 60 minutes for the whole paper. Able boys will finish sooner; the clock is the limit.</label>'
-      + rows + '<div class="rd-mktot" id="rd-mk-tot"></div>'
-      + '<label>Name (for your list; it is also the boys\' OneNote page title)</label><input id="rd-mk-n" type="text">'
-      + '<label>Library heading</label><input id="rd-mk-cat" type="text" value="' + esc(MK_CAT) + '">'
-      + '<label>Folder inside it (optional)</label><input id="rd-mk-f" type="text" maxlength="40" placeholder="none">'
-      + '<label>Code for the AP Tests page (the next free number is filled in' + (gkey() ? '; it is added automatically' : '') + ')</label><input id="rd-mk-c" type="text" placeholder="e.g. RTF101" autocapitalize="characters" maxlength="12">'
-      + '<div class="rd-mkact"><button type="button" class="aph-btn" id="rd-mk-x">Close</button><button type="button" class="aph-btn aph-btn-primary" id="rd-mk-go">&#128273; Make link</button></div><div id="rd-mk-out"></div></div>';
-    document.body.appendChild(d);
-    function refresh() {
-      var pk = picked(), t = $('rd-mk-tot'), n = $('rd-mk-n');
-      t.innerHTML = pk.ids.length ? '<b>' + pk.ids.length + ' section' + (pk.ids.length > 1 ? 's' : '') + ' &middot; ' + pk.mk + ' marks &middot; &#9201; ' + pk.tot + ' minutes</b>' + (pk.all ? ' (the whole paper)' : '') : '<b class="bad">Tick at least one section.</b>';
-      $('rd-mk-go').disabled = !pk.ids.length;
-      if (!n.dataset.typed && pk.ids.length) n.value = nm(pk);
-    }
-    d.addEventListener('input', function (e) { if (e.target.getAttribute('data-sid')) refresh(); });
-    d.addEventListener('change', function (e) { if (e.target.getAttribute('data-sid')) refresh(); });
-    var g = function (x) { return $(x); };
-    g('rd-mk-x').onclick = function () { d.remove(); };
-    g('rd-mk-n').addEventListener('input', function () { this.dataset.typed = '1'; });
-    refresh();
-    nextCode(function (c) { var el = g('rd-mk-c'); if (el && !el.dataset.typed) el.value = c; });
-    g('rd-mk-c').addEventListener('input', function () { this.dataset.typed = '1'; });
-    g('rd-mk-go').onclick = function () {
-      var pk = picked(), b = this, code = g('rd-mk-c').value.replace(/\s+/g, '').toUpperCase(), lim = pk.tot * 60, name = g('rd-mk-n').value.trim() || nm(pk),
-        cat = g('rd-mk-cat').value.trim() || MK_CAT, fol = g('rd-mk-f').value.replace(/\|/g, '/').trim();
-      b.disabled = true; b.textContent = 'Making…';
-      var o = { v: 1, kind: 'rd', n: name, c: code, a: 'AP IGCSE French Reading', k: 'AP IGCSE &middot; French Reading', t: p.rdcode + ' \u00B7 ' + p.title + (pk.all ? '' : ' \u00B7 ' + qlist(pk)), r: p.rdcode, p: pageName(), sc: pk.ids, sm: pk.mn, ids: pk.ids.map(function (x) { return p.rdcode + ':' + x; }), mk: pk.mk,
-        s: lim, g: GRACE, q: 'same', id: 'rd|' + p.rdcode + '|' + pk.ids.join('+'), cat: cat, f: fol, made: new Date().toISOString().slice(0, 10) };
-      pack(o).then(function (tok) {
-        var link = linkFor(tok), line = (code || 'RTF???') + ' | ' + name.replace(/\|/g, '/') + ' | ' + cat + ' | ' + fol + ' | ' + tok;
-        listAdd({ n: name, c: code, cat: cat, f: fol, made: o.made, s: lim, q: 'same', v: 1, items: pk.ids.length, t: o.t, lv: '', app: o.a, tok: tok });
-        var out = g('rd-mk-out');
-        out.innerHTML = '<div class="rd-mkok">&#9989; Link made. It is also saved in your list on the AP Tests page (on this device).</div>'
-          + '<label>Link for OneNote / Teams</label><div class="rd-mkrow"><div class="rd-mklink">&#128279; <a href="' + esc(link) + '" target="_blank" rel="noopener">' + esc(name + (code ? ' (' + code + ')' : '')) + '</a></div><button type="button" class="aph-btn aph-btn-primary">&#128203; Copy link</button></div>'
-          + '<div class="rd-mkhint">Pastes as the name above, with the long address hidden inside it.</div>'
-          + '<label>Line for tests.txt (for a code)</label><div class="rd-mkrow"><input readonly value="' + esc(line) + '"><button type="button" class="aph-btn">&#128203; Copy line</button></div>';
-        var rows = out.querySelectorAll('.rd-mkrow');
-        rows[0].querySelector('button').onclick = function () { copyLink(name + (code ? ' (' + code + ')' : ''), link, this); };
-        rows[1].querySelector('button').onclick = function () { copyText(line, this); };
-        b.style.display = 'none'; var cx = g('rd-mk-x'); cx.textContent = '✓ Close'; cx.className = 'aph-btn aph-btn-primary';
-        if (code && gkey()) {
-          var st = document.createElement('div'); st.className = 'rd-mkgh'; st.textContent = '⏳ Adding code ' + code + ' to the AP Tests page…'; out.insertBefore(st, out.children[1]);
-          ghAdd(code, line).then(function () { st.className = 'rd-mkgh ok'; st.innerHTML = '&#9989; Code <b>' + esc(code) + '</b> added. Boys can type it on the AP Tests page in about a minute.'; })
-            .catch(function (e) { st.className = 'rd-mkgh bad'; st.innerHTML = (e && e.message === 'used' ? 'That code is already used: pick another and make the link again.' : 'The code could not be added automatically (' + esc(e && e.message || 'error') + '). Paste the line below into tests.txt.'); });
-        }
-      }).catch(function () { b.disabled = false; b.textContent = '🔑 Make link'; alert('The link could not be made. Check that AP’s teacher key is saved on this device (AP Tests page ▸ Teacher).'); });
-    };
+    TT.makeDialog({
+      title: 'Set a Timed Reading Paper', prefix: MK_PRE, cat: MK_CAT, minutes: true,
+      sub: esc(p.rdcode) + ' &middot; ' + esc(p.code) + ' &middot; ' + esc(p.title) + ' &middot; ' + p.marks + ' marks',
+      help: 'Which sections? Tick the ones to set (all six = the whole paper). The times are the exam allowance: 60 minutes for the whole paper. Able boys will finish sooner; the clock is the limit.',
+      sections: p.sections.map(function (sec) { return { id: sec.id, label: 'Q' + sec.n, detail: sec.type === 'cloze' ? 'gap-fill' : sec.type === 'match' ? 'matching' : 'multiple choice', marks: sec.marks, mins: SM[sec.n] || Math.max(2, Math.round(sec.marks * 1.5)) }; }),
+      nameFor: function (pk) { return 'AP Timed Reading Paper: ' + p.rdcode + ' ' + p.title + (pk.all ? '' : ' · ' + qlist(pk)) + ' · ' + pk.tot + ' min'; },
+      tokenFor: function (pk, c) {
+        return { v: 1, kind: 'rd', n: c.name, c: c.code, a: 'AP IGCSE French Reading', k: 'AP IGCSE &middot; French Reading', t: p.rdcode + ' · ' + p.title + (pk.all ? '' : ' · ' + qlist(pk)), r: p.rdcode, p: TT.pageName(), sc: pk.ids, sm: pk.mn,
+          ids: pk.ids.map(function (x) { return p.rdcode + ':' + x; }), mk: pk.mk, s: c.lim, g: GRACE, q: 'same', id: 'rd|' + p.rdcode + '|' + pk.ids.join('+'), cat: c.cat, f: c.fol };
+      }
+    });
   }
 
   // ── the boy's side ──
@@ -36981,6 +37010,206 @@ window.AP_RD_PAPERS.push({
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', mount); else mount();
 })();
 /* ===== END AP READING ===== */
+
+</script>
+<script id="ap-lclass">
+window.AP_LC_CSS = "/* AP Listening class sheet: all selectors prefixed .lc- */\n.lc-card{max-width:760px;margin:0 auto}\n.lc-meta{color:var(--text2);margin:2px 0 10px;font-size:.95rem}\n.lc-rules{text-align:left;background:#fff8e1;border-left:5px solid #c9a84c;border-radius:8px;padding:12px 14px;margin:10px 0 14px;line-height:1.5;font-size:.95rem}\n.lc-view{background:#eef3fb;border-left-color:#1a2744}\n.lc-sec{border:1.5px solid var(--border);border-radius:10px;padding:10px 12px 6px;margin:0 0 12px;background:#fff}\n.lc-sh{display:flex;justify-content:space-between;align-items:baseline;gap:8px;font-weight:800;color:var(--navy);margin:0 0 2px}\n.lc-sh span{font-weight:600;color:var(--text2);font-size:.85rem}\n.lc-hint{font-size:.8rem;color:var(--text3);margin:0 0 6px}\n.lc-row{display:flex;align-items:center;gap:12px;padding:5px 0;border-top:1px solid #eef0f4}\n.lc-row:first-of-type{border-top:0}\n.lc-n{flex:none;width:34px;font-weight:800;color:#a8862e;font-size:1.05rem}\n.lc-ch{display:flex;gap:8px;flex-wrap:wrap}\n.lc-b{min-width:52px;min-height:48px;border-radius:10px;border:2px solid var(--navy);background:#fff;color:var(--navy);font:800 1.15rem/1 var(--aph-body);cursor:pointer;-webkit-tap-highlight-color:transparent}\n.lc-b.on{background:var(--navy);color:#f0d78c}\n.lc-bar{position:sticky;bottom:0;background:#fff;border-top:2px solid var(--gold);padding:10px 4px;margin:8px -4px 0;display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap}\n.lc-bar .lc-cnt{font-weight:700;color:var(--navy)}\n.lc-res-note{margin:8px auto 0;max-width:560px;font-size:.9rem;line-height:1.5;color:var(--text2);text-align:center}\n";
+/* ===== AP LISTENING CLASS SHEET v1 — an add-on block for the AP IGCSE French Listening app =====
+   For the school room: AP plays the recording; the boys see the paper's questions on their screen (no sound, no transcript, no marking) and tick their answers.
+   Nothing is marked until the boy locks in at the end of the session; then he sees his mark and saves the complete marked paper as a PDF (the app's own
+   marking and PDF, unchanged). AP (a device with AP's teacher key): 🔑 Set class sheet (on a paper card) ticks the sections to include and makes a signed
+   link / code (token kind 'ls'). Boys: the link or code comes here as #lst=<token>&c=<code>. AP's 👁 View it (AP Tests library) comes here as #lsv=…
+   (nothing saved). The normal papers are untouched. Needs AP TT (the shared signed-link code) and the Listening app's own globals. */
+(function () {
+  'use strict';
+  if (window.AP_LCLASS) return;
+  var TT = window.AP_TT; if (!TT) return;
+  var C = null;   // the class session on this page { o, p0, p, code, view, key, ans, locked, lockAt }
+  var PRE = 'CLF', CAT = 'IGCSE French \u25B8 Listening';
+  function $(id) { return document.getElementById(id); }
+  var esc = TT.esc, ls = TT.ls, lsSet = TT.lsSet;
+  function strip(s) { return String(s == null ? '' : s).replace(/<[^>]+>/g, ''); }
+  function papers() { try { return PAPERS; } catch (e) { return []; } }
+  var KIND = { individual: 'short dialogues', mcq: 'multiple choice', matching: 'matching', pick2: 'choose two' };
+
+  // ── AP's side ──
+  function canSet() { return TT.canSign() && !C; }
+  function qlist(p, ids) { return p.sections.filter(function (s) { return ids.indexOf(s.id) >= 0; }).map(function (s) { return strip(s.title).replace(/^Questions?\s*/i, 'Q'); }).join(', '); }
+  function setClass(i) {
+    var p = papers()[i]; if (!p || !canSet()) return;
+    TT.makeDialog({
+      title: 'Set a Listening class sheet', prefix: PRE, cat: CAT, minutes: false,
+      sub: esc(p.frcode) + ' &middot; ' + esc(p.code) + ' &middot; ' + esc(strip(p.title)) + ' &middot; ' + p.marks + ' marks',
+      help: 'Which sections will you play? Tick the ones to include (all of them = the whole paper). The boys see the questions on their screen, with no sound, and see their mark only when they lock in at the end.',
+      sections: p.sections.map(function (s) { return { id: s.id, label: strip(s.title), detail: KIND[s.type] || s.type, marks: s.marks }; }),
+      nameFor: function (pk) { return 'AP Class Listening: ' + p.frcode + ' ' + strip(p.title) + (pk.all ? '' : ' \u00B7 ' + qlist(p, pk.ids)); },
+      tokenFor: function (pk, c) {
+        return { v: 1, kind: 'ls', n: c.name, c: c.code, a: 'AP IGCSE French Listening', k: 'AP IGCSE &middot; French Listening', t: p.frcode + ' \u00B7 ' + strip(p.title) + (pk.all ? '' : ' \u00B7 ' + qlist(p, pk.ids)), r: p.frcode, p: TT.pageName(), sc: pk.ids,
+          ids: pk.ids.map(function (x) { return p.frcode + ':' + x; }), mk: pk.mk, s: 0, q: 'same', id: 'ls|' + p.frcode + '|' + pk.ids.join('+'), cat: c.cat, f: c.fol };
+      }
+    });
+  }
+  function addButtons() {
+    var g = $('papers-grid'); if (!g) return;
+    [].forEach.call(g.querySelectorAll('.paper-card'), function (card, i) {
+      var has = card.querySelector('.lc-set');
+      if (!canSet()) { if (has) has.remove(); return; }
+      if (has) return;
+      var b = document.createElement('div'); b.className = 'pc-btn pc-print lc-set'; b.title = 'Teacher: set this paper (or some sections) as a class answer sheet link / code';
+      b.innerHTML = '&#128273; Set class sheet'; b.onclick = function (e) { e.stopPropagation(); setClass(i); };
+      card.appendChild(b);
+    });
+  }
+
+  // ── the boy's side ──
+  function chrome(on) {   // the Listening app's own bars and buttons stay out of the way
+    ['progress-wrap', 'section-nav', 'paper-picker-bar'].forEach(function (id) { var e = $(id); if (e) e.style.display = 'none'; });
+    var h = $('home-btn'); if (h) h.style.display = on ? 'none' : h.style.display; var eb = $('edit-toggle-btn'); if (eb && on) eb.style.display = 'none';
+    try { if (typeof stopSpeech === 'function') stopSpeech(); } catch (e) { }
+  }
+  function show(id) { if (typeof showScreen === 'function') showScreen(id); else { [].forEach.call(document.querySelectorAll('.screen'), function (s) { s.classList.remove('active'); }); $(id).classList.add('active'); } }
+  function card(h) { var d = $('lc-sheet'); d.innerHTML = '<div class="card lc-card">' + h + '</div>'; show('lc-sheet'); try { window.scrollTo(0, 0); } catch (e) { } }
+  function fail(e) {
+    var m = e && e.message, why = m === 'unsigned' ? 'This link was not made by AP, or it has been changed.' : m === 'old' ? 'This browser is too old to open the link. Update Safari or Chrome.' : m === 'nopaper' ? 'This copy of the app does not have that paper. Reload the page; if it still fails, tell AP.' : 'The link is damaged. Ask AP for it again.';
+    chrome(true); card('<h2>This answer sheet could not be opened</h2><p>' + esc(why) + '</p><button class="aph-btn" onclick="location.href=location.pathname">&#8962; Listening home</button>');
+  }
+  function route() {
+    var m = /^#(lst|lsv)=([^&]+)(?:&c=([^&]*))?/.exec(location.hash || ''); if (!m || C) return;
+    chrome(true); card('<h2>Opening your answer sheet&hellip;</h2>');
+    var view = m[1] === 'lsv', code = ''; try { code = decodeURIComponent(m[3] || ''); } catch (e) { }
+    TT.unpack(decodeURIComponent(m[2])).then(function (o) {
+      if (o.kind !== 'ls') throw new Error('bad');
+      var p0 = null; papers().forEach(function (p) { if (p.frcode === o.r) p0 = p; });
+      if (!p0) throw new Error('nopaper');
+      begin(o, p0, code || o.c || '', view);
+    }).catch(fail);
+  }
+  function begin(o, p0, code, view) {
+    var secs = p0.sections;
+    if (o.sc && o.sc.length) { secs = p0.sections.filter(function (s) { return o.sc.indexOf(s.id) >= 0; }); if (!secs.length) throw new Error('nopaper'); }
+    var sub = secs.length < p0.sections.length ? qlist(p0, secs.map(function (s) { return s.id; })) : '';
+    var p = Object.assign({}, p0, { sections: secs, marks: secs.reduce(function (a, s) { return a + s.marks; }, 0), qs: secs.reduce(function (a, s) { return a + s.questions.length; }, 0), title: p0.title + (sub ? ' (' + sub + ')' : '') });
+    C = { o: o, p0: p0, p: p, code: code, view: view, key: 'aplc:' + (code || o.id || o.r), ans: {}, locked: false, lockAt: 0, sub: sub };
+    if (!view) { var st = null; try { st = JSON.parse(ls(C.key) || 'null'); } catch (e) { st = null; } if (st) { C.ans = st.ans || {}; C.locked = !!st.locked; C.lockAt = st.lockAt || 0; } }
+    chrome(true);
+    if (C.locked) lockIn(true); else draw();
+  }
+  function save() { if (C && !C.view) lsSet(C.key, JSON.stringify({ ans: C.ans, locked: C.locked, lockAt: C.lockAt })); }
+  function answered(sec, q) { var a = C.ans[q.n]; return sec.type === 'pick2' ? Array.isArray(a) && a.length === 2 : a !== undefined && a !== ''; }
+  function counts() { var n = 0, t = 0; C.p.sections.forEach(function (s) { s.questions.forEach(function (q) { t++; if (answered(s, q)) n++; }); }); return [n, t]; }
+  function secOf(n) { var r = null; C.p.sections.forEach(function (s) { s.questions.forEach(function (q) { if (q.n === n) r = s; }); }); return r; }
+  function isOn(sec, n, L) { var a = C.ans[n]; return sec.type === 'pick2' ? (Array.isArray(a) && a.indexOf(L) >= 0) : a === L; }
+  // the questions exactly as the app shows them, minus everything that gives help or marks: no sound, no transcript, no per-section marking
+  function questions(sec) {
+    var h = '';
+    if (sec.type === 'matching') {
+      h += '<div class="affirmations-panel" style="margin-bottom:0.6rem;"><h4>Affirmations ' + esc(sec.affirmations[0].l) + '&ndash;' + esc(sec.affirmations[sec.affirmations.length - 1].l) + '</h4><div class="aff-grid" style="display:grid;grid-template-columns:1fr 1fr;gap:2px 16px;">';
+      sec.affirmations.forEach(function (a) { h += '<div class="aff-item" style="margin-bottom:2px;"><span class="aff-ltr">' + esc(a.l) + '</span><span>' + a.t + '</span></div>'; });
+      h += '</div></div><div class="match-wrap" style="display:flex;gap:6px;margin-bottom:0.6rem;flex-wrap:wrap;">';
+      sec.questions.forEach(function (q) {
+        var prev = C.ans[q.n] || '';
+        h += '<div style="flex:1;min-width:110px;display:flex;flex-direction:column;align-items:center;gap:4px;background:var(--cream);border:1.5px solid var(--border);border-radius:7px;padding:6px 8px;">'
+          + '<span style="font-size:0.875rem;font-weight:600;color:var(--navy);white-space:nowrap;">' + q.n + '. ' + q.dish + '</span>'
+          + '<select class="match-select" id="lc-s-' + q.n + '" onchange="AP_LCLASS.pick(' + q.n + ',this.value)" style="width:100%;padding:3px 4px;font-size:0.9375rem;text-align:center;"><option value="">&mdash;</option>';
+        sec.affirmations.forEach(function (a) { h += '<option value="' + esc(a.l) + '"' + (prev === a.l ? ' selected' : '') + '>' + esc(a.l) + '</option>'; });
+        h += '</select></div>';
+      });
+      return h + '</div>';
+    }
+    h += '<div class="questions-block">';
+    sec.questions.forEach(function (q) {
+      h += '<div class="q-row" id="lc-q-' + q.n + '"><div class="q-label">Question ' + q.n + '</div><div class="q-text">' + q.q + '</div>';
+      if (sec.type === 'pick2') {
+        h += '<div class="pick2-note">&#9432; Tick exactly <strong>two</strong> boxes.</div><div class="pick2-row">';
+        q.opts.forEach(function (o) {
+          var on = isOn(sec, q.n, o.l);
+          h += '<label class="pick2-opt' + (on ? ' selected' : '') + '" id="lc-p-' + q.n + '-' + o.l + '"><input type="checkbox"' + (on ? ' checked' : '') + ' onchange="AP_LCLASS.pick(' + q.n + ',\'' + o.l + '\')"><span><strong>' + esc(o.l) + '</strong>&nbsp;&nbsp;' + o.t + '</span></label>';
+        });
+      } else {
+        h += '<div class="options-row">';
+        q.opts.forEach(function (o, k) {
+          var L = String.fromCharCode(65 + k), on = isOn(sec, q.n, L);
+          h += '<button type="button" class="opt-chip' + (on ? ' selected' : '') + '" id="lc-b-' + q.n + '-' + L + '" onclick="AP_LCLASS.pick(' + q.n + ',\'' + L + '\')"><span class="ltr">' + L + '</span><span>' + o + '</span></button>';
+        });
+      }
+      h += '</div></div>';
+    });
+    return h + '</div>';
+  }
+  function draw() {
+    var p = C.p, h = '<div class="lang-chip chip-fr">&#127467;&#127479; Listening &middot; ' + (C.view ? '&#128065; View only' : 'class paper') + '</div>'
+      + '<h2>' + esc(C.o.n || ('Class Listening: ' + p.frcode)) + '</h2>'
+      + '<div class="lc-meta">' + esc(p.frcode) + ' &middot; ' + esc(p.code) + ' &middot; ' + p.qs + ' questions &middot; ' + p.marks + ' marks' + (C.sub ? ' &middot; ' + esc(C.sub) : '') + (C.code ? ' &middot; code ' + esc(C.code) : '') + '</div>'
+      + (C.view ? '<div class="lc-rules lc-view">&#128065; AP’s view: the paper as the boys see it. Nothing is saved.</div>'
+        : '<div class="lc-rules">Your teacher plays the recording. Read the questions and tick your answers as you listen.<br><b>You will see no marks until you lock in at the end of the session.</b> You can change an answer until then.</div>');
+    p.sections.forEach(function (sec) {
+      try { if (typeof applyEditsToSection === 'function') applyEditsToSection(sec, C.p0.frcode); } catch (e) { }
+      h += '<div class="lc-sec"><div class="score-row"><span class="badge n">' + esc(strip(sec.title)) + '</span><span class="badge n">' + sec.marks + ' mark' + (sec.marks > 1 ? 's' : '') + '</span></div>'
+        + (sec.intro ? '<div class="section-intro-box">' + sec.intro + '</div>' : '') + (sec.instructions ? '<div class="instructions-box">' + sec.instructions + '</div>' : '')
+        + questions(sec) + '</div>';
+    });
+    var c = counts();
+    h += '<div class="lc-bar"><span class="lc-cnt" id="lc-cnt">' + c[0] + ' of ' + c[1] + ' answered</span><button class="aph-btn aph-btn-primary" onclick="AP_LCLASS.lock()">' + (C.view ? 'Show the marked result' : '&#128274; Lock in my answers and see my mark') + '</button></div>';
+    card(h);
+  }
+  function pick(n, L) {
+    if (!C || C.locked) return;
+    var sec = secOf(n); if (!sec) return;
+    if (sec.type === 'pick2') {
+      var a = (C.ans[n] || []).slice(), k = a.indexOf(L);
+      if (k >= 0) a.splice(k, 1); else { a.push(L); if (a.length > 2) a.shift(); }
+      C.ans[n] = a;
+      sec.questions.forEach(function (q) { if (q.n === n) q.opts.forEach(function (o) {
+        var lab = $('lc-p-' + n + '-' + o.l), on = isOn(sec, n, o.l); if (!lab) return;
+        lab.className = 'pick2-opt' + (on ? ' selected' : ''); var cb = lab.querySelector('input'); if (cb) cb.checked = on;
+      }); });
+    } else if (sec.type === 'matching') {
+      C.ans[n] = L || undefined;
+    } else {
+      C.ans[n] = (C.ans[n] === L ? undefined : L);
+      sec.questions.forEach(function (q) { if (q.n === n) q.opts.forEach(function (o, k) {
+        var l = String.fromCharCode(65 + k), b = $('lc-b-' + n + '-' + l); if (b) b.className = 'opt-chip' + (isOn(sec, n, l) ? ' selected' : '');
+      }); });
+    }
+    var c = counts(), el = $('lc-cnt'); if (el) el.textContent = c[0] + ' of ' + c[1] + ' answered';
+    save();
+  }
+  function lock() {
+    if (!C || C.locked) return;
+    var c = counts(), un = c[1] - c[0];
+    if (!C.view && !window.confirm((un ? 'You have not answered ' + un + ' question' + (un > 1 ? 's' : '') + '.\n\n' : '') + 'Lock in your answers and see your mark?\n\nYou cannot change anything afterwards.')) return;
+    C.locked = true; C.lockAt = Date.now(); save(); lockIn(false);
+  }
+  function lockIn(resumed) {   // hand the answers to the app's own marking, results page and PDF
+    try {
+      curPaper = C.p; curSec = 0; userAns = C.ans; playsUsed = {}; secSubmitted = {};
+      C.p.sections.forEach(function (s) { secSubmitted[s.id] = true; });
+      apmpResultsShown = true;
+    } catch (e) { fail(new Error('bad')); return; }
+    showResults(); chrome(true);
+    var r = $('results-screen'), ra = r && r.querySelector('.res-actions');
+    if (ra) ra.innerHTML = C.view ? '<button class="aph-btn" onclick="AP_LCLASS.close()">&#10005; Close view</button>'
+      : '<div class="lc-res-note">Now save your marked paper as a PDF (the button at the top) and upload it to OneNote.</div>';
+    var t = $('results-title');
+    if (t && !$('lc-note')) { var n = document.createElement('div'); n.id = 'lc-note'; n.className = 'lc-res-note'; n.innerHTML = C.view ? '&#128065; View only: nothing was saved.' : 'Class answer sheet' + (C.code ? ' &middot; ' + esc(C.code) : '') + (C.lockAt ? ' &middot; locked in at ' + TT.hhmm(C.lockAt) : ''); t.parentNode.insertBefore(n, t.nextSibling); }
+    try { window.scrollTo(0, 0); } catch (e) { }
+  }
+  function close() { try { history.replaceState(null, '', location.pathname + location.search); } catch (e) { } location.reload(); }
+
+  function mount() {
+    var main = document.querySelector('main'); if (!main || $('lc-sheet')) return;
+    var st = document.createElement('style'); st.id = 'ap-lclass-style'; st.textContent = window.AP_LC_CSS || ''; document.head.appendChild(st);
+    var d = document.createElement('div'); d.id = 'lc-sheet'; d.className = 'screen'; main.appendChild(d);
+    addButtons();
+    var g = $('papers-grid'); if (g) { try { new MutationObserver(function () { addButtons(); }).observe(g, { childList: true }); } catch (e) { } }
+    var go = function () { try { route(); } catch (e) { } };
+    if (document.readyState === 'complete') setTimeout(go, 90); else window.addEventListener('load', function () { setTimeout(go, 90); });
+    window.addEventListener('hashchange', go);
+  }
+  window.AP_LCLASS = { setClass: setClass, pick: pick, lock: lock, close: close };
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', mount); else mount();
+})();
+/* ===== END AP LISTENING CLASS SHEET ===== */
 
 </script>
 <!-- AP-READING:END -->
