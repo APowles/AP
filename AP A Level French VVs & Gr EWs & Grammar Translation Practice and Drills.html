@@ -3,7 +3,7 @@
 <script id="ap-update">
 /* AP auto-update: if this copy is older than the published version, reload once with the new one (saved answers are kept) */
 (function () {
-  var B = 'c2a17adadc'; window.AP_BUILD = B;
+  var B = '175377d795'; window.AP_BUILD = B;
   function check() {
     if (!/^https?:$/.test(location.protocol) || !window.fetch) return;
     var f = decodeURIComponent(location.pathname.split('/').pop() || '');
@@ -1833,6 +1833,10 @@ html.aptt-open,html.aptt-open body{overflow:hidden}
 .aptt-learn-must{font-size:.9375rem;font-weight:700;color:#a32116;margin:2px 0 8px}
 .aptt-learn-must.now{background:#fdecea;border-radius:8px;padding:6px 10px}
 .aptt-learn.done .aptt-learn-must{display:none}
+.aptt-learn-must:empty{display:none}
+.aptt-unsure-s{margin-top:6px;padding:4px 10px}
+.aptt-how{display:block;margin-top:6px}
+.aptt-how summary{cursor:pointer;font-weight:800;min-height:32px}
 .aptt-save{text-align:center;margin:20px 0 0;padding:16px;border:2px solid var(--gold);border-radius:12px;background:#fffaf0}
 .aptt-save .apmp-btn{white-space:normal;max-width:100%}
 .aptt-save-n{font-size:.9375rem;color:var(--text2);margin-top:8px;line-height:1.45}
@@ -2119,7 +2123,7 @@ var APTT = (function () {
   // ── screen ──
   function legend() {
     var w = S.items.some(function (it) { return !big(it); }), s = S.items.some(big);
-    return '<div class="aptt-lh">How to mark yourself' + (S.mode === 'timed' ? ': you have ' + dur(markLimit()) : '') + '</div><b>Mark each answer in red</b>: compare it with the correct one, word by word, and <b>underline your errors</b> (or put a <b>tick</b> if it is perfect). Then tap the mark that fits. You cannot choose a mark until there is red on your answer:'
+    return '<div class="aptt-lh">How to mark yourself' + (S.mode === 'timed' ? ': you have ' + dur(markLimit()) : '') + '</div>Compare each answer with the correct one, <b>in red</b>. You cannot choose a mark until there is red on your answer:'
       + (w ? '<div class="aptt-lrow">' + (s ? '<span><i>Single words and verb forms:</i></span>' : '') + '<span><b>2</b> <strong class="aptt-lw">Right</strong>: perfect in every way (spelling, accents, endings, gender)</span><span><b>1</b> <strong class="aptt-lw">Nearly</strong>: instantly recognisable as a solid attempt at this item, but with minor errors (a missing accent, a spelling slip, a wrong ending or gender)</span><span><b>0</b> <strong class="aptt-lw">Wrong</strong>: a different word, or not recognisable as an attempt at this one</span></div>' : '')
       + (s ? '<div class="aptt-lrow">' + (w ? '<span><i>Phrases and sentences:</i></span>' : '') + '<span><b>4</b> <strong class="aptt-lw">Perfect</strong>: right in every way, accents included</span><span><b>3</b> <strong class="aptt-lw">Mostly right</strong>: about 75%+ correct</span><span><b>2</b> <strong class="aptt-lw">About half right</strong>: 50/50</span><span><b>1</b> <strong class="aptt-lw">Only a word or two right</strong></span><span><b>0</b> <strong class="aptt-lw">Nothing right</strong></span></div>' : '')
       + 'Each ' + noun(1) + ' is worth ' + r1(val()) + ' of the ' + (S.m.total || 10) + ' marks.' + (S.mode === 'timed' ? ' Anything you have not marked when the marking time runs out scores 0.' : '');
@@ -2131,7 +2135,7 @@ var APTT = (function () {
       + (it.label ? '<div class="aptt-chip">' + (it.html ? it.label : esc(it.label)) + '</div>' : '') + '<div class="aptt-q">' + show(it, 'prompt') + '</div></div></div>'
       + APPEN.html({ key: S.key + ':' + n, lines: it.kind === 'sentence' ? 3 : 2, label: Noun(1) + ' ' + n, typed: '<textarea class="appen-ta" rows="' + (it.kind === 'sentence' ? 2 : 1) + '" spellcheck="false" autocomplete="off" autocorrect="off" autocapitalize="off" placeholder="Type your ' + (S.m.lang ? esc(S.m.lang) + ' ' : '') + 'answer"></textarea>' })
       + '<div class="aptt-ans"' + (S.shown ? '' : ' hidden') + '><div class="aptt-al">Answer</div><div class="aptt-a"' + (S.m.code ? ' lang="' + esc(S.m.code) + '"' : '') + '>' + show(it, 'answer') + '</div>'
-      + '<div class="aptt-mk" role="group" aria-label="Your mark for ' + noun(1) + ' ' + n + '"><span class="aptt-mk-l">Underline your errors in red (or tick if perfect), then tap your mark:</span>' + mk + '<span class="aptt-mk-v" id="aptt-mv-' + n + '">' + (m != null && m !== '' ? m + ' / ' + maxOf(it) : '') + '</span></div>' + '<div class="aptt-unsure"><b>Unsure about your answer?</b> Don’t interrupt this marking session by asking AP now. Use your best judgement and, if in doubt, mark it wrong. Ask AP once you have submitted and uploaded your PDF as requested. The same goes if you think you’ve spotted an error in the paper: show AP your PDF at the end and he will advise.</div>' + '</div></div>';
+      + '<div class="aptt-mk" role="group" aria-label="Your mark for ' + noun(1) + ' ' + n + '"><span class="aptt-mk-l">Simply underline your errors in red (or tick if perfect), then tap your mark:</span>' + mk + '<span class="aptt-mk-v" id="aptt-mv-' + n + '">' + (m != null && m !== '' ? m + ' / ' + maxOf(it) : '') + '</span></div>' + (i === 0 ? '<div class="aptt-unsure"><b>Unsure about something?</b> DO NOT interrupt this marking session by asking AP now. If in doubt, mark it wrong. Ask AP AFTER you have submitted and uploaded your PDF as requested. Then AP will advise.</div>' : '<div class="aptt-unsure aptt-unsure-s"><b>Unsure about something?</b> See note after first question.</div>') + '</div></div>';
   }
   function render() {
     var ov = $('aptt-ov'), N = S.items.length, L = S.m.lang || '', mins = minsTxt(limit());
@@ -2142,16 +2146,16 @@ var APTT = (function () {
       + '<h2 class="aph-h">' + (L ? 'Translate into ' + esc(L) : 'Write your answers') + '</h2>'
       + (S.m.meta ? '<div class="aptt-meta">' + S.m.meta + '</div>' : '')
       + (S.m.detail ? '<div class="aptt-detail">' + S.m.detail + '</div>' : '')
-      + '<p class="aptt-instr">' + (L ? 'Translate' : 'Answer') + ' all ' + N + ' ' + noun(N) + (L ? ' into ' + esc(L) : '') + ' with your Apple Pencil (black ink). Have a go at every one, then lock in, open the answers, correct your work in red and give each ' + noun(1) + ' a mark. Your score is out of ' + (S.m.total || 10) + '.</p>'
+      + '<p class="aptt-instr">' + (L ? 'Translate' : 'Answer') + ' all ' + N + ' ' + noun(N) + (L ? ' into ' + esc(L) : '') + ' with your Apple Pencil (black ink). Then <b>lock in</b>, open the answers, <b>correct in red</b> and <b>mark yourself</b>. Score out of ' + (S.m.total || 10) + '.</p>'
       + '<div class="aptt-score" id="aptt-score1"' + (S.shown ? '' : ' hidden') + '></div>'
       + '<div class="aptt-legend" id="aptt-legend"' + (S.shown ? '' : ' hidden') + '>' + legend() + '</div></div>'
       + (S.m.set ? '<div class="aptt-mode aptt-setmode" id="aptt-mode"><div class="aptt-set">✅ TEST SET BY AP' + (S.m.set.code ? ': <b>' + esc(S.m.set.code) + '</b>' : '') + '<span>' + esc(S.m.set.name || plain(S.m.title)) + ' · ⏱ ' + mins + ' minutes</span></div><div class="aptt-mode-b">'
-        + '<button type="button" class="aptt-mode-t" onclick="APTT.mode(\'timed\')"><b>⏱ Start: ' + mins + ' minutes</b><span>AP has set this test and its time limit. The clock starts as soon as you tap. Do as much as you can: at the end you get 30 more seconds, then your answers lock in by themselves. ' + Noun(2) + ' left blank score 0. Then ' + dur(markLimit()) + ' to mark yourself: anything not marked in time scores 0.</span></button>'
-        + '</div><div class="aptt-mode-n">The test code, your times and your attempt number are printed on your PDF.</div></div>' : '')
+        + '<button type="button" class="aptt-mode-t" onclick="APTT.mode(\'timed\')"><b>⏱ Start: ' + mins + ' minutes</b><span>The clock starts when you tap. Blanks score 0.</span></button>'
+        + '</div><div class="aptt-mode-n"><details class="aptt-how"><summary>How it works</summary>When the time is up you get 30 more seconds, then your answers lock in by themselves. Then you have ' + dur(markLimit()) + ' to mark yourself: anything not marked in time scores 0. The test code, your times and your attempt number are printed on your PDF.</details></div></div>' : '')
       + (S.m.set ? '' : '<div class="aptt-mode" id="aptt-mode"><div class="aptt-mode-h">Choose how you are doing this: ⏱ Timed or 🏠 Untimed</div><div class="aptt-mode-b">'
-      + '<button type="button" class="aptt-mode-t" onclick="APTT.mode(\'timed\')"><b>⏱ Timed: ' + mins + ' minutes</b><span>In Birley 12. The clock starts as soon as you tap. Do as much as you can: at the end you get 30 more seconds, then your answers lock in by themselves. ' + Noun(2) + ' left blank score 0. Then ' + dur(markLimit()) + ' to mark yourself: anything not marked in time scores 0.</span></button>'
-      + '<button type="button" class="aptt-mode-f" onclick="APTT.mode(\'free\')"><b>🏠 Untimed</b><span>In your House (EW). Take as long as you need, but you must have a go at all ' + N + ' before you can lock in.</span></button>'
-      + '</div><div class="aptt-mode-n">Your choice, your times and your attempt number are printed on your PDF. You cannot change mode once you start.</div>'
+      + '<button type="button" class="aptt-mode-t" onclick="APTT.mode(\'timed\')"><b>⏱ Timed: ' + mins + ' minutes</b><span>In Birley 12 (or if set as EW). The clock starts when you tap. Blanks score 0.</span></button>'
+      + '<button type="button" class="aptt-mode-f" onclick="APTT.mode(\'free\')"><b>🏠 Untimed</b><span>Attempt all ' + N + ' before you lock in.</span></button>'
+      + '</div><div class="aptt-mode-n">You can’t change mode once you start.<details class="aptt-how"><summary>How it works</summary>Timed: when the time is up you get 30 more seconds, then your answers lock in by themselves. Then you have ' + dur(markLimit()) + ' to mark yourself: anything not marked in time scores 0. Untimed: no clock and no marking time limit. Your choice, your times and your attempt number are printed on your PDF.</details></div>'
       + (tkey() ? '<div class="aptt-key-row"><button type="button" class="aptt-key-btn aptt-mkbtn" onclick="APTT.maker()">🔑 Teacher: make a test link from these settings</button></div>' : '')
       + '</div>')
       + '<div id="aptt-items">' + S.items.map(row).join('') + '</div>'
@@ -2161,9 +2165,9 @@ var APTT = (function () {
       + '<div class="aptt-lock-n" id="aptt-lockn"></div>'
       + '<div class="aptt-after" id="aptt-after"' + (S.shown ? '' : ' hidden') + '>'
       + '<div class="aptt-score" id="aptt-score2"></div><div class="aptt-cm" id="aptt-cm" hidden></div>'
-      + '<div class="aptt-learn" id="aptt-learn"><div class="aptt-learn-h">📝 What I learned: the most useful part of the whole test</div><div class="aptt-learn-q">These notes are <b>for you</b>, so note form is fine. Go back through your mistakes and take stock: which words or structures caught you out, what the correct version is, and how you’ll remember it. Write it in your own way. <b style="color:#1d4ed8">Think of the sort of things AP would write up in Whiteboard Notes based on your errors in this exercise.</b></div><div class="aptt-learn-q">This box has <b>no time limit</b>. <b>In class</b>, take a couple of minutes, then save and upload your PDF when AP says. <b>In your House</b>, take as long as you need. Even later, once it is a PDF in OneNote, you can go back whenever you like and add more notes with your Apple Pencil.</div>'
+      + '<div class="aptt-learn" id="aptt-learn"><div class="aptt-learn-h">📝 What I learned: the most important part</div><div class="aptt-learn-q">Make a note of what caught you out, and how you’ll remember it, as AP would put it in Whiteboard Notes. <b>In Birley 12</b>, you’ll get a couple of minutes; <b>in your House</b>, take as long as you need. You can add more later in OneNote.</div>'
       + (demo() ? '' : '<div class="aptt-learn-why">' + LEARN_WHY + '</div>')
-      + '<div class="aptt-learn-must" id="aptt-learn-must">✋ Before you save your PDF there must be clear evidence here that you have engaged with your mistakes and what you learned: some notes, in your own way. <span style="display:block;margin-top:4px;color:#1d4ed8;font-weight:800">AP will review and monitor the quality of your engagement with these sections.</span></div>'
+      + '<div class="aptt-learn-must" id="aptt-learn-must"></div>'
       + APPEN.html({ key: S.key + ':learn', lines: 4, label: 'What I learned', typed: '<textarea class="appen-ta" rows="4" spellcheck="false" autocomplete="off" placeholder="Notes for you: what caught you out, the correct version, how you’ll remember it…"></textarea>' }) + '</div>'
       + '<div class="aptt-save"><button type="button" class="apmp-btn lg" id="aptt-pdfbtn" onclick="APTT.pdf()">📄 Save my work as PDF</button>'
       + '<div class="aptt-save-n">' + ((/iPad|iPhone|iPod/.test(navigator.userAgent || '') || (/Macintosh/.test(navigator.userAgent || '') && navigator.maxTouchPoints > 1)) ? 'then Share &rsaquo; OneNote (see above). Open OneNote, go to your Classwork or EW folder, find the new page, tap the PDF icon and tap Printout. Otherwise, see the help on the next page.' : 'then put it into OneNote on a new page: Insert &rsaquo; File Printout') + '</div></div></div>'
@@ -2191,7 +2195,7 @@ var APTT = (function () {
   // 📝 What I learned: the PDF button stays locked until he has been writing here for at least LEARN_MIN seconds (from his first pen stroke
   // or keystroke in the box, kept in his saved test as lt0, so a reload neither resets nor skips it) and the box is not empty. No time limit,
   // no alarm. Not in the demo test (DEMO101).
-  var LEARN_MIN = 30, LPD = 0, LEARN_WHY = '⏳ <b>This is the most important stage of the test.</b> Your PDF button unlocks 30 seconds after you start writing here. 30 seconds is a minimum, not a target: <b>in class (Birley 12)</b>, take at least 30 seconds; <b>anywhere else</b>, take as long as you need.';
+  var LEARN_MIN = 30, LPD = 0, LEARN_WHY = '⏳ The PDF button unlocks 30 seconds after you start writing. <b>AP will monitor your engagement with these important learning notes.</b>';
   function demo() { return !!(S && S.m && S.m.set && S.m.set.code === 'DEMO101'); }
   function learnMark() { if (!S || S.lt0 || demo() || !filled('learn')) return; S.lt0 = LPD && Date.now() - LPD < 120e3 ? LPD : Date.now(); save(); }
   function learnLeft() {   // -1: nothing written yet · n > 0: seconds still to go · 0: he can save
@@ -2224,8 +2228,8 @@ var APTT = (function () {
     c.disabled = !S.locked; c.classList.toggle('ready', S.locked && !S.shown);
     if (S.locked && !S.shown && !c.dataset.seen) { c.dataset.seen = '1'; setTimeout(function () { try { c.scrollIntoView({ block: 'center' }); } catch (e) { } }, 60); }   // the big button comes into view (no fixed layer: iPads painted it black)
     if (S.shown) c.textContent = '✔ Answers shown: mark yourself above';
-    n.textContent = !S.locked ? '① Lock in when you have attempted every ' + noun(1) + ' (you cannot change them afterwards). ② Then open the answers and mark yourself in red.'
-      : !S.shown ? '② Now open the answers, correct your work in red and mark each ' + noun(1) + '.' : 'Correct each ' + noun(1) + ' in red, choose a mark for each, then save your work as a PDF.';
+    n.textContent = !S.locked ? 'Lock in when you’ve finished. You can’t change your answers afterwards. Then open the answers and mark yourself in red.'
+      : !S.shown ? 'Now open the answers, correct your work in red and mark each ' + noun(1) + '.' : 'Correct each ' + noun(1) + ' in red, choose a mark for each, then save your work as a PDF.';
   }
   function mode(m) {
     if (!S || S.mode || (m !== 'timed' && m !== 'free')) return;
