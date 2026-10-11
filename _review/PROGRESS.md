@@ -21,3 +21,12 @@ Held-back questions: ALL DECIDED by AP on Sun 11 Oct 2026.
 - Pinstriped trousers in every language, all apps: FR "pantalon à fines rayures", IT "pantaloni a righe sottili", ES "pantalones de rayas finas", EN "pinstriped trousers" (the "de rayas (striped)" pattern list in Vocab and Gr EWs deliberately unchanged): APPLIED. Closes the old pantalon noir/gris question.
 Main at 9d2afb2; all 14 build stamps in versions.json match their files; every page loads with no errors.
 Lesson: read versions.json before writing it (a truncating write once left it empty on main for ~3 minutes, 10:19-10:22). Another chat also pushes to main: fetch before pushing.
+
+## 2026-10-11 — Verb apps (French, Italian, Spanish Verbs) — DONE
+- Sentences: ~820 corrected (grammar, tense/mood, agreement, Castilian usage, "que il"/"à le" contractions); 557 Italian subjunctive gap-fills given a meaning-matched trigger clause; 39 held structure-group sentences decided (28 corrected, 3 left by AP: fr2668 "À ta place,", fr4011/4012 "se fier à X de faire Y").
+- Tables (VERBS ~20k rows) reviewed: haïr (je hais/haïrai), vivre subj typo, ~240 wrong notes/glosses (ES conditional notes, introducir, escuchar, esserci, morire, envoyer, s'ensuivre, se garder).
+- French app code fixes: compound-tense generator (multi-word participle e.g. "rendre visite à", "mort" plural agreement, impersonal "il y avait eu"/"il avait fallu"/"il avait plu"); no space after apostrophe in sentence display (87 sentences).
+- Structure labels: soupçonner que (+ INDIC) + 3 sentences in indicative; attendre que (+ SUBJ); label typos (faire Y, dans une serrure, me joindre, deux heures). IT future-perfect rows of 4 "faccia (facesse)" structures -> faccia.
+- Standing instruction from AP: decide easy, clear-cut fixes myself; ask only about genuine judgement calls / set structures.
+- Left alone: "laissé(e) convaincre" (both agreements accepted); 216 French sentence infs not matching table row names (no code links them; cosmetic); version-stamp mismatch in Oral Topics + Structures files edited by the other chat (harmless).
+- Tools: _review/verbs/{dump.js,vapply.py,tapply.py,checkA.py,hold_apply.sh}.
