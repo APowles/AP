@@ -3,7 +3,7 @@
 <script id="ap-update">
 /* AP auto-update: if this copy is older than the published version, reload once with the new one (saved answers are kept) */
 (function () {
-  var B = 'd94205a90c'; window.AP_BUILD = B;
+  var B = '1c37552825'; window.AP_BUILD = B;
   function check() {
     if (!/^https?:$/.test(location.protocol) || !window.fetch) return;
     var f = decodeURIComponent(location.pathname.split('/').pop() || '');
@@ -12446,6 +12446,8 @@ html.tm-open,html.tm-open body{overflow:hidden}
 .tm-learn-must{font-size:.9375rem;font-weight:700;color:#a32116;margin:2px 0 8px}
 .tm-learn-must.now{background:#fdecea;border-radius:8px;padding:6px 10px}
 .tm-learn.done .tm-learn-must{display:none}
+.tm-learn-must:empty{display:none}
+.tm-unsure.tm-unsure-s{margin-top:6px;padding:4px 10px}
 @media print{.tm-learn{animation:none!important;box-shadow:none!important}}
 .tm-learn-h{font-size:1rem;font-weight:800;color:var(--navy);margin:0 0 2px}
 .tm-learn-q{font-size:.9375rem;color:var(--text2);margin:0 0 4px}
@@ -12555,7 +12557,7 @@ function tmClose() {
   var ov = document.getElementById('tm-ov'); if (ov) ov.remove();
   document.documentElement.classList.remove('tm-open');
 }
-var TM_UNSURE = '<div class="tm-unsure"><b>Unsure about your answer?</b> Don’t interrupt this marking session by asking AP now. Use your best judgement and, if in doubt, mark it wrong. Ask AP once you have submitted and uploaded your PDF as requested. The same goes if you think you’ve spotted an error in the paper: show AP your PDF at the end and he will advise.</div>';   // in every marking box (on screen only)
+var TM_UNSURE_FULL = '<div class="tm-unsure"><b>Unsure about something?</b> DO NOT interrupt this marking session by asking AP now. If in doubt, mark it wrong. Ask AP AFTER you have submitted and uploaded your PDF as requested. Then AP will advise.</div>', TM_UNSURE_SHORT = '<div class="tm-unsure tm-unsure-s"><b>Unsure about something?</b> See note after first question.</div>';   // in every marking box (on screen only)
 var TM_MARKQ = { 2: 'Right', 1: 'Nearly', 0: 'Wrong' };
 var TM_MARKW = { 4: 'Perfect', 3: 'Mostly right', 2: 'About half right', 1: 'Only a word or two right', 0: 'Nothing right' };
 function _tmRender() {
@@ -12569,7 +12571,7 @@ function _tmRender() {
       + (it.chg ? '<span class="tm-chg">🔁 changed: ' + _tmEsc(it.chg) + '</span>' : '') + '</div></div></div>'
       + APPEN.html({ key: k, lines: 2, label: 'Sentence ' + it.n, typed: '<textarea class="appen-ta" rows="2" spellcheck="false" autocomplete="off" autocorrect="off" autocapitalize="sentences" placeholder="Type your ' + L + ' translation"></textarea>' })
       + '<div class="tm-ans"' + (S.shown ? '' : ' hidden') + '><div class="tm-al">Answer</div><div class="tm-fr" lang="' + _tmLang() + '">' + _tmFr(it) + '</div>'
-      + '<div class="tm-mk" role="group" aria-label="Your mark for sentence ' + it.n + '"><span class="tm-mk-l">Underline your errors in red (or tick if perfect), then tap your mark:</span>' + mk + '<span class="tm-mk-v" id="tm-mv-' + it.n + '">' + (m != null ? m + ' / 4' : '') + '</span></div>' + TM_UNSURE + '</div></div>';
+      + '<div class="tm-mk" role="group" aria-label="Your mark for sentence ' + it.n + '"><span class="tm-mk-l">Simply underline your errors in red (or tick if perfect), then tap your mark:</span>' + mk + '<span class="tm-mk-v" id="tm-mv-' + it.n + '">' + (m != null ? m + ' / 4' : '') + '</span></div>' + (it.n === its[0].n ? TM_UNSURE_FULL : TM_UNSURE_SHORT) + '</div></div>';
   };
   var first = its.filter(function (it) { return it.n <= 6; }), mine = its.filter(function (it) { return it.n > 6; });
   var h = '<div class="tm-bar"><button type="button" class="aph-home" onclick="tmClose()">⌂ Back to the card</button><span class="tm-bar-t">✍️ Translate 10 sentences</span></div>'
@@ -12595,9 +12597,9 @@ function _tmRender() {
     + '<div class="tm-lock-n" id="tm-lockn">① Lock in when you have attempted every sentence (you cannot change them afterwards). ② Then open the answers and mark yourself in red.</div>'
     + '<div class="tm-after" id="tm-after"' + (S.shown ? '' : ' hidden') + '>'
     + '<div class="tm-score" id="tm-score2"></div>'
-    + '<div class="tm-learn" id="tm-learn"><div class="tm-learn-h">' + (S.mode === 'quick' ? '📝 One thing I\'ll remember' : '📝 What I learned') + '</div><div class="tm-learn-q">' + (S.mode === 'quick' ? 'Write one thing you will remember from this (a structure, a word, a mistake not to make again).' : 'What did you learn? Which structures or words caught you out? <b style="color:#1d4ed8">Think of the sort of things AP would write up in Whiteboard Notes based on your errors in this exercise.</b>') + '</div>'
+    + '<div class="tm-learn" id="tm-learn"><div class="tm-learn-h">' + (S.mode === 'quick' ? '📝 One thing I\'ll remember' : '📝 What I learned: the most important part') + '</div><div class="tm-learn-q">' + (S.mode === 'quick' ? 'Write one thing you will remember from this (a structure, a word, a mistake not to make again).' : 'Make a note of what caught you out, and how you’ll remember it, as AP would put it in Whiteboard Notes. <b>In Birley 12</b>, you’ll get a couple of minutes; <b>in your House</b>, take as long as you need. You can add more later in OneNote.') + '</div>'
     + '<div class="tm-learn-why">' + TM_LEARN_WHY + '</div>'
-    + '<div class="tm-learn-must" id="tm-learn-must">✋ Before you save your PDF there must be clear evidence here that you have engaged with your mistakes and what you learned: some notes, in your own way. <span style="display:block;margin-top:4px;color:#1d4ed8;font-weight:800">AP will review and monitor the quality of your engagement with these sections.</span></div>'
+    + '<div class="tm-learn-must" id="tm-learn-must"></div>'
     + APPEN.html({ key: S.base + ':learn', lines: 4, label: 'What I learned', typed: '<textarea class="appen-ta" rows="4" spellcheck="false" autocomplete="off" placeholder="What did you learn? Which structures or words caught you out?"></textarea>' }) + '</div>'
     + '<div class="tm-save"><button type="button" class="apmp-btn lg" id="tm-pdfbtn" onclick="tmPDF()">📄 Save my work as PDF</button>'
     + '<div class="tm-save-n">then put it into OneNote on a new page: Insert &rsaquo; PDF on iPad, Insert &rsaquo; File Printout on a computer</div></div></div>'
@@ -12632,7 +12634,7 @@ function _tmRender() {
 }
 /* 📝 What I learned: the PDF button stays locked until he has been writing here for at least 30 seconds (from his first pen stroke or
    keystroke in the box, kept in his saved state as lt0, so a reload neither resets nor skips it) and the box is not empty. No time limit, no alarm. */
-var TM_LEARN_MIN = 30, _tmLPD = 0, TM_LEARN_WHY = '⏳ <b>This is the most important stage of the test.</b> Your PDF button unlocks 30 seconds after you start writing here. 30 seconds is a minimum, not a target: <b>in class (Birley 12)</b>, take at least 30 seconds; <b>anywhere else</b>, take as long as you need.';
+var TM_LEARN_MIN = 30, _tmLPD = 0, TM_LEARN_WHY = '⏳ The PDF button unlocks 30 seconds after you start writing. <b>AP will monitor your engagement with these important learning notes.</b>';
 function _tmLearnLeft() {   // -1: nothing written yet · n > 0: seconds still to go · 0: he can save
   var S = _tmS; if (!S) return 0;
   if (!_tmFilled('learn')) return -1;
