@@ -3,7 +3,7 @@
 <script id="ap-update">
 /* AP auto-update: if this copy is older than the published version, reload once with the new one (saved answers are kept) */
 (function () {
-  var B = '770fced86b'; window.AP_BUILD = B;
+  var B = 'd43ac421bd'; window.AP_BUILD = B;
   function check() {
     if (!/^https?:$/.test(location.protocol) || !window.fetch) return;
     var f = decodeURIComponent(location.pathname.split('/').pop() || '');
@@ -12613,6 +12613,41 @@ th{font-size:.7rem;letter-spacing:.08em;text-transform:uppercase;color:var(--ink
 a{color:var(--s-ktr)}
 @media (max-width:560px){.bar-in{gap:6px 10px}.crumb{flex-basis:100%}}
 @media (prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
+
+/* ⚡ Speed session */
+.spbtn{border:1.5px solid var(--gold);background:var(--surface);color:var(--ink);border-radius:10px;padding:9px 16px;font-weight:700}
+.spbtn.pri{background:var(--gold);color:#14203a}
+.sp-set{display:flex;flex-wrap:wrap;gap:12px 18px;align-items:center;margin-top:14px}
+.sp-set label{display:inline-flex;gap:6px;align-items:center;font-weight:600;font-size:.92rem}
+.sp-set select{font:inherit;padding:6px 8px;border-radius:8px;border:1.5px solid var(--line);background:var(--surface);color:var(--ink)}
+.sp-grp{margin-top:18px}
+.sp-gh{display:flex;flex-wrap:wrap;gap:8px;align-items:center;background:var(--surface2);border-left:5px solid var(--gold);border-radius:10px;padding:8px 12px;font-weight:700}
+.sp-gh .mini{margin-left:auto;display:flex;gap:6px}
+.sp-gh .mini button{border:1.5px solid var(--line);background:var(--surface);border-radius:8px;padding:3px 10px;font-size:.82rem;font-weight:600}
+.sp-ks{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:6px 14px;margin:8px 0 0 4px}
+.sp-ks label{display:flex;gap:8px;align-items:flex-start;font-size:.95rem;cursor:pointer}
+.sp-sum{position:sticky;bottom:0;background:var(--bg);border-top:1px solid var(--line);margin-inline:-16px;padding:10px 16px;display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin-top:20px}
+.sp-top{display:flex;flex-wrap:wrap;gap:12px;align-items:stretch;margin-top:12px}
+.sp-team{flex:1 1 130px;border:2.5px solid var(--line);border-radius:12px;padding:8px 12px;background:var(--surface)}
+.sp-team b{display:block;font-size:.85rem;text-transform:uppercase;letter-spacing:.06em}
+.sp-team span{font-family:var(--head);font-size:2rem;font-weight:700;line-height:1.1}
+.sp-team.on{box-shadow:0 0 0 4px var(--gold)}
+.sp-clk{flex:0 0 auto;min-width:190px;border-radius:12px;background:var(--btn-bg);color:var(--btn-fg);padding:8px 14px;text-align:center}
+.sp-clk small{display:block;font-size:.72rem;letter-spacing:.08em;text-transform:uppercase;opacity:.85}
+.sp-clk .big{font-family:var(--head);font-size:1.9rem;font-weight:700}
+.sp-board{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px;margin-top:14px;position:relative}
+.sp-board.c3{grid-template-columns:repeat(3,minmax(0,1fr))}
+@media (max-width:640px){.sp-board,.sp-board.c3{grid-template-columns:repeat(2,minmax(0,1fr))}}
+.sp-tile{min-height:92px;border:2px solid var(--line);border-radius:14px;background:var(--surface);padding:10px 12px;font-weight:600;font-size:1.08rem;line-height:1.3;text-align:center;display:flex;align-items:center;justify-content:center}
+.sp-tile.sel{border-color:var(--gold);box-shadow:0 0 0 4px var(--gold)}
+.sp-tile.won{opacity:.75;color:#fff;border-color:transparent}
+.sp-cover{position:absolute;inset:0;background:rgba(14,21,38,.82);border-radius:14px;display:flex;align-items:center;justify-content:center;z-index:2}
+.sp-cover .spbtn{font-size:1.3rem;padding:14px 30px}
+.sp-panel{margin-top:16px;border:2px solid var(--gold);border-radius:14px;background:var(--surface);padding:16px 18px;text-align:center}
+.sp-panel .q{font-family:var(--head);font-size:1.7rem;font-weight:700}
+.sp-panel .a{font-size:1.5rem;font-weight:700;color:var(--gold-ink);margin-top:8px;min-height:2em}
+.sp-res{margin-top:18px;border:2px solid var(--gold);border-radius:14px;background:var(--surface);padding:18px;text-align:center}
+.sp-res .w{font-family:var(--head);font-size:2.2rem;font-weight:700}
 </style>
 
 <div class="bar"><div class="bar-in">
@@ -12706,6 +12741,7 @@ function syncBar(){
 /* navigation */
 function go(v,sub,k){
   try{speechSynthesis.cancel()}catch(e){}
+  if(v!=='speed'&&typeof spdStop==='function')spdStop();
   S.view=v;if(sub!=null)S.sub=sub;if(k!=null){S.k=k;S.stage='c';S.step=0;S.mode='deck';S.drill='recall';S.uq=0;initDrills()}
   if(v==='sub')S.story=1;
   render();window.scrollTo(0,0);
@@ -12716,14 +12752,16 @@ function crumb(){
   if(S.view==='ktr')c+=` › ${ktr().term}`;
   if(S.view==='review')c='Review notes';
   if(S.view==='how')c='How this works';
+  if(S.view==='speed')c='Speed session';
   $('crumb').textContent=c;
 }
 function render(){
   crumb();
   const a=$('app');
-  a.innerHTML=S.view==='home'?vHome():S.view==='sub'?vSub():S.view==='ktr'?vKtr():S.view==='how'?vHow():vReview();
+  a.innerHTML=S.view==='home'?vHome():S.view==='sub'?vSub():S.view==='ktr'?vKtr():S.view==='how'?vHow():S.view==='speed'?vSpeed():vReview();
   syncBar();
   if(S.view==='ktr'&&S.stage==='d')bindDrill();
+  if(S.view==='speed'&&SPD.phase==='setup')spdSum();
 }
 
 /* home */
@@ -12735,6 +12773,7 @@ function vHome(){
   const g=t=>SUBS.filter(s=>s.theme===t).map(tileFor).join('');
   return `<h1 class="h1">KTR Studio</h1>
   <p class="lead">${TEACH?"A demo of a new way to teach and drill the Key Topic References:":"A new way to learn the Key Topic References:"} understand the context, learn the words you need, say them in small pieces, then use them in an answer. All twelve sub-themes are built.</p>
+  <div class="row" style="margin-top:14px"><button class="spbtn pri" onclick="openSpeed([])">⚡ Speed sessions: race on the words, any KTR or combination</button></div>
   <div class="group"><div class="label">Theme 1 · Évolution de la société française</div><div class="grid">${g(1)}</div></div>
   <div class="group"><div class="label">Theme 2 · Culture politique et artistique</div><div class="grid">${g(2)}</div></div>
   <div class="group"><div class="label">Theme 3 · Immigration et société multiculturelle</div><div class="grid">${g(3)}</div></div>
@@ -12742,6 +12781,142 @@ function vHome(){
   <div class="note"><b>Using it.</b> Everything shows in French. Click any line to flip it to English, or use the Français / English switch at the top. The speaker icon reads the French aloud. In the Comprendre stage the arrow keys step through the screens. In the drills the arrow keys mark your answer: left for a major error, down for nearly, right for got it.${TEACH?' Switch on Source tags to see which lines come from your KTRs, your VV lists, or are new.':''}</div>
   ${TEACH?'<div class="row" style="margin-top:18px"><button class="btn pri" onclick="go(\'review\')">Review notes for Andrew</button></div>':''}`;
 }
+
+
+/* ⚡ Speed session: the tile game on the words and chunks of any KTR or combination of KTRs.
+   Prompt tiles (English → French by default); the team whose turn it is picks a tile and says the French;
+   AP shows the French and marks it. Right: the tile is won and the team goes on. Wrong (or turn time out): play passes on. */
+const SPD={ids:new Set(),n:16,teams:2,gt:180,tt:20,rev:false,chunks:true,phase:'setup',tiles:[],turn:0,scores:[],sel:-1,shown:false,gl:0,tl:0,run:false,timer:null,last:0,b1:0,b2:0};
+const SPN=['Rouge','Bleu','Vert','Jaune'],SPC=['#b0392b','#2b6a9e','#2b7a4b','#a96a0c'];
+function spdPool(){
+  const seen=new Set(),out=[];
+  for(const s of SUBS)for(const k of s.ktrs)if(SPD.ids.has(k.n)){
+    const add=w=>{if(w&&w.fr&&w.en&&!seen.has(w.fr)){seen.add(w.fr);out.push({k:k.n,fr:w.fr,en:w.en})}};
+    k.words.forEach(add);if(SPD.chunks)k.chunks.forEach(add);
+  }
+  return out;
+}
+function spdStop(){if(SPD.timer){clearInterval(SPD.timer);SPD.timer=null}SPD.run=false}
+function spdBeep(f,d){try{const A=spdBeep.A=spdBeep.A||new (window.AudioContext||window.webkitAudioContext)();const o=A.createOscillator(),g=A.createGain();o.frequency.value=f;g.gain.value=.15;o.connect(g);g.connect(A.destination);o.start();o.stop(A.currentTime+d)}catch(e){}}
+function openSpeed(ids){
+  if(S.view!=='speed')S.from=S.view;
+  spdStop();SPD.ids=new Set(ids||[]);SPD.phase='setup';
+  go('speed');
+}
+function closeSpeed(){spdStop();S.view=S.from&&S.from!=='speed'?S.from:'home';render();window.scrollTo(0,0)}
+function spdSet(k,v){SPD[k]=v;spdSum()}
+function spdTog(n,on){if(on)SPD.ids.add(n);else SPD.ids.delete(n);spdSum()}
+function spdGroup(sub,on){const s=SUBS.find(x=>x.subtheme===sub);s.ktrs.forEach(k=>on?SPD.ids.add(k.n):SPD.ids.delete(k.n));render()}
+function spdTheme(th){SPD.ids=new Set();SUBS.filter(s=>th===0||s.theme===th).forEach(s=>s.ktrs.forEach(k=>SPD.ids.add(k.n)));render()}
+function spdSum(){
+  const p=spdPool(),el=$('spsum');if(!el)return;
+  const nk=SPD.ids.size;
+  el.querySelector('.t').textContent=nk?`${nk} KTR${nk>1?'s':''} · ${p.length} words and chunks`+(p.length<SPD.n&&p.length>=4?` · ${p.length} tiles`:''):'Choose one or more KTRs';
+  el.querySelector('button').disabled=p.length<4;
+}
+function vSpeedSetup(){
+  const sel=(k,opts,cur)=>`<select onchange="spdSet('${k}',${typeof cur==='number'?'+this.value':'this.value'})">${opts.map(o=>`<option value="${o[0]}"${o[0]==cur?' selected':''}>${o[1]}</option>`).join('')}</select>`;
+  const groups=SUBS.map(s=>`<div class="sp-grp"><div class="sp-gh"><span>Sub-theme ${s.subtheme} · ${esc(s.name)}</span><span class="mini"><button onclick="spdGroup(${s.subtheme},true)">All ${s.ktrs.length}</button><button onclick="spdGroup(${s.subtheme},false)">None</button></span></div>
+    <div class="sp-ks">${s.ktrs.map(k=>`<label><input type="checkbox" ${SPD.ids.has(k.n)?'checked':''} onchange="spdTog(${k.n},this.checked)"><span>${esc(k.term)}</span></label>`).join('')}</div></div>`).join('');
+  return `<div class="label">Speed session</div><h1 class="h1">⚡ Name them fast</h1>
+  <p class="lead">A tile race on the words and chunks of the KTRs you choose: one KTR, a few together, a whole sub-theme or a whole theme. You see the English; say the French.</p>
+  <div class="row" style="margin-top:12px"><span class="label" style="margin:0">Quick choice</span>
+    ${[1,2,3,4].map(t=>`<button class="btn" onclick="spdTheme(${t})">Theme ${t}</button>`).join('')}
+    <button class="btn" onclick="spdTheme(0)">Everything</button><button class="btn" onclick="SPD.ids=new Set();render()">Clear</button></div>
+  <div class="sp-set">
+    <label>Tiles ${sel('n',[[6,6],[9,9],[12,12],[16,16]],SPD.n)}</label>
+    <label>Teams ${sel('teams',[[1,'Solo'],[2,2],[3,3],[4,4]],SPD.teams)}</label>
+    <label>Game ${sel('gt',[[120,'2 min'],[180,'3 min'],[300,'5 min'],[600,'10 min']],SPD.gt)}</label>
+    <label>Turn ${sel('tt',[[10,'10 s'],[20,'20 s'],[30,'30 s'],[45,'45 s']],SPD.tt)}</label>
+    <label>Direction ${sel('rev',[[0,'English → French'],[1,'French → English']],SPD.rev?1:0).replace("spdSet('rev',+this.value)","spdSet('rev',this.value==='1'||this.value===1)")}</label>
+    <label><input type="checkbox" ${SPD.chunks?'checked':''} onchange="spdSet('chunks',this.checked)"> Include the chunks</label></div>
+  ${groups}
+  <div class="sp-sum" id="spsum"><span class="t"></span><button class="spbtn pri" onclick="spdStart()">▶ Set up the game</button><button class="btn" onclick="closeSpeed()">Back</button></div>`;
+}
+function spdStart(){
+  const p=shuffle(spdPool());if(p.length<4)return;
+  const n=Math.min(SPD.n,p.length);
+  SPD.tiles=p.slice(0,n).map(x=>({k:x.k,fr:x.fr,en:x.en,by:-1}));
+  SPD.turn=0;SPD.scores=Array(SPD.teams).fill(0);SPD.sel=-1;SPD.shown=false;
+  SPD.gl=SPD.gt;SPD.tl=SPD.tt;SPD.run=false;SPD.phase='play';SPD.b1=SPD.b2=0;
+  spdStop();render();window.scrollTo(0,0);
+}
+function spdGo(){
+  SPD.run=true;SPD.last=Date.now();
+  if(!SPD.timer)SPD.timer=setInterval(spdTick,200);
+  spdBeep(660,.15);render();
+}
+function spdPause(){SPD.run=false;render()}
+function spdTick(){
+  if(!SPD.run)return;
+  const now=Date.now(),dt=(now-SPD.last)/1000;SPD.last=now;
+  const g0=SPD.gl;SPD.gl-=dt;SPD.tl-=dt;
+  const th=[SPD.gt*2/3,SPD.gt/3];
+  if(g0>th[0]&&SPD.gl<=th[0]||g0>th[1]&&SPD.gl<=th[1])spdBeep(520,.2);
+  if(SPD.gl<=0){SPD.gl=0;spdEnd();return}
+  if(SPD.tl<=0){spdPass();return}
+  const g=$('spg'),t=$('spt');
+  if(g)g.textContent=spdFmt(SPD.gl);if(t)t.textContent=Math.ceil(SPD.tl)+' s';
+}
+const spdFmt=s=>{s=Math.ceil(s);return Math.floor(s/60)+':'+String(s%60).padStart(2,'0')};
+function spdPass(){
+  SPD.sel=-1;SPD.shown=false;
+  if(SPD.teams>1)SPD.turn=(SPD.turn+1)%SPD.teams;
+  SPD.tl=SPD.tt;spdBeep(300,.25);render();
+}
+function spdEnd(){spdStop();SPD.phase='done';spdBeep(220,.8);render()}
+function spdPick(i){
+  if(!SPD.run||SPD.tiles[i].by>=0)return;
+  SPD.sel=i;SPD.shown=false;render();
+}
+function spdShow(){
+  if(SPD.sel<0)return;SPD.shown=true;render();
+  const t=SPD.tiles[SPD.sel];say(t.fr);
+}
+function spdMark(ok){
+  if(SPD.sel<0)return;
+  if(ok){SPD.tiles[SPD.sel].by=SPD.turn;SPD.scores[SPD.turn]++;SPD.sel=-1;SPD.shown=false;
+    if(SPD.tiles.every(t=>t.by>=0)){spdEnd();return}
+    render()}
+  else{spdPass()}
+}
+function vSpeedPlay(){
+  const T=SPD.tiles,c3=T.length<=9;
+  const teams=SPD.scores.map((s,i)=>`<div class="sp-team${i===SPD.turn&&SPD.teams>1?' on':''}" style="border-color:${SPC[i]}"><b style="color:${SPC[i]}">${SPD.teams>1?SPN[i]:'Score'}</b><span>${s}</span></div>`).join('');
+  const tiles=T.map((t,i)=>{
+    const won=t.by>=0,txt=won?(SPD.rev?t.en:t.fr):(SPD.rev?t.fr:t.en);
+    return `<button class="sp-tile${won?' won':''}${i===SPD.sel?' sel':''}" ${won?`style="background:${SPC[t.by]}" disabled`:''} onclick="spdPick(${i})">${esc(txt)}</button>`;
+  }).join('');
+  const cover=!SPD.run?`<div class="sp-cover"><button class="spbtn pri" onclick="spdGo()">${SPD.gl===SPD.gt?'▶ Start':'▶ Resume'}</button></div>`:'';
+  let panel='';
+  if(SPD.sel>=0){
+    const t=T[SPD.sel],q=SPD.rev?t.fr:t.en,a=SPD.rev?t.en:t.fr;
+    panel=`<div class="sp-panel"><div class="q">${esc(q)}</div><div class="a">${SPD.shown?esc(a):''}</div>
+      <div class="row" style="justify-content:center;margin-top:10px">${SPD.shown?`<button class="btn pri" onclick="spdMark(true)">✓ Right (→)</button><button class="btn" onclick="spdMark(false)">✗ Wrong (←)</button>${SPD.rev?'':`<button class="spk" data-t="${esc(a)}" onclick="spk(this)" aria-label="Hear it">${SPK}</button>`}`:`<button class="btn pri" onclick="spdShow()">Show the French (space)</button>`}</div></div>`;
+    if(SPD.rev)panel=panel.replace('Show the French','Show the English');
+  } else if(SPD.run) panel=`<div class="note" style="text-align:center;margin-top:16px"><b>${SPD.teams>1?SPN[SPD.turn]+' team:':''}</b> choose a tile and say the French. Then show the answer and mark it.</div>`;
+  return `<div class="label">Speed session · ${SPD.ids.size} KTR${SPD.ids.size>1?'s':''}</div>
+  <div class="sp-top">${teams}<div class="sp-clk"><small>Game</small><span class="big" id="spg">${spdFmt(SPD.gl)}</span></div>
+   <div class="sp-clk"><small>${SPD.teams>1?SPN[SPD.turn]+' team’s turn':'Turn'}</small><span class="big" id="spt">${Math.ceil(SPD.tl)} s</span></div></div>
+  <div class="sp-board${c3?' c3':''}">${tiles}${cover}</div>${panel}
+  <div class="row" style="margin-top:16px">${SPD.run?'<button class="btn" onclick="spdPause()">Pause</button>':''}<button class="btn" onclick="spdStart()">🔀 New set</button><button class="btn" onclick="spdStop();SPD.phase='setup';render()">Change the KTRs</button><button class="btn" onclick="closeSpeed()">Leave the game</button></div>`;
+}
+function vSpeedDone(){
+  const m=Math.max(...SPD.scores),w=SPD.scores.map((s,i)=>s===m?i:-1).filter(i=>i>=0);
+  const msg=SPD.teams===1?`${SPD.scores[0]} of ${SPD.tiles.length} tiles`:(w.length>1?'A draw!':`${SPN[w[0]]} team wins!`);
+  const rows=SPD.scores.map((s,i)=>`<span style="color:${SPC[i]};font-weight:700;margin:0 10px">${SPD.teams>1?SPN[i]:'Score'} ${s}</span>`).join('');
+  const left=SPD.tiles.filter(t=>t.by<0);
+  return `<div class="label">Speed session · finished</div><div class="sp-res"><div class="w">${msg}</div><div style="margin-top:8px;font-size:1.2rem">${rows}</div></div>
+  ${left.length?`<div class="group"><div class="label">Not won · to learn</div><div class="story" style="margin-top:8px">${left.map(t=>`<div class="line">${FL({fr:t.fr,en:t.en})}<button class="spk" data-t="${esc(t.fr)}" onclick="spk(this)" aria-label="Hear it">${SPK}</button></div>`).join('')}</div></div>`:''}
+  <div class="row" style="margin-top:18px"><button class="spbtn pri" onclick="spdStart()">🔀 Play again, new set</button><button class="btn" onclick="SPD.phase='setup';render()">Change the KTRs</button><button class="btn" onclick="closeSpeed()">Back</button></div>`;
+}
+function vSpeed(){return SPD.phase==='setup'?vSpeedSetup():SPD.phase==='play'?vSpeedPlay():vSpeedDone()}
+document.addEventListener('keydown',e=>{
+  if(S.view!=='speed'||SPD.phase!=='play'||(e.target&&/INPUT|SELECT/.test(e.target.tagName)))return;
+  if(e.key===' '&&SPD.sel>=0&&!SPD.shown&&e.target.tagName!=='BUTTON'){spdShow();e.preventDefault()}
+  else if(SPD.shown&&e.key==='ArrowRight'){spdMark(true);e.preventDefault()}
+  else if(SPD.shown&&e.key==='ArrowLeft'){spdMark(false);e.preventDefault()}
+});
 
 /* your own videos */
 function vidCard(x){
@@ -12767,7 +12942,7 @@ function vSub(){
   <h1 class="h1">${esc(s.name)}</h1>
   <h2 class="h2" style="margin-top:14px;font-weight:600">${FL({fr:st.title_fr,en:st.title_en})}</h2>
   <div class="story">${shown}</div>
-  <div class="nav">${more?`<button class="btn pri" onclick="S.story++;render()">Continue the story</button>`:''}
+  <div class="nav"><button class="spbtn" onclick="openSpeed([${s.ktrs.map(k=>k.n)}])">⚡ Speed session: this sub-theme</button>${more?`<button class="btn pri" onclick="S.story++;render()">Continue the story</button>`:''}
     ${S.story>1?`<button class="btn" onclick="S.story=${st.paras.length};render()">Show all</button>`:''}</div>
   ${yourVids(s)}${timeline(s)}<div class="group"><div class="label">The ${s.ktrs.length} KTRs, in teaching order</div>
   <div class="story" style="margin-top:10px">${s.ktrs.map((k,i)=>`<button class="ktr-tile" onclick="go('ktr',${s.subtheme},${i})"><span class="t">${esc(k.term)}</span>${pips(k.n)}</button>`).join('')}</div></div>`;
@@ -12785,7 +12960,8 @@ function vKtr(){
   <div class="nav" style="margin-top:22px">
     <button class="btn" ${i===0?'disabled':''} onclick="go('ktr',${S.sub},${i-1})">Previous KTR</button>
     <button class="btn" ${i===n-1?'disabled':''} onclick="go('ktr',${S.sub},${i+1})">Next KTR</button>
-    <button class="btn" onclick="go('sub')">Back to ${esc(cur().name)}</button></div>`;
+    <button class="btn" onclick="go('sub')">Back to ${esc(cur().name)}</button>
+    <button class="spbtn" onclick="openSpeed([${k.n}])">⚡ Speed session: this KTR</button></div>`;
 }
 const pips1=(n,st)=>`<i class="pip${(PR[n]||{})[st]?' on':''}"></i>`;
 
