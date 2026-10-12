@@ -3,7 +3,7 @@
 <script id="ap-update">
 /* AP auto-update: if this copy is older than the published version, reload once with the new one (saved answers are kept) */
 (function () {
-  var B = 'b0faa4e21f'; window.AP_BUILD = B;
+  var B = '29ba2e92a3'; window.AP_BUILD = B;
   function check() {
     if (!/^https?:$/.test(location.protocol) || !window.fetch) return;
     var f = decodeURIComponent(location.pathname.split('/').pop() || '');
@@ -11757,13 +11757,26 @@ body.aporal-set [id$="_exambar"] button[onclick^="resetDeclaration"]{display:non
       if (T && T.stream === stream) { meterOff(T.m); T = null; } else stopTest();   // keep the tested microphone running into the recording
       if (R && R.url) { try { URL.revokeObjectURL(R.url); } catch (e) { } }
       var rb = $('aporal-reopen'); if (rb) rb.remove();
-      R = { on: true, name: name, uid: uid, choice: choice, card: card, stream: stream, type: type, chunks: [], marks: {}, t0: Date.now(), blob: null, url: '' };
+      R = { on: true, name: name, uid: uid, choice: choice, card: card, stream: stream, type: type, chunks: [], marks: {}, t0: Date.now(), paused: 0, pAt: 0, qs: 0, blob: null, url: '' };
       try { R.rec = type ? new MediaRecorder(stream, { mimeType: type }) : new MediaRecorder(stream); } catch (e) { stopStream(stream); R.on = false; var er = $('aporal-err'); if (er) { er.style.display = ''; er.innerHTML = 'Recording could not be started on this browser.'; } return; }
       R.type = R.rec.mimeType || type;
       var chunks = R.chunks;   // a closure copy, so a recording that is thrown away cannot trip over a late chunk
       R.rec.ondataavailable = function (ev) { if (ev.data && ev.data.size) chunks.push(ev.data); };
       R.m = meterOn(stream, function (v) { var f = $('aporal-bfill'); if (f) f.style.width = Math.round(v * 100) + '%'; }, true);
       R.rec.start(1000);
+      R.cut = !!(PLAIN && typeof R.rec.pause === 'function'); R.hold = R.cut; R.holdAt = Date.now();   // paused through the whole spoken introduction, until Question 1's answer time starts   // on an iPad (echo-cancelled) the examiner is not on the recording anyway, so the recording is paused while the examiner talks: only the boy's answers are kept
+      if (R.cut) {
+        var Rr = R;
+        R.pv = setInterval(function () {
+          if (R !== Rr || !Rr.on || !Rr.rec) { clearInterval(Rr.pv); return; }
+          var sp = false; try { sp = !!(window.speechSynthesis && window.speechSynthesis.speaking); } catch (e) { }
+          try {
+            if (Rr.hold && Date.now() - Rr.holdAt > 90000) Rr.hold = false;   // safety: never stay paused for more than 90 s
+            if (sp || Rr.hold) { Rr.qs = 0; if (Rr.rec.state === 'recording') { Rr.rec.pause(); Rr.pAt = Date.now(); } }
+            else if (Rr.rec.state === 'paused' && !Rr.hold) { if (!Rr.qs) Rr.qs = Date.now(); if (Date.now() - Rr.qs > 300) { Rr.rec.resume(); Rr.paused += Date.now() - Rr.pAt; Rr.pAt = 0; Rr.qs = 0; } }
+          } catch (e) { }
+        }, 100);
+      }
       closeBox(); barOn();
       document.body.classList.add('aporal-on');
       window.addEventListener('beforeunload', warnLeave);
@@ -11776,7 +11789,7 @@ body.aporal-set [id$="_exambar"] button[onclick^="resetDeclaration"]{display:non
     navigator.mediaDevices.getUserMedia(micCons()).then(go).catch(function (e) { var er = $('aporal-err'); if (er) { er.style.display = ''; er.innerHTML = micError(e); } });
   }
   function warnLeave(e) { if (R && R.on) { e.preventDefault(); e.returnValue = ''; return ''; } }
-  function elapsed() { return R ? (Date.now() - R.t0) / 1000 : 0; }
+  function elapsed() { return R ? (Date.now() - R.t0 - R.paused - (R.pAt ? Date.now() - R.pAt : 0)) / 1000 : 0; }   // recorded time: the time the recording was paused is not counted
   function barOn() {
     var b = $('aporal-bar'); if (b) b.remove();
     b = document.createElement('div'); b.id = 'aporal-bar'; b.className = 'aporal-bar';
@@ -11805,7 +11818,7 @@ body.aporal-set [id$="_exambar"] button[onclick^="resetDeclaration"]{display:non
     DEAD = Date.now() + 2500;   // a talking chain that has already started must not carry on
     stopExam(uid);
     if (R) {
-      R.on = false; try { clearInterval(R.iv); } catch (e) { }
+      R.on = false; try { clearInterval(R.iv); clearInterval(R.pv); } catch (e) { }
       meterOff(R.m); try { if (R.rec && R.rec.state !== 'inactive') R.rec.stop(); } catch (e) { }
       stopStream(R.stream);
     }
@@ -11827,7 +11840,7 @@ body.aporal-set [id$="_exambar"] button[onclick^="resetDeclaration"]{display:non
     var dur = elapsed();
     stopExam(R && R.uid);
     if (!R) return;
-    R.on = false; try { clearInterval(R.iv); } catch (e) { }
+    R.on = false; try { clearInterval(R.iv); clearInterval(R.pv); } catch (e) { }
     meterOff(R.m);
     R.dur = dur;
     R.quiet = !(R.m && R.m.n > 0) || R.m.off ? false : (R.m.peak < 0.03 || R.m.loud / R.m.n < 0.03);
@@ -11850,7 +11863,7 @@ body.aporal-set [id$="_exambar"] button[onclick^="resetDeclaration"]{display:non
     var b = box('<h3>✅ Recording finished <span class="aporal-len">' + mmss(R.dur) + '</span></h3>'
       + (R.early ? '<div class="aporal-det" style="background:#fff8e1;border:1px solid #e6cf8f;border-radius:8px;padding:6px 10px">⏹ You stopped early, so this is only a <b>quick check</b>. Do the full oral for your real recording.</div>' : '')
       + (R.quiet ? '<div class="aporal-bad">⚠ I could hardly hear your voice on this recording. Listen to it below. If it is silent or very faint, check the microphone and <b>try again</b>.</div>' : '')
-      + '<p class="aporal-step"><b>1 · Listen to it</b> (you will hear the examiner faintly, and you much louder)</p>'
+      + '<p class="aporal-step"><b>1 · Listen to it</b> (' + (R.cut ? 'you will hear your answers only: the examiner\'s questions are on your PDF' : 'you will hear the examiner faintly, and you much louder') + ')</p>'
       + (R.url ? '<audio controls preload="auto" src="' + esc(R.url) + '" class="aporal-audio"></audio>' : '<p class="aporal-bad">The recording could not be played here.</p>')
       + '<div class="aporal-acts"><button type="button" class="aph-btn" id="aporal-again">🔁 Not happy: try again</button></div>'
       + '<p class="aporal-step"><b>2 · Happy with it? Save your recording</b></p>'
@@ -11901,7 +11914,7 @@ body.aporal-set [id$="_exambar"] button[onclick^="resetDeclaration"]{display:non
       function qrow(n, q, mark) {
         return '<div class="apmp-q"><div class="apmp-qh"><span class="apmp-qn">' + n + '</span><span class="apmp-qt">' + esc(q) + '</span></div>'
           + '<div class="apmp-row"><span class="apmp-lab">Aim for</span><div class="apmp-val">2 minutes</div></div>'
-          + '<div class="apmp-row"><span class="apmp-lab">On my recording</span><div class="apmp-val">' + (mark == null ? 'not reached (recording stopped early)' : '<b>' + mmss(mark) + '</b> (the examiner asks the question here)') + '</div></div></div>';
+          + '<div class="apmp-row"><span class="apmp-lab">On my recording</span><div class="apmp-val">' + (mark == null ? 'not reached (recording stopped early)' : '<b>' + mmss(mark) + '</b> (' + (rr.cut ? 'your answer starts here' : 'the examiner asks the question here') + ')') + '</div></div></div>';
       }
       return {
         app: 'AP A Level French Oral Topics', kicker: 'AP A Level French &middot; Oral practice &middot; recorded',
@@ -12092,11 +12105,12 @@ body.aporal-set [id$="_exambar"] button[onclick^="resetDeclaration"]{display:non
   var _q1 = window.startQ1;
   if (typeof _q1 === 'function') window.startQ1 = function (uid, choice, q1) { if (Date.now() < DEAD) return; if (R && R.on && R.marks.q1 == null) R.marks.q1 = elapsed(); return _q1.apply(this, arguments); };
   var _l2 = window.launchQ2;
-  if (typeof _l2 === 'function') window.launchQ2 = function (uid, choice) { if (Date.now() < DEAD) return; if (R && R.on && R.marks.q2 == null) R.marks.q2 = elapsed(); return _l2.apply(this, arguments); };
+  if (typeof _l2 === 'function') window.launchQ2 = function (uid, choice) { if (Date.now() < DEAD) return; if (R && R.on && R.marks.q2 == null) R.marks.q2 = elapsed(); if (R && R.on && R.cut) { R.hold = true; R.holdAt = Date.now(); } return _l2.apply(this, arguments); };
   var _qt = window.startQTimer;
   if (typeof _qt === 'function') window.startQTimer = function (uid, choice, qNum) {
     if (Date.now() < DEAD) return;
     var out = _qt.apply(this, arguments);
+    if (R && R.on) R.hold = false;   // the answer time has started: record
     if (R && R.on) {   // a recording is Autotime: the exam moves on by itself after the answer time
       if (R.adv) { try { clearInterval(R.adv); } catch (e) { } }
       var n = 0, h;
