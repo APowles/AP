@@ -5,7 +5,7 @@
 <script id="ap-update">
 /* AP auto-update: if this copy is older than the published version, reload once with the new one (saved answers are kept) */
 (function () {
-  var B = '648133a3be'; window.AP_BUILD = B;
+  var B = '55acfa3e2a'; window.AP_BUILD = B;
   function check() {
     if (!/^https?:$/.test(location.protocol) || !window.fetch) return;
     var f = decodeURIComponent(location.pathname.split('/').pop() || '');
@@ -2219,6 +2219,12 @@ function aptRun(token, code) {
       location.href = base5 + encodeURIComponent(o.p) + '#ort=' + encodeURIComponent(o.tok) + '&c=' + encodeURIComponent(code || o.c || '');
       return;
     }
+    if (o.kind === 'drill') {   // a set drill: the app opens straight into the drill, on AP's selection
+      if (!/^[^\/\\]+\.html?$/i.test(String(o.p || ''))) throw new Error('bad');
+      var base6 = String(document.baseURI || location.href).replace(/[#?].*$/, '').replace(/[^\/]*$/, '');
+      location.href = base6 + encodeURIComponent(o.p) + '#drt=' + encodeURIComponent(o.tok) + '&c=' + encodeURIComponent(code || o.c || '');
+      return;
+    }
     if (o.kind === 'speed') {   // an AP Speed session: the Speed Challenge game, locked on AP's selection, in the app it was made in
       if (!/^[^\/\\]+\.html?$/i.test(String(o.p || ''))) throw new Error('bad');
       var base2 = String(document.baseURI || location.href).replace(/[#?].*$/, '').replace(/[^\/]*$/, '');
@@ -2311,7 +2317,7 @@ function aptLibLoad() {
       if (e.builtin) return e;
       return APTT.unpack(e.tok).then(function (o) {
         e.o = aptFix(o); e.cat = e.cat || o.cat || APTT.catOf({ id: o.id, lang: o.l, meta: o.m, title: o.t, app: o.a }); e.f = e.f || o.f || '';
-        e.made = o.made || ''; e.lv = o.lv; e.s = o.s; e.q = o.q; e.v = (o.V || []).length; e.items = o.V && o.V[0] ? o.V[0].length : 0; e.t = o.t; if (o.kind === 'p1' || o.kind === 'rd' || o.kind === 'ls') { e.items = (o.ids || []).length; e.v = 1; } if (o.kind === 'speed' || o.kind === 'orec') { e.items = 0; e.v = 1; e.s = 0; }
+        e.made = o.made || ''; e.lv = o.lv; e.s = o.s; e.q = o.q; e.v = (o.V || []).length; e.items = o.V && o.V[0] ? o.V[0].length : 0; e.t = o.t; if (o.kind === 'p1' || o.kind === 'rd' || o.kind === 'ls') { e.items = (o.ids || []).length; e.v = 1; } if (o.kind === 'speed' || o.kind === 'orec' || o.kind === 'drill') { e.items = 0; e.v = 1; e.s = 0; } if (o.kind === 'drill') e.t = (o.a || 'App') + ' drills';
         return e;
       }).catch(function () { e.bad = true; e.cat = e.cat || 'Other ▸ Unreadable'; return e; });
     })).then(function (L) { APT_LIB = L; });
@@ -2349,7 +2355,7 @@ function aptLibDraw() {
 }
 function aptItem(e) {
   var i = APT_LIB.indexOf(e);
-  var meta = e.bad ? '⚠️ this test could not be read' : e.o && e.o.kind === 'orec' ? ['🎙 Recorded oral (EW)', 'about 5 min, no time limit', e.o.a || '', e.made ? 'made ' + e.made.split('-').reverse().join('/') : '', e.site ? '' : 'on this device only'].filter(Boolean).join(' · ') : e.o && e.o.kind === 'speed' ? ['⚡ AP Speed session', 'pair work, no time limit', e.o.a || '', e.made ? 'made ' + e.made.split('-').reverse().join('/') : '', e.site ? '' : 'on this device only'].filter(Boolean).join(' · ') : e.o && (e.o.kind === 'p1' || e.o.kind === 'rd' || e.o.kind === 'ls') ? [e.o.kind === 'rd' ? 'Timed Reading Paper' : e.o.kind === 'ls' ? 'Class Listening sheet' : 'Timed AP Past Paper', (e.o && (e.o.kind === 'rd' || e.o.kind === 'ls') ? e.items + ' section' + (e.items > 1 ? 's' : '') : e.items + ' question' + (e.items > 1 ? 's' : '')), e.o.mk ? e.o.mk + ' marks' : '', (e.o && e.o.kind === 'ls' ? 'no time limit' : (e.o && e.o.kind === 'rd' ? 'timed ' : 'whole process ') + Math.round((e.s || 0) / 60) + ' min'), e.made ? 'made ' + e.made.split('-').reverse().join('/') : '', e.site ? '' : 'on this device only'].filter(Boolean).join(' · ') : [e.lv, (e.items || '?') + ' items', e.s ? (e.s % 60 ? Math.floor(e.s / 60) + '½' : e.s / 60) + ' min' : '', e.q === 'draw' ? 'own draw (' + e.v + ' versions)' : 'same questions', e.made ? 'made ' + e.made.split('-').reverse().join('/') : '', e.builtin ? 'built into this page: code DEMO101' : e.site ? '' : 'on this device only'].filter(Boolean).join(' · ');
+  var meta = e.bad ? '⚠️ this test could not be read' : e.o && e.o.kind === 'orec' ? ['🎙 Recorded oral (EW)', 'about 5 min, no time limit', e.o.a || '', e.made ? 'made ' + e.made.split('-').reverse().join('/') : '', e.site ? '' : 'on this device only'].filter(Boolean).join(' · ') : e.o && e.o.kind === 'drill' ? ['🎯 Set drill', 'no timer', e.o.a || '', e.made ? 'made ' + e.made.split('-').reverse().join('/') : '', e.site ? '' : 'on this device only'].filter(Boolean).join(' · ') : e.o && e.o.kind === 'speed' ? ['⚡ AP Speed session', 'pair work, no time limit', e.o.a || '', e.made ? 'made ' + e.made.split('-').reverse().join('/') : '', e.site ? '' : 'on this device only'].filter(Boolean).join(' · ') : e.o && (e.o.kind === 'p1' || e.o.kind === 'rd' || e.o.kind === 'ls') ? [e.o.kind === 'rd' ? 'Timed Reading Paper' : e.o.kind === 'ls' ? 'Class Listening sheet' : 'Timed AP Past Paper', (e.o && (e.o.kind === 'rd' || e.o.kind === 'ls') ? e.items + ' section' + (e.items > 1 ? 's' : '') : e.items + ' question' + (e.items > 1 ? 's' : '')), e.o.mk ? e.o.mk + ' marks' : '', (e.o && e.o.kind === 'ls' ? 'no time limit' : (e.o && e.o.kind === 'rd' ? 'timed ' : 'whole process ') + Math.round((e.s || 0) / 60) + ' min'), e.made ? 'made ' + e.made.split('-').reverse().join('/') : '', e.site ? '' : 'on this device only'].filter(Boolean).join(' · ') : [e.lv, (e.items || '?') + ' items', e.s ? (e.s % 60 ? Math.floor(e.s / 60) + '½' : e.s / 60) + ' min' : '', e.q === 'draw' ? 'own draw (' + e.v + ' versions)' : 'same questions', e.made ? 'made ' + e.made.split('-').reverse().join('/') : '', e.builtin ? 'built into this page: code DEMO101' : e.site ? '' : 'on this device only'].filter(Boolean).join(' · ');
   return '<div class="apt-it"><div class="apt-it-h"><span class="apt-it-c' + (e.c ? '' : ' none') + '">' + aptEsc(e.c || 'no code') + '</span><span class="apt-it-n">' + aptEsc(e.n || aptPlain(e.t)) + '</span></div>'
     + '<div class="apt-it-m">' + aptEsc(meta) + '</div><div class="apt-acts">'
     + '<button class="aph-btn aph-btn-primary" type="button" onclick="aptCopyLink(' + i + ',this)">📋 Copy link</button>'
@@ -2417,6 +2423,7 @@ function aptView(i) {
   if (!e.builtin && o.kind === 'ls') { if (!/^[^\/\\]+\.html?$/i.test(String(o.p || ''))) { alert('This Listening sheet cannot be opened.'); return; } location.href = base + encodeURIComponent(o.p) + '#lsv=' + encodeURIComponent(e.tok) + '&c=' + c; return; }
   if (!e.builtin && o.kind === 'rd') { if (!/^[^\/\\]+\.html?$/i.test(String(o.p || ''))) { alert('This Reading paper cannot be opened.'); return; } location.href = base + encodeURIComponent(o.p) + '#rdv=' + encodeURIComponent(e.tok) + '&c=' + c; return; }
   if (!e.builtin && o.kind === 'orec') { if (!/^[^\/\\]+\.html?$/i.test(String(o.p || ''))) { alert('This recorded oral cannot be opened.'); return; } location.href = base + encodeURIComponent(o.p) + '#orv=' + encodeURIComponent(e.tok) + '&c=' + c; return; }
+  if (!e.builtin && o.kind === 'drill') { if (!/^[^\/\\]+\.html?$/i.test(String(o.p || ''))) { alert('This drill cannot be opened.'); return; } location.href = base + encodeURIComponent(o.p) + '#drv=' + encodeURIComponent(e.tok) + '&c=' + c; return; }
   if (!e.builtin && o.kind === 'speed') { if (!/^[^\/\\]+\.html?$/i.test(String(o.p || ''))) { alert('This Speed session cannot be opened.'); return; } location.href = base + encodeURIComponent(o.p) + '#spv=' + encodeURIComponent(e.tok) + '&c=' + c; return; }
   if (!o.V || !o.V.length) { alert('This test cannot be shown.'); return; }
   var n = o.V.length, k = 0, ans = true, ov = document.getElementById('apt-view'); if (ov) ov.remove();
@@ -2446,7 +2453,7 @@ function aptCopyGroup(btn) {   // pastes into OneNote as a tidy list: each test'
 // ✏️ change a test's name, heading, folder or time limit (same code; the test is signed again with the teacher key)
 function aptEdit(i) {
   var e = APT_LIB[i], o = e.o, d = document.getElementById('apt-ed'); if (d) d.remove();
-  var timed = !!(o && o.V), kind = o && o.kind === 'speed' ? 'Speed session' : o && o.kind === 'p1' ? 'Timed Past Paper' : o && o.kind === 'rd' ? 'Timed Reading Paper' : o && o.kind === 'ls' ? 'Class Listening sheet' : o && o.kind === 'orec' ? 'Recorded oral' : '';   // a Speed session or past paper: name, heading and folder (its time is set by the game / the paper)
+  var timed = !!(o && o.V), kind = o && o.kind === 'drill' ? 'Set drill' : o && o.kind === 'speed' ? 'Speed session' : o && o.kind === 'p1' ? 'Timed Past Paper' : o && o.kind === 'rd' ? 'Timed Reading Paper' : o && o.kind === 'ls' ? 'Class Listening sheet' : o && o.kind === 'orec' ? 'Recorded oral' : '';   // a Speed session or past paper: name, heading and folder (its time is set by the game / the paper)
   var opts = ''; for (var x = 60; x <= 1200; x += 30) opts += '<option value="' + x + '"' + (x === +o.s ? ' selected' : '') + '>' + APTT.minsTxt(x) + ' min</option>';
   var cats = APTT.CATS.indexOf(e.cat) < 0 ? [e.cat].concat(APTT.CATS) : APTT.CATS;
   d = document.createElement('div'); d.id = 'apt-ed'; d.className = 'aptt-mkov';
@@ -2623,7 +2630,7 @@ function aptForget() { if (!confirm('Remove the teacher key from this device?'))
 #apl .apl-row{background:#fff;border:1px solid #e2ddd0;border-radius:12px;display:flex;flex-wrap:wrap;align-items:center;gap:8px 14px;padding:10px 14px}
 #apl .apl-row.arch{opacity:.72;border-style:dashed}
 #apl .apl-ty{font-size:11px;font-weight:800;letter-spacing:.06em;border-radius:6px;padding:3px 8px;white-space:nowrap}
-#apl .t-spot{color:#1f5fa8;background:#e5eef9}#apl .t-speed{color:#7a5200;background:#fbf1d8}#apl .t-paper{color:#5b3aa8;background:#efebf8}#apl .t-oral{color:#a31515;background:#fdeceb}#apl .t-set{color:#1e6b43;background:#d3eadb}#apl .t-demo{color:#1a2744;background:#f0d78c}
+#apl .t-spot{color:#1f5fa8;background:#e5eef9}#apl .t-drill{color:#0f5c63;background:#d6eef0}#apl .t-speed{color:#7a5200;background:#fbf1d8}#apl .t-paper{color:#5b3aa8;background:#efebf8}#apl .t-oral{color:#a31515;background:#fdeceb}#apl .t-set{color:#1e6b43;background:#d3eadb}#apl .t-demo{color:#1a2744;background:#f0d78c}
 #apl .apl-code{font-weight:800;font-size:14px;color:#5b6478;min-width:62px}
 #apl .apl-txt{flex:1 1 220px;min-width:0}
 #apl .apl-txt b{font-size:15px}
@@ -2681,9 +2688,9 @@ var APL = { open: false, course: '', topic: '', type: 'all', q: '', arch: false,
 var GHL = 'https://api.github.com/repos/APowles/AP/contents/library.json';
 function aplH(s) { var h = 0x811c9dc5; s = String(s); for (var i = 0; i < s.length; i++) { h ^= s.charCodeAt(i); h = Math.imul(h, 16777619); } return (h >>> 0).toString(36); }
 function aplId(e) { return 'i' + aplH(e.c || e.tok || e.n || ''); }
-function aplType(e) { return e.builtin ? 'demo' : e.o && e.o.kind === 'orec' ? 'oral' : e.o && e.o.kind === 'speed' ? 'speed' : e.o && (e.o.kind === 'p1' || e.o.kind === 'rd' || e.o.kind === 'ls') ? 'paper' : 'spot'; }
-var APL_TN = { set: 'PRACTICE SET', spot: 'SPOT TEST', speed: 'SPEED', paper: 'PAST PAPER', oral: 'RECORDED ORAL', demo: 'DEMO' };
-var APL_TC = { set: 'Practice sets', spot: 'Spot tests', speed: 'Speed sessions', paper: 'Past papers', oral: 'Recorded orals' };
+function aplType(e) { return e.builtin ? 'demo' : e.o && e.o.kind === 'orec' ? 'oral' : e.o && e.o.kind === 'drill' ? 'drill' : e.o && e.o.kind === 'speed' ? 'speed' : e.o && (e.o.kind === 'p1' || e.o.kind === 'rd' || e.o.kind === 'ls') ? 'paper' : 'spot'; }
+var APL_TN = { set: 'PRACTICE SET', spot: 'SPOT TEST', speed: 'SPEED', drill: 'SET DRILL', paper: 'PAST PAPER', oral: 'RECORDED ORAL', demo: 'DEMO' };
+var APL_TC = { set: 'Practice sets', spot: 'Spot tests', speed: 'Speed sessions', drill: 'Set drills', paper: 'Past papers', oral: 'Recorded orals' };
 // a Speed session made under "… ▸ Speed sessions" goes into the topic its game belongs to
 var APL_FNT = { openVVChallenge: 'VVs', openGrChallenge: 'Gr EWs', openGdChallenge: 'Grammar', openMlfChallenge: 'Metalanguage', openOCChallenge: 'Oral topics & KTRs', openGgChallenge: 'Gr EWs', openStructureChallenge: 'AP Structures', openSpanishChallenge: 'Vocab' };
 var APL_PGT = [[/Phrase Bank/i, 'Oral phrases'], [/Vocab Essentials/i, 'Vocab Essentials'], [/Vocab and Gr EWs/i, 'Vocab EWs'], [/Essential Phrases/i, 'Essential Phrases'], [/F Spanish Vocab/i, 'Vocab']];
@@ -2708,6 +2715,7 @@ function aplDate(d) { return d ? d.split('-').reverse().join('/') : ''; }
 function aplMeta(e) {
   var ty = aplType(e), dev = e.site || e.builtin ? '' : '<span class="dev">this device only</span>';
   var a = ty === 'oral' ? ['recorded oral', 'about 5 min', e.made ? 'made ' + aplDate(e.made) : '']
+    : ty === 'drill' ? ['drill', 'no timer', e.made ? 'made ' + aplDate(e.made) : '']
     : ty === 'speed' ? ['pair work', '2 teams · 16 tiles · 3 min', e.made ? 'made ' + aplDate(e.made) : '']
     : ty === 'paper' ? [(e.o && (e.o.kind === 'rd' || e.o.kind === 'ls') ? e.items + ' section' + (e.items > 1 ? 's' : '') : e.items + ' question' + (e.items > 1 ? 's' : '')), e.o && e.o.mk ? e.o.mk + ' marks' : '', (e.o && e.o.kind === 'ls' ? 'no time limit' : (e.o && e.o.kind === 'rd' ? 'timed ' : 'whole process ') + Math.round((e.s || 0) / 60) + ' min'), e.made ? 'made ' + aplDate(e.made) : '']
     : [(e.items || '?') + ' items', e.q === 'draw' ? 'own draw · ' + e.v + ' versions' : 'same questions', e.made ? 'made ' + aplDate(e.made) : '', e.builtin ? 'built into this page' : ''];
@@ -2867,7 +2875,7 @@ function aplDraw() {
   var vis = APL.type === 'all' ? shown : shown.filter(function (x) { return x.ty === APL.type; });
   h += '<div class="apl-head"><div><div class="apl-crumb">' + crumb + '</div><h1 class="apl-h1">' + title + '</h1></div><div class="apl-chips" role="group" aria-label="Show">'
     + '<button type="button" class="apl-chip' + (APL.type === 'all' ? ' on' : '') + '" data-ty="all">All ' + shown.length + '</button>'
-    + ['set', 'spot', 'paper', 'speed', 'oral'].filter(function (t) { return tcount[t]; }).map(function (t) { return '<button type="button" class="apl-chip' + (APL.type === t ? ' on' : '') + '" data-ty="' + t + '">' + APL_TC[t] + ' ' + tcount[t] + '</button>'; }).join('') + '</div></div>';
+    + ['set', 'spot', 'paper', 'speed', 'drill', 'oral'].filter(function (t) { return tcount[t]; }).map(function (t) { return '<button type="button" class="apl-chip' + (APL.type === t ? ' on' : '') + '" data-ty="' + t + '">' + APL_TC[t] + ' ' + tcount[t] + '</button>'; }).join('') + '</div></div>';
   if (!vis.length) h += '<div class="apl-empty">' + (q ? 'Nothing matches. Try part of a code (STF1), a set (VV11b) or a topic (Gr EWs).' : APL.arch ? 'Nothing archived yet.' : 'No tests here yet. Make one in an app with ⏱ AP Spot Test: timed &amp; submitted, then 🔑 Teacher: make a test link.') + '</div>';
   else if (q || APL.cls || APL.arch) {   // results: grouped by course › topic
     var by = {}, keys = []; vis.sort(function (a, b) { return b.made.localeCompare(a.made) || b.ord - a.ord; }).forEach(function (x) { var k = x.co + ' › ' + x.tp; if (!by[k]) { by[k] = []; keys.push(k); } by[k].push(x); });
