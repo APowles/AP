@@ -3,7 +3,7 @@
 <script id="ap-update">
 /* AP auto-update: if this copy is older than the published version, reload once with the new one (saved answers are kept) */
 (function () {
-  var B = 'b5b97190a5'; window.AP_BUILD = B;
+  var B = '26208bb311'; window.AP_BUILD = B;
   function check() {
     if (!/^https?:$/.test(location.protocol) || !window.fetch) return;
     var f = decodeURIComponent(location.pathname.split('/').pop() || '');
@@ -2090,7 +2090,7 @@ var APMP = (function () {
   function answer(s) { s = String(s == null ? '' : s); return s.replace(/\s+/g, '') === '' ? '<span class="apmp-blank">(no answer)</span>' : '<span class="apmp-yours">' + esc(s).replace(/\n/g, '<br>') + '</span>'; }
   function circle(got, max, partial, raw) {
     // AP: every main mark is shown out of 20; the actual mark and the percentage go underneath
-    var rm = /^\s*([\d.]+)\s*\/\s*([\d.]+)/.exec(raw || ''), pct = rm && +rm[2] ? Math.round(rm[1] / rm[2] * 100) : max ? Math.round(got / max * 100) : 0, g20 = max ? Math.round(got / max * 200) / 10 : 0;   // the % from the actual marks when given
+    var rm = /^\s*([\d.]+)\s*\/\s*([\d.]+)/.exec(raw || ''), pct = rm && +rm[2] ? Math.round(rm[1] / rm[2] * 100) : max ? Math.round(got / max * 100) : 0, g20 = max ? Math.round(got / max * 20) : 0;   // the % from the actual marks when given
     return '<div class="apmp-score"><div class="apmp-ring"><div class="apmp-frac"><b>' + g20 + '</b><span>/20</span></div><div class="apmp-pct">' + (raw ? raw + ' &middot; ' : max !== 20 ? got + ' / ' + max + ' &middot; ' : '') + pct + '%</div></div>'
       + (partial ? '<div class="apmp-part">marked so far</div>' : '') + '</div>';
   }
@@ -3385,7 +3385,7 @@ var APTT = (function () {
     }).join('');
     return '<svg' + (cls ? ' class="' + cls + '"' : '') + ' xmlns="http://www.w3.org/2000/svg" viewBox="' + x0 + ' ' + y0 + ' ' + (x1 - x0) + ' ' + (y1 - y0) + '" role="img" aria-label="AP’s comment"><path d="' + d + '" fill="none" stroke="#c0392b" stroke-width="' + (c.w || 4) + '" stroke-linecap="round" stroke-linejoin="round"/></svg>';
   }
-  function cmFor() { var r = sum(), T = S.m.total || 20; return cmPick(r.score / T * 20, S.key); }
+  function cmFor() { var r = sum(), T = S.m.total || 20; return cmPick(Math.round(r.score / T * 20), S.key); }
   // verb apps: what the test was on, from the items actually drawn ({verb:{inf,tense}, personIdx} or {inf:{inf}})
   function verbDetail(items, tn, o) {
     o = o || {}; var T = [], V = [];
@@ -6879,4 +6879,194 @@ window.addEventListener('keydown', function (e) {
 </div>
 
 
+<script id="apdrill">
+/* ===== AP DRILL LINKS v1: AP sets a drill (the selection made on screen) as a signed link / code that takes the boys straight into it. No timer, nothing logged. Needs AP TT (APTT) on the page and the app's adapter below. ===== */
+(function () {
+  'use strict';
+  if (window.APDL) return;
+  var AD = null;         // the app's adapter: { app, lang, prefix, cat, ready(), visible(), capture() -> {cfg,title}, apply(cfg) }
+  var SET = null;        // the set drill this page was opened from { o, code, view }
+  function $(id) { return document.getElementById(id); }
+  function esc(s) { return String(s == null ? '' : s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;'); }
+  function lsGet(k) { try { return localStorage.getItem(k) || ''; } catch (e) { return ''; } }
+  function pageName() { try { return decodeURIComponent(String(location.pathname).split('/').pop() || ''); } catch (e) { return ''; } }
+  function canSign() { return !!(lsGet('apTeacherKey') && window.APTT && APTT.pack); }
+  function plain(s) { return String(s == null ? '' : s).replace(/<[^>]*>/g, ''); }
+  function hash32(s) { var h = 0x811c9dc5; s = String(s); for (var i = 0; i < s.length; i++) { h ^= s.charCodeAt(i); h = Math.imul(h, 16777619); } return (h >>> 0).toString(36); }
+
+  // ── AP's side: a small button on the drill's set-up screen (only with AP's teacher key on the device) ──
+  var BTN = null;
+  function css() {
+    if ($('apdl-css')) return;
+    var st = document.createElement('style'); st.id = 'apdl-css';
+    st.textContent = '.apdl-btn{position:fixed;left:12px;bottom:12px;z-index:9000;background:#fff;color:#1a2744;border:1.5px dashed #1a2744;border-radius:10px;padding:8px 12px;font:700 .8rem/1.2 var(--aph-body,system-ui,sans-serif);cursor:pointer;box-shadow:0 3px 12px rgba(0,0,0,.2);min-height:40px}'
+      + '.apdl-bar{position:fixed;top:0;left:0;right:0;z-index:9500;background:#1a2744;color:#fff;display:flex;align-items:center;gap:10px;padding:6px 12px;font:600 .9rem/1.25 var(--aph-body,system-ui,sans-serif)}'
+      + '.apdl-bar b{color:#ffd76a}.apdl-bar span{flex:1;min-width:0}.apdl-bar button{flex:none;background:transparent;color:#fff;border:1.5px solid #ffd76a;border-radius:8px;padding:5px 10px;font:700 .8rem var(--aph-body,sans-serif);cursor:pointer}'
+      + 'body.apdl-on{padding-top:44px}';
+    document.head.appendChild(st);
+  }
+  function tick() {
+    var want = false;
+    try { want = !!(AD && !SET && canSign() && AD.visible()); } catch (e) { }
+    if (want && !BTN) {
+      css(); BTN = document.createElement('button'); BTN.type = 'button'; BTN.className = 'apdl-btn aph-noprint'; BTN.id = 'apdl-btn';
+      BTN.innerHTML = '🔑 Teacher: set this drill as an EW (link / code)'; BTN.onclick = make; document.body.appendChild(BTN);
+    } else if (!want && BTN) { BTN.remove(); BTN = null; }
+  }
+  function make() {
+    if (!AD || !canSign()) return;
+    var info = null; try { info = AD.capture(); } catch (e) { info = null; }
+    if (!info || !info.cfg) { alert(info && info.why ? info.why : 'Set up the drill first (what you want the boys to drill), then tap this button.'); return; }
+    var d = $('apdl-mk'); if (d) d.remove();
+    var cats = (window.APTT && APTT.CATS) || [], name = info.title, ct0 = AD.cat;
+    d = document.createElement('div'); d.id = 'apdl-mk'; d.className = 'aptt-mkov';
+    d.innerHTML = '<div class="aptt-mkbox" role="dialog" aria-modal="true"><div class="aptt-mkh">🎯 Set this drill as an EW</div>'
+      + '<div class="aptt-mks">' + esc(info.title) + '</div>'
+      + '<div class="aptt-mkhint" style="margin:0 0 6px">The boys open the link (or type the code on the AP Tests page) and go <b>straight into this drill</b> with exactly this selection. No timer is added and nothing is logged: it is the normal drill.</div>'
+      + '<label>Name (for your list; the boys see it at the top)</label><input id="apdl-mk-n" type="text" value="' + esc(name) + '">'
+      + '<label>Library heading</label><select id="apdl-mk-cat">' + (cats.indexOf(ct0) < 0 ? [ct0].concat(cats) : cats).map(function (x) { return '<option' + (x === ct0 ? ' selected' : '') + '>' + esc(x) + '</option>'; }).join('') + '</select>'
+      + '<label>Folder inside it (optional: e.g. C Block Set 2, Autumn 2026)</label><input id="apdl-mk-f" type="text" list="apdl-mk-fl" maxlength="40" placeholder="none"><datalist id="apdl-mk-fl">' + ((APTT.folders && APTT.folders()) || []).map(function (x) { return '<option value="' + esc(x) + '">'; }).join('') + '</datalist>'
+      + '<label>Code (for the AP Tests page: the next free number is filled in' + (APTT.gkey && APTT.gkey() ? '; it is added automatically' : '') + ')</label><input id="apdl-mk-c" type="text" placeholder="e.g. ' + esc(AD.prefix) + '101" autocapitalize="characters" maxlength="12">'
+      + '<div class="aptt-mkact"><button type="button" class="aph-btn" id="apdl-mk-x">Close</button><button type="button" class="aph-btn aph-btn-primary" id="apdl-mk-go">🔗 Make link</button></div>'
+      + '<div id="apdl-mk-out"></div></div>';
+    document.body.appendChild(d);
+    $('apdl-mk-x').onclick = function () { d.remove(); };
+    if (APTT.nextCodeFor) APTT.nextCodeFor(AD.prefix, function (c) { var i = $('apdl-mk-c'); if (i && !i.dataset.typed) i.value = c; });
+    $('apdl-mk-c').addEventListener('input', function () { this.dataset.typed = '1'; });
+    $('apdl-mk-go').onclick = function () {
+      var b = this, code = $('apdl-mk-c').value.replace(/\s+/g, '').toUpperCase(), nm = $('apdl-mk-n').value.trim() || name, ct = $('apdl-mk-cat').value, fol = $('apdl-mk-f').value.replace(/\|/g, '/').trim();
+      if (!pageName()) { alert('This page has no file name, so a link cannot be made from it.'); return; }
+      b.disabled = true; b.textContent = 'Making…';
+      var made = new Date().toISOString().slice(0, 10);
+      var o = { v: 1, kind: 'drill', n: nm, c: code, a: AD.app, t: info.title, l: AD.lang, p: pageName(), cfg: info.cfg, s: 0, q: 'same', id: 'drill|' + pageName() + '|' + hash32(JSON.stringify(info.cfg)), cat: ct, f: fol, made: made };
+      APTT.pack(o).then(function (tok) {
+        var link = APTT.linkFor(tok), line = (code || AD.prefix + '???') + ' | ' + nm.replace(/\|/g, '/') + ' | ' + ct + ' | ' + fol + ' | ' + tok;
+        if (APTT.listAdd) APTT.listAdd({ n: nm, c: code, cat: ct, f: fol, made: made, s: 0, q: 'same', v: 1, items: 0, t: info.title, lv: '', app: AD.app, tok: tok });
+        var out = $('apdl-mk-out');
+        out.innerHTML = '<div class="aptt-mkok">✅ Link made. It is also saved in your list on the AP Tests page.</div>'
+          + '<label>Link for OneNote / Teams</label><div class="aptt-mkrow"><div class="aptt-mklink">🔗 <a href="' + esc(link) + '" target="_blank" rel="noopener">' + esc(nm + (code ? ' (' + code + ')' : '')) + '</a></div><button type="button" class="aph-btn aph-btn-primary">📋 Copy link</button></div>'
+          + '<div class="aptt-mkhint">Pastes as the name above, with the long address hidden inside it.</div>'
+          + '<label>Line for tests.txt (for a code)</label><div class="aptt-mkrow"><input readonly value="' + esc(line) + '"><button type="button" class="aph-btn">📋 Copy line</button></div>';
+        var rows = out.querySelectorAll('.aptt-mkrow');
+        rows[0].querySelector('button').onclick = function () { APTT.copyLink(nm + (code ? ' (' + code + ')' : ''), link, this); };
+        rows[1].querySelector('button').onclick = function () { APTT.copy(line, this); };
+        b.textContent = '✓ Made'; b.style.display = 'none';
+        var cx = $('apdl-mk-x'); cx.textContent = '✓ Close'; cx.className = 'aph-btn aph-btn-primary';
+        if (code && APTT.gkey && APTT.gkey() && APTT.ghAdd) {
+          var st = document.createElement('div'); st.className = 'aptt-mkgh'; st.textContent = '⏳ Adding code ' + code + ' to the AP Tests page…'; out.insertBefore(st, out.children[1]);
+          APTT.ghAdd(code, line).then(function () {
+            st.className = 'aptt-mkgh ok'; st.innerHTML = '✅ Code <b>' + esc(code) + '</b> added. Boys can type it on the AP Tests page in about a minute.<br><span style="font-weight:600">Nothing else to do: you can close this box. It is in your Test Library under ' + esc(ct) + '.</span>';
+            if (rows[1]) { rows[1].style.display = 'none'; if (rows[1].previousElementSibling) rows[1].previousElementSibling.style.display = 'none'; }
+          }).catch(function (e) { st.className = 'aptt-mkgh bad'; st.innerHTML = e && e.message === 'used' ? '⚠️ Code <b>' + esc(code) + '</b> is already taken. Change the code and make the link again.' : '⚠️ The code could not be added automatically (' + esc(e && e.message || e) + '). Use Copy line and add it to tests.txt.'; });
+        }
+      }).catch(function (e) { b.disabled = false; b.textContent = '🔗 Make link'; alert('Sorry, the link could not be made (' + (e && e.message || e) + '). Is your teacher key set on this device?'); });
+    };
+  }
+
+  // ── the boy's side: #drt=<signed drill>&c=<code> (a 👁 view from AP Tests is #drv=) ──
+  function fail() {
+    var x = document.createElement('div'); x.id = 'apdl-bad';
+    x.style.cssText = 'position:fixed;inset:0;z-index:12600;display:flex;align-items:center;justify-content:center;padding:16px;background:rgba(11,18,38,.8);font-family:var(--aph-body,system-ui,sans-serif)';
+    x.innerHTML = '<div style="background:#fff;border-radius:16px;max-width:520px;width:100%;padding:22px 20px;text-align:center;color:#1a2744"><div style="font:800 1.3rem/1.2 var(--aph-display,Georgia,serif);margin:0 0 10px">This drill link does not work</div><div>The link was not made by AP, or it has been changed, or this page has been updated. Ask AP for the link again, or type the code on the AP Tests page.</div><div style="margin-top:14px"><button type="button" style="border:0;border-radius:10px;background:#1a2744;color:#fff;font:700 1rem var(--aph-body,sans-serif);padding:11px 18px;cursor:pointer">Close</button></div></div>';
+    document.body.appendChild(x); x.querySelector('button').onclick = function () { x.remove(); };
+  }
+  function bar() {
+    css(); var b = $('apdl-bar'); if (b) b.remove();
+    b = document.createElement('div'); b.id = 'apdl-bar'; b.className = 'apdl-bar aph-noprint';
+    b.innerHTML = '<span>' + (SET.view ? '👁 <b>VIEW</b>: what the boys see' : '📌 <b>Drill set by AP</b>') + (SET.code ? ' (' + esc(SET.code) + ')' : '') + ': ' + esc(plain(SET.o.t || SET.o.n)) + '</span><button type="button">✕ Free practice</button>';
+    document.body.appendChild(b); document.body.classList.add('apdl-on');
+    b.querySelector('button').onclick = function () { location.href = String(location.href).replace(/[#?].*$/, ''); };
+  }
+  function boot() {
+    var m = /^#dr([tv])=([^&]+)(?:&c=([^&]*))?/.exec(location.hash || ''); if (!m || SET || !AD) return;
+    if (!window.APTT || !APTT.unpack) { fail(); return; }
+    APTT.unpack(decodeURIComponent(m[2])).then(function (o) {
+      if (o.kind !== 'drill' || !o.cfg) throw new Error('bad');
+      var code = ''; try { code = decodeURIComponent(m[3] || ''); } catch (e) { }
+      SET = { o: o, code: code || o.c || '', view: m[1] === 'v' };
+      var tries = 0;
+      (function go() {   // the page may still be loading its data: try for a few seconds
+        var ok = false; try { ok = !AD.ready || AD.ready(); } catch (e) { ok = false; }
+        if (!ok && ++tries < 40) { setTimeout(go, 250); return; }
+        var res = false; try { res = AD.apply(o.cfg); } catch (e) { res = false; }
+        if (res === false) { SET = null; fail(); return; }
+        bar(); try { document.title = (SET.view ? '👁 ' : '') + 'AP Drill · ' + plain(o.t || o.n); } catch (e) { }
+      })();
+    }).catch(function () { SET = null; fail(); });
+  }
+  function register(a) {
+    AD = a;
+    setInterval(tick, 800);
+    if (document.readyState === 'complete') setTimeout(boot, 0); else window.addEventListener('load', function () { setTimeout(boot, 0); });
+    window.addEventListener('hashchange', function () { if (/^#dr[tv]=/.test(location.hash)) boot(); });
+  }
+  window.APDL = { register: register, make: make, state: function () { return SET; } };
+})();
+/* ===== END AP DRILL LINKS ===== */
+
+/* ===== AP DRILL LINKS: IGCSE Approved Material / Practice Sentences adapter ===== */
+(function () {
+  function $(i) { return document.getElementById(i); }
+  var LN = { fr: 'French', it: 'Italian', es: 'Spanish', en: 'English' }, LT = { French: 'F', Spanish: 'S', Italian: 'I' };
+  function lang() { try { var f = $('intro-from').value, t = $('intro-to').value; return ['fr', 'it', 'es'].indexOf(t) >= 0 ? LN[t] : (['fr', 'it', 'es'].indexOf(f) >= 0 ? LN[f] : 'French'); } catch (e) { return 'French'; } }
+  function modalOpen() { var m = document.querySelectorAll('.am-modal'); for (var i = 0; i < m.length; i++) if (getComputedStyle(m[i]).display !== 'none') return true; return false; }
+  function syncFromDom() {   // exactly what Start Drill does first
+    var s = $('intro-section'), sub = $('intro-subsection'), f = $('intro-from'), t = $('intro-to');
+    if (s) currentSection = s.value; if (sub) currentSubsection = sub.value; if (f) fromLang = f.value; if (t) toLang = t.value;
+  }
+  APDL.register({
+    app: 'AP IGCSE Approved Material',
+    get lang() { return lang(); },
+    get prefix() { return 'DR' + LT[lang()]; },
+    get cat() { return 'IGCSE ' + lang() + ' ▸ Drills'; },
+    ready: function () { return typeof amData !== 'undefined' && typeof allData !== 'undefined' && typeof amSwitchSet === 'function' && typeof introStartDrill === 'function' && $('drillContainer'); },
+    visible: function () {
+      var ic = document.querySelector('#drillContainer .intro-card'), p = $('amTestPanel');
+      if (!ic || !$('intro-section')) return false;
+      return !((p && getComputedStyle(p).display !== 'none') || modalOpen() || $('apvoc-overlay') || $('apst-overlay'));
+    },
+    capture: function () {
+      syncFromDom();
+      var pool = getPool();
+      if (!pool.length) return { why: 'No phrases are selected. Choose the section / topic first.' };
+      var cfg = { set: amSet, f: fromLang, t: toLang, sec: currentSection, sub: currentSubsection, mt: currentSection === '__MULTI__' ? amMultiTopics.slice() : [], n: _selectedCount, tm: timerSeconds, au: isAutotime ? 1 : 0 };
+      var lab = getSectionLabel(currentSection) + (currentSubsection !== 'all' && currentSection !== '__MULTI__' ? ': ' + currentSubsection : '');
+      if (lab.length > 70) lab = lab.slice(0, 68) + '…';
+      var cnt = cfg.n === -1 ? pool.length : Math.min(cfg.n, pool.length);
+      return { cfg: cfg, title: amSetName() + ': ' + lab + ' · ' + LN[fromLang] + ' → ' + LN[toLang] + ' · ' + cnt + ' cards' };
+    },
+    apply: function (c) {
+      if (!c || (c.set !== 'am' && c.set !== 'ps')) return false;
+      if ([10, 20, 30, 50, -1].indexOf(c.n) < 0) return false;
+      var tm = Math.round(+c.tm); if (!(tm >= 5 && tm <= (c.set === 'am' ? 60 : 30))) return false;
+      if (typeof c.sec !== 'string' || typeof c.sub !== 'string') return false;
+      amSwitchSet(c.set);
+      var L = amSetLangs(); if (L.indexOf(c.f) < 0 || L.indexOf(c.t) < 0 || c.f === c.t) return false;
+      var D = DATA(), secs = D.map(function (d) { return d.section_en; }), subs = D.map(function (d) { return d.subsection_en; });
+      var mt = [];
+      if (c.sec === '__MULTI__') {
+        if (!Array.isArray(c.mt) || !c.mt.length) return false;
+        for (var i = 0; i < c.mt.length; i++) { if (typeof c.mt[i] !== 'string' || subs.indexOf(c.mt[i]) < 0) return false; mt.push(c.mt[i]); }
+      } else if (c.sec !== '__ALL__') {
+        if (/^__[A-E]__$/.test(c.sec)) { if (!secs.some(function (s) { var u = s.toUpperCase(), l = c.sec.slice(2, -2); return u.indexOf(l + ':') === 0 || u.indexOf(l + ' :') === 0; })) return false; }
+        else if (secs.indexOf(c.sec) < 0) return false;
+      }
+      fromLang = c.f; toLang = c.t; amMultiTopics = mt; currentSection = c.sec; currentSubsection = 'all';
+      if (c.sub !== 'all' && c.sec !== '__MULTI__') {
+        var hit = D.filter(function (d) { return normTopic(d.subsection_en) === normTopic(c.sub); });
+        if (!hit.length) return false; currentSubsection = hit[0].subsection_en;
+      }
+      _selectedCount = c.n; timerSeconds = tm;
+      if (!!isAutotime !== !!c.au) toggleAutotime();
+      renderIntro();
+      // the set-up screen now shows exactly this selection; Start Drill reads it back
+      if ($('intro-section').value !== currentSection || $('intro-subsection').value !== currentSubsection) return false;
+      if (!getPool().length) return false;
+      introStartDrill();
+    }
+  });
+})();
+/* ===== END ===== */
+
+</script>
 </body></html>
