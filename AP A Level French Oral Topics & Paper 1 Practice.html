@@ -3,7 +3,7 @@
 <script id="ap-update">
 /* AP auto-update: if this copy is older than the published version, reload once with the new one (saved answers are kept) */
 (function () {
-  var B = '1486ffbeaf'; window.AP_BUILD = B;
+  var B = '69af882d36'; window.AP_BUILD = B;
   function check() {
     if (!/^https?:$/.test(location.protocol) || !window.fetch) return;
     var f = decodeURIComponent(location.pathname.split('/').pop() || '');
@@ -12626,6 +12626,14 @@ h1,h2,h3{text-wrap:balance;margin:0}
 
 /* story */
 .story{margin-top:18px;display:flex;flex-direction:column;gap:12px}
+.svb-x{margin-top:28px;font-size:.85rem;opacity:.55}
+#svbig{position:fixed;inset:0;z-index:9000;display:flex;align-items:center;justify-content:center;padding:6vw;background:rgba(14,22,42,.96);color:#fff;opacity:0;transform:scale(.96);transition:opacity .35s,transform .35s;cursor:pointer;text-align:center}
+#svbig.in{opacity:1;transform:none}
+.svb{max-width:1100px}
+.svb-fr{font-family:'Playfair Display',Georgia,serif;font-size:clamp(1.6rem,4.2vw,3.2rem);line-height:1.35;opacity:.55;transition:opacity .3s}
+.svb-fr.cur,.svb-fr:only-of-type{opacity:1}
+.svb-en{margin-top:28px;font-size:clamp(1.2rem,2.8vw,2.1rem);line-height:1.4;color:#f2d38a;opacity:.5;transition:opacity .3s}
+.svb-en.cur{opacity:1}
 .para.now{outline:3px solid var(--gold);background:#fffaf0}
 .svbar{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin:10px 0 12px}
 .svbar .seg{display:inline-flex;border:1.5px solid var(--line);border-radius:999px;overflow:hidden}
@@ -12866,21 +12874,29 @@ let ENV=null;
 function pickEn(){try{const v=speechSynthesis.getVoices().filter(x=>/^en[-_]GB/i.test(x.lang)||/^en/i.test(x.lang));
   ENV=v.find(x=>/en[-_]GB/i.test(x.lang)&&/natural|online/i.test(x.name))||v.find(x=>/en[-_]GB/i.test(x.lang))||v[0]||null}catch(e){}}
 try{const _ov=speechSynthesis.onvoiceschanged;speechSynthesis.onvoiceschanged=function(){pickVoice();pickEn()};pickEn()}catch(e){}
-let SV={mode:'fr',auto:true,tok:0,playing:false};
-try{const q=JSON.parse(localStorage.getItem('ktr-story-voice')||'null');if(q){SV.mode=q.mode||'fr';SV.auto=q.auto!==false}}catch(e){}
-function svSave(){try{localStorage.setItem('ktr-story-voice',JSON.stringify({mode:SV.mode,auto:SV.auto}))}catch(e){}}
-function svStop(){SV.tok++;SV.playing=false;try{speechSynthesis.cancel()}catch(e){};document.querySelectorAll('.para.now').forEach(e=>e.classList.remove('now'))}
+let SV={mode:'fr',auto:true,big:true,tok:0,playing:false};
+try{const q=JSON.parse(localStorage.getItem('ktr-story-voice')||'null');if(q){SV.mode=q.mode||'fr';SV.auto=q.auto!==false;SV.big=q.big!==false}}catch(e){}
+function svSave(){try{localStorage.setItem('ktr-story-voice',JSON.stringify({mode:SV.mode,auto:SV.auto,big:SV.big}))}catch(e){}}
+function svDismiss(){SV.dis=true;svBigHide()}
+function svBigShow(it){if(!SV.big||SV.dis||!it.p)return;let o=document.getElementById('svbig');
+  if(!o){o=document.createElement('div');o.id='svbig';o.onclick=svDismiss;document.body.appendChild(o);requestAnimationFrame(()=>o.classList.add('in'))}
+  const en=SV.mode!=='fr';
+  o.innerHTML=`<div class="svb"><div class="svb-fr${it.l==='fr-FR'?' cur':''}">${esc(it.p.fr)}</div>${en?`<div class="svb-en${it.l==='en-GB'?' cur':''}">${esc(it.p.en)}</div>`:''}<div class="svb-x">Click or press Esc to shrink</div></div>`}
+function svBigHide(){const o=document.getElementById('svbig');if(!o)return;o.classList.remove('in');setTimeout(()=>{if(o.parentNode&&!o.classList.contains('in'))o.remove()},400)}
+function svToggleBig(){SV.big=!SV.big;svSave();if(!SV.big)svBigHide();render()}
+document.addEventListener('keydown',e=>{if(e.key==='Escape')svDismiss()});
+function svStop(){svBigHide();SV.tok++;SV.playing=false;try{speechSynthesis.cancel()}catch(e){};document.querySelectorAll('.para.now').forEach(e=>e.classList.remove('now'))}
 function svUtts(p){const a=[];
-  if(SV.mode!=='en')a.push({t:ttsText(p.fr),l:'fr-FR'});
-  if(SV.mode!=='fr')a.push({t:p.en.replace(/\*/g,''),l:'en-GB'});
+  if(SV.mode!=='en')a.push({t:ttsText(p.fr),l:'fr-FR',p});
+  if(SV.mode!=='fr')a.push({t:p.en.replace(/\*/g,''),l:'en-GB',p});
   return a}
 function svSpeak(list,gap,onItem,done){
-  const tok=++SV.tok;try{speechSynthesis.cancel()}catch(e){}
+  const tok=++SV.tok;SV.dis=false;try{speechSynthesis.cancel()}catch(e){}
   let i=0;
   (function next(){
     if(tok!==SV.tok)return;
-    if(i>=list.length){if(done)done();return}
-    const it=list[i++];if(onItem)onItem(it);
+    if(i>=list.length){setTimeout(()=>{if(tok===SV.tok)svBigHide()},700);if(done)done();return}
+    const it=list[i++];svBigShow(it);if(onItem)onItem(it);
     const u=new SpeechSynthesisUtterance(it.t);u.lang=it.l;
     if(it.l==='fr-FR'){if(VOICE)u.voice=VOICE}else{if(!ENV)pickEn();if(ENV)u.voice=ENV}
     u.rate=parseFloat($('rate').value)||0.9;
@@ -13133,7 +13149,7 @@ function vSub(){
   return `<div class="label">Theme ${s.theme} · Sub-theme ${s.subtheme}</div>
   <h1 class="h1">${esc(s.name)}</h1>
   <h2 class="h2" style="margin-top:14px;font-weight:600">${FL({fr:st.title_fr,en:st.title_en})}</h2>
-  <div class="svbar"><span class="seg" role="group" aria-label="Voice language"><button class="${SV.mode==='fr'?'on':''}" onclick="svSetMode('fr')">🔊 Français</button><button class="${SV.mode==='en'?'on':''}" onclick="svSetMode('en')">🔊 English</button><button class="${SV.mode==='both'?'on':''}" onclick="svSetMode('both')">🔊 Both</button></span><button class="spbtn" onclick="svToggleAuto()" title="Read each new paragraph aloud automatically">${SV.auto?'☑':'☐'} Auto-play</button><button class="spbtn" id="sv-play" onclick="svPlayAll()">${SV.playing?'■ Stop':'▶ Play the whole story'}</button></div>
+  <div class="svbar"><span class="seg" role="group" aria-label="Voice language"><button class="${SV.mode==='fr'?'on':''}" onclick="svSetMode('fr')">🔊 Français</button><button class="${SV.mode==='en'?'on':''}" onclick="svSetMode('en')">🔊 English</button><button class="${SV.mode==='both'?'on':''}" onclick="svSetMode('both')">🔊 Both</button></span><button class="spbtn" onclick="svToggleAuto()" title="Read each new paragraph aloud automatically">${SV.auto?'☑':'☐'} Auto-play</button><button class="spbtn" onclick="svToggleBig()" title="Show the phrase in large type while it is read">${SV.big?'☑':'☐'} Large text while playing</button><button class="spbtn" id="sv-play" onclick="svPlayAll()">${SV.playing?'■ Stop':'▶ Play the whole story'}</button></div>
   <div class="story">${shown}</div>
   <div class="nav"><button class="spbtn" onclick="openSpeedNow([${s.ktrs.map(k=>k.n)}])">⚡ Speed session: this sub-theme</button>${spotHost()?`<button class="spbtn" onclick="openSpot([${s.ktrs.map(k=>k.n)}],'${esc(s.name).replace(/'/g,"\\'")}')">⏱ AP Timed Spot Test: this sub-theme</button>`:''}${more?`<button class="btn pri" onclick="svNext()">Continue the story</button>`:''}
     ${S.story>1?`<button class="btn" onclick="svShowAll()">Show all</button>`:''}</div>
