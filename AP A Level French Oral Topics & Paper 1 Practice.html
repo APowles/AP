@@ -3,7 +3,7 @@
 <script id="ap-update">
 /* AP auto-update: if this copy is older than the published version, reload once with the new one (saved answers are kept) */
 (function () {
-  var B = '33fc63d425'; window.AP_BUILD = B;
+  var B = 'df268d0f2a'; window.AP_BUILD = B;
   function check() {
     if (!/^https?:$/.test(location.protocol) || !window.fetch) return;
     var f = decodeURIComponent(location.pathname.split('/').pop() || '');
@@ -11543,7 +11543,7 @@ window.showPaper1 = renderP1List;
 .aporal-guide{background:#fdf6e3;border:1px solid #e6cf8f;border-radius:10px;padding:10px 12px;margin:12px 0}
 .aporal-guide-h{font-weight:800;margin:0 0 4px}.aporal-guide ol{margin:0;padding-left:1.3em}.aporal-guide li{margin:5px 0}
 .aporal-det{margin:8px 0;font-size:.9rem}.aporal-ul{margin:4px 0;padding-left:1.2em}
-.aporal-bar{position:fixed;top:0;left:0;right:0;z-index:12400;background:#b71c1c;color:#fff;display:flex;align-items:center;gap:10px;padding:6px 12px;font:700 .95rem var(--aph-body,sans-serif)}
+.aporal-bar{position:fixed;top:0;left:0;right:0;z-index:12400;background:#b71c1c;color:#fff;display:flex;align-items:center;gap:10px;flex-wrap:wrap;padding:6px 12px;font:700 .95rem var(--aph-body,sans-serif)}
 .aporal-dot{width:12px;height:12px;border-radius:50%;background:#fff;animation:aporalpulse 1s infinite}
 @keyframes aporalpulse{50%{opacity:.25}}
 .aporal-time{font-variant-numeric:tabular-nums;min-width:3.2em}
@@ -11597,11 +11597,16 @@ body.aporal-set [id$="_exambar"] button[onclick^="resetDeclaration"]{display:non
   function plain(s) { return String(s == null ? '' : s).replace(/<[^>]*>/g, ''); }
   function codeOf(card, choice) { var o = choice === 'A' ? 'B' : 'A'; return card['code' + choice] || (card['code' + o] ? card['code' + o] + '-' + choice : ''); }   // a card's other declaration has no code of its own: it is named by the card's code and its letter, e.g. FR002-B
 
+  // iPad Safari only lets a sound context start inside the tap itself, not after the microphone permission comes back, so one is made in the tap and kept for the meter
+  var PRE = null;
+  function primeCtx() {
+    try { var AC = window.AudioContext || window.webkitAudioContext; if (!AC) return; if (PRE) { try { PRE.close(); } catch (e) { } } PRE = new AC(); var r = PRE.resume(); if (r && r.catch) r.catch(function () { }); } catch (e) { PRE = null; }
+  }
   // ── level meter ──
   function meterOn(stream, fill, count) {
     var AC = window.AudioContext || window.webkitAudioContext, m = { peak: 0, loud: 0, n: 0 };
     try {
-      m.ctx = new AC(); try { m.ctx.resume(); } catch (e) { }
+      m.ctx = PRE || new AC(); PRE = null; try { var rp = m.ctx.resume(); if (rp && rp.catch) rp.catch(function () { }); } catch (e) { }
       var src = m.ctx.createMediaStreamSource(stream), an = m.ctx.createAnalyser();
       an.fftSize = 4096; src.connect(an);   // 4096 samples is about 85 ms of sound per reading, so the 100 ms checks do not miss short words
       m.src = src; m.an = an;   // keep both nodes referenced: a browser can otherwise discard a source that is not wired to the speakers, and the meter goes dead
@@ -11677,7 +11682,20 @@ body.aporal-set [id$="_exambar"] button[onclick^="resetDeclaration"]{display:non
     setHook(b);
   }
   function stopTest() { if (T) { meterOff(T.m); stopStream(T.stream); T = null; } }
+  function echoTest() {   // a sure check where the live bar cannot run (some iPads): record 4 seconds and play them back
+    var out = $('aporal-echo-out'), btn = $('aporal-echo'); if (!T || !T.stream || !out) return;
+    var ch = [], rec; try { var ty = pickType(); rec = ty ? new MediaRecorder(T.stream, { mimeType: ty }) : new MediaRecorder(T.stream); } catch (e) { out.textContent = ' Could not test here.'; return; }
+    rec.ondataavailable = function (ev) { if (ev.data && ev.data.size) ch.push(ev.data); };
+    rec.onstop = function () {
+      var bl = new Blob(ch, { type: rec.mimeType || 'audio/mp4' }), u = ''; try { u = URL.createObjectURL(bl); } catch (e) { }
+      out.innerHTML = u && bl.size > 1500 ? '<audio controls src="' + u + '" style="width:100%;margin-top:6px"></audio><div class="aporal-tmsg ok">Press play. If you hear your voice, the microphone works.</div>' : '<div class="aporal-bad">Nothing was recorded. Check Settings › Safari › Microphone, then reload the page.</div>';
+      if (btn) { btn.disabled = false; btn.textContent = '🎧 Record 4 seconds again'; }
+    };
+    if (btn) { btn.disabled = true; btn.textContent = '● Recording… say a few words'; }
+    out.textContent = ''; rec.start(); setTimeout(function () { try { rec.stop(); } catch (e) { } }, 4000);
+  }
   function testMic() {
+    primeCtx();
     stopTest();
     var msg = $('aporal-tmsg'), fill = $('aporal-tfill');
     navigator.mediaDevices.getUserMedia({ audio: AUDIO }).then(function (stream) {
@@ -11685,11 +11703,13 @@ body.aporal-set [id$="_exambar"] button[onclick^="resetDeclaration"]{display:non
       T = { stream: stream };
       T.m = meterOn(stream, function (v) { if (fill) fill.style.width = Math.round(v * 100) + '%'; if (msg && T && T.m && T.m.peak > 0.03) { msg.className = 'aporal-tmsg ok'; msg.innerHTML = '✓ I can hear you. The microphone works.'; } }, false);
       if (msg) { msg.className = 'aporal-tmsg'; msg.textContent = 'Listening… say a few words.'; }
+      setTimeout(function () { if (T && T.m && msg && !(T.m.peak > 0.03) && (!T.m.ctx || T.m.ctx.state !== 'running' || T.m.peak < 0.0005)) { msg.className = 'aporal-tmsg'; msg.innerHTML = 'The microphone is on, but this iPad is not showing the bar. Tap the button, say a few words for 4 seconds, then play it back to check.<br><button type="button" class="aph-btn" id="aporal-echo" style="margin-top:6px">🎧 Record 4 seconds and play back</button><span id="aporal-echo-out"></span>'; var eb = $('aporal-echo'); if (eb) eb.onclick = echoTest; } }, 3000);
     }).catch(function (e) { var er = $('aporal-err'); if (er) { er.style.display = ''; er.innerHTML = micError(e); } });
   }
 
   // ── step 2: recording (the exam simulation runs by itself, and the page records) ──
   function begin(uid, choice, name) {
+    primeCtx();
     var card = window['_ocard_' + uid], type = pickType();
     var reuse = T && T.stream && T.stream.active ? T.stream : null;
     var go = function (stream) {
@@ -11722,9 +11742,11 @@ body.aporal-set [id$="_exambar"] button[onclick^="resetDeclaration"]{display:non
     b.innerHTML = '<span class="aporal-dot"></span><b>REC</b><span id="aporal-time" class="aporal-time">0:00</span>'
       + '<div class="aporal-meter dark"><i id="aporal-bfill"></i></div>'
       + '<span class="aporal-mid">Card ' + esc(codeOf(R.card, R.choice)) + '</span>'
+      + '<button type="button" id="aporal-chk" class="aporal-stop" style="background:#ffd76a;color:#1a2744;margin-right:6px">■ Stop and check recording</button>'
       + '<button type="button" id="aporal-stop" class="aporal-stop">■ Stop and throw away</button>';
     document.body.appendChild(b);
     R.iv = setInterval(function () { var t = $('aporal-time'); if (t && R) t.textContent = mmss(elapsed()); }, 500);
+    $('aporal-chk').onclick = function () { finishEarly(); };
     $('aporal-stop').onclick = function () {
       if (!window.confirm('Stop now and throw this recording away?')) return;
       discard();
@@ -11750,6 +11772,14 @@ body.aporal-set [id$="_exambar"] button[onclick^="resetDeclaration"]{display:non
     var pn = uid && $(uid + '_examPanel'); if (pn) pn.remove();
     ['q1', 'q2'].forEach(function (q) { ['A', 'B'].forEach(function (c) { var el = uid && $(uid + '_' + c + q); if (el) { el.style.backgroundColor = ''; el.style.fontWeight = ''; el.style.fontStyle = ''; } }); });
     var rb = $('aporal-reopen'); if (rb) rb.remove();
+  }
+  // 'Stop and check recording': end the oral here and go straight to listening back (a quick check of the microphone and the sound)
+  function finishEarly() {
+    if (!R || !R.on) return;
+    var uid = R.uid; DEAD = Date.now() + 2500; R.early = true; stopExam(uid);
+    var pn = $(uid + '_examPanel'); if (pn) pn.remove();
+    ['q1', 'q2'].forEach(function (q) { ['A', 'B'].forEach(function (c) { var el = $(uid + '_' + c + q); if (el) { el.style.backgroundColor = ''; el.style.fontWeight = ''; el.style.fontStyle = ''; } }); });
+    finish();
   }
   // the second answer ended (called from the wrapped finishExamSim, after the exam's own finish has run)
   function finish() {
@@ -11777,6 +11807,7 @@ body.aporal-set [id$="_exambar"] button[onclick^="resetDeclaration"]{display:non
     if (!R) return;
     var fn = fileName();
     var b = box('<h3>✅ Recording finished <span class="aporal-len">' + mmss(R.dur) + '</span></h3>'
+      + (R.early ? '<div class="aporal-det" style="background:#fff8e1;border:1px solid #e6cf8f;border-radius:8px;padding:6px 10px">⏹ You stopped early, so this is only a <b>quick check</b>. Do the full oral for your real recording.</div>' : '')
       + (R.quiet ? '<div class="aporal-bad">⚠ I could hardly hear your voice on this recording. Listen to it below. If it is silent or very faint, check the microphone and <b>try again</b>.</div>' : '')
       + '<p class="aporal-step"><b>1 · Listen to it</b> (you will hear the examiner faintly, and you much louder)</p>'
       + (R.url ? '<audio controls preload="auto" src="' + esc(R.url) + '" class="aporal-audio"></audio>' : '<p class="aporal-bad">The recording could not be played here.</p>')
@@ -11794,7 +11825,7 @@ body.aporal-set [id$="_exambar"] button[onclick^="resetDeclaration"]{display:non
       + '<li>Check the page shows your PDF and your recording. <span class="aporal-ok">(Use the paper-clip for the <b>recording</b> only. The PDF goes in as a Printout.)</span></li></ol></div>'
       + '<div class="aporal-demo"><b>4 · Only when you have saved everything (optional)</b><br>Your answers must be completely different from the demo. If you want to, you can now <b>listen</b> to the Demo Mode answer for this declaration.'
       + '<div class="aporal-acts" style="justify-content:flex-start"><button type="button" class="aph-btn" id="aporal-demo">🎧 Listen to the demo</button></div></div>'
-      + '<details class="aporal-det"><summary>When each question starts</summary><ul class="aporal-ul"><li><b>Question 1</b> starts at ' + mmss(R.marks.q1 || 0) + '</li><li><b>Question 2</b> starts at ' + mmss(R.marks.q2 || 0) + '</li></ul></details>'
+      + '<details class="aporal-det"><summary>When each question starts</summary><ul class="aporal-ul"><li><b>Question 1</b> ' + (R.marks.q1 == null ? 'was not reached' : 'starts at ' + mmss(R.marks.q1)) + '</li><li><b>Question 2</b> ' + (R.marks.q2 == null ? 'was not reached' : 'starts at ' + mmss(R.marks.q2)) + '</li></ul></details>'
       + '<div class="aporal-acts"><button type="button" class="aph-btn" id="aporal-close">Close (your recording stays until you leave this page)</button></div>');
     $('aporal-close').onclick = closeBox;
     $('aporal-again').onclick = function () { if (!window.confirm('Throw this recording away and record again?')) return; var u = R.uid, c = R.choice; discard(); start(u, c); };
@@ -11829,7 +11860,7 @@ body.aporal-set [id$="_exambar"] button[onclick^="resetDeclaration"]{display:non
       function qrow(n, q, mark) {
         return '<div class="apmp-q"><div class="apmp-qh"><span class="apmp-qn">' + n + '</span><span class="apmp-qt">' + esc(q) + '</span></div>'
           + '<div class="apmp-row"><span class="apmp-lab">Aim for</span><div class="apmp-val">2 minutes</div></div>'
-          + '<div class="apmp-row"><span class="apmp-lab">On my recording</span><div class="apmp-val"><b>' + mmss(mark || 0) + '</b> (the examiner asks the question here)</div></div></div>';
+          + '<div class="apmp-row"><span class="apmp-lab">On my recording</span><div class="apmp-val">' + (mark == null ? 'not reached (recording stopped early)' : '<b>' + mmss(mark) + '</b> (the examiner asks the question here)') + '</div></div></div>';
       }
       return {
         app: 'AP A Level French Oral Topics', kicker: 'AP A Level French &middot; Oral practice &middot; recorded',
