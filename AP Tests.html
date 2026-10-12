@@ -5,7 +5,7 @@
 <script id="ap-update">
 /* AP auto-update: if this copy is older than the published version, reload once with the new one (saved answers are kept) */
 (function () {
-  var B = '55acfa3e2a'; window.AP_BUILD = B;
+  var B = '9ad36c584c'; window.AP_BUILD = B;
   function check() {
     if (!/^https?:$/.test(location.protocol) || !window.fetch) return;
     var f = decodeURIComponent(location.pathname.split('/').pop() || '');
@@ -2287,6 +2287,20 @@ function aptTeacher() {
   try { t.scrollIntoView({ behavior: 'smooth', block: 'start' }); } catch (e) { }
 }
 function aptKey() { try { return localStorage.getItem('apTeacherKey') || ''; } catch (e) { return ''; } }
+var APT_GUIDES = [
+  ['IGCSE guide (French, Italian, Spanish)', 'guides/igcse.html'],
+  ['A Level French guide', 'guides/a-level.html'],
+  ['F Block Spanish: start here (one page)', 'guides/f-spanish.html'],
+  ['Olly: sharpen your French and Italian (private)', 'guides/olly.html']
+];
+function aptGuideUrl(i) { return String(document.baseURI || location.href).replace(/[#?].*$/, '').replace(/[^\/]*$/, '') + APT_GUIDES[i][1]; }
+function aptGuidesHtml() {
+  return '<p>Always the latest version. Paste the link into OneNote or Teams.</p>' + APT_GUIDES.map(function (g, i) {
+    return '<div class="apt-acts" style="align-items:center"><span style="flex:1;min-width:180px;font-weight:600">' + g[0] + '</span>'
+      + '<a class="aph-btn" href="' + g[1] + '" target="_blank" rel="noopener" style="text-decoration:none">Open</a>'
+      + '<button class="aph-btn aph-btn-primary" type="button" onclick="APTT.copyLink(APT_GUIDES[' + i + '][0], aptGuideUrl(' + i + '), this)">📋 Copy link</button></div>';
+  }).join('');
+}
 function aptTRender() {
   var t = document.getElementById('apt-t');
   if (!aptKey()) {
@@ -2297,6 +2311,7 @@ function aptTRender() {
   }
   t.innerHTML = '<h3>📚 Test Library</h3><p>Every test you have made, sorted by course and type. To make a new one: set the test up in an app, tap <b>⏱ AP Spot Test: timed &amp; submitted</b>, then <b>🔑 Teacher: make a test link</b>.</p>'
     + '<div id="apt-lib" class="apt-acts"><button class="aph-btn aph-btn-primary" type="button" onclick="aplOpen()" style="font-size:1.05rem;padding:12px 18px">📚 Open the Test Library</button><span id="apl-count" style="align-self:center;color:#5b6478;font-weight:600">loading…</span></div>'
+    + '<h4>📖 Pupil guides (links to send)</h4>' + aptGuidesHtml()
     + '<h4>✍️ My handwritten comments</h4><div id="apt-cm"></div>'
     + '<h4>Automatic codes</h4>' + (aptGit() ? '<p>✅ GitHub key saved on this device: every new code is added to the AP Tests page by itself.</p><div class="apt-acts"><button class="aph-btn" type="button" onclick="aptGitForget()">Remove GitHub key</button></div>'
       : '<p>Save your GitHub key here once (on each device and browser) and every code you make is added to the AP Tests page by itself.</p><input class="apt-key" id="apt-git" type="password" autocomplete="new-password" name="apgit" placeholder="GitHub key (github_pat_…)"><div class="apt-acts"><button class="aph-btn aph-btn-primary" type="button" onclick="aptGitSave(this)">Save GitHub key</button></div>')
