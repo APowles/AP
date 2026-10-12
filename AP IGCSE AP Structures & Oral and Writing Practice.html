@@ -3,7 +3,7 @@
 <script id="ap-update">
 /* AP auto-update: if this copy is older than the published version, reload once with the new one (saved answers are kept) */
 (function () {
-  var B = '24fc597b77'; window.AP_BUILD = B;
+  var B = '2104fb6c84'; window.AP_BUILD = B;
   function check() {
     if (!/^https?:$/.test(location.protocol) || !window.fetch) return;
     var f = decodeURIComponent(location.pathname.split('/').pop() || '');
@@ -13219,14 +13219,17 @@ body.aporal-on #demo-all-struct-panel{display:none!important}
 
   // iPad Safari only lets a sound context start inside the tap itself, not after the microphone permission comes back, so one is made in the tap and kept for the meter
   var PRE = null;
+  var NOMETER = lsGet('aporalNoMeter') === '1';   // (a device can be set to have no live sound bar)
   function primeCtx() {
+    if (NOMETER) return;
     try { var AC = window.AudioContext || window.webkitAudioContext; if (!AC) return; if (PRE) { try { PRE.close(); } catch (e) { } } PRE = new AC(); var r = PRE.resume(); if (r && r.catch) r.catch(function () { }); } catch (e) { PRE = null; }
   }
   // ── level meter ──
-  function meterOn(stream, fill, count) {
+  function meterOn(stream, fill, count, ctx) {
     var AC = window.AudioContext || window.webkitAudioContext, m = { peak: 0, loud: 0, n: 0 };
+    if (NOMETER) { m.off = true; return m; }
     try {
-      m.ctx = PRE || new AC(); PRE = null; try { var rp = m.ctx.resume(); if (rp && rp.catch) rp.catch(function () { }); } catch (e) { }
+      m.ctx = ctx || PRE || new AC(); PRE = null; try { var rp = m.ctx.resume(); if (rp && rp.catch) rp.catch(function () { }); } catch (e) { }
       var src = m.ctx.createMediaStreamSource(stream), an = m.ctx.createAnalyser(); an.fftSize = 4096; src.connect(an);   // 4096 samples is about 85 ms of sound per reading, so the 100 ms checks do not miss short words
       m.src = src; m.an = an;   // keep both nodes referenced: Chrome and Safari can otherwise discard a source that is not wired to the speakers, and the meter goes dead
       var buf = new Float32Array(an.fftSize);
@@ -13234,7 +13237,7 @@ body.aporal-on #demo-all-struct-panel{display:none!important}
         try { an.getFloatTimeDomainData(buf); } catch (e) { return; }
         var s = 0, i; for (i = 0; i < buf.length; i++) s += buf[i] * buf[i];
         var r = Math.sqrt(s / buf.length);
-        if (fill) fill(Math.min(1, r * 6));
+        if (fill) fill(Math.min(1, r * 10));
         var talking = false; try { talking = !!(_synth && _synth.speaking); } catch (e) { }   // the examiner's voice does not count as the boy's
         if (count && !talking) { m.n++; if (r > m.peak) m.peak = r; if (r > 0.02) m.loud++; }
         else if (!count) { if (r > m.peak) m.peak = r; }
@@ -13285,7 +13288,7 @@ body.aporal-on #demo-all-struct-panel{display:none!important}
       + '<label class="aporal-lab" for="aporal-name">Your name</label>'
       + '<input id="aporal-name" class="aporal-in" type="text" autocomplete="name" autocapitalize="words" spellcheck="false" maxlength="60" placeholder="e.g. A. Smith">'
       + '<div class="aporal-test"><button type="button" class="aph-btn" id="aporal-test">🔈 Test my microphone</button>'
-      + '<div class="aporal-meter"><i id="aporal-tfill"></i></div><div id="aporal-tmsg" class="aporal-tmsg">Tap, then say a few words. The bar should move.</div></div>'
+      + '<div class="aporal-meter"><i id="aporal-tfill"></i></div><div id="aporal-tmsg" class="aporal-tmsg">'+(NOMETER ? 'Tap, say a few words, then play them back to check.' : 'Tap, then say a few words. The bar should move.')+'</div></div>'
       + '<div id="aporal-err" class="aporal-bad" style="display:none"></div>'
       + '<div class="aporal-acts"><button type="button" class="aph-btn" id="aporal-cancel">Cancel</button><button type="button" class="aph-btn aph-btn-primary" id="aporal-go">● Start recording</button></div>';
     var nm = $('aporal-name'); nm.value = lsGet('apStudentName');
@@ -13300,29 +13303,67 @@ body.aporal-on #demo-all-struct-panel{display:none!important}
     setHook(b);
   }
   function stopTest() { if (T) { meterOff(T.m); stopStream(T.stream); T = null; } }
-  function echoTest() {   // a sure check where the live bar cannot run (some iPads): record 4 seconds and play them back
+  function echoTest() {   // a sure check that needs no live bar: record 4 seconds and play them back
     var out = $('aporal-echo-out'), btn = $('aporal-echo'); if (!T || !T.stream || !out) return;
     var ch = [], rec; try { var ty = pickType(); rec = ty ? new MediaRecorder(T.stream, { mimeType: ty }) : new MediaRecorder(T.stream); } catch (e) { out.textContent = ' Could not test here.'; return; }
     rec.ondataavailable = function (ev) { if (ev.data && ev.data.size) ch.push(ev.data); };
     rec.onstop = function () {
       var bl = new Blob(ch, { type: rec.mimeType || 'audio/mp4' }), u = ''; try { u = URL.createObjectURL(bl); } catch (e) { }
-      out.innerHTML = u && bl.size > 1500 ? '<audio controls src="' + u + '" style="width:100%;margin-top:6px"></audio><div class="aporal-tmsg ok">Press play. If you hear your voice, the microphone works.</div>' : '<div class="aporal-bad">Nothing was recorded. Check Settings › Safari › Microphone, then reload the page.</div>';
+      out.innerHTML = u && bl.size > 1500 ? '<audio controls src="' + u + '" style="width:100%;margin-top:6px"></audio><div class="aporal-tmsg ok">Press play. If you hear your voice, the microphone works. If you hear nothing, tap the second button.</div><button type="button" class="aph-btn" id="aporal-alt" style="margin-top:4px">🔧 I hear nothing: try other settings</button>' : '<div class="aporal-bad">Nothing was recorded. Check Settings › your browser › Microphone, reload the page, then try again.</div><button type="button" class="aph-btn" id="aporal-alt" style="margin-top:4px">🔧 Try other settings</button>';
+      var al = $('aporal-alt'); if (al) al.onclick = function () { PLAIN = !PLAIN; lsSet('aporalPlain', PLAIN ? '1' : '0'); padTest(); };
       if (btn) { btn.disabled = false; btn.textContent = '🎧 Record 4 seconds again'; }
     };
     if (btn) { btn.disabled = true; btn.textContent = '● Recording… say a few words'; }
     out.textContent = ''; rec.start(); setTimeout(function () { try { rec.stop(); } catch (e) { } }, 4000);
   }
-  function testMic() {
-    primeCtx();
+  function padTest() {   // iPad: no live bar (it can silence or starve the recording there); the test is record 4 seconds, play back, and listen
     stopTest();
+    var msg = $('aporal-tmsg'); var fill = $('aporal-tfill'); if (fill) fill.style.width = '0';
+    navigator.mediaDevices.getUserMedia(micCons()).then(function (stream) {
+      if (!$('aporal-ov')) { stopStream(stream); return; }
+      T = { stream: stream, m: { off: true } };
+      if (msg) {
+        msg.className = 'aporal-tmsg';
+        msg.innerHTML = 'Say a few words now. After 4 seconds you can play them back.<br><button type="button" class="aph-btn" id="aporal-echo" style="margin-top:6px">🎧 Record 4 seconds again</button><span id="aporal-echo-out"></span><div style="font-size:.72rem;color:#8a93a8;margin-top:6px">' + esc(diag(stream, null)) + '</div>';
+        var eb = $('aporal-echo'); if (eb) eb.onclick = echoTest;
+      }
+      echoTest();
+    }).catch(function (e) { var er = $('aporal-err'); if (er) { er.style.display = ''; er.innerHTML = micError(e); } });
+  }
+  function plainDefault() { var v = lsGet('aporalPlain'); return v === '1' || (v !== '0' && isPad()); }
+  var PLAIN = plainDefault();   // iPads record very faintly when the microphone is opened with echo cancellation switched off, so there it is opened with the plain default settings (remembered per device)
+  function micCons() { return { audio: PLAIN ? true : AUDIO }; }
+  function diag(stream, m) {
+    try { var t = stream.getAudioTracks()[0], st = (t && t.getSettings) ? t.getSettings() : {}; return 'mic: ' + ((t && t.label) || 'unnamed') + ' · ' + (t ? t.readyState : '?') + (t && t.muted ? ' · MUTED' : '') + ' · sound ' + (m && m.ctx ? m.ctx.state + ' ' + m.ctx.sampleRate + ' Hz' : 'none') + ' · ' + (PLAIN ? 'plain' : 'custom') + ' settings'; } catch (e) { return ''; }
+  }
+  function testMic() { if (NOMETER) { PLAIN = plainDefault(); padTest(); return; } primeCtx(); stopTest(); PLAIN = plainDefault(); runTest(null, 0); }
+  function runTest(ctx, tries) {
     var msg = $('aporal-tmsg'), fill = $('aporal-tfill');
-    navigator.mediaDevices.getUserMedia({ audio: AUDIO }).then(function (stream) {
+    navigator.mediaDevices.getUserMedia(micCons()).then(function (stream) {
       if (!$('aporal-ov')) { stopStream(stream); return; }
       T = { stream: stream };
-      T.m = meterOn(stream, function (v) { if (fill) fill.style.width = Math.round(v * 100) + '%'; if (msg && T && T.m && T.m.peak > 0.03) { msg.className = 'aporal-tmsg ok'; msg.innerHTML = '✓ I can hear you. The microphone works.'; } }, false);
+      T.m = meterOn(stream, function (v) {
+        if (fill) fill.style.width = Math.round(v * 100) + '%';
+        if (msg && T && T.m && T.m.peak > 0.012) { msg.className = 'aporal-tmsg ok'; msg.innerHTML = '✓ I can hear you. The microphone works.'; lsSet('aporalPlain', PLAIN ? '1' : '0'); }
+      }, false, ctx);
       if (msg) { msg.className = 'aporal-tmsg'; msg.textContent = 'Listening… say a few words.'; }
-      setTimeout(function () { if (T && T.m && msg && !(T.m.peak > 0.03) && (!T.m.ctx || T.m.ctx.state !== 'running' || T.m.peak < 0.0005)) { msg.className = 'aporal-tmsg'; msg.innerHTML = 'The microphone is on, but this iPad is not showing the bar. Tap the button, say a few words for 4 seconds, then play it back to check.<br><button type="button" class="aph-btn" id="aporal-echo" style="margin-top:6px">🎧 Record 4 seconds and play back</button><span id="aporal-echo-out"></span>'; var eb = $('aporal-echo'); if (eb) eb.onclick = echoTest; } }, 3000);
+      setTimeout(function () { watch(tries); }, 3500);
     }).catch(function (e) { var er = $('aporal-err'); if (er) { er.style.display = ''; er.innerHTML = micError(e); } });
+  }
+  function watch(tries) {   // nothing arrived: try the other microphone settings once, then offer the record-and-play-back check
+    var msg = $('aporal-tmsg'); if (!T || !T.m || !msg || !$('aporal-ov')) return;
+    var m = T.m; if (m.peak > 0.012) return;
+    if (!(!m.ctx || m.ctx.state !== 'running' || m.peak < 0.0005)) return;   // alive, but he has not spoken yet
+    if (tries < 1) {
+      PLAIN = !PLAIN;
+      var c = m.ctx && m.ctx.state !== 'closed' ? m.ctx : null;
+      try { clearInterval(m.iv); } catch (e) { } m.closed = true; stopStream(T.stream); T = null;   // the sound context is kept for the next try
+      msg.className = 'aporal-tmsg'; msg.textContent = 'Trying other microphone settings… say a few words.';
+      runTest(c, tries + 1); return;
+    }
+    msg.className = 'aporal-tmsg';
+    msg.innerHTML = 'The microphone is on, but this iPad is not showing the bar. Tap the button, say a few words for 4 seconds, then play it back to check.<br><button type="button" class="aph-btn" id="aporal-echo" style="margin-top:6px">🎧 Record 4 seconds and play back</button><span id="aporal-echo-out"></span><div style="font-size:.72rem;color:#8a93a8;margin-top:6px">' + esc(diag(T.stream, m)) + '</div>';
+    var eb = $('aporal-echo'); if (eb) eb.onclick = echoTest;
   }
 
   // ── step 2: recording (the exam simulation runs in Autotime, and the page records) ──
@@ -13350,7 +13391,7 @@ body.aporal-on #demo-all-struct-panel{display:none!important}
       beginSimulation();
     };
     if (reuse) { go(reuse); return; }
-    navigator.mediaDevices.getUserMedia({ audio: AUDIO }).then(go).catch(function (e) { var er = $('aporal-err'); if (er) { er.style.display = ''; er.innerHTML = micError(e); } });
+    navigator.mediaDevices.getUserMedia(micCons()).then(go).catch(function (e) { var er = $('aporal-err'); if (er) { er.style.display = ''; er.innerHTML = micError(e); } });
   }
   function warnLeave(e) { if (R && R.on) { e.preventDefault(); e.returnValue = ''; return ''; } }
   function elapsed() { return R ? (Date.now() - R.t0) / 1000 : 0; }
@@ -13358,7 +13399,7 @@ body.aporal-on #demo-all-struct-panel{display:none!important}
     var b = $('aporal-bar'); if (b) b.remove();
     b = document.createElement('div'); b.id = 'aporal-bar'; b.className = 'aporal-bar';
     b.innerHTML = '<span class="aporal-dot"></span><b>REC</b><span id="aporal-time" class="aporal-time">0:00</span>'
-      + '<div class="aporal-meter dark"><i id="aporal-bfill"></i></div>'
+      + (NOMETER ? '' : '<div class="aporal-meter dark"><i id="aporal-bfill"></i></div>')
       + '<span class="aporal-mid">Card ' + esc(R.card.code || '') + '</span>'
       + '<button type="button" id="aporal-chk" class="aporal-stop" style="background:#ffd76a;color:#1a2744;margin-right:6px">■ Stop and check recording</button>'
       + '<button type="button" id="aporal-stop" class="aporal-stop">■ Stop and throw away</button>';
@@ -13394,7 +13435,7 @@ body.aporal-on #demo-all-struct-panel{display:none!important}
     R.on = false; try { clearInterval(R.iv); } catch (e) { }
     meterOff(R.m);
     R.dur = dur;
-    R.quiet = !(R.m && R.m.n > 0) ? false : (R.m.peak < 0.03 || R.m.loud / R.m.n < 0.03);
+    R.quiet = !(R.m && R.m.n > 0) || R.m.off ? false : (R.m.peak < 0.03 || R.m.loud / R.m.n < 0.03);
     var done = function () {
       stopStream(R.stream);
       R.blob = new Blob(R.chunks, { type: R.type || 'audio/mp4' });
