@@ -3,7 +3,7 @@
 <script id="ap-update">
 /* AP auto-update: if this copy is older than the published version, reload once with the new one (saved answers are kept) */
 (function () {
-  var B = '050cd65c9e'; window.AP_BUILD = B;
+  var B = 'e266628012'; window.AP_BUILD = B;
   function check() {
     if (!/^https?:$/.test(location.protocol) || !window.fetch) return;
     var f = decodeURIComponent(location.pathname.split('/').pop() || '');
@@ -12803,6 +12803,12 @@ function openSpeed(ids){
   spdStop();SPD.ids=new Set(ids||[]);SPD.phase='setup';
   go('speed');
 }
+function openSpeedNow(ids){
+  if(S.view!=='speed')S.from=S.view;
+  spdStop();SPD.ids=new Set(ids||[]);
+  try{speechSynthesis.cancel()}catch(e){}
+  S.view='speed';spdStart();
+}
 function closeSpeed(){spdStop();S.view=S.from&&S.from!=='speed'?S.from:'home';render();window.scrollTo(0,0)}
 function spdSet(k,v){SPD[k]=v;spdSum()}
 function spdTog(n,on){if(on)SPD.ids.add(n);else SPD.ids.delete(n);spdSum()}
@@ -12942,7 +12948,7 @@ function vSub(){
   <h1 class="h1">${esc(s.name)}</h1>
   <h2 class="h2" style="margin-top:14px;font-weight:600">${FL({fr:st.title_fr,en:st.title_en})}</h2>
   <div class="story">${shown}</div>
-  <div class="nav"><button class="spbtn" onclick="openSpeed([${s.ktrs.map(k=>k.n)}])">⚡ Speed session: this sub-theme</button>${more?`<button class="btn pri" onclick="S.story++;render()">Continue the story</button>`:''}
+  <div class="nav"><button class="spbtn" onclick="openSpeedNow([${s.ktrs.map(k=>k.n)}])">⚡ Speed session: this sub-theme</button>${more?`<button class="btn pri" onclick="S.story++;render()">Continue the story</button>`:''}
     ${S.story>1?`<button class="btn" onclick="S.story=${st.paras.length};render()">Show all</button>`:''}</div>
   ${yourVids(s)}${timeline(s)}<div class="group"><div class="label">The ${s.ktrs.length} KTRs, in teaching order</div>
   <div class="story" style="margin-top:10px">${s.ktrs.map((k,i)=>`<button class="ktr-tile" onclick="go('ktr',${s.subtheme},${i})"><span class="t">${esc(k.term)}</span>${pips(k.n)}</button>`).join('')}</div></div>`;
@@ -12961,7 +12967,7 @@ function vKtr(){
     <button class="btn" ${i===0?'disabled':''} onclick="go('ktr',${S.sub},${i-1})">Previous KTR</button>
     <button class="btn" ${i===n-1?'disabled':''} onclick="go('ktr',${S.sub},${i+1})">Next KTR</button>
     <button class="btn" onclick="go('sub')">Back to ${esc(cur().name)}</button>
-    <button class="spbtn" onclick="openSpeed([${k.n}])">⚡ Speed session: this KTR</button></div>`;
+    <button class="spbtn" onclick="openSpeedNow([${k.n}])">⚡ Speed session: this KTR</button></div>`;
 }
 const pips1=(n,st)=>`<i class="pip${(PR[n]||{})[st]?' on':''}"></i>`;
 
