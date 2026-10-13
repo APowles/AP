@@ -3,7 +3,7 @@
 <script id="ap-update">
 /* AP auto-update: if this copy is older than the published version, reload once with the new one (saved answers are kept) */
 (function () {
-  var B = '1b69df09ba'; window.AP_BUILD = B;
+  var B = 'b12a511225'; window.AP_BUILD = B;
   function check() {
     if (!/^https?:$/.test(location.protocol) || !window.fetch) return;
     var f = decodeURIComponent(location.pathname.split('/').pop() || '');
@@ -658,8 +658,8 @@ textarea.p1-in{border:1px solid #bbb;border-radius:4px;min-height:44px}
   </select>
   <span style="color:var(--gold);font-size:1rem">→</span>
   <select class="bar-select" id="lang-to" onchange="onDirChange()">
-    <option value="fr">🇫🇷 French</option>
-    <option value="en" selected>🇬🇧 English</option>
+    <option value="fr" selected>🇫🇷 French</option>
+    <option value="en">🇬🇧 English</option>
   </select>
   <button class="swap-btn" onclick="swapDir()">⇄ Swap</button>
 </div>
@@ -4188,10 +4188,11 @@ let _selectedCount = 10;
 function setSelectedCount(n){ _selectedCount = n; renderIntro(); }
 
 function introOnDirChange(){
+  window._dirAuto=false;
   const sf = document.getElementById('intro-lang-from');
   const st = document.getElementById('intro-lang-to');
   if(!sf || !st) return;
-  if(sf.value === st.value){
+  if(sf.value === st.value && !dirSameOK()){
     st.value = sf.value === 'en' ? 'fr' : 'en';
   }
   const hf = document.getElementById('lang-from');
@@ -4201,6 +4202,7 @@ function introOnDirChange(){
   renderIntro();
 }
 function introSwapDir(){
+  window._dirAuto=false;
   const hf = document.getElementById('lang-from');
   const ht = document.getElementById('lang-to');
   if(!hf || !ht) return;
@@ -4298,8 +4300,9 @@ function getLangFrom(){ const el = document.getElementById('lang-from'); return 
 function getLangTo(){ const el = document.getElementById('lang-to'); return el ? el.value : 'en'; }
 
 function onDirChange(){
+  window._dirAuto=false;
   const f=getLangFrom(),t=getLangTo();
-  if(f===t){document.getElementById('lang-to').value=f==='en'?'fr':'en';}
+  if(f===t&&!dirSameOK()){document.getElementById('lang-to').value=f==='en'?'fr':'en';}
   restart();
 }
 function swapDir(){
@@ -4308,8 +4311,15 @@ function swapDir(){
   document.getElementById('lang-to').value=f;
   restart();
 }
+// French → French is the default for the definition, example and analysis cards (the answer comes in French); the translation modes need two different languages
+function dirSameOK(m){ m = m || currentMode; return !/^(trlong|trshort|trtopic)$/.test(m); }
 function setMode(m){
   currentMode=m;
+  var _hf=document.getElementById('lang-from'), _ht=document.getElementById('lang-to');
+  if(_hf&&_ht){
+    if(!dirSameOK(m)){ if(_hf.value===_ht.value){ _ht.value=_hf.value==='en'?'fr':'en'; window._dirAuto=true; } }
+    else if(window._dirAuto){ window._dirAuto=false; if(_hf.value==='fr'&&_ht.value==='en') _ht.value='fr'; }   // back to French → French after a translation mode
+  }
   ['def','ex','an','random','short','trlong','trshort','trtopic'].forEach(id=>{
     const el=document.getElementById('mode-'+id);
     if(el)el.classList.toggle('active',id===m);
