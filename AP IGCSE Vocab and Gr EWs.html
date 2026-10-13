@@ -5,7 +5,7 @@
 <script id="ap-update">
 /* AP auto-update: if this copy is older than the published version, reload once with the new one (saved answers are kept) */
 (function () {
-  var B = 'b05e1a7d81'; window.AP_BUILD = B;
+  var B = '383ccb0933'; window.AP_BUILD = B;
   function check() {
     if (!/^https?:$/.test(location.protocol) || !window.fetch) return;
     var f = decodeURIComponent(location.pathname.split('/').pop() || '');
@@ -9141,13 +9141,15 @@ function ggStart(items, label) {
   ggS.drill = { items: items, idx: 0, ok: 0, nearly: 0, errors: [], revealed: false, label: label || ggSelLabel(keys), combo: keys.length > 1, keys: keys };
   ggCard();
 }
+// a 'transform' card can ask the boy to translate an ENGLISH sentence: read that in the English voice, not the target-language one
+function ggIsEnglish(t, instr) { if (/translat/i.test(String(instr || ''))) return true; return (String(t).toLowerCase().match(/\b(the|was|were|will|she|they|you|my|his|her|with|and|for|of|did|had|made)\b/g) || []).length >= 2; }
 function ggCard() {
   const D = ggS.drill, el = document.getElementById('ggApp'); if (!D || !el) return;
   if (D.idx >= D.items.length) { ggSummary(); return; }
   const it = D.items[D.idx], ch = GGD[ggChOf(it)] || {}, total = D.items.length, pct = Math.round(D.idx / total * 100);
   D.revealed = false;
   if (it.type === 'translate') setTimeout(() => speak(ggPlain(it.en), 'en-GB'), 300);
-  else if (it.type === 'transform') { const m = it.en.match(/<i>([\s\S]*?)<\/i>/); setTimeout(() => speak(m ? ggPlain(m[1]) : GGL().sayT, GGL().code), 300); }
+  else if (it.type === 'transform') { const m = it.en.match(/<i>([\s\S]*?)<\/i>/), q = m ? ggPlain(m[1]) : ''; setTimeout(() => speak(m ? q : GGL().sayT, m && ggIsEnglish(q, ggPlain(it.en.split('<i>')[0])) ? 'en-GB' : GGL().code), 300); }
   else setTimeout(() => speak(GGL().sayQ, GGL().code), 300);
   // navy drill bar (app name, ✓ ~ ✗ score, ▶ Errors); the one ⌂ Home (back to the chapters) is in the header
   el.innerHTML = '<div class="aph-dbar"><span class="aph-dbar-title">' + GGL().name + '</span>'
