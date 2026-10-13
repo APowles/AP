@@ -3,7 +3,7 @@
 <script id="ap-update">
 /* AP auto-update: if this copy is older than the published version, reload once with the new one (saved answers are kept) */
 (function () {
-  var B = '3d716d0885'; window.AP_BUILD = B;
+  var B = 'b47dbf09e8'; window.AP_BUILD = B;
   function check() {
     if (!/^https?:$/.test(location.protocol) || !window.fetch) return;
     var f = decodeURIComponent(location.pathname.split('/').pop() || '');
@@ -6876,14 +6876,14 @@ function generateAPSpotTest(timed) {
     for (var r = 0; mixd.length < expandedPool.length; r++) ks.forEach(function (k) { if (by[k][r]) mixd.push(by[k][r]); });
     items = mixd.slice(0, numQ * ipq);
   }
-  var hasKnow = !!_studioNs && items.some(function (p) { return p._ref && p._ref.know; });
+  var hasKnow = !!_studioNs && items.some(function (p) { return p._ref && p._ref.task; });
   var rows=[]; for(var i=0;i<numQ;i++) rows.push(items.slice(i*ipq, i*ipq+ipq));
   if (timed) {
     var thV = (document.getElementById('theme-select') || {}).value || 'all';
     apttSpot({ id: 'ktr|' + (_studioNs ? 'S' + _studioNs.join('-') : _singleKTR !== null ? 'KTR' + _singleKTR : thV) + '|' + f + '>' + t + '|' + apLv('ktr') + '|' + (numQ * ipq) + '|' + spec.src + (spec.src === 'dea' ? spec.modes.join('') : ''), title: ocEsc(String(label).replace(/\s*\(\d+ KTRs\)/, '')),
       meta: qFlag + ' → ' + aFlag + ' &nbsp;·&nbsp; 5 × ' + ipq + ' = ' + (numQ * ipq) + ' items', lang: hasKnow ? '' : (t === 'fr' ? 'French' : 'English'), langCode: hasKnow ? (t === 'fr' ? 'F' : '') : undefined, kind: spec.src === 'words' ? 'word' : 'sentence', nolevel: !useLv, rows: rows,
-      kindOf: hasKnow ? function (p) { return p._ref && p._ref.know ? 'word' : 'sentence'; } : null,
-      detail: hasKnow ? '<b>Read the tag on each item.</b> ' + apTaskTag(false) + '= translate the English into French. &nbsp; ' + apTaskTag(true) + '= answer the question, in French (a name, a date or a figure). Do not translate it.' : undefined,
+      kindOf: hasKnow ? function (p) { return p._ref && p._ref.task === 'know' ? 'word' : 'sentence'; } : null,
+      detail: hasKnow ? apTaskLegend(items) : undefined,
       q: function (p) { return p.term || ''; }, a: function (p) { return p._answer || p.def_fr || ''; }, label: function (p) { return p._modeLabel || 'Définition'; } });
     return;
   }
@@ -9839,7 +9839,7 @@ function apKtrCardLevel(c) {
   if (s === 'trshort') return apKtrShortLevel(c, m.slice(1));
   if (s === 'trtopic') return apKtrTpLevel(c._ref);
   if (s === 'words') return apKtrWordLevel(c._ref);
-  if (c._ref && c._ref.know) return apLv('ktr');   // knowledge questions are not graded by length: they suit every level
+  if (c._ref && c._ref.task) return apLv('ktr');   // knowledge questions are not graded by length: they suit every level
   if (s.slice(0, 2) === 'st' && s !== 'short') return apStudioLevel(c._ref);
   return 'M';
 }
@@ -9856,7 +9856,7 @@ function apSpotModeName(o) {
   var N = { def: 'Definition', ex: 'Example', an: 'Analysis' };
   if (o.src === 'dea') return o.modes.length === 1 ? N[o.modes[0]] : 'Definition · Example · Analysis';
   if (o.src === 'mix') return 'Mixed sources';
-  if (o.src.slice(0, 2) === 'st' && o.src !== 'short') return { stU: 'Studio: Understand', stW: 'Studio: Words', stS: 'Studio: Say it', stA: 'Studio: Use it', stK: 'Studio: Know it' }[o.src];
+  if (o.src.slice(0, 2) === 'st' && o.src !== 'short') return { stU: 'Studio: Understand', stW: 'Studio: Words', stS: 'Studio: Say it', stA: 'Studio: Use it', stK: 'Studio: Know it', stO: 'Studio: Word order', stE: 'Studio: Spot the error' }[o.src];
   return { short: 'Short versions', trlong: 'Translate: full', trshort: 'Translate: short', trtopic: 'Translate: topic sentences', words: 'KTR words' }[o.src];
 }
 function apSpotNoteUpdate() {
@@ -9887,12 +9887,12 @@ function apSpotPool(raw, o) {
   } else if (src === 'trtopic') {
     raw.forEach(function (p) { (p.tp_list || []).forEach(function (x) { pool.push(Object.assign({}, p, { _src: src, _ref: x, _mode: 'tp', _modeLabel: 'Traduction', term: x[f], _answer: x[t] })); }); });
   } else if (src.slice(0, 2) === 'st' && src !== 'short') {
-    raw.forEach(function (p) { apStudioPairs(p.n, src).forEach(function (w) { pool.push(Object.assign({}, p, { _src: src, _ref: w, _mode: 'st', _modeLabel: w.label, term: w.en, _answer: w.fr })); }); });
+    raw.forEach(function (p) { apStudioPairs(p.n, src).forEach(function (w) { pool.push(Object.assign({}, p, { _src: src, _ref: w, _mode: 'st', _modeLabel: w.label, term: w.task === 'order' ? apJumble(w) : w.task === 'err' ? ocEsc(w.en) : w.en, _answer: w.task === 'err' ? ocEsc(w.fr) + (w.why ? ' (' + ocEsc(w.why).replace(/[()]/g, '') + ')' : '') : w.fr })); }); });
   } else if (src === 'words') {
     var D = window.__ktr.data();
     raw.forEach(function (p) { ((D[String(p.n)] || {}).phrases || []).forEach(function (w) { pool.push(Object.assign({}, p, { _src: src, _ref: w, _mode: 'w', _modeLabel: 'Mot / expression', term: w[f], _answer: w[t] })); }); });
   }
-  if (_studioNs) pool.forEach(function (p) { if (!p._tagged) { p._tagged = 1; p._modeLabel = apTaskTag(!!(p._ref && p._ref.know)) + (p._ref && p._ref.know ? '' : (p._modeLabel || '')); } });   // from the KTR Studio every item says what to do
+  if (_studioNs) pool.forEach(function (p) { if (!p._tagged) { p._tagged = 1; p._modeLabel = apTaskTag(p._ref && p._ref.task) + (p._ref && p._ref.task ? '' : (p._modeLabel || '')); } });   // from the KTR Studio every item says what to do
   return pool;
 }
 // the same sentence or word often sits in two Studio stages (Words and Say it): keep one, and never ask the same English prompt twice
@@ -9901,8 +9901,22 @@ function apStudioDedupe(pool) {
   return pool.filter(function (p) { var kf = p.n + '|' + nz(p._answer), ke = nz(p.term); if (seenFr[kf] || seenEn[ke]) return false; seenFr[kf] = seenEn[ke] = 1; return true; });
 }
 // the coloured tag that says what to do: translate into French, or just answer a knowledge question
-function apTaskTag(know) {
-  return '<span style="display:inline-block;background:' + (know ? '#c9a84c' : '#1a2744') + ';color:' + (know ? '#1a2744' : '#fff') + ';border-radius:4px;padding:1px 8px;font:800 .62rem DM Sans,Arial,sans-serif;letter-spacing:.06em;margin-right:6px">' + (know ? 'JUST ANSWER THE QUESTION' : 'TRANSLATE') + '</span> ';
+function apTaskTag(task) {
+  var T = { know: ['#c9a84c', '#1a2744', 'JUST ANSWER THE QUESTION'], order: ['#1a6b3a', '#fff', 'PUT THE WORDS IN ORDER'], err: ['#b03a2e', '#fff', 'CORRECT THE GRAMMAR ERROR'] }, t = T[task === true ? 'know' : task] || ['#1a2744', '#fff', 'TRANSLATE'];
+  return '<span style="display:inline-block;background:' + t[0] + ';color:' + t[1] + ';border-radius:4px;padding:1px 8px;font:800 .62rem DM Sans,Arial,sans-serif;letter-spacing:.06em;margin-right:6px">' + t[2] + '</span> ';
+}
+// the line at the top of a mixed test: what each tag means (only the tags that are in the test)
+function apTaskLegend(items) {
+  var seen = {}; items.forEach(function (p) { seen[(p._ref && p._ref.task) || 'tr'] = 1; });
+  var M = { tr: ['tr', '= translate the English into French.'], know: ['know', '= answer the question, in French (a name, a date or a figure). Do not translate it.'], order: ['order', '= write the words in the right order, as a correct sentence.'], err: ['err', '= rewrite the sentence in French with the grammar error corrected.'] };
+  return '<b>Read the tag on each item.</b><br>' + ['tr', 'order', 'err', 'know'].filter(function (k) { return seen[k]; }).map(function (k) { return apTaskTag(k === 'tr' ? '' : k) + M[k][1]; }).join('<br>');
+}
+// a Rebuild sentence as a jumble of its words (never in the right order), with its English as the clue
+function apJumble(w) {
+  var tk = w.fr.replace(/[.!?]+$/, '').split(/\s+/), orig = tk.join(' '), j = tk.slice(), n = 0;
+  if (/^[A-ZÉÈÀÂÎÔÛ]/.test(tk[0]) && /^.[a-zéèêàâîôûç']/.test(tk[0]) && tk[0].length > 1) { tk[0] = tk[0].charAt(0).toLowerCase() + tk[0].slice(1); j = tk.slice(); }
+  do { j.sort(function () { return Math.random() - 0.5; }); n++; } while (j.join(' ') === tk.join(' ') && n < 20);
+  return '<b>' + ocEsc(j.join('  /  ')) + '</b>' + (w.en ? '<br><i style="color:#667;font-size:.9em">(' + ocEsc(w.en) + ')</i>' : '');
 }
 // the KTR Studio's own materials as English → French pairs: Understand (stU) · Words (stW) · Say it (stS) · Use it (stA)
 var _stCache = null;
@@ -9918,7 +9932,7 @@ function apStudioAll() {
   if (_stCache && _stCache.d === _studioData) return _stCache;
   var by = {}, all = [];
   ((_studioData && _studioData.subs) || []).forEach(function (sub) { (sub.ktrs || []).forEach(function (k) {
-    var L = { stU: [], stW: [], stS: [], stA: [], stK: [] };
+    var L = { stU: [], stW: [], stS: [], stA: [], stK: [], stO: [], stE: [] };
     var add = function (st, lab, en, fr) { if (!en || !fr) return; var o = { en: String(en).replace(/\*/g, ''), fr: String(fr).replace(/\*/g, ''), label: lab, st: st }; L[st].push(o); all.push(o); };
     (k.facts || []).forEach(function (x) { if (x.label_en === 'Why it matters') { var m = apWhyChunk(x); add('stU', 'Comprendre', m.en, m.fr); } else add('stU', 'Comprendre', x.en, x.fr); });
     (k.picture || []).forEach(function (x) { add('stU', 'Comprendre', x.en, x.fr); });
@@ -9930,7 +9944,9 @@ function apStudioAll() {
     (sy.scramble || []).forEach(function (x) { add('stS', 'Dire', x.en, x.fr); });
     var us = [k.use].concat(k.uses_extra || []);
     us.forEach(function (u) { if (!u) return; (u.checklist || []).forEach(function (x) { add('stA', 'Utiliser', x.en, x.fr); }); add('stA', 'Utiliser', u.frame_en, u.frame_fr); add('stA', 'Utiliser', u.model_en, u.model_fr); });
-    (k.know || []).forEach(function (x) { if (x.q && x.a) { var o = { en: x.q, fr: x.a, label: 'Savoir', st: 'stK', know: true }; L.stK.push(o); all.push(o); } });
+    (k.know || []).forEach(function (x) { if (x.q && x.a) { var o = { en: x.q, fr: x.a, label: 'Savoir', st: 'stK', know: true, task: 'know' }; L.stK.push(o); all.push(o); } });
+    (sy.scramble || []).forEach(function (x) { if (x.fr && x.fr.split(/\s+/).length > 2) L.stO.push({ en: x.en || '', fr: x.fr, label: 'Remettre en ordre', st: 'stO', task: 'order' }); });
+    (sy.err || []).forEach(function (x) { if (x.wrong && x.right) L.stE.push({ en: x.wrong, fr: x.right, why: x.why || '', label: "Trouvez l'erreur", st: 'stE', task: 'err' }); });
     by[k.n] = L;
   }); });
   return (_stCache = { d: _studioData, by: by, all: all });
@@ -9947,7 +9963,7 @@ function ktrStudioSpot(ns, label, mk, data) {   // mk (teacher): after the sourc
   var b = function (v, t, sub) { return '<label style="display:flex;gap:10px;align-items:flex-start;margin:0 0 6px;padding:9px 12px;border:1.5px solid #c9a84c;border-radius:10px;background:#fff;color:#1a2744;font:700 .92rem DM Sans,system-ui,sans-serif;cursor:pointer"><input type="checkbox" data-v="' + v + '" style="margin-top:3px;width:18px;height:18px;accent-color:#1a2744"><span>' + t + '<small style="display:block;font-weight:400;color:#556;margin-top:2px">' + sub + '</small></span></label>'; };
   d.innerHTML = '<div style="background:#fff;border-radius:16px;max-width:480px;width:100%;max-height:92vh;overflow:auto;padding:20px;color:#1a2744;font-family:DM Sans,system-ui,sans-serif"><div style="font:800 1.2rem Georgia,serif;margin:0 0 4px">⏱ AP Spot Test: timed &amp; submitted</div><div style="color:#556;font-size:.85rem;margin:0 0 4px">' + label + '. What is the test on? <b>Tick one or any combination.</b></div>'
     + G('From the Studio') + b('stU', 'Understand', 'Facts and the story, English → French') + b('stW', 'Words', 'Words and sentence frames, English → French')
-    + b('stS', 'Say it', 'The Recall, Gaps and Rebuild sentences, English → French') + b('stA', 'Use it', 'Checklist ideas, frame and model sentence, English → French') + b('stK', 'Know it', 'Names, dates and figures: just answer the question, no translation')
+    + b('stS', 'Say it', 'The Recall, Gaps and Rebuild sentences, English → French') + b('stA', 'Use it', 'Checklist ideas, frame and model sentence, English → French') + b('stK', 'Know it', 'Names, dates and figures: just answer the question, no translation') + b('stO', 'Word order', 'Put the jumbled words in the right order') + b('stE', 'Spot the error', 'Correct the grammar error in a sentence')
     + G('From the KTRs') + b('words', 'KTR words', 'English → French, word or phrase') + b('trtopic', 'Translation: topic sentences', 'English → French, whole sentences')
     + b('trlong', 'Translation: full definition, example, analysis', 'English → French') + b('trshort', 'Translation: short versions', 'English → French')
     + b('short', 'Short versions', 'The term → the short definition, example or analysis') + b('dea', 'Definition · Example · Analysis', 'The term → the full answer')
