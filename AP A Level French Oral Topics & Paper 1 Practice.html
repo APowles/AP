@@ -3,7 +3,7 @@
 <script id="ap-update">
 /* AP auto-update: if this copy is older than the published version, reload once with the new one (saved answers are kept) */
 (function () {
-  var B = '719e558af0'; window.AP_BUILD = B;
+  var B = '0cff15f50a'; window.AP_BUILD = B;
   function check() {
     if (!/^https?:$/.test(location.protocol) || !window.fetch) return;
     var f = decodeURIComponent(location.pathname.split('/').pop() || '');
@@ -10015,17 +10015,20 @@ function ktrStudioSpot(ns, label, mk, data) {   // mk (teacher): after the sourc
   var G = function (t) { return '<div style="font:800 .72rem DM Sans,sans-serif;letter-spacing:.06em;text-transform:uppercase;color:#8a6d1d;margin:10px 0 6px">' + t + '</div>'; };
   var b = function (v, t, sub) { return '<label style="display:flex;gap:10px;align-items:flex-start;margin:0 0 6px;padding:9px 12px;border:1.5px solid #c9a84c;border-radius:10px;background:#fff;color:#1a2744;font:700 .92rem DM Sans,system-ui,sans-serif;cursor:pointer"><input type="checkbox" data-v="' + v + '" style="margin-top:3px;width:18px;height:18px;accent-color:#1a2744"><span>' + t + '<small style="display:block;font-weight:400;color:#556;margin-top:2px">' + sub + '</small></span></label>'; };
   d.innerHTML = '<div style="background:#fff;border-radius:16px;max-width:480px;width:100%;max-height:92vh;overflow:auto;padding:20px;color:#1a2744;font-family:DM Sans,system-ui,sans-serif"><div style="font:800 1.2rem Georgia,serif;margin:0 0 4px">⏱ AP Spot Test: timed &amp; submitted</div><div style="color:#556;font-size:.85rem;margin:0 0 4px">' + label + '. What is the test on? <b>Tick one or any combination.</b></div>'
-    + G('From the Studio') + b('stU', 'Understand', 'Facts and the story, English → French') + b('stW', 'Words', 'Words and sentence frames, English → French')
+    + '<div style="display:flex;justify-content:space-between;align-items:center;gap:8px;margin:10px 0 6px"><div style="font:800 .72rem DM Sans,sans-serif;letter-spacing:.06em;text-transform:uppercase;color:#8a6d1d">From the Studio</div><button type="button" data-all="1" style="padding:6px 12px;border:1.5px solid #1a2744;border-radius:8px;background:#1a2744;color:#f2d38a;font:800 .8rem DM Sans,sans-serif;cursor:pointer">☑ Select all Studio</button></div>' + b('stU', 'Understand', 'Facts and the story, English → French') + b('stW', 'Words', 'Words and sentence frames, English → French')
     + b('stS', 'Say it', 'The Recall, Gaps and Rebuild sentences, English → French') + b('stA', 'Use it', 'Checklist ideas, frame and model sentence, English → French') + b('stK', 'Know it', 'Names, dates and figures: just answer the question, no translation') + b('stO', 'Word order', 'Put the jumbled words in the right order') + b('stE', 'Spot the error', 'Correct the grammar error in a sentence')
     + G('From the KTRs') + b('words', 'KTR words', 'English → French, word or phrase') + b('trtopic', 'Translation: topic sentences', 'English → French, whole sentences')
     + b('trlong', 'Translation: full definition, example, analysis', 'English → French') + b('trshort', 'Translation: short versions', 'English → French')
     + b('short', 'Short versions', 'The term → the short definition, example or analysis') + b('dea', 'Definition · Example · Analysis', 'The term → the full answer')
     + '<div style="display:flex;gap:10px;align-items:center;margin-top:12px"><button type="button" data-go="1" style="flex:1;padding:12px;border:0;border-radius:10px;background:#1a2744;color:#f2d38a;font:800 1rem DM Sans,sans-serif;cursor:pointer">Next: choose the level →</button>'
     + '<button type="button" data-x="1" style="border:0;background:none;color:#556;cursor:pointer;padding:6px">Cancel</button></div></div>';
+  function stAllLabel() { var stb = [].slice.call(d.querySelectorAll('input[data-v^="st"]')), ab = d.querySelector('[data-all]'); if (ab) ab.textContent = stb.length && stb.every(function (x) { return x.checked; }) ? '☐ Clear Studio' : '☑ Select all Studio'; }
+  d.addEventListener('change', stAllLabel);
   d.addEventListener('click', function (e) {
     var t = e.target.closest('button');
     if (!t) { if (e.target === d) d.remove(); return; }
     if (t.getAttribute('data-x')) { d.remove(); return; }
+    if (t.getAttribute('data-all')) { var stb = [].slice.call(d.querySelectorAll('input[data-v^="st"]')), allOn = stb.every(function (x) { return x.checked; }); stb.forEach(function (x) { x.checked = !allOn; }); stAllLabel(); return; }
     if (!t.getAttribute('data-go')) return;
     var vs = [].slice.call(d.querySelectorAll('input:checked')).map(function (x) { return x.getAttribute('data-v'); });
     if (!vs.length) { t.textContent = 'Tick at least one first'; return; }
@@ -10034,7 +10037,7 @@ function ktrStudioSpot(ns, label, mk, data) {   // mk (teacher): after the sourc
     var run = function () { generateAPSpotTest(true); if (mk && !(window.APTT && APTT.capturing)) setTimeout(function () { try { APTT.maker(); } catch (e) { } }, 300); };
     apttLevel('ktr', run);
   });
-  document.body.appendChild(d);
+  document.body.appendChild(d); stAllLabel();
 }
 </script>
 
