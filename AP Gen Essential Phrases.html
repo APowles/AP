@@ -2020,6 +2020,15 @@ html.aptt-open,html.aptt-open body{overflow:hidden}
 .aptt-todo{position:fixed;top:112px;right:14px;z-index:14010;background:#e67e00;color:#fff;border:3px solid #fff;border-radius:999px;padding:9px 16px;font:800 1rem/1.15 var(--aph-body);box-shadow:0 4px 16px rgba(0,0,0,.3);cursor:pointer;max-width:calc(100vw - 28px);text-align:left;-webkit-tap-highlight-color:transparent}
 .aptt-todo[hidden]{display:none}
 .aptt-todo.ok{background:#1e7a46}
+.aptt-two{background:#fff4d6;border:2px solid #c9a227;border-radius:10px;padding:9px 12px;margin:0 0 8px;font-size:1rem;line-height:1.45;color:#3b2f06}
+.aptt-legend .aptt-two b{display:inline;min-width:0;height:auto;background:none;color:#a32116;font-size:inherit;margin:0;border-radius:0}
+.aptt-item.aptt-tap{outline:4px solid #c0392b;outline-offset:2px;background:#fff1ef}
+.aptt-item.aptt-tap .aptt-mk{background:#fdecea;border:2.5px solid #c0392b;border-radius:10px;padding:8px;animation:apttGlow 1.1s ease-in-out infinite}
+.aptt-item.aptt-tap .aptt-mk-l{color:#a32116;font-size:.9rem}
+.aptt-item.aptt-tap .aptt-mk-v{color:#a32116;font-weight:800}
+.aptt-item.aptt-tap .aptt-mb:not(.on){border-color:#c0392b;animation:apttNudge 1s ease-in-out infinite}
+@keyframes apttNudge{0%,100%{transform:none}50%{transform:translateY(-4px)}}
+.aptt-todo.hot{background:#c0392b;font-size:1.0625rem;animation:apttGlow 1s ease-in-out infinite}
 .aptt-item.tm-shake{animation:tmShake .45s ease}
 .aptt-ih{display:flex;gap:10px;align-items:flex-start}
 .aptt-n{flex:none;width:34px;height:34px;border-radius:50%;border:2px solid var(--gold);display:flex;align-items:center;justify-content:center;font-weight:800;font-size:1rem;color:var(--navy);background:#fff}
@@ -2424,6 +2433,7 @@ var APTT = (function () {
       clock();
       try { var lb = $('aptt-learn'); if (lb) lb.classList.toggle('done', filled('learn')); } catch (e) { }
       try { learnUI(); } catch (e) { }
+      try { if (S.shown && !S.markDone) todo(); } catch (e) { }
       if (document.visibilityState && document.visibilityState !== 'visible') return;
       if (!S.mode) return;
       if (!S.locked) S.tAns++; else if (S.shown && !(S.mode === 'timed' && S.markDone)) S.tMark++; else return;
@@ -2451,9 +2461,10 @@ var APTT = (function () {
   }
 
   // ── screen ──
+  var MKL = '① Red pen: underline your errors (or tick if perfect). ② THEN TAP YOUR MARK ↓ (no tap = 0)';
   function legend() {
     var w = S.items.some(function (it) { return !big(it); }), s = S.items.some(big);
-    return '<div class="aptt-lh">How to mark yourself' + (S.mode === 'timed' ? ': you have ' + dur(markLimit()) : '') + '</div>Compare each answer with the correct one, <b>in red</b>. You cannot choose a mark until there is red on your answer:'
+    return '<div class="aptt-two"><b>TWO things for EVERY ' + noun(1) + ':</b> ① mark your answer <b>in red</b> ② then <u>TAP a mark button</u>. <b>Red pen alone scores 0</b>: your mark only counts once you have tapped it.</div><div class="aptt-lh">How to mark yourself' + (S.mode === 'timed' ? ': you have ' + dur(markLimit()) : '') + '</div>Compare each answer with the correct one, <b>in red</b>. You cannot choose a mark until there is red on your answer:'
       + (w ? '<div class="aptt-lrow">' + (s ? '<span><i>Single words and verb forms:</i></span>' : '') + '<span><b>2</b> <strong class="aptt-lw">Right</strong>: perfect in every way (spelling, accents, endings, gender)</span><span><b>1</b> <strong class="aptt-lw">Nearly</strong>: instantly recognisable as a solid attempt at this item, but with minor errors (a missing accent, a spelling slip, a wrong ending or gender)</span><span><b>0</b> <strong class="aptt-lw">Wrong</strong>: a different word, or not recognisable as an attempt at this one</span></div>' : '')
       + (s ? '<div class="aptt-lrow">' + (w ? '<span><i>Phrases and sentences:</i></span>' : '') + '<span><b>4</b> <strong class="aptt-lw">Perfect</strong>: right in every way, accents included</span><span><b>3</b> <strong class="aptt-lw">Mostly right</strong>: about 75%+ correct</span><span><b>2</b> <strong class="aptt-lw">About half right</strong>: 50/50</span><span><b>1</b> <strong class="aptt-lw">Only a word or two right</strong></span><span><b>0</b> <strong class="aptt-lw">Nothing right</strong></span></div>' : '')
       + 'Your score is out of ' + (S.m.total || 10) + ', as a whole number.' + (S.mode === 'timed' ? ' Anything you have not marked when the marking time runs out scores 0.' : '');
@@ -2465,7 +2476,7 @@ var APTT = (function () {
       + (it.label ? '<div class="aptt-chip">' + (it.html ? it.label : esc(it.label)) + '</div>' : '') + '<div class="aptt-q">' + show(it, 'prompt') + '</div></div></div>'
       + APPEN.html({ key: S.key + ':' + n, lines: it.kind === 'sentence' ? 3 : 2, label: Noun(1) + ' ' + n, typed: '<textarea class="appen-ta" rows="' + (it.kind === 'sentence' ? 2 : 1) + '" spellcheck="false" autocomplete="off" autocorrect="off" autocapitalize="off" placeholder="Type your ' + (S.m.lang ? esc(S.m.lang) + ' ' : '') + 'answer"></textarea>' })
       + '<div class="aptt-ans"' + (S.shown ? '' : ' hidden') + '><div class="aptt-al">Answer</div><div class="aptt-a"' + (S.m.code ? ' lang="' + esc(S.m.code) + '"' : '') + '>' + show(it, 'answer') + '</div>'
-      + '<div class="aptt-mk" role="group" aria-label="Your mark for ' + noun(1) + ' ' + n + '"><span class="aptt-mk-l">Simply underline your errors in red (or tick if perfect), then tap your mark:</span>' + mk + '<span class="aptt-mk-v" id="aptt-mv-' + n + '">' + (m != null && m !== '' ? m + ' / ' + maxOf(it) : '') + '</span></div>' + (i === 0 ? '<div class="aptt-unsure"><b>Unsure about something?</b> DO NOT interrupt this marking session by asking AP now. If in doubt, mark it wrong. Ask AP AFTER you have submitted and uploaded your PDF as requested. Then AP will advise.</div>' : '<div class="aptt-unsure aptt-unsure-s"><b>Unsure about something?</b> See note after first question.</div>') + '</div></div>';
+      + '<div class="aptt-mk" role="group" aria-label="Your mark for ' + noun(1) + ' ' + n + '"><span class="aptt-mk-l">' + MKL + '</span>' + mk + '<span class="aptt-mk-v" id="aptt-mv-' + n + '">' + (m != null && m !== '' ? m + ' / ' + maxOf(it) : '') + '</span></div>' + (i === 0 ? '<div class="aptt-unsure"><b>Unsure about something?</b> DO NOT interrupt this marking session by asking AP now. If in doubt, mark it wrong. Ask AP AFTER you have submitted and uploaded your PDF as requested. Then AP will advise.</div>' : '<div class="aptt-unsure aptt-unsure-s"><b>Unsure about something?</b> See note after first question.</div>') + '</div></div>';
   }
   function render() {
     var ov = $('aptt-ov'), N = S.items.length, L = S.m.lang || '', mins = minsTxt(limit());
@@ -2683,23 +2694,25 @@ var APTT = (function () {
     var mv = $('aptt-mv-' + n); if (mv) mv.textContent = v + ' / ' + maxOf(S.items[n - 1]);
     score();
   }
-  function todo() {   // after Show answers: every item still to mark is outlined in orange; a pill says how many and jumps to the next one
+  function todo() {   // after Show answers: every item still to mark is outlined in orange; red pen done but NO mark tapped = red and flashing; a pill says how many and jumps to the next one
     if (!S) return;
-    var live = S.shown && !S.markDone, left = [];
+    var live = S.shown && !S.markDone, left = [], hot = [];
     S.items.forEach(function (it, i) {
-      var n = i + 1, na = (S.na || []).indexOf(n) >= 0, m = S.marks[i], un = live && !na && (m == null || m === '');
+      var n = i + 1, na = (S.na || []).indexOf(n) >= 0, m = S.marks[i], un = live && !na && (m == null || m === ''), tap = un && corrected(n);
       if (un) left.push(n);
+      if (tap) hot.push(n);
       var r = $('aptt-it-' + n); if (!r) return;
-      r.classList.toggle('aptt-unm', un); r.classList.toggle('aptt-mkd', S.shown && !na && !un && m != null && m !== '');
-      var v = $('aptt-mv-' + n); if (v && un) v.textContent = '⚠ not marked yet';
+      r.classList.toggle('aptt-unm', un); r.classList.toggle('aptt-tap', tap); r.classList.toggle('aptt-mkd', S.shown && !na && !un && m != null && m !== '');
+      var v = $('aptt-mv-' + n); if (v && un) { var vt = tap ? '🔴 NO MARK TAPPED YET' : '⚠ not marked yet'; if (v.textContent !== vt) v.textContent = vt; }
+      var l = r.querySelector('.aptt-mk-l'); if (l) { var lt = tap ? '👆 Red pen done. NOW TAP A MARK BELOW, or this scores 0' : MKL; if (l.textContent !== lt) l.textContent = lt; }
     });
     var p = $('aptt-todo'), ov = $('aptt-ov');
     if (!p && ov) { p = document.createElement('button'); p.type = 'button'; p.id = 'aptt-todo'; p.className = 'aptt-todo'; p.onclick = function () { APTT.next(); }; ov.appendChild(p); }
     if (!p) return;
     p.hidden = !live;
-    p.className = 'aptt-todo' + (left.length ? '' : ' ok');
-    p.innerHTML = left.length ? '⚠ ' + left.length + ' not marked yet' + (left.length <= 5 ? ': ' + noun(left.length) + ' ' + left.join(', ') : '') + ' &rarr;' : '✔ All marked';
-    S.left = left;
+    p.className = 'aptt-todo' + (hot.length ? ' hot' : left.length ? '' : ' ok');
+    p.innerHTML = hot.length ? '🔴 TAP A MARK BUTTON! You have used red pen on ' + noun(hot.length) + ' ' + hot.join(', ') + ' but not tapped a mark: it scores 0 until you do &rarr;' : left.length ? '⚠ ' + left.length + ' not marked yet' + (left.length <= 5 ? ': ' + noun(left.length) + ' ' + left.join(', ') : '') + ' &rarr;' : '✔ All marked';
+    S.left = hot.concat(left.filter(function (n) { return hot.indexOf(n) < 0; }));
   }
   function next() {
     if (!S || !S.left || !S.left.length) return;
@@ -2758,6 +2771,8 @@ var APTT = (function () {
   function pdf() {
     if (!S) return;
     save();
+    var un = []; if (S.shown && !S.markDone) S.items.forEach(function (it, i) { var m = S.marks[i]; if ((m == null || m === '') && (S.na || []).indexOf(i + 1) < 0) un.push(i + 1); });
+    if (un.length && !window.confirm('⚠ ' + Noun(un.length) + ' ' + un.join(', ') + (un.length > 1 ? ' have' : ' has') + ' NO MARK tapped, so ' + (un.length > 1 ? 'they score' : 'it scores') + ' 0.\n\nPress Cancel to go back and tap your marks. Press OK only to save with those zeros.')) { todo(); next(); return; }
     if (!filled('learn')) {   // he must reflect before he can hand in
       var lb = $('aptt-learn'), mu = $('aptt-learn-must');
       if (mu) { mu.textContent = '✋ Not yet: before you can save your PDF you must go through your mistakes and write some notes here about what you learned. These notes are for you, and note form is fine.'; mu.classList.add('now'); }
@@ -31550,6 +31565,15 @@ html.aptt-open,html.aptt-open body{overflow:hidden}
 .aptt-todo{position:fixed;top:112px;right:14px;z-index:14010;background:#e67e00;color:#fff;border:3px solid #fff;border-radius:999px;padding:9px 16px;font:800 1rem/1.15 var(--aph-body);box-shadow:0 4px 16px rgba(0,0,0,.3);cursor:pointer;max-width:calc(100vw - 28px);text-align:left;-webkit-tap-highlight-color:transparent}
 .aptt-todo[hidden]{display:none}
 .aptt-todo.ok{background:#1e7a46}
+.aptt-two{background:#fff4d6;border:2px solid #c9a227;border-radius:10px;padding:9px 12px;margin:0 0 8px;font-size:1rem;line-height:1.45;color:#3b2f06}
+.aptt-legend .aptt-two b{display:inline;min-width:0;height:auto;background:none;color:#a32116;font-size:inherit;margin:0;border-radius:0}
+.aptt-item.aptt-tap{outline:4px solid #c0392b;outline-offset:2px;background:#fff1ef}
+.aptt-item.aptt-tap .aptt-mk{background:#fdecea;border:2.5px solid #c0392b;border-radius:10px;padding:8px;animation:apttGlow 1.1s ease-in-out infinite}
+.aptt-item.aptt-tap .aptt-mk-l{color:#a32116;font-size:.9rem}
+.aptt-item.aptt-tap .aptt-mk-v{color:#a32116;font-weight:800}
+.aptt-item.aptt-tap .aptt-mb:not(.on){border-color:#c0392b;animation:apttNudge 1s ease-in-out infinite}
+@keyframes apttNudge{0%,100%{transform:none}50%{transform:translateY(-4px)}}
+.aptt-todo.hot{background:#c0392b;font-size:1.0625rem;animation:apttGlow 1s ease-in-out infinite}
 .aptt-item.tm-shake{animation:tmShake .45s ease}
 .aptt-ih{display:flex;gap:10px;align-items:flex-start}
 .aptt-n{flex:none;width:34px;height:34px;border-radius:50%;border:2px solid var(--gold);display:flex;align-items:center;justify-content:center;font-weight:800;font-size:1rem;color:var(--navy);background:#fff}
@@ -31954,6 +31978,7 @@ var APTT = (function () {
       clock();
       try { var lb = $('aptt-learn'); if (lb) lb.classList.toggle('done', filled('learn')); } catch (e) { }
       try { learnUI(); } catch (e) { }
+      try { if (S.shown &amp;&amp; !S.markDone) todo(); } catch (e) { }
       if (document.visibilityState &amp;&amp; document.visibilityState !== 'visible') return;
       if (!S.mode) return;
       if (!S.locked) S.tAns++; else if (S.shown &amp;&amp; !(S.mode === 'timed' &amp;&amp; S.markDone)) S.tMark++; else return;
@@ -31981,9 +32006,10 @@ var APTT = (function () {
   }
 
   // ── screen ──
+  var MKL = '① Red pen: underline your errors (or tick if perfect). ② THEN TAP YOUR MARK ↓ (no tap = 0)';
   function legend() {
     var w = S.items.some(function (it) { return !big(it); }), s = S.items.some(big);
-    return '<div class=&quot;aptt-lh&quot;>How to mark yourself' + (S.mode === 'timed' ? ': you have ' + dur(markLimit()) : '') + '</div>Compare each answer with the correct one, <b>in red</b>. You cannot choose a mark until there is red on your answer:'
+    return '<div class=&quot;aptt-two&quot;><b>TWO things for EVERY ' + noun(1) + ':</b> ① mark your answer <b>in red</b> ② then <u>TAP a mark button</u>. <b>Red pen alone scores 0</b>: your mark only counts once you have tapped it.</div><div class=&quot;aptt-lh&quot;>How to mark yourself' + (S.mode === 'timed' ? ': you have ' + dur(markLimit()) : '') + '</div>Compare each answer with the correct one, <b>in red</b>. You cannot choose a mark until there is red on your answer:'
       + (w ? '<div class=&quot;aptt-lrow&quot;>' + (s ? '<span><i>Single words and verb forms:</i></span>' : '') + '<span><b>2</b> <strong class=&quot;aptt-lw&quot;>Right</strong>: perfect in every way (spelling, accents, endings, gender)</span><span><b>1</b> <strong class=&quot;aptt-lw&quot;>Nearly</strong>: instantly recognisable as a solid attempt at this item, but with minor errors (a missing accent, a spelling slip, a wrong ending or gender)</span><span><b>0</b> <strong class=&quot;aptt-lw&quot;>Wrong</strong>: a different word, or not recognisable as an attempt at this one</span></div>' : '')
       + (s ? '<div class=&quot;aptt-lrow&quot;>' + (w ? '<span><i>Phrases and sentences:</i></span>' : '') + '<span><b>4</b> <strong class=&quot;aptt-lw&quot;>Perfect</strong>: right in every way, accents included</span><span><b>3</b> <strong class=&quot;aptt-lw&quot;>Mostly right</strong>: about 75%+ correct</span><span><b>2</b> <strong class=&quot;aptt-lw&quot;>About half right</strong>: 50/50</span><span><b>1</b> <strong class=&quot;aptt-lw&quot;>Only a word or two right</strong></span><span><b>0</b> <strong class=&quot;aptt-lw&quot;>Nothing right</strong></span></div>' : '')
       + 'Your score is out of ' + (S.m.total || 10) + ', as a whole number.' + (S.mode === 'timed' ? ' Anything you have not marked when the marking time runs out scores 0.' : '');
@@ -31995,7 +32021,7 @@ var APTT = (function () {
       + (it.label ? '<div class=&quot;aptt-chip&quot;>' + (it.html ? it.label : esc(it.label)) + '</div>' : '') + '<div class=&quot;aptt-q&quot;>' + show(it, 'prompt') + '</div></div></div>'
       + APPEN.html({ key: S.key + ':' + n, lines: it.kind === 'sentence' ? 3 : 2, label: Noun(1) + ' ' + n, typed: '<textarea class=&quot;appen-ta&quot; rows=&quot;' + (it.kind === 'sentence' ? 2 : 1) + '&quot; spellcheck=&quot;false&quot; autocomplete=&quot;off&quot; autocorrect=&quot;off&quot; autocapitalize=&quot;off&quot; placeholder=&quot;Type your ' + (S.m.lang ? esc(S.m.lang) + ' ' : '') + 'answer&quot;></textarea>' })
       + '<div class=&quot;aptt-ans&quot;' + (S.shown ? '' : ' hidden') + '><div class=&quot;aptt-al&quot;>Answer</div><div class=&quot;aptt-a&quot;' + (S.m.code ? ' lang=&quot;' + esc(S.m.code) + '&quot;' : '') + '>' + show(it, 'answer') + '</div>'
-      + '<div class=&quot;aptt-mk&quot; role=&quot;group&quot; aria-label=&quot;Your mark for ' + noun(1) + ' ' + n + '&quot;><span class=&quot;aptt-mk-l&quot;>Simply underline your errors in red (or tick if perfect), then tap your mark:</span>' + mk + '<span class=&quot;aptt-mk-v&quot; id=&quot;aptt-mv-' + n + '&quot;>' + (m != null &amp;&amp; m !== '' ? m + ' / ' + maxOf(it) : '') + '</span></div>' + (i === 0 ? '<div class=&quot;aptt-unsure&quot;><b>Unsure about something?</b> DO NOT interrupt this marking session by asking AP now. If in doubt, mark it wrong. Ask AP AFTER you have submitted and uploaded your PDF as requested. Then AP will advise.</div>' : '<div class=&quot;aptt-unsure aptt-unsure-s&quot;><b>Unsure about something?</b> See note after first question.</div>') + '</div></div>';
+      + '<div class=&quot;aptt-mk&quot; role=&quot;group&quot; aria-label=&quot;Your mark for ' + noun(1) + ' ' + n + '&quot;><span class=&quot;aptt-mk-l&quot;>' + MKL + '</span>' + mk + '<span class=&quot;aptt-mk-v&quot; id=&quot;aptt-mv-' + n + '&quot;>' + (m != null &amp;&amp; m !== '' ? m + ' / ' + maxOf(it) : '') + '</span></div>' + (i === 0 ? '<div class=&quot;aptt-unsure&quot;><b>Unsure about something?</b> DO NOT interrupt this marking session by asking AP now. If in doubt, mark it wrong. Ask AP AFTER you have submitted and uploaded your PDF as requested. Then AP will advise.</div>' : '<div class=&quot;aptt-unsure aptt-unsure-s&quot;><b>Unsure about something?</b> See note after first question.</div>') + '</div></div>';
   }
   function render() {
     var ov = $('aptt-ov'), N = S.items.length, L = S.m.lang || '', mins = minsTxt(limit());
@@ -32213,23 +32239,25 @@ var APTT = (function () {
     var mv = $('aptt-mv-' + n); if (mv) mv.textContent = v + ' / ' + maxOf(S.items[n - 1]);
     score();
   }
-  function todo() {   // after Show answers: every item still to mark is outlined in orange; a pill says how many and jumps to the next one
+  function todo() {   // after Show answers: every item still to mark is outlined in orange; red pen done but NO mark tapped = red and flashing; a pill says how many and jumps to the next one
     if (!S) return;
-    var live = S.shown &amp;&amp; !S.markDone, left = [];
+    var live = S.shown &amp;&amp; !S.markDone, left = [], hot = [];
     S.items.forEach(function (it, i) {
-      var n = i + 1, na = (S.na || []).indexOf(n) >= 0, m = S.marks[i], un = live &amp;&amp; !na &amp;&amp; (m == null || m === '');
+      var n = i + 1, na = (S.na || []).indexOf(n) >= 0, m = S.marks[i], un = live &amp;&amp; !na &amp;&amp; (m == null || m === ''), tap = un &amp;&amp; corrected(n);
       if (un) left.push(n);
+      if (tap) hot.push(n);
       var r = $('aptt-it-' + n); if (!r) return;
-      r.classList.toggle('aptt-unm', un); r.classList.toggle('aptt-mkd', S.shown &amp;&amp; !na &amp;&amp; !un &amp;&amp; m != null &amp;&amp; m !== '');
-      var v = $('aptt-mv-' + n); if (v &amp;&amp; un) v.textContent = '⚠ not marked yet';
+      r.classList.toggle('aptt-unm', un); r.classList.toggle('aptt-tap', tap); r.classList.toggle('aptt-mkd', S.shown &amp;&amp; !na &amp;&amp; !un &amp;&amp; m != null &amp;&amp; m !== '');
+      var v = $('aptt-mv-' + n); if (v &amp;&amp; un) { var vt = tap ? '🔴 NO MARK TAPPED YET' : '⚠ not marked yet'; if (v.textContent !== vt) v.textContent = vt; }
+      var l = r.querySelector('.aptt-mk-l'); if (l) { var lt = tap ? '👆 Red pen done. NOW TAP A MARK BELOW, or this scores 0' : MKL; if (l.textContent !== lt) l.textContent = lt; }
     });
     var p = $('aptt-todo'), ov = $('aptt-ov');
     if (!p &amp;&amp; ov) { p = document.createElement('button'); p.type = 'button'; p.id = 'aptt-todo'; p.className = 'aptt-todo'; p.onclick = function () { APTT.next(); }; ov.appendChild(p); }
     if (!p) return;
     p.hidden = !live;
-    p.className = 'aptt-todo' + (left.length ? '' : ' ok');
-    p.innerHTML = left.length ? '⚠ ' + left.length + ' not marked yet' + (left.length <= 5 ? ': ' + noun(left.length) + ' ' + left.join(', ') : '') + ' &amp;rarr;' : '✔ All marked';
-    S.left = left;
+    p.className = 'aptt-todo' + (hot.length ? ' hot' : left.length ? '' : ' ok');
+    p.innerHTML = hot.length ? '🔴 TAP A MARK BUTTON! You have used red pen on ' + noun(hot.length) + ' ' + hot.join(', ') + ' but not tapped a mark: it scores 0 until you do &amp;rarr;' : left.length ? '⚠ ' + left.length + ' not marked yet' + (left.length <= 5 ? ': ' + noun(left.length) + ' ' + left.join(', ') : '') + ' &amp;rarr;' : '✔ All marked';
+    S.left = hot.concat(left.filter(function (n) { return hot.indexOf(n) < 0; }));
   }
   function next() {
     if (!S || !S.left || !S.left.length) return;
@@ -32288,6 +32316,8 @@ var APTT = (function () {
   function pdf() {
     if (!S) return;
     save();
+    var un = []; if (S.shown &amp;&amp; !S.markDone) S.items.forEach(function (it, i) { var m = S.marks[i]; if ((m == null || m === '') &amp;&amp; (S.na || []).indexOf(i + 1) < 0) un.push(i + 1); });
+    if (un.length &amp;&amp; !window.confirm('⚠ ' + Noun(un.length) + ' ' + un.join(', ') + (un.length > 1 ? ' have' : ' has') + ' NO MARK tapped, so ' + (un.length > 1 ? 'they score' : 'it scores') + ' 0.\n\nPress Cancel to go back and tap your marks. Press OK only to save with those zeros.')) { todo(); next(); return; }
     if (!filled('learn')) {   // he must reflect before he can hand in
       var lb = $('aptt-learn'), mu = $('aptt-learn-must');
       if (mu) { mu.textContent = '✋ Not yet: before you can save your PDF you must go through your mistakes and write some notes here about what you learned. These notes are for you, and note form is fine.'; mu.classList.add('now'); }
