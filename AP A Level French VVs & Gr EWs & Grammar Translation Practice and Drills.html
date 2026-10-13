@@ -3,7 +3,7 @@
 <script id="ap-update">
 /* AP auto-update: if this copy is older than the published version, reload once with the new one (saved answers are kept) */
 (function () {
-  var B = '8d407e711f'; window.AP_BUILD = B;
+  var B = '81bc72e7e8'; window.AP_BUILD = B;
   function check() {
     if (!/^https?:$/.test(location.protocol) || !window.fetch) return;
     var f = decodeURIComponent(location.pathname.split('/').pop() || '');
@@ -45401,7 +45401,7 @@ body{background:var(--cream)}
 /* AP A LEVEL GRAMMAR RECAPS: pick any combination of Gr EWs chapters and Grammar Drills sets, read them together, print / save as PDF */
 (function () {
   'use strict';
-  var R = { keys: [], page: true, big: false, ctx: 'ews' };
+  var R = { keys: [], page: true, big: false, can: true, ans: false, ctx: 'ews' };
   function esc(s) { return String(s == null ? '' : s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;'); }
   function norm(s) { return String(s || '').normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase(); }
   function photo() { var i = document.querySelector('header img'); return i ? i.src : ''; }
@@ -45459,8 +45459,10 @@ body{background:var(--cream)}
       + '<div class="rcp-list" id="rcp-list">' + list + '</div></div>'
       + '<div class="rcp-card"><div class="rcp-h">Print / PDF options</div><div class="rcp-chips">'
       + '<button type="button" id="rcp-pg" class="rcp-chip' + (R.page ? ' on' : '') + '" onclick="rcpToggle(\'page\')">Each recap on a new page</button>'
-      + '<button type="button" id="rcp-bg" class="rcp-chip' + (R.big ? ' on' : '') + '" onclick="rcpToggle(\'big\')">Larger text</button></div>'
-      + '<div class="rcp-sub" style="margin:6px 0 0">In the print window choose “Save as PDF” to keep a copy, or your printer to print. The “Now I can…” lists print as empty boxes.</div></div>'
+      + '<button type="button" id="rcp-bg" class="rcp-chip' + (R.big ? ' on' : '') + '" onclick="rcpToggle(\'big\')">Larger text</button>'
+      + '<button type="button" id="rcp-cn" class="rcp-chip' + (R.can ? ' on' : '') + '" onclick="rcpToggle(\'can\')">Include “Soon I will…” and “Now I can…”</button>'
+      + '<button type="button" id="rcp-an" class="rcp-chip' + (R.ans ? ' on' : '') + '" onclick="rcpToggle(\'ans\')">Print the model answers too</button></div>'
+      + '<div class="rcp-sub" style="margin:6px 0 0">In the print window choose “Save as PDF” to keep a copy, or your printer to print. The “Now I can…” lists print in full, with a tick box for each statement.</div></div>'
       + '<div id="rcp-view"></div>'
       + '<div class="rcp-foot"><span id="rcp-count"></span><span class="rcp-fb"><button type="button" id="rcp-read" onclick="rcpJump(R0())">📖 Read ↓</button><button type="button" id="rcp-print" onclick="rcpPrint()">🖨 Print / Save as PDF</button></span></div>'
       + '</div>';
@@ -45505,14 +45507,19 @@ body{background:var(--cream)}
     rows().forEach(function (r) { r.classList.toggle('rcp-hide', !!q && r.dataset.t.indexOf(q) < 0); });
     document.querySelectorAll('#rcp-list .rcp-gh').forEach(function (h) { h.classList.toggle('rcp-hide', !rows(h.dataset.gh, true).length); });
   };
-  window.rcpToggle = function (w) { R[w] = !R[w]; var b = document.getElementById(w === 'page' ? 'rcp-pg' : 'rcp-bg'); if (b) b.classList.toggle('on', R[w]); if (w === 'big') render(); };
+  window.rcpToggle = function (w) { R[w] = !R[w]; var b = document.getElementById({ page: 'rcp-pg', big: 'rcp-bg', can: 'rcp-cn', ans: 'rcp-an' }[w]); if (b) b.classList.toggle('on', R[w]); if (w === 'big') render(); };
+  function printHtml(x) {
+    var d = document.createElement('div'); d.innerHTML = x.html();
+    if (!R.can) [].slice.call(d.querySelectorAll('.gr-can,.gr-soon')).forEach(function (n) { n.remove(); });
+    return d.innerHTML;
+  }
   window.rcpJump = function (k) { if (!k) return; var e = document.getElementById('rcp-c-' + String(k).replace(':', '_')); if (e) e.scrollIntoView({ behavior: 'smooth', block: 'start' }); };
   function printWin(title, bodyHtml) {
     var css = ''; try { [].slice.call(document.querySelectorAll('style')).forEach(function (s) { if (s.id !== 'rcp-css') css += s.textContent + '\n'; }); } catch (e) { }
     var extra = '.rc-toc{margin:6px 0 4px;padding-left:24px;font-size:.85rem;line-height:1.7}.rc-toc.two{column-count:2;column-gap:28px}.rc-toc li{break-inside:avoid}.rc-toc li span{color:#555}'
       + '.rc-ch{margin-top:22px}.rc-pb{page-break-before:always;break-before:page;margin-top:0}'
       + '.rc-chh{display:flex;gap:10px;align-items:baseline;background:#1a2744;color:#fff;border-radius:8px;padding:7px 12px;margin-bottom:8px;break-after:avoid;page-break-after:avoid}.rc-chh b{color:#ffd76a;font-size:1rem}.rc-chh span{font-size:.85rem}'
-      + '.gr-block{break-inside:avoid;page-break-inside:avoid}.gr-label,.gr-section-title{break-after:avoid;page-break-after:avoid}.nc-chk{display:none!important}.nc-ans{display:none!important}'
+      + '.gr-block{break-inside:avoid;page-break-inside:avoid}.gr-label,.gr-section-title{break-after:avoid;page-break-after:avoid}.nc-chk{display:none!important}' + (R.ans ? '.nc-ans{display:block!important}' : '.nc-ans{display:none!important}') + ''
       + '.rc-chh,.gr-block,.gr-tense-pill,.gr-example,.gr-pronoun-pill,.gr-neg-pill,.gr-hl,.gg-key *{-webkit-print-color-adjust:exact;print-color-adjust:exact}body{margin:1.2cm 1.5cm}';
     var w = null; try { w = window.open('', '_blank'); } catch (e) { w = null; }
     if (!w) { alert('The print window was blocked. Allow pop-ups for this page, then try again.'); return; }
@@ -45522,7 +45529,7 @@ body{background:var(--cream)}
   function head(keys) { return aphPrintHead({ kicker: 'AP A Level French &middot; Grammar recaps', title: '<em>Grammar recaps</em> &mdash; ' + esc(label(keys)), meta: keys.length + ' recap' + (keys.length === 1 ? '' : 's'), strip: false }); }
   window.rcpPrintOne = function (k) {
     var x = byKey()[k]; if (!x) return;
-    printWin('Grammar recap: ' + x.label, aphPrintHead({ kicker: 'AP A Level French &middot; Grammar recap', title: '<em>' + esc(x.label) + '</em> &mdash; ' + esc(x.title), strip: false }) + (R.big ? '<div style="zoom:1.2">' : '<div>') + x.html() + '</div>' + aphPrintFoot('AP A Level French &middot; Grammar recap'));
+    printWin('Grammar recap: ' + x.label, aphPrintHead({ kicker: 'AP A Level French &middot; Grammar recap', title: '<em>' + esc(x.label) + '</em> &mdash; ' + esc(x.title), strip: false }) + (R.big ? '<div style="zoom:1.2">' : '<div>') + printHtml(x) + '</div>' + aphPrintFoot('AP A Level French &middot; Grammar recap'));
   };
   window.rcpPrint = function () {
     var M = byKey(), keys = R.keys.filter(function (k) { return M[k]; });
@@ -45530,7 +45537,7 @@ body{background:var(--cream)}
     if (keys.length === 1) { rcpPrintOne(keys[0]); return; }
     var z = R.big ? ' style="zoom:1.2"' : '';
     var toc = '<div class="gr-label" style="margin-top:12px">Contents · ' + keys.length + ' recaps</div><ol class="rc-toc' + (keys.length > 12 ? ' two' : '') + '">' + keys.map(function (k) { return '<li><b>' + esc(M[k].label) + '</b> <span>' + esc(M[k].title) + '</span></li>'; }).join('') + '</ol>';
-    var chs = keys.map(function (k, i) { return '<div class="rc-ch' + (R.page && i > 0 ? ' rc-pb' : '') + '"><div class="rc-chh"><b>' + esc(M[k].label) + '</b><span>' + esc(M[k].title) + '</span></div><div' + z + '>' + M[k].html() + '</div></div>'; }).join('');
+    var chs = keys.map(function (k, i) { return '<div class="rc-ch' + (R.page && i > 0 ? ' rc-pb' : '') + '"><div class="rc-chh"><b>' + esc(M[k].label) + '</b><span>' + esc(M[k].title) + '</span></div><div' + z + '>' + printHtml(M[k]) + '</div></div>'; }).join('');
     printWin('A Level French: Grammar recaps', head(keys) + toc + chs + aphPrintFoot('AP A Level French &middot; Grammar recaps'));
   };
 })();
