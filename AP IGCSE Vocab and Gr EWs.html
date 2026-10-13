@@ -5,7 +5,7 @@
 <script id="ap-update">
 /* AP auto-update: if this copy is older than the published version, reload once with the new one (saved answers are kept) */
 (function () {
-  var B = 'b93e4469a9'; window.AP_BUILD = B;
+  var B = '0121943325'; window.AP_BUILD = B;
   function check() {
     if (!/^https?:$/.test(location.protocol) || !window.fetch) return;
     var f = decodeURIComponent(location.pathname.split('/').pop() || '');
@@ -8296,6 +8296,19 @@ function setEWsSpotPer(n){
   var o=document.getElementById('igcseTestOutput');
   if(o && _stShown && o.innerHTML.trim()) generateEWsSpotTest();
 }
+// the mark scheme shows every listed alternative: "(the) living room" → la salle de séjour / le salon, "(the) parcel" → le colis / le paquet
+function ewsEnBase(en){ return String(en||'').toLowerCase().replace(/^\((the|a|an)\)\s*/,'').replace(/^to\s+/,'').replace(/\s*\([^)]*\)\s*$/,'').trim(); }
+function ewsEnQual(en){ var m=/\(([^)]*)\)\s*$/.exec(String(en||'')); return m&&!/^(the|a|an|m|f|mpl|fpl)$/i.test(m[1].trim())?m[1].toLowerCase().replace(/^to\s+/,'').trim():''; }
+function ewsEnKind(en){ en=String(en||'').toLowerCase(); return /^\((the|a|an)\)/.test(en)?'n':/^to\s/.test(en)?'v':'o'; }
+function ewsWithAlts(p,f,t){
+  var a=p[t]||''; if(f!=='en'||!a||ewsEnQual(p.en)) return a;
+  var base=ewsEnBase(p.en), seen={}, out=[a]; seen[a]=1;
+  ALL_PHRASES.forEach(function(q){
+    var qa=q[t]; if(!qa||seen[qa]||q===p||ewsEnKind(q.en)!==ewsEnKind(p.en)) return;
+    if((ewsEnBase(q.en)===base&&ewsEnQual(q.en))||ewsEnQual(q.en)===base){ seen[qa]=1; out.push(qa); }
+  });
+  return out.join(' / ');
+}
 function generateEWsSpotTest(timed) {
   var phrases = igvFilter(getSelectedPhrases());
   if (phrases.length < 5) { alert('Not enough items for a spot test (need at least 5, this selection has '+phrases.length+(IGV_LVL!=='X'?' '+AP_LEVEL.NAMES[IGV_LVL]+' word'+(phrases.length===1?'':'s'):'')+').'); return; }
@@ -8304,7 +8317,7 @@ function generateEWsSpotTest(timed) {
   var spNote = per<want ? '<div style="font-size:0.8125rem;color:#8a6d00;background:#fff3cd;border:1px solid #e5c860;border-radius:6px;padding:5px 10px;margin-bottom:8px;">Only '+phrases.length+(IGV_LVL!=='X'?' '+AP_LEVEL.NAMES[IGV_LVL]:'')+' items in this selection — using '+per+' per box</div>' : '';
   var f = getLangFrom(), t = getLangTo();
   var items = [...phrases].sort(function(){ return Math.random()-0.5; }).slice(0,need);
-  var rows = []; for(var i=0;i<5;i++) rows.push(items.slice(i*per,i*per+per).map(function(p){ return {q:p[f]||'',a:p[t]||''}; }));
+  var rows = []; for(var i=0;i<5;i++) rows.push(items.slice(i*per,i*per+per).map(function(p){ return {q:p[f]||'',a:ewsWithAlts(p,f,t)}; }));
   if (timed) {
     var tSel=document.getElementById('sel-section'), tKey=tSel?tSel.value:'';
     var tLabel=(typeof introListName==='function'&&introListName())||(SECTION_TITLES&&SECTION_TITLES[tKey])||tKey||'All Sections';if(typeof cogLabel==='function'&&cogLabel())tLabel+=' ('+cogLabel()+')';tLabel+=igvLvlTag();
