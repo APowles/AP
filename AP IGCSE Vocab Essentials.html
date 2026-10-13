@@ -2082,12 +2082,16 @@ var APTT = (function () {
       try { w.querySelector('button').focus({ preventScroll: true }); } catch (e) { }
     }
     function record(id) { var o = log(id); o.n++; o.at.push(Date.now()); put(id, o); return o; }
-    function leave() {
+    var GT = null;   // grace: a blur that comes straight back (a swipe, a banner, a system pop-up) is not logged: no one can cheat in 1.5 s
+    function leave(now) {
       if (AWAY || IGN > 0) return;
       var pr = cur(), id = pr && pr.id(); if (!id) return;
+      if (!now) { if (GT) return; var t0 = Date.now(); GT = setTimeout(function () { GT = null; if (AWAY || IGN > 0) return; var p2 = cur(), i2 = p2 && p2.id(); if (!i2) return; record(i2); AWAY = { id: i2, t: t0 }; siren(); }, 1500); return; }
+      if (GT) { clearTimeout(GT); GT = null; }
       record(id); AWAY = { id: id, t: Date.now() }; siren();
     }
     function back() {
+      if (GT) { clearTimeout(GT); GT = null; return; }
       if (!AWAY) return; var a = AWAY; AWAY = null;
       var o = log(a.id); o.away = (o.away || 0) + (Date.now() - a.t); put(a.id, o);
       warn(o.n); if (Date.now() - LAST > 4000) siren();
@@ -2118,7 +2122,7 @@ var APTT = (function () {
       document.addEventListener('visibilitychange', function () { if (document.visibilityState === 'hidden') leave(); else back(); });
       window.addEventListener('blur', function () { setTimeout(function () { try { if (!document.hasFocus()) leave(); } catch (e) { } }, 0); });
       window.addEventListener('focus', function () { if (document.visibilityState !== 'hidden') back(); });
-      window.addEventListener('pagehide', leave);
+      window.addEventListener('pagehide', function () { leave(true); });
       window.addEventListener('pageshow', function (e) { if (e.persisted) back(); });
       ['pointerdown', 'touchend', 'click'].forEach(function (t) {
         document.addEventListener(t, function () { if (PEND) siren(); else if (cur()) prime(); }, true);
