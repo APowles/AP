@@ -3,7 +3,7 @@
 <script id="ap-update">
 /* AP auto-update: if this copy is older than the published version, reload once with the new one (saved answers are kept) */
 (function () {
-  var B = '202015d658'; window.AP_BUILD = B;
+  var B = 'aa5634ef92'; window.AP_BUILD = B;
   function check() {
     if (!/^https?:$/.test(location.protocol) || !window.fetch) return;
     var f = decodeURIComponent(location.pathname.split('/').pop() || '');
@@ -13440,7 +13440,7 @@ body.aporal-on #demo-all-struct-panel{display:none!important}
           } catch (e) { }
         }, 100);
       }
-      closeBox(); barOn();
+      document.body.classList.remove('aporal-cover'); closeBox(); barOn();
       document.body.classList.add('aporal-on');
       window.addEventListener('beforeunload', warnLeave);
       try { stopDemoMode(); } catch (e) { }   // the demo cannot run, or be seen, while a boy is recording
@@ -13467,6 +13467,7 @@ body.aporal-on #demo-all-struct-panel{display:none!important}
     $('aporal-stop').onclick = function () {
       if (!window.confirm('Stop now and throw this recording away?')) return;
       discard();
+      if (SETO && !SETO.view) setTimeout(function () { location.reload(); }, 200);   // a set task starts again from the top (the card is hidden again)
     };
   }
   function barOff() { var b = $('aporal-bar'); if (b) b.remove(); document.body.classList.remove('aporal-on'); window.removeEventListener('beforeunload', warnLeave); }
@@ -13636,16 +13637,24 @@ body.aporal-on #demo-all-struct-panel{display:none!important}
   }
 
   // ── AP set task: a signed link / code that opens ONE card on the AP Tests page (needs the teacher key and the page's APTT) ──
+  (function(){ if(document.getElementById('aporal-cover-css')) return; var st=document.createElement('style'); st.id='aporal-cover-css';
+  st.textContent='body.aporal-cover .aporal-ov{background:rgba(70,78,98,.62)!important;-webkit-backdrop-filter:blur(2px);backdrop-filter:blur(2px)}body.aporal-cover.aporal-cover-al .aporal-ov{background:rgba(70,78,98,.86)!important;-webkit-backdrop-filter:blur(12px);backdrop-filter:blur(12px)}body.aporal-cover #app,body.aporal-cover main{pointer-events:none}.aporal-prep{position:fixed;top:0;left:0;right:0;z-index:12400;background:#1a2744;color:#fff;display:flex;align-items:center;gap:12px;padding:8px 14px;font:600 .95rem/1.3 var(--aph-body,system-ui,sans-serif);box-shadow:0 2px 10px rgba(0,0,0,.3)}.aporal-prep b{color:#ffd76a}.aporal-prep .pt{font:800 1.9rem/1 var(--aph-body,system-ui,sans-serif);color:#ffd76a;min-width:76px;text-align:right}.aporal-prep.low .pt{color:#ff7b7b}.aporal-prep span.m{flex:1;min-width:0}body.aporal-prepon{padding-top:56px}.aporal-pick{position:sticky;top:0;z-index:50;background:#fff7d6;border:1.5px solid #c9a84c;border-radius:10px;padding:10px 14px;margin:10px 0;font-weight:700;color:#1a2744}';
+  document.head.appendChild(st); })();
   var SETO = null;   // the set task this page was opened from { o, code, view }
   function pageName() { try { return decodeURIComponent(String(location.pathname).split('/').pop() || ''); } catch (e) { return ''; } }
   function canSign() { return !!(teacher() && window.APTT && APTT.pack); }
-  function setHook(b) {   // the set-up box of a card opened from an AP link: the card is fixed; a 👁 view shows it without recording
+  function setHook(b) {   // the set-up box of a card opened from an AP link: the card is fixed and hidden behind a solid cover (only the topic heading shows) until he records
     if (!SETO || !b) return;
+    document.body.classList.add('aporal-cover');
     var n = document.createElement('div'); n.className = 'aporal-setnote';
     n.innerHTML = SETO.view ? '👁 <b>VIEW ONLY</b>: this is what the boys see' + (SETO.code ? ' (' + esc(SETO.code) + ')' : '') + '. Nothing can be recorded here.'
-      : '📌 <b>Set by AP</b>' + (SETO.code ? ' (' + esc(SETO.code) + ')' : '') + ': this is your card. Record your answers, then follow the steps to send your PDF and recording.';
+      : '📌 <b>Set by AP</b>' + (SETO.code ? ' (' + esc(SETO.code) + ')' : '') + ': test your microphone, then start. The iPad asks you the questions, and you cannot see them before you begin. Afterwards you send your PDF and recording.';
     b.insertBefore(n, b.children[1] || null);
-    if (SETO.view) { ['aporal-go', 'aporal-test', 'aporal-name'].forEach(function (id) { var e = $(id); if (e) e.style.display = 'none'; }); var lb = b.querySelector('.aporal-lab'); if (lb) lb.style.display = 'none'; var tm = b.querySelector('.aporal-test'); if (tm) tm.style.display = 'none'; }
+    var cx = $('aporal-cancel');
+    if (SETO.view) {
+      ['aporal-go', 'aporal-test', 'aporal-name'].forEach(function (id) { var e = $(id); if (e) e.style.display = 'none'; }); var lb = b.querySelector('.aporal-lab'); if (lb) lb.style.display = 'none'; var tm = b.querySelector('.aporal-test'); if (tm) tm.style.display = 'none';
+      if (cx) { cx.textContent = '👁 Look at the card (view only)'; cx.onclick = function () { document.body.classList.remove('aporal-cover'); closeBox(); }; }
+    } else if (cx) cx.style.display = 'none';
   }
   function setTag() { return SETO && SETO.code ? ' &middot; AP task <b>' + esc(SETO.code) + '</b>' : ''; }
   function mkSet(info) {
@@ -13655,7 +13664,7 @@ body.aporal-on #demo-all-struct-panel{display:none!important}
     d = document.createElement('div'); d.id = 'aporal-mk'; d.className = 'aptt-mkov';
     d.innerHTML = '<div class="aptt-mkbox" role="dialog" aria-modal="true"><div class="aptt-mkh">🎙 Set this oral as an EW</div>'
       + '<div class="aptt-mks">' + esc(info.cardCode) + ' &middot; ' + esc(info.title) + '</div>'
-      + '<div class="aptt-mkhint" style="margin:0 0 6px">The boys open the link (or type the code on the AP Tests page) and land on <b>this card</b>, which they cannot change. The iPad examiner runs the oral in Autotime and records them; at the end they save the <b>recording</b> and the <b>PDF</b> and put both on their EW page in OneNote.</div>'
+      + '<div class="aptt-mkhint" style="margin:0 0 6px">The boys open the link (or type the code on the AP Tests page) and see <b>only the topic heading</b>: they test their microphone and tap Start, and cannot see the questions beforehand. The iPad examiner then asks the questions in Autotime and records them; at the end they save the <b>recording</b> and the <b>PDF</b> and put both on their EW page in OneNote.</div>'
       + '<label>Name (for your list; the boys see it at the top)</label><input id="aporal-mk-n" type="text" value="' + esc(name) + '">'
       + '<label>Library heading</label><select id="aporal-mk-cat">' + (cats.indexOf(ct0) < 0 ? [ct0].concat(cats) : cats).map(function (x) { return '<option' + (x === ct0 ? ' selected' : '') + '>' + esc(x) + '</option>'; }).join('') + '</select>'
       + '<label>Folder inside it (optional: e.g. C Block Set 2, Autumn 2026)</label><input id="aporal-mk-f" type="text" list="aporal-mk-fl" maxlength="40" placeholder="none"><datalist id="aporal-mk-fl">' + ((APTT.folders && APTT.folders()) || []).map(function (x) { return '<option value="' + esc(x) + '">'; }).join('') + '</datalist>'

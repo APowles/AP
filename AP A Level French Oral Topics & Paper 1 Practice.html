@@ -3,7 +3,7 @@
 <script id="ap-update">
 /* AP auto-update: if this copy is older than the published version, reload once with the new one (saved answers are kept) */
 (function () {
-  var B = 'dd92e561e7'; window.AP_BUILD = B;
+  var B = 'bc4f50ecaa'; window.AP_BUILD = B;
   function check() {
     if (!/^https?:$/.test(location.protocol) || !window.fetch) return;
     var f = decodeURIComponent(location.pathname.split('/').pop() || '');
@@ -11871,7 +11871,8 @@ body.aporal-set [id$="_exambar"] button[onclick^="resetDeclaration"]{display:non
       closeBox(); barOn();
       document.body.classList.add('aporal-on');
       window.addEventListener('beforeunload', warnLeave);
-      try { stopDemoAnswer(uid); } catch (e) { }   // the demo cannot run, or be seen, while a boy is recording
+      try { stopDemoAnswer(uid); } catch (e) { }
+      try { var pb = document.getElementById('aporal-prep'); if (pb) pb.remove(); document.body.classList.remove('aporal-prepon'); } catch (e) { }   // the demo cannot run, or be seen, while a boy is recording
       try { stopPrepTimer(uid); } catch (e) { }
       window._examUID = uid; window._examChoice = choice; window._examCard = card;
       startExamSim(uid, choice);
@@ -11895,6 +11896,7 @@ body.aporal-set [id$="_exambar"] button[onclick^="resetDeclaration"]{display:non
     $('aporal-stop').onclick = function () {
       if (!window.confirm('Stop now and throw this recording away?')) return;
       discard();
+      if (SETO && !SETO.view) setTimeout(function () { location.reload(); }, 200);   // a set task starts again from the top
     };
   }
   function barOff() { var b = $('aporal-bar'); if (b) b.remove(); document.body.classList.remove('aporal-on'); window.removeEventListener('beforeunload', warnLeave); }
@@ -12093,16 +12095,17 @@ body.aporal-set [id$="_exambar"] button[onclick^="resetDeclaration"]{display:non
   }
 
   // ── AP set task: a signed link / code that opens ONE card on the AP Tests page (needs the teacher key and the page's APTT) ──
+  (function(){ if(document.getElementById('aporal-cover-css')) return; var st=document.createElement('style'); st.id='aporal-cover-css';
+  st.textContent='body.aporal-cover .aporal-ov{background:rgba(70,78,98,.62)!important;-webkit-backdrop-filter:blur(2px);backdrop-filter:blur(2px)}body.aporal-cover.aporal-cover-al .aporal-ov{background:rgba(70,78,98,.86)!important;-webkit-backdrop-filter:blur(12px);backdrop-filter:blur(12px)}body.aporal-cover #app,body.aporal-cover main{pointer-events:none}.aporal-prep{position:fixed;top:0;left:0;right:0;z-index:12400;background:#1a2744;color:#fff;display:flex;align-items:center;gap:12px;padding:8px 14px;font:600 .95rem/1.3 var(--aph-body,system-ui,sans-serif);box-shadow:0 2px 10px rgba(0,0,0,.3)}.aporal-prep b{color:#ffd76a}.aporal-prep .pt{font:800 1.9rem/1 var(--aph-body,system-ui,sans-serif);color:#ffd76a;min-width:76px;text-align:right}.aporal-prep.low .pt{color:#ff7b7b}.aporal-prep span.m{flex:1;min-width:0}body.aporal-prepon{padding-top:56px}.aporal-pick{position:sticky;top:0;z-index:50;background:#fff7d6;border:1.5px solid #c9a84c;border-radius:10px;padding:10px 14px;margin:10px 0;font-weight:700;color:#1a2744}';
+  document.head.appendChild(st); })();
   var SETO = null;   // the set task this page was opened from { o, code, view }
   function pageName() { try { return decodeURIComponent(String(location.pathname).split('/').pop() || ''); } catch (e) { return ''; } }
   function canSign() { return !!(teacher() && window.APTT && APTT.pack); }
-  function setHook(b) {   // the set-up box of a card opened from an AP link: the card is fixed; a 👁 view shows it without recording
+  function setHook(b) {   // (the ordinary recording box, used only as a fallback in a set task)
     if (!SETO || !b) return;
     var n = document.createElement('div'); n.className = 'aporal-setnote';
-    n.innerHTML = SETO.view ? '👁 <b>VIEW ONLY</b>: this is what the boys see' + (SETO.code ? ' (' + esc(SETO.code) + ')' : '') + '. Nothing can be recorded here.'
-      : '📌 <b>Set by AP</b>' + (SETO.code ? ' (' + esc(SETO.code) + ')' : '') + ': this is your card. Record your answers, then follow the steps to send your PDF and recording.';
+    n.innerHTML = '📌 <b>Set by AP</b>' + (SETO.code ? ' (' + esc(SETO.code) + ')' : '') + ': tap <b>Start recording</b> when you are ready. Then follow the steps to send your PDF and recording.';
     b.insertBefore(n, b.children[1] || null);
-    if (SETO.view) { ['aporal-go', 'aporal-test', 'aporal-name'].forEach(function (id) { var e = $(id); if (e) e.style.display = 'none'; }); var lb = b.querySelector('.aporal-lab'); if (lb) lb.style.display = 'none'; var tm = b.querySelector('.aporal-test'); if (tm) tm.style.display = 'none'; }
   }
   function setTag() { return SETO && SETO.code ? ' &middot; AP task <b>' + esc(SETO.code) + '</b>' : ''; }
   function mkSet(info) {
@@ -12112,7 +12115,7 @@ body.aporal-set [id$="_exambar"] button[onclick^="resetDeclaration"]{display:non
     d = document.createElement('div'); d.id = 'aporal-mk'; d.className = 'aptt-mkov';
     d.innerHTML = '<div class="aptt-mkbox" role="dialog" aria-modal="true"><div class="aptt-mkh">🎙 Set this oral as an EW</div>'
       + '<div class="aptt-mks">' + esc(info.cardCode) + ' &middot; ' + esc(info.title) + '</div>'
-      + '<div class="aptt-mkhint" style="margin:0 0 6px">The boys open the link (or type the code on the AP Tests page) and land on <b>this card</b>, which they cannot change. The iPad examiner runs the oral in Autotime and records them; at the end they save the <b>recording</b> and the <b>PDF</b> and put both on their EW page in OneNote.</div>'
+      + '<div class="aptt-mkhint" style="margin:0 0 6px">The boys open the link (or type the code on the AP Tests page) and see <b>only the topic heading</b>. They check their microphone, tap to see the card, choose declaration A or B, then get a timed <b>5-minute preparation</b> on screen; the oral then starts by itself and the iPad examiner records them; at the end they save the <b>recording</b> and the <b>PDF</b> and put both on their EW page in OneNote.</div>'
       + '<label>Name (for your list; the boys see it at the top)</label><input id="aporal-mk-n" type="text" value="' + esc(name) + '">'
       + '<label>Library heading</label><select id="aporal-mk-cat">' + (cats.indexOf(ct0) < 0 ? [ct0].concat(cats) : cats).map(function (x) { return '<option' + (x === ct0 ? ' selected' : '') + '>' + esc(x) + '</option>'; }).join('') + '</select>'
       + '<label>Folder inside it (optional: e.g. C Block Set 2, Autumn 2026)</label><input id="aporal-mk-f" type="text" list="aporal-mk-fl" maxlength="40" placeholder="none"><datalist id="aporal-mk-fl">' + ((APTT.folders && APTT.folders()) || []).map(function (x) { return '<option value="' + esc(x) + '">'; }).join('') + '</datalist>'
@@ -12173,20 +12176,85 @@ body.aporal-set [id$="_exambar"] button[onclick^="resetDeclaration"]{display:non
 
   function setInfo(uid, choice) {
     var card = window['_ocard_' + uid]; if (!card) return null;
-    return { cardCode: codeOf(card, choice), choice: choice, title: 'Topic ' + card.topic + ' \u00B7 ' + (card.topicName || '') + ' \u00B7 declaration ' + choice, lang: 'French', prefix: 'ORA', cat: 'A Level French \u25B8 Oral recordings', app: 'AP A Level French Oral Topics' };
+    return { cardCode: codeOf(card, 'A'), choice: '', title: 'Topic ' + card.topic + ' \u00B7 ' + (card.topicName || ''), lang: 'French', prefix: 'ORA', cat: 'A Level French \u25B8 Oral recordings', app: 'AP A Level French Oral Topics' };
   }
-  function setOpen(o) {   // opens the card; returns the function that shows the set-up box, or null
+  function setOpen(o) {   // shows the topic heading on a solid cover; returns the function that starts the boy's steps, or null
     var f = findCard(String(o.r || '').replace(/-[AB]$/, '')); if (!f) return null;
-    if (o.ch === 'A' || o.ch === 'B') f.choice = o.ch;   // the declaration AP chose (a card's code may belong to the other declaration)
     var uid = 'card_' + f.card.topic + '_' + f.card.year;
     try {
       showOralCards();
       renderOralCardView([f.card], 'Topic ' + f.card.topic + ' \u00B7 ' + f.card.year, false);
-      pickDeclaration(uid, f.choice);
-      document.title = 'AP A Level Oral recording \u00B7 ' + codeOf(f.card, f.choice);
+      document.title = 'AP A Level Oral recording \u00B7 Topic ' + f.card.topic;
     } catch (e) { return null; }
-    return function () { setTimeout(function () { start(uid, f.choice); }, 300); };
+    return function () { setTimeout(function () { setStep1(uid, f.card); }, 300); };
   }
+  // step 1 (solid cover, only the topic heading): check the microphone, then show the card
+  function setStep1(uid, card) {
+    if (!SETO) return;
+    stopTest();
+    document.body.classList.add('aporal-cover', 'aporal-cover-al');
+    var b = box('');
+    var head = '<h3>🎙 Recorded oral</h3><div class="aporal-card">Topic <b>' + esc(card.topic) + '</b> · ' + esc(card.topicName || '') + '</div>';
+    var note = '<div class="aporal-setnote">' + (SETO.view ? '👁 <b>VIEW ONLY</b>: this is what the boys see' : '📌 <b>Set by AP</b>') + (SETO.code ? ' (' + esc(SETO.code) + ')' : '') + (SETO.view ? '. Nothing can be recorded here.' : '') + '</div>';
+    if (SETO.view) {
+      b.innerHTML = head + note + '<p>The boys check their microphone, tap <b>Show my card</b>, choose declaration <b>A</b> or <b>B</b>, and their <b>5-minute preparation</b> starts at once, timed on screen. When it ends the oral starts by itself and records.</p><div class="aporal-acts"><button type="button" class="aph-btn aph-btn-primary" id="aporal-show">👁 Look at the card (view only)</button></div>';
+      $('aporal-show').onclick = function () { document.body.classList.remove('aporal-cover', 'aporal-cover-al'); closeBox(); SETO.stage = 'view'; };
+      return;
+    }
+    if (!supported()) {
+      b.innerHTML = head + note + '<p class="aporal-bad">This browser cannot record sound. On the iPad, open this page in <b>Safari</b> or <b>Prisma</b> and try again. If that does not work, tell AP.</p>'; return;
+    }
+    b.innerHTML = head + note
+      + '<ol class="aporal-ol"><li>Test your microphone below.</li><li>Tap <b>Show my card</b> and choose declaration <b>A</b> or <b>B</b>. You cannot change it afterwards.</li><li>Your <b>5-minute preparation</b> starts at once, timed on screen. It is not recorded.</li><li>When the preparation ends, <b>the oral starts by itself</b> and the iPad records you: it reads your declaration, asks Question 1, and then Question 2. The recording is about <b>5 minutes</b>. <b>Fill the whole time</b> for each answer.</li></ol>'
+      + '<div class="aporal-disc">⚠ <b>Your answers must be completely your own and completely different from the Demo Mode answers.</b> Do <b>not</b> listen to the demo before you record.</div>'
+      + '<p>Find a <b>quiet room</b>, put the iPad on the desk about an arm&rsquo;s length away, turn the volume <b>up</b> and use the <b>iPad speaker</b> (no headphones). Do <b>not</b> lock the iPad or leave this page.</p>'
+      + '<label class="aporal-lab" for="aporal-name">Your name</label>'
+      + '<input id="aporal-name" class="aporal-in" type="text" autocomplete="name" autocapitalize="words" spellcheck="false" maxlength="60" placeholder="e.g. A. Smith">'
+      + '<div class="aporal-test"><button type="button" class="aph-btn" id="aporal-test">🔈 Test my microphone</button>'
+      + '<div class="aporal-meter"><i id="aporal-tfill"></i></div><div id="aporal-tmsg" class="aporal-tmsg">' + (NOMETER ? 'Tap, say a few words, then play them back to check.' : 'Tap, then say a few words. The bar should move.') + '</div></div>'
+      + '<div id="aporal-err" class="aporal-bad" style="display:none"></div>'
+      + '<div class="aporal-acts"><button type="button" class="aph-btn aph-btn-primary" id="aporal-show">Show my card ▶</button></div>';
+    var nm = $('aporal-name'); nm.value = lsGet('apStudentName');
+    $('aporal-test').onclick = testMic;
+    $('aporal-show').onclick = function () {
+      var n = nm.value.replace(/\s+/g, ' ').trim(), e = $('aporal-err');
+      if (!n) { e.style.display = ''; e.innerHTML = 'Please type your name first, so your recording and PDF carry it.'; nm.focus(); return; }
+      if (!(T && T.stream && T.stream.active)) { e.style.display = ''; e.innerHTML = 'Please test your microphone first (tap <b>Test my microphone</b> and say a few words).'; return; }
+      lsSet('apStudentName', n); SETO.name = n; SETO.stage = 'card';
+      document.body.classList.remove('aporal-cover', 'aporal-cover-al'); closeBox();   // the microphone test stays on for the recording
+      try { var u = new SpeechSynthesisUtterance(' '); u.volume = 0; window.speechSynthesis.speak(u); } catch (er) { }   // lets the examiner's voice start by itself later
+      var pk = document.createElement('div'); pk.id = 'aporal-pick'; pk.className = 'aporal-pick';
+      pk.innerHTML = '👇 Read both declarations, then <b>tap the one you choose</b>, A or B. Your 5-minute preparation starts as soon as you tap.';
+      var host = document.getElementById(uid + '_A'); if (host && host.parentNode) host.parentNode.insertBefore(pk, host);
+    };
+  }
+  // the preparation: a timer on screen, then the oral starts by itself and records
+  var _pd = window.pickDeclaration;
+  if (typeof _pd === 'function') window.pickDeclaration = function (uid, choice) {
+    var r = _pd.apply(this, arguments);
+    if (SETO) {
+      var bar = document.getElementById(uid + '_exambar'); if (bar) bar.style.display = 'none';   // no demo, no simulate, no change
+      var pk = $('aporal-pick'); if (pk) pk.remove();
+      if (!SETO.view && SETO.stage === 'card') { SETO.stage = 'prep'; setPrep(uid, choice); }
+    }
+    return r;
+  };
+  var PREP = null;
+  function setPrep(uid, choice) {
+    var secs = 300, bar = document.createElement('div'); bar.id = 'aporal-prep'; bar.className = 'aporal-prep';
+    bar.innerHTML = '<span class="m"><b>Preparation time.</b> Your oral starts by itself when this reaches 0:00, and the iPad records you.</span><span class="pt" id="aporal-pt">5:00</span>';
+    document.body.appendChild(bar); document.body.classList.add('aporal-prepon');
+    window.addEventListener('beforeunload', warnPrep);
+    function off() { clearInterval(PREP); PREP = null; bar.remove(); document.body.classList.remove('aporal-prepon'); window.removeEventListener('beforeunload', warnPrep); }
+    PREP = setInterval(function () {
+      secs--; var t = $('aporal-pt'); if (t) t.textContent = mmss(secs); if (secs <= 30) bar.classList.add('low');
+      if (secs > 0) return;
+      off();
+      if (T && T.stream && T.stream.active) begin(uid, choice, SETO.name);
+      else { SETO.stage = 'fallback'; start(uid, choice); }   // the microphone was lost: the ordinary recording box, one tap to start
+    }, 1000);
+  }
+  function warnPrep(e) { e.preventDefault(); e.returnValue = ''; return ''; }
 
   // wrap the exam simulation's own functions (unchanged unless a recording is running)
   var _speak = window.speak;
