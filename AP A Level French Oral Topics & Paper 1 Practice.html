@@ -3,7 +3,7 @@
 <script id="ap-update">
 /* AP auto-update: if this copy is older than the published version, reload once with the new one (saved answers are kept) */
 (function () {
-  var B = 'd6caa6999d'; window.AP_BUILD = B;
+  var B = '82655788ec'; window.AP_BUILD = B;
   function check() {
     if (!/^https?:$/.test(location.protocol) || !window.fetch) return;
     var f = decodeURIComponent(location.pathname.split('/').pop() || '');
@@ -2964,11 +2964,11 @@ var APTT = (function () {
      Slide Over, closing or reloading, or ⌂ Back out of the test — sounds a 3-second siren, shows a flashing red warning, and is
      logged in localStorage aptgLog:<test>:<start time>; the count, times and time away print in red at the top of the PDF. */
   if (!window.APTG) window.APTG = (function () {
-    var P = [], AWAY = null, CTX = null, LAST = 0, PEND = false, IGN = 0;
+    var P = [], AWAY = null, CTX = null, LAST = 0, PEND = false, IGN = 0, QN = 0;
     function g(k) { try { return localStorage.getItem(k); } catch (e) { return null; } }
     function p(k, v) { try { localStorage.setItem(k, v); } catch (e) { } }
     function cur() { for (var i = 0; i < P.length; i++) { try { if (P[i].active()) return P[i]; } catch (e) { } } return null; }
-    function openId() { for (var i = 0; i < P.length; i++) { try { var id = P[i].id(); if (id) return id; } catch (e) { } } return ''; }
+    function openId() { for (var i = 0; i < P.length; i++) { try { if (P[i].quiet) continue; var id = P[i].id(); if (id) return id; } catch (e) { } } return ''; }
     function log(id) { try { var o = JSON.parse(g('aptgLog:' + id) || 'null'); if (o && o.n) return o; } catch (e) { } return { n: 0, at: [], away: 0 }; }
     function put(id, o) { p('aptgLog:' + id, JSON.stringify(o)); }
     function ac() {
@@ -3010,17 +3010,18 @@ var APTT = (function () {
     }
     function hhmm(x) { var d = new Date(x); return ('0' + d.getHours()).slice(-2) + ':' + ('0' + d.getMinutes()).slice(-2); }
     function away(ms) { var s = Math.round(ms / 1000); return s < 60 ? s + ' s' : Math.floor(s / 60) + ' min ' + (s % 60) + ' s'; }
-    function warn(n) {
+    function warn(n, q) {
       var w = document.getElementById('aptg-warn'); if (w) w.remove();
       w = document.createElement('div'); w.id = 'aptg-warn'; w.setAttribute('role', 'alertdialog'); w.setAttribute('aria-modal', 'true'); w.setAttribute('data-nogrow', '1');
       w.style.cssText = 'position:fixed;inset:0;z-index:2147483600;display:flex;align-items:center;justify-content:center;padding:16px;background:#b71c1c;animation:aptgFlash .4s steps(1) 10;font-family:var(--aph-body,system-ui,sans-serif)';
       w.innerHTML = '<style>@keyframes aptgFlash{50%{background:#ff1744}}</style>'
         + '<div style="background:#fff;border:5px solid #b71c1c;border-radius:16px;max-width:520px;width:100%;padding:22px 20px;text-align:center;box-shadow:0 20px 60px rgba(0,0,0,.45)">'
         + '<div style="font-size:3.5rem;line-height:1">⚠️</div>'
-        + '<div style="font:800 1.6rem/1.2 var(--aph-display,Georgia,serif);color:#b71c1c;margin:8px 0 10px">Do not leave this page during the test</div>'
-        + '<div style="font-size:1.15rem;font-weight:800;color:#1a2744;margin:0 0 8px">This attempt has been logged and recorded.</div>'
-        + '<div style="font-size:1rem;color:#1a2744;margin:0 0 16px">Attempts to leave this test: <b style="color:#b71c1c;font-size:1.25rem">' + n + '</b><br>They will be shown on your PDF for AP.</div>'
-        + '<button type="button" style="border:0;border-radius:10px;background:#1a2744;color:#fff;font:800 1.0625rem var(--aph-body,system-ui,sans-serif);padding:14px 22px;min-height:48px;cursor:pointer">Back to my test</button></div>';
+        + '<div style="font:800 1.6rem/1.2 var(--aph-display,Georgia,serif);color:#b71c1c;margin:8px 0 10px">' + (q ? 'Stay on this page during your oral' : 'Do not leave this page during the test') + '</div>'
+        + (q ? '<div style="font-size:1.15rem;font-weight:800;color:#1a2744;margin:0 0 16px">Your recording is still running. Do not leave the page while you record.</div>'
+        : '<div style="font-size:1.15rem;font-weight:800;color:#1a2744;margin:0 0 8px">This attempt has been logged and recorded.</div>'
+        + '<div style="font-size:1rem;color:#1a2744;margin:0 0 16px">Attempts to leave this test: <b style="color:#b71c1c;font-size:1.25rem">' + n + '</b><br>They will be shown on your PDF for AP.</div>')
+        + '<button type="button" style="border:0;border-radius:10px;background:#1a2744;color:#fff;font:800 1.0625rem var(--aph-body,system-ui,sans-serif);padding:14px 22px;min-height:48px;cursor:pointer">Back to ' + (q ? 'my oral' : 'my test') + '</button></div>';
       w.addEventListener('keydown', function (e) { e.stopPropagation(); });
       w.querySelector('button').addEventListener('click', function () { w.remove(); if (PEND) siren(); });
       document.body.appendChild(w);
@@ -3031,13 +3032,14 @@ var APTT = (function () {
     function leave(now) {
       if (AWAY || IGN > 0) return;
       var pr = cur(), id = pr && pr.id(); if (!id) return;
-      if (!now) { if (GT) return; var t0 = Date.now(); GT = setTimeout(function () { GT = null; if (AWAY || IGN > 0) return; var p2 = cur(), i2 = p2 && p2.id(); if (!i2) return; record(i2); AWAY = { id: i2, t: t0 }; siren(); }, 1500); return; }
+      if (!now) { if (GT) return; var t0 = Date.now(); GT = setTimeout(function () { GT = null; if (AWAY || IGN > 0) return; var p2 = cur(), i2 = p2 && p2.id(); if (!i2) return; var q2 = !!p2.quiet; if (!q2) record(i2); AWAY = { id: i2, t: t0, q: q2, n: q2 ? ++QN : 0 }; if (!q2) siren(); }, 1500); return; }
       if (GT) { clearTimeout(GT); GT = null; }
-      record(id); AWAY = { id: id, t: Date.now() }; siren();
+      var q1 = !!pr.quiet; if (!q1) record(id); AWAY = { id: id, t: Date.now(), q: q1, n: q1 ? ++QN : 0 }; if (!q1) siren();
     }
     function back() {
       if (GT) { clearTimeout(GT); GT = null; return; }
       if (!AWAY) return; var a = AWAY; AWAY = null;
+      if (a.q) { warn(a.n, true); return; }   // a recorded oral: the red flash only, no siren, nothing logged
       var o = log(a.id); o.away = (o.away || 0) + (Date.now() - a.t); put(a.id, o);
       warn(o.n); if (Date.now() - LAST > 4000) siren();
     }
@@ -11730,6 +11732,7 @@ body.aporal-set [id$="_exambar"] button[onclick^="resetDeclaration"]{display:non
   var AUDIO = { echoCancellation: false, noiseSuppression: false, autoGainControl: true };
   var LIMIT = 125;      // seconds for each answer in a recording: the "teacher would interrupt you" point (2:00) plus 5 seconds, then the next question comes by itself
   var R = null;         // the recording in progress or just finished
+  try { if (window.APTG) APTG.register({ quiet: true, active: function () { return !!(R && R.on); }, id: function () { return R && R.on ? 'oral' : ''; } }); } catch (e) { }
   var T = null;         // the microphone test in the set-up box
   var DEAD = 0;         // until this time (ms), the exam's own talking and timers are switched off, so a recording that was thrown away cannot carry on
 
