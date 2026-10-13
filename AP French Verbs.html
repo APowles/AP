@@ -1535,8 +1535,8 @@ html.aptt-open,html.aptt-open body{overflow:hidden}
               prompt / answer are plain text (escaped here) unless html: true (trusted HTML from the app's own data).
      total  : 10 (an AP Spot Test is always out of 10). Each item is worth total / items.length.
    Marks: word 2 Right · 1 Nearly · 0 Wrong; sentence 4 Perfect · 3 Mostly right · 2 About half right · 1 Only a word or two right · 0 Nothing right.
-   Item score = mark / max × item value; the total is shown out of 10 (one decimal if needed) and as the red circle on the PDF.
-   Modes: ⏱ Timed (items × 30 s per word / 60 s per sentence, rounded to whole minutes, at least 3; +30 s grace, then the answers lock
+   Item score = mark / max × item value; the total is shown out of 20 (a whole number) and as the red circle on the PDF.
+   Modes: ⏱ Timed (6 s + 2.5 s a word per item, items cut to fit 4½ min; see limit(); +30 s grace, then the answers lock
    in by themselves once the pen is up; blanks = not attempted · 0; marking clock max(2 min, items × 10 s / 20 s): unmarked = 0) and
    🏠 Untimed (every item must be attempted before lock-in; no marking clock). No change of mode once started.
    Storage: pads are AP PEN (keys <test key>:<n>, <test key>:learn); progress in localStorage apttState:<test key>; attempts per mode in
@@ -1696,20 +1696,14 @@ var APTT = (function () {
   function noun(n) { var sen = S.items.every(function (it) { return it.kind === 'sentence'; }); return (sen ? 'sentence' : 'item') + (n === 1 ? '' : 's'); }
   function Noun(n) { var s = noun(n); return s.charAt(0).toUpperCase() + s.slice(1); }
   function nWords(h) { return String(h || '').replace(/<[^>]+>/g, ' ').replace(/&[a-z#0-9]+;/gi, ' ').replace(/[(),;:!?.«»"]/g, ' ').split(/\s+/).filter(function (w) { return w && w !== '/' && w !== '-'; }).length; }
-  // AP's timings (08/10/2026, long-sentence tests made shorter so every boy can finish), per test type for its default size;
-  // a bigger or smaller test scales with its number of items. Seconds per item: verbs, Spanish vocab, IGCSE Vocab EWs, Vocab Essentials vocab 12
-  // (15 = 3 min) · IGCSE Gr EWs 18 (15 = 4½) · VVs 16 (15 = 4) · Oral Phrase Bank, Metalanguage 20 (15 = 5) · Vocab Essentials sentences 20 (15 = 5) ·
-  // VV sentence drills 30 (10 = 5) · A Level Gr EWs 27 (10 = 4½) · A Level Grammar 24 (10 = 4) · AP Structures 27 (10 = 4½), practice sentences 30 (10 = 5) ·
-  // Approved Material 54 (5 = 4½), practice sentences 48 (5 = 4) · KTRs 48 (5 = 4). Anything else: 20 a word item, 24 a sentence. Rounded up to 30 s, at least 2 min.
-  var RATE = { conj: 12, it: 12, spot: 12, sv: 12, voc: 12, gg: 18, vv: 16, sd: 30, grews: 27, gr: 24, opb: 20, mlf: 20, ktr: 48 };
-  function rate(it) {
-    var id = String(S.m.srcId || S.m.id || ''), k = id.split('|')[0];
-    if (k === 'ig') return /\|vocab\|/.test(id) ? 12 : 20;
-    if (k === 'ms') return it.kind === 'sentence' ? 30 : 27;
-    if (k === 'am') return /^am\|ps\|/.test(id) ? 48 : 54;
-    return RATE[k] || (it.kind === 'sentence' ? 24 : 20);
-  }
-  function limit() { if (S.m.set && S.m.set.secs) return S.m.set.secs; var t = 0; S.items.forEach(function (it) { t += rate(it); }); return Math.max(120, Math.ceil(t / 30) * 30); }
+  // AP's timings (13/10/2026): no test may run past 4½ minutes (the 30 s grace, marking and the PDF all come on top).
+  // What a model answer costs: 6 s + 2.5 s a word, at least 12 s (one-word verbs and vocab = 12 s). A test keeps adding items
+  // until the next one would take it past 270 s (4½ min), but never fewer than 5 items; limit() is the cost of the items it keeps,
+  // rounded up to 30 s, at least 2 min. Short answers (verbs, vocab) therefore keep all their items; long answers get fewer.
+  var BUDGET = 270, MINITEMS = 5;
+  function cost(it) { return Math.max(12, 6 + 2.5 * nWords(it.answer)); }
+  function fit(items) { var t = 0, k = 0; for (var i = 0; i < items.length; i++) { var c = cost(items[i]); if (k >= MINITEMS && t + c > BUDGET) break; t += c; k++; } return k; }
+  function limit() { if (S.m.set && S.m.set.secs) return S.m.set.secs; var t = 0; S.items.forEach(function (it) { t += cost(it); }); return Math.max(120, Math.ceil(t / 30) * 30); }
   function minsTxt(sec) { var m = Math.floor(sec / 60); return m + (sec % 60 ? '½' : ''); }
   function markLimit() { var t = 0; S.items.forEach(function (it) { t += it.kind === 'sentence' ? 20 : 10; }); return Math.max(120, t); }
   function r1(x) { var r = Math.round(x * 10) / 10; return String(r); }
@@ -1722,7 +1716,7 @@ var APTT = (function () {
   function sum() {
     var t = 0, raw = 0, rmax = 0, n = 0, left = 0, v = val(), off = (S.na || []).concat(S.unm || []);
     S.items.forEach(function (it, i) { var m = S.marks[i], mx = maxOf(it); rmax += mx; if (m != null && m !== '') { t += (+m / mx) * v; raw += +m; if (off.indexOf(i + 1) < 0) n++; } else left++; });
-    return { score: Math.round(t * 10) / 10, raw: raw, rmax: rmax, n: n, left: left };   // n = marked by him; left = not marked yet
+    return { score: Math.round(t), raw: raw, rmax: rmax, n: n, left: left };   // n = marked by him; left = not marked yet
   }
   function filled(n) { var inf = APPEN.info(S.key + ':' + n); return inf.ink > 0 || (inf.typed || []).join('').replace(/\s+/g, '') !== ''; }
   function empties() { var e = []; S.items.forEach(function (it, i) { if (!filled(i + 1)) e.push(i + 1); }); return e; }
@@ -1736,6 +1730,10 @@ var APTT = (function () {
     m.srcId = String((o.set && o.set.src) || m.id || '');
     var src = m.srcId.split('|')[0], VERB = { conj: 1, it: 1, spot: 1 };
     items.forEach(function (it) { it.big = it.kind === 'sentence' || (!VERB[src] && nWords(it.answer) > 2); });
+    if (!(o.set && o.set.secs)) {   // fit the test to the time budget (a saved test link keeps its own items and time)
+      var kept = fit(items);
+      if (kept < items.length) { m.meta = String(m.meta).replace(/\d+\s*(?:rows\s*)?(?:×|x|&times;|&#215;)\s*\d+\s*=\s*\d+\s+(items|sentences)/, kept + ' $1'); items = items.slice(0, kept); }
+    }
     if (window.APTT.capturing) { window.APTT.capturing.push({ m: m, items: items }); return; }
     cmLoad();   // 🔑 making a test link: another draw, not opened
     RUN = o.set ? null : (window.APTT.lastRun || null); window.APTT.lastRun = null;
@@ -1797,7 +1795,7 @@ var APTT = (function () {
     return '<div class="aptt-lh">How to mark yourself' + (S.mode === 'timed' ? ': you have ' + dur(markLimit()) : '') + '</div>Compare each answer with the correct one, <b>in red</b>. You cannot choose a mark until there is red on your answer:'
       + (w ? '<div class="aptt-lrow">' + (s ? '<span><i>Single words and verb forms:</i></span>' : '') + '<span><b>2</b> <strong class="aptt-lw">Right</strong>: perfect in every way (spelling, accents, endings, gender)</span><span><b>1</b> <strong class="aptt-lw">Nearly</strong>: instantly recognisable as a solid attempt at this item, but with minor errors (a missing accent, a spelling slip, a wrong ending or gender)</span><span><b>0</b> <strong class="aptt-lw">Wrong</strong>: a different word, or not recognisable as an attempt at this one</span></div>' : '')
       + (s ? '<div class="aptt-lrow">' + (w ? '<span><i>Phrases and sentences:</i></span>' : '') + '<span><b>4</b> <strong class="aptt-lw">Perfect</strong>: right in every way, accents included</span><span><b>3</b> <strong class="aptt-lw">Mostly right</strong>: about 75%+ correct</span><span><b>2</b> <strong class="aptt-lw">About half right</strong>: 50/50</span><span><b>1</b> <strong class="aptt-lw">Only a word or two right</strong></span><span><b>0</b> <strong class="aptt-lw">Nothing right</strong></span></div>' : '')
-      + 'Each ' + noun(1) + ' is worth ' + r1(val()) + ' of the ' + (S.m.total || 10) + ' marks.' + (S.mode === 'timed' ? ' Anything you have not marked when the marking time runs out scores 0.' : '');
+      + 'Your score is out of ' + (S.m.total || 10) + ', as a whole number.' + (S.mode === 'timed' ? ' Anything you have not marked when the marking time runs out scores 0.' : '');
   }
   function row(it, i) {
     var n = i + 1, m = S.marks[i], W = big(it) ? MARKS : MARKW, vs = big(it) ? [4, 3, 2, 1, 0] : [2, 1, 0];
@@ -2123,7 +2121,7 @@ var APTT = (function () {
         + '.aptt-plab{display:inline-block;font-size:8pt;font-weight:500;font-style:italic;color:#4a5a7a;background:#f7f3e8;border:1px solid #e6d8ad;border-radius:3mm;padding:0 2mm;margin-right:1mm}'
         + '.aptt-on b{color:#c0392b!important}.aptt-pa{color:#1a2744}.aptt-plegend{font-size:8.5pt;color:#4a5a7a;margin:0 0 2mm}.aptt-plegend b{color:#1a2744}</style>'
         + '<div class="aptt-plegend">Marks: ' + (w ? (s ? 'words ' : '') + '<b>2</b> right: perfect in every way · <b>1</b> nearly: instantly recognisable as a solid attempt, but with minor errors · <b>0</b> wrong: a different word, or not recognisable' : '') + (w && s ? ' &middot; ' : '') + (s ? (w ? 'sentences ' : '') + '<b>4</b> perfect in every way · <b>3</b> mostly right (about 75%+) · <b>2</b> about half right (50/50) · <b>1</b> only a word or two right · <b>0</b> nothing right' : '')
-        + ' &middot; each ' + noun(1) + ' is worth ' + r1(val()) + ' of ' + T + (timed ? ' &middot; ' + dur(ml) + ' to mark (anything not marked in time scores 0)' : '') + '</div>'
+        + ' &middot; out of ' + T + ', whole marks' + (timed ? ' &middot; ' + dur(ml) + ' to mark (anything not marked in time scores 0)' : '') + '</div>'
         + APMP.sec(S.items.length + ' ' + noun(S.items.length), r1(r.score), T, true) + S.items.map(q).join('');
       var top = '<div class="apmp-sec"><span>📝 What I learned</span></div><div class="appen-pbox">' + (learn || '<span class="apmp-blank">(nothing written)</span>') + '</div>';
       if (demo()) { body += top; top = ''; }   // the demo keeps it at the end
