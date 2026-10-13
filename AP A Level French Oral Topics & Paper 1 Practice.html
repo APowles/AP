@@ -3,7 +3,7 @@
 <script id="ap-update">
 /* AP auto-update: if this copy is older than the published version, reload once with the new one (saved answers are kept) */
 (function () {
-  var B = '7e26b90b44'; window.AP_BUILD = B;
+  var B = '122b6a30da'; window.AP_BUILD = B;
   function check() {
     if (!/^https?:$/.test(location.protocol) || !window.fetch) return;
     var f = decodeURIComponent(location.pathname.split('/').pop() || '');
@@ -13188,6 +13188,7 @@ a{color:var(--s-ktr)}
     <button class="tg" id="tg-rv" onclick="toggle('rv')" title="Show where each line came from">Source tags</button>
     <button class="tg" id="tg-teach" style="display:none" onclick="toggleTeacher()" title="Show the teacher notes (not for the projector)">Teacher view</button>
     <button class="tg" id="tg-proj" onclick="toggle('proj')" title="Larger type for the projector">Large type</button>
+    <button class="tg" id="tg-auto" onclick="svToggleAuto()" title="Read each new screen aloud automatically (off unless you tick it)">☐ Auto-play</button>
     <label class="rate" title="Speed of the French voice">Voice <input id="rate" type="range" min="0.5" max="1.3" step="0.1" value="0.9"></label>
   </div>
 </div></div>
@@ -13315,7 +13316,7 @@ function svAuto(i){if(SV.auto&&!SV.playing)setTimeout(()=>{if(S.view==='sub'){QU
 function svNext(){S.story++;render();svAuto(S.story-1)}
 function svShowAll(){S.story=cur().story.paras.length;render()}
 function svSetMode(m){SV.mode=m;svSave();svStop();render()}
-function svToggleAuto(){SV.auto=!SV.auto;svSave();if(!SV.auto)svStop();render()}
+function svToggleAuto(){SV.auto=!SV.auto;svSave();if(!SV.auto)svStop();render();syncBar()}
 function svPlayAll(){
   if(SV.playing){svStop();render();return}
   const st=cur().story;S.story=st.paras.length;SV.playing=true;render();
@@ -13337,6 +13338,7 @@ function syncBar(){
   $('lg-fr').classList.toggle('on',S.lang==='fr');$('lg-en').classList.toggle('on',S.lang==='en');
   $('tg-rv').classList.toggle('on',document.body.classList.contains('rv'));
   $('tg-proj').classList.toggle('on',document.body.classList.contains('proj'));
+  var ta=$('tg-auto'); if(ta&&typeof SV!=='undefined'){ta.textContent=(SV.auto?'☑':'☐')+' Auto-play';ta.classList.toggle('on',!!SV.auto)}
 }
 
 /* navigation */
