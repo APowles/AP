@@ -3044,7 +3044,10 @@ var APTT = (function () {
     m.srcId = String((o.set && o.set.src) || m.id || '');
     var src = m.srcId.split('|')[0], VERB = { conj: 1, it: 1, spot: 1 };
     items.forEach(function (it) { it.big = it.kind === 'sentence' || (!VERB[src] && nWords(it.answer) > 2); });
-    if (!(o.set && o.set.secs)) {   // fit the test to the time budget (a saved test link keeps its own items and time)
+    // a longer test chosen on purpose (more items per box than that test's usual size) is kept whole, and its clock grows with it;
+    // at the usual size the 4½-minute cap trims the draw. A saved test link keeps its own items and time.
+    var pm = String(m.meta).match(/(\d+)\s*(?:rows\s*)?(?:×|x|&times;|&#215;)\s*(\d+)\s*=/), DEFPER = { gg: 2, ms: 2, am: 1, ktr: 1, oc: 1 };
+    if (!(o.set && o.set.secs) && !(pm && +pm[2] > (DEFPER[src] || 3))) {
       var kept = fit(items);
       if (kept < items.length) { m.meta = String(m.meta).replace(/\d+\s*(?:rows\s*)?(?:×|x|&times;|&#215;)\s*\d+\s*=\s*\d+\s+(items|sentences)/, kept + ' $1'); items = items.slice(0, kept); }
     }
