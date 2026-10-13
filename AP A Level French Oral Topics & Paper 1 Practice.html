@@ -3,7 +3,7 @@
 <script id="ap-update">
 /* AP auto-update: if this copy is older than the published version, reload once with the new one (saved answers are kept) */
 (function () {
-  var B = '58e8462592'; window.AP_BUILD = B;
+  var B = '719e558af0'; window.AP_BUILD = B;
   function check() {
     if (!/^https?:$/.test(location.protocol) || !window.fetch) return;
     var f = decodeURIComponent(location.pathname.split('/').pop() || '');
@@ -9908,7 +9908,7 @@ function apSpotPool(raw, o) {
   } else if (src === 'trtopic') {
     raw.forEach(function (p) { (p.tp_list || []).forEach(function (x) { pool.push(Object.assign({}, p, { _src: src, _ref: x, _mode: 'tp', _modeLabel: 'Traduction', term: x[f], _answer: x[t] })); }); });
   } else if (src.slice(0, 2) === 'st' && src !== 'short') {
-    raw.forEach(function (p) { apStudioPairs(p.n, src).forEach(function (w) { pool.push(Object.assign({}, p, { _src: src, _ref: w, _mode: 'st', _modeLabel: w.label, term: w.task === 'order' ? apJumble(w) : w.task === 'part' ? ocEsc(w.en).replace(/\*\*(.+?)\*\*/g, '<b style="text-decoration:underline">$1</b>') : w.task === 'err' ? ocEsc(w.en) : w.en, _answer: w.task === 'err' ? ocEsc(w.fr) + (w.why ? ' (' + ocEsc(w.why).replace(/[()]/g, '') + ')' : '') : w.fr })); }); });
+    raw.forEach(function (p) { apStudioPairs(p.n, src).forEach(function (w) { pool.push(Object.assign({}, p, { _src: src, _ref: w, _mode: 'st', _modeLabel: w.label, term: w.task === 'order' ? apJumble(w) : w.task === 'part' ? ocEsc(w.en).replace(/\*\*(.+?)\*\*/g, '<b style="text-decoration:underline">$1</b>') : w.task === 'err' ? ocEsc(w.en) : w.en, _answer: w.task === 'err' ? apErrMark(w.en, w.fr) + (w.why ? ' (' + ocEsc(w.why).replace(/[()]/g, '') + ')' : '') : w.fr })); }); });
   } else if (src === 'words') {
     var D = window.__ktr.data();
     raw.forEach(function (p) { ((D[String(p.n)] || {}).phrases || []).forEach(function (w) { pool.push(Object.assign({}, p, { _src: src, _ref: w, _mode: 'w', _modeLabel: 'Mot / expression', term: w[f], _answer: w[t] })); }); });
@@ -9932,6 +9932,28 @@ function apStudioDedupe(pool) {
 function apTaskTag(task) {
   var T = { know: ['#c9a84c', '#1a2744', 'JUST ANSWER THE QUESTION'], order: ['#1a6b3a', '#fff', 'PUT THE WORDS IN ORDER'], err: ['#b03a2e', '#fff', 'CORRECT THE GRAMMAR ERROR'], part: ['#1f6f8b', '#fff', 'TRANSLATE THE BOLD WORDS'] }, t = T[task === true ? 'know' : task] || ['#1a2744', '#fff', 'TRANSLATE'];
   return '<span style="display:inline-block;background:' + t[0] + ';color:' + t[1] + ';border-radius:4px;padding:1px 8px;font:800 .62rem DM Sans,Arial,sans-serif;letter-spacing:.06em;margin-right:6px">' + t[2] + '</span> ';
+}
+// the corrected sentence with the words that were changed UNDERLINED (word-by-word comparison with the wrong sentence)
+function apErrMark(wrong, right) {
+  var a = String(wrong || '').split(/\s+/).filter(Boolean), b = String(right || '').split(/\s+/).filter(Boolean), n = a.length, m = b.length, L = [], i, j;
+  for (i = 0; i <= n; i++) { L[i] = []; for (j = 0; j <= m; j++) L[i][j] = 0; }
+  for (i = n - 1; i >= 0; i--) for (j = m - 1; j >= 0; j--) L[i][j] = a[i] === b[j] ? L[i + 1][j + 1] + 1 : Math.max(L[i + 1][j], L[i][j + 1]);
+  var mark = [], x = 0, y = 0, cnt = 0, gap = -1;
+  for (j = 0; j < m; j++) mark[j] = 1;
+  while (x < n && y < m) { if (a[x] === b[y]) { mark[y] = 0; x++; y++; } else if (L[x + 1][y] >= L[x][y + 1]) { if (gap < 0) gap = y; x++; } else y++; }
+  for (j = 0; j < m; j++) cnt += mark[j];
+  if (!cnt && gap >= 0) { mark[Math.min(gap, m - 1)] = 1; cnt = 1; }   // a word was only taken out: underline the word where it was
+  if (!cnt || cnt > Math.ceil(m * 0.6)) return ocEsc(right);
+  var out = [], run = [];
+  function flush() {
+    if (!run.length) return;
+    var last = run[run.length - 1], mm = /^(.*?)([.,;:!?»)]*)$/.exec(last), tail = mm ? mm[2] : '';
+    if (tail) run[run.length - 1] = last.slice(0, last.length - tail.length);
+    out.push('<u style="text-decoration-thickness:3px;text-underline-offset:4px">' + run.map(ocEsc).join(' ') + '</u>' + ocEsc(tail)); run = [];
+  }
+  for (j = 0; j < m; j++) { if (mark[j]) run.push(b[j]); else { flush(); out.push(ocEsc(b[j])); } }
+  flush();
+  return out.join(' ');
 }
 // the line at the top of a mixed test: what each tag means (only the tags that are in the test)
 function apTaskLegend(items) {
