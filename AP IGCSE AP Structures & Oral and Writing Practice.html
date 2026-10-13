@@ -11525,6 +11525,10 @@ var APTT = (function () {
   function cost(it) { return Math.max(12, 6 + 2.5 * nWords(it.answer)); }
   function fit(items) { var t = 0, k = 0; for (var i = 0; i < items.length; i++) { var c = cost(items[i]); if (k >= MINITEMS && t + c > BUDGET) break; t += c; k++; } return k; }
   function limit() { if (S.m.set && S.m.set.secs) return S.m.set.secs; var t = 0; S.items.forEach(function (it) { t += cost(it); }); return Math.max(120, Math.ceil(t / 30) * 30); }
+  function tsecs(a) { var t = 0; a.forEach(function (it) { t += cost(it); }); return Math.max(120, Math.ceil(t / 30) * 30); }
+  var LASTO = null;
+  function toAll() { if (LASTO && S && !S.mode) open(LASTO, 'all'); }
+  function toAuto() { if (LASTO && S && !S.mode) open(LASTO, 'auto'); }
   function minsTxt(sec) { var m = Math.floor(sec / 60); return m + (sec % 60 ? '½' : ''); }
   function markLimit() { var t = 0; S.items.forEach(function (it) { t += it.kind === 'sentence' ? 20 : 10; }); return Math.max(120, t); }
   function r1(x) { var r = Math.round(x * 10) / 10; return String(r); }
@@ -11544,23 +11548,27 @@ var APTT = (function () {
   function emptyText(e) { return 'Have a go at every ' + noun(1) + ' first: ' + noun(1) + ' ' + e.join(', ') + (e.length > 1 ? ' are' : ' is') + ' empty. A rough attempt is fine.'; }
 
   // ── open / close ──
-  function open(o) {
+  function open(o, re) {
     if (!o || !o.items || !o.items.length || typeof APPEN === 'undefined' || typeof APMP === 'undefined') return;
     var items = o.items.map(norm);
     var m = { id: String(o.id || ''), app: o.app || '', kicker: o.kicker || '', title: o.title || '', meta: o.meta || '', detail: o.detail || '', lang: o.lang || '', code: o.langCode || LCODE[o.lang] || '', total: 20, level: o.level || '', set: o.set || null };
     m.srcId = String((o.set && o.set.src) || m.id || '');
     var src = m.srcId.split('|')[0], VERB = { conj: 1, it: 1, spot: 1 };
     items.forEach(function (it) { it.big = it.kind === 'sentence' || (!VERB[src] && nWords(it.answer) > 2); });
-    // a longer test chosen on purpose (more items per box than that test's usual size) is kept whole, and its clock grows with it;
-    // at the usual size the 4½-minute cap trims the draw. A saved test link keeps its own items and time.
+    // 4½-minute cap: at a test's usual size the draw is trimmed to fit; the teacher can keep every item instead (button on the start screen),
+    // and a longer test chosen on purpose (more items per box than usual) is kept whole. A saved test link keeps its own items and time.
     var pm = String(m.meta).match(/(\d+)\s*(?:rows\s*)?(?:×|x|&times;|&#215;)\s*(\d+)\s*=/), DEFPER = { gg: 2, ms: 2, am: 1, ktr: 1, oc: 1 };
-    if (!(o.set && o.set.secs) && !(pm && +pm[2] > (DEFPER[src] || 3))) {
-      var kept = fit(items);
-      if (kept < items.length) { m.meta = String(m.meta).replace(/\d+\s*(?:rows\s*)?(?:×|x|&times;|&#215;)\s*\d+\s*=\s*\d+\s+(items|sentences)/, kept + ' $1'); items = items.slice(0, kept); }
+    var force = re === 'all' || !!(window.APTT.capturing && S && S.m && S.m.all);
+    if (!(o.set && o.set.secs)) {
+      var byChoice = !!(pm && +pm[2] > (DEFPER[src] || 3)), nAuto = fit(items), nAll = items.length, kept = (byChoice || force) ? nAll : nAuto;
+      if (window.APTT.capturing && S && S.items && !byChoice && !force) kept = Math.min(nAll, S.items.length);   // a re-draw for a test link: same size as on screen
+      if (!byChoice && nAuto < nAll) m.offer = { n: nAuto, secs: tsecs(items.slice(0, nAuto)), nAll: nAll, secsAll: tsecs(items) };
+      m.all = force;
+      if (kept < nAll) { m.meta = String(m.meta).replace(/\d+\s*(?:rows\s*)?(?:×|x|&times;|&#215;)\s*\d+\s*=\s*\d+\s+(items|sentences)/, kept + ' $1'); items = items.slice(0, kept); }
     }
     if (window.APTT.capturing) { window.APTT.capturing.push({ m: m, items: items }); return; }
     cmLoad();   // 🔑 making a test link: another draw, not opened
-    RUN = o.set ? null : (window.APTT.lastRun || null); window.APTT.lastRun = null;
+    LASTO = o; if (!re) RUN = o.set ? null : (window.APTT.lastRun || null); window.APTT.lastRun = null;
     var sel = h32(m.app + '|' + m.id), key = 'aptt' + sel + h32(items.map(function (it) { return it.prompt + '\u0001' + it.answer; }).sort().join('\u0002'));
     try { if (window.speechSynthesis) speechSynthesis.cancel(); } catch (e) { }
     var cur = lsGet('apttCur:' + sel), st = cur ? load(cur) : null;
@@ -11649,6 +11657,7 @@ var APTT = (function () {
       + '<button type="button" class="aptt-mode-t" onclick="APTT.mode(\'timed\')"><b>⏱ Timed: ' + mins + ' minutes</b><span>In Birley 12 (or if set as EW). The clock starts when you tap. Blanks score 0.</span></button>'
       + '<button type="button" class="aptt-mode-f" onclick="APTT.mode(\'free\')"><b>🏠 Untimed</b><span>Attempt all ' + N + ' before you lock in.</span></button>'
       + '</div><div class="aptt-mode-n">You can’t change mode once you start.<details class="aptt-how"><summary>How it works</summary>Timed: when the time is up you get 30 more seconds, then your answers lock in by themselves. Then you have ' + dur(markLimit()) + ' to mark yourself: anything not marked in time scores 0. Untimed: no clock and no marking time limit. Your choice, your times and your attempt number are printed on your PDF.</details></div>'
+      + (tkey() && S.m.offer && !S.mode ? '<div class="aptt-key-row"><button type="button" class="aptt-key-btn" onclick="APTT.' + (S.m.all ? 'auto' : 'all') + '()">🔑 Teacher: ' + (S.m.all ? 'back to the ' + S.m.offer.n + '-' + noun(2).slice(0, -1) + ' test (' + minsTxt(S.m.offer.secs) + ' minutes)' : 'keep all ' + S.m.offer.nAll + ' ' + noun(2) + ' instead (' + minsTxt(S.m.offer.secsAll) + ' minutes)') + '</button></div>' : '')
       + (tkey() ? '<div class="aptt-key-row"><button type="button" class="aptt-key-btn aptt-mkbtn" onclick="APTT.maker()">🔑 Teacher: make a test link from these settings</button></div>' : '')
       + '</div>')
       + '<div id="aptt-items">' + S.items.map(row).join('') + '</div>'
@@ -12294,7 +12303,7 @@ var APTT = (function () {
   }
   // pen-up anywhere ends a stroke (the automatic lock waits for it)
   try { ['pointerup', 'pointercancel'].forEach(function (t) { document.addEventListener(t, function () { PEN = false; }, true); }); } catch (e) { }
-  return { open: open, close: close, mode: mode, lock: lock, show: showAns, mark: mark, next: next, verbDetail: verbDetail, pdf: pdf, teacher: teacher, maker: maker, openSet: openSet, cmSVG: cmSVG, cmBand: cmBand, cmPick: function (s20, seed) { if (!CM) cmLoad(); return cmPick(s20, seed); }, cmReload: function () { CM = null; cmLoad(); }, inProgress: inProgress, resume: resume, copyLink: copyLink, copyHTML: copyHTML, checkGit: checkGit, ghRemove: ghRemove, ghReplace: ghReplace, pack: pack, minsTxt: minsTxt, bigOf: function (answer, kind, srcId) { return kind === 'sentence' || (!{ conj: 1, it: 1, spot: 1 }[String(srcId || '').split('|')[0]] && nWords(answer) > 2); }, catOf: catOf, CATS: CATS, unpack: unpack, checkKey: checkKey, list: listGet, linkFor: linkFor, copy: copyText, ghAdd: ghAdd, holdAdd: holdAdd, holdLoad: holdLoad, libGet: libGet, libPut: libPut, listAdd: listAdd, folders: folders, gkey: gkey, nextCodeFor: nextCodeFor, lastRun: null, capturing: null, LABEL: LBL, state: function () { return S; } };
+  return { open: open, all: toAll, auto: toAuto, close: close, mode: mode, lock: lock, show: showAns, mark: mark, next: next, verbDetail: verbDetail, pdf: pdf, teacher: teacher, maker: maker, openSet: openSet, cmSVG: cmSVG, cmBand: cmBand, cmPick: function (s20, seed) { if (!CM) cmLoad(); return cmPick(s20, seed); }, cmReload: function () { CM = null; cmLoad(); }, inProgress: inProgress, resume: resume, copyLink: copyLink, copyHTML: copyHTML, checkGit: checkGit, ghRemove: ghRemove, ghReplace: ghReplace, pack: pack, minsTxt: minsTxt, bigOf: function (answer, kind, srcId) { return kind === 'sentence' || (!{ conj: 1, it: 1, spot: 1 }[String(srcId || '').split('|')[0]] && nWords(answer) > 2); }, catOf: catOf, CATS: CATS, unpack: unpack, checkKey: checkKey, list: listGet, linkFor: linkFor, copy: copyText, ghAdd: ghAdd, holdAdd: holdAdd, holdLoad: holdLoad, libGet: libGet, libPut: libPut, listAdd: listAdd, folders: folders, gkey: gkey, nextCodeFor: nextCodeFor, lastRun: null, capturing: null, LABEL: LBL, state: function () { return S; } };
 })();
 /* ===== END AP TIMED TEST ===== */
 </script>
