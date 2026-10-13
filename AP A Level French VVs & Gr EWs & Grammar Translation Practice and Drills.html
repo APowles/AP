@@ -3,7 +3,7 @@
 <script id="ap-update">
 /* AP auto-update: if this copy is older than the published version, reload once with the new one (saved answers are kept) */
 (function () {
-  var B = '38dde6643c'; window.AP_BUILD = B;
+  var B = '2097feb782'; window.AP_BUILD = B;
   function check() {
     if (!/^https?:$/.test(location.protocol) || !window.fetch) return;
     var f = decodeURIComponent(location.pathname.split('/').pop() || '');
@@ -39044,6 +39044,7 @@ function renderGrammarMenu() {
       <h2 class="aph-h" style="margin-bottom:4px">Grammar Drills</h2>
       <p class="vv-sub">Tap a set to drill it · or tick multiple sets to combine</p>
       <button class="aph-banner" onclick="openGdChallenge()"><span class="aph-banner-icon">⚡</span><span class="aph-banner-text"><b>AP Speed Challenge</b><small>Race against the clock, solo or in teams</small></span><span class="aph-banner-play">&#9654; Play</span></button>
+      ${rcpEntry('gd')}
       <div class="aph-label">Filter by topic</div>
       <div class="aph-row">
         <button onclick="grSetTopicFilter(0)" class="aph-chip ${grTopicFilter==0?'on':''}">All</button>
@@ -43365,6 +43366,7 @@ function renderGrEws() {
     <div class="aph-card">
       <h2 class="aph-h">Ready to practise?</h2>
       <button class="aph-banner" onclick="openGrChallenge()"><span class="aph-banner-icon">⚡</span><span class="aph-banner-text"><b>AP Speed Challenge</b><small>Race against the clock, solo or in teams</small></span><span class="aph-banner-play">&#9654; Play</span></button>
+      ${rcpEntry('ews')}
       <div class="aph-label">Chapter</div>
       <select class="aph-select" style="width:100%" onchange="grEwsSetKey(this.value)">
         ${sortedKeys.map(k => `<option value="${k}" ${k===activeKey?'selected':''}>Gr ${k.replace('gr','')} · ${GR_EWS_DATA[k].title} (${GR_EWS_DATA[k].items.length})</option>`).join('')}
@@ -45362,6 +45364,177 @@ body{background:var(--cream)}
 .aph-card .aph-btn-primary.aph-btn-block + .aph-stack,.aph-card .aph-stack + .aph-tools{margin-top:8px}
 .aph-card .aph-side-keys{display:flex;flex-wrap:wrap;justify-content:center;gap:8px 16px;margin-top:16px}
 </style>
+<style id="rcp-css">
+.rcp-open{display:flex;align-items:center;gap:12px;width:100%;margin:12px 0;padding:11px 14px;background:#fff;border:1.5px solid var(--gold,#c9a84c);border-radius:12px;cursor:pointer;text-align:left;font-family:var(--aph-body,system-ui,sans-serif);color:var(--navy,#1a2744)}
+.rcp-open:hover{background:#fff8e6}.rcp-open .rcp-av{width:34px;height:34px;border-radius:50%;border:2px solid var(--gold,#c9a84c);background-size:cover;background-position:center;flex:none}
+.rcp-open b{display:block;font-size:.9375rem}.rcp-open small{display:block;font-size:.8125rem;color:#667;margin-top:2px}.rcp-open .rcp-ar{margin-left:auto;opacity:.7}
+#rcp-ov{position:fixed;inset:0;z-index:13000;background:#f3f5fa;overflow-y:auto;-webkit-overflow-scrolling:touch;font-family:var(--aph-body,system-ui,sans-serif);color:var(--navy,#1a2744)}
+#rcp-ov .rcp-wrap{max-width:820px;margin:0 auto;padding:16px 16px 40px}
+.rcp-top{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:10px}
+.rcp-top h2{margin:0;font-size:1.35rem;display:flex;align-items:center;gap:10px}.rcp-top h2 .rcp-av{width:34px;height:34px;border-radius:50%;border:2px solid #c9a84c;background-size:cover;background-position:center}
+.rcp-sub{font-size:.8125rem;color:#667;margin:0 0 12px}
+.rcp-card{background:#fff;border:1.5px solid #dfe4ef;border-radius:12px;padding:12px 14px;margin-bottom:12px}
+.rcp-h{font-size:.75rem;font-weight:700;letter-spacing:.09em;text-transform:uppercase;color:#667;margin:0 0 8px}
+.rcp-search{width:100%;box-sizing:border-box;padding:9px 12px;border-radius:10px;border:1.5px solid #dfe4ef;font:inherit;font-size:.9375rem;margin-bottom:8px}
+.rcp-chips{display:flex;flex-wrap:wrap;gap:8px;margin:6px 0}
+.rcp-chip,.rcp-mini{font:600 .875rem/1.2 inherit;font-family:inherit;color:#334;background:#fff;border:1.5px solid #cfd6e6;border-radius:20px;padding:6px 13px;min-height:34px;cursor:pointer}
+.rcp-chip.on{background:#1a2744;color:#ffd76a;border-color:#1a2744}.rcp-mini{padding:3px 10px;min-height:28px;font-size:.78rem;border-radius:8px}
+.rcp-list{max-height:48vh;overflow-y:auto;-webkit-overflow-scrolling:touch;background:#fff;border:1.5px solid #dfe4ef;border-radius:10px;padding:2px 10px 6px}
+.rcp-gh{display:flex;align-items:center;justify-content:space-between;gap:8px;margin:12px 0 2px;font-size:.75rem;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:#667}
+.rcp-row{display:flex;align-items:center;gap:10px;min-height:44px;padding:4px 6px;border-radius:8px;cursor:pointer;border-bottom:1px solid #f0f2f6}
+.rcp-row:hover{background:#fffbe6}.rcp-row.on{background:#f0f4fc}.rcp-row input{width:20px;height:20px;flex-shrink:0;accent-color:#1a2744;cursor:pointer}
+.rcp-row-l{font-weight:700;font-size:.9375rem;min-width:62px}.rcp-row-s{color:#555;font-size:.8125rem;line-height:1.35}.rcp-hide{display:none!important}
+.rcp-foot{position:sticky;bottom:0;z-index:5;display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;background:#1a2744;color:#fff;border-radius:12px;padding:10px 14px;margin:12px 0;box-shadow:0 -4px 14px rgba(26,39,68,.18)}
+.rcp-foot span{font-size:.875rem;min-width:0}.rcp-foot b{color:#ffd76a}.rcp-foot .rcp-fb{display:flex;gap:8px}
+.rcp-foot button{padding:9px 16px;border-radius:9px;border:none;background:#c9a84c;color:#1a2744;font-weight:800;font-size:.9375rem;font-family:inherit;cursor:pointer}
+.rcp-foot button:disabled{opacity:.45;cursor:not-allowed}.rcp-foot #rcp-read{background:transparent;color:#fff;border:1.5px solid #c9a84c}
+.rcp-toc{display:flex;flex-wrap:wrap;align-items:center;gap:5px;margin:0 0 12px}.rcp-toc>span{font-size:.75rem;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:#667;margin-right:4px}
+.rcp-ch{margin:0 0 18px;scroll-margin-top:12px}
+.rcp-chh{display:flex;align-items:center;gap:10px;flex-wrap:wrap;background:linear-gradient(135deg,#1a2744,#2a3d6b);color:#fff;border-radius:12px 12px 0 0;padding:9px 14px}
+.rcp-chh .l{color:#ffd76a;font-weight:800;font-size:1rem}.rcp-chh .t{flex:1;min-width:140px;font-size:.875rem}.rcp-chh .rcp-mini{margin-left:auto}
+.rcp-body{background:#f7f8fc;border:1.5px solid #c9a84c;border-top:none;border-radius:0 0 12px 12px;padding:14px 16px;font-size:.875rem;line-height:1.75;color:#222;overflow-x:auto}
+.rcp-body table{border-collapse:collapse;font-size:.85rem;margin:4px 0}.rcp-body td,.rcp-body th{padding:2px 8px}
+.rcp-empty{padding:22px;text-align:center;color:#667;background:#fff;border:1.5px dashed #cfd6e6;border-radius:12px;margin-bottom:12px}
+@media print{#rcp-ov{display:none!important}}
+</style>
+<script id="rcp-js">
+/* AP A LEVEL GRAMMAR RECAPS: pick any combination of Gr EWs chapters and Grammar Drills sets, read them together, print / save as PDF */
+(function () {
+  'use strict';
+  var R = { keys: [], page: true, big: false, ctx: 'ews' };
+  function esc(s) { return String(s == null ? '' : s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;'); }
+  function norm(s) { return String(s || '').normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase(); }
+  function photo() { var i = document.querySelector('header img'); return i ? i.src : ''; }
+  function plain(h) { return String(h || '').replace(/<[^>]*>/g, ''); }
+  function items() {
+    var out = [];
+    try {
+      Object.keys(GR_EWS_DATA).sort(function (a, b) { return parseInt(a.replace('gr', ''), 10) - parseInt(b.replace('gr', ''), 10); }).forEach(function (k) {
+        if (GR_EWS_RECAP && GR_EWS_RECAP[k]) out.push({ k: 'e:' + k, g: 'e', label: 'Gr ' + k.replace('gr', ''), title: GR_EWS_DATA[k].title, html: function () { return grEwsRecapFull(k); } });
+      });
+    } catch (e) { }
+    try {
+      GR_SETS.forEach(function (s) {
+        if (s.rules) out.push({ k: 'd:' + s.id, g: 'd', label: (s.chip || s.title), title: s.title, html: function () { return grRecapFull(s); } });
+      });
+    } catch (e) { }
+    return out;
+  }
+  var GN = { e: 'Gr EWs chapters', d: 'Grammar Drills sets' };
+  function byKey() { var m = {}; items().forEach(function (x) { m[x.k] = x; }); return m; }
+  function order(keys) { return items().map(function (x) { return x.k; }).filter(function (k) { return keys.indexOf(k) >= 0; }); }
+  function initial(ctx) {
+    var k = [];
+    try {
+      if (ctx === 'gd') { if (typeof grSelected !== 'undefined' && grSelected && grSelected.size) grSelected.forEach(function (id) { k.push('d:' + id); }); }
+      else {
+        if (typeof grEwsSelectedKeys !== 'undefined' && grEwsSelectedKeys && grEwsSelectedKeys.length) grEwsSelectedKeys.forEach(function (x) { k.push('e:' + x); });
+        else if (typeof grEwsState !== 'undefined' && grEwsState && grEwsState.grKey) k.push('e:' + grEwsState.grKey);
+      }
+    } catch (e) { }
+    return order(k);
+  }
+  window.rcpEntry = function (ctx) {
+    var n = initial(ctx).length;
+    return '<button type="button" class="rcp-open" onclick="rcpOpen(\'' + ctx + '\')"><span class="rcp-av" style="background-image:url(\'' + photo() + '\')"></span>'
+      + '<span><b>Grammar recaps: pick one or several</b><small>Read them together, print or save as PDF' + (n > 1 ? ' · ' + n + ' ticked' : '') + '</small></span><span class="rcp-ar">▶</span></button>';
+  };
+  window.rcpOpen = function (ctx) { R.ctx = ctx || 'ews'; R.keys = initial(R.ctx); page(); };
+  window.rcpClose = function () { var o = document.getElementById('rcp-ov'); if (o) o.remove(); document.body.style.overflow = ''; };
+  function page() {
+    var old = document.getElementById('rcp-ov'); if (old) old.remove();
+    var list = '', cur = '';
+    items().forEach(function (x) {
+      if (x.g !== cur) { cur = x.g; list += '<div class="rcp-gh" data-gh="' + x.g + '"><span>' + GN[x.g] + '</span><button type="button" class="rcp-mini" onclick="rcpGroup(\'' + x.g + '\')">Tick / untick</button></div>'; }
+      var on = R.keys.indexOf(x.k) >= 0;
+      list += '<label class="rcp-row' + (on ? ' on' : '') + '" data-g="' + x.g + '" data-t="' + esc(norm(x.label + ' ' + x.title)) + '"><input type="checkbox" data-k="' + x.k + '"' + (on ? ' checked' : '') + ' onchange="rcpSync()"><span class="rcp-row-l">' + esc(x.label) + '</span><span class="rcp-row-s">' + esc(x.title) + '</span></label>';
+    });
+    var d = document.createElement('div'); d.id = 'rcp-ov'; d.setAttribute('role', 'dialog'); d.setAttribute('aria-label', 'Grammar recaps');
+    d.innerHTML = '<div class="rcp-wrap">'
+      + '<div class="rcp-top"><h2><span class="rcp-av" style="background-image:url(\'' + photo() + '\')"></span>Grammar recaps</h2><button type="button" class="rcp-chip" onclick="rcpClose()">✕ Close</button></div>'
+      + '<p class="rcp-sub">🇫🇷 A Level French · tick any chapters or sets, read them below, then print or save as PDF</p>'
+      + '<div class="rcp-card"><div class="rcp-h">📚 Choose recaps</div>'
+      + '<input class="rcp-search" type="search" placeholder="Find a topic, e.g. subjunctive, passive, relative…" oninput="rcpFilter(this.value)">'
+      + '<div class="rcp-chips"><button type="button" class="rcp-chip" onclick="rcpAll(true)">Tick all</button><button type="button" class="rcp-chip" onclick="rcpAll(false)">Clear</button></div>'
+      + '<div class="rcp-list" id="rcp-list">' + list + '</div></div>'
+      + '<div class="rcp-card"><div class="rcp-h">Print / PDF options</div><div class="rcp-chips">'
+      + '<button type="button" id="rcp-pg" class="rcp-chip' + (R.page ? ' on' : '') + '" onclick="rcpToggle(\'page\')">Each recap on a new page</button>'
+      + '<button type="button" id="rcp-bg" class="rcp-chip' + (R.big ? ' on' : '') + '" onclick="rcpToggle(\'big\')">Larger text</button></div>'
+      + '<div class="rcp-sub" style="margin:6px 0 0">In the print window choose “Save as PDF” to keep a copy, or your printer to print. The “Now I can…” lists print as empty boxes.</div></div>'
+      + '<div id="rcp-view"></div>'
+      + '<div class="rcp-foot"><span id="rcp-count"></span><span class="rcp-fb"><button type="button" id="rcp-read" onclick="rcpJump(R0())">📖 Read ↓</button><button type="button" id="rcp-print" onclick="rcpPrint()">🖨 Print / Save as PDF</button></span></div>'
+      + '</div>';
+    document.body.appendChild(d); document.body.style.overflow = 'hidden'; d.scrollTop = 0;
+    render();
+  }
+  window.R0 = function () { return R.keys[0]; };
+  function render() {
+    var v = document.getElementById('rcp-view'); if (!v) return;
+    var M = byKey(), keys = R.keys.filter(function (k) { return M[k]; });
+    if (!keys.length) v.innerHTML = '<div class="rcp-empty">Tick a recap above to read it here.</div>';
+    else {
+      var toc = keys.length > 1 ? '<div class="rcp-toc"><span>Jump to</span>' + keys.map(function (k) { return '<button type="button" class="rcp-chip" title="' + esc(M[k].title) + '" onclick="rcpJump(\'' + k + '\')">' + esc(M[k].label) + '</button>'; }).join('') + '</div>' : '';
+      v.innerHTML = toc + keys.map(function (k) {
+        var x = M[k];
+        return '<section class="rcp-ch" id="rcp-c-' + k.replace(':', '_') + '"><div class="rcp-chh"><span class="l">' + esc(x.label) + '</span><span class="t">' + esc(x.title) + '</span>'
+          + (keys.length > 1 ? '<button type="button" class="rcp-mini" onclick="rcpPrintOne(\'' + k + '\')">🖨 Just this one</button>' : '') + '</div><div class="rcp-body">' + x.html() + '</div></section>';
+      }).join('');
+    }
+    v.style.zoom = R.big ? '1.2' : '';
+    var c = document.getElementById('rcp-count'), tot = items().length;
+    if (c) c.innerHTML = keys.length ? '<b>' + keys.length + '</b> of ' + tot + ' ticked · ' + esc(label(keys)) : 'Nothing ticked yet';
+    ['rcp-print', 'rcp-read'].forEach(function (id) { var b = document.getElementById(id); if (b) b.disabled = !keys.length; });
+    document.querySelectorAll('#rcp-list .rcp-row').forEach(function (r) { r.classList.toggle('on', r.querySelector('input').checked); });
+    try { if (typeof ncRestore === 'function') ncRestore(); } catch (e) { }
+  }
+  function label(keys) {
+    var M = byKey();
+    var e = keys.filter(function (k) { return k[0] === 'e'; }).map(function (k) { return M[k].label; }), dd = keys.filter(function (k) { return k[0] === 'd'; }).map(function (k) { return M[k].label; });
+    var parts = []; if (e.length) parts.push(e.join(' + ')); if (dd.length) parts.push(dd.join(' + '));
+    var s = parts.join(' · '); return s.length > 90 ? keys.length + ' recaps' : s;
+  }
+  window.rcpSync = function () {
+    var on = []; document.querySelectorAll('#rcp-list input[data-k]').forEach(function (i) { if (i.checked) on.push(i.dataset.k); });
+    R.keys = order(on); render();
+  };
+  function rows(g, shown) { return [].slice.call(document.querySelectorAll('#rcp-list .rcp-row')).filter(function (r) { return (!g || r.dataset.g === g) && (!shown || !r.classList.contains('rcp-hide')); }); }
+  window.rcpGroup = function (g) { var rs = rows(g, true), all = rs.length > 0 && rs.every(function (r) { return r.querySelector('input').checked; }); rs.forEach(function (r) { r.querySelector('input').checked = !all; }); rcpSync(); };
+  window.rcpAll = function (on) { rows(null, on).forEach(function (r) { r.querySelector('input').checked = on; }); rcpSync(); };
+  window.rcpFilter = function (q) {
+    q = norm(q).trim();
+    rows().forEach(function (r) { r.classList.toggle('rcp-hide', !!q && r.dataset.t.indexOf(q) < 0); });
+    document.querySelectorAll('#rcp-list .rcp-gh').forEach(function (h) { h.classList.toggle('rcp-hide', !rows(h.dataset.gh, true).length); });
+  };
+  window.rcpToggle = function (w) { R[w] = !R[w]; var b = document.getElementById(w === 'page' ? 'rcp-pg' : 'rcp-bg'); if (b) b.classList.toggle('on', R[w]); if (w === 'big') render(); };
+  window.rcpJump = function (k) { if (!k) return; var e = document.getElementById('rcp-c-' + String(k).replace(':', '_')); if (e) e.scrollIntoView({ behavior: 'smooth', block: 'start' }); };
+  function printWin(title, bodyHtml) {
+    var css = ''; try { [].slice.call(document.querySelectorAll('style')).forEach(function (s) { if (s.id !== 'rcp-css') css += s.textContent + '\n'; }); } catch (e) { }
+    var extra = '.rc-toc{margin:6px 0 4px;padding-left:24px;font-size:.85rem;line-height:1.7}.rc-toc.two{column-count:2;column-gap:28px}.rc-toc li{break-inside:avoid}.rc-toc li span{color:#555}'
+      + '.rc-ch{margin-top:22px}.rc-pb{page-break-before:always;break-before:page;margin-top:0}'
+      + '.rc-chh{display:flex;gap:10px;align-items:baseline;background:#1a2744;color:#fff;border-radius:8px;padding:7px 12px;margin-bottom:8px;break-after:avoid;page-break-after:avoid}.rc-chh b{color:#ffd76a;font-size:1rem}.rc-chh span{font-size:.85rem}'
+      + '.gr-block{break-inside:avoid;page-break-inside:avoid}.gr-label,.gr-section-title{break-after:avoid;page-break-after:avoid}.nc-chk{display:none!important}.nc-ans{display:none!important}'
+      + '.rc-chh,.gr-block,.gr-tense-pill,.gr-example,.gr-pronoun-pill,.gr-neg-pill,.gr-hl,.gg-key *{-webkit-print-color-adjust:exact;print-color-adjust:exact}body{margin:1.2cm 1.5cm}';
+    var w = null; try { w = window.open('', '_blank'); } catch (e) { w = null; }
+    if (!w) { alert('The print window was blocked. Allow pop-ups for this page, then try again.'); return; }
+    w.document.write('<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>' + esc(title) + '</title><style>' + css + extra + '</style></head><body>' + bodyHtml + '<script>window.onload=function(){setTimeout(function(){window.print()},500)}<\/script></body></html>');
+    w.document.close();
+  }
+  function head(keys) { return aphPrintHead({ kicker: 'AP A Level French &middot; Grammar recaps', title: '<em>Grammar recaps</em> &mdash; ' + esc(label(keys)), meta: keys.length + ' recap' + (keys.length === 1 ? '' : 's'), strip: false }); }
+  window.rcpPrintOne = function (k) {
+    var x = byKey()[k]; if (!x) return;
+    printWin('Grammar recap: ' + x.label, aphPrintHead({ kicker: 'AP A Level French &middot; Grammar recap', title: '<em>' + esc(x.label) + '</em> &mdash; ' + esc(x.title), strip: false }) + (R.big ? '<div style="zoom:1.2">' : '<div>') + x.html() + '</div>' + aphPrintFoot('AP A Level French &middot; Grammar recap'));
+  };
+  window.rcpPrint = function () {
+    var M = byKey(), keys = R.keys.filter(function (k) { return M[k]; });
+    if (!keys.length) { alert('Tick at least one recap first.'); return; }
+    if (keys.length === 1) { rcpPrintOne(keys[0]); return; }
+    var z = R.big ? ' style="zoom:1.2"' : '';
+    var toc = '<div class="gr-label" style="margin-top:12px">Contents · ' + keys.length + ' recaps</div><ol class="rc-toc' + (keys.length > 12 ? ' two' : '') + '">' + keys.map(function (k) { return '<li><b>' + esc(M[k].label) + '</b> <span>' + esc(M[k].title) + '</span></li>'; }).join('') + '</ol>';
+    var chs = keys.map(function (k, i) { return '<div class="rc-ch' + (R.page && i > 0 ? ' rc-pb' : '') + '"><div class="rc-chh"><b>' + esc(M[k].label) + '</b><span>' + esc(M[k].title) + '</span></div><div' + z + '>' + M[k].html() + '</div></div>'; }).join('');
+    printWin('A Level French: Grammar recaps', head(keys) + toc + chs + aphPrintFoot('AP A Level French &middot; Grammar recaps'));
+  };
+})();
+</script>
 </body></html>
 <script>
 // ── Speed Challenge → 📝 Generate Test / 📋 AP Spot Test on exactly the game's selection, in a panel over the game (closing it goes back to the game) ──
