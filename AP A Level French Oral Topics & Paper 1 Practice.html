@@ -3,7 +3,7 @@
 <script id="ap-update">
 /* AP auto-update: if this copy is older than the published version, reload once with the new one (saved answers are kept) */
 (function () {
-  var B = 'a14c892e47'; window.AP_BUILD = B;
+  var B = 'dd92e561e7'; window.AP_BUILD = B;
   function check() {
     if (!/^https?:$/.test(location.protocol) || !window.fetch) return;
     var f = decodeURIComponent(location.pathname.split('/').pop() || '');
@@ -12724,10 +12724,6 @@ h1,h2,h3{text-wrap:balance;margin:0}
 .svb-fr.cur,.svb-fr:only-of-type{opacity:1}
 .svb-en{margin-top:28px;font-size:clamp(1.2rem,2.8vw,2.1rem);line-height:1.4;color:#f2d38a;opacity:.5;transition:opacity .3s}
 .svb-en.cur{opacity:1}
-.svb .kw{border-radius:6px;padding:0 3px;margin:0 -3px;transition:color .15s,background .15s}
-.svb .kar .kw,.svb .kar.kw{color:rgba(255,255,255,.45)}
-.svb .kar .kw.done{color:#ffd76a}
-.svb .kar .kw.cur{color:#1a2744;background:#ffd76a}
 .para.now{outline:3px solid var(--gold);background:#fffaf0}
 .svbar{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin:10px 0 12px}
 .svbar .seg{display:inline-flex;border:1.5px solid var(--line);border-radius:999px;overflow:hidden}
@@ -12975,28 +12971,7 @@ function svDismiss(){SV.dis=true;svBigHide()}
 function svBigShow(it){if(!SV.big||SV.dis||!it.p)return;let o=document.getElementById('svbig');
   if(!o){o=document.createElement('div');o.id='svbig';o.onclick=svDismiss;document.body.appendChild(o);requestAnimationFrame(()=>o.classList.add('in'))}
   const en=SV.mode!=='fr';
-  o.innerHTML=`<div class="svb"><div class="svb-fr${it.l==='fr-FR'?' cur kar':''}">${kwHtml(it.p.fr)}</div>${en?`<div class="svb-en${it.l==='en-GB'?' cur kar':''}">${kwHtml(it.p.en)}</div>`:''}<div class="svb-x">Click or press Esc to shrink</div></div>`}
-/* karaoke (same method as Oral Demo Mode): the phrase is lit up word by word in time with the voice, from the browser's word-boundary
-   events, with a timer based on speaking speed as the fallback for voices that do not send them */
-function kwHtml(t){return String(t).split(/(\s+)/).map(w=>/^\s*$/.test(w)?w:`<span class="kw">${esc(w)}</span>`).join('')}
-function kwMap(text,fr){/* shown-word index for each spoken word (the French voice text drops (brackets) and respells INF, PP, X, Y) */
-  const map=[];let depth=0;
-  String(text).split(/\s+/).filter(Boolean).forEach((w,i)=>{
-    const o=(w.match(/\(/g)||[]).length,c=(w.match(/\)/g)||[]).length;
-    const n=fr?((depth>0||o>0)?0:ttsText(w).split(/\s+/).filter(Boolean).length):(w.replace(/\*/g,'').length?1:0);
-    depth=Math.max(0,depth+o-c);for(let k=0;k<n;k++)map.push(i)});
-  return map}
-function kwAttach(u,it,tok){
-  const fr=it.l==='fr-FR',map=kwMap(fr?it.p.fr:it.p.en,fr),sp=[],re=/\S+/g;let m;while((m=re.exec(u.text)))sp.push(m.index);
-  if(!map.length||!sp.length)return;
-  let boundary=false,timer=null,cur=-2;
-  const stop=()=>{if(timer){clearInterval(timer);timer=null}};
-  const at=j=>map[Math.min(map.length-1,Math.round(j*(map.length-1)/Math.max(1,sp.length-1)))];
-  const lit=k=>{if(k===cur)return;cur=k;document.querySelectorAll('#svbig .kar .kw').forEach((e,i)=>{e.className='kw'+(i<k?' done':i===k?' cur':'')})};
-  u.addEventListener('boundary',e=>{if(tok!==SV.tok||(e.name&&e.name!=='word'))return;boundary=true;stop();let j=0;while(j+1<sp.length&&sp[j+1]<=e.charIndex)j++;lit(at(j))});
-  u.addEventListener('start',()=>{if(tok!==SV.tok)return;stop();lit(at(0));const t0=Date.now(),cps=20.5*(u.rate||0.9),total=u.text.length;
-    timer=setInterval(()=>{if(tok!==SV.tok||boundary){stop();return}const c=(Date.now()-t0)/1000*cps;let j=0;while(j+1<sp.length&&sp[j+1]<=c)j++;lit(at(j));if(c>total)stop()},120)});
-  u.addEventListener('end',()=>{stop();if(tok===SV.tok)lit(1e9)})}
+  o.innerHTML=`<div class="svb"><div class="svb-fr${it.l==='fr-FR'?' cur':''}">${esc(it.p.fr)}</div>${en?`<div class="svb-en${it.l==='en-GB'?' cur':''}">${esc(it.p.en)}</div>`:''}<div class="svb-x">Click or press Esc to shrink</div></div>`}
 function svBigHide(){const o=document.getElementById('svbig');if(!o)return;o.classList.remove('in');setTimeout(()=>{if(o.parentNode&&!o.classList.contains('in'))o.remove()},400)}
 function svToggleBig(){SV.big=!SV.big;svSave();if(!SV.big)svBigHide();render()}
 document.addEventListener('keydown',e=>{if(e.key==='Escape')svDismiss()});
@@ -13014,7 +12989,7 @@ function svSpeak(list,gap,onItem,done){
     const it=list[i++];svBigShow(it);if(onItem)onItem(it);
     const u=new SpeechSynthesisUtterance(it.t);u.lang=it.l;
     if(it.l==='fr-FR'){if(VOICE)u.voice=VOICE}else{if(!ENV)pickEn();if(ENV)u.voice=ENV}
-    u.rate=parseFloat($('rate').value)||0.9;kwAttach(u,it,tok);
+    u.rate=parseFloat($('rate').value)||0.9;
     let fin=false;const go2=()=>{if(fin)return;fin=true;setTimeout(next,gap)};
     u.onend=go2;u.onerror=go2;
     try{speechSynthesis.speak(u)}catch(e){go2()}
@@ -13022,7 +12997,6 @@ function svSpeak(list,gap,onItem,done){
 }
 function svPara(i){const st=cur().story;if(!st.paras[i])return;svSpeak(svUtts(st.paras[i]),500)}
 function svAuto(i){if(SV.auto&&!SV.playing)setTimeout(()=>{if(S.view==='sub')svPara(i)},250)}
-function svStart(){svStop();svPara(0)}
 function svNext(){S.story++;render();svAuto(S.story-1)}
 function svShowAll(){S.story=cur().story.paras.length;render()}
 function svSetMode(m){SV.mode=m;svSave();svStop();render()}
@@ -13057,6 +13031,7 @@ function go(v,sub,k){
   S.view=v;if(sub!=null)S.sub=sub;if(k!=null){S.k=k;S.stage='c';S.step=0;S.mode='deck';S.drill='recall';S.uq=0;initDrills()}
   if(v==='sub')S.story=1;
   render();window.scrollTo(0,0);
+  if(v==='sub')svAuto(0);
 }
 function crumb(){
   let c='';
@@ -13264,7 +13239,7 @@ function vSub(){
   return `<div class="label">Theme ${s.theme} · Sub-theme ${s.subtheme}</div>
   <h1 class="h1">${esc(s.name)}</h1>
   <h2 class="h2" style="margin-top:14px;font-weight:600">${FL({fr:st.title_fr,en:st.title_en})}</h2>
-  <div class="svbar"><span class="seg" role="group" aria-label="Voice language"><button class="${SV.mode==='fr'?'on':''}" onclick="svSetMode('fr')">🔊 Français</button><button class="${SV.mode==='en'?'on':''}" onclick="svSetMode('en')">🔊 English</button><button class="${SV.mode==='both'?'on':''}" onclick="svSetMode('both')">🔊 Both</button></span><button class="spbtn pri" id="sv-start" onclick="svStart()" title="Read the opening paragraph aloud${SV.big?', in large text with each word lit up as it is said':''}">${SV.big?'▶ Start the story in large text':'▶ Start the story'}</button><button class="spbtn" onclick="svToggleAuto()" title="After you press Start or Continue, read each new paragraph aloud">${SV.auto?'☑':'☐'} Auto-play</button><button class="spbtn" onclick="svToggleBig()" title="Show the phrase in large type while it is read">${SV.big?'☑':'☐'} Large text while playing</button><button class="spbtn" id="sv-play" onclick="svPlayAll()">${SV.playing?'■ Stop':'▶ Play the whole story'}</button></div>
+  <div class="svbar"><span class="seg" role="group" aria-label="Voice language"><button class="${SV.mode==='fr'?'on':''}" onclick="svSetMode('fr')">🔊 Français</button><button class="${SV.mode==='en'?'on':''}" onclick="svSetMode('en')">🔊 English</button><button class="${SV.mode==='both'?'on':''}" onclick="svSetMode('both')">🔊 Both</button></span><button class="spbtn" onclick="svToggleAuto()" title="Read each new paragraph aloud automatically">${SV.auto?'☑':'☐'} Auto-play</button><button class="spbtn" onclick="svToggleBig()" title="Show the phrase in large type while it is read">${SV.big?'☑':'☐'} Large text while playing</button><button class="spbtn" id="sv-play" onclick="svPlayAll()">${SV.playing?'■ Stop':'▶ Play the whole story'}</button></div>
   <div class="story">${shown}</div>
   <div class="nav"><button class="spbtn" onclick="openSpeedNow([${s.ktrs.map(k=>k.n)}])">⚡ Speed session: this sub-theme</button>${spotHost()?`<button class="spbtn" onclick="openSpot([${s.ktrs.map(k=>k.n)}],'${esc(s.name).replace(/'/g,"\\'")}')">⏱ AP Timed Spot Test: this sub-theme</button>`:''}${more?`<button class="btn pri" onclick="svNext()">Continue the story</button>`:''}
     ${S.story>1?`<button class="btn" onclick="svShowAll()">Show all</button>`:''}</div>
