@@ -3,7 +3,7 @@
 <script id="ap-update">
 /* AP auto-update: if this copy is older than the published version, reload once with the new one (saved answers are kept) */
 (function () {
-  var B = '145749213e'; window.AP_BUILD = B;
+  var B = '35d9db8193'; window.AP_BUILD = B;
   function check() {
     if (!/^https?:$/.test(location.protocol) || !window.fetch) return;
     var f = decodeURIComponent(location.pathname.split('/').pop() || '');
@@ -6855,7 +6855,7 @@ function generateAPSpotTest(timed) {
   if (!timed) apLvRan('ktr', generateAPSpotTest);
   var allCards = expandedPool.length;
   if (useLv) expandedPool = apLvPool('ktr', expandedPool, apKtrCardLevel);   // the chosen level only
-  var perQ = _studioNs ? 3 : _apItemsPerQ;   // from KTR Studio: 5 × 3 = 15 short items (trimmed to fit 4½ minutes)
+  var perQ = _studioNs ? 4 : _apItemsPerQ;   // from KTR Studio: 5 × 3 = 15 short items (trimmed to fit 4½ minutes)
   var fit = useLv ? apLvFit('ktr', apSpotFit(expandedPool.length, perQ)) : apSpotFit(expandedPool.length, perQ);
   if (!fit && useLv && apLv('ktr') !== 'X' && allCards >= 5) { apLvShort('ktr', 'apTestOutput', expandedPool.length, 5); return; }
   if (!fit) {
@@ -6875,6 +6875,10 @@ function generateAPSpotTest(timed) {
     var ks = Object.keys(by).sort(function () { return Math.random() - 0.5; }), mixd = [];
     for (var r = 0; mixd.length < expandedPool.length; r++) ks.forEach(function (k) { if (by[k][r]) mixd.push(by[k][r]); });
     items = mixd.slice(0, numQ * ipq);
+  }
+  if (_studioNs && ipq === 4) {   // short answers (connectors, words, names, dates, bold chunks) earn 20 items; anything longer goes back to 15, so the test still fits 4½ minutes
+    var secs = 0; items.forEach(function (p) { secs += Math.max(12, 6 + 2.5 * String(p._answer || '').replace(/<[^>]*>/g, ' ').replace(/\([^)]*\)/g, ' ').trim().split(/\s+/).filter(Boolean).length); });
+    if (secs > 270) { ipq = 3; items = items.slice(0, numQ * 3); }
   }
   var hasKnow = !!_studioNs && items.some(function (p) { return p._ref && p._ref.task; });
   var rows=[]; for(var i=0;i<numQ;i++) rows.push(items.slice(i*ipq, i*ipq+ipq));
