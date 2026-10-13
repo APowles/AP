@@ -2802,13 +2802,21 @@ html.aptt-open,html.aptt-open body{overflow:hidden}
 .aptt-tban.done{background:#fff8e6;border-color:var(--gold);color:var(--navy)}
 .aptt-tban[hidden]{display:none}
 .aptt-tban.live{position:fixed;top:108px;left:50%;transform:translateX(-50%);width:min(760px,calc(100vw - 32px));box-sizing:border-box;z-index:14005;box-shadow:0 10px 28px rgba(8,13,28,.35);margin:0}
-.aptt-learn{background:#fff;border:3px solid #c0392b;border-radius:12px;padding:12px 14px;margin:18px 0 0;animation:apttGlow 1.3s ease-in-out infinite}
-.aptt-learn.done{border-color:#2e7d52;animation:none;box-shadow:none}
+.aptt-learn{position:relative;background:#fff;border:9px solid #d3d8e0;border-radius:8px;padding:12px 16px;margin:22px 0 38px;outline:3px solid #c0392b;outline-offset:3px;box-shadow:inset 0 0 0 2px #aeb6c2,inset 0 4px 18px rgba(30,50,90,.08);animation:apttGlow 1.3s ease-in-out infinite;font-family:'Segoe Print','Bradley Hand','Chalkboard SE','Marker Felt','Comic Sans MS',cursive}
+.aptt-learn::after{content:'';position:absolute;left:50%;transform:translateX(-50%);bottom:-24px;width:64%;height:12px;border-radius:0 0 8px 8px;background:#aab2bf;box-shadow:0 2px 0 #8a93a2}
+.aptt-learn::before{content:'';position:absolute;left:30%;bottom:-13px;width:130px;height:9px;z-index:1;background:linear-gradient(#1d4ed8,#1d4ed8) 0 0/36px 9px no-repeat,linear-gradient(#c0392b,#c0392b) 47px 0/36px 9px no-repeat,linear-gradient(#15803d,#15803d) 94px 0/36px 9px no-repeat;border-radius:4px}
+.aptt-learn.done{outline-color:#2e7d52;animation:none;box-shadow:inset 0 0 0 2px #aeb6c2}
 @keyframes apttGlow{0%,100%{box-shadow:0 0 0 0 rgba(192,57,43,.6)}50%{box-shadow:0 0 0 8px rgba(192,57,43,.12),0 0 18px 4px rgba(192,57,43,.35)}}
 @keyframes apttShake{0%,100%{transform:none}20%,60%{transform:translateX(-6px)}40%,80%{transform:translateX(6px)}}
 .aptt-learn.aptt-shake{animation:apttShake .45s ease, apttGlow 1.3s ease-in-out infinite}
-.aptt-learn-h{font-size:1rem;font-weight:800;color:var(--navy);margin:0 0 2px}
-.aptt-learn-q{font-size:.9375rem;color:var(--text2);margin:0 0 4px}
+.aptt-learn-top{display:flex;align-items:center;justify-content:space-between;gap:10px;margin:0 0 4px}
+.aptt-learn-h{margin:0;line-height:1.1}
+.aptt-wb-t{display:inline-block;font-size:1.45rem;font-weight:700;color:#1d4ed8;transform:rotate(-1deg);text-decoration:underline wavy #c0392b;text-decoration-thickness:2px;text-underline-offset:6px}
+.aptt-wb-s{display:block;font-size:1.05rem;color:#15803d;margin-top:8px;transform:rotate(-.5deg)}
+.aptt-learn-av{width:40px;height:40px;border-radius:50%;border:2px solid #c9a227;object-fit:cover;background:#fff;flex:none}
+.aptt-learn-q{font-size:1.08rem;line-height:1.5;color:#1b2333;margin:6px 0 6px}
+.aptt-learn-q b{color:#1d4ed8}
+.aptt-learn-q u{text-decoration-color:#c0392b;text-decoration-thickness:2px;text-underline-offset:3px}
 .aptt-learn-why{font-size:.9375rem;line-height:1.45;color:#4a3d0e;background:#fff8e1;border-left:4px solid #c9a227;border-radius:0 8px 8px 0;padding:8px 11px;margin:6px 0 8px}
 .aptt-save .apmp-btn.aptt-wait{background:#8a93a8;border-color:#8a93a8;color:#fff;cursor:not-allowed}
 .aptt-learn-must{font-size:.9375rem;font-weight:700;color:#a32116;margin:2px 0 8px}
@@ -3019,6 +3027,7 @@ var APTT = (function () {
   function fit(items) { var t = 0, k = 0; for (var i = 0; i < items.length; i++) { var c = cost(items[i]); if (k >= MINITEMS && t + c > BUDGET) break; t += c; k++; } return k; }
   function limit() { if (S.m.tov) return S.m.tov; if (S.m.set && S.m.set.secs) return S.m.set.secs; var t = 0; S.items.forEach(function (it) { t += cost(it); }); return Math.max(120, Math.ceil(t / 30) * 30); }
   function tsecs(a) { var t = 0; a.forEach(function (it) { t += cost(it); }); return Math.max(120, Math.ceil(t / 30) * 30); }
+  function aphAv() { try { return typeof aphAvatar === 'function' ? aphAvatar() : ''; } catch (e) { return ''; } }
   var LASTO = null;
   function toAll() { if (LASTO && S && !S.mode) open(LASTO, 'all'); }
   function setTime(v) { v = +v; if (S && !S.mode && v >= 60) { S.m.tov = v; render(); } }
@@ -3162,10 +3171,10 @@ var APTT = (function () {
       + '<div class="aptt-lock-n" id="aptt-lockn"></div>'
       + '<div class="aptt-after" id="aptt-after"' + (S.shown ? '' : ' hidden') + '>'
       + '<div class="aptt-score" id="aptt-score2"></div><div class="aptt-cm" id="aptt-cm" hidden></div>'
-      + '<div class="aptt-learn" id="aptt-learn"><div class="aptt-learn-h">📝 What I learned: the most important part</div><div class="aptt-learn-q">Make a note of what caught you out, and how you’ll remember it, as AP would put it in Whiteboard Notes. <b>In Birley 12</b>, you’ll get a couple of minutes; <b>in your House</b>, take as long as you need. You can add more later in OneNote.</div>'
+      + '<div class="aptt-learn" id="aptt-learn"><div class="aptt-learn-top"><div class="aptt-learn-h"><span class="aptt-wb-t">AP Whiteboard Notes</span><span class="aptt-wb-s">What have I learned?</span></div>' + (aphAv() ? '<img class="aptt-learn-av" src="' + aphAv() + '" alt="AP">' : '') + '</div><div class="aptt-learn-q"><b>This is your chance to write something about what you’ve learned.</b> Pick <u>your own words</u>, just as if you were up at my whiteboard in Birley 12: what caught you out, the correct version, and the trick you’ll use to remember it. <b>In Birley 12</b>, you’ll get a couple of minutes; <b>in your House</b>, take as long as you need. You can add more later in OneNote.</div>'
       + (demo() ? '' : '<div class="aptt-learn-why">' + LEARN_WHY + '</div>')
       + '<div class="aptt-learn-must" id="aptt-learn-must"></div>'
-      + APPEN.html({ key: S.key + ':learn', lines: 4, label: 'What I learned', typed: '<textarea class="appen-ta" rows="4" spellcheck="false" autocomplete="off" placeholder="Notes for you: what caught you out, the correct version, how you’ll remember it…"></textarea>' }) + '</div>'
+      + APPEN.html({ key: S.key + ':learn', lines: 4, label: 'AP Whiteboard Notes', typed: '<textarea class="appen-ta" rows="4" spellcheck="false" autocomplete="off" placeholder="Notes for you: what caught you out, the correct version, how you’ll remember it…"></textarea>' }) + '</div>'
       + '<div class="aptt-save"><button type="button" class="apmp-btn lg" id="aptt-pdfbtn" onclick="APTT.pdf()">📄 Save my work as PDF</button>'
       + '<div class="aptt-save-n">' + ((/iPad|iPhone|iPod/.test(navigator.userAgent || '') || (/Macintosh/.test(navigator.userAgent || '') && navigator.maxTouchPoints > 1)) ? 'then Share &rsaquo; OneNote (see above). Open OneNote, go to your Classwork or EW folder, find the new page, tap the PDF icon and tap Printout. Otherwise, see the help on the next page.' : 'then put it into OneNote on a new page: Insert &rsaquo; File Printout') + '</div></div></div>'
       + '</div>';
@@ -3310,7 +3319,7 @@ var APTT = (function () {
     S.markDone = true;
     S.items.forEach(function (it, i) { var m = S.marks[i]; if (m == null || m === '') { S.marks[i] = 0; S.unm = (S.unm || []).concat([i + 1]); } });
     save(); markEndUI(); score();
-    var b = $('aptt-tban'); if (b) { b.hidden = false; b.className = 'aptt-tban done'; b.innerHTML = '✔ <b>Marking time is over.</b> Your score is what you managed to mark. Now go through your mistakes and write your notes in <b>What I learned</b>: <b>in class</b>, a couple of minutes, then save and upload when AP says; <b>in your House</b>, as long as you need.'; }
+    var b = $('aptt-tban'); if (b) { b.hidden = false; b.className = 'aptt-tban done'; b.innerHTML = '✔ <b>Marking time is over.</b> Your score is what you managed to mark. Now go through your mistakes and write your notes on <b>AP Whiteboard Notes</b>: <b>in class</b>, a couple of minutes, then save and upload when AP says; <b>in your House</b>, as long as you need.'; }
   }
   function markEndUI() {
     document.querySelectorAll('#aptt-ov .aptt-mb').forEach(function (b) { b.disabled = true; });
@@ -3451,7 +3460,7 @@ var APTT = (function () {
         + '<div class="aptt-plegend">Marks: ' + (w ? (s ? 'words ' : '') + '<b>2</b> right: perfect in every way · <b>1</b> nearly: instantly recognisable as a solid attempt, but with minor errors · <b>0</b> wrong: a different word, or not recognisable' : '') + (w && s ? ' &middot; ' : '') + (s ? (w ? 'sentences ' : '') + '<b>4</b> perfect in every way · <b>3</b> mostly right (about 75%+) · <b>2</b> about half right (50/50) · <b>1</b> only a word or two right · <b>0</b> nothing right' : '')
         + ' &middot; out of ' + T + ', whole marks' + (timed ? ' &middot; ' + dur(ml) + ' to mark (anything not marked in time scores 0)' : '') + '</div>'
         + APMP.sec(S.items.length + ' ' + noun(S.items.length), r1(r.score), T, true) + S.items.map(q).join('');
-      var top = '<div class="apmp-sec"><span>📝 What I learned</span></div><div class="appen-pbox">' + (learn || '<span class="apmp-blank">(nothing written)</span>') + '</div>';
+      var top = '<div class="apmp-sec"><span>📝 AP Whiteboard Notes: what I learned</span></div><div class="appen-pbox">' + (learn || '<span class="apmp-blank">(nothing written)</span>') + '</div>';
       if (demo()) { body += top; top = ''; }   // the demo keeps it at the end
       S.done = true; save();
       return {
