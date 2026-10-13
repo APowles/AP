@@ -3,7 +3,7 @@
 <script id="ap-update">
 /* AP auto-update: if this copy is older than the published version, reload once with the new one (saved answers are kept) */
 (function () {
-  var B = 'd0e89ae01f'; window.AP_BUILD = B;
+  var B = 'e2eaffc274'; window.AP_BUILD = B;
   function check() {
     if (!/^https?:$/.test(location.protocol) || !window.fetch) return;
     var f = decodeURIComponent(location.pathname.split('/').pop() || '');
@@ -13222,7 +13222,8 @@ body.aporal-on .st-oral-side>button{pointer-events:none;opacity:.45}
 .aporal-disc{background:#fdecea;border:1.5px solid #b71c1c;border-radius:10px;padding:9px 11px;margin:8px 0;color:#7a1010;font-size:.95rem}
 .aporal-demo{background:#eaf5ef;border:1px solid #2e7d52;border-radius:10px;padding:9px 11px;margin:12px 0;font-size:.92rem}
 body.aporal-on #demo-all-struct-panel{display:none!important}
-body.aporal-on #oral-cycle-panel{display:none!important}
+body.aporal-on #oral-cycle-panel,body.aporal-on #oral-cycle-btn,body.aporal-on button[onclick*="AllQuestions"],body.aporal-on #igcse-display-btn{display:none!important}
+body.aporal-on .st-oral-cols table{pointer-events:none}
 
 .aporal-setnote{background:#eef2fb;border:1px solid #b8c4e4;border-radius:8px;padding:7px 10px;margin:6px 0 8px;font-size:.92rem;color:#1a2744}
 </style>
@@ -13438,6 +13439,7 @@ body.aporal-on #oral-cycle-panel{display:none!important}
       }
       document.body.classList.remove('aporal-cover'); closeBox(); barOn();
       document.body.classList.add('aporal-on');
+      hintFix();
       window.addEventListener('beforeunload', warnLeave);
       try { stopDemoMode(); } catch (e) { }   // the demo cannot run, or be seen, while a boy is recording
       try { var dp = $('demo-all-struct-panel'); if (dp) dp.style.display = 'none'; _allStructsVisible = false; } catch (e) { }
@@ -13455,16 +13457,29 @@ body.aporal-on #oral-cycle-panel{display:none!important}
     b.innerHTML = '<span class="aporal-dot"></span><b>REC</b><span id="aporal-time" class="aporal-time">0:00</span>'
       + (NOMETER ? '' : '<div class="aporal-meter dark"><i id="aporal-bfill"></i></div>')
       + '<span class="aporal-mid">Card ' + esc(R.card.code || '') + '</span>'
+      + '<button type="button" id="aporal-rep" class="aporal-stop" style="background:#fff;color:#1a2744;margin-right:6px">🔁 Hear the question again</button>'
       + '<button type="button" id="aporal-chk" class="aporal-stop" style="background:#ffd76a;color:#1a2744;margin-right:6px">■ Stop and check recording</button>'
       + '<button type="button" id="aporal-stop" class="aporal-stop">■ Stop and throw away</button>';
     document.body.appendChild(b);
     R.iv = setInterval(function () { var t = $('aporal-time'); if (t && R) t.textContent = mmss(elapsed()); }, 500);
+    $('aporal-rep').onclick = function () { try { if (typeof repeatCurrentQuestion === 'function' && R && R.on && R.marks && R.marks[0] != null) repeatCurrentQuestion(); } catch (e) { } };
     $('aporal-chk').onclick = function () { finishEarly(); };
     $('aporal-stop').onclick = function () {
       if (!window.confirm('Stop now and throw this recording away?')) return;
       discard();
       if (SETO && !SETO.view) setTimeout(function () { location.reload(); }, 200);   // a set task starts again from the top (the card is hidden again)
     };
+  }
+  // while recording, the hint rows must not point at buttons that are hidden
+  function hintFix() {
+    try {
+      document.querySelectorAll('.st-oral-cols table span').forEach(function (sp) {
+        var t = sp.firstChild && sp.firstChild.nodeType === 3 ? sp.firstChild.nodeValue : '';
+        if (/^Use the buttons below to reveal questions/.test(t)) sp.firstChild.nodeValue = 'Missed a question? Press \uD83D\uDD01 Hear the question again in the red bar at the top. ';
+        else if (/^Click on any question at any point/.test(t)) sp.firstChild.nodeValue = 'The questions are printed on your PDF afterwards. ';
+        else if (/^Press Repeat in the panel/.test(t)) sp.firstChild.nodeValue = 'Press \uD83D\uDD01 Hear the question again to hear a question once more. ';
+      });
+    } catch (e) { }
   }
   function barOff() { var b = $('aporal-bar'); if (b) b.remove(); document.body.classList.remove('aporal-on'); window.removeEventListener('beforeunload', warnLeave); }
   function endRec() {   // stop the recorder, the meter and the microphone
