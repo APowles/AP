@@ -3155,7 +3155,7 @@ var APTT = (function () {
     items.forEach(function (it) { it.big = it.kind === 'sentence' || (!VERB[src] && nWords(it.answer) > 2); });
     // 4½-minute cap: at a test's usual size the draw is trimmed to fit; the teacher can keep every item instead (button on the start screen),
     // and a longer test chosen on purpose (more items per box than usual) is kept whole. A saved test link keeps its own items and time.
-    var pm = String(m.meta).match(/(\d+)\s*(?:rows\s*)?(?:×|x|&times;|&#215;)\s*(\d+)\s*=/), DEFPER = { gg: 2, ms: 2, am: 1, ktr: 1, oc: 1 };
+    var pm = String(m.meta).match(/(\d+)\s*(?:rows\s*)?(?:×|x|&times;|&#215;)\s*(\d+)\s*=/), DEFPER = { gg: 2, ms: 2, am: 1, ktr: /^ktr\|S/.test(m.srcId) ? 3 : 1, oc: 1 };   // KTR Studio tests: short items, 15 by default
     var force = re === 'all' || !!(window.APTT.capturing && S && S.m && S.m.all);
     if (!(o.set && o.set.secs)) {
       var byChoice = !!(pm && +pm[2] > (DEFPER[src] || 3)), nAuto = fit(items), nAll = items.length, kept = (byChoice || force) ? nAll : nAuto;
@@ -6851,7 +6851,8 @@ function generateAPSpotTest(timed) {
   if (!timed) apLvRan('ktr', generateAPSpotTest);
   var allCards = expandedPool.length;
   if (useLv) expandedPool = apLvPool('ktr', expandedPool, apKtrCardLevel);   // the chosen level only
-  var fit = useLv ? apLvFit('ktr', apSpotFit(expandedPool.length, _apItemsPerQ)) : apSpotFit(expandedPool.length, _apItemsPerQ);
+  var perQ = _studioNs ? 3 : _apItemsPerQ;   // from KTR Studio: 5 × 3 = 15 short items (trimmed to fit 4½ minutes)
+  var fit = useLv ? apLvFit('ktr', apSpotFit(expandedPool.length, perQ)) : apSpotFit(expandedPool.length, perQ);
   if (!fit && useLv && apLv('ktr') !== 'X' && allCards >= 5) { apLvShort('ktr', 'apTestOutput', expandedPool.length, 5); return; }
   if (!fit) {
     alert('Not enough cards for an AP Spot Test (need at least 5, have '+expandedPool.length+').');
