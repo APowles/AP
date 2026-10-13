@@ -3,7 +3,7 @@
 <script id="ap-update">
 /* AP auto-update: if this copy is older than the published version, reload once with the new one (saved answers are kept) */
 (function () {
-  var B = '66eabee79c'; window.AP_BUILD = B;
+  var B = '27f8b1a9fb'; window.AP_BUILD = B;
   function check() {
     if (!/^https?:$/.test(location.protocol) || !window.fetch) return;
     var f = decodeURIComponent(location.pathname.split('/').pop() || '');
@@ -13163,13 +13163,15 @@ function svUtts(p){const a=[];
   if(SV.mode!=='en')a.push({t:ttsText(p.fr),l:'fr-FR',p});
   if(SV.mode!=='fr')a.push({t:p.en.replace(/\*/g,''),l:'en-GB',p});
   return a}
+let QUIET=false;/* auto-started speech never opens the large-text screen; only a button press does */
 function svSpeak(list,gap,onItem,done){
+  const quiet=QUIET&&!document.getElementById('svbig');QUIET=false;
   const tok=++SV.tok;SV.dis=false;try{speechSynthesis.cancel()}catch(e){}
   let i=0;
   (function next(){
     if(tok!==SV.tok)return;
     if(i>=list.length){setTimeout(()=>{if(tok===SV.tok)svBigHide()},700);if(done)done();return}
-    const it=list[i++];svBigShow(it);if(onItem)onItem(it);
+    const it=list[i++];if(!quiet)svBigShow(it);if(onItem)onItem(it);
     const u=new SpeechSynthesisUtterance(it.t);u.lang=it.l;svTrack(u,it);
     if(it.l==='fr-FR'){if(VOICE)u.voice=VOICE}else{if(!ENV)pickEn();if(ENV)u.voice=ENV}
     u.rate=parseFloat($('rate').value)||0.9;
@@ -13179,7 +13181,7 @@ function svSpeak(list,gap,onItem,done){
   })();
 }
 function svPara(i){const st=cur().story;if(!st.paras[i])return;svSpeak(svUtts(st.paras[i]),500)}
-function svAuto(i){if(SV.auto&&!SV.playing)setTimeout(()=>{if(S.view==='sub')svPara(i)},250)}
+function svAuto(i){if(SV.auto&&!SV.playing)setTimeout(()=>{if(S.view==='sub'){QUIET=true;svPara(i)}},250)}
 function svNext(){S.story++;render();svAuto(S.story-1)}
 function svShowAll(){S.story=cur().story.paras.length;render()}
 function svSetMode(m){SV.mode=m;svSave();svStop();render()}
@@ -13241,7 +13243,7 @@ function autoRead(){
   }else if(S.stage==='u'){const all=useSet(k),u=all[Math.min(S.uq||0,all.length-1)];key='u|'+(S.uq||0);fr=u.q_fr;en=u.q_en}
   if(!key||(!fr&&SV.mode==='fr')){AR.key=key?AR.key:'';return}
   key=[S.sub,S.k,S.stage,key].join('|');if(key===AR.key)return;AR.key=key;
-  setTimeout(()=>{if(AR.key!==key||SV.playing)return;const l=svUtts({fr,en}).filter(u=>u.t&&u.t.trim());if(l.length)svSpeak(l,500)},250);
+  setTimeout(()=>{if(AR.key!==key||SV.playing)return;const l=svUtts({fr,en}).filter(u=>u.t&&u.t.trim());if(l.length){QUIET=true;svSpeak(l,500)}},250);
 }
 function render(){
   crumb();
@@ -13697,7 +13699,7 @@ function sUse(k){
 function showModel(){
   const k=ktr(),all=useSet(k),u=all[Math.min(S.uq||0,all.length-1)];mark(k.n,'u');
   $('mdl').innerHTML=`<div class="label">Une phrase modèle · a model sentence</div><div class="model" style="margin-top:8px"><div class="line">${SRC({src:'NEW'})}${FL({fr:u.model_fr,en:u.model_en})}<button class="spk" data-t="${esc(u.model_fr)}" onclick="spk(this)" aria-label="Hear it in French">${SPK}</button></div></div>`;
-  if(SV.auto&&!SV.playing){AR.key='model|'+S.sub+'|'+S.k+'|'+(S.uq||0);setTimeout(()=>{const l=svUtts({fr:u.model_fr,en:u.model_en}).filter(x=>x.t&&x.t.trim());if(l.length)svSpeak(l,500)},200)}
+  if(SV.auto&&!SV.playing){AR.key='model|'+S.sub+'|'+S.k+'|'+(S.uq||0);setTimeout(()=>{const l=svUtts({fr:u.model_fr,en:u.model_en}).filter(x=>x.t&&x.t.trim());if(l.length){QUIET=true;svSpeak(l,500)}},200)}
 }
 
 /* review notes */
