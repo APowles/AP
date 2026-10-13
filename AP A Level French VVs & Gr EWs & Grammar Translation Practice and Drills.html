@@ -3,7 +3,7 @@
 <script id="ap-update">
 /* AP auto-update: if this copy is older than the published version, reload once with the new one (saved answers are kept) */
 (function () {
-  var B = 'c9aa4c2c4b'; window.AP_BUILD = B;
+  var B = '5667522dfc'; window.AP_BUILD = B;
   function check() {
     if (!/^https?:$/.test(location.protocol) || !window.fetch) return;
     var f = decodeURIComponent(location.pathname.split('/').pop() || '');
@@ -45401,7 +45401,7 @@ body{background:var(--cream)}
 /* AP A LEVEL GRAMMAR RECAPS: pick any combination of Gr EWs chapters and Grammar Drills sets, read them together, print / save as PDF */
 (function () {
   'use strict';
-  var R = { keys: [], page: true, big: false, can: true, ans: false, ctx: 'ews' };
+  var R = { keys: [], page: true, big: false, can: true, ans: false, only: false, ctx: 'ews' };
   function esc(s) { return String(s == null ? '' : s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;'); }
   function norm(s) { return String(s || '').normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase(); }
   function photo() { var i = document.querySelector('header img'); return i ? i.src : ''; }
@@ -45421,6 +45421,13 @@ body{background:var(--cream)}
     return out;
   }
   var GN = { e: 'Gr EWs chapters', d: 'Grammar Drills sets' };
+  // 'only the Now I can… tick boxes': that chapter's tick-box list and nothing else
+  function body(x) {
+    var d = document.createElement('div'); d.innerHTML = x.html();
+    if (!R.only) return d.innerHTML;
+    var c = [].slice.call(d.querySelectorAll('.gr-can')).map(function (n) { return n.outerHTML; }).join('');
+    return c || '<div class="rcp-empty">This recap has no “Now I can…” list yet.</div>';
+  }
   function byKey() { var m = {}; items().forEach(function (x) { m[x.k] = x; }); return m; }
   function order(keys) { return items().map(function (x) { return x.k; }).filter(function (k) { return keys.indexOf(k) >= 0; }); }
   function initial(ctx) {
@@ -45461,6 +45468,7 @@ body{background:var(--cream)}
       + '<button type="button" id="rcp-pg" class="rcp-chip' + (R.page ? ' on' : '') + '" onclick="rcpToggle(\'page\')">Each recap on a new page</button>'
       + '<button type="button" id="rcp-bg" class="rcp-chip' + (R.big ? ' on' : '') + '" onclick="rcpToggle(\'big\')">Larger text</button>'
       + '<button type="button" id="rcp-cn" class="rcp-chip' + (R.can ? ' on' : '') + '" onclick="rcpToggle(\'can\')">Include “Soon I will…” and “Now I can…”</button>'
+      + '<button type="button" id="rcp-on" class="rcp-chip' + (R.only ? ' on' : '') + '" onclick="rcpToggle(\'only\')">Only the “Now I can…” tick boxes</button>'
       + '<button type="button" id="rcp-an" class="rcp-chip' + (R.ans ? ' on' : '') + '" onclick="rcpToggle(\'ans\')">Print the model answers too</button></div>'
       + '<div class="rcp-sub" style="margin:6px 0 0">In the print window choose “Save as PDF” to keep a copy, or your printer to print. The “Now I can…” lists print in full, with a tick box for each statement.</div></div>'
       + '<div class="rcp-foot"><span id="rcp-count"></span><span class="rcp-fb"><button type="button" id="rcp-read" onclick="rcpJump(R0())">📖 Read ↓</button><button type="button" id="rcp-print" onclick="rcpPrint()">🖨 Print / Save as PDF</button></span></div>'
@@ -45479,7 +45487,7 @@ body{background:var(--cream)}
       v.innerHTML = toc + keys.map(function (k) {
         var x = M[k];
         return '<section class="rcp-ch" id="rcp-c-' + k.replace(':', '_') + '"><div class="rcp-chh"><span class="l">' + esc(x.label) + '</span><span class="t">' + esc(x.title) + '</span>'
-          + (keys.length > 1 ? '<button type="button" class="rcp-mini" onclick="rcpPrintOne(\'' + k + '\')">🖨 Just this one</button>' : '') + '</div><div class="rcp-body">' + x.html() + '</div></section>';
+          + (keys.length > 1 ? '<button type="button" class="rcp-mini" onclick="rcpPrintOne(\'' + k + '\')">🖨 Just this one</button>' : '') + '</div><div class="rcp-body">' + body(x) + '</div></section>';
       }).join('');
     }
     v.style.zoom = R.big ? '1.2' : '';
@@ -45507,10 +45515,10 @@ body{background:var(--cream)}
     rows().forEach(function (r) { r.classList.toggle('rcp-hide', !!q && r.dataset.t.indexOf(q) < 0); });
     document.querySelectorAll('#rcp-list .rcp-gh').forEach(function (h) { h.classList.toggle('rcp-hide', !rows(h.dataset.gh, true).length); });
   };
-  window.rcpToggle = function (w) { R[w] = !R[w]; var b = document.getElementById({ page: 'rcp-pg', big: 'rcp-bg', can: 'rcp-cn', ans: 'rcp-an' }[w]); if (b) b.classList.toggle('on', R[w]); if (w === 'big') render(); };
+  window.rcpToggle = function (w) { R[w] = !R[w]; var b = document.getElementById({ page: 'rcp-pg', big: 'rcp-bg', can: 'rcp-cn', ans: 'rcp-an', only: 'rcp-on' }[w]); if (b) b.classList.toggle('on', R[w]); if (w === 'big' || w === 'only') render(); };
   function printHtml(x) {
-    var d = document.createElement('div'); d.innerHTML = x.html();
-    if (!R.can) [].slice.call(d.querySelectorAll('.gr-can,.gr-soon')).forEach(function (n) { n.remove(); });
+    var d = document.createElement('div'); d.innerHTML = body(x);
+    if (!R.can && !R.only) [].slice.call(d.querySelectorAll('.gr-can,.gr-soon')).forEach(function (n) { n.remove(); });
     return d.innerHTML;
   }
   window.rcpJump = function (k) { if (!k) return; var e = document.getElementById('rcp-c-' + String(k).replace(':', '_')); if (e) e.scrollIntoView({ behavior: 'smooth', block: 'start' }); };

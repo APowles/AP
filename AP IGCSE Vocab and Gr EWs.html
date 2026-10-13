@@ -5,7 +5,7 @@
 <script id="ap-update">
 /* AP auto-update: if this copy is older than the published version, reload once with the new one (saved answers are kept) */
 (function () {
-  var B = '8d2b98091d'; window.AP_BUILD = B;
+  var B = '3ecb2d86bd'; window.AP_BUILD = B;
   function check() {
     if (!/^https?:$/.test(location.protocol) || !window.fetch) return;
     var f = decodeURIComponent(location.pathname.split('/').pop() || '');
@@ -9355,11 +9355,18 @@ function ggPrintRecap(k, big) {
   const d = GGD[k]; if (!d) return;
   ggPrintWin('Grammar recap — ' + d.label, aphPrintHead({ kicker: 'AP IGCSE &middot; Vocab &amp; Gr EWs &middot; ' + GGL().name + ' &middot; Grammar recap', title: '<em>' + ggEsc(d.label) + '</em>', meta: ggEsc(d.title), strip: false })
     + '<style>.gr-block{break-inside:avoid;page-break-inside:avoid}.gr-label,.gr-section-title{break-after:avoid;page-break-after:avoid}.gr-block,.gr-tense-pill,.gr-example,.gr-pronoun-pill,.gr-neg-pill,.gr-hl{-webkit-print-color-adjust:exact;print-color-adjust:exact}</style>'
-    + (big ? '<div style="zoom:1.2">' + ggKey() + (d.recap || '') + '</div>' : ggKey() + (d.recap || '')) + aphPrintFoot('AP IGCSE Vocab &amp; Gr EWs &middot; Grammar recap'));
+    + (big ? '<div style="zoom:1.2">' + ggRecapBody(d) + '</div>' : ggRecapBody(d)) + aphPrintFoot('AP IGCSE Vocab &amp; Gr EWs &middot; Grammar recap'));
 }
 
 // ═══ GRAMMAR RECAPS: tick one or several chapters, read them together, print / save as PDF ═══
-const ggR = { keys: [], page: true, big: false };
+const ggR = { keys: [], page: true, big: false, only: false };
+// the recap of a chapter, or (when 'only the Now I can… tick boxes' is on) just that chapter's tick-box list
+function ggRecapBody(d) {
+  if (!ggR.only) return ggKey() + (d.recap || '');
+  const t = document.createElement('div'); t.innerHTML = d.recap || '';
+  const c = [].slice.call(t.querySelectorAll('.gr-can')).map(n => n.outerHTML).join('');
+  return c || '<div class="gg-rempty">This chapter has no “Now I can…” list yet.</div>';
+}
 function ggRecapEntry() {
   const n = ggSelKeys().length;
   return '<button class="gg-rcopen" onclick="ggOpenRecaps()"><span class="gg-face" style="background-image:url(\'' + ggPhoto() + '\')"></span>'
@@ -9395,7 +9402,8 @@ function ggRecapsPage() {
     + '<div class="gg-hint">When you search, “Tick all” ticks only the chapters shown.</div></div>'
     + '<div class="gg-panel"><div class="gg-ph"><span>Print / PDF options</span></div><div class="gg-chips">'
     + '<button id="ggRPg" class="gg-chip' + (ggR.page ? ' on' : '') + '" onclick="ggRToggle(\'page\')">Each chapter on a new page</button>'
-    + '<button id="ggRBig" class="gg-chip' + (ggR.big ? ' on' : '') + '" onclick="ggRToggle(\'big\')">Larger text</button></div>'
+    + '<button id="ggRBig" class="gg-chip' + (ggR.big ? ' on' : '') + '" onclick="ggRToggle(\'big\')">Larger text</button>'
+    + '<button id="ggROnly" class="gg-chip' + (ggR.only ? ' on' : '') + '" onclick="ggRToggle(\'only\')">Only the “Now I can…” tick boxes</button></div>'
     + '<div class="gg-hint">In the print window choose “Save as PDF” to keep a copy, or your printer to print.</div></div>'
     + '</div>'
     + '<div class="gg-rfoot"><span id="ggRCount"></span><span class="gg-rfoot-b"><button id="ggRRead" onclick="ggRJump(ggR.keys[0])">📖 Read ↓</button><button id="ggRPrint" onclick="ggPrintRecaps()">🖨 Print / Save as PDF</button></span></div>'
@@ -9412,7 +9420,7 @@ function ggRRender() {
     v.innerHTML = toc + keys.map(k => { const d = GGD[k];
       return '<section class="gg-rch" id="ggRc_' + k + '"><div class="gg-rch-h"><span class="gg-rch-l">' + ggEsc(d.label) + '</span><span class="gg-rch-t">' + ggEsc(d.title) + '</span>'
         + (keys.length > 1 ? '<button class="gg-mini" onclick="ggPrintRecap(\'' + k + '\',ggR.big)">🖨 Just this one</button>' : '') + '</div>'
-        + '<div class="gg-rbody">' + ggKey() + (d.recap || '') + '</div></section>'; }).join('');
+        + '<div class="gg-rbody">' + ggRecapBody(d) + '</div></section>'; }).join('');
   }
   v.style.zoom = ggR.big ? '1.2' : '';
   const c = document.getElementById('ggRCount');
@@ -9433,7 +9441,7 @@ function ggRFilter(q) {
   ggRRows().forEach(r => r.classList.toggle('gg-hide', !!q && r.dataset.t.indexOf(q) < 0));
   document.querySelectorAll('#ggRList .gg-rgh').forEach(h => h.classList.toggle('gg-hide', !ggRRows(h.dataset.gh, true).length));
 }
-function ggRToggle(w) { ggR[w] = !ggR[w]; const b = document.getElementById(w === 'page' ? 'ggRPg' : 'ggRBig'); if (b) b.classList.toggle('on', ggR[w]); if (w === 'big') ggRRender(); }
+function ggRToggle(w) { ggR[w] = !ggR[w]; const b = document.getElementById(w === 'page' ? 'ggRPg' : w === 'only' ? 'ggROnly' : 'ggRBig'); if (b) b.classList.toggle('on', ggR[w]); if (w === 'big' || w === 'only') ggRRender(); }
 function ggRJump(k) { const e = document.getElementById('ggRc_' + k); if (e) e.scrollIntoView({ behavior: 'smooth', block: 'start' }); }
 function ggPrintRecaps() {
   const keys = ggR.keys; if (!keys.length) { alert('Tick at least one chapter first.'); return; }
@@ -9445,7 +9453,7 @@ function ggPrintRecaps() {
     + '.gr-block{break-inside:avoid;page-break-inside:avoid}.gr-label,.gr-section-title{break-after:avoid;page-break-after:avoid}.rc-chh,.gr-block,.gr-tense-pill,.gr-example,.gr-pronoun-pill,.gr-neg-pill,.gr-hl{-webkit-print-color-adjust:exact;print-color-adjust:exact}</style>';
   const toc = '<div class="gr-label" style="margin-top:12px">Contents · ' + keys.length + ' chapters</div><ol class="rc-toc' + (keys.length > 12 ? ' two' : '') + '">'
     + keys.map(k => '<li><b>' + ggEsc(GGD[k].label) + '</b> <span>' + ggEsc(GGD[k].title) + '</span></li>').join('') + '</ol>';
-  const chs = keys.map((k, i) => '<div class="rc-ch' + (ggR.page && i > 0 ? ' rc-pb' : '') + '"><div class="rc-chh"><b>' + ggEsc(GGD[k].label) + '</b><span>' + ggEsc(GGD[k].title) + '</span></div><div' + z + '>' + ggKey() + (GGD[k].recap || '') + '</div></div>').join('');
+  const chs = keys.map((k, i) => '<div class="rc-ch' + (ggR.page && i > 0 ? ' rc-pb' : '') + '"><div class="rc-chh"><b>' + ggEsc(GGD[k].label) + '</b><span>' + ggEsc(GGD[k].title) + '</span></div><div' + z + '>' + ggRecapBody(GGD[k]) + '</div></div>').join('');
   ggPrintWin(L.name + ' — Grammar recaps',
     css + aphPrintHead({ kicker: 'AP IGCSE &middot; Vocab &amp; Gr EWs &middot; ' + ggEsc(L.name), title: '<em>Grammar recaps</em> &mdash; ' + ggEsc(ggSelLabel(keys)), meta: keys.length + ' chapters', strip: false })
     + toc + chs + aphPrintFoot('AP IGCSE Vocab &amp; Gr EWs &middot; ' + ggEsc(L.name) + ' &middot; Grammar recaps'));
