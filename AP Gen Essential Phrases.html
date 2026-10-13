@@ -3,7 +3,7 @@
 <script id="ap-update">
 /* AP auto-update: if this copy is older than the published version, reload once with the new one (saved answers are kept) */
 (function () {
-  var B = 'd62cfcf3de'; window.AP_BUILD = B;
+  var B = '936bda1966'; window.AP_BUILD = B;
   function check() {
     if (!/^https?:$/.test(location.protocol) || !window.fetch) return;
     var f = decodeURIComponent(location.pathname.split('/').pop() || '');
@@ -2351,7 +2351,7 @@ var APTT = (function () {
   // until the next one would take it past 270 s (4½ min), but never fewer than 5 items; limit() is the cost of the items it keeps,
   // rounded up to 30 s, at least 2 min. Short answers (verbs, vocab) therefore keep all their items; long answers get fewer.
   var BUDGET = 270, MINITEMS = 5;
-  function cost(it) { return Math.max(12, 6 + 2.5 * nWords(it.answer)); }
+  function cost(it) { return Math.max(12, 6 + 2.5 * nWords(String(it.answer == null ? '' : it.answer).replace(/\([^)]*\)/g, ' '))); }   // bracketed extras (optional notes) are not written, so they cost nothing
   function fit(items) { var t = 0, k = 0; for (var i = 0; i < items.length; i++) { var c = cost(items[i]); if (k >= MINITEMS && t + c > BUDGET) break; t += c; k++; } return k; }
   function limit() { if (S.m.tov) return S.m.tov; if (S.m.set && S.m.set.secs) return S.m.set.secs; var t = 0; S.items.forEach(function (it) { t += cost(it); }); return Math.max(120, Math.ceil(t / 30) * 30); }
   function tsecs(a) { var t = 0; a.forEach(function (it) { t += cost(it); }); return Math.max(120, Math.ceil(t / 30) * 30); }
@@ -2388,7 +2388,7 @@ var APTT = (function () {
     items.forEach(function (it) { it.big = it.kind === 'sentence' || (!VERB[src] && nWords(it.answer) > 2); });
     // 4½-minute cap: at a test's usual size the draw is trimmed to fit; the teacher can keep every item instead (button on the start screen),
     // and a longer test chosen on purpose (more items per box than usual) is kept whole. A saved test link keeps its own items and time.
-    var pm = String(m.meta).match(/(\d+)\s*(?:rows\s*)?(?:×|x|&times;|&#215;)\s*(\d+)\s*=/), DEFPER = { gg: 2, ms: 2, am: 1, ktr: 1, oc: 1 };
+    var pm = String(m.meta).match(/(\d+)\s*(?:rows\s*)?(?:×|x|&times;|&#215;)\s*(\d+)\s*=/), DEFPER = { gg: 2, ms: 2, am: 1, ktr: 1, oc: 1, voc: 4, vv: 4, ig: 4, sv: 4 };
     var force = re === 'all' || !!(window.APTT.capturing && S && S.m && S.m.all);
     if (!(o.set && o.set.secs)) {
       var byChoice = !!(pm && +pm[2] > (DEFPER[src] || 3)), nAuto = fit(items), nAll = items.length, kept = (byChoice || force) ? nAll : nAuto;
@@ -31889,7 +31889,7 @@ var APTT = (function () {
   // until the next one would take it past 270 s (4½ min), but never fewer than 5 items; limit() is the cost of the items it keeps,
   // rounded up to 30 s, at least 2 min. Short answers (verbs, vocab) therefore keep all their items; long answers get fewer.
   var BUDGET = 270, MINITEMS = 5;
-  function cost(it) { return Math.max(12, 6 + 2.5 * nWords(it.answer)); }
+  function cost(it) { return Math.max(12, 6 + 2.5 * nWords(String(it.answer == null ? '' : it.answer).replace(/\([^)]*\)/g, ' '))); }   // bracketed extras (optional notes) are not written, so they cost nothing
   function fit(items) { var t = 0, k = 0; for (var i = 0; i < items.length; i++) { var c = cost(items[i]); if (k >= MINITEMS &amp;&amp; t + c > BUDGET) break; t += c; k++; } return k; }
   function limit() { if (S.m.tov) return S.m.tov; if (S.m.set &amp;&amp; S.m.set.secs) return S.m.set.secs; var t = 0; S.items.forEach(function (it) { t += cost(it); }); return Math.max(120, Math.ceil(t / 30) * 30); }
   function tsecs(a) { var t = 0; a.forEach(function (it) { t += cost(it); }); return Math.max(120, Math.ceil(t / 30) * 30); }
@@ -31926,7 +31926,7 @@ var APTT = (function () {
     items.forEach(function (it) { it.big = it.kind === 'sentence' || (!VERB[src] &amp;&amp; nWords(it.answer) > 2); });
     // 4½-minute cap: at a test's usual size the draw is trimmed to fit; the teacher can keep every item instead (button on the start screen),
     // and a longer test chosen on purpose (more items per box than usual) is kept whole. A saved test link keeps its own items and time.
-    var pm = String(m.meta).match(/(\d+)\s*(?:rows\s*)?(?:×|x|&amp;times;|&amp;#215;)\s*(\d+)\s*=/), DEFPER = { gg: 2, ms: 2, am: 1, ktr: 1, oc: 1 };
+    var pm = String(m.meta).match(/(\d+)\s*(?:rows\s*)?(?:×|x|&amp;times;|&amp;#215;)\s*(\d+)\s*=/), DEFPER = { gg: 2, ms: 2, am: 1, ktr: 1, oc: 1, voc: 4, vv: 4, ig: 4, sv: 4 };
     var force = re === 'all' || !!(window.APTT.capturing &amp;&amp; S &amp;&amp; S.m &amp;&amp; S.m.all);
     if (!(o.set &amp;&amp; o.set.secs)) {
       var byChoice = !!(pm &amp;&amp; +pm[2] > (DEFPER[src] || 3)), nAuto = fit(items), nAll = items.length, kept = (byChoice || force) ? nAll : nAuto;
