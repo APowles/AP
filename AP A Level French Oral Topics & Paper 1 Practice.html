@@ -10938,21 +10938,41 @@ function p1VoicesInit(){ try{ speechSynthesis.getVoices(); }catch(e){} }
 try{ if(window.speechSynthesis && speechSynthesis.addEventListener) speechSynthesis.addEventListener('voiceschanged', function(){ P1A.voices=frVoices(); }); }catch(e){}
 
 /* ---------- PRINT ---------- */
-window.p1Print = function(mode){
-  var ms = mode==='ms', body='';
-  var lastSec='';
-  P1B.forEach(function(b){ if(!b) return; var q=b.q, T=P1_TYPES[q.type];
+/* The whole printable sheet as one HTML string: used by the Print button inside the app (p1Print) and by AP Tests' Print on a Timed AP Past Paper (#p1p=) */
+function p1PrintHTML(qs, ms, auto){
+  var body='', lastSec='';
+  qs.forEach(function(q){ var T=P1_TYPES[q.type];
     if(T.sec!==lastSec){ body += '<h2>'+P1_SECS[T.sec].title+'</h2>'; lastSec=T.sec; }
     body += printQ(q, ms);
   });
-  var tot=0; P1B.forEach(function(b){ if(b) tot+=P1_TYPES[b.q.type].marks; });
+  var tot=0; qs.forEach(function(q){ tot+=P1_TYPES[q.type].marks; });
   var css='body{font-family:var(--aph-body);background:#fff;color:#000;margin:24px 32px;font-size:11.5pt;line-height:1.45}h2{text-align:center;font-size:12pt;letter-spacing:.05em;margin:18px 0 10px;border-top:2px solid #000;padding-top:10px}.q{page-break-inside:auto;margin-bottom:22px}.qh{display:flex;justify-content:space-between;border-bottom:1.5px solid #000;font-weight:bold;margin-bottom:8px}.meta{font-weight:normal;font-size:9pt;color:#444}.txt{border:1.5px solid #000;padding:10px 14px;margin:8px 0 12px}.txt p{margin:0 0 7px}.ttl{text-align:center;font-weight:bold;margin-bottom:6px}.it{margin:10px 0 4px}.mk{float:right;font-weight:bold}.ln{border-bottom:1px dotted #555;height:22px}.opt{margin:2px 0 2px 22px}.bx{display:inline-block;width:14px;height:14px;border:1px solid #000;margin-right:8px;vertical-align:-2px}.ms{border:1px solid #888;background:#f3f3f3;padding:6px 9px;margin:4px 0 8px;font-size:10pt}.ms b.k{font-size:8.5pt;text-transform:uppercase}.tip{font-size:9.5pt;font-style:italic;color:#333}.tot{text-align:right;font-weight:bold;margin-top:8px}table.s{border-collapse:collapse;width:100%;font-size:9.5pt}table.s td,table.s th{border:1px solid #999;padding:4px;vertical-align:top}.tr{font-size:10pt;border:1px dashed #666;padding:6px 10px;margin:6px 0}@media print{.noprint{display:none}}';
+  var bar = auto ? '<div class="noprint" style="position:sticky;top:0;background:#1a2744;color:#fff;padding:10px 16px;display:flex;gap:10px;align-items:center;font:600 14px var(--aph-body)"><button onclick="window.print()" style="background:#c9a84c;color:#1a2744;border:0;border-radius:6px;padding:8px 14px;font-weight:700;cursor:pointer">&#128424; Print / PDF</button><button onclick="location.href=String(location.href).replace(/[#?].*$/,\'\').replace(/[^\\/]*$/,\'\')+\'AP%20Tests.html\'" style="background:#fff;color:#1a2744;border:0;border-radius:6px;padding:8px 14px;font-weight:700;cursor:pointer">&#8962; Back to AP Tests</button><span>'+(ms?'Teacher mark scheme: not for boys.':'Student sheet: print as many copies as you need.')+'</span></div>' : '';
+  return '<!doctype html><html><head><meta charset="utf-8"><title>AP A Level Oral (Paper 3) and Listening, Reading, Writing (Paper 1) — Paper 1 practice'+(ms?' – mark scheme':'')+'</title><style>'+aphCSS()+'</style><style>'+css+'</style></head><body>'+bar
+    +aphPrintHead({kicker:'AP A Level &middot; Oral (Paper 3) and Listening, Reading, Writing (Paper 1)', title:'Paper 1 practice'+(ms?' &mdash; <em>Mark scheme</em>':' &mdash; <em>Listening, Reading &amp; Translation</em>'), meta:'Edexcel 9FR0/01 style', total:tot, strip:!ms, print:!auto})
+    +body+aphPrintFoot('AP A Level Oral (Paper 3) and Listening, Reading, Writing (Paper 1) &middot; Paper 1 &middot; '+(ms?'Teacher sheet':'Student sheet'))
+    +(auto?'<scr'+'ipt>window.addEventListener("load",function(){setTimeout(function(){try{window.print()}catch(e){}},500)});</scr'+'ipt>':'')+'</body></html>';
+}
+window.p1Print = function(mode){
+  var ms = mode==='ms', qs=[];
+  P1B.forEach(function(b){ if(b) qs.push(b.q); });
   var w=window.open('','_blank'); if(!w){ alert('Allow pop-ups to print.'); return; }
-  w.document.write('<!doctype html><html><head><meta charset="utf-8"><title>AP A Level Oral (Paper 3) and Listening, Reading, Writing (Paper 1) — Paper 1 practice'+(ms?' – mark scheme':'')+'</title><style>'+aphCSS()+'</style><style>'+css+'</style></head><body>'
-    +aphPrintHead({kicker:'AP A Level &middot; Oral (Paper 3) and Listening, Reading, Writing (Paper 1)', title:'Paper 1 practice'+(ms?' &mdash; <em>Mark scheme</em>':' &mdash; <em>Listening, Reading &amp; Translation</em>'), meta:'Edexcel 9FR0/01 style', total:tot, strip:!ms})
-    +body+aphPrintFoot('AP A Level Oral (Paper 3) and Listening, Reading, Writing (Paper 1) &middot; Paper 1 &middot; '+(ms?'Teacher sheet':'Student sheet'))+'</body></html>');
+  w.document.write(p1PrintHTML(qs, ms, false));
   w.document.close();
 };
+/* AP Tests > Print on a Timed AP Past Paper: #p1p=<token>&c=<code>&w=s|a  (s = student sheet, a = mark scheme; the mark scheme needs AP's teacher key on this device) */
+function p1sPrintBoot(){
+  var h=location.hash||'', m=/^#p1p=([^&]+)/.exec(h); if(!m || !window.APTT || !APTT.unpack) return;
+  var w=/[&]w=([sa])/.exec(h); var ms = !!(w && w[1]==='a' && APTT.gkey && APTT.gkey());
+  app().innerHTML='<div class="p1-wrap"><div class="p1-inner"><div class="p1-h">Opening the paper copy…</div></div></div>';
+  APTT.unpack(decodeURIComponent(m[1])).then(function(o){
+    if(o.kind!=='p1' || !(o.ids||[]).length || !(o.ids||[]).every(function(id){ return P1Q[id]; })) throw new Error('bad');
+    var html=p1PrintHTML(o.ids.map(function(id){ return P1Q[id]; }), ms, true);
+    document.open(); document.write(html); document.close();
+  }).catch(function(){
+    app().innerHTML='<div class="p1-wrap"><div class="p1-inner"><div class="p1-h">This paper copy cannot be made</div><p class="p1-note">Go back to the AP Tests page and try again.</p><button class="p1-btn" onclick="location.href=String(location.href).replace(/[#?].*$/,\'\').replace(/[^\\/]*$/,\'\')+\'AP%20Tests.html\'">&#8962; Back to AP Tests</button></div></div>';
+  });
+}
 function lines(n){ var s=''; for(var i=0;i<n;i++) s+='<div class="ln"></div>'; return s; }
 function msBlock(it){ return '<div class="ms"><b class="k">Answer:</b> '+br(it.answer)+(it.accept&&it.accept.length?'<br><b class="k">Accept:</b> '+it.accept.map(esc).join(' | '):'')+(it.reject&&it.reject.length?'<br><b class="k">Reject:</b> '+it.reject.map(esc).join(' | '):'')+(it.tip?'<br><span class="tip">Tip: '+esc(it.tip)+'</span>':'')+'</div>'; }
 function printOpen(it, ms){ var m=it.marks||1; return '<div class="it"><b>('+esc(it.n)+')</b> '+esc(it.question)+'<span class="mk">('+m+')</span></div>'+(ms?msBlock(it):lines(m===1?2:m*2)); }
@@ -11539,6 +11559,7 @@ try { if(window.APTG) APTG.register({ active:function(){ return !!(P1S && !P1S.v
   id:function(){ return P1S && !P1S.view && P1S.st && P1S.st.t0 && document.getElementById('p1s-page') ? 'p1set:'+P1S.key+':'+P1S.st.t0 : ''; } }); } catch(e){}
 
 function p1sBoot(){
+  if(/^#p1p=/.test(location.hash||'')){ p1sPrintBoot(); return; }
   var m=/^#p1([tv])=([^&]+)(?:&c=([^&]*))?/.exec(location.hash||''); if(!m || !window.APTT || !APTT.unpack) return;
   var view=m[1]==='v'; m=[m[0], m[2], m[3]];   // #p1v=…: AP's 👁 View it (AP Tests library): the real test pages, but nothing saved, counted, alarmed or logged
   var code=decodeURIComponent(m[2]||''); try { if(APTT.cmReload) APTT.cmReload(); } catch(e){}
@@ -11732,7 +11753,7 @@ window.p1SetPdf = function(R){
   return R;
 };
 if(document.readyState==='complete') setTimeout(p1sBoot, 60); else window.addEventListener('load', function(){ setTimeout(p1sBoot, 60); });
-window.addEventListener('hashchange', function(){ if(/^#p1[tv]=/.test(location.hash)) p1sBoot(); });
+window.addEventListener('hashchange', function(){ if(/^#p1[tvp]=/.test(location.hash)) p1sBoot(); });
 
 window.showPaper1 = renderP1List;
 })();

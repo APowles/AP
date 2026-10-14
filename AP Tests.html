@@ -2426,7 +2426,7 @@ function aptItem(e) {
     + (e.c ? '<button class="aph-btn" type="button" onclick="APTT.copy(\'' + aptEsc(e.c) + '\',this)">📋 Copy code</button>' : '')
     + '<button class="aph-btn" type="button" onclick="aptTry(' + i + ')">▶ Try it</button>'
     + (e.bad ? '' : '<button class="aph-btn" type="button" title="See it as the boys will: nothing is timed, alarmed, logged or recorded" onclick="aptView(' + i + ')">👁 View it</button>')
-    + (e.o && e.o.V ? '<button class="aph-btn" type="button" onclick="aptPrintAsk(' + i + ')">🖨 Print</button>' : '')
+    + (aptCanPrint(e) ? '<button class="aph-btn" type="button" onclick="aptPrintAsk(' + i + ')">🖨 Print</button>' : '')
     + (e.local != null ? '<button class="aph-btn" type="button" title="Line for tests.txt" onclick="aptCopyLine(' + i + ',this)">📋 Line</button><button class="aph-btn apt-del" type="button" title="Remove from this device\'s list" onclick="aptDel(' + e.local + ')">✖ Remove</button>' : '')
     + (e.site && aptGit() && e.o && e.o.V ? '<button class="aph-btn" type="button" onclick="aptEdit(' + i + ')">✏️ Edit</button>' : '')
     + (e.site && aptGit() ? '<button class="aph-btn apt-del" type="button" title="Delete this test" onclick="aptDelSite(' + i + ',this)">✖ Delete</button>' : '')
@@ -2436,8 +2436,28 @@ function aptHref(e) { return e.builtin ? APTT.linkFor('').replace(/#t=$/, '#c=' 
 function aptCopyLink(i, btn) { var e = APT_LIB[i]; APTT.copyLink(aptLinkName(e), aptHref(e), btn); }
 function aptCopyLine(i, btn) { var e = APT_LIB[i]; APTT.copy((e.c || 'ST???') + ' | ' + String(e.n || '').replace(/\|/g, '/') + ' | ' + (e.cat || '') + ' | ' + (e.f || '') + ' | ' + e.tok, btn); }
 // 🖨 a paper copy for a boy without an iPad: student sheet (questions + lines) and/or answer sheet
+// A paper copy can be printed for every spot test (it carries its questions) and for the three paper kinds that run in other apps:
+// Timed AP Past Paper (p1), Timed Reading Paper (rd) and Class Listening sheet (ls). For those the other app makes the sheet (#p1p= / #rdp= / #lsp=).
+function aptPaperKind(e) { return e && e.o && (e.o.kind === 'p1' || e.o.kind === 'rd' || e.o.kind === 'ls') ? e.o.kind : ''; }
+function aptCanPrint(e) { return !!(e && !e.bad && e.o && (e.o.V || (aptPaperKind(e) && e.tok))); }
+function aptPaperPrint(i, w) {
+  var e = APT_LIB[i], o = e.o || {}, k = aptPaperKind(e), base = String(document.baseURI || location.href).replace(/[#?].*$/, '').replace(/[^\/]*$/, ''), c = encodeURIComponent(e.c || o.c || ''), page;
+  if (k === 'p1') page = 'AP%20A%20Level%20French%20Oral%20Topics%20%26%20Paper%201%20Practice.html';
+  else { if (!/^[^\/\\]+\.html?$/i.test(String(o.p || ''))) { alert('This paper cannot be printed from here.'); return; } page = encodeURIComponent(o.p); }
+  var p = document.getElementById('apt-pr'); if (p) p.remove();
+  location.href = base + page + '#' + k + 'p=' + encodeURIComponent(e.tok) + '&c=' + c + '&w=' + (w === 'a' && aptGit() ? 'a' : 's');
+}
 function aptPrintAsk(i) {
   var e = APT_LIB[i], o = e.o, n = (o.V || []).length, d = document.getElementById('apt-pr'); if (d) d.remove();
+  if (aptPaperKind(e)) {
+    d = document.createElement('div'); d.id = 'apt-pr'; d.className = 'aptt-mkov';
+    d.innerHTML = '<div class="aptt-mkbox" role="dialog" aria-modal="true"><div class="aptt-mkh">🖨 Print a paper copy</div><div class="aptt-mks">' + aptEsc(aptLinkName(e)) + '</div>'
+      + '<p style="margin:8px 0 12px;font-size:.85rem;color:#56607a">' + (o.kind === 'p1' ? 'The question sheet for this paper: the real questions, with lines to write on.' : 'The answer sheet for this paper, covering just the sections you set. The boys tick their answers on it.') + ' It opens in a new page and the print window comes up by itself.</p>'
+      + '<div class="aptt-mkact" style="justify-content:flex-start;flex-wrap:wrap"><button type="button" class="aph-btn aph-btn-primary" onclick="aptPaperPrint(' + i + ',\'s\')">🖨 Student sheet</button>'
+      + (aptGit() ? '<button type="button" class="aph-btn" onclick="aptPaperPrint(' + i + ',\'a\')">🖨 ' + (o.kind === 'p1' ? 'Mark scheme' : 'Answer key') + '</button>' : '')
+      + '<button type="button" class="aph-btn" onclick="document.getElementById(\'apt-pr\').remove()">Cancel</button></div></div>';
+    document.body.appendChild(d); return;
+  }
   d = document.createElement('div'); d.id = 'apt-pr'; d.className = 'aptt-mkov';
   d.innerHTML = '<div class="aptt-mkbox" role="dialog" aria-modal="true"><div class="aptt-mkh">🖨 Print a paper copy</div><div class="aptt-mks">' + aptEsc(aptLinkName(e)) + '</div>'
     + (n > 1 ? '<label>Version (this test has ' + n + ' different draws)</label><select id="apt-pr-v">' + o.V.map(function (x, k) { return '<option value="' + k + '">Version ' + (k + 1) + '</option>'; }).join('') + '</select>' : '')
@@ -3030,7 +3050,7 @@ function aplMenu(btn, x) {
   } else {
     if (e.c) it.push(['Copy code ' + e.c, function () { APTT.copy(e.c, btn); }]);
     if (!e.bad) it.push(['Try it as a boy', function () { aplClose(); aptTry(i); }]);
-    if (e.o && e.o.V) it.push(['Print a paper copy', function () { aptPrintAsk(i); }]);
+    if (aptCanPrint(e)) it.push(['Print a paper copy', function () { aptPrintAsk(i); }]);
     if (e.site && aptGit() && e.o && !e.bad) it.push([e.o.V ? 'Edit name, time, heading, folder' : 'Edit name, heading, folder', function () { aptEdit(i); }]);
     if (e.local != null) it.push(['Copy the line for tests.txt', function () { aptCopyLine(i, btn); }]);
     if (!e.builtin) it.push('-');
