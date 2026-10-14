@@ -3,7 +3,7 @@
 <script id="ap-update">
 /* AP auto-update: if this copy is older than the published version, reload once with the new one (saved answers are kept) */
 (function () {
-  var B = '8b34d57368'; window.AP_BUILD = B;
+  var B = 'f7b0177685'; window.AP_BUILD = B;
   function check() {
     if (!/^https?:$/.test(location.protocol) || !window.fetch) return;
     var f = decodeURIComponent(location.pathname.split('/').pop() || '');
@@ -7476,6 +7476,18 @@ mark.k{background:var(--hl);color:inherit;border-radius:5px;padding:0 2px}
 .hero{grid-template-columns:1fr!important;padding:clamp(18px,2.5vw,26px)!important}
 .hero-t .row{grid-template-columns:repeat(auto-fit,minmax(190px,1fr))!important;margin-top:16px!important}
 .hero .btn.mix{background:transparent;color:#f0d78c;border-color:rgba(201,168,76,.7)}
+.tilew{position:relative;min-width:0;display:flex}.tilew .tile{flex:1;width:100%}
+.tilew .pk{position:absolute;top:10px;right:10px;z-index:2;cursor:pointer;display:block;width:26px;height:26px}
+.tilew .pk input{position:absolute;opacity:0;inset:0;width:100%;height:100%;margin:0;cursor:pointer}
+.tilew .pk span{display:block;width:24px;height:24px;border:2px solid #aab3cc;border-radius:7px;background:#fff;box-sizing:border-box}
+.tilew .pk input:checked+span{background:#1a2744;border-color:#1a2744}
+.tilew .pk input:checked+span:after{content:"\2713";color:#f2d38a;font:800 15px/20px sans-serif;display:block;text-align:center}
+.tilew .pk input:focus-visible+span{outline:3px solid #c9a84c}
+.tilew.picked .tile{box-shadow:0 0 0 3px #c9a84c,0 6px 16px rgba(26,39,68,.14)}
+.pickbar{display:flex;flex-wrap:wrap;gap:10px;align-items:center;justify-content:space-between;margin-top:22px}
+.pickbtns{display:flex;flex-wrap:wrap;gap:6px;align-items:center}.pkhelp{font-size:.82rem;color:#556;margin-right:4px}
+.chipb{border:1.5px solid #b7c0d8;background:#fff;color:#1a2744;border-radius:999px;padding:5px 13px;font:700 .82rem DM Sans,sans-serif;cursor:pointer}
+.chipb:hover{border-color:#1a2744}
 </style>
 </head>
 <body>
@@ -7538,12 +7550,19 @@ window.sayBtn=function(b){say(b.dataset.t)};
 function spkBtn(t){return '<button class="spk" data-t="'+esc(t)+'" onclick="sayBtn(this)" aria-label="Hear it in '+LG.name+'">'+SPK+'</button>'}
 
 /* state */
-const S={view:'home',sec:null,qi:'all',lv:'X',n:20,tab:'study',ses:null,slang:'fr',hl:true,hint:true};
+const S={pick:[],view:'home',sec:null,qi:'all',lv:'X',n:20,tab:'study',ses:null,slang:'fr',hl:true,hint:true};
+const scopeN=()=>S.pick.length?S.pick.length+' section'+(S.pick.length===1?'':'s'):'all sections';
+const inPick=q=>!S.pick.length||S.pick.indexOf(SECS.indexOf(q.section))>=0;
 function crumb(){
   const c=document.getElementById('crumb');
-  c.textContent=S.view==='home'?'Approved Material · '+LG.name+'':(S.sec==='all'?'All sections':secName(SECS[S.sec]))+(S.view==='sec'&&S.tab!=='study'?' · '+(S.tab==='mix'?'Mixed':TNAME[S.tab]):'');
+  c.textContent=S.view==='home'?'Approved Material · '+LG.name+'':(S.sec==='all'?(S.pick.length?'Mixed: '+scopeN():'All sections'):secName(SECS[S.sec]))+(S.view==='sec'&&S.tab!=='study'?' · '+(S.tab==='mix'?'Mixed':TNAME[S.tab]):'');
 }
 window.toggleProj=function(){document.body.classList.toggle('proj');document.getElementById('tg-proj').classList.toggle('on')};
+function keepScroll(f){const y=window.scrollY;f();window.scrollTo(0,y)}
+window.togPick=function(k){const i=S.pick.indexOf(k);if(i>=0)S.pick.splice(i,1);else S.pick.push(k);S.pick.sort((a,b)=>a-b);keepScroll(render)};
+window.pickAll=function(){S.pick=SECS.map((_,k)=>k);keepScroll(render)};
+window.pickClear=function(){S.pick=[];keepScroll(render)};
+window.pickArea=function(L){const ks=SECS.map((s,k)=>/^\s*([A-E])/i.test(String(s))&&String(s).match(/^\s*([A-E])/i)[1].toUpperCase()===L?k:-1).filter(k=>k>=0);const all=ks.every(k=>S.pick.indexOf(k)>=0);S.pick=all?S.pick.filter(k=>ks.indexOf(k)<0):S.pick.concat(ks.filter(k=>S.pick.indexOf(k)<0)).sort((a,b)=>a-b);keepScroll(render)};
 window.goHome=function(){S.view='home';S.ses=null;render();window.scrollTo(0,0)};
 window.openSec=function(k){S.view='sec';S.sec=k;S.qi='all';S.tab=k==='all'?'mix':'study';S.ses=null;render();window.scrollTo(0,0)};
 window.setTab=function(t){S.tab=t;S.ses=null;render()};
@@ -7558,7 +7577,7 @@ window.togHint=function(){S.hint=!S.hint;render()};
 function bullets(){
   const out=[];
   Q.forEach(q=>{
-    if(S.sec!=='all'&&q.section!==SECS[S.sec])return;
+    if(S.sec!=='all'?q.section!==SECS[S.sec]:!inPick(q))return;
     if(S.qi!=='all'&&String(q.i)!==String(S.qi))return;
     q.fr.forEach((f,j)=>{if(S.lv==='X'||lvOf(q.i,j)===S.lv)out.push([q.i,j])});
   });
@@ -7648,7 +7667,7 @@ function tagHtml(k){const t=TAGS[k];return '<span style="display:inline-block;ba
 function bulletsFor(sec,qi,lv){
   const out=[];
   Q.forEach(q=>{
-    if(sec!=='all'&&q.section!==SECS[sec])return;
+    if(sec!=='all'?q.section!==SECS[sec]:!inPick(q))return;
     if(qi!=='all'&&String(q.i)!==String(qi))return;
     q.fr.forEach((f,j)=>{if(lv==='X'||lvOf(q.i,j)===lv)out.push([q.i,j])});
   });
@@ -7720,18 +7739,18 @@ const isTeacher=()=>{try{return !!window.parent.localStorage.getItem('apTeacherK
 window.openSpot=function(mk){
   const P=spotHost();if(!P)return;
   const all=S.view==='home'||S.sec==='all';
-  const label=all?'Approved Material, all sections':S.qi==='all'?secName(SECS[S.sec]):Q.filter(q=>String(q.i)===String(S.qi))[0].q_en;
+  const label=all?'Approved Material, '+scopeN():S.qi==='all'?secName(SECS[S.sec]):Q.filter(q=>String(q.i)===String(S.qi))[0].q_en;
   P.amStudioSpot({sec:all?'all':S.sec,qi:all?'all':S.qi,label:label+' ('+LG.name+')',kinds:SPOT_KINDS.map(k=>[k[0],k[1],k[2]])},!!mk,window);
 };
 window.openSpeed=function(){
   try{const P=window.parent;if(!P||typeof P.amSpeedFromStudio!=='function')return;
-    const all=S.view==='home'||S.sec==='all';P.amSpeedFromStudio(all?null:SECS[S.sec],LG.code)}catch(e){}
+    const all=S.view==='home'||S.sec==='all';P.amSpeedFromStudio(all?(S.pick.length?S.pick.map(k=>SECS[k]):null):SECS[S.sec],LG.code)}catch(e){}
 };
 function spotRow(){
   if(!spotHost())return '';
-  const mixBtn=(S.view==='home')?'<button class="btn mix" onclick="openSec(\'all\')">&#9733; Mixed: all sections</button>':'';
+  const mixBtn=(S.view==='home')?'<button class="btn mix" onclick="openSec(\'all\')">&#9733; Mixed: '+scopeN()+'</button>':'';
   const all=S.view==='home'||S.sec==='all';
-  const what=all?'all sections':S.qi==='all'?'this section':'this question';
+  const what=all?scopeN():S.qi==='all'?'this section':'this question';
   return '<div class="row" style="margin-top:16px"><button class="btn pri" onclick="openSpot(false)">&#9201; AP Timed Spot Test: '+what+'</button>'
     +(isTeacher()?'<button class="btn" onclick="openSpot(true)">&#128273; Set as a test (link / code)</button>':'')
     +'<button class="btn" onclick="openSpeed()">&#9889; AP Speed Challenge: '+what+'</button>'+mixBtn+'</div>';
@@ -7741,12 +7760,14 @@ function vHome(){
   const tiles=SECS.map((s,k)=>{
     const qs=Q.filter(q=>q.section===s),n=qs.reduce((a,q)=>a+q.fr.length,0);
     const L=((String(s).match(/^\s*([A-E])/i)||[])[1]||'A').toUpperCase();
-    return '<button class="tile ar-'+L+'" onclick="openSec('+k+')"><span class="lt">'+L+'</span><span class="no">Section '+(k+1)+'</span><span class="nm">'+esc(secName(s))+'</span>'
-      +'<span class="meta">'+qs.length+' question'+(qs.length===1?'':'s')+' · '+n+' sentences</span>'+'</button>';
+    const on=S.pick.indexOf(k)>=0;
+    return '<div class="tilew'+(on?' picked':'')+'"><button class="tile ar-'+L+'" onclick="openSec('+k+')"><span class="lt">'+L+'</span><span class="no">Section '+(k+1)+'</span><span class="nm">'+esc(secName(s))+'</span>'
+      +'<span class="meta">'+qs.length+' question'+(qs.length===1?'':'s')+' · '+n+' sentences</span>'+'</button>'
+      +'<label class="pk" title="Tick to combine sections"><input type="checkbox"'+(on?' checked':'')+' onchange="togPick('+k+')" aria-label="Tick '+esc(secName(s))+'"><span></span></label></div>';
   }).join('');
   return '<div class="hero"><div class="hero-t"><h1 class="h1">Approved Material Studio</h1>'
    +'<p class="lead">Learn the Approved Material until you can produce it. Pick a section: read and hear it, then work through gaps, spot-the-error, word order, translation and AP Structure drills built from exactly the approved sentences.</p>'+spotRow()+'</div></div>'
-   +'<div class="group"><div class="label" style="margin-top:22px">Sections</div><div class="grid">'+tiles+'</div></div>'
+   +'<div class="group"><div class="pickbar"><div class="label" style="margin:0">Sections</div><div class="pickbtns"><span class="pkhelp">Tick sections to combine them, then use the buttons above:</span>'+['A','B','C','D','E'].map(L=>'<button class="chipb" onclick="pickArea(\''+L+'\')">'+L+'</button>').join('')+'<button class="chipb" onclick="pickAll()">All</button><button class="chipb" onclick="pickClear()">Clear</button></div></div><div class="grid">'+tiles+'</div></div>'
    +'<div class="note"><b>How it works.</b> Nothing here is scored. In Gaps, Spot the error, Short translations, Bold bits and AP Structures you say the answer aloud, press Show, and check yourself against the approved wording. Rebuild is the one exercise done with clicks, and it checks your order for you. To be marked, set or take an <b>AP Timed Spot Test</b> from the buttons on this page.</div>';
 }
 function scopeBar(){
@@ -7764,7 +7785,7 @@ function scopeBar(){
 function vSec(){
   const tabs=(S.sec==='all'?[]:[['study','Study',LG.sub[5]],['words',LG.words,'Learn the words']]).concat(TYPES.map(t=>[t[0],t[1],t[3]])).concat([['mix','Mixed','All drills']])
    .map(t=>'<button class="tg'+(S.tab===t[0]?' on':'')+'" onclick="setTab(\''+t[0]+'\')">'+t[1]+'</button>').join('');
-  const head='<div class="row" style="justify-content:space-between"><h1 class="h2">'+(S.sec==='all'?'Mixed: all sections':esc(secName(SECS[S.sec])))+'</h1><button class="btn" onclick="goHome()">&larr; All sections</button></div>';
+  const head='<div class="row" style="justify-content:space-between"><h1 class="h2">'+(S.sec==='all'?'Mixed: '+scopeN():esc(secName(SECS[S.sec])))+'</h1><button class="btn" onclick="goHome()">&larr; All sections</button></div>';
   let body;
   if(S.tab==='study')body=vStudy();else if(S.tab==='words')body=vWords();else{if(!S.ses)startSes();body=vDrill()}
   return head+scopeBar()+'<div class="sub-tabs">'+tabs+'</div>'+((S.tab==='study'||S.tab==='words')?spotRow():'')+body;
@@ -8168,7 +8189,8 @@ function showAMStudio(lang) {
   // from the Studio: the game opens on the section (or all sections) and language the boy was on
   window.amSpeedFromStudio = function (sectionName, lang) {
     secs();
-    var sel = sectionName && C.by[sectionName] ? [C.by[sectionName]] : secs().map(function (s) { return s.id; });
+    var names = Array.isArray(sectionName) ? sectionName : [sectionName], sel = names.map(function (n) { return n && C.by[n]; }).filter(Boolean);
+    if (!sel.length) sel = secs().map(function (s) { return s.id; });
     window.openVocabChallenge({ sel: sel, lang: LANGS.indexOf(lang) >= 0 ? lang : null, fresh: 1 });
   };
   // from the main page: the game opens on what the selector shows (direction, section, topic(s)), as the approved sentences
