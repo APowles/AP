@@ -13218,6 +13218,17 @@ body.proj .hero-panel{max-width:min(1300px,90%)}
 .fs-cap .en{font-size:.68em;opacity:.8;margin-top:4px}
 .fs-cap .nn{display:inline-block;min-width:1.6em;margin-right:8px;text-align:center;border-radius:50%;background:var(--gold);color:#14203a;font-weight:700}
 .spdemo{width:100%;background:var(--surface2);border-radius:14px;padding:14px 18px}
+.mc-wrap{display:flex;flex-direction:column;gap:12px;align-items:center}
+.mc-img{position:relative;--ar:1.7778;width:min(100%,calc((100vh - 300px)*var(--ar)));aspect-ratio:var(--ar);border-radius:14px;overflow:hidden;border:1.5px solid var(--line);background:#101828}
+.mc-img img{width:100%;height:100%;display:block;object-fit:cover}
+.mc-img.spin img{filter:blur(2px) saturate(1.25)}
+.mc-ph{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;color:#f3d98a;font-family:var(--head);font-size:clamp(1.2rem,3vw,2rem);text-align:center;padding:20px}
+.mc-ph b{font-size:clamp(3rem,9vw,6rem)}
+.mc-bar{height:12px;width:100%;background:var(--surface2);border-radius:99px;overflow:hidden}
+.mc-bar i{display:block;height:100%;background:var(--gold)}
+.mc-t{font-family:var(--head);font-weight:700;font-size:1.8rem;min-width:4ch;text-align:center}
+.mc-tally{display:flex;gap:14px;flex-wrap:wrap;justify-content:center;font-weight:700}
+.mc-title{font-family:var(--head);font-size:clamp(1.4rem,3vw,2.2rem);text-align:center}
 </style>
 
 <div class="bar"><div class="bar-in">
@@ -13390,7 +13401,7 @@ function syncBar(){
 
 /* navigation */
 function go(v,sub,k){
-  svStop();spClear();
+  svStop();spClear();if(v!=="machine"&&typeof mcStop==="function")mcStop();
   if(v!=='speed'&&typeof spdStop==='function')spdStop();
   S.view=v;if(sub!=null)S.sub=sub;if(k!=null){S.k=k;S.stage='c';S.step=0;S.mode='deck';S.drill='recall';S.uq=0;initDrills()}
   if(v==='sub')S.story=1;
@@ -13403,7 +13414,7 @@ function crumb(){
   if(S.view==='ktr')c+=` › ${ktr().term}`;
   if(S.view==='review')c='Review notes';
   if(S.view==='how')c='How this works';
-  if(S.view==='speed')c='Speed session';
+  if(S.view==='speed')c='Speed session';if(S.view==='machine')c='Image machine';
   $('crumb').textContent=c;
 }
 /* auto-play: each new French prompt is read aloud as it appears (with the English too in English / Both), through the Karaoke screen when it is on */
@@ -13427,7 +13438,7 @@ function autoRead(){
 function render(){
   crumb();
   const a=$('app');
-  a.innerHTML=S.view==='home'?vHome():S.view==='sub'?vSub():S.view==='ktr'?vKtr():S.view==='how'?vHow():S.view==='speed'?vSpeed():vReview();
+  a.innerHTML=S.view==='home'?vHome():S.view==='sub'?vSub():S.view==='ktr'?vKtr():S.view==='how'?vHow():S.view==='speed'?vSpeed():S.view==='machine'?vMachine():vReview();
   syncBar();
   if(S.view==='ktr'&&S.stage==='d')bindDrill();
   if(S.view==='speed'&&SPD.phase==='setup')spdSum();
@@ -13443,7 +13454,7 @@ function vHome(){
   const g=t=>SUBS.filter(s=>s.theme===t).map(tileFor).join('');
   return `<h1 class="h1">KTR Studio</h1>
   <p class="lead">${TEACH?"A demo of a new way to teach and drill the Key Topic References:":"A new way to learn the Key Topic References:"} understand the context, learn the words you need, say them in small pieces, then use them in an answer. All twelve sub-themes are built.</p>
-  <div class="row" style="margin-top:14px"><button class="spbtn pri" onclick="openSpeed([])">⚡ Speed sessions: race on the words, any KTR or combination</button>${spotHost()?`<button class="spbtn" onclick="openSpot(SUBS.flatMap(s=>s.ktrs.map(k=>k.n)),'All 69 KTRs')">⏱ AP Timed Spot Test</button>`:''}${setTestBtn(`SUBS.flatMap(s=>s.ktrs.map(k=>k.n)),'All 69 KTRs'`)}</div>
+  <div class="row" style="margin-top:14px"><button class="spbtn pri" onclick="openSpeed([])">⚡ Speed sessions: race on the words, any KTR or combination</button>${(typeof ILLUS!=='undefined')?'<button class="spbtn" onclick="openMachine([])">🎰 Machine à images · Image machine</button>':''}${spotHost()?`<button class="spbtn" onclick="openSpot(SUBS.flatMap(s=>s.ktrs.map(k=>k.n)),'All 69 KTRs')">⏱ AP Timed Spot Test</button>`:''}${setTestBtn(`SUBS.flatMap(s=>s.ktrs.map(k=>k.n)),'All 69 KTRs'`)}</div>
   <div class="group"><div class="label">Theme 1 · Évolution de la société française</div><div class="grid">${g(1)}</div></div>
   <div class="group"><div class="label">Theme 2 · Culture politique et artistique</div><div class="grid">${g(2)}</div></div>
   <div class="group"><div class="label">Theme 3 · Immigration et société multiculturelle</div><div class="grid">${g(3)}</div></div>
@@ -13626,7 +13637,7 @@ function vSub(){
   <h2 class="h2" style="margin-top:14px;font-weight:600">${FL({fr:st.title_fr,en:st.title_en})}</h2>
   <div class="svbar"><span class="seglab" title="Which language you HEAR (what you SEE is chosen with the See buttons at the top)">Hear</span><span class="seg" role="group" aria-label="Voice language"><button class="${SV.mode==='fr'?'on':''}" onclick="svSetMode('fr')">🔊 Français</button><button class="${SV.mode==='en'?'on':''}" onclick="svSetMode('en')">🔊 English</button><button class="${SV.mode==='both'?'on':''}" onclick="svSetMode('both')">🔊 Both</button></span><button class="spbtn" onclick="svToggleAuto()" title="Read each new paragraph aloud automatically">${SV.auto?'☑':'☐'} Auto-play</button><button class="spbtn" onclick="svToggleBig()" title="Full-screen karaoke: big words with a yellow highlighter following the voice">${SV.big?'☑':'☐'} 🎤 Karaoke</button><button class="spbtn" id="sv-play" onclick="svPlayAll()">${SV.playing?'■ Stop':'▶ Play the whole story'}</button></div>
   <div class="story">${shown}</div>
-  <div class="nav"><button class="spbtn" onclick="openSpeedNow([${s.ktrs.map(k=>k.n)}])">⚡ Speed session: this sub-theme</button>${spotHost()?`<button class="spbtn" onclick="openSpot([${s.ktrs.map(k=>k.n)}],'${esc(s.name).replace(/'/g,"\\'")}')">⏱ AP Timed Spot Test: this sub-theme</button>`:''}${setTestBtn(`[${s.ktrs.map(k=>k.n)}],'${esc(s.name).replace(/'/g,"\\'")}'`)}${more?`<button class="btn pri" onclick="svNext()">Continue the story</button>`:''}
+  <div class="nav"><button class="spbtn" onclick="openSpeedNow([${s.ktrs.map(k=>k.n)}])">⚡ Speed session: this sub-theme</button>${(typeof ILLUS!=='undefined'&&s.ktrs.some(k=>ILLUS[k.n]))?`<button class="spbtn" onclick="openMachine([${s.ktrs.map(k=>k.n)}])">🎰 Machine à images: this sub-theme</button>`:''}${spotHost()?`<button class="spbtn" onclick="openSpot([${s.ktrs.map(k=>k.n)}],'${esc(s.name).replace(/'/g,"\\'")}')">⏱ AP Timed Spot Test: this sub-theme</button>`:''}${setTestBtn(`[${s.ktrs.map(k=>k.n)}],'${esc(s.name).replace(/'/g,"\\'")}'`)}${more?`<button class="btn pri" onclick="svNext()">Continue the story</button>`:''}
     ${S.story>1?`<button class="btn" onclick="svShowAll()">Show all</button>`:''}</div>
   ${yourVids(s)}${timeline(s)}<div class="group"><div class="label">The ${s.ktrs.length} KTRs, in teaching order</div>
   <div class="story" style="margin-top:10px">${s.ktrs.map((k,i)=>`<button class="ktr-tile" onclick="go('ktr',${s.subtheme},${i})"><span class="t">${esc(k.term)}</span>${pips(k.n)}</button>`).join('')}</div></div>`;
@@ -13733,6 +13744,105 @@ function spotView(k,I){
     ${st?`<div class="sp-bar"><i id="spbar" style="width:${pct}%"></i></div>`:''}
     <div class="spimg${hid?' hid':''}" style="--ar:${(I.w/I.h).toFixed(4)}"><img src="${I.src}" alt="${esc(I.alt_en)}"><div class="spmsg">Qu’est-ce que vous avez vu ?</div>${marks}</div>
     <div class="sp-ctl">${ctl}</div>${list}${dem}</div>`;
+}
+/* Image machine: spin through the illustrations, stop at random; the boys name the KTR and talk for the chosen time */
+const MC={ids:new Set(),secs:30,phase:'setup',seen:new Set(),cur:null,ok:[],near:[],to:null,iv:null,end:0,over:false,act:null,reset:false};
+function mcStop(){if(MC.to){clearTimeout(MC.to);MC.to=null}if(MC.iv){clearInterval(MC.iv);MC.iv=null}}
+function mcLoc(n){for(const s of SUBS){const i=s.ktrs.findIndex(k=>k.n===n);if(i>=0)return{s:s,i:i,k:s.ktrs[i]}}return null}
+function openMachine(ids){
+  if(S.view!=='machine')S.from=S.view;
+  mcStop();MC.ids=new Set((ids||[]).filter(n=>ILLUS[n]));MC.phase='setup';go('machine');
+}
+function closeMachine(){mcStop();try{speechSynthesis.cancel()}catch(e){}S.view=S.from&&S.from!=='machine'?S.from:'home';render();window.scrollTo(0,0)}
+function mcSet(k,v){MC[k]=v;render()}
+function mcTog(n,on){if(on)MC.ids.add(n);else MC.ids.delete(n);render()}
+function mcGroup(sub,on){const s=SUBS.find(x=>x.subtheme===sub);s.ktrs.forEach(k=>{if(ILLUS[k.n]){if(on)MC.ids.add(k.n);else MC.ids.delete(k.n)}});render()}
+function mcTheme(th){MC.ids=new Set();SUBS.filter(s=>th===0||s.theme===th).forEach(s=>s.ktrs.forEach(k=>{if(ILLUS[k.n])MC.ids.add(k.n)}));render()}
+function mcBegin(){MC.seen=new Set();MC.ok=[];MC.near=[];MC.cur=null;MC.reset=false;MC.phase='idle';render();window.scrollTo(0,0)}
+function mcSpin(){
+  mcStop();try{speechSynthesis.cancel()}catch(e){}
+  const all=[...MC.ids];MC.reset=false;
+  let pool=all.filter(n=>!MC.seen.has(n));
+  if(!pool.length){MC.seen=new Set();pool=all.slice();MC.reset=true}
+  const target=pool[Math.floor(Math.random()*pool.length)];
+  MC.cur=target;MC.phase='spin';MC.act=null;MC.over=false;render();
+  const N=26;let i=0,last=-1;
+  const step=()=>{
+    const el=document.getElementById('mcimg');if(!el){return}
+    let id=target;
+    if(i<N){do{id=all[Math.floor(Math.random()*all.length)]}while(all.length>1&&id===last)}
+    last=id;el.src=ILLUS[id].src;
+    try{spdBeep(380+Math.random()*260,.04)}catch(e){}
+    i++;
+    if(i<=N){MC.to=setTimeout(step,45+Math.pow(i/N,2.2)*430)}
+    else{MC.to=null;mcLand()}
+  };
+  MC.to=setTimeout(step,150);
+}
+function mcLand(){
+  try{spdBeep(880,.25)}catch(e){}
+  MC.seen.add(MC.cur);MC.phase='talk';MC.over=false;MC.end=Date.now()+MC.secs*1000;
+  render();
+  MC.iv=setInterval(mcTick,250);
+}
+function mcTick(){
+  const left=Math.max(0,MC.end-Date.now()),bar=document.getElementById('mcbar'),tt=document.getElementById('mct');
+  if(bar)bar.style.width=Math.round(100*left/(MC.secs*1000))+'%';if(tt)tt.textContent=spdFmt(left/1000);
+  if(left<=0){clearInterval(MC.iv);MC.iv=null;MC.over=true;try{spdBeep(660,.5)}catch(e){}render()}
+}
+function mcReveal(){if(MC.iv){clearInterval(MC.iv);MC.iv=null}MC.phase='reveal';MC.act=null;render()}
+function mcAct(i){MC.act=MC.act===i?null:i;render();if(MC.act!==null)fsSay(ILLUS[MC.cur].spots[MC.act].fr)}
+function mcMark(v){
+  (v==='ok'?MC.ok:MC.near).push(MC.cur);try{speechSynthesis.cancel()}catch(e){}
+  MC.phase=MC.seen.size>=MC.ids.size?'done':'idle';MC.cur=null;render();window.scrollTo(0,0)
+}
+function vMachineSetup(){
+  const groups=SUBS.map(s=>{const ks=s.ktrs.filter(k=>ILLUS[k.n]);if(!ks.length)return '';
+    return `<div class="sp-grp"><div class="sp-gh"><span>Sub-theme ${s.subtheme} · ${esc(s.name)}</span><span class="mini"><button onclick="mcGroup(${s.subtheme},true)">All ${ks.length}</button><button onclick="mcGroup(${s.subtheme},false)">None</button></span></div>
+    <div class="sp-ks">${ks.map(k=>`<label><input type="checkbox" ${MC.ids.has(k.n)?'checked':''} onchange="mcTog(${k.n},this.checked)"><span>${esc(k.term)}</span></label>`).join('')}</div></div>`}).join('');
+  const n=MC.ids.size;
+  return `<div class="label">Machine à images · Image machine</div><h1 class="h1">🎰 Quelle image ? Tournez !</h1>
+  <p class="lead">The pictures spin and stop at random. The boys say which KTR it is and talk about it for the time you choose. No picture comes up twice until every one has been seen. Then you reveal the details and mark it: OK or Near.</p>
+  <div class="row" style="margin-top:12px"><span class="label" style="margin:0">Quick choice</span>
+    ${[1,2,3,4].map(t=>`<button class="btn" onclick="mcTheme(${t})">Theme ${t}</button>`).join('')}
+    <button class="btn" onclick="mcTheme(0)">Everything</button><button class="btn" onclick="MC.ids=new Set();render()">Clear</button></div>
+  <div class="sp-set"><label>Parler pendant · Talk time <select onchange="mcSet('secs',+this.value)">${[20,30,45,60,90].map(v=>`<option value="${v}"${v===MC.secs?' selected':''}>${v} s</option>`).join('')}</select></label></div>
+  ${groups}
+  <div class="sp-sum"><span class="t">${n} picture${n===1?'':'s'} chosen${n<2?' (choose at least 2)':''}</span><button class="spbtn pri" ${n<2?'disabled':''} onclick="mcBegin()">▶ Set up the machine</button><button class="btn" onclick="closeMachine()">Back</button></div>`;
+}
+function mcTally(){return `<div class="mc-tally"><span>Vus · seen ${MC.seen.size} / ${MC.ids.size}</span><span style="color:#2b7a4b">✓ OK ${MC.ok.length}</span><span style="color:#a96a0c">≈ Near ${MC.near.length}</span></div>`}
+function vMachine(){
+  if(MC.phase==='setup')return vMachineSetup();
+  if(MC.phase==='done'){
+    const nr=MC.near.map(mcLoc).filter(Boolean);
+    return `<div class="label">Machine à images · terminé · finished</div><div class="sp-res"><div class="w">Toutes les images ont été vues · Every picture seen</div><div style="margin-top:8px;font-size:1.2rem">✓ OK ${MC.ok.length} · ≈ Near ${MC.near.length}</div></div>
+    ${nr.length?`<div class="group"><div class="label">À revoir · to revisit</div><div class="story" style="margin-top:8px">${nr.map(x=>`<div class="line"><button class="btn" onclick="go('ktr',${x.s.subtheme},${x.i})">${esc(x.k.term)}</button></div>`).join('')}</div></div>`:''}
+    <div class="row" style="margin-top:18px"><button class="spbtn pri" onclick="mcBegin()">🔀 Play again</button><button class="btn" onclick="MC.phase='setup';render()">Change the KTRs</button><button class="btn" onclick="closeMachine()">Back</button></div>`;
+  }
+  const I=MC.cur!=null?ILLUS[MC.cur]:null,ar=I?(I.w/I.h).toFixed(4):'1.7778';
+  let body='',ctl='';
+  if(MC.phase==='idle'){
+    body=`<div class="mc-img" style="--ar:1.7778"><div class="mc-ph"><b>🎰</b>${MC.reset?'Tous vus : on recommence · All seen, starting again':'Prêts ? · Ready?'}</div></div>`;
+    ctl=`<button class="spbtn pri" onclick="mcSpin()">🎰 Tourner · Spin</button><button class="btn" onclick="MC.phase='setup';mcStop();render()">Change the KTRs</button><button class="btn" onclick="closeMachine()">Leave</button>`;
+  }else if(MC.phase==='spin'){
+    body=`<div class="mc-img spin" style="--ar:${ar}"><img id="mcimg" src="${I.src}" alt=""></div>`;
+    ctl=`<span class="mc-t">🎰 …</span>`;
+  }else{
+    const rv=MC.phase==='reveal',left=Math.max(0,MC.end-Date.now()),pct=Math.round(100*left/(MC.secs*1000));
+    const marks=rv?I.spots.map((sp,i)=>`<button class="mk${MC.act===i?' act':''}" style="left:${sp.x}%;top:${sp.y}%" onclick="mcAct(${i})" aria-label="Detail ${i+1}">${i+1}</button>`).join(''):'';
+    const k=mcLoc(MC.cur).k;
+    body=`${rv?`<div class="mc-title">${esc(k.term)}</div>`:`<div class="sp-intro big">${FL({fr:'Quelle est cette KTR ? Parlez pendant '+MC.secs+' secondes.',en:'Which KTR is this? Talk for '+MC.secs+' seconds.'})}</div>`}
+      ${rv?'':`<div class="mc-bar"><i id="mcbar" style="width:${MC.over?0:pct}%"></i></div>`}
+      <div class="mc-img" style="--ar:${ar}"><img id="mcimg" src="${I.src}" alt="${esc(I.alt_en)}">${marks}</div>`;
+    ctl=rv?`<button class="btn pri" onclick="mcMark('ok')">✓ OK</button><button class="btn" onclick="mcMark('near')">≈ Presque · Near</button><button class="btn" onclick="fsOpen(${MC.cur})">⛶ Plein écran · Full screen</button>`
+      :`<span class="mc-t" id="mct">${MC.over?'⏰ 0:00':spdFmt(left/1000)}</span><button class="btn pri" onclick="mcReveal()">Révéler · Reveal</button><button class="btn" onclick="fsOpen(${MC.cur})">⛶ Plein écran · Full screen</button>`;
+    if(rv){
+      const list=`<div class="splist">${I.spots.map((sp,i)=>`<div class="spi${MC.act===i?' act':''}"><button class="spn" onclick="mcAct(${i})" aria-label="Hear detail ${i+1}">${i+1}</button>${LN({fr:sp.fr,en:sp.en})}</div>`).join('')}</div>`;
+      const dem=I.demo?`<div class="spdemo"><div class="label" style="margin-bottom:6px">Démo de 30 secondes · 30-second model</div><div class="big">${LN(I.demo)}</div></div>`:'';
+      return `<div class="label">Machine à images</div><div class="mc-wrap">${mcTally()}${body}<div class="sp-ctl">${ctl}</div>${list}${dem}</div>`;
+    }
+  }
+  return `<div class="label">Machine à images</div><div class="mc-wrap">${mcTally()}${body}<div class="sp-ctl">${ctl}</div></div>`;
 }
 
 function steps(k){
