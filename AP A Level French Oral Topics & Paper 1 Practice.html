@@ -3,7 +3,7 @@
 <script id="ap-update">
 /* AP auto-update: if this copy is older than the published version, reload once with the new one (saved answers are kept) */
 (function () {
-  var B = '491f0177ad'; window.AP_BUILD = B;
+  var B = 'f64161c620'; window.AP_BUILD = B;
   function check() {
     if (!/^https?:$/.test(location.protocol) || !window.fetch) return;
     var f = decodeURIComponent(location.pathname.split('/').pop() || '');
@@ -13017,6 +13017,7 @@ h1,h2,h3{text-wrap:balance;margin:0}
 .svw.cur2{background:#ffd23f;color:#1a2744}
 .para.now{outline:3px solid var(--gold);background:#fffaf0}
 .svbar{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin:10px 0 12px}
+.seglab{font-size:.78rem;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--ink2);margin-right:4px;white-space:nowrap}
 .svbar .seg{display:inline-flex;border:1.5px solid var(--line);border-radius:999px;overflow:hidden}
 .svbar .seg button{border:0;background:var(--surface);padding:6px 12px;font:inherit;font-size:.85rem;cursor:pointer}
 .svbar .seg button.on{background:#1b2a4a;color:#f2d38a}
@@ -13031,6 +13032,8 @@ h1,h2,h3{text-wrap:balance;margin:0}
 .fl .e{display:none;color:var(--ink2);font-style:italic}
 .fl[data-l="en"] .f{display:none}
 .fl[data-l="en"] .e{display:inline}
+.fl[data-l="both"] .f,.fl[data-l="both"] .e{display:block}
+.fl[data-l="both"] .e{margin-top:2px}
 .fl:hover{background:color-mix(in srgb,var(--gold) 16%,transparent)}
 .ph{color:var(--ph);font-weight:700}
 .spk{flex:none;border:0;background:none;padding:3px;color:var(--ink2);border-radius:6px;line-height:0}
@@ -13180,9 +13183,11 @@ a{color:var(--s-ktr)}
   <button class="brand" onclick="go('home')" title="Home">KTR Studio</button>
   <div class="crumb" id="crumb"></div>
   <div class="ctl">
-    <div class="seg" role="group" aria-label="Language">
+    <span class="seglab" title="Which language you SEE on the screen (the voice is chosen separately, in the story bar)">See</span>
+    <div class="seg" role="group" aria-label="Language shown on screen">
       <button id="lg-fr" onclick="setLang('fr')">Français</button>
       <button id="lg-en" onclick="setLang('en')">English</button>
+      <button id="lg-both" onclick="setLang('both')" title="French with the English underneath">Both</button>
     </div>
     <button class="tg" id="tg-how" onclick="openHow()" title="How KTR Studio works">How this works</button>
     <button class="tg" id="tg-rv" onclick="toggle('rv')" title="Show where each line came from">Source tags</button>
@@ -13271,8 +13276,8 @@ function svDismiss(){SV.dis=true;svBigHide()}
 function svWords(t){return String(t).split(/\s+/).filter(Boolean).map(w=>`<span class="svw">${esc(w)}</span>`).join(' ')}
 function svBigShow(it){SV.curIt=it;if(!SV.big||SV.dis||!it.p)return;let o=document.getElementById('svbig');
   if(!o){o=document.createElement('div');o.id='svbig';o.onclick=svDismiss;document.body.appendChild(o);requestAnimationFrame(()=>o.classList.add('in'))}
-  const fr=it.l==='fr-FR',en=SV.mode!=='fr'||!fr;
-  o.innerHTML=`<div class="svb"><div class="svb-fr${fr?' cur':''}">${fr?svWords(it.p.fr):esc(it.p.fr)}</div>${en?`<div class="svb-en${fr?'':' cur'}">${fr?esc(it.p.en):svWords(it.p.en)}</div>`:''}<div class="svb-x">Click or press Esc to shrink</div></div>`;SV.hi=-1}
+  const fr=it.l==='fr-FR',bo=S.lang==='both'||SV.mode==='both',showFr=fr||bo,en=!fr||bo;   // the big screen shows what is being read, plus the other language only if you SEE Both or HEAR Both
+  o.innerHTML=`<div class="svb">${showFr?`<div class="svb-fr${fr?' cur':''}">${fr?svWords(it.p.fr):esc(it.p.fr)}</div>`:''}${en?`<div class="svb-en${fr?'':' cur'}">${fr?esc(it.p.en):svWords(it.p.en)}</div>`:''}<div class="svb-x">Click or press Esc to shrink</div></div>`;SV.hi=-1}
 /* yellow highlighter: follows the voice word by word (speech boundary events, with a timing fallback) */
 function svHi(i){const o=document.getElementById('svbig');if(!o||i===SV.hi)return;SV.hi=i;
   o.querySelectorAll('.cur .svw').forEach((w,k)=>w.className='svw'+(k<i?' done':k===i?' cur2':''))}
@@ -13331,11 +13336,11 @@ function FL(o,cls,usePh){
 }
 const SRC=o=>o&&o.src?`<i class="src ${o.src}" title="Source: ${o.src==='KTR'?'your KTR':o.src==='VV'?'your VV list':'new content, check it'}">${o.src}</i>`:'';
 function LN(o,cls,usePh){return `<div class="line">${SRC(o)}${FL(o,cls,usePh)}<button class="spk" data-t="${esc(o.fr)}" data-e="${esc(o.en)}" onclick="spk(this)" aria-label="Hear it in French">${SPK}</button></div>`}
-function flip(el){el.dataset.l=el.dataset.l==='fr'?'en':'fr'}
+function flip(el){el.dataset.l=el.dataset.l==='fr'?'en':'fr'}   // tapping a line: French <-> English (from 'both' it goes to French)
 function setLang(l){S.lang=l;document.querySelectorAll('.fl').forEach(e=>e.dataset.l=l);syncBar()}
 function toggle(k){document.body.classList.toggle(k);syncBar()}
 function syncBar(){
-  $('lg-fr').classList.toggle('on',S.lang==='fr');$('lg-en').classList.toggle('on',S.lang==='en');
+  $('lg-fr').classList.toggle('on',S.lang==='fr');$('lg-en').classList.toggle('on',S.lang==='en');$('lg-both').classList.toggle('on',S.lang==='both');
   $('tg-rv').classList.toggle('on',document.body.classList.contains('rv'));
   $('tg-proj').classList.toggle('on',document.body.classList.contains('proj'));
   var ta=$('tg-auto'); if(ta&&typeof SV!=='undefined'){ta.textContent=(SV.auto?'☑':'☐')+' Auto-play';ta.classList.toggle('on',!!SV.auto)}
@@ -13577,7 +13582,7 @@ function vSub(){
   return `<div class="label">Theme ${s.theme} · Sub-theme ${s.subtheme}</div>
   <h1 class="h1">${esc(s.name)}</h1>
   <h2 class="h2" style="margin-top:14px;font-weight:600">${FL({fr:st.title_fr,en:st.title_en})}</h2>
-  <div class="svbar"><span class="seg" role="group" aria-label="Voice language"><button class="${SV.mode==='fr'?'on':''}" onclick="svSetMode('fr')">🔊 Français</button><button class="${SV.mode==='en'?'on':''}" onclick="svSetMode('en')">🔊 English</button><button class="${SV.mode==='both'?'on':''}" onclick="svSetMode('both')">🔊 Both</button></span><button class="spbtn" onclick="svToggleAuto()" title="Read each new paragraph aloud automatically">${SV.auto?'☑':'☐'} Auto-play</button><button class="spbtn" onclick="svToggleBig()" title="Full-screen karaoke: big words with a yellow highlighter following the voice">${SV.big?'☑':'☐'} 🎤 Karaoke</button><button class="spbtn" id="sv-play" onclick="svPlayAll()">${SV.playing?'■ Stop':'▶ Play the whole story'}</button></div>
+  <div class="svbar"><span class="seglab" title="Which language you HEAR (what you SEE is chosen with the See buttons at the top)">Hear</span><span class="seg" role="group" aria-label="Voice language"><button class="${SV.mode==='fr'?'on':''}" onclick="svSetMode('fr')">🔊 Français</button><button class="${SV.mode==='en'?'on':''}" onclick="svSetMode('en')">🔊 English</button><button class="${SV.mode==='both'?'on':''}" onclick="svSetMode('both')">🔊 Both</button></span><button class="spbtn" onclick="svToggleAuto()" title="Read each new paragraph aloud automatically">${SV.auto?'☑':'☐'} Auto-play</button><button class="spbtn" onclick="svToggleBig()" title="Full-screen karaoke: big words with a yellow highlighter following the voice">${SV.big?'☑':'☐'} 🎤 Karaoke</button><button class="spbtn" id="sv-play" onclick="svPlayAll()">${SV.playing?'■ Stop':'▶ Play the whole story'}</button></div>
   <div class="story">${shown}</div>
   <div class="nav"><button class="spbtn" onclick="openSpeedNow([${s.ktrs.map(k=>k.n)}])">⚡ Speed session: this sub-theme</button>${spotHost()?`<button class="spbtn" onclick="openSpot([${s.ktrs.map(k=>k.n)}],'${esc(s.name).replace(/'/g,"\\'")}')">⏱ AP Timed Spot Test: this sub-theme</button>`:''}${setTestBtn(`[${s.ktrs.map(k=>k.n)}],'${esc(s.name).replace(/'/g,"\\'")}'`)}${more?`<button class="btn pri" onclick="svNext()">Continue the story</button>`:''}
     ${S.story>1?`<button class="btn" onclick="svShowAll()">Show all</button>`:''}</div>
