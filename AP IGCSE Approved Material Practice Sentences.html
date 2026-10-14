@@ -3,7 +3,7 @@
 <script id="ap-update">
 /* AP auto-update: if this copy is older than the published version, reload once with the new one (saved answers are kept) */
 (function () {
-  var B = 'db5aeee35c'; window.AP_BUILD = B;
+  var B = '9243cb932c'; window.AP_BUILD = B;
   function check() {
     if (!/^https?:$/.test(location.protocol) || !window.fetch) return;
     var f = decodeURIComponent(location.pathname.split('/').pop() || '');
@@ -7250,6 +7250,11 @@ h1,h2,h3{text-wrap:balance;margin:0}
 .prog{font-size:.85rem;color:var(--ink2)}
 .prompt{font-size:clamp(1.15rem,2.5vw,1.5rem);line-height:1.55}
 .en{color:var(--ink2);font-style:italic;font-size:1rem}
+.gap-blank{display:inline-block;border-bottom:3px solid var(--gold);height:1.1em;vertical-align:-.15em;margin:0 3px}
+.marks{display:flex;gap:10px;flex-wrap:wrap;margin-top:10px}
+.mk{border:2px solid var(--line);background:var(--surface);border-radius:12px;padding:10px 20px;font-weight:700;font-size:1rem;min-width:130px}
+.mk.ok{border-color:var(--good);color:var(--good)}.mk.bad{border-color:var(--bad);color:var(--bad)}
+.mk:hover{background:var(--surface2)}
 .cue{display:inline-block;background:var(--surface2);border-radius:8px;padding:3px 10px;font-size:.85rem;color:var(--ink2)}
 .gap-in{font:inherit;font-size:inherit;border:0;border-bottom:3px solid var(--gold);background:var(--surface2);color:var(--ink);padding:2px 8px;width:12ch;max-width:100%;border-radius:6px 6px 0 0}
 .txt-in{font:inherit;font-size:1.15rem;border:1.5px solid var(--line);border-radius:10px;background:var(--surface2);color:var(--ink);padding:9px 12px;width:100%}
@@ -7304,7 +7309,7 @@ mark.k{background:var(--hl);color:inherit;border-radius:5px;padding:0 2px}
 </head>
 <body>
 <div class="bar"><div class="bar-in">
-  <button class="brand" onclick="goHome()" title="Studio home">AM Studio</button>
+  <button class="brand" onclick="goHome()" title="Studio home">Approved Material Studio</button>
   <span class="crumb" id="crumb"></span>
   <span class="ctl">
     <button class="tg" id="tg-proj" onclick="toggleProj()" title="Larger type for the projector">Projector</button>
@@ -7465,7 +7470,7 @@ function vHome(){
    +'<div class="grid"><button class="tile all" onclick="openSec(\'all\')"><span class="no">Everything</span><span class="nm">Mixed: all sections</span><span class="meta">A random round across the whole Approved Material</span>'
    +'<span class="pips">'+TYPES.map(t=>'<span class="pip'+(all[t[0]]>=0||all.mix>=0?' on':'')+'"></span>').join('')+'</span></button></div>'
    +'<div class="group"><div class="label" style="margin-top:22px">Sections</div><div class="grid">'+tiles+'</div></div>'
-   +'<div class="note"><b>How marking works.</b> Marking is strict: an answer scores only if it matches the approved wording exactly, accents and capital letters included. Only the style of apostrophe is ignored. A filled dot on a section means you have finished that drill at least once on this device.</div>';
+   +'<div class="note"><b>How marking works.</b> Nothing is typed. In Gaps, Spot the error, Short translations and Bold bits you say the answer aloud, press Show, and mark yourself honestly: <b>Perfect</b> only if you said exactly the approved wording, otherwise <b>Not yet</b>. Rebuild is the one exercise you do with clicks, and it is marked for you: the order must be exactly right. A filled dot on a section means you have finished that drill at least once on this device.</div>';
 }
 function scopeBar(){
   const qOpts=S.sec==='all'?'':'<select onchange="setScope(this.value)" aria-label="Question">'
@@ -7549,7 +7554,7 @@ function vDrill(){
   if(!s.items.length)return '<div class="drill"><div class="empty">Nothing to practise in this selection. Try another level or question.</div></div>';
   if(s.done)return '<div class="drill">'+endCard()+'</div>';
   const it=s.items[s.i];
-  const prog='<div class="prog">'+(s.i+1)+' of '+s.items.length+' · '+({gap:'say or type the missing French',err:'one word is wrong',scr:'put the sentence back in order',short:'translate into French',bold:'translate the bold parts into French'})[it.t]
+  const prog='<div class="prog">'+(s.i+1)+' of '+s.items.length+' · '+({gap:'say the missing French aloud',err:'one word is wrong',scr:'put the sentence back in order',short:'say it in French aloud',bold:'say the French for the bold parts aloud'})[it.t]
     +(S.tab==='mix'?' · <b>'+esc(TNAME[it.t])+'</b>':'')+' · <span class="lvl">'+({E:'Easy',M:'Medium',H:'Hard'})[lvOf(it.i,it.j)]+'</span></div>';
   const q='<div class="prog">'+esc(Q[it.i].q_en)+'</div>';
   const f={gap:rGap,err:rErr,scr:rScr,short:rShort,bold:rBold}[it.t];
@@ -7558,22 +7563,28 @@ function vDrill(){
 function enHint(t){return S.hint?'<div class="en">'+esc(t)+'</div>':''}
 function nextBtn(label){return '<div class="row"><button class="btn pri" id="nx" onclick="nextItem()">'+(label||'Next')+'</button><span class="keys">Enter</span></div>'}
 
-/* gaps: type the missing word(s) */
-function rGap(it){
-  const s=S.ses,fb=s.phase==='fb',c=s.cur;
-  const wd=Math.max(8,Math.min(30,it.a.length+3));
-  const mid=fb?'<b class="a">'+esc(it.a)+'</b>':'<input class="gap-in" id="inp" style="width:'+wd+'ch" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false" aria-label="Missing French">';
-  let h='<div class="prompt">'+esc(it.pre)+mid+esc(it.post)+'</div>'+enHint(it.en)+(it.cue?'<div><span class="cue">Hint: '+esc(it.cue)+'</span></div>':'');
-  if(!fb)return h+'<div class="row"><button class="btn pri" onclick="gapCheck()">Check</button><button class="btn" onclick="gapShow()">Show answer</button><span class="keys">Enter to check</span></div>';
-  const m=c.m;
-  h+='<div class="res '+m+'">'+(m==='ok'?'Correct.':'Not quite. No mark: it has to be exactly right. The approved wording is shown above.')+(c.typed&&m!=='ok'?' <span style="font-weight:400">You wrote: '+esc(c.typed)+'.'+(c.h?' '+esc(c.h):'')+'</span>':'')+'</div>'
-    +'<div class="row">'+spkBtn(it.pre+it.a+it.post)+'<span class="keys">Hear the sentence</span></div>';
-  return h+nextBtn();
-}
-window.gapCheck=function(){const s=S.ses,it=s.items[s.i],v=document.getElementById('inp').value;s.cur.typed=v;s.cur.m=judge(v,it.a);s.cur.h=nearHint(v,it.a);mark(it,s.cur.m);s.phase='fb';render()};
-window.gapShow=function(){const s=S.ses,it=s.items[s.i];s.cur.typed='';s.cur.m='bad';mark(it,'bad');s.phase='fb';render()};
+/* oral drills: say it aloud, press Show, then mark yourself honestly: Perfect or Not yet. Nothing is typed. */
+function revealBtn(label){return '<div class="row"><button class="btn pri" onclick="oralShow()">'+label+'</button><span class="keys">Space or Enter</span></div>'}
+function markBtns(){return '<div class="marks"><button class="mk bad" onclick="oralMark(\'bad\')">Not yet &larr;</button><button class="mk ok" onclick="oralMark(\'ok\')">Perfect &rarr;</button></div><div class="keys" style="margin-top:6px">Perfect only if you said exactly the approved wording.</div>'}
+window.oralShow=function(){const s=S.ses;if(!s||s.done||s.phase!=='ask')return;const it=s.items[s.i];if(it.t==='err'&&s.cur.step===1)return;s.phase='fb';render()};
+window.oralMark=function(m){
+  const s=S.ses;if(!s||s.done||s.phase!=='fb')return;const it=s.items[s.i],c=s.cur;if(c.marked||(it.t==='err'&&(c.final||!c.found)))return;
+  c.marked=1;
+  if(it.t==='err')mark2(it,m==='ok'?'ok':'bad');else mark(it,m);
+  nextItem();
+};
 
-/* spot the error: click the wrong word, then correct it */
+/* gaps: say the missing word(s) aloud */
+function rGap(it){
+  const s=S.ses,fb=s.phase==='fb';
+  const wd=Math.max(6,Math.min(24,it.a.length+2));
+  const mid=fb?'<b class="a">'+esc(it.a)+'</b>':'<span class="gap-blank" style="min-width:'+wd+'ch" aria-label="Missing French"></span>';
+  const h='<div class="prompt">'+esc(it.pre)+mid+esc(it.post)+'</div>'+enHint(it.en)+(it.cue?'<div><span class="cue">Hint: '+esc(it.cue)+'</span></div>':'');
+  if(!fb)return h+revealBtn('Show the answer');
+  return h+'<div class="row">'+spkBtn(it.pre+it.a+it.post)+'<span class="keys">Hear the sentence</span></div>'+markBtns();
+}
+
+/* spot the error: click the wrong word, then say the correction aloud */
 function rErr(it){
   const s=S.ses,c=s.cur,fb=s.phase==='fb';
   const msg=c.ws===0?'Something is missing. Click a word next to the place where it should be.':'Click the word that is wrong.';
@@ -7582,29 +7593,21 @@ function rErr(it){
     if(fb||c.step===2){if(c.picked===k)cls+=c.click.indexOf(k)>=0?' hit':' miss';else if(fb&&c.click.indexOf(k)>=0&&c.ws>0)cls+=' hit'}
     return '<button class="'+cls+'" '+((fb||c.step===2)?'disabled':'')+' onclick="errPick('+k+')">'+esc(w)+'</button>';
   }).join(' ');
-  let h='<div class="prompt">'+toks+'</div>'+enHint(it.en);
+  const h='<div class="prompt">'+toks+'</div>'+enHint(it.en);
   if(c.step===1&&!fb)return h+'<div class="prog">'+msg+'</div>';
-  if(c.step===2&&!fb)return h+'<div class="res ok">You found it. Now correct it'+(c.ws===0?' (what is missing?)':'')+':</div>'
-    +'<div class="row"><input class="txt-in" id="inp" style="max-width:420px" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false" aria-label="Correction"><button class="btn pri" onclick="errCheck()">Check</button></div><div class="keys">Enter to check</div>';
-  const lead=!c.found?'Not the faulty word.':c.m==='ok'?'Correct: found and corrected.':'You found it, but the correction is not exactly right. Half a mark for finding it.';
-  h+='<div class="res '+(!c.found?'bad':c.m==='ok'?'ok':'near')+'">'+lead+(c.typed&&c.m!=='ok'?' <span style="font-weight:400">You wrote: '+esc(c.typed)+'.'+(c.h?' '+esc(c.h):'')+'</span>':'')+'</div>'
-    +'<div class="ans"><span>'+(c.exp?'Correct: <b>'+esc(c.exp)+'</b>':'Correct: delete the extra word.')+'</span>'+spkBtn(it.ref)+'</div>'
-    +'<div class="why">'+esc(it.why)+'</div>';
-  return h+nextBtn();
+  if(c.step===2&&!fb)return h+'<div class="res ok">You found it. Now say the correction aloud'+(c.ws===0?' (what is missing?)':'')+'.</div>'+revealBtn('Show the correction');
+  const ans='<div class="ans"><span>'+(c.exp?'Correct: <b>'+esc(c.exp)+'</b>':'Correct: delete the extra word.')+'</span>'+spkBtn(it.ref)+'</div><div class="why">'+esc(it.why)+'</div>';
+  if(!c.found)return h+'<div class="res bad">Not the faulty word.</div>'+ans+nextBtn();
+  if(c.final)return h+'<div class="res ok">Correct: you found it.</div>'+ans+nextBtn();
+  return h+'<div class="res ok">You found the faulty word. Half a mark for that.</div>'+ans+markBtns();
 }
 window.errPick=function(k){
   const s=S.ses,it=s.items[s.i],c=s.cur;if(s.phase==='fb'||c.step!==1)return;
   c.picked=k;
   if(c.click.indexOf(k)>=0){c.found=true;
-    if(!c.exp){c.m='ok';mark2(it,'ok');s.phase='fb';render();return}   // an extra word: finding it is the whole task
-    c.step=2;render();const e=document.getElementById('inp');if(e)e.focus()}
-  else{c.found=false;c.m='bad';mark(it,'bad');s.phase='fb';render()}
-};
-window.errCheck=function(){
-  const s=S.ses,it=s.items[s.i],c=s.cur,v=document.getElementById('inp').value;
-  const j=judge(v,c.exp);c.typed=v;c.h=nearHint(v,c.exp);
-  // found the error: half a mark for finding it, plus half for the correction
-  c.m=j;mark2(it,j);s.phase='fb';render();
+    if(!c.exp){c.final=true;mark2(it,'ok');s.phase='fb';render();return}   // an extra word: finding it is the whole task
+    c.step=2;render()}
+  else{c.found=false;c.final=true;mark(it,'bad');s.phase='fb';render()}
 };
 function mark2(it,j){const s=S.ses,p=j==='ok'?1:.5;s.sc+=p;(s.by[it.t]=s.by[it.t]||{n:0,sc:0});s.by[it.t].n++;s.by[it.t].sc+=p}
 
@@ -7625,20 +7628,15 @@ window.scrUndo=function(k){const c=S.ses.cur;c.built=c.built.filter(x=>x!==k);re
 window.scrShuffle=function(){const c=S.ses.cur;c.pool=shuffle(c.pool);c.built=[];render()};
 window.scrCheck=function(){const s=S.ses,it=s.items[s.i],c=s.cur;const got=c.built.map(k=>c.pool.find(x=>x.k===k).t).join(' ');c.m=nrm(got)===nrm(it.fr)?'ok':'bad';mark(it,c.m);s.phase='fb';render()};
 
-/* short translations */
+/* short translations: say the French aloud */
 function rShort(it){
-  const s=S.ses,c=s.cur,fb=s.phase==='fb';
-  let h='<div class="prompt">'+esc(it.en)+'</div>'
-   +'<input class="txt-in" id="inp" '+(fb?'disabled value="'+esc(c.typed||'')+'"':'')+' autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false" aria-label="Your French">';
-  if(!fb)return h+'<div class="row"><button class="btn pri" onclick="shCheck()">Check</button><button class="btn" onclick="shShow()">Show answer</button><span class="keys">Enter to check</span></div>';
-  h+='<div class="res '+c.m+'">'+(c.m==='ok'?'Correct.':'Not quite. No mark: it has to be exactly right. The approved wording is below.'+(c.h?' <span style="font-weight:400">'+esc(c.h)+'</span>':''))+'</div>';
-  if(c.m!=='ok')h+='<div class="ans"><span>'+esc(it.fr)+'</span>'+spkBtn(it.fr)+'</div>';else h+='<div class="row">'+spkBtn(it.fr)+'<span class="keys">Hear it</span></div>';
-  return h+nextBtn();
+  const s=S.ses,fb=s.phase==='fb';
+  const h='<div class="prompt">'+esc(it.en)+'</div>';
+  if(!fb)return h+revealBtn('Show the French');
+  return h+'<div class="ans"><span>'+esc(it.fr)+'</span>'+spkBtn(it.fr)+'</div>'+markBtns();
 }
-window.shCheck=function(){const s=S.ses,it=s.items[s.i],v=document.getElementById('inp').value;s.cur.typed=v;s.cur.m=judge(v,it.fr);s.cur.h=nearHint(v,it.fr);mark(it,s.cur.m);s.phase='fb';render()};
-window.shShow=function(){const s=S.ses,it=s.items[s.i];s.cur.typed='';s.cur.m='bad';mark(it,'bad');s.phase='fb';render()};
 
-/* bold bits */
+/* bold bits: say the French for each bold part aloud */
 function boldEn(it){
   const sp=it.bold.map(b=>{const p=fa(it.en,b.en);return [p,p+b.en.length]}).filter(x=>x[0]>=0).sort((a,b)=>a[0]-b[0]);
   let out='',at=0;sp.forEach(x=>{out+=esc(it.en.slice(at,x[0]))+'<b>'+esc(it.en.slice(x[0],x[1]))+'</b>';at=x[1]});
@@ -7650,40 +7648,36 @@ function boldFr(it){
   return out+esc(it.fr.slice(at));
 }
 function rBold(it){
-  const s=S.ses,c=s.cur,fb=s.phase==='fb';
-  let h='<div class="bdtxt">'+boldEn(it)+'</div><div class="prog">Write the French for each bold part.</div>';
-  h+=it.bold.map((b,k)=>'<div class="brow"><div class="bl">'+esc(b.en)+'</div><div><input class="txt-in" id="inp'+k+'" '+(fb?'disabled value="'+esc((c.typed&&c.typed[k])||'')+'"':'')+' autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false" aria-label="French for '+esc(b.en)+'">'
-    +(fb?'<div class="ck '+c.ms[k]+'">'+(c.ms[k]==='ok'?'Correct':'Approved: ')+(c.ms[k]==='ok'?'':'<b>'+esc(b.fr)+'</b>'+(c.hs&&c.hs[k]?' <span style="font-weight:400">('+esc(c.hs[k])+')</span>':''))+'</div>':'')+'</div></div>').join('');
-  if(!fb)return h+'<div class="row"><button class="btn pri" onclick="bdCheck()">Check</button><button class="btn" onclick="bdShow()">Show answers</button><span class="keys">Enter to check</span></div>';
+  const s=S.ses,fb=s.phase==='fb';
+  let h='<div class="bdtxt">'+boldEn(it)+'</div><div class="prog">Say the French for each bold part aloud.</div>';
+  if(!fb)return h+revealBtn('Show the French');
+  h+=it.bold.map(b=>'<div class="brow"><div class="bl">'+esc(b.en)+'</div><div class="ck ok"><b>'+esc(b.fr)+'</b></div></div>').join('');
   h+='<div class="ans"><span>'+boldFr(it)+'</span>'+spkBtn(it.fr)+'</div>';
-  return h+nextBtn();
+  return h+markBtns();
 }
-function bdDone(typed){
-  const s=S.ses,it=s.items[s.i],c=s.cur;c.typed=typed;c.ms=it.bold.map((b,k)=>judge(typed[k],b.fr));c.hs=it.bold.map((b,k)=>nearHint(typed[k],b.fr));
-  const p=c.ms.reduce((a,m)=>a+pts(m),0)/c.ms.length;
-  s.sc+=p;(s.by[it.t]=s.by[it.t]||{n:0,sc:0});s.by[it.t].n++;s.by[it.t].sc+=p;s.phase='fb';render();
-}
-window.bdCheck=function(){const it=S.ses.items[S.ses.i];bdDone(it.bold.map((b,k)=>document.getElementById('inp'+k).value))};
-window.bdShow=function(){const it=S.ses.items[S.ses.i];bdDone(it.bold.map(()=>''))};
 
-/* keyboard: Enter checks, Enter again moves on */
+/* keyboard: Space or Enter shows the answer; left or 1 = Not yet, right or 2 = Perfect; Enter moves on */
 document.addEventListener('keydown',function(e){
   if(S.view!=='sec'||!S.ses||S.ses.done||S.tab==='study'||S.tab==='words')return;
   const s=S.ses,it=s.items[s.i];if(!it)return;
-  if(e.key!=='Enter')return;
-  const tag=(e.target&&e.target.tagName)||'';
-  if(s.phase==='fb'){e.preventDefault();nextItem();return}
-  if(it.t==='gap'&&tag==='INPUT'){e.preventDefault();gapCheck()}
-  else if(it.t==='short'&&tag==='INPUT'){e.preventDefault();shCheck()}
-  else if(it.t==='bold'&&tag==='INPUT'){e.preventDefault();bdCheck()}
-  else if(it.t==='err'&&s.cur.step===2&&tag==='INPUT'){e.preventDefault();errCheck()}
+  if(e.target&&/^(INPUT|SELECT|TEXTAREA)$/.test(e.target.tagName))return;
+  const oral=it.t==='gap'||it.t==='short'||it.t==='bold'||it.t==='err';
+  if(s.phase==='ask'){
+    if(oral&&(e.key==='Enter'||e.key===' ')&&!(it.t==='err'&&s.cur.step===1)){e.preventDefault();oralShow()}
+    return;
+  }
+  const marking=oral&&!(it.t==='err'&&(s.cur.final||!s.cur.found));
+  if(marking){
+    if(e.key==='ArrowLeft'||e.key==='1'){e.preventDefault();oralMark('bad')}
+    else if(e.key==='ArrowRight'||e.key==='2'){e.preventDefault();oralMark('ok')}
+    return;
+  }
+  if(e.key==='Enter'){e.preventDefault();nextItem()}
 });
 function render(){
   const r=document.getElementById('root');
   r.innerHTML=S.view==='home'?vHome():vSec();
   crumb();
-  const e=document.getElementById('inp')||document.getElementById('inp0');
-  if(e&&S.ses&&S.ses.phase==='ask')e.focus({preventScroll:true});
   const nx=document.getElementById('nx');if(nx&&S.ses&&S.ses.phase==='fb')nx.focus({preventScroll:true});
 }
 window.S=S;
