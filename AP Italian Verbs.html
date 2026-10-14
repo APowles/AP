@@ -5,7 +5,7 @@
 <script id="ap-update">
 /* AP auto-update: if this copy is older than the published version, reload once with the new one (saved answers are kept) */
 (function () {
-  var B = 'c9a2d25d78'; window.AP_BUILD = B;
+  var B = '52b97d492a'; window.AP_BUILD = B;
   function check() {
     if (!/^https?:$/.test(location.protocol) || !window.fetch) return;
     var f = decodeURIComponent(location.pathname.split('/').pop() || '');
@@ -586,7 +586,61 @@ function aphWatchHome(el, sel) {
   if (!el) return;
   var f = function () { document.body.classList.toggle('aph-at-home', !!el.querySelector(sel)); };
   new MutationObserver(f).observe(el, { childList: true }); f();
+  try { aphBackInit(el, sel); } catch (e) {}
 }
+/* ===== AP BACK v1: one step back (not Home). Remembers the screens visited; session screens (drill cards) are skipped. ===== */
+var APBK = { cs: [] };
+function aphBackInit(el, sel, o) {
+  if (!el) return;
+  for (var i = 0; i < APBK.cs.length; i++) if (APBK.cs[i].el === el) return;
+  o = o || {};
+  var c = { el: el, sel: sel, stack: [], cur: null, up: o.up || null, inner: o.inner || null, norestore: !!o.norestore };
+  APBK.cs.push(c);
+  var hdr = document.querySelector('.aph-header .aph-home:not(.aph-voice)') || document.querySelector('.aph-header .aph-voice');
+  if (hdr && !document.querySelector('.aph-back')) {
+    var b = document.createElement('button'); b.type = 'button'; b.className = 'aph-home aph-back'; b.innerHTML = '&larr; Back'; b.title = 'Back one step'; b.onclick = aphBack;
+    hdr.parentNode.insertBefore(b, hdr);
+  }
+  c.cur = aphBackStage(c);
+  new MutationObserver(function () { aphBackSeen(c); }).observe(el, { childList: true });
+  if (!APBK.poll) APBK.poll = setInterval(aphBackUpd, 400);
+  aphBackUpd();
+}
+function aphBackStage(c) {
+  var el = c.el, home = !!el.querySelector(c.sel), k = el.firstElementChild;
+  var sig = home ? 'H' : (k ? k.tagName + '.' + String(k.className).split(' ').slice(0, 2).join('.') + '#' + k.id : '');
+  var sess = !home && !!el.querySelector('.drill-bar,.aph-dbar,.aph-drill,.aph-qcard,.progress-track,.card-question');
+  return { sig: sig, home: home, sess: sess, html: (home || sess) ? '' : el.innerHTML };
+}
+function aphBackSeen(c) {
+  var s = aphBackStage(c), o = c.cur;
+  if (o && s.sig === o.sig) return;
+  if (s.home) c.stack = [];
+  else if (o && !o.sess && !o.home && !c.norestore) c.stack.push(o);
+  c.cur = s; aphBackUpd();
+}
+function aphBackAct() {
+  for (var i = 0; i < APBK.cs.length; i++) if (APBK.cs[i].el.offsetParent !== null) return APBK.cs[i];
+  return APBK.cs[0];
+}
+function aphBackUpd() {
+  var c = aphBackAct(), b = document.querySelector('.aph-back');
+  if (b) b.style.display = (c && c.el.offsetParent !== null && (c.up || !(c.cur && c.cur.home))) ? '' : 'none';
+}
+function aphBack() {
+  try { if (typeof timerInterval !== 'undefined' && timerInterval) clearInterval(timerInterval); } catch (e) {}
+  try { if (typeof countdown !== 'undefined' && countdown) clearInterval(countdown); } catch (e) {}
+  try { if (window.speechSynthesis) speechSynthesis.cancel(); } catch (e) {}
+  try { if (typeof window.aphBackHook === 'function' && window.aphBackHook()) return; } catch (e) {}
+  var c = aphBackAct(); if (!c) return;
+  var t = c.stack.pop();
+  if (t && t.html) { c.el.innerHTML = t.html; c.cur = t; window.scrollTo(0, 0); aphBackUpd(); return; }
+  c.stack = [];
+  if (c.cur && c.cur.home && c.up) { c.up(); return; }
+  if (c.inner) { c.inner(); return; }
+  if (typeof vgHome === 'function') vgHome(); else if (typeof goHome === 'function') goHome();
+}
+
 /* ===== END AP HOUSE STYLE helpers ===== */
 /* ===== AP verb apps · shared screen parts (identical in French, Italian and Spanish Verbs; VB_NAME is set per app) ===== */
 // drill bar: app name · ✓ ~ ✗ score · 💡 Hint · ▶ Errors (the one ⌂ Home is in the header)
