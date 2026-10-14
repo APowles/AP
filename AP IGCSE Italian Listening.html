@@ -7634,8 +7634,24 @@ window.AP_LC_CSS = "/* AP Listening class sheet: all selectors prefixed .lc- */\
     var m = e && e.message, why = m === 'unsigned' ? 'This link was not made by AP, or it has been changed.' : m === 'old' ? 'This browser is too old to open the link. Update Safari or Chrome.' : m === 'nopaper' ? 'This copy of the app does not have that paper. Reload the page; if it still fails, tell AP.' : 'The link is damaged. Ask AP for it again.';
     chrome(true); card('<h2>This answer sheet could not be opened</h2><p>' + esc(why) + '</p><button class="aph-btn" onclick="location.href=location.pathname">&#8962; Listening home</button>');
   }
+  function printRoute(m) {
+    chrome(true); card('<h2>Opening the paper copy&hellip;</h2>');
+    TT.unpack(decodeURIComponent(m[2])).then(function (o) {
+      if (o.kind !== 'ls') throw new Error('bad');
+      var p0 = null; papers().forEach(function (p) { if (p.frcode === o.r) p0 = p; });
+      if (!p0) throw new Error('nopaper');
+      var secs = p0.sections;
+      if (o.sc && o.sc.length) { secs = p0.sections.filter(function (s) { return o.sc.indexOf(s.id) >= 0; }); if (!secs.length) throw new Error('nopaper'); }
+      var p = Object.assign({}, p0, { sections: secs, marks: secs.reduce(function (a, s) { return a + s.marks; }, 0), qs: secs.reduce(function (a, s) { return a + s.questions.length; }, 0) });
+      var key = m[4] === 'a' && !!(TT.gkey && TT.gkey());
+      var html = buildAnswerSheetHTML(p, key).replace('</body>', '<scr' + 'ipt>window.addEventListener("load",function(){setTimeout(function(){try{window.print()}catch(e){}},500)});</scr' + 'ipt></body>')
+        .replace('<span>' + (key ? 'Teacher answer key: not for boys.' : 'One A4 page per boy: print as many copies as you need.') + '</span>', '<button onclick="location.href=String(location.href).replace(/[#?].*$/,\'\').replace(/[^\\/]*$/,\'\')+\'AP%20Tests.html\'">&#8962; Back to AP Tests</button><span>' + (key ? 'Teacher answer key: not for boys.' : 'One A4 page per boy: print as many copies as you need.') + '</span>');
+      document.open(); document.write(html); document.close();
+    }).catch(fail);
+  }
   function route() {
-    var m = /^#(lst|lsv)=([^&]+)(?:&c=([^&]*))?/.exec(location.hash || ''); if (!m || C) return;
+    var m = /^#(lst|lsv|lsp)=([^&]+)(?:&c=([^&]*))?(?:&w=([sa]))?/.exec(location.hash || ''); if (!m || C) return;
+    if (m[1] === 'lsp') { printRoute(m); return; }   // AP Tests > Print: a paper copy (answer sheet, or the key with AP's teacher key), opened and sent to the printer
     chrome(true); card('<h2>Opening your answer sheet&hellip;</h2>');
     var view = m[1] === 'lsv', code = ''; try { code = decodeURIComponent(m[3] || ''); } catch (e) { }
     TT.unpack(decodeURIComponent(m[2])).then(function (o) {
