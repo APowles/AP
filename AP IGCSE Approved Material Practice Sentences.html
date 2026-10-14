@@ -3,7 +3,7 @@
 <script id="ap-update">
 /* AP auto-update: if this copy is older than the published version, reload once with the new one (saved answers are kept) */
 (function () {
-  var B = '2a2d88732a'; window.AP_BUILD = B;
+  var B = 'bdeb0cee01'; window.AP_BUILD = B;
   function check() {
     if (!/^https?:$/.test(location.protocol) || !window.fetch) return;
     var f = decodeURIComponent(location.pathname.split('/').pop() || '');
@@ -7431,9 +7431,10 @@ const TYPES = [
   ['err','Spot the error',LG.sub[1],'Find the mistake'],
   ['scr','Rebuild',LG.sub[2],'Word order'],
   ['short','Short translations',LG.sub[3],'English to '+LG.name+''],
-  ['bold','Bold bits',LG.sub[4],'Translate the bold parts']
+  ['bold','Bold bits',LG.sub[4],'Translate the bold parts'],
+  ['st','AP Structures',({fr:'Structures AP',it:'Strutture AP',es:'Estructuras AP'})[LG.code]||'AP Structures','Translate and complete']
 ];
-const TNAME = {words:LG.words,gap:'Gaps',err:'Spot the error',scr:'Rebuild',short:'Short translations',bold:'Bold bits'};
+const TNAME = {words:LG.words,gap:'Gaps',err:'Spot the error',scr:'Rebuild',short:'Short translations',bold:'Bold bits',st:'AP Structures'};
 function esc(s){return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;')}
 function shuffle(a){a=a.slice();for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]]}return a}
 /* marking is strict: perfect or nothing. Accents and capital letters must be exactly right. Only the style of apostrophe, stray spaces and end punctuation are not held against you. */
@@ -7494,8 +7495,27 @@ function bullets(){
   });
   return out;
 }
+/* AP Structures (the reusable frames in Les mots, with X / Y / INF / ADJ slots): each one is asked two ways, English to the language and a gap in it */
+function stGap(fr){
+  const toks=fr.split(/\s+/);let best=null;
+  toks.forEach(t=>{const w=t.replace(/^[\u2026.,;:!?()«»"']+|[\u2026.,;:!?()«»"']+$/g,'');if(w.length<4||/^[A-Z]{1,8}$/.test(w)||/^[XYZW]$/.test(w))return;if(!best||w.length>best.length)best=w});
+  if(!best)return null;
+  const re=new RegExp('(^|[^A-Za-z\\u00C0-\\u024F])'+best.replace(/[.*+?^${}()|[\]\\]/g,'\\$&')+'(?![A-Za-z\\u00C0-\\u024F])');
+  const m=re.exec(fr);if(!m)return null;const at=m.index+m[1].length;
+  return {a:best,pre:fr.slice(0,at),post:fr.slice(at+best.length)};
+}
+function stTasks(bl){const seen={},out=[];bl.forEach(b=>{if(!seen[b[0]]){seen[b[0]]=1;out.push(b[0])}});return out}
+function stItems(bl){
+  const out=[];
+  stTasks(bl).forEach(i=>{const d=LM[i];((d&&d.s)||[]).forEach(p=>{
+    out.push({t:'short',st:1,i,j:0,en:p[1],fr:p[0]});
+    const g=stGap(p[0]);if(g)out.push({t:'gap',st:1,i,j:0,a:g.a,cue:'AP Structure',pre:g.pre,post:g.post,fr:p[0],en:p[1]});
+  })});
+  return out;
+}
 /* items of one drill type from the bullets in scope */
 function itemsOf(type,bl){
+  if(type==='st')return stItems(bl);
   const out=[];
   bl.forEach(([i,j])=>{
     const x=EXBY[i+'/'+j];if(!x)return;const fr=Q[i].fr[j],en=Q[i].en[j];
@@ -7552,7 +7572,7 @@ window.nextItem=nextItem;
 
 
 /* ===== AP Timed Spot Test: this page builds the items; the host app opens its shared timed-test engine with them ===== */
-const SPOT_KINDS=[['gap','Fill the gap','Say the missing '+LG.name+': write it'],['err','Spot the error','Correct the grammar error in a sentence'],['ord','Word order','Put the groups of words in the right order'],['short','Short translations','English to '+LG.name+', a phrase'],['bold','Bold bits','Translate only the bold words into '+LG.name+''],['words',LG.words,'English to '+LG.name+', a key word or phrase']];
+const SPOT_KINDS=[['gap','Fill the gap','Say the missing '+LG.name+': write it'],['err','Spot the error','Correct the grammar error in a sentence'],['ord','Word order','Put the groups of words in the right order'],['short','Short translations','English to '+LG.name+', a phrase'],['bold','Bold bits','Translate only the bold words into '+LG.name+''],['words',LG.words,'English to '+LG.name+', a key word or phrase'],['st','AP Structures','English to '+LG.name+', or the missing word in an AP Structure']];
 const TAGS={gap:['#6b3fa0','#fff','FILL THE GAP'],err:['#b03a2e','#fff','CORRECT THE GRAMMAR ERROR'],ord:['#1a6b3a','#fff','PUT THE WORDS IN ORDER'],part:['#1f6f8b','#fff','TRANSLATE THE BOLD WORDS'],tr:['#1a2744','#fff','TRANSLATE']};
 const TAGMEAN={tr:'= translate the English into '+LG.name+'.',part:'= translate only the bold words into '+LG.name+' (a short phrase).',gap:'= write the missing '+LG.name+' word or phrase in the gap.',ord:'= write the groups of words in the right order, as one correct sentence.',err:'= rewrite the '+LG.name+' with the grammar error corrected.'};
 function tagHtml(k){const t=TAGS[k];return '<span style="display:inline-block;background:'+t[0]+';color:'+t[1]+';border-radius:4px;padding:1px 8px;font:800 .62rem DM Sans,Arial,sans-serif;letter-spacing:.06em">'+t[2]+'</span>'}
@@ -7579,6 +7599,10 @@ function rightOf(it,c){
 }
 function spotItemsOf(kind,bl){
   const out=[];
+  if(kind==='st'){stTasks(bl).forEach(i=>{const d=LM[i];((d&&d.s)||[]).forEach((p,k)=>{
+    out.push({k:'tr',i,j:'s'+k,prompt:esc(p[1]),answer:esc(p[0])});
+    const g=stGap(p[0]);if(g)out.push({k:'gap',i,j:'s'+k,prompt:esc(g.pre)+'<u>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</u>'+esc(g.post)+'<br><i style="color:#667;font-size:.9em">('+esc(p[1])+')</i><br><span style="font-size:.85em;color:#667">Hint: AP Structure</span>',answer:esc(g.a)});
+  })});return out}
   bl.forEach(([i,j])=>{
     const x=EXBY[i+'/'+j];const fr=Q[i].fr[j],en=Q[i].en[j];
     if(kind==='words'){const d=LM[i];if(d)d.w.forEach(w=>{if(w[2]===j)out.push({k:'tr',i,j,prompt:esc(w[1]),answer:esc(w[0])})});return}
@@ -7653,7 +7677,7 @@ function vHome(){
    +'<p class="lead">Learn the Approved Material until you can produce it. Pick a section: read and hear it, then work through gaps, spot-the-error, word order and translation drills built from exactly the approved sentences.</p>'
    +'<div class="grid"><button class="tile all" onclick="openSec(\'all\')"><span class="no">Everything</span><span class="nm">Mixed: all sections</span><span class="meta">A random round across the whole Approved Material</span>'+'</button></div>'
    +spotRow()+'<div class="group"><div class="label" style="margin-top:22px">Sections</div><div class="grid">'+tiles+'</div></div>'
-   +'<div class="note"><b>How it works.</b> Nothing here is scored. In Gaps, Spot the error, Short translations and Bold bits you say the answer aloud, press Show, and check yourself against the approved wording. Rebuild is the one exercise done with clicks, and it checks your order for you. To be marked, set or take an <b>AP Timed Spot Test</b> from the buttons on this page.</div>';
+   +'<div class="note"><b>How it works.</b> Nothing here is scored. In Gaps, Spot the error, Short translations, Bold bits and AP Structures you say the answer aloud, press Show, and check yourself against the approved wording. Rebuild is the one exercise done with clicks, and it checks your order for you. To be marked, set or take an <b>AP Timed Spot Test</b> from the buttons on this page.</div>';
 }
 function scopeBar(){
   const qOpts=S.sec==='all'?'':'<select onchange="setScope(this.value)" aria-label="Question">'
@@ -7736,7 +7760,7 @@ function vDrill(){
   if(s.done)return '<div class="drill">'+endCard()+'</div>';
   const it=s.items[s.i];
   const prog='<div class="prog">'+(s.i+1)+' of '+s.items.length+' · '+({gap:'say the missing '+LG.name+' aloud',err:'one word is wrong',scr:'put the sentence back in order',short:'say it in '+LG.name+' aloud',bold:'say the '+LG.name+' for the bold parts aloud'})[it.t]
-    +(S.tab==='mix'?' · <b>'+esc(TNAME[it.t])+'</b>':'')+' · <span class="lvl">'+({E:'Easy',M:'Medium',H:'Hard'})[lvOf(it.i,it.j)]+'</span></div>';
+    +(S.tab==='mix'?' · <b>'+esc(TNAME[it.st?'st':it.t])+'</b>':'')+' · <span class="lvl">'+(it.st?'AP Structure':({E:'Easy',M:'Medium',H:'Hard'})[lvOf(it.i,it.j)])+'</span></div>';
   const q='<div class="prog">'+esc(Q[it.i].q_en)+'</div>';
   const f={gap:rGap,err:rErr,scr:rScr,short:rShort,bold:rBold}[it.t];
   return '<div class="drill" id="drill">'+prog+q+f(it)+'</div>';
@@ -8000,6 +8024,8 @@ function showAMStudio(lang) {
       Object.keys(lm).forEach(function (i) {
         var x = AM_DATA[+i]; if (!x) return; var sec = C.by[x.section_en];
         (lm[i].w || []).forEach(function (w) { add(sec, w[1], L, w[0], pl(w[0]), x.q_en); });
+        // the AP Structures (reusable frames with X / Y / INF / ADJ slots) are tiles too
+        (lm[i].s || []).forEach(function (w) { var n = wc(w[0]); add(sec, w[1], L, w[0], n <= 4 ? 'E' : n <= 7 ? 'M' : 'H', x.q_en); });
       });
       var cx = function (x, e, L) { var E = x['en_' + L] || x.en || [], T = x[L] || []; return { e: E[e.j], t: T[e.j] }; };
       ex.forEach(function (e) {
