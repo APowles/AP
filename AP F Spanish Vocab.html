@@ -5,7 +5,7 @@
 <script id="ap-update">
 /* AP auto-update: if this copy is older than the published version, reload once with the new one (saved answers are kept) */
 (function () {
-  var B = '73b7bd8771'; window.AP_BUILD = B;
+  var B = '370ffdfd24'; window.AP_BUILD = B;
   function check() {
     if (!/^https?:$/.test(location.protocol) || !window.fetch) return;
     var f = decodeURIComponent(location.pathname.split('/').pop() || '');
@@ -2348,16 +2348,31 @@ var APTT = (function () {
     }).catch(function () { });
   }
   function folders() { var o = {}; listGet().forEach(function (e) { if (e.f) o[e.f] = 1; }); return Object.keys(o).sort(); }
-  function draws(n) {   // more draws with the teacher's current settings (the same button, run again quietly)
+  function draws(n, U, ti) {   // more draws with the teacher's current settings (the same button, run again quietly)
     // fresh every time: never the draw on screen, never a version already put in a link from this page (so 3 practice tests + the actual test share no version)
-    var out = [], seen = DRAWN, sig = function (its) { return its.map(function (it) { return it.prompt + '\u0001' + it.answer; }).slice().sort().join('\u0002'); };
+    // SPREAD: each version is the best of CAND random draws, the one whose questions have been used least so far (a question already used in ANOTHER test of the set counts double),
+    // so the 4 tests together sweep the WHOLE selection instead of recycling a small part of it
+    var out = [], seen = DRAWN, key = function (it) { return it.prompt + '\u0001' + it.answer; }, sig = function (its) { return its.map(key).slice().sort().join('\u0002'); };
+    U = U || { all: {}, per: {} }; ti = ti || 0; U.per[ti] = U.per[ti] || {};
     seen[sig(S.items)] = 1;
     if (!RUN) return [S.items];
-    for (var k = 0; k < n * 3 && out.length < n; k++) {
-      window.APTT.capturing = [];
-      try { RUN(); } catch (e) { }
-      var got = window.APTT.capturing; window.APTT.capturing = null;
-      if (got && got[0] && got[0].items.length === S.items.length) { var h = sig(got[0].items); if (!seen[h]) { seen[h] = 1; out.push(got[0].items); } }
+    var CAND = 30;
+    for (var v = 0; v < n; v++) {
+      var best = null, bestSc = 1e9;
+      for (var k = 0; k < CAND; k++) {
+        window.APTT.capturing = [];
+        try { RUN(); } catch (e) { }
+        var got = window.APTT.capturing; window.APTT.capturing = null;
+        if (!(got && got[0] && got[0].items.length === S.items.length)) continue;
+        var its = got[0].items, h = sig(its); if (seen[h]) continue;
+        var raw = 0; its.forEach(function (it) { var q = key(it), a = U.all[q] || 0, p = U.per[ti][q] || 0; raw += 2 * (a - p) + p; });
+        var sc = raw + Math.random() * 0.5;
+        if (sc < bestSc) { bestSc = sc; best = { its: its, h: h }; }
+        if (raw === 0) break;
+      }
+      if (!best) break;
+      seen[best.h] = 1; out.push(best.its);
+      best.its.forEach(function (it) { var q = key(it); U.all[q] = (U.all[q] || 0) + 1; U.per[ti][q] = (U.per[ti][q] || 0) + 1; });
     }
     return out.length ? out : [S.items];
   }
@@ -2424,9 +2439,10 @@ var APTT = (function () {
     if (clash.length) { say('Code ' + clash.join(', ') + ' is already in your list. Change the first code and try again.'); return; }
     b.disabled = true; b.textContent = 'Making 4 tests…';
     var chain = Promise.resolve();
-    T.forEach(function (t) {
+    var USED = { all: {}, per: {} };   // which questions the 4 tests have used so far: keeps them spread over the whole selection
+    T.forEach(function (t, ti) {
       chain = chain.then(function () {
-        var V = draws(VERSIONS);
+        var V = draws(VERSIONS, USED, ti);
         var o = { v: 1, ps: PSID, n: t.n, c: t.c, a: S.m.app, k: S.m.kicker, t: S.m.title, m: S.m.meta, d: S.m.detail, l: S.m.lang, lc: S.m.code, lv: S.m.level, s: s2, q: 'draw', id: S.m.id, cat: cat, f: fol, made: made,
           V: V.map(function (its) { return its.map(function (it) { return [it.prompt, it.answer, it.kind === 'sentence' ? 1 : 0, it.label || '', it.html ? 1 : 0]; }); }) };
         return pack(o).then(function (tok) {
