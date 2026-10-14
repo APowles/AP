@@ -13208,6 +13208,15 @@ body{overflow-x:clip}
 .spn{flex:none;width:32px;height:32px;border-radius:50%;background:var(--gold);color:#14203a;font-weight:700;border:0;padding:0}
 .spi .line{flex:1;font-size:1.1rem}
 body.proj .hero-panel{max-width:min(1300px,90%)}
+#fsov{position:fixed;inset:0;z-index:99999;background:#000;display:none;align-items:center;justify-content:center}
+.fs-stage{position:relative;--ar:1.7778;width:min(100vw,calc(100vh*var(--ar)));aspect-ratio:var(--ar)}
+.fs-stage img{width:100%;height:100%;display:block}
+.fs-stage .mk{width:clamp(36px,4.4vw,64px);height:clamp(36px,4.4vw,64px);font-size:clamp(1.1rem,2.1vw,1.9rem)}
+.fs-top{position:absolute;top:10px;left:10px;right:10px;display:flex;gap:8px;flex-wrap:wrap;justify-content:flex-end;z-index:3}
+.fs-top .btn{box-shadow:0 2px 12px rgba(0,0,0,.55)}
+.fs-cap{position:absolute;left:50%;transform:translateX(-50%);bottom:14px;width:min(1200px,94%);background:rgba(14,21,38,.9);color:#fff;border-radius:14px;padding:12px 20px;font-size:clamp(1.1rem,2vw,1.8rem);line-height:1.35;z-index:3;display:none;cursor:pointer}
+.fs-cap .en{font-size:.68em;opacity:.8;margin-top:4px}
+.fs-cap .nn{display:inline-block;min-width:1.6em;margin-right:8px;text-align:center;border-radius:50%;background:var(--gold);color:#14203a;font-weight:700}
 .spdemo{width:100%;background:var(--surface2);border-radius:14px;padding:14px 18px}
 </style>
 
@@ -13651,7 +13660,50 @@ function spTick(){const left=Math.max(0,SP.end-Date.now());const bar=document.ge
   if(left<=0){clearInterval(SP.iv);SP.iv=null;SP.over=true;try{spdBeep(660,.4)}catch(e){}if(SP.mem)SP.hide=true;render()}}
 function spReveal(){if(SP.iv){clearInterval(SP.iv);SP.iv=null}SP.ph='reveal';SP.hide=false;SP.act=null;render()}
 function spBack(){const n=SP.n;spReset(n);render()}
-function spAct(i){SP.act=SP.act===i?null:i;render()}
+function spAct(i){SP.act=SP.act===i?null:i;render();if(SP.act!==null){const I=ILLUS[SP.n];if(I&&I.spots[SP.act])fsSay(I.spots[SP.act].fr)}}
+let FS={n:null,num:false,act:null,demo:false,en:false,api:false,tok:0};
+function fsSay(t,cb){FS.tok++;const my=FS.tok;
+  try{if(typeof SV!=='undefined'){SV.tok++;SV.playing=false}speechSynthesis.cancel();const u=new SpeechSynthesisUtterance(ttsText(t));u.lang='fr-FR';
+    if(VOICE)u.voice=VOICE;u.rate=parseFloat($('rate').value)||0.9;
+    if(cb){u.onend=u.onerror=()=>{if(FS.tok===my)cb()}}
+    speechSynthesis.speak(u)}catch(e){if(cb)cb()}}
+function fsOpen(n){
+  const I=ILLUS[n];if(!I)return;
+  FS={n:n,num:SP.n===n&&SP.ph==='reveal',act:null,demo:false,en:false,api:false,tok:FS.tok};
+  let o=document.getElementById('fsov');if(!o){o=document.createElement('div');o.id='fsov';document.body.appendChild(o)}
+  o.innerHTML=`<div class="fs-top"><button class="btn" id="fs-n" onclick="fsNum()"></button><button class="btn pri" id="fs-d" onclick="fsDemo()"></button><button class="btn" onclick="fsClose()">✕ Fermer · Close (Esc)</button></div>
+    <div class="fs-stage" style="--ar:${(I.w/I.h).toFixed(4)}"><img src="${I.src}" alt="${esc(I.alt_en)}"><div id="fs-m"></div></div>
+    <div class="fs-cap" id="fs-c" onclick="FS.en=!FS.en;fsUpd()" title="Click to show or hide the English"></div>`;
+  o.style.display='flex';fsUpd();
+  try{const r=o.requestFullscreen||o.webkitRequestFullscreen;if(r){const p=r.call(o);if(p&&p.then)p.then(()=>{FS.api=true}).catch(()=>{});else FS.api=true}}catch(e){}
+}
+function fsUpd(){
+  const I=ILLUS[FS.n];if(!I)return;
+  const m=document.getElementById('fs-m');
+  m.innerHTML=FS.num?I.spots.map((s,i)=>`<button class="mk${FS.act===i?' act':''}" style="left:${s.x}%;top:${s.y}%" onclick="fsMk(${i})" aria-label="Detail ${i+1}">${i+1}</button>`).join(''):'';
+  document.getElementById('fs-n').textContent=FS.num?'Cacher les numéros · Hide numbers':'Afficher les numéros · Show numbers';
+  document.getElementById('fs-d').textContent=FS.demo?'⏹ Arrêter · Stop':'🎤 Écouter la démo · Hear the 30-second model';
+  const c=document.getElementById('fs-c');
+  if(FS.act!==null&&FS.num){const s=I.spots[FS.act];c.innerHTML=`<span class="nn">${FS.act+1}</span>${esc(s.fr)}${FS.en?`<div class="en">${esc(s.en)}</div>`:''}`;c.style.display='block'}
+  else if(FS.demo){c.innerHTML='🎤 Démo de 30 secondes · 30-second model';c.style.display='block'}
+  else c.style.display='none';
+}
+function fsNum(){FS.num=!FS.num;if(!FS.num)FS.act=null;fsUpd()}
+function fsMk(i){FS.demo=false;FS.act=i;fsUpd();fsSay(ILLUS[FS.n].spots[i].fr)}
+function fsDemo(){
+  if(FS.demo){FS.demo=false;FS.tok++;try{speechSynthesis.cancel()}catch(e){};fsUpd();return}
+  FS.demo=true;FS.act=null;fsUpd();
+  fsSay(ILLUS[FS.n].demo.fr,()=>{FS.demo=false;fsUpd()});
+}
+function fsClose(){
+  FS.tok++;try{speechSynthesis.cancel()}catch(e){}
+  const o=document.getElementById('fsov');if(o)o.style.display='none';
+  FS.n=null;
+  try{if(document.fullscreenElement&&document.exitFullscreen)document.exitFullscreen();else if(document.webkitFullscreenElement&&document.webkitExitFullscreen)document.webkitExitFullscreen()}catch(e){}
+}
+document.addEventListener('fullscreenchange',()=>{if(!document.fullscreenElement&&FS.n!==null&&FS.api)fsClose()});
+document.addEventListener('webkitfullscreenchange',()=>{if(!document.webkitFullscreenElement&&FS.n!==null&&FS.api)fsClose()});
+document.addEventListener('keydown',e=>{if(e.key==='Escape'&&FS.n!==null)fsClose()});
 function spSet(k,v){SP[k]=v;if(k==='mem'&&SP.ph==='study'&&SP.over)SP.hide=v;render()}
 function heroHook(k){
   const I=ILLUS[k.n];if(SP.n!==k.n)spReset(k.n);
@@ -13661,19 +13713,20 @@ function heroHook(k){
   return `<div class="hero${SP.clear?' clear':''}"><img class="hero-img" src="${I.src}" alt="${esc(I.alt_en)}">
     <div class="hero-wash"></div><div class="hero-panel big">${panel}</div>
     <span class="ill-chip">Illustration, not a photograph</span>
-    <div class="hero-btns"><button class="btn pri" onclick="spStart()">🔍 Observez · Spot the details</button>${I.demo?`<button class="btn" onclick="SP.demo=!SP.demo;render()">${dm?'Retour à la question · Back to the question':'🎤 Démo de 30 s · 30-second model'}</button>`:''}<button class="btn" onclick="SP.clear=!SP.clear;render()">${SP.clear?'Retour au texte · Back to the text':'Voir l’image · See the image'}</button></div></div>`;
+    <div class="hero-btns"><button class="btn pri" onclick="spStart()">🔍 Observez · Spot the details</button>${I.demo?`<button class="btn" onclick="SP.demo=!SP.demo;render()">${dm?'Retour à la question · Back to the question':'🎤 Démo de 30 s · 30-second model'}</button>`:''}<button class="btn" onclick="SP.clear=!SP.clear;render()">${SP.clear?'Retour au texte · Back to the text':'Voir l’image · See the image'}</button><button class="btn" onclick="fsOpen(${k.n})">⛶ Plein écran · Full screen</button></div></div>`;
 }
 function spotView(k,I){
   const n=I.spots.length,rv=SP.ph==='reveal',st=SP.ph==='study',hid=SP.hide&&!rv;
   const marks=rv?I.spots.map((s,i)=>`<button class="mk${SP.act===i?' act':''}" style="left:${s.x}%;top:${s.y}%" onclick="spAct(${i})" aria-label="Detail ${i+1}">${i+1}</button>`).join(''):'';
   const intro=FL({fr:`Observez bien l’image. Combien de détails importants pouvez-vous repérer ? (${n} à trouver)`,en:`Look closely at the image. How many important details can you spot? (${n} to find)`});
   const left=Math.max(0,SP.end-Date.now()),pct=st?Math.round(100*left/(SP.dur*1000)):100;
-  const ctl=rv?`<button class="btn" onclick="spBack()">Retour · Back</button><button class="btn pri" onclick="spStart()">Recommencer · Again</button>`
+  const fsb=`<button class="btn" onclick="fsOpen(${k.n})">⛶ Plein écran · Full screen</button>`;
+  const ctl=rv?`<button class="btn" onclick="spBack()">Retour · Back</button><button class="btn pri" onclick="spStart()">Recommencer · Again</button>${fsb}`
     :`${st?`<span class="sp-t" id="spt">${spdFmt(left/1000)}</span>`:''}
       <label class="mw">Temps · Time <select onchange="spSet('dur',+this.value)">${[30,45,60,90].map(v=>`<option value="${v}"${v===SP.dur?' selected':''}>${v} s</option>`).join('')}</select></label>
       <label class="mw"><input type="checkbox" ${SP.mem?'checked':''} onchange="spSet('mem',this.checked)"> Mode mémoire · Memory mode (image hides when time is up)</label>
       ${st?'':`<button class="btn pri" onclick="spStart()">Démarrer · Start</button>`}
-      <button class="btn${st?' pri':''}" onclick="spReveal()">Révéler · Reveal</button><button class="btn" onclick="spBack()">Retour · Back</button>`;
+      <button class="btn${st?' pri':''}" onclick="spReveal()">Révéler · Reveal</button><button class="btn" onclick="spBack()">Retour · Back</button>${fsb}`;
   const list=rv?`<div class="splist">${I.spots.map((s,i)=>`<div class="spi${SP.act===i?' act':''}"><button class="spn" onclick="spAct(${i})" aria-label="Show detail ${i+1}">${i+1}</button>${LN({fr:s.fr,en:s.en})}</div>`).join('')}</div>`:'';
   const dem=rv&&I.demo?`<div class="spdemo"><div class="label" style="margin-bottom:6px">Démo de 30 secondes · 30-second model</div><div class="big">${LN(I.demo)}</div></div>`:'';
   return `<div class="spwrap"><div class="sp-intro big">${intro}</div>
@@ -14002,7 +14055,7 @@ function showKTRStudio(){
   var src=document.getElementById('ktr-studio-src').textContent.replace(/<\\\/script/g,'<'+'/script');
   var app=document.getElementById('app');
   app.innerHTML='<div style="max-width:1200px;margin:0 auto;padding:8px 10px"><button class="aph-btn aph-btn-sm" onclick="goHome()">&larr; Back to Topics</button></div>'
-    +'<iframe id="ktr-studio-frame" title="KTR Studio" style="display:block;width:100%;border:0;height:calc(100vh - 130px);min-height:520px;background:#fff"></iframe>';
+    +'<iframe id="ktr-studio-frame" title="KTR Studio" allow="fullscreen" allowfullscreen style="display:block;width:100%;border:0;height:calc(100vh - 130px);min-height:520px;background:#fff"></iframe>';
   document.getElementById('ktr-studio-frame').srcdoc=src;
   window.scrollTo(0,0);
 }
