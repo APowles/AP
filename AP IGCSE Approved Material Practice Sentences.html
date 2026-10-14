@@ -3,7 +3,7 @@
 <script id="ap-update">
 /* AP auto-update: if this copy is older than the published version, reload once with the new one (saved answers are kept) */
 (function () {
-  var B = 'd6f4481e5d'; window.AP_BUILD = B;
+  var B = '65826bacae'; window.AP_BUILD = B;
   function check() {
     if (!/^https?:$/.test(location.protocol) || !window.fetch) return;
     var f = decodeURIComponent(location.pathname.split('/').pop() || '');
@@ -326,6 +326,18 @@ body.aph-at-home .aph-header .aph-home{display:none}   /* no Home on the home sc
 }
 @media (max-width:420px){.aph-tools{grid-template-columns:1fr}}
 /* ===== END AP HOUSE STYLE ===== */
+/* ── home: mode cards (same layout as the A Level Topics home) ── */
+.ot-home{max-width:1140px;margin:0 auto;padding:28px 16px 48px}
+.ot-home-h{text-align:center;margin-bottom:22px}
+.ot-home-h .aph-h{margin:0 0 6px;font-size:1.75rem}
+.ot-home-h .aph-label{margin:0}
+.ot-modes{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:18px;max-width:860px;margin:0 auto}
+.ot-mode{display:flex;flex-direction:column;align-items:center;text-align:center;padding:26px 22px 22px;cursor:pointer}
+.ot-mode-icon{font-size:2rem;line-height:1;margin-bottom:12px}
+.ot-mode-title{font:700 1.2rem/1.25 var(--aph-body);color:var(--navy);margin:0 0 8px}
+.ot-mode-desc{font-size:.9375rem;line-height:1.55;color:var(--text2);flex:1;margin:0 0 12px}
+.ot-mode-tags{font-size:.75rem;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--nearly,#b8860b);margin:0 0 16px}
+@media (max-width:900px){.ot-modes{grid-template-columns:minmax(0,1fr);max-width:560px}}
 </style>
 <style>
 /* ── Approved Material · app-specific styles (the shared look is the AP HOUSE STYLE block above) ── */
@@ -4569,7 +4581,25 @@ function populateSubsectionSelect() {
 }
 
 
+var amHub = true;   // true = show the 'What would you like to practise?' mode cards
+function amToHub() {
+  amHub = true; clearAMTestOutput(); if (typeof rlStop === 'function') rlStop(); window.scrollTo(0, 0); renderIntro();
+}
+function amOpenMode(k) { amHub = false; amSwitchSet(k); window.scrollTo(0, 0); }
+function amHubHtml() {
+  var nQ = amData.length, nT = allData.length;
+  function card(ic, t, d, tags, btn, oc) {
+    return '<div class="aph-card ot-mode" onclick="if(event.target.tagName!==\'BUTTON\')' + oc + '"><div class="ot-mode-icon">' + ic + '</div><h3 class="ot-mode-title">' + t + '</h3><p class="ot-mode-desc">' + d + '</p><div class="ot-mode-tags">' + tags + '</div><button class="aph-btn aph-btn-primary aph-btn-block" onclick="' + oc + '">&#9654; ' + btn + '</button></div>';
+  }
+  return '<div class="ot-home"><div class="ot-home-h"><h2 class="aph-h">What would you like to practise?</h2><div class="aph-label">Choose a practice mode</div></div><div class="ot-modes">'
+    + card('📖', 'Approved Material', 'Study the approved phrases first: read and listen, then drill them in French, Italian or Spanish', nQ + ' questions &middot; Read &amp; listen &middot; Drill', 'Open Approved Material', "amOpenMode('am')")
+    + card('🎓', 'Approved Material Studio', 'Master it: pictures with numbered spots, picture machine, gaps, spot the error, word order, translation', 'Pictures &middot; Gaps &middot; Errors &middot; Word order', 'Open the Studio', 'showAMStudioPick()')
+    + card('✍️', 'Practice Sentences', 'Then test yourself: practice sentences for every topic, with drills and tests', nT + ' topics &middot; Drill &middot; Test', 'Start Practice Sentences', "amOpenMode('ps')")
+    + card('⚡', 'AP Speed Challenge', 'Race against the clock, solo or in teams', 'Solo &middot; Teams', 'Play', 'amSpeedFromMain()')
+    + '</div></div>';
+}
 function renderIntro() {
+  if (amHub) { amUpdateHeader(); document.getElementById('drillContainer').innerHTML = amHubHtml(); return; }
   if (timerInterval) clearInterval(timerInterval);
   populateSectionSelect();
 
@@ -4627,7 +4657,7 @@ function renderIntro() {
   const container = document.getElementById('drillContainer');
   container.innerHTML = `
     <div class="aph-wrap am-home">
-    ${amSwitchHtml()}
+    <div style="padding:0 0 8px"><button class="aph-btn aph-btn-sm" onclick="amToHub()">&larr; Back</button></div>
     <div class="aph-card intro-card${isAM ? ' am-set-am' : ' am-set-ps'}">
       <h2 class="aph-h">Ready to practise?</h2>
       ${amLinkNoteHtml()}
@@ -6304,6 +6334,7 @@ function amFixLangs() {
   if (L.indexOf(toLang) < 0 || toLang === fromLang) toLang = fromLang === 'en' ? (L.indexOf('fr') >= 0 ? 'fr' : L[1]) : 'en';
 }
 function amSwitchSet(k, sel) {
+  amHub = false;
   if (k !== amSet) {
     _amSetState[amSet] = { fromLang: fromLang, toLang: toLang, currentSection: currentSection, currentSubsection: currentSubsection, amMultiTopics: amMultiTopics.slice(), timerSeconds: timerSeconds };
     amSet = k;
