@@ -3,7 +3,7 @@
 <script id="ap-update">
 /* AP auto-update: if this copy is older than the published version, reload once with the new one (saved answers are kept) */
 (function () {
-  var B = 'f7b0177685'; window.AP_BUILD = B;
+  var B = '266861eee5'; window.AP_BUILD = B;
   function check() {
     if (!/^https?:$/.test(location.protocol) || !window.fetch) return;
     var f = decodeURIComponent(location.pathname.split('/').pop() || '');
@@ -401,6 +401,17 @@ body{min-height:100vh}
 .am-sw.on b{color:var(--gold2)}.am-sw.on small{color:#c8d3ea}
 .am-sw.on .am-sw-n{background:var(--gold);border-color:var(--gold);color:var(--navy)}
 @media (max-width:520px){.am-switch{grid-template-columns:1fr;gap:8px}.am-sw{min-height:0;padding:11px 12px}}
+
+/* Approved Material home: use a wide screen (choices on the left, session settings on the right); phones and narrow windows keep the single column */
+@media (min-width:900px){
+  .aph-wrap.am-home{max-width:1060px;padding-top:24px}
+  .am-home .am-cols{display:grid;grid-template-columns:minmax(0,1.2fr) minmax(0,.8fr);gap:0 48px;align-items:start}
+  .am-home .am-col>.aph-label:first-child{margin-top:4px}
+  .am-home .intro-card{padding:28px 34px 24px}
+  .am-home .aph-stack{display:grid;grid-template-columns:1fr 1fr;gap:10px 14px}
+  .am-home .aph-stack>*{margin:0}
+  .am-home .aph-stack>.am-study-row,.am-home .aph-stack>.aph-tools,.am-home .aph-stack>.aph-btn-block{grid-column:1/-1}
+}
 .am-soon{margin-top:6px}
 .am-linked{background:var(--nearly-bg);border:1px solid var(--gold);border-radius:10px;padding:10px 12px;font-size:.9375rem;line-height:1.45;color:var(--text);margin:-4px 0 6px}
 .am-linked b{color:var(--navy)}
@@ -4599,12 +4610,13 @@ function renderIntro() {
   const isAM = amSet === 'am';
   const container = document.getElementById('drillContainer');
   container.innerHTML = `
-    <div class="aph-wrap">
+    <div class="aph-wrap am-home">
     ${amSwitchHtml()}
     <div class="aph-card intro-card${isAM ? ' am-set-am' : ' am-set-ps'}">
       <h2 class="aph-h">Ready to practise?</h2>
       ${amLinkNoteHtml()}
 
+      <div class="am-cols"><div class="am-col">
       <div class="aph-label" style="margin-top:4px">Direction</div>
       <div class="aph-row">
         <select class="aph-select" id="intro-from" onchange="onDirChange()">${fromOpts}</select>
@@ -4626,6 +4638,7 @@ function renderIntro() {
         <span class="aph-note intro-phrase-count">${pool.length} phrases</span>
       </div>
 
+      </div><div class="am-col">
       <div class="aph-label">Cards per session</div>
       <div class="aph-row">
         ${counts.map((n,i) => `<button class="aph-chip${_selectedCount===n?' on':''}" onclick="setSelectedCount(${n})">${countLabels[i]}</button>`).join('')}
@@ -4637,6 +4650,8 @@ function renderIntro() {
         <span class="aph-step-val" id="timer-display">${timerSeconds}s</span>
         <button class="aph-step" onclick="adjustTimer(1)">+</button>
       </div>
+
+      </div></div>
 
       <div class="aph-stack" style="margin-top:22px">
         ${isAM ? `<div class="am-study-row">
