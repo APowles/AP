@@ -1988,8 +1988,14 @@ var APTT = (function () {
     'IGCSE Italian ▸ AP Structures', 'IGCSE Italian ▸ Verbs', 'IGCSE Italian ▸ Approved Material', 'IGCSE Italian ▸ Essential Phrases', 'IGCSE Italian ▸ Listening'];
   function catOf(m) {   // m: { id, lang, meta, title, app }
     var k = String(m.id || '').split('|')[0], L = { F: 'French', S: 'Spanish', I: 'Italian' }[langOf(m)];
-    var lvl = /F Block/.test(plain(m.app)) ? 'F Block' : (ALEVEL[k] || (!TYPES[k] && /A Level/.test(plain(m.app))) ? 'A Level' : 'IGCSE');
+    var lvl = /F Block/.test(plain(m.app)) || L === 'Spanish' ? 'F Block' : (ALEVEL[k] || (!TYPES[k] && /A Level/.test(plain(m.app))) ? 'A Level' : 'IGCSE');
     return lvl + ' ' + L + ' ▸ ' + (TYPES[k] || 'Other');
+  }
+  // AP's rule (Oct 2026): a Spanish test is most likely for F Block Spanish, even when made from an IGCSE page. Every time a Spanish link is made AP is asked to confirm the folder.
+  function askSpanish(cat) {
+    var c = String(cat || ''); if (!/^(IGCSE|F Block) Spanish ▸ /.test(c)) return c;
+    var tp = c.split(' ▸ ').slice(1).join(' ▸ '), F = 'F Block Spanish ▸ ' + tp, G = 'IGCSE Spanish ▸ ' + tp, cur = /^F Block/.test(c) ? F : G, alt = cur === F ? G : F;
+    return window.confirm('This is a Spanish test.\n\nIt will be filed under:  ' + cur + '\n\nOK = yes, file it there.\nCancel = no, file it under  ' + alt + '  instead.') ? cur : alt;
   }
   // the next free code: one more than the highest number for this language in tests.txt and in this device's list (STF101, STS101, STI101…)
   function nextCode(cb) { nextCodeFor('ST' + langLetter(), cb); }
@@ -2067,7 +2073,7 @@ var APTT = (function () {
     var out = $('aptt-mk-out'), say = function (h) { out.innerHTML = '<div class="aptt-mkwarn">' + h + '</div>'; };
     var c0 = $('aptt-mk-c').value.replace(/\s+/g, '').toUpperCase(), m = /^([A-Z]*)(\d+)$/.exec(c0);
     if (!m) { say('Give the first code as letters and a number (e.g. STF107): the three practice tests get that code and the next two; the actual test gets its own code that cannot be guessed.'); return; }
-    var name = $('aptt-mk-n').value.trim(), s2 = +$('aptt-mk-s').value, cat = $('aptt-mk-cat').value, fol = $('aptt-mk-f').value.replace(/\|/g, '/').trim(), title = plain(S.m.title);
+    var name = $('aptt-mk-n').value.trim(), s2 = +$('aptt-mk-s').value, cat = askSpanish($('aptt-mk-cat').value), fol = $('aptt-mk-f').value.replace(/\|/g, '/').trim(), title = plain(S.m.title);
     var taken = {}; listGet().forEach(function (e) { if (e.c) taken[String(e.c).toUpperCase()] = 1; });
     var LBL2 = ['PRACTICE 1', 'PRACTICE 2', 'PRACTICE 3', 'ACTUAL TEST'], made = new Date().toISOString().slice(0, 10), PSID = 'ps' + Date.now().toString(36);   // the set tag: keeps the four together in the Test Library
     // the actual test gets a code that cannot be guessed from the practice codes (letters + 3 random characters starting with a letter, e.g. STFK7Q)
@@ -2148,7 +2154,7 @@ var APTT = (function () {
     $('aptt-mk-c').addEventListener('input', function () { this.dataset.typed = '1'; });
     $('aptt-mk-go').onclick = function () {
       if (((d.querySelector('input[name=aptt-mk-m]:checked') || {}).value || '1') === 'set') { makeSet(d, this); return; }
-      var b = this, q = (d.querySelector('input[name=aptt-mk-q]:checked') || {}).value || 'same', code = $('aptt-mk-c').value.replace(/\s+/g, '').toUpperCase(), name = $('aptt-mk-n').value.trim(), s2 = +$('aptt-mk-s').value, cat = $('aptt-mk-cat').value, fol = $('aptt-mk-f').value.replace(/\|/g, '/').trim();
+      var b = this, q = (d.querySelector('input[name=aptt-mk-q]:checked') || {}).value || 'same', code = $('aptt-mk-c').value.replace(/\s+/g, '').toUpperCase(), name = $('aptt-mk-n').value.trim(), s2 = +$('aptt-mk-s').value, cat = askSpanish($('aptt-mk-cat').value), fol = $('aptt-mk-f').value.replace(/\|/g, '/').trim();
       b.disabled = true; b.textContent = 'Making…';
       var V = q === 'draw' ? draws(VERSIONS) : [S.items];
       var o = { v: 1, n: name, c: code, a: S.m.app, k: S.m.kicker, t: S.m.title, m: S.m.meta, d: S.m.detail, l: S.m.lang, lc: S.m.code, lv: S.m.level, s: s2, q: q, id: S.m.id, cat: cat, f: fol, made: new Date().toISOString().slice(0, 10),
@@ -2195,7 +2201,7 @@ var APTT = (function () {
   }
   // pen-up anywhere ends a stroke (the automatic lock waits for it)
   try { ['pointerup', 'pointercancel'].forEach(function (t) { document.addEventListener(t, function () { PEN = false; }, true); }); } catch (e) { }
-  return { open: open, setTime: setTime, all: toAll, auto: toAuto, close: close, mode: mode, lock: lock, show: showAns, mark: mark, next: next, verbDetail: verbDetail, pdf: pdf, teacher: teacher, maker: maker, openSet: openSet, cmSVG: cmSVG, cmBand: cmBand, cmPick: function (s20, seed) { if (!CM) cmLoad(); return cmPick(s20, seed); }, cmReload: function () { CM = null; cmLoad(); }, inProgress: inProgress, resume: resume, copyLink: copyLink, copyHTML: copyHTML, checkGit: checkGit, ghRemove: ghRemove, ghReplace: ghReplace, pack: pack, minsTxt: minsTxt, bigOf: function (answer, kind, srcId) { return kind === 'sentence' || (!{ conj: 1, it: 1, spot: 1 }[String(srcId || '').split('|')[0]] && nWords(answer) > 2); }, catOf: catOf, CATS: CATS, unpack: unpack, checkKey: checkKey, list: listGet, linkFor: linkFor, copy: copyText, ghAdd: ghAdd, holdAdd: holdAdd, holdLoad: holdLoad, libGet: libGet, libPut: libPut, listAdd: listAdd, folders: folders, gkey: gkey, nextCodeFor: nextCodeFor, lastRun: null, capturing: null, LABEL: LBL, state: function () { return S; } };
+  return { askSpanish: askSpanish, open: open, setTime: setTime, all: toAll, auto: toAuto, close: close, mode: mode, lock: lock, show: showAns, mark: mark, next: next, verbDetail: verbDetail, pdf: pdf, teacher: teacher, maker: maker, openSet: openSet, cmSVG: cmSVG, cmBand: cmBand, cmPick: function (s20, seed) { if (!CM) cmLoad(); return cmPick(s20, seed); }, cmReload: function () { CM = null; cmLoad(); }, inProgress: inProgress, resume: resume, copyLink: copyLink, copyHTML: copyHTML, checkGit: checkGit, ghRemove: ghRemove, ghReplace: ghReplace, pack: pack, minsTxt: minsTxt, bigOf: function (answer, kind, srcId) { return kind === 'sentence' || (!{ conj: 1, it: 1, spot: 1 }[String(srcId || '').split('|')[0]] && nWords(answer) > 2); }, catOf: catOf, CATS: CATS, unpack: unpack, checkKey: checkKey, list: listGet, linkFor: linkFor, copy: copyText, ghAdd: ghAdd, holdAdd: holdAdd, holdLoad: holdLoad, libGet: libGet, libPut: libPut, listAdd: listAdd, folders: folders, gkey: gkey, nextCodeFor: nextCodeFor, lastRun: null, capturing: null, LABEL: LBL, state: function () { return S; } };
 })();
 /* ===== END AP TIMED TEST ===== */
 </script>
@@ -2919,6 +2925,7 @@ function aplDraw() {
   // courses and topics (from what exists), in the apps' order
   var order = APTT.CATS || [], tree = {}, courses = [];
   live.forEach(function (x) { if (x.ty === 'demo') return; if (!tree[x.co]) { tree[x.co] = {}; courses.push(x.co); } tree[x.co][x.tp] = (tree[x.co][x.tp] || 0) + 1; });
+  ['IGCSE Spanish'].forEach(function (c) { if (!tree[c]) { tree[c] = {}; courses.push(c); } });   // folders that always show, even while empty
   var rank = function (c, t) { var i = order.indexOf(c + ' ▸ ' + t); if (i >= 0) return i; var j = -1; order.forEach(function (k, n) { if (j < 0 && k.indexOf(c + ' ▸ ') === 0) j = n; }); return (j < 0 ? 900 : j) + 0.5; };
   courses.sort(function (a, b) { return rank(a, '') - rank(b, '') || (a < b ? -1 : 1); });
   if (!APL.course || !tree[APL.course]) { var nw = live.filter(function (x) { return x.ty !== 'demo'; }).sort(function (a, b) { return b.made.localeCompare(a.made) || b.ord - a.ord; })[0]; APL.course = nw ? nw.co : courses[0] || ''; APL.topic = nw ? nw.tp : ''; }
@@ -2956,7 +2963,7 @@ function aplDraw() {
     title = shown.length + ' result' + (shown.length === 1 ? '' : 's') + ' for “' + aptEsc(APL.q.trim()) + '”'; crumb = APL.arch ? 'Searching everything, the Archive included' : 'Searching every course';
   } else if (APL.arch) { shown = pool; title = 'Archive'; crumb = 'Codes still work · use the ⋯ menu to bring a test back'; }
   else if (APL.cls) { shown = pool.filter(function (x) { return x.f === APL.cls; }); title = aptEsc(APL.cls); crumb = 'Class'; }
-  else { shown = pool.filter(function (x) { return x.co === APL.course && x.tp === APL.topic; }); title = aptEsc(APL.topic); crumb = aptEsc(APL.course) + ' ›'; }
+  else { shown = pool.filter(function (x) { return x.co === APL.course && x.tp === APL.topic; }); title = aptEsc(APL.topic || APL.course); crumb = APL.topic ? aptEsc(APL.course) + ' ›' : 'Course'; }
   var tcount = {}; shown.forEach(function (x) { tcount[x.ty] = (tcount[x.ty] || 0) + 1; });
   if (APL.type !== 'all' && !tcount[APL.type]) APL.type = 'all';
   var vis = APL.type === 'all' ? shown : shown.filter(function (x) { return x.ty === APL.type; });
