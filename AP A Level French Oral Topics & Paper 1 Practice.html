@@ -13959,6 +13959,14 @@ function vHome(){
   </details>`;
 }
 function hmAfter(){
+  try{const key=[S.view,S.sub,S.k,HM.pick,HM.theme].join('|');
+    if(!window.__nav){window.__nav={hist:[],cur:null,busy:false}}
+    const N=window.__nav;
+    if(!N.busy&&N.cur&&N.cur.key!==key){N.hist.push(N.cur);if(N.hist.length>60)N.hist.shift()}
+    N.busy=false;N.cur={key,v:S.view,sub:S.sub,k:S.k,pick:HM.pick,theme:HM.theme};
+    const ctl=document.querySelector('.bar');
+    if(ctl&&!ctl.querySelector('.hm-bk')){const b=document.createElement('button');b.type='button';b.className='tg hm-bk';b.textContent='← Back';b.title='Back one step';b.onclick=()=>window.ktrBack();ctl.insertBefore(b,ctl.firstChild)}
+  }catch(e){}
   document.body.classList.toggle('hm',S.view==='home');document.body.classList.toggle('hm-sub',S.view==='sub');
   try{const ctl=document.querySelector('.bar .ctl');
     if(ctl&&!ctl.querySelector('.hm-opt')){const b=document.createElement('button');b.type='button';b.className='tg hm-opt';b.textContent='⋯ Options';b.title='Show or hide more controls';
@@ -14056,6 +14064,12 @@ function vSub(){
     return `<button class="hm-card hm-kc" data-img="${(typeof ILLUS!=='undefined'&&ILLUS[k.n])?k.n:''}" onclick="go('ktr',${s.subtheme},${x})"><span class="hm-cno">KTR ${x+1}${ok?' · ✓':''}</span><span class="hm-cnm">${esc(k.term)}</span></button>`}).join('');
   return h.slice(0,i)+`<div class="hm-themes hm-subs hm-ks">${cards}</div><details class="hm-more"><summary>Plus d'options · histoire, vidéos, sessions</summary>${h.slice(i,j)}</details>`;
 }
+
+window.ktrBack=function(){const N=window.__nav;if(!N||!N.hist.length)return false;
+  const p=N.hist.pop();N.busy=true;HM.pick=p.pick;HM.theme=p.theme;
+  if(p.v==='home'){svStop();spClear();S.view='home';HM.pick=p.pick;HM.theme=p.theme;render()}
+  else if(p.v==='ktr'&&p.k!=null){go('ktr',p.sub,p.k)}else{go(p.v,p.sub)}
+  window.scrollTo(0,0);return true};
 
 function steps(k){
   const a=[{lab:'Pour commencer',en:'To start',html:()=>(typeof ILLUS!=='undefined'&&ILLUS[k.n])?heroHook(k):`<div class="big">${LN({...k.hook,src:'NEW'})}</div>`},
@@ -14373,11 +14387,12 @@ syncTeach()
 <\/script>
 </script>
 <script>
+function ktrBackBtn(){var ok=false;try{ok=document.getElementById("ktr-studio-frame").contentWindow.ktrBack()}catch(e){}if(!ok)goHome()}
 function showKTRStudio(){
   try{var AC=window.AudioContext||window.webkitAudioContext;if(AC){window.__ktrAC=window.__ktrAC||new AC();if(window.__ktrAC.state==="suspended")window.__ktrAC.resume()}}catch(e){}
   var src=document.getElementById('ktr-studio-src').textContent.replace(/<\\\/script/g,'<'+'/script');
   var app=document.getElementById('app');
-  app.innerHTML='<div style="max-width:1200px;margin:0 auto;padding:8px 10px"><button class="aph-btn aph-btn-sm" onclick="goHome()">&larr; Back to Topics</button></div>'
+  app.innerHTML='<div style="max-width:1200px;margin:0 auto;padding:8px 10px"><button class="aph-btn aph-btn-sm" onclick="ktrBackBtn()">&larr; Back</button></div>'
     +'<iframe id="ktr-studio-frame" title="KTR Studio" allow="fullscreen; autoplay" allowfullscreen style="display:block;width:100%;border:0;height:calc(100vh - 130px);min-height:520px;background:#fff"></iframe>';
   document.getElementById('ktr-studio-frame').srcdoc=src;
   window.scrollTo(0,0);
