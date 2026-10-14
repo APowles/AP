@@ -13968,7 +13968,7 @@ function hmAfter(){
 const SPL={ctx:null,master:null,timers:[],el:null,live:false};
 function hmCtx(){
   try{const C=window.AudioContext||window.webkitAudioContext;if(!C)return null;
-    if(!SPL.ctx){let pc=null;try{pc=window.parent!==window&&window.parent.__ktrAC}catch(e){}SPL.ctx=pc||new C();SPL.master=SPL.ctx.createGain();SPL.master.gain.value=.55;SPL.master.connect(SPL.ctx.destination)}
+    if(!SPL.ctx){let pc=null;try{pc=window.parent!==window&&window.parent.__ktrAC}catch(e){}SPL.ctx=pc||new C();SPL.master=SPL.ctx.createGain();SPL.master.gain.value=.7;const cp=SPL.ctx.createDynamicsCompressor();cp.threshold.value=-14;cp.ratio.value=6;SPL.master.connect(cp);cp.connect(SPL.ctx.destination)}
     if(SPL.ctx.state==='suspended')SPL.ctx.resume();return SPL.ctx}catch(e){return null}
 }
 function hmTone(c,t,f,d,type,g){
@@ -13984,13 +13984,26 @@ function hmWhoosh(c,t,d){
   const a=c.createGain();a.gain.setValueAtTime(.0001,t);a.gain.exponentialRampToValueAtTime(.35,t+d*.7);a.gain.exponentialRampToValueAtTime(.0001,t+d);
   s.connect(f);f.connect(a);a.connect(SPL.master);s.start(t);s.stop(t+d);
 }
+function hmBoom(c,t){
+  const o=c.createOscillator(),a=c.createGain();o.type='sine';o.frequency.setValueAtTime(150,t);o.frequency.exponentialRampToValueAtTime(42,t+.45);
+  a.gain.setValueAtTime(.0001,t);a.gain.exponentialRampToValueAtTime(.9,t+.02);a.gain.exponentialRampToValueAtTime(.0001,t+.6);
+  o.connect(a);a.connect(SPL.master);o.start(t);o.stop(t+.65);
+}
+function hmCrash(c,t,d){
+  const len=Math.floor(c.sampleRate*d),buf=c.createBuffer(1,len,c.sampleRate),ch=buf.getChannelData(0);
+  for(let i=0;i<len;i++)ch[i]=Math.random()*2-1;
+  const s=c.createBufferSource();s.buffer=buf;const f=c.createBiquadFilter();f.type='highpass';f.frequency.value=3500;
+  const a=c.createGain();a.gain.setValueAtTime(.0001,t);a.gain.exponentialRampToValueAtTime(.4,t+.02);a.gain.exponentialRampToValueAtTime(.0001,t+d);
+  s.connect(f);f.connect(a);a.connect(SPL.master);s.start(t);s.stop(t+d);
+}
 function hmSound(c,n){
   const t=c.currentTime+.03,step=.28,notes=[0,2,4,7,9,12,14,16];
-  hmWhoosh(c,t,.75);
-  for(let i=0;i<n;i++){const f=392*Math.pow(2,notes[i%notes.length]/12),tt=t+.2+i*step;hmTone(c,tt,f,.22,'triangle',.13);hmTone(c,tt+.01,f*2,.14,'sine',.05)}
+  hmBoom(c,t);hmWhoosh(c,t,.75);
+  for(let i=0;i<n;i++){const f=392*Math.pow(2,notes[i%notes.length]/12),tt=t+.2+i*step;hmTone(c,tt,f,.24,'triangle',.3);hmTone(c,tt+.01,f*2,.16,'sine',.12);if(i%2===0)hmTone(c,tt,f/2,.2,'sine',.14)}
   const T=t+.2+n*step;
-  [262,330,392,523].forEach((f,i)=>hmTone(c,T+i*.015,f,1.1,'triangle',.11));
-  hmTone(c,T,131,1.2,'sine',.16);hmTone(c,T+.06,1047,.8,'sine',.05);
+  hmBoom(c,T);hmCrash(c,T,1.3);
+  [262,330,392,523].forEach((f,i)=>hmTone(c,T+i*.015,f,1.3,'triangle',.24));
+  hmTone(c,T,131,1.3,'sine',.3);hmTone(c,T+.06,1047,.9,'sine',.1);
 }
 function hmEnd(){
   if(!SPL.live)return;SPL.live=false;SPL.dur=Math.round(performance.now()-SPL.t0);
@@ -14004,7 +14017,7 @@ function hmSplash(force){
   if(SPL.live)return;
   const keys=hmKeys();if(!keys.length)return;
   if(!force&&(S.view!=='home'||(window.matchMedia&&matchMedia('(prefers-reduced-motion: reduce)').matches)))return;
-  if(force){HM.pick=0;render();window.scrollTo(0,0);SPL.master&&(SPL.master.gain.value=.55)}
+  if(force){HM.pick=0;render();window.scrollTo(0,0);SPL.master&&(SPL.master.gain.value=.7)}
   const N=8,pick=shuffle(keys).slice(0,N);
   const el=document.createElement('div');el.id='hmsp';
   el.innerHTML='<div class="hm-st" id="hm-st"><div class="hm-fr" id="hm-fr"></div><div id="hm-mks"></div></div><div class="hm-vig"></div><div class="hm-sp-t" id="hm-spt"><b>KTR Studio</b><span>Regardez. Repérez. Parlez.</span></div><button class="hm-skip" type="button">Passer ›</button>';
