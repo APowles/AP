@@ -3,7 +3,7 @@
 <script id="ap-update">
 /* AP auto-update: if this copy is older than the published version, reload once with the new one (saved answers are kept) */
 (function () {
-  var B = 'e69dde8ff4'; window.AP_BUILD = B;
+  var B = 'd50d555b2d'; window.AP_BUILD = B;
   function check() {
     if (!/^https?:$/.test(location.protocol) || !window.fetch) return;
     var f = decodeURIComponent(location.pathname.split('/').pop() || '');
@@ -431,6 +431,9 @@ body{min-height:100vh}
 .rl-tl{font:500 clamp(1.08rem,.9rem + .5vw,1.4rem)/1.5 var(--aph-body);color:var(--text);overflow-wrap:break-word}
 .rl-en{display:none;font-size:clamp(.9375rem,.85rem + .3vw,1.125rem);line-height:1.45;color:var(--text2);font-style:italic;margin-top:3px}
 .rl-show-en .rl-en{display:block}
+.rl-en-only .rl-tl,.rl-en-only .rl-q{display:none}
+.rl-en-only .rl-en{display:block;font:500 clamp(1.08rem,.9rem + .5vw,1.4rem)/1.5 var(--aph-body);font-style:normal;color:var(--text);margin-top:0}
+.rl-en-only .rl-q-en{font-weight:700;color:var(--navy);font-size:clamp(1.1rem,.95rem + .5vw,1.35rem)}
 .rl-say{flex:none;width:40px;height:40px;border-radius:50%;border:1.5px solid var(--border);background:#fff;font-size:1.05rem;cursor:pointer;display:inline-flex;align-items:center;justify-content:center}
 .rl-say:hover{border-color:var(--navy)}
 .rl-test{border-color:var(--gold);color:var(--navy);font-weight:700}
@@ -6280,7 +6283,7 @@ function amTestYourself(ti) {
 // 🔊 per bullet, ▶ Play all (one bullet at a time, highlighted, with the Leisure Pace gap between bullets),
 // Pause / Resume, ⏮ ⏭, English on/off. Progression never depends on speech 'end' events alone.
 // ─────────────────────────────────────────────────────────────────
-var _rl = { topics: [], list: [], cur: -1, playing: false, paused: false, gen: 0, timers: [], showEn: false, lang: 'fr', listen: 'tl' };   // listen: 'tl' = hear the language being studied, 'en' = hear the English
+var _rl = { topics: [], list: [], cur: -1, playing: false, paused: false, gen: 0, timers: [], showEn: false, enOnly: false, prev: null, lang: 'fr', listen: 'tl' };   // listen: 'tl' = hear the language being studied, 'en' = hear the English
 function rlLang() { var L = amSetLangs(); var l = toLang !== 'en' ? toLang : (fromLang !== 'en' ? fromLang : 'fr'); return L.indexOf(l) >= 0 ? l : 'fr'; }
 // what is read aloud for sentence i: the language being studied, or its English (some answers are specific to French / Italian / Spanish, so the English is that language's own)
 function rlHear(i) { var it = _rl.list[i]; return (_rl.listen === 'en' && it.en) ? { text: it.en, lang: 'en' } : { text: it.text, lang: _rl.lang }; }
@@ -6348,9 +6351,10 @@ function renderReadListen() {
     + '<button type="button" class="aph-dbar-btn' + (_rl.listen === 'tl' ? ' on' : '') + '" id="rl-lis-tl" onclick="rlSetListen(\'tl\')" aria-pressed="' + (_rl.listen === 'tl') + '">' + flags[L] + ' ' + AM_LANG_NAMES[L] + '</button>'
     + '<button type="button" class="aph-dbar-btn' + (_rl.listen === 'en' ? ' on' : '') + '" id="rl-lis-en" onclick="rlSetListen(\'en\')" aria-pressed="' + (_rl.listen === 'en') + '">' + flags.en + ' English</button></span>'
     + '<button type="button" class="aph-dbar-btn' + (_rl.showEn ? ' on' : '') + '" id="rl-en-btn" onclick="rlToggleEn()" aria-pressed="' + _rl.showEn + '">' + flags.en + ' Show English</button>'
+    + '<button type="button" class="aph-dbar-btn' + (_rl.enOnly ? ' on' : '') + '" id="rl-eo-btn" onclick="rlEnOnly()" aria-pressed="' + _rl.enOnly + '" title="Show only the English and hear only the English">' + flags.en + ' English only</button>'
     + '</span></div>'
     + '<div class="aph-progress"><div id="rl-prog" style="width:0%"></div></div>'
-    + '<div class="rl-wrap' + (_rl.showEn ? ' rl-show-en' : '') + '" id="rl-wrap">'
+    + '<div class="rl-wrap' + (_rl.showEn ? ' rl-show-en' : '') + (_rl.enOnly ? ' rl-en-only' : '') + '" id="rl-wrap">'
     + '<div class="rl-head"><h2 class="aph-h">&#128214; Read &amp; listen</h2>'
     + '<p class="am-sub">' + amEsc(label) + ' &middot; ' + nT + ' question' + (nT === 1 ? '' : 's') + ' &middot; ' + nB + ' sentences &middot; ' + flags[L] + ' ' + AM_LANG_NAMES[L] + '</p>'
     + '<div class="lz-panel rl-panel"><div class="lz-pace"><span class="lz-pace-l">Pace · seconds</span>'
@@ -6413,13 +6417,35 @@ function rlSayQ(ti) { var t = _rl.topics[ti]; if (!t) return; if (_rl.playing) {
 // 🔊 Hear it in: 🇫🇷/🇮🇹/🇪🇸 (the language being studied) or 🇬🇧 English. Switching while Play all is running carries on from the same sentence in the new language.
 function rlSetListen(m) {
   m = m === 'en' ? 'en' : 'tl';
+  if (m === 'tl' && _rl.enOnly) rlEnOnlyOff(true);   // choosing to hear the studied language ends English only
   if (_rl.listen === m) return;
   _rl.listen = m;
   [['rl-lis-tl', 'tl'], ['rl-lis-en', 'en']].forEach(function (p) { var b = document.getElementById(p[0]); if (b) { b.classList.toggle('on', _rl.listen === p[1]); b.setAttribute('aria-pressed', _rl.listen === p[1]); } });
   try { window.speechSynthesis && window.speechSynthesis.cancel(); } catch (e) {}
   if (_rl.playing && !_rl.paused && _rl.cur >= 0) rlStep(_rl.cur);
 }
+// 🇬🇧 English only: show ONLY the English and hear ONLY the English; pressing it again puts back what was set before.
+function rlEnOnlyView() {
+  var w = document.getElementById('rl-wrap'); if (w) { w.classList.toggle('rl-en-only', _rl.enOnly); w.classList.toggle('rl-show-en', _rl.showEn); }
+  var b = document.getElementById('rl-eo-btn'); if (b) { b.classList.toggle('on', _rl.enOnly); b.setAttribute('aria-pressed', _rl.enOnly); }
+  var s = document.getElementById('rl-en-btn'); if (s) { s.classList.toggle('on', _rl.showEn); s.setAttribute('aria-pressed', _rl.showEn); }
+}
+function rlEnOnlyOff(keepListen) {
+  if (!_rl.enOnly) return;
+  _rl.enOnly = false; if (_rl.prev) _rl.showEn = _rl.prev.showEn;
+  var back = _rl.prev ? _rl.prev.listen : 'tl'; _rl.prev = null;
+  rlEnOnlyView();
+  if (!keepListen) rlSetListen(back);
+}
+function rlEnOnly() {
+  if (_rl.enOnly) { rlEnOnlyOff(false); return; }
+  _rl.prev = { listen: _rl.listen, showEn: _rl.showEn };
+  _rl.enOnly = true; _rl.showEn = true;
+  rlEnOnlyView();
+  rlSetListen('en');
+}
 function rlToggleEn() {
+  if (_rl.enOnly) rlEnOnlyOff(true);
   _rl.showEn = !_rl.showEn;
   var w = document.getElementById('rl-wrap'); if (w) w.classList.toggle('rl-show-en', _rl.showEn);
   var b = document.getElementById('rl-en-btn'); if (b) { b.classList.toggle('on', _rl.showEn); b.setAttribute('aria-pressed', _rl.showEn); }
