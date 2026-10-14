@@ -3,7 +3,7 @@
 <script id="ap-update">
 /* AP auto-update: if this copy is older than the published version, reload once with the new one (saved answers are kept) */
 (function () {
-  var B = '8fe90f4dd8'; window.AP_BUILD = B;
+  var B = '57351e900c'; window.AP_BUILD = B;
   function check() {
     if (!/^https?:$/.test(location.protocol) || !window.fetch) return;
     var f = decodeURIComponent(location.pathname.split('/').pop() || '');
@@ -739,6 +739,31 @@ function aphWatchHome(el, sel) {
   var f = function () { document.body.classList.toggle('aph-at-home', !!el.querySelector(sel)); };
   new MutationObserver(f).observe(el, { childList: true }); f();
 }
+window.addEventListener('load',function(){try{(function(){/* ===== AP BACK v1 (listening): one step back through the screens visited ===== */
+(function () {
+  var hist = [], cur = 'welcome-screen', o = window.showScreen;
+  if (typeof o !== 'function') return;
+  function btn() { return document.querySelector('.aph-back'); }
+  function upd() { var b = btn(); if (b) b.style.display = cur === 'welcome-screen' ? 'none' : 'inline-block'; }
+  window.showScreen = function (id) {
+    if (id !== cur && !window.__apbkGo) hist.push(cur);
+    cur = id; if (id === 'welcome-screen') hist = [];
+    var r = o.apply(this, arguments); upd(); return r;
+  };
+  window.aphBack = function () {
+    try { if (typeof stopSpeech === 'function') stopSpeech(); } catch (e) {}
+    var p = hist.pop();
+    if (!p || p === 'welcome-screen') { hist = []; if (typeof showWelcome === 'function') showWelcome(); return; }
+    window.__apbkGo = true; try { window.showScreen(p); } finally { window.__apbkGo = false; }
+  };
+  function mk() {
+    var h = document.querySelector('.aph-header .aph-home');
+    if (!h || btn()) return;
+    var b = document.createElement('button'); b.type = 'button'; b.className = 'aph-home aph-back'; b.innerHTML = '&larr; Back'; b.title = 'Back one step'; b.onclick = window.aphBack;
+    h.parentNode.insertBefore(b, h); upd();
+  }
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', mk); else mk();
+})();})()}catch(e){}});
 /* ===== END AP HOUSE STYLE helpers ===== */
 </script>
 <style id="apmp-style">
