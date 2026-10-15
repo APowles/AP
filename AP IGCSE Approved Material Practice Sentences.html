@@ -3,7 +3,7 @@
 <script id="ap-update">
 /* AP auto-update: if this copy is older than the published version, reload once with the new one (saved answers are kept) */
 (function () {
-  var B = 'd728f31d35'; window.AP_BUILD = B;
+  var B = '00edf6334f'; window.AP_BUILD = B;
   function check() {
     if (!/^https?:$/.test(location.protocol) || !window.fetch) return;
     var f = decodeURIComponent(location.pathname.split('/').pop() || '');
@@ -8443,13 +8443,13 @@ function splashKey(ev){if(SPL.live){ev.preventDefault();ev.stopPropagation();spl
 window.splash=function(force){
   if(SPL.live)return;
   const keys=Object.keys(PICS);if(keys.length<3)return;
-  if(!force&&(S.view!=='home'||(window.matchMedia&&matchMedia('(prefers-reduced-motion: reduce)').matches)))return;
+  if(!force&&S.view!=='home')return;
   if(force){S.view='home';S.stack=[];render();window.scrollTo(0,0);if(SPL.master)SPL.master.gain.value=.7}
   const N=12,pick=shuffle(keys).slice(0,N);
-  const imgs={};let ready=0,started=false;
+  const imgs={};let ready=0,loaded=0,started=false;
   const el=document.createElement('div');el.id='amsp';
   el.innerHTML='<div class="sp-st" id="sp-st"><div class="sp-fr" id="sp-fr"></div><div id="sp-mks"></div></div><div class="sp-vig"></div><div class="sp-t" id="sp-t"><b>Approved Material Studio</b><span class="sp-lg">'+LG.flag+' '+esc(LG.name)+'</span><span>'+esc(TAGLINE)+'</span></div><button class="sp-skip" type="button">Skip ›</button>';
-  document.body.appendChild(el);SPL.el=el;SPL.live=true;
+  document.body.appendChild(el);SPL.el=el;SPL.live=true;requestAnimationFrame(()=>{const t=document.getElementById('sp-t');if(t&&!started)t.classList.add('on')});
   document.addEventListener('keydown',splashKey,true);
   const c=amCtx();let blocked=false;
   el.addEventListener('click',ev=>{
@@ -8458,14 +8458,14 @@ window.splash=function(force){
     splashEnd()});
   const fr=document.getElementById('sp-fr'),mks=document.getElementById('sp-mks'),st=document.getElementById('sp-st');
   const show=i=>{
-    if(!SPL.live)return;const n=pick[i],im=imgs[n];if(!im||!im.naturalWidth)return;
+    if(!SPL.live)return;const ok=pick.filter(q=>imgs[q]&&imgs[q].naturalWidth);if(!ok.length)return;const n=ok[i%ok.length],im=imgs[n];
     fr.style.backgroundImage='url('+picSrc(+n-1)+')';
     const W=el.clientWidth,H=el.clientHeight,s=Math.max(W/im.naturalWidth,H/im.naturalHeight),ox=(W-im.naturalWidth*s)/2,oy=(H-im.naturalHeight*s)/2;
     mks.innerHTML=(PICS[n]||[]).slice(0,3).map((p,j)=>'<div class="sp-mk" style="left:'+(ox+p.x/100*im.naturalWidth*s)+'px;top:'+(oy+p.y/100*im.naturalHeight*s)+'px;animation-delay:'+(.05+j*.07)+'s">'+(j+1)+'</div>').join('');
     st.style.transition='none';st.style.transform='scale(1)';void st.offsetWidth;st.style.transition='transform .3s linear';st.style.transform='scale(1.07)';
   };
   const run=()=>{
-    if(started||!SPL.live)return;started=true;
+    if(started||!SPL.live)return;started=true;document.getElementById('sp-t').classList.remove('on');
     if(c&&c.state==='running')amSound(c,N);
     else if(c){blocked=true;const h=document.createElement('div');h.className='sp-snd';h.textContent='\u{1F50A} Click for sound';el.appendChild(h)}
     const t0=200;
@@ -8473,7 +8473,7 @@ window.splash=function(force){
     SPL.timers.push(setTimeout(()=>{if(!SPL.live)return;fr.style.filter='saturate(1.1) brightness(.55)';mks.innerHTML='';document.getElementById('sp-t').classList.add('on')},t0+N*340));
     SPL.timers.push(setTimeout(()=>{if(!blocked)splashEnd()},t0+N*340+2000));
   };
-  pick.forEach(n=>{const im=new Image();imgs[n]=im;const done=()=>{ready++;if(ready>=N)run()};im.onload=done;im.onerror=done;im.src=picSrc(+n-1)});
+  pick.forEach(n=>{const im=new Image();imgs[n]=im;const done=()=>{ready++;if(loaded>=4||ready>=N)run()};im.onload=()=>{if(im.naturalWidth)loaded++;done()};im.onerror=done;im.src=picSrc(+n-1)});
   SPL.timers.push(setTimeout(()=>{if(!started){if(Object.keys(imgs).some(n=>imgs[n].naturalWidth))run();else splashEnd()}},2500));
 };
 
