@@ -3,7 +3,7 @@
 <script id="ap-update">
 /* AP auto-update: if this copy is older than the published version, reload once with the new one (saved answers are kept) */
 (function () {
-  var B = '3bdc979ade'; window.AP_BUILD = B;
+  var B = '13f644367c'; window.AP_BUILD = B;
   function check() {
     if (!/^https?:$/.test(location.protocol) || !window.fetch) return;
     var f = decodeURIComponent(location.pathname.split('/').pop() || '');
@@ -3050,7 +3050,8 @@ function vvKinds() {
   return (_vvKinds = m);
 }
 function vvKindOf(en) { return vvKinds()[en] || 'T'; }
-function vvFilterMode(arr) { return vvMode === 'both' ? arr : arr.filter(p => (vvKindOf(p[0]) === 'V') === (vvMode === 'verbs')); }
+function vvIsTrial() { return /Trial/.test(currentVV); }
+function vvFilterMode(arr) { return (vvMode === 'both' || vvIsTrial()) ? arr : arr.filter(p => (vvKindOf(p[0]) === 'V') === (vvMode === 'verbs')); }
 function setVVMode(m) { vvMode = m; try { localStorage.setItem('apvv_mode', m); } catch (e) {} renderIntro(); }
 
 let editModeUnlocked = false;
@@ -3404,7 +3405,7 @@ function renderIntro() {
 
       <div class="aph-label">What to practise</div>
       <div class="aph-row" id="vv-mode-row">
-        ${[['topic','Topic Vocab Only'],['verbs','Verb Structures Only'],['both','Vocab and Verbs together']].map(m => `<button class="aph-chip${vvMode===m[0]?' on':''}" onclick="setVVMode('${m[0]}')">${m[1]}</button>`).join('')}
+        ${vvIsTrial() ? '<button class="aph-chip on" disabled>Vocab and Verbs together</button><span class="aph-note">Trials sets are always vocab and verbs together.</span>' : [['topic','Topic Vocab Only'],['verbs','Verb Structures Only'],['both','Vocab and Verbs together']].map(m => `<button class="aph-chip${vvMode===m[0]?' on':''}" onclick="setVVMode('${m[0]}')">${m[1]}</button>`).join('')}
       </div>
 
       <div class="aph-label">Vocab Set</div>
