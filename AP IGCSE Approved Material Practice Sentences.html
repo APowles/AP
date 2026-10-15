@@ -3,7 +3,7 @@
 <script id="ap-update">
 /* AP auto-update: if this copy is older than the published version, reload once with the new one (saved answers are kept) */
 (function () {
-  var B = 'a4c31da0ce'; window.AP_BUILD = B;
+  var B = '6789278ba6'; window.AP_BUILD = B;
   function check() {
     if (!/^https?:$/.test(location.protocol) || !window.fetch) return;
     var f = decodeURIComponent(location.pathname.split('/').pop() || '');
@@ -7665,6 +7665,7 @@ mark.k{background:var(--hl);color:inherit;border-radius:5px;padding:0 2px}
 .pcard .pnm{font-family:var(--head);font-size:1.25rem;line-height:1.2}
 .pcard .pmt{font-size:.85rem;color:#dfe5f3}
 .pcard.ar-A{--ar:#6b3fa0}.pcard.ar-B{--ar:#1f7a8c}.pcard.ar-C{--ar:#2e7d4f}.pcard.ar-D{--ar:#b8860b}.pcard.ar-E{--ar:#b03a2e}
+.tcw{display:flex;flex-direction:column;gap:6px}.tcw .pcard{flex:1}.tcb{display:flex;gap:6px}.tcb .btn{flex:1;padding:6px 8px;font-size:.85rem}
 .pcard.big{min-height:min(30vh,250px)}.pcard.big .pnm{font-size:1.6rem}
 .thm-sub{color:var(--ink2);margin:4px 0 0}
 .pic-box{margin-top:14px;display:flex;flex-direction:column}
@@ -8022,6 +8023,12 @@ window.openSpeed=function(){
   try{const P=window.parent;if(!P||typeof P.amSpeedFromStudio!=='function')return;
     const all=isAllScope();P.amSpeedFromStudio(all?(S.pick.length?S.pick.map(k=>SECS[k]):null):SECS[S.sec],LG.code,(!all&&S.qi!=='all')?+S.qi:null)}catch(e){}
 };
+window.openSpotQ=function(i){
+  const P=spotHost();if(!P)return;
+  P.amStudioSpot({sec:SECS.indexOf(Q[i].section),qi:String(i),label:Q[i].q_en+' ('+LG.name+')',kinds:SPOT_KINDS.map(k=>[k[0],k[1],k[2]])},false,window);
+};
+window.openSpeedQ=function(i){try{const P=window.parent;if(P&&typeof P.amSpeedFromStudio==='function')P.amSpeedFromStudio(SECS[SECS.indexOf(Q[i].section)],LG.code,i)}catch(e){}};
+function tcBtns(i){return spotHost()?'<div class="tcb"><button class="btn" onclick="openSpotQ('+i+')">&#9201; Spot test</button><button class="btn" onclick="openSpeedQ('+i+')">&#9889; Speed</button></div>':''}
 function spotRow(small){
   if(!spotHost())return '';
   const mixBtn=(S.view==='home'||S.view==='area'||S.view==='themes')?'<button class="btn mix" onclick="openSec(\'all\')">&#9733; Mixed: '+scopeN()+'</button>':'';
@@ -8334,7 +8341,7 @@ function vPics(){
   const k=S.sec;
   if(S.qi==='all'){
     const cards=topicsOf(k).map(q=>{const A=areaOf(q.section);
-      return '<button class="pcard ar-'+A+'"'+bgS(hasPic(q.i)?q.i:null)+' onclick="openTopic('+q.i+',\'pic\')"><span class="pe">'+(hasPic(q.i)?'':AREAS[A][1])+'</span><span class="pno">'+(hasPic(q.i)?'Picture':'Picture coming soon')+'</span><span class="pnm">'+esc(q.q_en)+'</span><span class="pmt">'+esc(q.q_fr)+'</span></button>'}).join('');
+      return '<div class="tcw">'+'<button class="pcard ar-'+A+'"'+bgS(hasPic(q.i)?q.i:null)+' onclick="openTopic('+q.i+',\'pic\')"><span class="pe">'+(hasPic(q.i)?'':AREAS[A][1])+'</span><span class="pno">'+(hasPic(q.i)?'Picture':'Picture coming soon')+'</span><span class="pnm">'+esc(q.q_en)+'</span><span class="pmt">'+esc(q.q_fr)+'</span></button>'+tcBtns(q.i)+'</div>'}).join('');
     return '<p class="thm-sub" style="margin-top:12px">Choose a topic: look at the picture, click the numbers to hear the approved phrases, or hear the whole answer.</p><div class="pcards">'+cards+'</div>';
   }
   const i=+S.qi;S.pi=i;const list=topicsOf(k),ix=list.findIndex(q=>q.i===i);
@@ -8364,7 +8371,7 @@ function ptLabel(i,j){const L=PTS[String(i+1)];return (L&&L[j])||('Point '+(j+1)
 function vCmb(){
   if(S.qi==='all'){
     const cards=topicsOf(S.sec).map(q=>{const A=areaOf(q.section);
-      return '<button class="pcard ar-'+A+'"'+bgS(hasPic(q.i)?q.i:null)+' onclick="openTopic('+q.i+',\'cmb\')"><span class="pe">'+(hasPic(q.i)?'':AREAS[A][1])+'</span><span class="pno">'+(((LM[q.i]&&LM[q.i].s)||[]).length)+' AP Structures</span><span class="pnm">'+esc(q.q_en)+'</span><span class="pmt">'+esc(q.q_fr)+'</span></button>'}).join('');
+      return '<div class="tcw">'+'<button class="pcard ar-'+A+'"'+bgS(hasPic(q.i)?q.i:null)+' onclick="openTopic('+q.i+',\'cmb\')"><span class="pe">'+(hasPic(q.i)?'':AREAS[A][1])+'</span><span class="pno">'+(((LM[q.i]&&LM[q.i].s)||[]).length)+' AP Structures</span><span class="pnm">'+esc(q.q_en)+'</span><span class="pmt">'+esc(q.q_fr)+'</span></button>'+tcBtns(q.i)+'</div>'}).join('');
     return '<p class="thm-sub" style="margin-top:12px">Choose a topic. You will have to use the approved information and a range of AP Structures together.</p><div class="pcards">'+cards+'</div>';
   }
   const i=+S.qi;S.pi=i;
