@@ -3,7 +3,7 @@
 <script id="ap-update">
 /* AP auto-update: if this copy is older than the published version, reload once with the new one (saved answers are kept) */
 (function () {
-  var B = '35b91d9911'; window.AP_BUILD = B;
+  var B = '93ee9cf18e'; window.AP_BUILD = B;
   function check() {
     if (!/^https?:$/.test(location.protocol) || !window.fetch) return;
     var f = decodeURIComponent(location.pathname.split('/').pop() || '');
@@ -4118,6 +4118,11 @@ function apttLevel(sc, run) {
 /* ⏱ Timed AP Past Paper Questions */
 .p1s-tbtn{font:700 .8125rem/1.1 var(--aph-body,inherit);background:#fff7e0;color:#7a5500;border:1.5px solid #c9a84c;border-radius:8px;padding:6px 10px;cursor:pointer}
 .p1s-tbtn:hover{background:#c9a84c;color:#fff}
+.p1s-pick{font:600 .8125rem/1.1 var(--aph-body,inherit);color:#7a5500;display:inline-flex;align-items:center;gap:6px;cursor:pointer;background:#fff7e0;border:1.5px dashed #c9a84c;border-radius:8px;padding:6px 10px}
+.p1s-pick input{width:18px;height:18px;accent-color:#c9a84c}
+.p1s-panel{border-color:#c9a84c}
+.p1s-bar{position:sticky;bottom:0;z-index:50;display:flex;flex-wrap:wrap;gap:10px;align-items:center;justify-content:space-between;background:#1a2744;color:#fff;border-radius:10px;padding:10px 14px;margin:10px 0;box-shadow:0 -2px 12px rgba(0,0,0,.25)}
+.p1s-bar[hidden]{display:none}
 .p1s-total{background:#1a2744;color:#fff;border-radius:12px;padding:12px 14px;margin:10px 0;font-size:1.05rem}.p1s-total b{color:#e8c766;font-size:1.35rem}.p1s-total small{display:block;color:#c8d3ea;font-size:.8rem;margin-top:2px}
 .p1s-tbl{width:100%;border-collapse:collapse;margin:6px 0 10px;font-size:.9rem}.p1s-tbl td{padding:5px 6px;border-bottom:1px solid #e6e2d6}.p1s-tbl td:last-child{text-align:right;white-space:nowrap;font-weight:700}
 .p1s-tbl tr.g td{color:#8a6d00;font-size:.82rem}.p1s-tbl tr.t td{border-top:2px solid #1a2744;border-bottom:none;font-size:1rem}
@@ -10718,7 +10723,7 @@ function p1Block(q, bi){
   P1B[bi]=b;
   var P = 'p1b'+bi+'_';
   var h = '<div class="p1-q" id="'+P+'wrap">';
-  h += '<div class="p1-qhead"><span class="p1t-left"><span class="p1-qnum">Question '+T.num+'</span>'+p1tHead(q,bi)+p1SetTBtn([q.id])+'</span><span class="p1-qmeta">'+esc(q.topic)+' '+esc(P1_SUB[q.topic]||q.subtheme)+' · Paper '+'ABC'[q.version-1]+'<br><span id="'+P+'score"></span></span></div>';
+  h += '<div class="p1-qhead"><span class="p1t-left"><span class="p1-qnum">Question '+T.num+'</span>'+p1tHead(q,bi)+p1SetTBtn([q.id])+p1PickBox(q.id)+'</span><span class="p1-qmeta">'+esc(q.topic)+' '+esc(P1_SUB[q.topic]||q.subtheme)+' · Paper '+'ABC'[q.version-1]+'<br><span id="'+P+'score"></span></span></div>';
   h += '<div class="p1t-msg" id="'+P+'tmsg" role="alert" hidden></div>';
   if(T.sec==='A'){
     if(q.type==='l4'){
@@ -11170,6 +11175,7 @@ window.p1OpenPaper = function(st, v){
   var h='<div class="p1-wrap"><div class="p1-inner">';
   h+='<div class="p1-top"><button class="p1-btn ghost sm" onclick="showPaper1()">← Back</button>'+p1SetTBtn(ids,true)+'<button class="p1-btn ghost sm" onclick="p1Print(\'q\')">🖨 Print / PDF · Paper</button><button class="p1-btn ghost sm" onclick="p1Print(\'ms\')">🖨 Print / PDF · Mark scheme</button><span class="sp"></span><button class="apmp-btn" id="p1-pdf" style="display:none" onclick="p1SavePDF()">📄 Save marked paper as PDF</button><span class="p1-score" id="p1-total">–</span></div>';
   h+='<div class="p1-h">Paper '+code+'</div><div class="p1-sub">'+st+' '+esc(P1_SUB[st])+' · 80 marks</div>';
+  p1Pick={}; h+=p1PickPanel(ids);
   h+='<div class="p1-card"><table class="p1-list p1-contents">';
   ids.forEach(function(id,i){ var q=P1Q[id], T=P1_TYPES[q.type]; h+='<tr onclick="document.getElementById(\'p1b'+i+'_wrap\').scrollIntoView({behavior:\'smooth\'})"><td class="qn">Q'+T.num+'</td><td class="ty">'+esc(T.name.replace(/^Q\d+ · /,''))+'</td><td>'+esc(qTitle(q))+'</td><td class="mk">'+T.marks+'</td></tr>'; });
   h+='</table></div>';
@@ -11586,8 +11592,10 @@ function p1sTimes(ids){
 }
 function p1sMin(sec){ var m=Math.floor(sec/60), s=sec%60; return s ? (m ? m+' min '+s+' s' : s+' s') : m+' min'; }
 function p1sClock(ms){ var s=Math.max(0,Math.ceil(ms/1000)); return Math.floor(s/60)+':'+String(s%60).padStart(2,'0'); }
+function p1sWhole(ids){ var ty={}; ids.forEach(function(id){ ty[(P1Q[id]||{}).type]=1; }); return ids.length>1 && Object.keys(P1_TYPES).every(function(t){ return ty[t]; }); }
 function p1sLabel(ids){
   var q0=P1Q[ids[0]], code=q0.topic+'-'+'ABC'[q0.version-1];
+  if(ids.length>1 && !p1sWhole(ids)) return 'Paper '+code+' · '+ids.map(function(id){ return 'Q'+P1_TYPES[P1Q[id].type].num; }).join(', ');
   if(ids.length>1) return 'Paper '+code+' (whole paper)';
   return P1_TYPES[q0.type].name+' · Paper '+code;
 }
@@ -11604,6 +11612,26 @@ function p1sBreak(T, forBoy){
     + r('<b>'+(forBoy?'Whole thing, start to PDF uploaded':'Whole process, from Start to PDF uploaded')+'</b>', '<b>'+p1sMin(T.total)+'</b>', 't')
     + '</table>';
 }
+/* ---- 🔑 AP: tick several questions of one paper and set them together ---- */
+var p1Pick = {};
+function p1PickOn(){ return !P1S && p1sTeacher() && p1Ctx && p1Ctx.kind==='paper'; }
+function p1PickBox(id){ return p1PickOn() ? '<label class="p1s-pick"><input type="checkbox" data-pid="'+id+'" onchange="p1PickTog(this)"> Tick to set with others</label>' : ''; }
+window.p1PickIds = function(){ return paperIds(p1Paper.st, p1Paper.v).filter(function(id){ return p1Pick[id]; }); };
+function p1PickPanel(ids){
+  if(!p1PickOn()) return '';
+  return '<div class="p1-card p1s-panel"><b>🔑 Set several questions from this paper</b><div class="p1-note" style="margin:4px 0 8px">Tick the questions below (or pick a whole section), then press <b>Set the ticked questions</b>.</div><div class="p1-chips">'
+    + ['A','B','C'].map(function(k){ return '<button type="button" class="p1-chip" onclick="p1PickSec(\''+k+'\')">'+P1_SECS[k].short+'</button>'; }).join('')
+    + '<button type="button" class="p1-chip" onclick="p1PickSec(\'\')">Clear ticks</button></div></div>'
+    + '<div class="p1s-bar" id="p1s-bar" hidden></div>';
+}
+function p1PickUpd(){
+  var ids=p1PickIds(), bar=document.getElementById('p1s-bar'); if(!bar) return;
+  document.querySelectorAll('input[data-pid]').forEach(function(c){ c.checked=!!p1Pick[c.getAttribute('data-pid')]; });
+  if(!ids.length){ bar.hidden=true; return; }
+  bar.hidden=false; bar.innerHTML='<span><b>'+ids.length+'</b> question'+(ids.length>1?'s':'')+' ticked · '+p1sMarks(ids)+' marks · '+p1sMin(p1sTimes(ids).total)+' in all</span><button type="button" class="p1s-tbtn" onclick="p1SetMake(p1PickIds())">🔑 Set the ticked questions</button>';
+}
+window.p1PickTog = function(el){ p1Pick[el.getAttribute('data-pid')]=el.checked; p1PickUpd(); };
+window.p1PickSec = function(sec){ p1Pick={}; if(sec) paperIds(p1Paper.st,p1Paper.v).forEach(function(id){ if(P1_TYPES[P1Q[id].type].sec===sec) p1Pick[id]=1; }); p1PickUpd(); };
 function p1SetTBtn(ids, whole){
   if(P1S || !p1sTeacher()) return '';
   return '<button type="button" class="p1s-tbtn" onclick="p1SetMake([\''+ids.join("','")+'\'])" title="Teacher: set this as a timed test with a link / code">🔑 '+(whole?'Set the whole paper as a Timed Eton Past Paper':'Set as a Timed Eton Past Paper Question')+'</button>';
@@ -11616,7 +11644,7 @@ window.p1SetMake = function(ids){
   var name='Eton Timed Past Paper: '+lab.replace(/^Q(\d+) · /,'Q$1 ')+' · '+p1sMin(T.total);
   var cats=APTT.CATS||[], cat='A Level French ▸ Paper 1';
   d=document.createElement('div'); d.id='p1s-mk'; d.className='aptt-mkov';
-  d.innerHTML='<div class="aptt-mkbox" role="dialog" aria-modal="true"><div class="aptt-mkh">🔑 '+(ids.length>1?'Set a Timed Eton Past Paper':'Set a Timed Eton Past Paper Question')+'</div>'
+  d.innerHTML='<div class="aptt-mkbox" role="dialog" aria-modal="true"><div class="aptt-mkh">🔑 '+(p1sWhole(ids)?'Set a Timed Eton Past Paper':ids.length>1?'Set Timed Eton Past Paper Questions':'Set a Timed Eton Past Paper Question')+'</div>'
     + '<div class="aptt-mks">'+esc(lab)+' · '+p1sMarks(ids)+' marks</div>'
     + '<div class="p1s-total">⏱ Whole process: <b>'+p1sMin(T.total)+'</b><small>from Start to the PDF uploaded to OneNote</small></div>'
     + p1sBreak(T)
@@ -11699,7 +11727,7 @@ function p1sIntro(){
   var o=P1S.o, T={ans:o.sa, mark:o.sm, grace:o.g||30, notes:o.sn||P1SET_NOTES, up:o.su||P1SET_UP}; T.total=T.ans+T.grace+(T.mark?T.mark+T.grace:0)+T.notes+T.up;
   var att=0; try { if(!P1S.view) att=+(localStorage.getItem('p1setAtt:'+P1S.key)||0); } catch(e){}
   app().innerHTML='<div class="p1-wrap p1-set"><div class="p1-inner">'+p1sTop()
-    + '<div class="p1-h">Timed Eton Past Paper '+(o.ids.length>1?'':'Question')+'</div>'+p1sHead()
+    + '<div class="p1-h">Timed Eton Past Paper '+(p1sWhole(o.ids)?'':o.ids.length>1?'Questions':'Question')+'</div>'+p1sHead()
     + '<div class="p1-card">'+p1sBreak(T,true)
     + '<ol class="p1s-rules"><li>The clock starts as soon as you tap <b>Start</b>. When the time is up you get <b>30 more seconds</b>, then your answers <b>lock by themselves</b>.</li>'
     + (o.sm ? '<li>Then the mark scheme opens: mark yourself honestly. When marking time is up (plus 30 seconds), <b>marking closes</b> and anything not marked scores 0.</li>' : '<li>Then the mark scheme opens with your score: this question marks itself.</li>')
