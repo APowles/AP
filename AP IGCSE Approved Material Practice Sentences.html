@@ -3,7 +3,7 @@
 <script id="ap-update">
 /* AP auto-update: if this copy is older than the published version, reload once with the new one (saved answers are kept) */
 (function () {
-  var B = '00edf6334f'; window.AP_BUILD = B;
+  var B = 'a4c31da0ce'; window.AP_BUILD = B;
   function check() {
     if (!/^https?:$/.test(location.protocol) || !window.fetch) return;
     var f = decodeURIComponent(location.pathname.split('/').pop() || '');
@@ -8020,13 +8020,14 @@ window.openSpot=function(mk){
 };
 window.openSpeed=function(){
   try{const P=window.parent;if(!P||typeof P.amSpeedFromStudio!=='function')return;
-    const all=isAllScope();P.amSpeedFromStudio(all?(S.pick.length?S.pick.map(k=>SECS[k]):null):SECS[S.sec],LG.code)}catch(e){}
+    const all=isAllScope();P.amSpeedFromStudio(all?(S.pick.length?S.pick.map(k=>SECS[k]):null):SECS[S.sec],LG.code,(!all&&S.qi!=='all')?+S.qi:null)}catch(e){}
 };
-function spotRow(){
+function spotRow(small){
   if(!spotHost())return '';
   const mixBtn=(S.view==='home'||S.view==='area'||S.view==='themes')?'<button class="btn mix" onclick="openSec(\'all\')">&#9733; Mixed: '+scopeN()+'</button>':'';
   const all=isAllScope();
-  const what=all?scopeN():S.qi==='all'?'this section':'this question';
+  const what=all?scopeN():S.qi==='all'?'this section':'this topic';
+  if(small)return '<div class="row" style="margin-top:10px"><button class="btn pri" onclick="openSpot(false)">&#9201; AP Spot Test: '+what+'</button><button class="btn" onclick="openSpeed()">&#9889; Speed Challenge: '+what+'</button></div>';
   return '<div class="row" style="margin-top:16px"><button class="btn pri" onclick="openSpot(false)">&#9201; AP Timed Spot Test: '+what+'</button>'
     +(isTeacher()?'<button class="btn" onclick="openSpot(true)">&#128273; Set as a test (link / code)</button>':'')
     +'<button class="btn" onclick="openSpeed()">&#9889; AP Speed Challenge: '+what+'</button>'+mixBtn+'</div>';
@@ -8050,7 +8051,7 @@ function vSec(){
   const head='<div class="row" style="justify-content:space-between"><h1 class="h2">'+(S.sec==='all'?'Mixed: '+scopeN():esc(secName(SECS[S.sec])))+'</h1><button class="btn" onclick="goBack()">&larr; Back</button></div>';
   let body;
   if(S.tab==='pic')body=vPics();else if(S.tab==='cmb')body=vCmb();else if(S.tab==='study')body=vStudy();else if(S.tab==='words')body=vWords();else{if(!S.ses)startSes();body=vDrill()}
-  return head+scopeBar()+'<div class="sub-tabs">'+tabs+'</div>'+((S.tab==='study'||S.tab==='words')?spotRow():'')+body;
+  return head+scopeBar()+'<div class="sub-tabs">'+tabs+'</div>'+((S.tab==='study'||S.tab==='words')?spotRow():spotRow(true))+body;
 }
 /* study: the approved sentences, French by default, English one click away, key phrases lit up */
 function hlFr(i,j){
@@ -8823,11 +8824,12 @@ function showAMStudio(lang) {
     o.remove(); document.documentElement.style.overflow = '';
   };
   // from the Studio: the game opens on the section (or all sections) and language the boy was on
-  window.amSpeedFromStudio = function (sectionName, lang) {
+  window.amSpeedFromStudio = function (sectionName, lang, topicIdx) {
     secs();
+    var tq = (topicIdx != null && AM_DATA[topicIdx]) ? [AM_DATA[topicIdx].q_en] : null;
     var names = Array.isArray(sectionName) ? sectionName : [sectionName], sel = names.map(function (n) { return n && C.by[n]; }).filter(Boolean);
     if (!sel.length) sel = secs().map(function (s) { return s.id; });
-    window.openVocabChallenge({ sel: sel, lang: LANGS.indexOf(lang) >= 0 ? lang : null, fresh: 1 });
+    window.openVocabChallenge(tq ? { sel: sel, lang: LANGS.indexOf(lang) >= 0 ? lang : null, mode: 'sentences', topics: tq, fresh: 1 } : { sel: sel, lang: LANGS.indexOf(lang) >= 0 ? lang : null, fresh: 1 });
   };
   // from the main page: the game opens on what the selector shows (direction, section, topic(s)), as the approved sentences
   window.amSpeedFromMain = function () {
