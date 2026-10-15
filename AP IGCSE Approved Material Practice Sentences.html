@@ -3,7 +3,7 @@
 <script id="ap-update">
 /* AP auto-update: if this copy is older than the published version, reload once with the new one (saved answers are kept) */
 (function () {
-  var B = 'f0729da7fd'; window.AP_BUILD = B;
+  var B = 'd728f31d35'; window.AP_BUILD = B;
   function check() {
     if (!/^https?:$/.test(location.protocol) || !window.fetch) return;
     var f = decodeURIComponent(location.pathname.split('/').pop() || '');
@@ -8345,6 +8345,7 @@ window.picStep=function(d){demoStop();const list=topicsOf(S.sec),ix=list.findInd
 
 /* ===== Combine: say the approved information, built round an AP Structure ===== */
 let CB={i:-1,k:0,shown:false,full:false,used:{}};
+function cbShuf(n){const a=[];for(let k=0;k<n;k++)a.push(k);for(let k=n-1;k>0;k--){const r=Math.floor(Math.random()*(k+1));const t=a[k];a[k]=a[r];a[r]=t}return a}
 function cbSt(i){
   const c=CMB[String(i+1)];
   if(c&&c.length)return c.map(x=>({id:x[0],stage:x[1],label:x[2],frame:x[3],ex:x[4]}));
@@ -8353,7 +8354,8 @@ function cbSt(i){
 function cbPairs(i){
   const st=cbSt(i),nj=Q[i].fr.length;if(!st.length||!nj)return [];
   const out=[];
-  for(let k=0;k<st.length;k++)out.push({j:k%nj,s:k});
+  if(!CB.ord||CB.ord.length!==st.length||CB.i!==i)CB.ord=cbShuf(st.length);
+  for(let k=0;k<st.length;k++)out.push({j:k%nj,s:CB.ord[k]});
   return out;
 }
 function stBadge(s){const g=STG[s.stage];return g?'<span class="cb-stg" style="background:'+g[1]+'">'+g[0]+'</span>':''}
@@ -8365,7 +8367,7 @@ function vCmb(){
     return '<p class="thm-sub" style="margin-top:12px">Choose a topic. You will have to use the approved information and a range of AP Structures together.</p><div class="pcards">'+cards+'</div>';
   }
   const i=+S.qi;S.pi=i;
-  if(CB.i!==i)CB={i,k:0,shown:false,full:false,used:{}};
+  if(CB.i!==i)CB={i,k:0,shown:false,full:false,used:{},ord:null};
   const pr=cbPairs(i);
   if(!pr.length)return '<div class="note" style="margin-top:14px">No AP Structures for this topic yet.</div>';
   const head='<div class="pic-t"><span class="qh">'+esc(Q[i].q_fr)+'</span><span class="qf">'+esc(Q[i].q_en)+'</span></div>';
@@ -8408,7 +8410,7 @@ window.cbNext=function(){CB.tok++;demoStop();const n=cbPairs(CB.i).length;CB.sho
 window.cbPrev=function(fromFull){CB.tok++;demoStop();CB.shown=false;if(fromFull===true){CB.full=false;CB.k=Math.max(0,cbPairs(CB.i).length-1)}else if(CB.k>0)CB.k--;render()};
 window.cbUse=function(k){CB.used[k]=!CB.used[k];render()};
 window.cbShowFull=function(){CB.shown=true;render()};
-window.cbRestart=function(){demoStop();CB={i:CB.i,k:0,shown:false,full:false,used:{}};render()};
+window.cbRestart=function(){demoStop();CB={i:CB.i,k:0,shown:false,full:false,used:{},ord:null};render()};
 /* ===== sound (opening splash and machine), after KTR Studio ===== */
 const SPL={ctx:null,master:null,timers:[],el:null,live:false};
 function amCtx(){
