@@ -3,7 +3,7 @@
 <script id="ap-update">
 /* AP auto-update: if this copy is older than the published version, reload once with the new one (saved answers are kept) */
 (function () {
-  var B = 'f2aaf72fee'; window.AP_BUILD = B;
+  var B = 'd025ad131d'; window.AP_BUILD = B;
   function check() {
     if (!/^https?:$/.test(location.protocol) || !window.fetch) return;
     var f = decodeURIComponent(location.pathname.split('/').pop() || '');
@@ -3364,7 +3364,7 @@ function toggleAutotime() {
   else             { btn.textContent = '⏱ Autotime: Off'; btn.classList.remove('on'); }
 }
 
-function getVVOptions() {
+function getVVOptions(only, selKey) {
   const keys = Object.keys(VV_DATA);
   const bySet = (a, b) => {
     const numA = parseInt(a.replace(/^[A-Z]+/, '')) || 0;
@@ -3377,13 +3377,38 @@ function getVVOptions() {
   };
   const some = re => keys.filter(k => re.test(k)).sort(bySet);
   const opts = list => list.map(k =>
-    `<option value="${k}"${k===currentVV?' selected':''}>${k.replace(/_/g,' ')}</option>`
+    `<option value="${k}"${k===(selKey||currentVV)?' selected':''}>${k.replace(/_/g,' ')}</option>`
   ).join('');
   const group = (label, list) => list.length ? `<optgroup label="${label}">${opts(list)}</optgroup>` : '';
   const trials = keys.filter(k => k.includes('Trial')).sort();
+  if (only === 'TV') return opts(some(/^TV\d/));
+  if (only === 'VS') return opts(some(/^VS\d/));
+  if (only === 'VV') return opts(trials.concat(some(/^VV\d/)));
   return group('Topic Vocabulary (TV)', some(/^TV\d/))
        + group('Verb Structures (VS)', some(/^VS\d/))
        + group('Combined: topic vocabulary + verb structures (VV)', trials.concat(some(/^VV\d/)));
+}
+// the three practice groups: each has its own button and its own dropdown; the one holding the current set is the active one
+function vvGroupOf(k) { return /^TV\d/.test(k) ? 'TV' : /^VS\d/.test(k) ? 'VS' : 'VV'; }
+function vvSwitchGroup(g) {
+  const cur = currentVV, m = /^[A-Z]+(\d+(?:[a-z]|_Entire))$/.exec(cur);
+  const want = m ? g + m[1] : null;
+  currentVV = (want && VV_DATA[want]) ? want : (g === 'TV' ? 'TV1a' : g === 'VS' ? 'VS1a' : 'VV1a');
+  renderIntro();
+}
+function vvPickSet(g, k) { currentVV = k; renderIntro(); }
+function vvGroupRows() {
+  const act = vvGroupOf(currentVV);
+  return [['TV', 'Topic Vocab Only'], ['VS', 'Verb Structures Only'], ['VV', 'Vocab and Verbs together']].map(g => {
+    const on = act === g[0];
+    let key = currentVV;
+    if (!on) { const m = /^[A-Z]+(\d+(?:[a-z]|_Entire))$/.exec(currentVV); key = (m && VV_DATA[g[0] + m[1]]) ? g[0] + m[1] : (g[0] === 'TV' ? 'TV1a' : g[0] === 'VS' ? 'VS1a' : 'VV1a'); }
+    const n = (VV_DATA[key] || []).length;
+    return `<div class="aph-row vv-grp${on ? ' on' : ''}" style="margin-bottom:8px;padding:8px 10px;border:1.5px solid ${on ? '#c9a84c' : '#e3e0d6'};border-radius:12px;background:${on ? '#fffaf0' : 'transparent'}">
+      <button class="aph-chip${on ? ' on' : ''}" onclick="vvSwitchGroup('${g[0]}')" style="min-width:190px">${g[1]}</button>
+      <select class="aph-select" ${on ? 'id="intro-vv-select" ' : ''}aria-label="${g[1]}: set" onchange="vvPickSet('${g[0]}',this.value)" style="max-width:200px">${getVVOptions(g[0], key)}</select>
+      <span class="aph-note intro-phrase-count">${n} phrases</span>
+    </div>`; }).join('');
 }
 
 function renderIntro() {
@@ -3412,11 +3437,8 @@ function renderIntro() {
         </select>
       </div>
 
-      <div class="aph-label">Vocab Set</div>
-      <div class="aph-row">
-        <select class="aph-select" id="intro-vv-select" onchange="currentVV=this.value;renderIntro()" style="max-width:340px">${getVVOptions()}</select>
-        <span class="aph-note intro-phrase-count">${pool.length} phrases</span>
-      </div>
+      <div class="aph-label">What to practise</div>
+      ${vvGroupRows()}
 
       <div class="aph-label">Cards per session</div>
       <div class="aph-row">
