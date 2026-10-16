@@ -3,7 +3,7 @@
 <script id="ap-update">
 /* AP auto-update: if this copy is older than the published version, reload once with the new one (saved answers are kept) */
 (function () {
-  var B = '8062d88739'; window.AP_BUILD = B;
+  var B = '4ccf9d1bde'; window.AP_BUILD = B;
   function check() {
     if (!/^https?:$/.test(location.protocol) || !window.fetch) return;
     var f = decodeURIComponent(location.pathname.split('/').pop() || '');
@@ -11273,6 +11273,8 @@ html.aptt-open,html.aptt-open body{overflow:hidden}
 .aptt-nagsw{display:inline-block;margin:0 0 8px;background:#fff;border:2px solid #8a7a3a;border-radius:999px;padding:8px 14px;font:700 .95rem/1.2 var(--aph-body);color:#3b2f06;cursor:pointer;-webkit-tap-highlight-color:transparent}
 .aptt-nagoff{position:fixed;bottom:16px;right:14px;z-index:14011;background:#fff;color:#3b2f06;border:3px solid #3b2f06;border-radius:999px;padding:10px 16px;font:800 1rem/1.2 var(--aph-body);box-shadow:0 4px 16px rgba(0,0,0,.35);cursor:pointer;max-width:calc(100vw - 28px);-webkit-tap-highlight-color:transparent}
 .aptt-nagoff[hidden]{display:none}
+.aptt-new{margin:18px 0 6px;padding:14px 12px;border-top:2px dashed #b8b2a0;text-align:center}
+.aptt-new .aptt-save-n{margin-top:8px}
 .aptt-item.tm-shake{animation:tmShake .45s ease}
 .aptt-ih{display:flex;gap:10px;align-items:flex-start}
 .aptt-n{flex:none;width:34px;height:34px;border-radius:50%;border:2px solid var(--gold);display:flex;align-items:center;justify-content:center;font-weight:800;font-size:1rem;color:var(--navy);background:#fff}
@@ -11766,7 +11768,7 @@ var APTT = (function () {
       + '<div class="aptt-learn-must" id="aptt-learn-must"></div>'
       + APPEN.html({ key: S.key + ':learn', lines: 10, nums: 10, label: 'Eton Whiteboard Notes: What I learned', typed: '<textarea class="appen-ta" rows="10" spellcheck="false" autocomplete="off" placeholder="Number your notes 1 to 10: what caught you out, the correct version, how you’ll remember it…"></textarea>' }) + '</div>'
       + '<div class="aptt-save"><button type="button" class="apmp-btn lg" id="aptt-pdfbtn" onclick="APTT.pdf()">📄 Save my work as PDF</button>'
-      + '<div class="aptt-save-n">' + ((/iPad|iPhone|iPod/.test(navigator.userAgent || '') || (/Macintosh/.test(navigator.userAgent || '') && navigator.maxTouchPoints > 1)) ? 'then Share &rsaquo; OneNote, Send. In OneNote open the new page, tap the PDF icon, then Printout (3 steps on the next page).' : 'then put it into OneNote on a new page: Insert &rsaquo; File Printout') + '</div></div></div>'
+      + '<div class="aptt-save-n">' + ((/iPad|iPhone|iPod/.test(navigator.userAgent || '') || (/Macintosh/.test(navigator.userAgent || '') && navigator.maxTouchPoints > 1)) ? 'then Share &rsaquo; OneNote, Send. In OneNote open the new page, tap the PDF icon, then Printout (3 steps on the next page).' : 'then put it into OneNote on a new page: Insert &rsaquo; File Printout') + '</div></div>' + (RUN ? '<div class="aptt-new"><button type="button" class="apmp-btn" id="aptt-newbtn" onclick="APTT.another()">🔄 Take a fresh test: new questions, same settings</button><div class="aptt-save-n">Save your PDF first: this test is cleared when you start the new one.</div></div>' : '') + '</div>'
       + '</div>';
     ov.innerHTML = h;
     ov.insertAdjacentHTML('afterbegin', '<div class="aptt-clock" id="aptt-clock" role="timer" aria-live="off" hidden></div>');
@@ -11813,6 +11815,14 @@ var APTT = (function () {
     lb.addEventListener('pointerdown', function (e) { if (e.target.closest && e.target.closest('.appen-cv')) LPD = Date.now(); }, true);
     var k = function () { setTimeout(function () { try { learnMark(); learnUI(); } catch (x) { } }, 30); };
     ['pointerup', 'input', 'keyup'].forEach(function (t) { lb.addEventListener(t, k); });
+  }
+  function another() {   // a brand-new draw with the same settings (self-set tests only: RUN is the draw); this test is cleared
+    if (!S || !RUN) return;
+    if (!window.confirm('Take a brand-new test with different questions?\n\nThis test will be cleared. If you have not saved your PDF yet, press Cancel and save it first.')) return;
+    var run = RUN, st = S;
+    forget(st); clearInterval(TICK); TICK = null; S = null;
+    window.APTT.lastRun = run;
+    try { run(); } catch (e) { showErr('fresh test: ' + (e && (e.message || e))); }
   }
   function afresh() {   // the same items again, from the mode choice (the next attempt)
     var st = S; forget(st);
@@ -12517,7 +12527,7 @@ var APTT = (function () {
   }
   // pen-up anywhere ends a stroke (the automatic lock waits for it)
   try { ['pointerup', 'pointercancel'].forEach(function (t) { document.addEventListener(t, function () { PEN = false; }, true); }); } catch (e) { }
-  return { askSpanish: askSpanish, open: open, setTime: setTime, all: toAll, auto: toAuto, close: close, mode: mode, lock: lock, show: showAns, mark: mark, next: next, nag: toggleNag, verbDetail: verbDetail, pdf: pdf, teacher: teacher, maker: maker, openSet: openSet, cmSVG: cmSVG, cmBand: cmBand, cmPick: function (s20, seed) { if (!CM) cmLoad(); return cmPick(s20, seed); }, cmReload: function () { CM = null; cmLoad(); }, inProgress: inProgress, resume: resume, copyLink: copyLink, copyHTML: copyHTML, checkGit: checkGit, ghRemove: ghRemove, ghReplace: ghReplace, pack: pack, minsTxt: minsTxt, bigOf: function (answer, kind, srcId) { return kind === 'sentence' || (!{ conj: 1, it: 1, spot: 1 }[String(srcId || '').split('|')[0]] && nWords(answer) > 2); }, catOf: catOf, CATS: CATS, unpack: unpack, checkKey: checkKey, list: listGet, linkFor: linkFor, copy: copyText, ghAdd: ghAdd, holdAdd: holdAdd, holdLoad: holdLoad, libGet: libGet, libPut: libPut, listAdd: listAdd, folders: folders, gkey: gkey, nextCodeFor: nextCodeFor, lastRun: null, capturing: null, LABEL: LBL, state: function () { return S; } };
+  return { askSpanish: askSpanish, open: open, setTime: setTime, all: toAll, auto: toAuto, close: close, mode: mode, lock: lock, show: showAns, mark: mark, next: next, nag: toggleNag, another: another, verbDetail: verbDetail, pdf: pdf, teacher: teacher, maker: maker, openSet: openSet, cmSVG: cmSVG, cmBand: cmBand, cmPick: function (s20, seed) { if (!CM) cmLoad(); return cmPick(s20, seed); }, cmReload: function () { CM = null; cmLoad(); }, inProgress: inProgress, resume: resume, copyLink: copyLink, copyHTML: copyHTML, checkGit: checkGit, ghRemove: ghRemove, ghReplace: ghReplace, pack: pack, minsTxt: minsTxt, bigOf: function (answer, kind, srcId) { return kind === 'sentence' || (!{ conj: 1, it: 1, spot: 1 }[String(srcId || '').split('|')[0]] && nWords(answer) > 2); }, catOf: catOf, CATS: CATS, unpack: unpack, checkKey: checkKey, list: listGet, linkFor: linkFor, copy: copyText, ghAdd: ghAdd, holdAdd: holdAdd, holdLoad: holdLoad, libGet: libGet, libPut: libPut, listAdd: listAdd, folders: folders, gkey: gkey, nextCodeFor: nextCodeFor, lastRun: null, capturing: null, LABEL: LBL, state: function () { return S; } };
 })();
 /* ===== END AP TIMED TEST ===== */
 </script>
