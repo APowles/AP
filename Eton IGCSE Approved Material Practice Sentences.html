@@ -3,7 +3,7 @@
 <script id="ap-update">
 /* AP auto-update: if this copy is older than the published version, reload once with the new one (saved answers are kept) */
 (function () {
-  var B = '9cdce9c5d0'; window.AP_BUILD = B;
+  var B = 'c9bfb84806'; window.AP_BUILD = B;
   function check() {
     if (!/^https?:$/.test(location.protocol) || !window.fetch) return;
     var f = decodeURIComponent(location.pathname.split('/').pop() || '');
@@ -3630,7 +3630,46 @@ var APTT = (function () {
   }
   // a teacher key is good if what it signs checks out with the public key
   function checkKey(d) { var t = 'AP key check ' + Date.now(); return sign(t, d).then(function (g) { return verify(t, g); }).catch(function () { return false; }); }
-  function pack(o) { return zip(JSON.stringify(o)).then(function (t) { return sign(t, tkey()).then(function (g) { return t + '.' + g; }); }); }
+  /* ── Unsaved test codes (Oct 2026): every test link made with a code is noted on this device, and the note is cleared only when the code is really
+        on the Eton Tests page. Anything left over shows a red banner on every Eton page until it is added (or copied into tests.txt). ── */
+  var _ghAdd0 = ghAdd;
+  ghAdd = function (code, line) { return _ghAdd0(code, line).then(function (r) { apPendDone([code]); return r; }); };
+  if (typeof ghAddMany === 'function') { var _ghAddMany0 = ghAddMany; ghAddMany = function (L) { return _ghAddMany0(L).then(function (r) { apPendDone(L.map(function (x) { return x.code; })); return r; }); }; }
+  if (typeof ghRemove === 'function') { var _ghRemove0 = ghRemove; ghRemove = function (code) { return _ghRemove0(code).then(function (r) { apPendDone([code]); return r; }); }; }
+  function apPendGet() { try { return JSON.parse(lsGet('apttPend') || '[]') || []; } catch (e) { return []; } }
+  function apPendSet(l) { lsSet('apttPend', JSON.stringify(l)); }
+  function apPendNote(o, tok) {
+    var c = String(o.c || '').toUpperCase();
+    if (!/^[A-Z]+[0-9]+$/.test(c)) return;   // the ACTUAL TEST of a set has a secret code with letters: it is held back on purpose
+    var l = apPendGet().filter(function (x) { return x.c !== c; });
+    l.push({ c: c, line: c + ' | ' + String(o.n || '').replace(/\|/g, '/') + ' | ' + (o.cat || '') + ' | ' + (o.f || '') + ' | ' + tok });
+    apPendSet(l); setTimeout(apPendShow, 8000);
+  }
+  function apPendDone(codes) {
+    var up = codes.map(function (c) { return String(c).toUpperCase(); });
+    apPendSet(apPendGet().filter(function (x) { return up.indexOf(x.c) < 0; })); apPendShow();
+  }
+  function apPendShow() {
+    var old = document.getElementById('aptt-pend'); if (old) old.remove();
+    var l = apPendGet(); if (!l.length || window.__apPendHide || !document.body) return;
+    var d = document.createElement('div'), mk = function (t, f) { var b = document.createElement('button'); b.type = 'button'; b.textContent = t; b.onclick = function () { f(b); }; b.style.cssText = 'font:700 13px system-ui,sans-serif;border:0;border-radius:8px;padding:7px 12px;cursor:pointer;background:#fff;color:#7a1b12'; return b; };
+    d.id = 'aptt-pend'; d.setAttribute('role', 'alert');
+    d.style.cssText = 'position:fixed;left:0;right:0;top:0;z-index:2147483000;background:#b42318;color:#fff;padding:10px 14px;font:700 14px/1.35 system-ui,sans-serif;box-shadow:0 2px 12px rgba(0,0,0,.4);display:flex;flex-wrap:wrap;gap:8px 12px;align-items:center';
+    var msg = document.createElement('span'); msg.style.cssText = 'flex:1 1 320px';
+    msg.textContent = '⚠ NOT SAVED to the Eton Tests page: ' + l.map(function (x) { return x.c; }).join(', ') + '. The boys cannot type ' + (l.length === 1 ? 'this code' : 'these codes') + ' yet. ' + (gkey() ? 'Press Add now.' : 'This device has no teacher key saved, so nothing was added: copy the lines into tests.txt, or save your key and refresh.');
+    d.appendChild(msg);
+    if (gkey()) d.appendChild(mk('Add now', function (b) {
+      b.disabled = true; b.textContent = 'Adding…';
+      var bad = [], p = Promise.resolve();
+      apPendGet().forEach(function (x) { p = p.then(function () { return ghAdd(x.c, x.line); }).catch(function (e) { bad.push(x.c + (e && e.message === 'used' ? ' (that code is already used by another test: make this test again with a new code)' : ' (' + (e && e.message || e) + ')')); }); });
+      p.then(function () { apPendShow(); if (bad.length) alert('Could not add: ' + bad.join('; ')); });
+    }));
+    d.appendChild(mk('Copy lines for tests.txt', function (b) { copyText(l.map(function (x) { return x.line; }).join('\n'), b); }));
+    d.appendChild(mk('Hide for now', function () { window.__apPendHide = true; d.remove(); }));
+    document.body.appendChild(d);
+  }
+  setTimeout(apPendShow, 1500);
+  function pack(o) { return zip(JSON.stringify(o)).then(function (t) { return sign(t, tkey()).then(function (g) { var tok = t + '.' + g; try { apPendNote(o, tok); } catch (e) { } return tok; }); }); }
   // token "payload.signature" → the test (rejects if it was not signed by AP's key)
   function unpack(token) {
     token = String(token || '').trim().replace(/^.*#t=/, ''); var i = token.lastIndexOf('.');
@@ -3733,6 +3772,7 @@ var APTT = (function () {
   function nextCodeFor(P, cb) {
     var hi = 100, rx = new RegExp('^' + P + '(\\d+)$', 'i'), add = function (c) { var m = rx.exec(String(c || '').trim()); if (m) hi = Math.max(hi, +m[1]); };
     listGet().forEach(function (e) { add(e.c); });
+    apPendGet().forEach(function (e) { add(e.c); });
     cb(P + (hi + 1));
     var base = String(document.baseURI || location.href).replace(/[#?].*$/, '').replace(/[^\/]*$/, '');
     if (!window.fetch) return;
