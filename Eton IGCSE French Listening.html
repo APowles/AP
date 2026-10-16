@@ -3,7 +3,7 @@
 <script id="ap-update">
 /* AP auto-update: if this copy is older than the published version, reload once with the new one (saved answers are kept) */
 (function () {
-  var B = '492830a3a3'; window.AP_BUILD = B;
+  var B = '9f0c821325'; window.AP_BUILD = B;
   function check() {
     if (!/^https?:$/.test(location.protocol) || !window.fetch) return;
     var f = decodeURIComponent(location.pathname.split('/').pop() || '');
@@ -492,6 +492,7 @@ body.teacher-mode .transcript-box{display:block;}
 .code-error{font-size:0.72rem;color:var(--wrong);margin-top:6px;min-height:16px;}
 
 .paper-mock{opacity:0.35;filter:grayscale(1);pointer-events:none;}
+.paper-soon{display:flex;flex-direction:column;}.paper-soon .pc-soon{margin:auto;padding:1.6rem 0;font-weight:700;font-size:1.05rem;color:var(--navy);letter-spacing:.02em;}
 
 .edit-mode-bar{background:#2d1a0e;border-bottom:2px solid #e67e22;padding:6px 1.5rem;display:none!important;align-items:center;gap:12px;flex-wrap:wrap;}
 body.edit-mode .edit-mode-bar{display:flex!important;}
@@ -1285,7 +1286,7 @@ function speak(segs,lc,cb,onBound){
     if(i>=arr.length){if(cb)cb();return;}
     const seg=arr[i];
     const u=new SpeechSynthesisUtterance(cleanForSpeech(seg.text));
-    u.rate=0.92;u.lang=lc;
+    u.rate=0.80;u.lang=lc;
     const v=_sgv(lc,seg.female);if(v)u.voice=v;
     // Pass segment index with boundary events so caller knows which segment is speaking
     if(onBound) u.onboundary=e=>{ if(e.name==='word') onBound(i,e.charIndex,e.charLength); };
@@ -32500,7 +32501,7 @@ function goToCode(){
   const err=document.getElementById('code-error');
   const idx=PAPERS.findIndex(p=>p.frcode===val);
   if(idx===-1){err.textContent='Code not found. Try FR001 to FR'+String(PAPERS.length).padStart(3,'0')+'.';return;}
-  if(PAPERS[idx].mock&&!teacherMode){err.textContent='Code not found. Try FR001 to FR'+String(PAPERS.length).padStart(3,'0')+'.';return;}
+  if(PAPERS[idx].mock&&!teacherMode){err.textContent=val+' is coming soon.';return;}
   err.textContent='';
   document.getElementById('code-input').value='';
   selectPaper(idx);
@@ -32509,7 +32510,8 @@ function buildWelcomeGrid(){
   const g=document.getElementById('papers-grid');
   g.innerHTML=PAPERS.map((p,i)=>{
     const locked=p.mock&&!teacherMode;
-    return '<div class="paper-card'+(locked?' paper-mock':'')+'" onclick="selectPaper('+i+')">'
+    if(locked) return '<div class="paper-card paper-mock paper-soon"><div class="pc-frcode">'+p.frcode+'</div><div class="pc-soon">Coming soon</div></div>';
+    return '<div class="paper-card" onclick="selectPaper('+i+')">'
       +'<div class="pc-frcode">'+p.frcode+'</div>'
       +'<div class="pc-code">'+p.code+'</div>'
       +'<div class="pc-title">'+p.title+'</div>'
@@ -37137,6 +37139,7 @@ window.AP_LC_CSS = "/* AP Listening class sheet: all selectors prefixed .lc- */\
       var has = card.querySelector('.lc-set');
       if (!canSet()) { if (has) has.remove(); return; }
       if (has) return;
+      if (card.classList.contains('paper-soon')) return;   // 'Coming soon' tiles get no buttons
       var b = document.createElement('div'); b.className = 'pc-btn pc-print lc-set'; b.title = 'Teacher: set this paper (or some sections) as a class answer sheet link / code';
       b.innerHTML = '&#128273; Set class sheet'; b.onclick = function (e) { e.stopPropagation(); setClass(i); };
       card.appendChild(b);
