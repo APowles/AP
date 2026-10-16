@@ -5,7 +5,7 @@
 <script id="ap-update">
 /* AP auto-update: if this copy is older than the published version, reload once with the new one (saved answers are kept) */
 (function () {
-  var B = 'cb04773251'; window.AP_BUILD = B;
+  var B = 'afc4979755'; window.AP_BUILD = B;
   function check() {
     if (!/^https?:$/.test(location.protocol) || !window.fetch) return;
     var f = decodeURIComponent(location.pathname.split('/').pop() || '');
@@ -5700,7 +5700,7 @@ function closeConjChallenge() {
     type: 'mix', n: 20,
     run: null, test: null, open: {}
   };
-  UNITS.forEach(function (u) { S.units[u.code] = true; });
+  UNITS.forEach(function (u) { S.units[u.code] = false; });   // nothing is chosen until the pupil chooses
 
   function stopAll() {
     try { if (typeof timerInterval !== 'undefined' && timerInterval) { clearInterval(timerInterval); timerInterval = null; } } catch (e) { }
@@ -5732,7 +5732,7 @@ function closeConjChallenge() {
       + '<button class="gh-card gh-sm" onclick="gramNotes()"><span class="gh-ic">&#128214;</span><span class="gh-t">NOTES</span><span class="gh-s">Read the grammar. Choose the pages you want.</span></button>'
       + '<button class="gh-card gh-sm gh-alt" onclick="gramSetup(\'drill\')"><span class="gh-ic">&#9999;&#65039;</span><span class="gh-t">DRILLS</span><span class="gh-s">Practise with instant feedback.</span></button>'
       + '<button class="gh-card gh-sm gh-alt2" onclick="gramSetup(\'test\')"><span class="gh-ic">&#128221;</span><span class="gh-t">TESTS</span><span class="gh-s">Make a test to print, or take it on screen.</span></button>'
-      + '<button class="gh-card gh-sm gh-alt3" onclick="gramSetup(\'spot\')"><span class="gh-ic">&#9201;&#65039;</span><span class="gh-t">SPOT TEST</span><span class="gh-s">Ten questions: printed, or timed and handed in.</span></button>'
+      + '<button class="gh-card gh-sm gh-alt3" onclick="gramSetup(\'spot\')"><span class="gh-ic">&#9201;&#65039;</span><span class="gh-t">SPOT TEST</span><span class="gh-s">Short test: printed, or timed and handed in.</span></button>'
       + '<button class="gh-card gh-sm gh-alt4" onclick="gramSpeed()"><span class="gh-ic">&#9889;</span><span class="gh-t">SPEED</span><span class="gh-s">Race the clock: solo or in teams.</span></button>'
       + '</div></div></div>');
   };
@@ -5798,12 +5798,12 @@ function closeConjChallenge() {
     S.kind = kind;
     var test = kind === 'test' || kind === 'spot', spot = kind === 'spot', p = pool();
     var uh = '<div class="aph-label">Units <span class="vb-light">tap to choose</span></div><div class="aph-row">'
-      + vbChip(UNITS.every(function (u) { return S.units[u.code]; }), 'gramUnit(\'*\')', 'All units')
+      + vbChip(UNITS.every(function (u) { return S.units[u.code]; }), 'gramUnit(\'*\')', 'All units') + '<button class="aph-chip gh-clear" onclick="gramUnit(\'-\')">&#10005; Clear all</button>'
       + UNITS.map(function (u) { return vbChip(S.units[u.code], 'gramUnit(\'' + u.code + '\')', esc(uName(u.code))); }).join('') + '</div>';
     var th = '<div class="aph-label">Question types</div><div class="aph-row">'
       + vbChip(S.type === 'mix', "gramType('mix')", 'Mixed') + vbChip(S.type === 'mc', "gramType('mc')", 'Multiple choice') + vbChip(S.type === 'gap', "gramType('gap')", 'Fill the gap') + '</div>';
-    var ns = spot ? [10] : test ? [10, 15, 20, 30] : [10, 20, 30, -1];
-    if (ns.indexOf(S.n) < 0) S.n = ns.indexOf(20) >= 0 ? 20 : ns[0];
+    var ns = spot ? [5, 10, 15, 20] : test ? [5, 10, 15, 20, 30, 40] : [10, 20, 30, -1];
+    if (ns.indexOf(S.n) < 0) S.n = spot ? 10 : (ns.indexOf(20) >= 0 ? 20 : ns[0]);
     var nh = '<div class="aph-label">Questions <span class="vb-count">' + p.length + ' available</span></div><div class="aph-row">'
       + ns.map(function (n) { return vbChip(S.n === n, 'gramN(' + n + ')', n === -1 ? 'All' : n); }).join('') + '</div>';
     var go = test
@@ -5811,12 +5811,13 @@ function closeConjChallenge() {
       : '<button class="aph-btn aph-btn-primary aph-btn-block" ' + (p.length ? '' : 'disabled') + ' onclick="gramStart(false)">&#9654; Start drill</button>';
     var y = window.scrollY;
     show('<div class="aph-wrap gh-setup"><div class="aph-card"><h2 class="aph-h">' + (spot ? 'Eton Spot Test: grammar' : test ? 'Grammar tests' : 'Grammar drills') + '</h2>'
-      + '<p class="gh-p">' + (spot ? 'Choose the units. You get ten questions: print them, or do them on screen against the clock and hand your work in as a PDF.' : test ? 'Choose the units to test. You can print a student sheet and an answer key, or take the test on screen.' : 'Choose the units you want to practise. You see at once whether you are right, and why.') + '</p>'
+      + '<p class="gh-p">' + (spot ? 'Choose the units. Choose how many questions: print them, or do them on screen against the clock and hand your work in as a PDF.' : test ? 'Choose the units to test. You can print a student sheet and an answer key, or take the test on screen.' : 'Choose the units you want to practise. You see at once whether you are right, and why.') + '</p>'
       + uh + th + nh + '<div class="aph-stack" style="margin-top:20px">' + go + '</div></div></div>');
     window.scrollTo(0, y);
   };
   W.gramUnit = function (c) {
-    if (c === '*') { var all = UNITS.every(function (u) { return S.units[u.code]; }); UNITS.forEach(function (u) { S.units[u.code] = !all; }); }
+    if (c === '-') UNITS.forEach(function (u) { S.units[u.code] = false; });
+    else if (c === '*') { var all = UNITS.every(function (u) { return S.units[u.code]; }); UNITS.forEach(function (u) { S.units[u.code] = !all; }); }
     else S.units[c] = !S.units[c];
     gramSetup(S.kind);
   };
@@ -5949,7 +5950,7 @@ function closeConjChallenge() {
     return c.length >= UNITS.length - 1 ? 'all units' : (c.length === 1 ? (c[0] === 'C' ? 'Section C' : 'Unit ' + c[0]) : 'Units ' + c.join(', '));
   }
   W.gramMakeTest = function () {
-    var spot = S.kind === 'spot', qs = drawTest(spot ? 10 : S.n); if (!qs.length) return;
+    var spot = S.kind === 'spot', qs = drawTest(S.n); if (!qs.length) return;
     S.test = qs;
     show('<div class="aph-wrap gh-ready"><div class="aph-card"><h2 class="aph-h">' + (spot ? 'Your Spot Test is ready' : 'Your test is ready') + '</h2>'
       + '<p class="gh-p"><b>' + qs.length + ' questions</b> &middot; ' + esc(unitsLabel(qs)) + '</p>'
@@ -5970,11 +5971,11 @@ function closeConjChallenge() {
     if (!W.APTT || !APTT.open) { alert('The timed Spot Test is not available on this page.'); return; }
     var first = S.test;
     var run = function () {
-      var qs = (!APTT.capturing && first) ? first : drawTest(10); first = null;
+      var qs = (!APTT.capturing && first) ? first : drawTest(first ? first.length : S.n); first = null;
       var sel = UNITS.filter(function (u) { return S.units[u.code]; }).map(function (u) { return u.code; }).join(',');
       var hs = 0, hx = qs.map(function (q) { return q.q; }).join('~'); for (var hi = 0; hi < hx.length; hi++) hs = (hs * 31 + hx.charCodeAt(hi)) >>> 0;
       APTT.open({ id: 'gr|' + sel + '|' + S.type + '|' + qs.length + '|' + hs.toString(36), app: 'Eton F Block Verbs and Grammar', kicker: 'Eton F Block &middot; Grammar',
-        title: 'Grammar: ' + esc(unitsLabel(qs)), meta: '&#127466;&#127480; Spanish grammar &middot; ' + qs.length + ' questions &middot; choose the answer or write the missing word', lang: '', langCode: 'es', total: qs.length, level: '',
+        title: 'Grammar: ' + esc(unitsLabel(qs)), meta: '&#127466;&#127480; Spanish grammar &middot; choose the answer or write the missing word', lang: '', langCode: 'es', total: qs.length, level: '',
         items: qs.map(function (q) { return { prompt: spotPrompt(q), answer: spotAnswer(q), kind: 'word', label: uName(q.u), html: true }; }) });
     };
     APTT.lastRun = run; run();
@@ -6026,7 +6027,7 @@ function closeConjChallenge() {
     gOverlay('<div class="grs-wrap"><div class="grs-top"><b>&#9889; Eton Speed Challenge &middot; Grammar</b><button class="grs-x" onclick="gramSpeedClose()">&#10005; Close</button></div>'
       + '<p class="grs-p">Say the answer to each tile aloud, then tap the tile to check. &#10003; Right greys it out and scores a point. &#10007; Wrong swaps in a new tile to try.</p>'
       + '<div class="grs-lb">Units <span class="grs-c">' + p.length + ' questions available</span></div><div class="aph-row">'
-      + vbChip(UNITS.every(function (u) { return S.units[u.code]; }), "gramSpeedUnit('*')", 'All units') + UNITS.map(function (u) { return vbChip(S.units[u.code], "gramSpeedUnit('" + u.code + "')", esc(uName(u.code))); }).join('') + '</div>'
+      + vbChip(UNITS.every(function (u) { return S.units[u.code]; }), "gramSpeedUnit('*')", 'All units') + '<button class="aph-chip gh-clear" onclick="gramSpeedUnit(\'-\')">&#10005; Clear all</button>' + UNITS.map(function (u) { return vbChip(S.units[u.code], "gramSpeedUnit('" + u.code + "')", esc(uName(u.code))); }).join('') + '</div>'
       + chips('teams', [[1, 'Solo'], [2, '2 teams'], [3, '3 teams']], 'Teams') + chips('tiles', [[12, '12'], [16, '16'], [20, '20']], 'Tiles')
       + chips('gt', [[120, '2 min'], [180, '3 min'], [300, '5 min'], [0, 'No limit']], 'Game time') + chips('tt', [[15, '15 s'], [20, '20 s'], [30, '30 s'], [0, 'No limit']], 'Time for each turn')
       + '<div class="aph-stack" style="margin-top:18px"><button class="aph-btn aph-btn-primary aph-btn-block" ' + (p.length >= 4 ? '' : 'disabled') + ' onclick="gramSpeedGo()">&#9654; Start</button>'
@@ -6035,7 +6036,8 @@ function closeConjChallenge() {
   function canSign() { try { return !!(localStorage.getItem('apTeacherKey') && W.APTT && APTT.pack && W.APDL); } catch (e) { return false; } }
   W.gramSpeedSet = function (k, v) { SP[k] = v; speedSetup(); };
   W.gramSpeedUnit = function (c) {
-    if (c === '*') { var all = UNITS.every(function (u) { return S.units[u.code]; }); UNITS.forEach(function (u) { S.units[u.code] = !all; }); } else S.units[c] = !S.units[c];
+    if (c === '-') UNITS.forEach(function (u) { S.units[u.code] = false; });
+    else if (c === '*') { var all = UNITS.every(function (u) { return S.units[u.code]; }); UNITS.forEach(function (u) { S.units[u.code] = !all; }); } else S.units[c] = !S.units[c];
     speedSetup();
   };
   W.gramSpeedGo = function () {
