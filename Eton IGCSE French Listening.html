@@ -3,7 +3,7 @@
 <script id="ap-update">
 /* AP auto-update: if this copy is older than the published version, reload once with the new one (saved answers are kept) */
 (function () {
-  var B = '9f0c821325'; window.AP_BUILD = B;
+  var B = '6de2e61be9'; window.AP_BUILD = B;
   function check() {
     if (!/^https?:$/.test(location.protocol) || !window.fetch) return;
     var f = decodeURIComponent(location.pathname.split('/').pop() || '');
@@ -492,7 +492,7 @@ body.teacher-mode .transcript-box{display:block;}
 .code-error{font-size:0.72rem;color:var(--wrong);margin-top:6px;min-height:16px;}
 
 .paper-mock{opacity:0.35;filter:grayscale(1);pointer-events:none;}
-.paper-soon{display:flex;flex-direction:column;}.paper-soon .pc-soon{margin:auto;padding:1.6rem 0;font-weight:700;font-size:1.05rem;color:var(--navy);letter-spacing:.02em;}
+.paper-soon{position:relative;}.paper-soon .pc-soon{position:absolute;top:14px;right:14px;padding:3px 10px;border-radius:12px;background:var(--navy);color:var(--gold);font-weight:700;font-size:.72rem;letter-spacing:.04em;text-transform:uppercase;}
 
 .edit-mode-bar{background:#2d1a0e;border-bottom:2px solid #e67e22;padding:6px 1.5rem;display:none!important;align-items:center;gap:12px;flex-wrap:wrap;}
 body.edit-mode .edit-mode-bar{display:flex!important;}
@@ -32510,8 +32510,8 @@ function buildWelcomeGrid(){
   const g=document.getElementById('papers-grid');
   g.innerHTML=PAPERS.map((p,i)=>{
     const locked=p.mock&&!teacherMode;
-    if(locked) return '<div class="paper-card paper-mock paper-soon"><div class="pc-frcode">'+p.frcode+'</div><div class="pc-soon">Coming soon</div></div>';
-    return '<div class="paper-card" onclick="selectPaper('+i+')">'
+    return '<div class="paper-card'+(locked?' paper-mock paper-soon':'')+'" onclick="selectPaper('+i+')">'
+      +(locked?'<div class="pc-soon">Coming soon</div>':'')
       +'<div class="pc-frcode">'+p.frcode+'</div>'
       +'<div class="pc-code">'+p.code+'</div>'
       +'<div class="pc-title">'+p.title+'</div>'
@@ -37139,7 +37139,6 @@ window.AP_LC_CSS = "/* AP Listening class sheet: all selectors prefixed .lc- */\
       var has = card.querySelector('.lc-set');
       if (!canSet()) { if (has) has.remove(); return; }
       if (has) return;
-      if (card.classList.contains('paper-soon')) return;   // 'Coming soon' tiles get no buttons
       var b = document.createElement('div'); b.className = 'pc-btn pc-print lc-set'; b.title = 'Teacher: set this paper (or some sections) as a class answer sheet link / code';
       b.innerHTML = '&#128273; Set class sheet'; b.onclick = function (e) { e.stopPropagation(); setClass(i); };
       card.appendChild(b);
