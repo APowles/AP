@@ -3,7 +3,7 @@
 <script id="ap-update">
 /* AP auto-update: if this copy is older than the published version, reload once with the new one (saved answers are kept) */
 (function () {
-  var B = '6734239cbc'; window.AP_BUILD = B;
+  var B = 'be74ced2a8'; window.AP_BUILD = B;
   function check() {
     if (!/^https?:$/.test(location.protocol) || !window.fetch) return;
     var f = decodeURIComponent(location.pathname.split('/').pop() || '');
@@ -11270,6 +11270,9 @@ html.aptt-open,html.aptt-open body{overflow:hidden}
 .aptt-item.aptt-tap .aptt-mb:not(.on){border-color:#c0392b;animation:apttNudge 1s ease-in-out infinite}
 @keyframes apttNudge{0%,100%{transform:none}50%{transform:translateY(-4px)}}
 .aptt-todo.hot{background:#c0392b;font-size:1.0625rem;animation:apttGlow 1s ease-in-out infinite}
+.aptt-nagsw{display:inline-block;margin:0 0 8px;background:#fff;border:2px solid #8a7a3a;border-radius:999px;padding:8px 14px;font:700 .95rem/1.2 var(--aph-body);color:#3b2f06;cursor:pointer;-webkit-tap-highlight-color:transparent}
+.aptt-nagoff{position:fixed;bottom:16px;right:14px;z-index:14011;background:#fff;color:#3b2f06;border:3px solid #3b2f06;border-radius:999px;padding:10px 16px;font:800 1rem/1.2 var(--aph-body);box-shadow:0 4px 16px rgba(0,0,0,.35);cursor:pointer;max-width:calc(100vw - 28px);-webkit-tap-highlight-color:transparent}
+.aptt-nagoff[hidden]{display:none}
 .aptt-item.tm-shake{animation:tmShake .45s ease}
 .aptt-ih{display:flex;gap:10px;align-items:flex-start}
 .aptt-n{flex:none;width:34px;height:34px;border-radius:50%;border:2px solid var(--gold);display:flex;align-items:center;justify-content:center;font-weight:800;font-size:1rem;color:var(--navy);background:#fff}
@@ -11711,7 +11714,7 @@ var APTT = (function () {
   var MKL = '① Red pen: underline your errors (or tick if perfect). ② THEN TAP YOUR MARK ↓ (no tap = 0)';
   function legend() {
     var w = S.items.some(function (it) { return !big(it); }), s = S.items.some(big);
-    return '<div class="aptt-two"><b>TWO things for EVERY ' + noun(1) + ':</b> ① mark your answer <b>in red</b> ② then <u>TAP a mark button</u>. <b>Red pen alone scores 0</b>: your mark only counts once you have tapped it.</div><div class="aptt-lh">How to mark yourself' + (S.mode === 'timed' ? ': you have ' + dur(markLimit()) : '') + '</div><div class="aptt-lp">Compare each answer with the correct one, <b class="aptt-red">in red</b>. You cannot choose a mark until there is red on your answer:</div>'
+    return '<div class="aptt-two"><b>TWO things for EVERY ' + noun(1) + ':</b> ① mark your answer <b>in red</b> ② then <u>TAP a mark button</u>. <b>Red pen alone scores 0</b>: your mark only counts once you have tapped it.</div><button type="button" class="aptt-nagsw" id="aptt-nagsw" onclick="APTT.nag()">' + nagTxt() + '</button><div class="aptt-lh">How to mark yourself' + (S.mode === 'timed' ? ': you have ' + dur(markLimit()) : '') + '</div><div class="aptt-lp">Compare each answer with the correct one, <b class="aptt-red">in red</b>. You cannot choose a mark until there is red on your answer:</div>'
       + (w ? '<div class="aptt-lrow aptt-lrow-w">' + (s ? '<span class="aptt-lg"><i>Single words and verb forms</i></span>' : '') + '<span><b>2</b> <strong class="aptt-lw">Perfect</strong>: right in every way (spelling, accents, endings, gender)</span><span><b>1</b> <strong class="aptt-lw">Nearly</strong>: instantly recognisable as a solid attempt at this item, but with minor errors (a missing accent, a spelling slip, a wrong ending or gender)</span><span><b>0</b> <strong class="aptt-lw">Wrong</strong>: a different word, or not recognisable as an attempt at this one</span></div>' : '')
       + (s ? '<div class="aptt-lrow aptt-lrow-p">' + (w ? '<span class="aptt-lg"><i>Phrases and sentences</i></span>' : '') + '<span><b>4</b> <strong class="aptt-lw">Perfect</strong>: right in every way, accents included</span><span><b>3</b> <strong class="aptt-lw">Mostly right</strong>: about 75%+ correct</span><span><b>2</b> <strong class="aptt-lw">About half right</strong>: 50/50</span><span><b>1</b> <strong class="aptt-lw">Only a word or two right</strong></span><span><b>0</b> <strong class="aptt-lw">Nothing right</strong></span></div>' : '')
       + 'Your score is out of ' + (S.m.total || 10) + ', as a whole number.' + (S.mode === 'timed' ? ' Anything you have not marked when the marking time runs out scores 0.' : '');
@@ -11925,6 +11928,15 @@ var APTT = (function () {
     steps(); score(); clock();
     var t = $('aptt-top'); if (t && t.scrollIntoView) try { t.scrollIntoView({ behavior: 'smooth', block: 'start' }); } catch (x) { t.scrollIntoView(); }
   }
+  var NAG = lsGet('apttNoNag') !== '1';   // the red "tap your mark" alerts: on unless this boy has switched them off (kept on his own device)
+  function nagTxt() { return NAG ? '🔕 Turn off the red \u201Ctap your mark\u201D alerts' : '🔔 Turn the red alerts back on'; }
+  function nagUI(hot) {
+    var sw = $('aptt-nagsw'); if (sw && sw.textContent !== nagTxt()) sw.textContent = nagTxt();
+    var b = $('aptt-nagoff'), ov = $('aptt-ov');
+    if (!b && ov) { b = document.createElement('button'); b.type = 'button'; b.id = 'aptt-nagoff'; b.className = 'aptt-nagoff'; b.textContent = '🔕 Too much? Turn these red alerts off'; b.onclick = function () { toggleNag(); }; ov.appendChild(b); }
+    if (b) b.hidden = !(NAG && hot > 0);
+  }
+  function toggleNag() { NAG = !NAG; lsSet('apttNoNag', NAG ? '0' : '1'); if (S) todo(); }
   function corrected(n) { var inf = APPEN.info(S.key + ':' + n); return inf.red > 0 || String(inf.corr || '').replace(/\s+/g, '') !== ''; }
   function mark(n, v) {
     if (!S || !S.shown || S.markDone || (S.na || []).indexOf(n) >= 0) return;
@@ -11945,7 +11957,7 @@ var APTT = (function () {
     if (!S) return;
     var live = S.shown && !S.markDone, left = [], hot = [];
     S.items.forEach(function (it, i) {
-      var n = i + 1, na = (S.na || []).indexOf(n) >= 0, m = S.marks[i], un = live && !na && (m == null || m === ''), tap = un && corrected(n);
+      var n = i + 1, na = (S.na || []).indexOf(n) >= 0, m = S.marks[i], un = live && !na && (m == null || m === ''), tap = NAG && un && corrected(n);
       if (un) left.push(n);
       if (tap) hot.push(n);
       var r = $('aptt-it-' + n); if (!r) return;
@@ -11960,6 +11972,7 @@ var APTT = (function () {
     p.className = 'aptt-todo' + (hot.length ? ' hot' : left.length ? '' : ' ok');
     p.innerHTML = hot.length ? '🔴 TAP A MARK BUTTON! You have used red pen on ' + noun(hot.length) + ' ' + hot.join(', ') + ' but not tapped a mark: it scores 0 until you do &rarr;' : left.length ? '⚠ ' + left.length + ' not marked yet' + (left.length <= 5 ? ': ' + noun(left.length) + ' ' + left.join(', ') : '') + ' &rarr;' : '✔ All marked';
     S.left = hot.concat(left.filter(function (n) { return hot.indexOf(n) < 0; }));
+    nagUI(hot.length);
   }
   function next() {
     if (!S || !S.left || !S.left.length) return;
@@ -12490,7 +12503,7 @@ var APTT = (function () {
   }
   // pen-up anywhere ends a stroke (the automatic lock waits for it)
   try { ['pointerup', 'pointercancel'].forEach(function (t) { document.addEventListener(t, function () { PEN = false; }, true); }); } catch (e) { }
-  return { askSpanish: askSpanish, open: open, setTime: setTime, all: toAll, auto: toAuto, close: close, mode: mode, lock: lock, show: showAns, mark: mark, next: next, verbDetail: verbDetail, pdf: pdf, teacher: teacher, maker: maker, openSet: openSet, cmSVG: cmSVG, cmBand: cmBand, cmPick: function (s20, seed) { if (!CM) cmLoad(); return cmPick(s20, seed); }, cmReload: function () { CM = null; cmLoad(); }, inProgress: inProgress, resume: resume, copyLink: copyLink, copyHTML: copyHTML, checkGit: checkGit, ghRemove: ghRemove, ghReplace: ghReplace, pack: pack, minsTxt: minsTxt, bigOf: function (answer, kind, srcId) { return kind === 'sentence' || (!{ conj: 1, it: 1, spot: 1 }[String(srcId || '').split('|')[0]] && nWords(answer) > 2); }, catOf: catOf, CATS: CATS, unpack: unpack, checkKey: checkKey, list: listGet, linkFor: linkFor, copy: copyText, ghAdd: ghAdd, holdAdd: holdAdd, holdLoad: holdLoad, libGet: libGet, libPut: libPut, listAdd: listAdd, folders: folders, gkey: gkey, nextCodeFor: nextCodeFor, lastRun: null, capturing: null, LABEL: LBL, state: function () { return S; } };
+  return { askSpanish: askSpanish, open: open, setTime: setTime, all: toAll, auto: toAuto, close: close, mode: mode, lock: lock, show: showAns, mark: mark, next: next, nag: toggleNag, verbDetail: verbDetail, pdf: pdf, teacher: teacher, maker: maker, openSet: openSet, cmSVG: cmSVG, cmBand: cmBand, cmPick: function (s20, seed) { if (!CM) cmLoad(); return cmPick(s20, seed); }, cmReload: function () { CM = null; cmLoad(); }, inProgress: inProgress, resume: resume, copyLink: copyLink, copyHTML: copyHTML, checkGit: checkGit, ghRemove: ghRemove, ghReplace: ghReplace, pack: pack, minsTxt: minsTxt, bigOf: function (answer, kind, srcId) { return kind === 'sentence' || (!{ conj: 1, it: 1, spot: 1 }[String(srcId || '').split('|')[0]] && nWords(answer) > 2); }, catOf: catOf, CATS: CATS, unpack: unpack, checkKey: checkKey, list: listGet, linkFor: linkFor, copy: copyText, ghAdd: ghAdd, holdAdd: holdAdd, holdLoad: holdLoad, libGet: libGet, libPut: libPut, listAdd: listAdd, folders: folders, gkey: gkey, nextCodeFor: nextCodeFor, lastRun: null, capturing: null, LABEL: LBL, state: function () { return S; } };
 })();
 /* ===== END AP TIMED TEST ===== */
 </script>
