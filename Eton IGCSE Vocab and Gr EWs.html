@@ -5,7 +5,7 @@
 <script id="ap-update">
 /* AP auto-update: if this copy is older than the published version, reload once with the new one (saved answers are kept) */
 (function () {
-  var B = '0333d44820'; window.AP_BUILD = B;
+  var B = 'db256b15b3'; window.AP_BUILD = B;
   function check() {
     if (!/^https?:$/.test(location.protocol) || !window.fetch) return;
     var f = decodeURIComponent(location.pathname.split('/').pop() || '');
@@ -8890,13 +8890,13 @@ function _ovRenderView() {
     + '<button class="' + (_ovView.all ? 'on' : '') + '" onclick="_ovView.all=!_ovView.all;_ovRenderView()">🌍 All languages</button>'
     + '<span class="ovv-pair">' + ['en', 'fr', 'it', 'es'].map(function (l) { return '<button class="lng' + (P2[0] === l ? ' on' : '') + '" onclick="_ovSetSide(0,\'' + l + '\');_ovRenderView()" title="From: ' + OV_ALL[l] + '">' + LANG_FLAGS[l] + '</button>'; }).join('') + '<button onclick="_ovSwap();_ovRenderView()" title="Swap">⇄</button>' + ['en', 'fr', 'it', 'es'].map(function (l) { return '<button class="lng' + (P2[1] === l ? ' on' : '') + '" onclick="_ovSetSide(1,\'' + l + '\');_ovRenderView()" title="To: ' + OV_ALL[l] + '">' + LANG_FLAGS[l] + '</button>'; }).join('') + '</span>'
     + (typeof cogControls === 'function' ? cogControls(true) : '') + '<button onclick="ovPrint()">🖨 Print / PDF</button></div></div><div class="ovv-body' + (_ovView.cover ? ' covered' : '') + '">';
-  _ovOrdered().forEach(function (s) {
-    var ps = (typeof _ovSecList === 'function' ? _ovSecList(s) : ALL_PHRASES.filter(function (p) { return p.sec === s; })); if (!ps.length) return;
-    h += '<div class="ovv-sec"><div class="ovv-sh">' + _ovEsc(SECTION_TITLES[s] || s) + ' <small>' + ps.length + ' words</small></div><table class="ovv-t"><thead><tr><th class="n">#</th>' + cols.map(function (c) { return '<th>' + names[c] + '</th>'; }).join('') + '</tr></thead><tbody>';
+  vtGroups().forEach(function (g) {
+    var s = g.key, ps = g.ps; if (!ps.length) return;
+    h += '<div class="ovv-sec"><div class="ovv-sh">' + _ovEsc(g.title) + ' <small>' + ps.length + ' words</small></div><table class="ovv-t"><thead><tr><th class="n">#</th>' + cols.map(function (c) { return '<th>' + names[c] + '</th>'; }).join('') + '</tr></thead><tbody>';
     ps.forEach(function (p, i) {
       var key = ALL_PHRASES.indexOf(p);
       h += '<tr data-s="' + _ovEsc(cols.map(function (c) { return p[c]; }).join(' ').toLowerCase()) + '" onclick="this.classList.add(\'rev\')"><td class="n">' + (i + 1) + '</td>'
-        + cols.map(function (c, ci) { return '<td class="' + (ci === 0 ? 'en' : 'tl') + '">' + _ovFmt(p[c]) + ' <button class="spk" onclick="event.stopPropagation();this.closest(\'tr\').classList.add(\'rev\');speak(ALL_PHRASES[' + key + '].' + c + ',LANG_CODES.' + c + ')" title="Listen">🔊</button></td>'; }).join('') + '</tr>';
+        + cols.map(function (c, ci) { return '<td class="' + (ci === 0 ? 'en' : 'tl') + '">' + (ci === 0 ? vtBadge(p) : '') + _ovFmt(p[c]) + ' <button class="spk" onclick="event.stopPropagation();this.closest(\'tr\').classList.add(\'rev\');speak(ALL_PHRASES[' + key + '].' + c + ',LANG_CODES.' + c + ')" title="Listen">🔊</button></td>'; }).join('') + '</tr>';
     });
     h += '</tbody></table></div>';
   });
@@ -8916,15 +8916,15 @@ function ovPrint() {
   if (!_ovSecs.length) return;
   var P2 = _ovPair(), F = P2[0], L = P2[1], secs = _ovOrdered(), names = secs.map(function (s) { return SECTION_TITLES[s] || s; });
   var body = '';
-  secs.forEach(function (s) {
-    var ps = (typeof _ovSecList === 'function' ? _ovSecList(s) : ALL_PHRASES.filter(function (p) { return p.sec === s; })); if (!ps.length) return;
+  vtGroups().forEach(function (g) {
+    var s = g.key, ps = g.ps; if (!ps.length) return;
     var half = Math.ceil(ps.length / 2), rows = '';
     for (var i = 0; i < half; i++) {
       var a = ps[i], b = ps[i + half];
-      rows += '<tr><td class="n">' + (i + 1) + '</td><td class="q">' + _ovFmt(a[F]) + '</td><td class="a">' + _ovFmt(a[L]) + '</td><td class="gap"></td>'
-        + (b ? '<td class="n">' + (i + half + 1) + '</td><td class="q">' + _ovFmt(b[F]) + '</td><td class="a">' + _ovFmt(b[L]) + '</td>' : '<td></td><td></td><td></td>') + '</tr>';
+      rows += '<tr><td class="n">' + (i + 1) + '</td><td class="q">' + vtBadge(a) + _ovFmt(a[F]) + '</td><td class="a">' + _ovFmt(a[L]) + '</td><td class="gap"></td>'
+        + (b ? '<td class="n">' + (i + half + 1) + '</td><td class="q">' + vtBadge(b) + _ovFmt(b[F]) + '</td><td class="a">' + _ovFmt(b[L]) + '</td>' : '<td></td><td></td><td></td>') + '</tr>';
     }
-    body += '<section><h2>' + _ovEsc(SECTION_TITLES[s] || s) + ' <span>' + ps.length + ' words</span></h2><table><colgroup><col class="cn"><col class="cq"><col class="ca"><col class="cg"><col class="cn"><col class="cq"><col class="ca"></colgroup><tbody>' + rows + '</tbody></table></section>';
+    body += '<section><h2>' + _ovEsc(g.title) + ' <span>' + ps.length + ' words</span></h2><table><colgroup><col class="cn"><col class="cq"><col class="ca"><col class="cg"><col class="cn"><col class="cq"><col class="ca"></colgroup><tbody>' + rows + '</tbody></table></section>';
   });
   var css = '@page{size:A4;margin:11mm 10mm}*{box-sizing:border-box}body{margin:0;background:#fff;font-family:var(--aph-body);color:#1a2744;-webkit-print-color-adjust:exact;print-color-adjust:exact}.aph-pband{margin-bottom:4mm}'
     + '.bar{position:sticky;top:0;z-index:5;background:#1a2744;color:#fff;padding:10px 16px;display:flex;gap:10px;align-items:center;flex-wrap:wrap;font-size:13px}.bar button{background:#c9a84c;color:#1a2744;border:0;border-radius:6px;padding:8px 14px;font-weight:700;cursor:pointer;font-family:inherit}.bar button.alt{background:transparent;color:#ffd76a;border:1.5px solid #c9a84c}.bar button.alt.on{background:#c9a84c;color:#1a2744}'
@@ -8934,6 +8934,7 @@ function ovPrint() {
     + 'section{margin-bottom:5mm}h2{font-size:9pt;letter-spacing:.07em;text-transform:uppercase;background:#1a2744;color:#ffd76a;margin:0;padding:1.6mm 3mm;border-radius:1.5mm 1.5mm 0 0;break-after:avoid}h2 span{color:#c8d3ea;font-weight:500;text-transform:none;letter-spacing:0;margin-left:2mm}'
     + 'table{width:100%;border-collapse:collapse;table-layout:fixed;font-size:8.6pt;line-height:1.28}col.cn{width:6mm}col.cg{width:3mm}tr{break-inside:avoid}td{padding:1.1mm 1.5mm;border-bottom:1px solid #e6e9f0;vertical-align:top}tr:nth-child(even) td:not(.gap){background:#faf8f3}td.gap{border:0;background:#fff!important}'
     + 'td.n{color:#a0a8bd;font-size:7pt;text-align:right;padding-right:1mm}td.q{color:#3d4866;font-style:italic}td.a{font-weight:700}.ovbr{font-weight:400;color:#8a93a8;font-style:normal}'
+    + '.vtb{display:inline-block;min-width:3.4mm;text-align:center;font:700 6.5pt/1.3 var(--aph-body);border-radius:1mm;margin-right:1.5mm;padding:0 .8mm;color:#fff;font-style:normal}.vtb-E{background:#1a2744}.vtb-I{background:#a8862e}.vtb-R{background:#8a93a8}'
     + 'body.blank td.a{color:transparent}body.blank td.a .ovbr{color:transparent}body.blank td.a{border-bottom:1px solid #b9c0cf}';
   var html = '<!doctype html><html><head><meta charset="utf-8"><title>Vocab: ' + _ovEsc(names.join(', ')) + '</title>'
     + '<style>' + aphCSS() + '</style><style>' + css + '</style></head><body>'
@@ -9012,6 +9013,96 @@ try { var _a = document.getElementById('app'); if (_a && _a.querySelector('.intr
 
 </script>
 
+<script id="vt-script">
+// ═════════ IMPORTANCE FOR THE IGCSE: Essential / Important / Recognition (separate from Easy / Medium / Hard) ═════════
+// Essential = words to learn and be able to produce for the IGCSE (about 20 of each ~90-word list); Important = the next 25;
+// Recognition = everything else (understand it, target language to English). Purely about how useful it is to PRODUCE; nothing to do with how hard the word is.
+// One tier per word, the same in French, Italian and Spanish. The core lists (NOUN, VERB, ADJA, PREP) are not graded and always stay in.
+var VOC_TIER = {"V2":{"E":[6,7,8,11,17,20,39,42,43,51,53,55,57,58,69,70,74,75,83,87],"I":[1,3,12,13,14,16,23,28,30,33,36,38,40,52,61,62,66,67,77,78,79,80,86,88,89]},"V4":{"E":[1,2,3,4,8,9,16,17,18,19,31,46,57,58,71,73,80,81,84,89],"I":[5,7,11,12,13,23,27,34,35,39,40,41,48,52,55,63,65,72,78,79,82,83,85,86,88]},"V6":{"E":[2,3,4,8,9,11,12,13,14,18,20,21,29,65,80,81,82,84,88,89],"I":[7,10,17,19,22,23,27,28,30,33,42,43,48,50,61,67,69,71,73,78,79,83,85,86,87]},"V8":{"E":[3,5,9,10,12,13,15,16,20,36,37,43,46,64,66,68,69,80,83,89],"I":[1,2,7,8,11,17,18,19,26,38,39,48,50,55,57,60,61,62,63,65,71,74,75,84,87]},"V10":{"E":[1,5,8,9,12,20,36,49,52,53,71,77,78,81,82,83,86,87,89,90],"I":[3,4,10,11,13,14,19,21,25,32,35,54,55,56,57,59,60,63,68,73,74,76,80,84,88]},"L2":{"E":[4,5,6,8,11,13,14,16,17,38,44,46,53,56,75,80,82,83,86,87],"I":[1,2,7,9,10,12,18,19,26,29,35,41,42,49,54,55,62,63,65,66,69,70,73,76,81]},"L4":{"E":[3,5,13,14,18,19,35,45,63,65,66,68,77,81,82,84,87,88,89,90],"I":[2,7,10,11,12,15,26,30,31,38,39,40,48,49,53,55,58,62,72,73,74,75,79,85,86]},"L6":{"E":[2,4,6,11,14,18,19,20,24,38,49,54,56,71,78,80,82,83,84,86],"I":[1,10,16,22,23,25,27,32,37,43,46,47,51,53,55,57,69,70,72,73,74,77,79,81,88]},"L8":{"E":[1,4,6,7,14,16,17,18,19,35,36,52,55,57,58,72,73,75,78,79],"I":[3,9,10,12,15,20,23,26,32,41,43,45,48,51,53,61,66,67,68,69,70,71,76,77,81]},"S2":{"E":[4,13,14,15,16,18,19,49,64,67,69,80,81,82,83,84,85,86,87,89],"I":[1,5,6,8,9,11,12,17,21,24,26,35,37,38,40,50,56,57,68,70,73,74,77,78,88]},"S4":{"E":[1,3,4,7,8,10,11,17,20,38,39,50,56,75,76,77,81,83,84,87],"I":[2,13,14,15,18,19,22,23,28,32,35,41,48,54,58,60,63,69,72,73,74,79,82,88,90]},"S6":{"E":[1,4,8,9,13,14,15,16,17,19,24,25,64,75,78,82,85,86,88,89],"I":[3,5,10,11,12,21,22,30,35,36,39,40,54,56,65,67,69,71,72,74,80,81,83,87,90]},"S8":{"E":[1,2,5,7,11,16,17,20,22,30,38,73,74,75,78,81,85,86,88,90],"I":[3,4,6,8,10,12,13,15,18,19,25,28,32,35,43,44,54,57,62,63,71,72,76,79,82]},"D2":{"E":[5,6,7,8,9,14,15,18,20,24,35,41,82,83,84,85,86,88,89,90],"I":[1,3,4,10,12,13,31,32,33,36,37,38,42,43,44,49,50,60,66,68,75,77,80,81,87]},"D4":{"E":[2,3,5,6,7,8,13,18,19,22,24,26,45,71,81,85,86,88,89,90],"I":[4,9,11,12,14,16,20,21,23,27,29,30,32,33,35,36,41,43,44,72,76,78,83,84,87]},"D6":{"E":[3,4,6,7,8,9,12,13,14,16,17,18,30,36,72,81,82,84,86,89],"I":[1,2,5,11,15,24,29,33,34,35,38,41,45,52,54,56,60,65,67,69,71,79,80,85,88]},"D8":{"E":[1,3,5,7,10,12,13,14,17,22,23,35,72,76,80,81,82,86,89,90],"I":[4,6,8,9,15,16,20,24,25,27,34,37,42,49,53,55,56,67,70,71,75,77,78,83,84]},"D10":{"E":[1,3,6,7,10,11,17,18,19,20,71,77,81,82,83,84,85,88,89,90],"I":[4,5,8,12,13,14,15,16,26,28,35,38,41,46,50,56,58,63,64,66,72,74,75,76,79]},"DL2":{"E":[1,4,5,7,9,13,17,19,20,29,33,46,70,80,82,83,84,86,87,88],"I":[2,3,8,10,11,12,14,15,18,21,22,23,27,35,41,48,49,50,56,69,72,73,79,81,85]},"DL4":{"E":[1,3,4,5,7,10,11,14,18,19,20,73,75,76,77,83,84,86,88,89],"I":[6,8,9,12,13,15,16,17,47,48,51,54,56,58,60,62,63,68,74,78,79,81,85,87,90]},"DL6":{"E":[2,5,10,14,16,23,25,26],"I":[1,6,7,9,11,12,18,19,21,22]},"DL8":{"E":[3,10,13,14,20,26,27,33,36,38,40,44,47,52,59,61,62,64,67,70,74,80,82,83,86,89,103,138,139,140],"I":[4,9,12,15,17,21,24,28,30,31,37,39,41,45,46,48,50,51,53,54,55,57,58,63,65,68,69,72,81,90,91,94,108,112,114,120,121,122]}};
+var VOC_TIER_MAP = {};
+Object.keys(VOC_TIER).forEach(function (sec) { ['E', 'I'].forEach(function (t) { VOC_TIER[sec][t].forEach(function (n) { VOC_TIER_MAP[sec + '|' + n] = t; }); }); });
+function vocTierOf(p) { if (!p) return null; return VOC_TIER_MAP[p.sec + '|' + p.n] || (VOC_TIER[p.sec] ? 'R' : null); }
+var VT_DEF = [['E', 'Essential', 'learn it and be able to say or write it in the target language'], ['I', 'Important', 'the next most useful words to produce'], ['EI', 'Essential + Important', 'both of the above'], ['R', 'Recognition', 'understand it when you read or hear it (target language to English)'], ['ALL', 'All words', 'everything in the lists']];
+var VT_NAME = { E: 'Essential', I: 'Important', R: 'Recognition' };
+var vtOn = 'ALL', vtGroupBy = 'set', vtUnlocked = false;
+try { vtUnlocked = localStorage.getItem('apvoc_recog_unlocked') === '1'; } catch (e) {}
+function vtKeep(p) { if (vtOn === 'ALL') return true; var t = vocTierOf(p); if (t === null) return true; return vtOn.indexOf(t) >= 0; }
+// plug into the Words filter so every mode (Drill, tests, View, Print, Speed Challenge) obeys it
+var _vtCogKeep0 = cogKeep; cogKeep = function (p, lang) { return _vtCogKeep0(p, lang) && vtKeep(p); };
+var _vtCogFilter0 = cogFilter; cogFilter = function (arr, lang) { var a = _vtCogFilter0(arr, lang); return vtOn === 'ALL' ? a : a.filter(vtKeep); };
+var _vtCogLabel0 = cogLabel; cogLabel = function () { var a = _vtCogLabel0(), b = vtOn === 'ALL' ? '' : VT_DEF.filter(function (x) { return x[0] === vtOn; })[0][1] + ' only'; return [a, b].filter(Boolean).join(' · '); };
+if (window.__voc) { window.__voc.cogLabel = cogLabel; window.__voc.tierOf = function (i) { return vocTierOf(ALL_PHRASES[i]); }; }
+// Recognition is target language to English only; "Either direction" turns that off
+function vtLocked() { return vtOn === 'R' && !vtUnlocked; }
+function vtFixDir() {
+  if (!vtLocked()) return false;
+  var fe = document.getElementById('lang-from'), te = document.getElementById('lang-to'); if (!fe || !te) return false;
+  var f = fe.value, t = te.value; if (t === 'en' && f !== 'en') return false;
+  var tgt = f !== 'en' ? f : (t !== 'en' ? t : 'fr'); fe.value = tgt; te.value = 'en'; return true;
+}
+function vtSet(k) { vtOn = k; vtFixDir(); cogSet(); }
+function vtToggleLock() { vtUnlocked = !vtUnlocked; try { localStorage.setItem('apvoc_recog_unlocked', vtUnlocked ? '1' : '0'); } catch (e) {} vtFixDir(); cogSet(); }
+function vtSetGroup(g) { vtGroupBy = g; cogSet(); }
+var _vtOnLang0 = onLangChange; onLangChange = function () { vtFixDir(); return _vtOnLang0.apply(this, arguments); };
+var _vtSwap0 = swapLangs; swapLangs = function () { if (vtLocked()) { vtFixDir(); return; } return _vtSwap0.apply(this, arguments); };
+var _vtISwap0 = introSwapDir; introSwapDir = function () { if (vtLocked()) { vtFixDir(); renderIntro(); return; } return _vtISwap0.apply(this, arguments); };
+var _vtIDir0 = introOnDirChange; introOnDirChange = function () { var r = _vtIDir0.apply(this, arguments); if (vtFixDir()) renderIntro(); return r; };
+function vtControls(grp) {
+  var h = '<span class="cogt vtt">' + VT_DEF.map(function (x) { return '<button class="aph-chip cogk vtk' + (vtOn === x[0] ? ' on' : '') + '" title="' + x[1] + ': ' + x[2] + '" onclick="vtSet(\'' + x[0] + '\')">' + x[1] + '</button>'; }).join('') + '</span>';
+  if (vtOn === 'R') h += '<button class="aph-chip cogk vtk' + (vtUnlocked ? ' on' : '') + '" onclick="vtToggleLock()" title="Recognition words are practised target language to English. Press to turn that lock off or on.">' + (vtUnlocked ? '🔓 Either direction' : '🔒 Target language → English only') + '</button>';
+  if (grp) h += '<span class="cogt vtt vtg"><span class="vtl">Group by</span>' + [['set', 'List'], ['tier', 'Tier']].map(function (x) { return '<button class="aph-chip cogk vtk' + (vtGroupBy === x[0] ? ' on' : '') + '" onclick="vtSetGroup(\'' + x[0] + '\')">' + x[1] + '</button>'; }).join('') + '</span>';
+  return h;
+}
+function vtBadge(p) { var t = vocTierOf(p); return t ? '<span class="vtb vtb-' + t + '" title="' + VT_NAME[t] + '">' + t + '</span>' : ''; }
+// the groups shown in View and Print: one per list (default), or Essential / Important / Recognition across all the chosen lists
+function vtGroups() {
+  var secs = _ovOrdered();
+  if (vtGroupBy !== 'tier') return secs.map(function (s) { return { key: s, title: SECTION_TITLES[s] || s, ps: _ovSecList(s) }; });
+  var all = []; secs.forEach(function (s) { _ovSecList(s).forEach(function (p) { all.push(p); }); });
+  return [['E', 'Essential'], ['I', 'Important'], ['R', 'Recognition'], [null, 'Core lists (not graded)']].map(function (g) {
+    return { key: g[0] || 'U', title: g[1], ps: all.filter(function (p) { return vocTierOf(p) === g[0]; }) };
+  });
+}
+(function () {
+  var st = document.createElement('style');
+  st.textContent = '.vtb{display:inline-block;min-width:1.35em;text-align:center;font:700 .6875rem/1.35 var(--aph-body,sans-serif);border-radius:4px;margin-right:6px;padding:0 3px;vertical-align:1px;color:#fff}'
+    + '.vtb-E{background:#1a2744}.vtb-I{background:#a8862e}.vtb-R{background:#8a93a8}'
+    + '.vtt{display:inline-flex;flex-wrap:wrap;gap:8px;align-items:center}.vtl{font-size:.8125rem;color:#8899bb;margin:0 2px 0 8px}'
+    + '#ov-view .vtk{background:transparent;color:#e6ebf7;border-color:rgba(255,255,255,.3);padding:5px 11px;min-height:32px}#ov-view .vtk.on{background:#c9a84c;border-color:#c9a84c;color:#1a2744}#ov-view .vtb-R{background:#6f7a94}'
+    + '.vt-row{margin-top:2px}.ih-tip.vt-tip{display:block}';
+  document.head.appendChild(st);
+})();
+// home screen: Importance row under Level
+var _vtRI0 = renderIntro;
+renderIntro = function () {
+  _vtRI0.apply(this, arguments);
+  var card = document.querySelector('#app .intro-card'); if (!card || card.querySelector('.vt-row')) return;
+  var anchor = card.querySelector('.cog-row'); if (!anchor) return;
+  var d = document.createElement('div'); d.className = 'vt-row';
+  d.innerHTML = '<div class="aph-label">Importance</div><div class="aph-row" style="flex-wrap:wrap">' + vtControls(false) + '</div>'
+    + '<div class="ih-tip vt-tip" style="' + (vtOn === 'ALL' ? 'display:none' : '') + '">' + (vtOn === 'ALL' ? '' : '<b>' + VT_DEF.filter(function (x) { return x[0] === vtOn; })[0][1] + '</b>: ' + VT_DEF.filter(function (x) { return x[0] === vtOn; })[0][2] + '. This is about how useful a word is to <i>produce</i> in the IGCSE, not how hard it is. The core lists (nouns, verbs, adjectives, prepositions) are not graded and always stay in.') + '</div>';
+  anchor.parentNode.insertBefore(d, anchor.nextSibling);
+};
+// Choose lists: Importance row before Trials
+var _vtRM0 = _ovRenderModal;
+_ovRenderModal = function () {
+  _vtRM0.apply(this, arguments);
+  var rows = document.querySelectorAll('#ov-modal .ov-row'), at = null;
+  rows.forEach(function (r) { var l = r.querySelector('.ov-lab'); if (l && l.textContent === 'Trials') at = r; });
+  if (!at) return;
+  var d = document.createElement('div'); d.className = 'ov-row'; d.innerHTML = '<span class="ov-lab">Importance</span>' + vtControls(false);
+  at.parentNode.insertBefore(d, at);
+};
+// View on screen: Importance + Group by in the toolbar
+var _vtRV0 = _ovRenderView;
+_ovRenderView = function () {
+  _vtRV0.apply(this, arguments);
+  var tools = document.querySelector('#ov-view .ovv-tools'); if (!tools) return;
+  var sp = document.createElement('span'); sp.className = 'vtt'; sp.innerHTML = vtControls(true);
+  tools.insertBefore(sp, tools.lastElementChild);
+};
+try { var _a2 = document.getElementById('app'); if (_a2 && _a2.querySelector('.intro-card')) renderIntro(); } catch (e) {}
+</script>
 <script>
 // ── Home page helpers (Lists summary line; Overview opened from "Change" applies the choice when closed) ──
 function introListName() {
