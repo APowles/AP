@@ -3285,6 +3285,9 @@ const VS_TIER_UI = [['E', 'Essential', 'VSE', 'E'], ['I', 'Important', 'VSI', 'I
 // (topic vocabulary first, then the chosen structures), so edits and the E / I / R badges stay in step with the weekly VV set.
 const VC_UI = [['E', 'Essential'], ['I', 'Important'], ['R', 'Recognition']];
 const VC_PREFIXES = ['TVE', 'TVI', 'TVR', 'TVEI', 'TVER', 'TVIR', 'TVEIR'];
+// the phrase pairs that are Recognition structures (in their own week). In a Topic Vocab + chosen structures set that includes Recognition, only these
+// are locked to French -> English; everything else follows the direction chosen (English -> French by default)
+const VV_REC = new WeakSet();
 (function () {
   for (let n = 1; n <= 12; n++) {
     VC_PREFIXES.forEach(function (pre) {
@@ -3294,7 +3297,7 @@ const VC_PREFIXES = ['TVE', 'TVI', 'TVR', 'TVEI', 'TVER', 'TVIR', 'TVEIR'];
         if (!tv && !vs) return;
         const items = [], from = [];
         (tv || []).forEach(function (p, i) { items.push(p); from.push(VV_SRC['TV' + n + x][i]); });
-        (vs || []).forEach(function (p, i) { const f = VV_SRC['VS' + n + x][i]; if (tiers.indexOf(vsTierOf(f.cat, p[1])) >= 0) { items.push(p); from.push(f); } });
+        (vs || []).forEach(function (p, i) { const f = VV_SRC['VS' + n + x][i], t = vsTierOf(f.cat, p[1]); if (t === 'R') VV_REC.add(p); if (tiers.indexOf(t) >= 0) { items.push(p); from.push(f); } });
         VV_DATA[pre + n + x] = items; VV_SRC[pre + n + x] = from;
         items.forEach(function (p) { all.push(p); }); from.forEach(function (f) { allFrom.push(f); });
       });
@@ -3674,7 +3677,8 @@ function vvSetTier(t) {
   vsTier = t;
   const m = /^[A-Z]+(\d+(?:[a-z]|_Entire))$/.exec(currentVV), want = m ? vsPrefix() + m[1] : null;
   currentVV = (want && VV_DATA[want]) ? want : vsPrefix() + '1a';
-  if (t === 'R') { fromLang = 'fr'; toLang = 'en'; }
+  if (t === 'R') { if (!vvDirBeforeForce) vvDirBeforeForce = { f: fromLang, t: toLang }; fromLang = 'fr'; toLang = 'en'; }
+  else vvKeepRecognitionFrToEn();
   renderIntro();
 }
 function vvTierRow() {
@@ -3706,9 +3710,9 @@ function vvComboRow() {
       ${VC_UI.filter(u => u[0] !== 'R').map(u => `<button class="aph-chip${vcTiers[u[0]] ? ' on' : ''}" onclick="vcToggle('${u[0]}')">${vcTiers[u[0]] ? '✓ ' : ''}${u[1]}</button>`).join('')}
       <div class="vv-combo-pair" style="flex-basis:100%;display:flex;flex-wrap:wrap;gap:6px;align-items:center">
         <button class="aph-chip${vcTiers.R ? ' on' : ''}" onclick="vcToggle('R')">${vcTiers.R ? '✓ ' : ''}Recognition</button>
-        <button class="aph-chip vv-lock ${lock ? 'locked' : 'open'}" onclick="vcToggleLock()" style="flex-basis:auto">${lock ? '🔒 French → English only' : '🔓 Either direction'}</button>
+        ${vcTiers.R ? `<button class="aph-chip vv-lock ${lock ? 'locked' : 'open'}" onclick="vcToggleLock()" style="flex-basis:auto">${lock ? '🔒 Recognition: French → English only' : '🔓 Recognition: either direction'}</button>` : ''}
       </div>
-      <div class="aph-note" style="flex-basis:100%;font-size:.9375rem;font-weight:600;color:#1a2744;line-height:1.4">${lock ? 'Locked: this set is practised French → English only. Want to be tested into French as well, not just into English? Simply press the 🔒 padlock to unlock it.' : 'Unlocked: you can practise either way round, into French as well as into English. Press the 🔓 padlock to lock it back to French → English only.'}</div>
+      <div class="aph-note" style="flex-basis:100%;font-size:.9375rem;font-weight:600;color:#1a2744;line-height:1.4">${!vcTiers.R ? 'Everything here is practised the way round you choose under Direction (English → French to begin with). Tick Recognition to add the structures you only need to understand: those are practised French → English.' : lock ? 'Only the Recognition phrases are locked to French → English; everything else is practised the way round you choose (English → French to begin with). Want the Recognition phrases tested into French as well, not just into English? Simply press the 🔒 padlock to unlock it.' : 'Unlocked: the Recognition phrases are now practised the same way round as everything else, so they can be tested into French as well as into English. Press the 🔓 padlock to lock them back to French → English only.'}</div>
     </div>`;
 }
 function vvPickSet(g, k) { currentVV = k; vvKeepRecognitionFrToEn(); renderIntro(); }
@@ -3794,6 +3798,7 @@ function getPool() {
   return vvData.map(pair => ({
     en: pair[0],
     fr: pair[1],
+    rec: VV_REC.has(pair),   // a Recognition structure: locked to French -> English when the 🔒 is on (see vvCardDir)
     question: fromLang === 'en' ? pair[0] : pair[1],
     answer:   toLang   === 'fr' ? pair[1] : pair[0]
   }));
@@ -3820,7 +3825,21 @@ function introSwapDir() {
   renderIntro();
 }
 // Recognition structures are French -> English only: on that set the direction cannot be turned round
-function vvKeepRecognitionFrToEn() { if ((!vsRecogUnlocked && vsTierOfKey(currentVV) === 'R') || (vvGroupOf(currentVV) === 'TC' && vcLockOn())) { fromLang = 'fr'; toLang = 'en'; } }
+let vvDirBeforeForce = null;   // the direction chosen before a pure Recognition set forced French -> English, given back when you leave that set
+function vvKeepRecognitionFrToEn() {
+  if (!vsRecogUnlocked && vsTierOfKey(currentVV) === 'R') {
+    if (!vvDirBeforeForce) vvDirBeforeForce = { f: fromLang, t: toLang };
+    fromLang = 'fr'; toLang = 'en';
+  } else if (vvDirBeforeForce) { fromLang = vvDirBeforeForce.f; toLang = vvDirBeforeForce.t; vvDirBeforeForce = null; }
+}
+// Topic Vocab + chosen structures with Recognition ticked: the 🔒 locks ONLY the Recognition phrases to French -> English; every other phrase follows the chosen direction
+function vvRecLocked() { return /^TV[EI]*R\d/.test(currentVV) && vcLockOn(); }
+function vvCardDir(card) { return (card && card.rec && vvRecLocked()) ? { from: 'fr', to: 'en' } : { from: fromLang, to: toLang }; }
+// the same for a raw [english, french] pair: which column is the question and which the answer
+function vvPairDir(p) {
+  const d = (p && VV_REC.has(p) && vvRecLocked()) ? { from: 'fr', to: 'en', rec: true } : { from: fromLang, to: toLang, rec: false };
+  d.qi = d.from === 'en' ? 0 : 1; d.ai = d.to === 'fr' ? 1 : 0; return d;
+}
 // the 🔒 button on the Recognition screen: unlocked, Recognition can be practised either way round (kept on this device)
 let vsRecogUnlocked = false;
 try { vsRecogUnlocked = localStorage.getItem('apvv_recog_unlocked') === '1'; } catch (e) {}
@@ -3938,6 +3957,7 @@ function showCard() {
 
   const card = deck[currentIndex];
   isRevealed = false;
+  const dir = vvCardDir(card);   // Recognition phrases stay French -> English when locked; everything else follows the chosen direction
 
   const pct = Math.round((currentIndex / deck.length) * 100);
   const container = document.getElementById('drillContainer');
@@ -3948,9 +3968,9 @@ function showCard() {
     <div class="aph-drill">
       <div class="aph-drill-main">
         <div class="aph-qcard">
-          <div class="aph-qmeta">${isLeisureMode ? '&#9749; Leisure Mode · ' : ''}Card ${currentIndex+1} of ${deck.length} · ${vvSetLabel(currentVV)}</div>
+          <div class="aph-qmeta">${isLeisureMode ? '&#9749; Leisure Mode · ' : ''}Card ${currentIndex+1} of ${deck.length} · ${vvSetLabel(currentVV)}${(card.rec && vvRecLocked()) ? ' · Recognition: French → English' : ''}</div>
           <div class="timer-bar"><div class="timer-bar-fill" id="timerBarFill"></div></div>
-          <div class="aph-prompt card-content">${card[fromLang] || card.question}</div>
+          <div class="aph-prompt card-content">${card[dir.from] || card.question}</div>
           <div id="answer"></div>
         </div>
         ${isLeisureMode ? "" : `<button id="revealBtn" class="aph-btn aph-btn-primary aph-btn-block" onclick="revealAnswer()">Show Answer</button>`}
@@ -3970,9 +3990,9 @@ function showCard() {
 
   
   if (isLeisureMode && isAutotime) {
-    speak(card[fromLang] || card.question, fromLang, () => setTimeout(revealAnswer, 3000));
+    speak(card[dir.from] || card.question, dir.from, () => setTimeout(revealAnswer, 3000));
   } else {
-    speak(card[fromLang] || card.question, fromLang);
+    speak(card[dir.from] || card.question, dir.from);
   }
   
   if (!isLeisureMode) {
@@ -4023,13 +4043,14 @@ function revealAnswer() {
   clearInterval(timerInterval);
   
   const card = deck[currentIndex];
-  
-  speak(card[toLang] || card.answer, toLang);
-  
+  const dir = vvCardDir(card);
+
+  speak(card[dir.to] || card.answer, dir.to);
+
   // Update answer in center card
   const answerDiv = document.getElementById('answer');
   if(answerDiv) {
-    answerDiv.innerHTML = `<div class="answer" id="cardAnswerText">${card[toLang] || card.answer}</div><div class="vv-edit-row" style="display:${editModeUnlocked?'flex':'none'}"><button class="card-edit-btn" onclick="startCardEdit()" title="Edit this phrase" style="display:${editModeUnlocked?'inline-block':'none'};">&#9998; Edit</button></div>`;
+    answerDiv.innerHTML = `<div class="answer" id="cardAnswerText">${card[dir.to] || card.answer}</div><div class="vv-edit-row" style="display:${editModeUnlocked?'flex':'none'}"><button class="card-edit-btn" onclick="startCardEdit()" title="Edit this phrase" style="display:${editModeUnlocked?'inline-block':'none'};">&#9998; Edit</button></div>`;
   }
 
   // Leisure mode: no buttons, just auto-advance after answer has been read
@@ -4037,7 +4058,7 @@ function revealAnswer() {
     const revealBtn = document.getElementById('revealBtn');
     if(revealBtn) revealBtn.style.display = 'none';
     // Estimate reading time: ~60ms per character, minimum 3 seconds, plus 1.5s pause
-    const answerText = (card[toLang] || card.answer).replace(/\*\*/g, '');
+    const answerText = (card[dir.to] || card.answer).replace(/\*\*/g, '');
     const readTime = Math.max(3000, answerText.length * 60) + 1500;
     setTimeout(() => {
       if (isLeisureMode) { currentIndex++; showCard(); }
@@ -4058,7 +4079,7 @@ function revealAnswer() {
       <button class="aph-mark-btn bad" onclick="markError()">✗ Major error<small>← key</small></button>
       <button class="aph-mark-btn near" onclick="markNearly()">~ Nearly<small>↓ key</small></button>
       <button class="aph-mark-btn ok" onclick="markCorrect()">✓ Got it<small>→ key</small></button>
-    </div><div class="aph-under"><button class="aph-btn aph-btn-sm" onclick="speak('${ (card[toLang]||card.answer).replace(/'/g, "\\'")}', '${toLang}')">&#128266; Replay</button></div>`;
+    </div><div class="aph-under"><button class="aph-btn aph-btn-sm" onclick="speak('${ (card[dir.to]||card.answer).replace(/'/g, "\\'")}', '${dir.to}')">&#128266; Replay</button></div>`;
   }
 }
 
@@ -4283,7 +4304,7 @@ function startCardEdit() {
 function _rebuildVVAnswer(card) {
   const answerDiv = document.getElementById('answer');
   if (!answerDiv) return;
-  answerDiv.innerHTML = `<div class="answer" id="cardAnswerText">${card[toLang] || card.answer}</div><div class="vv-edit-row" style="display:${editModeUnlocked?'flex':'none'}"><button class="card-edit-btn" onclick="startCardEdit()" title="Edit this phrase" style="display:${editModeUnlocked?'inline-block':'none'};">&#9998; Edit</button></div>`;
+  answerDiv.innerHTML = `<div class="answer" id="cardAnswerText">${card[vvCardDir(card).to] || card.answer}</div><div class="vv-edit-row" style="display:${editModeUnlocked?'flex':'none'}"><button class="card-edit-btn" onclick="startCardEdit()" title="Edit this phrase" style="display:${editModeUnlocked?'inline-block':'none'};">&#9998; Edit</button></div>`;
 }
 
 function saveCardEdit() {
@@ -4544,7 +4565,7 @@ let sdPlainSheet = '', sdPlainAnswers = '';
 let sdTestItems = [], sdTestSetLabel = '';
 let vvPlainSheet = '', vvPlainAnswers = '';
 let vvTestItems = [], vvTestSectionLabel = '', vvTestLangFrom = '', vvTestLangTo = '';
-let vvSpotRows = [], vvSpotLabel = '', vvSpotQIdx = 0, vvSpotAIdx = 1, vvSpotQFlag = '🇬🇧', vvSpotAFlag = '🇫🇷';
+let vvSpotRows = [], vvSpotLabel = '', vvSpotQIdx = 0, vvSpotAIdx = 1, vvSpotQFlag = '🇬🇧', vvSpotAFlag = '🇫🇷', vvSpotDirs = new Map(), vvSpotMixed = false;
 let vvSpotItemsPerRow = 3;
 function setVVSpotItems(n) {
   vvSpotItemsPerRow = n;
@@ -5067,6 +5088,9 @@ function generateVVTest() {
 
   const shuffled = [...raw].sort(() => Math.random() - 0.5);
   const items = shuffled.slice(0, Math.min(count, shuffled.length));
+  // Recognition phrases locked to French -> English; every other phrase in the chosen direction. If the test mixes the two, each question carries its own flag.
+  const dirs = items.map(vvPairDir), mixed = dirs.some(function (d) { return d.from !== dirs[0].from; });
+  const hFlagQ = mixed ? '🇬🇧/🇫🇷' : qFlag, hFlagA = mixed ? '🇫🇷/🇬🇧' : aFlag;
 
   const sep = '────────────────────────────────────────────────────────';
   const title = 'Vocab Test — ' + setLabel;
@@ -5075,10 +5099,12 @@ function generateVVTest() {
 
   let sheet = '', answers = '';
   items.forEach((pair, i) => {
-    const q = cleanVV(pair[qIdx]);
-    const a = cleanVV(pair[aIdx]);
-    const qHtml = cleanVVHtml(pair[qIdx]);
-    const aHtml = cleanVVHtml(pair[aIdx]);
+    const d = dirs[i];
+    const flagTag = mixed ? (d.from === 'en' ? '🇬🇧' : '🇫🇷') + ' ' : '';
+    const q = flagTag + cleanVV(pair[d.qi]);
+    const a = cleanVV(pair[d.ai]);
+    const qHtml = flagTag + cleanVVHtml(pair[d.qi]);
+    const aHtml = cleanVVHtml(pair[d.ai]);
     const num = i + 1 < 10 ? ' ' + (i+1) : '' + (i+1);
 
     sheet += '<div style="padding:7px 0;border-bottom:1px solid #e0e0e0;font-size:0.85rem;">'
@@ -5104,6 +5130,7 @@ function generateVVTest() {
   vvTestLangTo   = isEnToFr ? 'fr' : 'en';
   vvTestQIdx = qIdx;
   vvTestAIdx = aIdx;
+  vvTestDirs = dirs; vvTestMixed = mixed;
 
   document.getElementById('vvTestOutput').innerHTML =
     '<div class="aph-row" style="margin-bottom:12px;">'
@@ -5112,7 +5139,7 @@ function generateVVTest() {
     + '<button class="aph-btn aph-btn-sm" onclick="copyVVTest(\'sheet\')">Copy test sheet</button>'
     + '<button class="aph-btn aph-btn-sm" onclick="copyVVTest(\'answers\')">Copy answer sheet</button>'
     + '</div>'
-    + '<div style="font-size:0.68rem;color:#888;text-transform:uppercase;letter-spacing:0.06em;margin-bottom:10px;">' + qFlag + ' → ' + aFlag + ' &nbsp;·&nbsp; ' + setLabel + ' &nbsp;·&nbsp; ' + items.length + ' questions</div>'
+    + '<div style="font-size:0.68rem;color:#888;text-transform:uppercase;letter-spacing:0.06em;margin-bottom:10px;">' + hFlagQ + ' → ' + hFlagA + ' &nbsp;·&nbsp; ' + setLabel + ' &nbsp;·&nbsp; ' + items.length + ' questions' + (mixed ? ' &nbsp;·&nbsp; Recognition phrases are French → English' : '') + '</div>'
     + apLvFewHTML('vv', items.length, count)
     + '<div style="background:#fff;border:1px solid #e2e6f0;border-radius:10px;padding:12px 16px;margin-bottom:20px;">' + sheet + '</div>'
     + '<div style="font-size:0.68rem;font-weight:700;color:#8899bb;text-transform:uppercase;letter-spacing:0.08em;margin-bottom:10px;">Answer Sheet</div>'
@@ -5121,7 +5148,7 @@ function generateVVTest() {
   document.getElementById('vvTestOutput').scrollIntoView({behavior:'smooth', block:'nearest'});
 }
 
-let vvTestQIdx = 0, vvTestAIdx = 1;
+let vvTestQIdx = 0, vvTestAIdx = 1, vvTestDirs = [], vvTestMixed = false;
 
 function copyVVTest(which) {
   const text = which === 'sheet' ? vvPlainSheet : vvPlainAnswers;
@@ -5144,8 +5171,9 @@ function openVVTestPDF(type) {
 
   let rows = '';
   vvTestItems.forEach(function(pair, i) {
-    const q = cleanVVHtml(pair[vvTestQIdx]);
-    const a = cleanVVHtml(pair[vvTestAIdx]);
+    const d = vvTestDirs[i] || { from: vvTestLangFrom, qi: vvTestQIdx, ai: vvTestAIdx };
+    const q = (vvTestMixed ? (d.from === 'en' ? '🇬🇧' : '🇫🇷') + ' ' : '') + cleanVVHtml(pair[d.qi]);
+    const a = cleanVVHtml(pair[d.ai]);
     const circle = '<span style="display:inline-flex;align-items:center;justify-content:center;width:19px;height:19px;border-radius:50%;background:' + circleColour + ';color:' + circleTextColour + ';font-size:0.65rem;font-weight:700;flex-shrink:0;margin-right:6px;">' + (i+1) + '</span>';
     if (isQuestions) {
       rows += '<div style="height:' + rowHeightMm + 'mm;display:flex;align-items:center;border-bottom:1px solid #ececec;overflow:hidden;">'
@@ -5176,7 +5204,7 @@ function openVVTestPDF(type) {
     + '</style>'
     + '</head><body>'
     + aphPrintHead({ kicker: 'Eton A Level &middot; VVs, Gr EWs &amp; Translation', title: 'Vocab Test &mdash; <em>' + vvTestSectionLabel + '</em>',
-        meta: qFlag + ' &rarr; ' + aFlag + ' &nbsp;&middot;&nbsp; ' + count + ' questions' + (isQuestions ? '' : ' &nbsp;&middot;&nbsp; Answers'), total: count })
+        meta: (vvTestMixed ? '🇬🇧/🇫🇷 &rarr; 🇫🇷/🇬🇧' : qFlag + ' &rarr; ' + aFlag) + ' &nbsp;&middot;&nbsp; ' + count + ' questions' + (isQuestions ? '' : ' &nbsp;&middot;&nbsp; Answers'), total: count })
     + '<div>' + rows + '</div>'
     + aphPrintFoot('Eton A Level VVs, Gr EWs &amp; Translation &middot; Test &middot; ' + (isQuestions ? 'Student sheet' : 'Teacher sheet'))
     + '</body></html>';
@@ -5213,10 +5241,15 @@ function generateVVSpotTest(timed) {
   const items = shuffled.slice(0, 5 * per);
   const rows = [];
   for (let i = 0; i < 5; i++) rows.push(items.slice(i * per, i * per + per));
+  // Recognition phrases locked to French -> English; every other phrase in the chosen direction. If the test mixes the two, each question carries its own flag.
+  const spotDirs = new Map(); items.forEach(function (p) { spotDirs.set(p, vvPairDir(p)); });
+  const spotMixed = items.some(function (p) { return spotDirs.get(p).from !== spotDirs.get(items[0]).from; });
+  const spotTag = function (p) { return spotMixed ? (spotDirs.get(p).from === 'en' ? '🇬🇧' : '🇫🇷') + ' ' : ''; };
+  const hQFlag = spotMixed ? '🇬🇧/🇫🇷' : qFlag, hAFlag = spotMixed ? '🇫🇷/🇬🇧' : aFlag;
   if (timed) {
-    apttSpot({ id: 'vv|' + key + '|' + (isEnToFr ? 'en>fr' : 'fr>en') + '|' + apLv('vv') + '|' + (5 * per), title: setLabel,
-      meta: qFlag + ' → ' + aFlag + ' &nbsp;·&nbsp; 5 × ' + per + ' = ' + (5 * per) + ' items', lang: isEnToFr ? 'French' : 'English', kind: 'word', rows: rows,
-      q: function (p) { return cleanVVHtml(p[qIdx]); }, a: function (p) { return cleanVVHtml(p[aIdx]); } });
+    apttSpot({ id: 'vv|' + key + '|' + (spotMixed ? 'mix' : isEnToFr ? 'en>fr' : 'fr>en') + '|' + apLv('vv') + '|' + (5 * per), title: setLabel,
+      meta: hQFlag + ' → ' + hAFlag + ' &nbsp;·&nbsp; 5 × ' + per + ' = ' + (5 * per) + ' items', lang: isEnToFr ? 'French' : 'English', kind: 'word', rows: rows,
+      q: function (p) { return spotTag(p) + cleanVVHtml(p[spotDirs.get(p).qi]); }, a: function (p) { return cleanVVHtml(p[spotDirs.get(p).ai]); } });
     return;
   }
 
@@ -5225,8 +5258,9 @@ function generateVVSpotTest(timed) {
   vvSpotLabel = setLabel;
   vvSpotQIdx  = qIdx;
   vvSpotAIdx  = aIdx;
-  vvSpotQFlag = qFlag;
-  vvSpotAFlag = aFlag;
+  vvSpotQFlag = hQFlag;
+  vvSpotAFlag = hAFlag;
+  vvSpotDirs = spotDirs; vvSpotMixed = spotMixed;
 
   // Build inline preview — student sheet (blank answer col) + teacher answer key
   const thStyle = 'padding:5px 8px;font-size:0.6rem;font-weight:700;text-transform:uppercase;letter-spacing:0.07em;color:#8899bb;background:#f0f3f8;border:1px solid #ddd;text-align:left;';
@@ -5241,8 +5275,10 @@ function generateVVSpotTest(timed) {
   function buildItemLines(group, idx, useColours) {
     return group.map(function(p, i){
       const colour = useColours ? itemColours[i] : itemColours[i];
+      const isQ = idx === qIdx;   // question column or answer column
+      const d = spotDirs.get(p);
       return '<div style="font-size:0.78rem;line-height:1.7;color:'+colour+';border-bottom:1px dashed #e0e0e0;padding:2px 0;">'
-        + cleanVVHtml(p[idx]) + '</div>';
+        + (isQ ? spotTag(p) : '') + cleanVVHtml(p[isQ ? d.qi : d.ai]) + '</div>';
     }).join('');
   }
 
@@ -5266,8 +5302,8 @@ function generateVVSpotTest(timed) {
   const tableOpen = '<table style="width:100%;border-collapse:collapse;margin-bottom:6px;">'
     + '<thead><tr>'
     + '<th style="'+thStyle+'width:28px;"></th>'
-    + '<th style="'+thStyle+'width:42%;">'+qFlag+' Your teacher will dictate all the <strong>questions</strong>: write them here</th>'
-    + '<th style="'+thStyle+'width:42%;color:#b05000;">'+aFlag+' Only write answers AFTER all questions are dictated</th>'
+    + '<th style="'+thStyle+'width:42%;">'+hQFlag+' Your teacher will dictate all the <strong>questions</strong>: write them here</th>'
+    + '<th style="'+thStyle+'width:42%;color:#b05000;">'+hAFlag+' Only write answers AFTER all questions are dictated</th>'
     + '<th style="'+thStyle+'width:36px;text-align:center;">0/1/2</th>'
     + '</tr></thead><tbody>';
 
@@ -5277,7 +5313,7 @@ function generateVVSpotTest(timed) {
     + '<button class="aph-btn aph-btn-sm aph-btn-primary" onclick="openVVSpotTestPDF(\'teacher\')">&#128424; Print / PDF · Teacher sheet</button>'
     + '</div>'
     + '<div style="font-size:0.68rem;color:#888;text-transform:uppercase;letter-spacing:0.06em;margin-bottom:8px;">'
-    + qFlag + ' → ' + aFlag + ' &nbsp;·&nbsp; ' + setLabel + ' &nbsp;·&nbsp; 5 × ' + per + ' = ' + (5*per) + ' items</div>'
+    + hQFlag + ' → ' + hAFlag + ' &nbsp;·&nbsp; ' + setLabel + ' &nbsp;·&nbsp; 5 × ' + per + ' = ' + (5*per) + ' items' + (spotMixed ? ' &nbsp;·&nbsp; Recognition phrases are French → English' : '') + '</div>'
     + apSpotNoteHTML(fit.note)
     + '<div style="font-size:0.68rem;font-weight:700;color:#8899bb;text-transform:uppercase;letter-spacing:0.08em;margin-bottom:6px;">Student Sheet (preview)</div>'
     + '<div style="background:#fff;border:1px solid #e2e6f0;border-radius:10px;padding:12px 16px;margin-bottom:16px;">'
@@ -5305,8 +5341,9 @@ function openVVSpotTestPDF(type) {
 
   let tableRows = '';
   rows.forEach(function(group, i) {
-    const qLines = group.map(function(p) { return cleanVVHtml(p[qIdx]); });
-    const aLines = group.map(function(p) { return cleanVVHtml(p[aIdx]); });
+    const dOf = function(p) { return vvSpotDirs.get(p) || { from: qIdx === 0 ? 'en' : 'fr', qi: qIdx, ai: aIdx }; };
+    const qLines = group.map(function(p) { return (vvSpotMixed ? (dOf(p).from === 'en' ? '🇬🇧' : '🇫🇷') + ' ' : '') + cleanVVHtml(p[dOf(p).qi]); });
+    const aLines = group.map(function(p) { return cleanVVHtml(p[dOf(p).ai]); });
     // one sub-row per item — num and score cells span them all
     group.forEach(function(p, ci) {
       const isFirst = ci === 0;
@@ -46520,13 +46557,13 @@ function vvLeisureStart(pool) {
       return vvLzBar('VVs Drill', i, n)
         + '<div class="aph-drill"><div class="aph-drill-main"><div class="aph-qcard">'
         + vvLzMeta(i, n, round, vvSetLabel(currentVV)) + APLZ.barHTML()
-        + '<div class="aph-prompt card-content">' + (card[fromLang] || card.question) + '</div>'
+        + '<div class="aph-prompt card-content">' + (card[vvCardDir(card).from] || card.question) + '</div>'
         + '<div id="aplzAns" class="aplz-ans"></div></div>'
         + APLZ.ctrlHTML('vv') + '</div></div>';
     },
-    answer: function (card) { return '<div class="answer">' + (card[toLang] || card.answer) + '</div>'; },
-    sayQ: function (card, cb) { var t = card[fromLang] || card.question; speak(t, fromLang, cb); return t; },
-    sayA: function (card, cb) { var t = card[toLang] || card.answer; speak(t, toLang, cb); return t; },
+    answer: function (card) { return '<div class="answer">' + (card[vvCardDir(card).to] || card.answer) + '</div>'; },
+    sayQ: function (card, cb) { var d = vvCardDir(card), t = card[d.from] || card.question; speak(t, d.from, cb); return t; },
+    sayA: function (card, cb) { var d = vvCardDir(card), t = card[d.to] || card.answer; speak(t, d.to, cb); return t; },
     home: vvLzHome
   });
 }
