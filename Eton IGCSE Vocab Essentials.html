@@ -9804,8 +9804,26 @@ window.__voc.speedTest = function (kind, lang, secs, rev, mode, lv, mx) {
       }
       tsSelected.clear(); ss.forEach(function (s) { tsSelected.add(s); });
       applyCustomSelection();
-      try { hc.scrollIntoView(); } catch (e) {}
+      landOnContent();
     } catch (e) { }
+  }
+  /* Land so the heading and all activity buttons (Speed, Drill, Test) are on screen with no scrolling. Retries briefly while layout settles; stops if the boy scrolls. */
+  var landTimers = [], landStop = false;
+  function landOnContent() {
+    landTimers.forEach(clearTimeout); landTimers = []; landStop = false;
+    var stop = function () { landStop = true; };
+    ['wheel', 'touchstart', 'keydown', 'mousedown'].forEach(function (ev) { window.addEventListener(ev, stop, { once: true, passive: true }); });
+    function go() {
+      if (landStop) return;
+      try {
+        var hd = document.querySelector('.ve-setup .aph-h'), tl = document.querySelector('.ve-setup .ve-tools2') || document.querySelector('.ve-setup .aph-stack');
+        if (!hd || !tl) return;
+        var sy = window.pageYOffset || 0, hT = hd.getBoundingClientRect().top + sy, tB = tl.getBoundingClientRect().bottom + sy;
+        var y = Math.max(0, Math.min(tB + 4 - window.innerHeight, hT));
+        if (Math.abs(y - sy) > 1) window.scrollTo(0, y);
+      } catch (e) {}
+    }
+    [0, 60, 150, 300, 500, 800, 1200, 1600].forEach(function (d) { landTimers.push(setTimeout(go, d)); });
   }
   window.addEventListener('hashchange', apply);
   if (document.readyState === 'complete') setTimeout(apply, 300); else window.addEventListener('load', function () { setTimeout(apply, 300); });
