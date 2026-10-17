@@ -3050,6 +3050,31 @@ var APTT = (function () {
       });
       [].forEach.call(root.querySelectorAll('div'), function (d2) { if (/Press\s+Check/.test(d2.textContent) && d2.textContent.length < 140 && !d2.querySelector('div')) d2.textContent = 'Tick each box when you can do it.'; });
       [].slice.call(root.querySelectorAll('*')).forEach(function (n) { if (n.isConnected && view.getComputedStyle(n).display === 'none') n.remove(); });
+      // coloured boxes: OneNote drops a div's background and border, but keeps a table cell's, so each box becomes a one-cell table
+      [].slice.call(root.querySelectorAll('div')).forEach(function (bx) {
+        if (!bx.isConnected || bx === root) return;
+        var c = view.getComputedStyle(bx), bg = c.backgroundColor, m = /rgba?\(([^)]+)\)/.exec(bg || '');
+        if (!m || !/^(block|flow-root)$/.test(c.display) || parseFloat(c.paddingLeft) < 4) return;
+        var p = m[1].split(',').map(parseFloat); if (p.length > 3 && p[3] === 0) return;
+        var al = p.length > 3 ? p[3] : 1, hx = '#' + [0, 1, 2].map(function (i) { return ('0' + Math.round(p[i] * al + 255 * (1 - al)).toString(16)).slice(-2); }).join('');
+        var bw = c.borderTopWidth, bc = c.borderTopColor, bs = c.borderTopStyle, bl = c.borderLeftWidth, blc = c.borderLeftColor;
+        var tb = document.createElement('table'), tr = document.createElement('tr'), td = document.createElement('td');
+        tb.style.cssText = 'width:100%;border-collapse:collapse;margin:' + c.marginTop + ' 0 ' + c.marginBottom + ';'; tb.appendChild(document.createElement('tbody')).appendChild(tr); tr.appendChild(td);
+        td.setAttribute('bgcolor', hx); td.style.cssText = 'background-color:' + hx + ';padding:' + c.paddingTop + ' ' + c.paddingRight + ' ' + c.paddingBottom + ' ' + c.paddingLeft + ';vertical-align:top;font:inherit;color:inherit;'
+          + (bs !== 'none' && parseFloat(bw) > 0 ? 'border:' + Math.min(parseFloat(bw), 2) + 'px solid ' + bc + ';' : '') + (parseFloat(bl) > 2 && blc ? 'border-left:' + bl + ' solid ' + blc + ';' : '');
+        while (bx.firstChild) td.appendChild(bx.firstChild);
+        bx.parentNode.replaceChild(tb, bx);
+      });
+      // a two-column grid (label | text, e.g. Direct / Indirect) becomes a real table so each label stays beside its own line
+      [].slice.call(root.querySelectorAll('*')).forEach(function (g) {
+        if (!g.isConnected || view.getComputedStyle(g).display !== 'grid') return;
+        var gc = view.getComputedStyle(g).getPropertyValue('grid-template-columns').split(/\s+/).filter(Boolean).length, ch = [].slice.call(g.children);
+        if (gc < 2 || gc > 4 || !ch.length) return;
+        var tb = document.createElement('table'), tbd = document.createElement('tbody'); tb.style.font = 'inherit'; tb.style.color = 'inherit'; tb.appendChild(tbd);
+        for (var q = 0; q < ch.length; q += gc) { var tr = document.createElement('tr'); ch.slice(q, q + gc).forEach(function (c) { var td = document.createElement('td'); td.style.verticalAlign = 'top'; td.style.font = 'inherit'; td.style.color = 'inherit'; td.style.padding = '2px 12px 2px 0'; td.appendChild(c); tr.appendChild(td); }); tbd.appendChild(tr); }
+        g.innerHTML = ''; g.style.display = 'block'; g.appendChild(tb);
+      });
+      var needSp = [];
       var INH = ['color', 'font-size', 'font-weight', 'font-style', 'text-align', 'line-height', 'letter-spacing', 'text-transform', 'list-style-type'],
         BOX = ['margin-top', 'margin-right', 'margin-bottom', 'margin-left', 'padding-top', 'padding-right', 'padding-bottom', 'padding-left'],
         INLINE = /^(SPAN|B|I|U|EM|STRONG|A|SMALL|CODE|SUB|SUP|MARK)$/, TBL = /^(TABLE|TD|TH|COL)$/;
@@ -3064,11 +3089,12 @@ var APTT = (function () {
         v = c.getPropertyValue('text-decoration-line'); if (v && v !== 'none' && (!pc || v !== pc.getPropertyValue('text-decoration-line'))) s += 'text-decoration:' + v + ';';
         if (TBL.test(n.tagName)) { v = n.getBoundingClientRect().width; if (v) s += 'width:' + Math.round(v) + 'px;'; if (n.tagName === 'TABLE') s += 'border-collapse:' + c.getPropertyValue('border-collapse') + ';'; if (n.tagName === 'TD' || n.tagName === 'TH') s += 'vertical-align:' + c.getPropertyValue('vertical-align') + ';'; }
         var dd = c.display, mapd = dd === 'flex' || dd === 'grid' ? 'block' : dd === 'inline-flex' ? 'inline-block' : dd;
-        if (pc && /flex|grid/.test(pc.display) && !/column/.test(pc.getPropertyValue('flex-direction')) && !/^(TD|TH|TR|LI)$/.test(n.tagName) && dd !== 'inline') mapd = 'inline-block';   // a row of flex items: side by side, as far as OneNote can
+        if (pc && /flex|grid/.test(pc.display) && !/column/.test(pc.getPropertyValue('flex-direction')) && !/^(TD|TH|TR|LI)$/.test(n.tagName) && dd !== 'inline') mapd = 'inline-block'; if (n.tagName === 'SPAN') needSp.push(n);   // a row of flex items: side by side, as far as OneNote can
         if (mapd === 'inline-block' && !TBL.test(n.tagName)) { var rb = n.getBoundingClientRect(); if (rb.width && rb.height && !n.textContent.trim()) s += 'width:' + Math.round(rb.width) + 'px;height:' + Math.round(rb.height) + 'px;'; }   // empty swatches keep their size
         if (INLINE.test(n.tagName) ? mapd !== 'inline' : (n.tagName === 'DIV' || n.tagName === 'P' || n.tagName === 'SECTION' || n.tagName === 'HEADER') ? mapd !== 'block' : false) s += 'display:' + mapd + ';';
         return s;
       });
+      needSp.forEach(function (n) { if (n.parentNode) n.parentNode.insertBefore(document.createTextNode(' '), n.nextSibling); });
       all.forEach(function (n, i) { n.setAttribute('style', cs[i]); ['class', 'id', 'onclick', 'title', 'aria-label', 'data-nc', 'colspan_'].forEach(function (a) { n.removeAttribute(a); }); });
       var text = (root.innerText || root.textContent || '').replace(/\n{3,}/g, '\n\n').trim();
       return { html: '<div>' + root.innerHTML + '</div>', text: text };
