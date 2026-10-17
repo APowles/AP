@@ -2106,7 +2106,7 @@ var APTT = (function () {
   function open(o, re) {
     if (!o || !o.items || !o.items.length || typeof APPEN === 'undefined' || typeof APMP === 'undefined') return;
     var items = o.items.map(norm);
-    var m = { id: String(o.id || ''), app: o.app || '', kicker: o.kicker || '', title: o.title || '', meta: o.meta || '', detail: o.detail || '', lang: o.lang || '', code: o.langCode || LCODE[o.lang] || '', total: 20, level: o.level || '', set: o.set || null };
+    var m = { id: String(o.id || ''), app: o.app || '', kicker: o.kicker || '', title: o.title || '', meta: o.meta || '', detail: o.detail || '', lang: o.lang || '', code: o.langCode || LCODE[o.lang] || '', total: 20, level: o.level || '', set: o.set || null, recap: typeof o.recap === 'function' ? o.recap : null, recapName: o.recapName || 'grammar recap, with its “Now I can…” tick-boxes', recapShort: o.recapShort || 'grammar recap', recapUrl: typeof o.recapUrl === 'function' ? o.recapUrl : null };
     m.srcId = String((o.set && o.set.src) || m.id || '');
     var src = m.srcId.split('|')[0], VERB = { conj: 1, it: 1, spot: 1 };
     items.forEach(function (it) { it.big = it.kind === 'sentence' || (!VERB[src] && nWords(it.answer) > 2); });
@@ -2855,9 +2855,57 @@ var APTT = (function () {
         .then(function (r) { if (!r.ok) throw new Error('GitHub ' + r.status); return true; });
     });
   }
+  // the extra page for the one-click copy (OneNote): a grammar recap or a vocab list. The page's styles are written into every element (class names mean nothing there),
+  // the tick-buttons become ☐ lines, and hidden model answers and dead Check buttons are left out. {html, text}, or null when the page offers nothing.
+  // S.m.recap() returns an HTML string styled by this page, or { html, css } for a fragment that brings its own stylesheet.
+  function recapCopy() {
+    var R = null; try { R = S.m.recap ? S.m.recap() : null; } catch (e) { R = null; }
+    var html = typeof R === 'string' ? R : (R && R.html) || '', css = (R && typeof R === 'object' && R.css) || '';
+    if (!html) return null;
+    var host, root, view = window, fr = null;
+    if (css) {
+      fr = document.createElement('iframe'); fr.style.cssText = 'position:fixed;left:-99999px;top:0;width:760px;height:800px;border:0'; document.body.appendChild(fr);
+      var d = fr.contentDocument; d.open(); d.write('<!doctype html><html><head><meta charset="utf-8"><style>' + css + '</style></head><body style="margin:0;background:#fff"><div id="rc">' + html + '</div></body></html>'); d.close();
+      root = d.getElementById('rc'); view = fr.contentWindow;
+    } else {
+      host = document.createElement('div'); host.style.cssText = 'position:fixed;left:-99999px;top:0;width:720px;background:#fff'; host.innerHTML = html; document.body.appendChild(host); root = host;
+    }
+    try {
+      [].forEach.call(root.querySelectorAll('.nc-ans,.nc-chk,script,style,button:not(.nc-box)'), function (n) { n.remove(); });
+      [].forEach.call(root.querySelectorAll('.nc-row'), function (r) {
+        var t = r.querySelector('.nc-t'), tx = (t ? t.textContent : r.textContent).replace(/^\s*☐\s*/, '').replace(/\s*Check\s*$/, '');
+        r.innerHTML = ''; r.setAttribute('style', 'margin:6px 0;line-height:1.5;color:#1a2744;font-weight:600'); r.appendChild(document.createTextNode('☐  ' + tx));
+      });
+      [].forEach.call(root.querySelectorAll('div'), function (d2) { if (/Press\s+Check/.test(d2.textContent) && d2.textContent.length < 140 && !d2.querySelector('div')) d2.textContent = 'Tick each box when you can do it.'; });
+      [].slice.call(root.querySelectorAll('*')).forEach(function (n) { if (n.isConnected && view.getComputedStyle(n).display === 'none') n.remove(); });
+      var INH = ['color', 'font-size', 'font-weight', 'font-style', 'text-align', 'line-height', 'letter-spacing', 'text-transform', 'list-style-type'],
+        BOX = ['margin-top', 'margin-right', 'margin-bottom', 'margin-left', 'padding-top', 'padding-right', 'padding-bottom', 'padding-left'],
+        INLINE = /^(SPAN|B|I|U|EM|STRONG|A|SMALL|CODE|SUB|SUP|MARK)$/, TBL = /^(TABLE|TD|TH|COL)$/;
+      var all = [root].concat([].slice.call(root.querySelectorAll('*'))), cs = all.map(function (n) {
+        var c = view.getComputedStyle(n), pe = n === root ? (n.parentElement || n) : n.parentElement, pc = n === root ? null : view.getComputedStyle(pe), s = '', v;
+        INH.forEach(function (p) { v = c.getPropertyValue(p); if (v && (!pc || v !== pc.getPropertyValue(p))) s += p + ':' + v + ';'; });
+        v = c.getPropertyValue('font-family'); if (!pc || v !== pc.getPropertyValue('font-family')) s += 'font-family:' + (/serif|playfair|georgia/i.test(v) && !/sans-serif/i.test(v.split(',')[0]) ? 'Georgia,serif' : 'Calibri,Arial,sans-serif') + ';';
+        v = c.getPropertyValue('background-color'); if (v && !/rgba\(0, 0, 0, 0\)|transparent/.test(v)) s += 'background-color:' + v + ';';
+        BOX.forEach(function (p) { v = c.getPropertyValue(p); if (v && v !== '0px') s += p + ':' + v + ';'; });
+        ['top', 'right', 'bottom', 'left'].forEach(function (sd) { var w = c.getPropertyValue('border-' + sd + '-width'), st = c.getPropertyValue('border-' + sd + '-style'); if (w && w !== '0px' && st !== 'none') s += 'border-' + sd + ':' + w + ' ' + st + ' ' + c.getPropertyValue('border-' + sd + '-color') + ';'; });
+        v = c.getPropertyValue('border-top-left-radius'); if (v && v !== '0px') s += 'border-radius:' + v + ';';
+        v = c.getPropertyValue('text-decoration-line'); if (v && v !== 'none' && (!pc || v !== pc.getPropertyValue('text-decoration-line'))) s += 'text-decoration:' + v + ';';
+        if (TBL.test(n.tagName)) { v = n.getBoundingClientRect().width; if (v) s += 'width:' + Math.round(v) + 'px;'; if (n.tagName === 'TABLE') s += 'border-collapse:' + c.getPropertyValue('border-collapse') + ';'; if (n.tagName === 'TD' || n.tagName === 'TH') s += 'vertical-align:' + c.getPropertyValue('vertical-align') + ';'; }
+        var dd = c.display, mapd = dd === 'flex' || dd === 'grid' ? 'block' : dd === 'inline-flex' ? 'inline-block' : dd;
+        if (pc && /flex|grid/.test(pc.display) && !/column/.test(pc.getPropertyValue('flex-direction')) && !/^(TD|TH|TR|LI)$/.test(n.tagName) && dd !== 'inline') mapd = 'inline-block';   // a row of flex items: side by side, as far as OneNote can
+        if (mapd === 'inline-block' && !TBL.test(n.tagName)) { var rb = n.getBoundingClientRect(); if (rb.width && rb.height && !n.textContent.trim()) s += 'width:' + Math.round(rb.width) + 'px;height:' + Math.round(rb.height) + 'px;'; }   // empty swatches keep their size
+        if (INLINE.test(n.tagName) ? mapd !== 'inline' : (n.tagName === 'DIV' || n.tagName === 'P' || n.tagName === 'SECTION' || n.tagName === 'HEADER') ? mapd !== 'block' : false) s += 'display:' + mapd + ';';
+        return s;
+      });
+      all.forEach(function (n, i) { n.setAttribute('style', cs[i]); ['class', 'id', 'onclick', 'title', 'aria-label', 'data-nc', 'colspan_'].forEach(function (a) { n.removeAttribute(a); }); });
+      var text = (root.innerText || root.textContent || '').replace(/\n{3,}/g, '\n\n').trim();
+      return { html: '<div>' + root.innerHTML + '</div>', text: text };
+    } finally { if (fr) fr.remove(); if (host) host.remove(); }
+  }
   // 3 practice tests + the actual test in one go: same settings, names … PRACTICE 1 / 2 / 3 and … ACTUAL TEST, 4 codes in a row, each its own random versions
   function makeSet(d, b, np) {
     np = np === 2 ? 2 : 3;   // how many practice tests (the actual test is always one more)
+    var rcb = $('aptt-mk-r'), wantR = !!(S.m.recap && rcb && rcb.checked); if (rcb) lsSet('apttMkRecap', rcb.checked ? '1' : '0');   // also copy the page's extra (grammar recap / vocab list) in the one click
     var out = $('aptt-mk-out'), say = function (h) { out.innerHTML = '<div class="aptt-mkwarn">' + h + '</div>'; };
     var c0 = $('aptt-mk-c').value.replace(/\s+/g, '').toUpperCase(), m = /^([A-Z]*)(\d+)$/.exec(c0);
     if (!m) { say('Give the first code as letters and a number (e.g. STF107): the ' + (np === 2 ? 'two' : 'three') + ' practice tests get that code' + (np === 2 ? ' and the next one' : ' and the next two') + '; the actual test gets its own code that cannot be guessed.'); return; }
@@ -2890,8 +2938,8 @@ var APTT = (function () {
     chain.then(function () {
       out.innerHTML = '<div class="aptt-mkok">✅ ' + (np + 1) + ' tests made, each with its own ' + VERSIONS + ' random versions. They are also saved in your list on the AP Tests page.</div>'
         + T.map(function (t) { return '<div class="aptt-mkrow"><div class="aptt-mklink">🔗 <a href="' + esc(t.link) + '" target="_blank" rel="noopener">' + esc(t.n + ' (' + t.c + ')') + '</a></div><button type="button" class="aph-btn aph-btn-primary">📋 Copy link</button></div>'; }).join('')
-        + '<div class="aptt-mkact" style="justify-content:flex-start"><button type="button" class="aph-btn aph-btn-primary" id="aptt-mk-all">📋 Copy the ' + np + ' PRACTICE tests as links</button></div>'
-        + '<div class="aptt-mkhint">For OneNote (EW): the ' + (np === 2 ? 'two' : 'three') + ' practice tests only, each pasted as its name with the long address hidden inside it. The ACTUAL TEST is never in this copy: copy its own link in the lesson.</div>'
+        + '<div class="aptt-mkact" style="justify-content:flex-start"><button type="button" class="aph-btn aph-btn-primary" id="aptt-mk-all">📋 Copy the ' + np + ' PRACTICE tests as links' + (wantR ? ' + ' + S.m.recapShort : '') + '</button></div>'
+        + '<div class="aptt-mkhint">For OneNote (EW): the ' + (np === 2 ? 'two' : 'three') + ' practice tests only, each pasted as its name with the long address hidden inside it. The ACTUAL TEST is never in this copy: copy its own link in the lesson.' + (wantR ? ' After the links comes the ' + esc(S.m.recapShort) + ', ready to paste into the same OneNote page.' : '') + '</div>'
         + '<label>Lines for tests.txt (the ' + np + ' practice codes only)</label><div class="aptt-mkrow"><textarea readonly rows="' + np + '" style="flex:1;min-width:0;font-size:.75rem">' + esc(T.slice(0, np).map(function (t) { return t.line; }).join('\n')) + '</textarea><button type="button" class="aph-btn">📋 Copy lines</button></div>'
         + '<div class="aptt-mkhint" style="color:#b42318;font-weight:700">🔒 The ACTUAL TEST (' + esc(T[np].c) + ') is not on the AP Tests page yet, so the boys cannot use it. In the lesson: Test Library › its yellow box › Release code now (or Copy ACTUAL TEST link).</div>';
       var rows = out.querySelectorAll('.aptt-mkrow');
@@ -2899,7 +2947,8 @@ var APTT = (function () {
       rows[np + 1].querySelector('button').onclick = function () { copyText(T.slice(0, np).map(function (t) { return t.line; }).join('\n'), this); };
       $('aptt-mk-all').onclick = function () {
         var P = T.slice(0, np);
-        copyHTML('<ul>' + P.map(function (t) { return '<li><a href="' + esc(t.link) + '">' + esc(t.n + ' (' + t.c + ')') + '</a></li>'; }).join('') + '</ul>', P.map(function (t) { return t.n + ' (' + t.c + ')\n' + t.link; }).join('\n\n'), this);
+        var R = wantR ? recapCopy() : null, U = null; if (wantR && S.m.recapUrl) { try { U = S.m.recapUrl(); } catch (e) { U = null; } }
+        copyHTML('<ul>' + P.map(function (t) { return '<li><a href="' + esc(t.link) + '">' + esc(t.n + ' (' + t.c + ')') + '</a></li>'; }).join('') + '</ul>' + (U ? '<p><a href="' + esc(U.url) + '">' + esc(U.label) + '</a></p>' : '') + (R ? R.html : ''), P.map(function (t) { return t.n + ' (' + t.c + ')\n' + t.link; }).join('\n\n') + (U ? '\n\n' + U.label + '\n' + U.url : '') + (R ? '\n\n' + R.text : ''), this);
       };
       b.textContent = '✓ Made'; b.style.display = 'none';
       var cx = $('aptt-mk-x'); if (cx) { cx.textContent = '✓ Close'; cx.className = 'aph-btn aph-btn-primary'; }
@@ -2929,6 +2978,7 @@ var APTT = (function () {
       + '<label>Make</label><div class="aptt-mkq"><label><input type="radio" name="aptt-mk-m" value="1" checked> One test</label>'
       + '<label' + (RUN ? '' : ' class="off"') + '><input type="radio" name="aptt-mk-m" value="set"' + (RUN ? '' : ' disabled') + '> 3 practice tests + the actual test <small>(PRACTICE 1, 2, 3 for EW, with codes in a row; the ACTUAL TEST gets a code the boys cannot guess and stays off the AP Tests page until you release it in the lesson; each has its own ' + VERSIONS + ' random versions)</small></label>'
       + '<label' + (RUN ? '' : ' class=\'off\'') + '><input type=\'radio\' name=\'aptt-mk-m\' value=\'set2\'' + (RUN ? '' : ' disabled') + '> 2 practice tests + the actual test <small>(the same, with PRACTICE 1 and 2 only)</small></label></div>'
+      + (S.m.recap ? '<div class="aptt-mkq" style="margin-top:6px"><label><input type="checkbox" id="aptt-mk-r"' + (lsGet('apttMkRecap') === '0' ? '' : ' checked') + '> Include the ' + S.m.recapName + ' in the one-click copy <small>(practice links first, then this, for OneNote; used when you make the practice tests + actual test)</small></label></div>' : '')
       + '<label>Library heading</label><select id="aptt-mk-cat">' + (function () { var c = catOf(S.m), L = CATS.indexOf(c) < 0 ? [c].concat(CATS) : CATS; return L.map(function (x) { return '<option' + (x === c ? ' selected' : '') + '>' + esc(x) + '</option>'; }).join(''); })() + '</select>'
       + '<label>Folder inside it (optional: e.g. C Block Set 2, Autumn 2026)</label><input id="aptt-mk-f" type="text" list="aptt-mk-fl" maxlength="40" placeholder="none"><datalist id="aptt-mk-fl">' + folders().map(function (x) { return '<option value="' + esc(x) + '">'; }).join('') + '</datalist>'
       + '<label>Code (for the AP Tests page: the next free number is filled in' + (gkey() ? '; it is added automatically' : '') + ')</label><input id="aptt-mk-c" type="text" placeholder="e.g. STF101" autocapitalize="characters" maxlength="12">'
@@ -3016,7 +3066,7 @@ function apttSpot(o) {
   var items = [];
   o.rows.forEach(function (g) { g.forEach(function (x) { items.push({ prompt: o.q(x), answer: o.a(x), kind: o.kind, label: o.label ? o.label(x) : '', html: true }); }); });
   var sc = String(o.id || '').split('|')[0];
-  APTT.open({ id: o.id, app: APTT_APP, kicker: APTT_KICK, title: o.title, meta: o.meta, detail: o.detail, lang: o.lang, items: items, total: 10, level: AP_LEVEL.NAMES[apttLv(sc)] || '' });
+  APTT.open({ id: o.id, app: APTT_APP, kicker: APTT_KICK, title: o.title, meta: o.meta, detail: o.detail, lang: o.lang, items: items, total: 10, level: AP_LEVEL.NAMES[apttLv(sc)] || '', recap: o.recap, recapName: o.recapName, recapShort: o.recapShort, recapUrl: o.recapUrl });
 }
 // the boy must choose his level (Easy / Medium / Hard / Mixed) before a timed & submitted Spot Test is drawn
 function apttLevel(sc, run) {
@@ -8724,7 +8774,19 @@ function generateEWsSpotTest(timed) {
     var LN={en:'English',fr:'French',it:'Italian',es:'Spanish'};
     apttSpot({ id: 'voc|' + tLabel + '|' + f + '>' + t + (mixOn() ? '~mix' + mixMode : '') + '|' + (IGV_LVL||'X') + '|' + need, title: tLabel + (mixOn() ? ' · ' + mixTitle() : ''),
       meta: (mixOn() ? mixTitle() : (LANG_FLAGS[f]||'') + ' → ' + (LANG_FLAGS[t]||'')) + ' &nbsp;·&nbsp; 5 × ' + per + ' = ' + need + ' items', lang: LN[mixOn() ? mixTarget() : t] || '', kind: 'word', rows: rows,
-      q: function (p) { return p.q; }, a: function (p) { return p.a; } });
+      q: function (p) { return p.q; }, a: function (p) { return p.a; },
+      recapName: 'vocab list (the print view of the selected list)', recapShort: 'vocab list',
+      recap: function () {
+        // same sections the spot test draws from (sel-section), not the list overview's own tick-boxes
+        var seen = {}, secs = []; getSelectedPhrases().forEach(function (p) { if (!seen[p.sec]) { seen[p.sec] = 1; secs.push(p.sec); } });
+        if (!secs.length) return null;
+        var keep = _ovSecs; _ovSecs = secs;
+        try {
+          var SP = ovSheetParts(), n = _ovPhrases().length;
+          var hd = '<header><div><div class="k">Eton IGCSE &middot; Vocab &amp; Gr EWs</div><h1>Vocab &mdash; <em>' + _ovEsc(SP.names.join(' \u00b7 ')) + '</em></h1><div class="r">' + OV_ALL[SP.F] + ' &rarr; ' + OV_ALL[SP.L] + ' &middot; ' + n + ' words' + (typeof cogLabel === 'function' && cogLabel() ? ' &middot; ' + cogLabel() : '') + '</div></div></header>';
+          return { html: '<div class="sheet">' + hd + SP.body + '</div>', css: SP.css + 'body{font-family:"Segoe UI",Arial,sans-serif}header{display:block}header .r{text-align:left;margin-top:1mm}.vtb{font-family:Arial,sans-serif}.bar{display:none}' };
+        } finally { _ovSecs = keep; }
+      } });
     return;
   }
   _stRows=rows; _stQFlag=mixOn()?'':(LANG_FLAGS[f]||''); _stAFlag=mixOn()?'':(LANG_FLAGS[t]||'');
@@ -9081,8 +9143,8 @@ function _ovFilter() {
 }
 
 // ── Print / Save as PDF (opens a sheet in a new tab) ──
-function ovPrint() {
-  if (!_ovSecs.length) return;
+// the markup + stylesheet of the print sheet for the sections in _ovSecs (shared by ovPrint and the timed-test recap)
+function ovSheetParts() {
   var P2 = _ovPair(), F = P2[0], L = P2[1], secs = _ovOrdered(), names = secs.map(function (s) { return SECTION_TITLES[s] || s; });
   var body = '';
   vtGroups().forEach(function (g) {
@@ -9105,6 +9167,11 @@ function ovPrint() {
     + 'td.n{color:#a0a8bd;font-size:7pt;text-align:right;padding-right:1mm}td.q{color:#3d4866;font-style:italic}td.a{font-weight:700}.ovbr{font-weight:400;color:#8a93a8;font-style:normal}'
     + '.vtb{display:inline-block;min-width:3.4mm;text-align:center;font:700 6.5pt/1.3 var(--aph-body);border-radius:1mm;margin-right:1.5mm;padding:0 .8mm;color:#fff;font-style:normal}.vtb-E{background:#1a2744}.vtb-I{background:#a8862e}.vtb-R{background:#8a93a8}'
     + 'body.blank td.a{color:transparent}body.blank td.a .ovbr{color:transparent}body.blank td.a{border-bottom:1px solid #b9c0cf}';
+  return { css: css, body: body, names: names, F: F, L: L };
+}
+function ovPrint() {
+  if (!_ovSecs.length) return;
+  var SP = ovSheetParts(), F = SP.F, L = SP.L, names = SP.names, body = SP.body, css = SP.css;
   var html = '<!doctype html><html><head><meta charset="utf-8"><title>Vocab: ' + _ovEsc(names.join(', ')) + '</title>'
     + '<style>' + aphCSS() + '</style><style>' + css + '</style></head><body>'
     + '<div class="bar"><button onclick="window.print()">🖨 Print / PDF</button><button class="alt" id="bk" onclick="document.body.classList.toggle(\'blank\');this.classList.toggle(\'on\')">🙈 Hide answers (test sheet)</button><span>In the print dialog choose “Save as PDF” to keep a copy, or your printer to print.</span></div>'
@@ -9909,7 +9976,9 @@ function ggSpotMenu(timed) {
     const allT = items.every(function (x) { return x.type !== 'rule'; });   // rules are answered in English
     apttSpot({ id: 'gg|' + ggLang + '|' + keys.join('+') + '|' + ggS.type + '|' + apttLv('gg') + '|' + need, title: ggEsc(title),
       meta: (allT ? '🇬🇧 → ' + GGL().flag + ' &nbsp;·&nbsp; ' : '') + GGL().name + ' &nbsp;·&nbsp; 5 × ' + per + ' = ' + need + ' items', lang: allT ? GGL().lang : '', kind: 'sentence', rows: rows,
-      q: function (x) { return x.en; }, a: function (x) { return ggAns(x); }, label: function (x) { return ggEsc((GGD[ggChOf(x)] || {}).label || ''); } });
+      q: function (x) { return x.en; }, a: function (x) { return ggAns(x); }, label: function (x) { return ggEsc((GGD[ggChOf(x)] || {}).label || ''); },
+      recap: function () { return keys.map(function (k) { var d = GGD[k]; return d ? '<div style="margin:18px 0 6px;padding-bottom:4px;border-bottom:3px solid #1a2744;font-size:1.25rem;font-weight:700;color:#1a2744">Grammar recap · ' + ggEsc(d.label) + ' · ' + ggEsc(d.title) + '</div>' + ggKey() + (d.recap || '') : ''; }).join(''); },
+      recapUrl: function () { return { url: location.href.replace(/[#?].*$/, '') + '#recap=' + keys.join('+') + (ggLang === 'fr' ? '' : '&l=' + ggLang), label: '▶ Open the live grammar recap: tick the “Now I can…” boxes and press Check to see the model answers' }; } });
     return;
   }
   window._ggSpot = { rows: rows, title: title, per: per };
@@ -10700,4 +10769,14 @@ if (window.__voc) window.__voc.lvlOf = function (i, lang) { return vocLvlOf(ALL_
 })();
 /* ===== END ===== */
 
+
+// a link like  <this page>#recap=fm05+fm07  (or  &l=it / &l=es) opens those grammar recaps live, with the “Now I can…” boxes and their Check buttons
+(function () {
+  function go() {
+    var m = /^#recap=([A-Za-z0-9+_-]+)(?:&l=(fr|it|es))?/.exec(location.hash || ''); if (!m || typeof ggGoGr !== 'function') return;
+    try { ggGoGr(m[2] || 'fr'); var ks = m[1].split('+').filter(function (k) { return GGD[k]; }); if (ks.length) ggOpenRecaps(ks); } catch (e) { }
+  }
+  window.addEventListener('hashchange', go);
+  if (document.readyState === 'complete') setTimeout(go, 300); else window.addEventListener('load', function () { setTimeout(go, 300); });
+})();
 </script>

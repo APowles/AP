@@ -2264,7 +2264,7 @@ var APTT = (function () {
   function open(o, re) {
     if (!o || !o.items || !o.items.length || typeof APPEN === 'undefined' || typeof APMP === 'undefined') return;
     var items = o.items.map(norm);
-    var m = { id: String(o.id || ''), app: o.app || '', kicker: o.kicker || '', title: o.title || '', meta: o.meta || '', detail: o.detail || '', lang: o.lang || '', code: o.langCode || LCODE[o.lang] || '', total: 20, level: o.level || '', set: o.set || null };
+    var m = { id: String(o.id || ''), app: o.app || '', kicker: o.kicker || '', title: o.title || '', meta: o.meta || '', detail: o.detail || '', lang: o.lang || '', code: o.langCode || LCODE[o.lang] || '', total: 20, level: o.level || '', set: o.set || null, recap: typeof o.recap === 'function' ? o.recap : null, recapName: o.recapName || 'grammar recap, with its “Now I can…” tick-boxes', recapShort: o.recapShort || 'grammar recap', recapUrl: typeof o.recapUrl === 'function' ? o.recapUrl : null };
     m.srcId = String((o.set && o.set.src) || m.id || '');
     var src = m.srcId.split('|')[0], VERB = { conj: 1, it: 1, spot: 1 };
     items.forEach(function (it) { it.big = it.kind === 'sentence' || (!VERB[src] && nWords(String(it.answer).replace(/\([^)]*\)/g, ' ')) > 2); });
@@ -3013,9 +3013,57 @@ var APTT = (function () {
         .then(function (r) { if (!r.ok) throw new Error('GitHub ' + r.status); return true; });
     });
   }
+  // the extra page for the one-click copy (OneNote): a grammar recap or a vocab list. The page's styles are written into every element (class names mean nothing there),
+  // the tick-buttons become ☐ lines, and hidden model answers and dead Check buttons are left out. {html, text}, or null when the page offers nothing.
+  // S.m.recap() returns an HTML string styled by this page, or { html, css } for a fragment that brings its own stylesheet.
+  function recapCopy() {
+    var R = null; try { R = S.m.recap ? S.m.recap() : null; } catch (e) { R = null; }
+    var html = typeof R === 'string' ? R : (R && R.html) || '', css = (R && typeof R === 'object' && R.css) || '';
+    if (!html) return null;
+    var host, root, view = window, fr = null;
+    if (css) {
+      fr = document.createElement('iframe'); fr.style.cssText = 'position:fixed;left:-99999px;top:0;width:760px;height:800px;border:0'; document.body.appendChild(fr);
+      var d = fr.contentDocument; d.open(); d.write('<!doctype html><html><head><meta charset="utf-8"><style>' + css + '</style></head><body style="margin:0;background:#fff"><div id="rc">' + html + '</div></body></html>'); d.close();
+      root = d.getElementById('rc'); view = fr.contentWindow;
+    } else {
+      host = document.createElement('div'); host.style.cssText = 'position:fixed;left:-99999px;top:0;width:720px;background:#fff'; host.innerHTML = html; document.body.appendChild(host); root = host;
+    }
+    try {
+      [].forEach.call(root.querySelectorAll('.nc-ans,.nc-chk,script,style,button:not(.nc-box)'), function (n) { n.remove(); });
+      [].forEach.call(root.querySelectorAll('.nc-row'), function (r) {
+        var t = r.querySelector('.nc-t'), tx = (t ? t.textContent : r.textContent).replace(/^\s*☐\s*/, '').replace(/\s*Check\s*$/, '');
+        r.innerHTML = ''; r.setAttribute('style', 'margin:6px 0;line-height:1.5;color:#1a2744;font-weight:600'); r.appendChild(document.createTextNode('☐  ' + tx));
+      });
+      [].forEach.call(root.querySelectorAll('div'), function (d2) { if (/Press\s+Check/.test(d2.textContent) && d2.textContent.length < 140 && !d2.querySelector('div')) d2.textContent = 'Tick each box when you can do it.'; });
+      [].slice.call(root.querySelectorAll('*')).forEach(function (n) { if (n.isConnected && view.getComputedStyle(n).display === 'none') n.remove(); });
+      var INH = ['color', 'font-size', 'font-weight', 'font-style', 'text-align', 'line-height', 'letter-spacing', 'text-transform', 'list-style-type'],
+        BOX = ['margin-top', 'margin-right', 'margin-bottom', 'margin-left', 'padding-top', 'padding-right', 'padding-bottom', 'padding-left'],
+        INLINE = /^(SPAN|B|I|U|EM|STRONG|A|SMALL|CODE|SUB|SUP|MARK)$/, TBL = /^(TABLE|TD|TH|COL)$/;
+      var all = [root].concat([].slice.call(root.querySelectorAll('*'))), cs = all.map(function (n) {
+        var c = view.getComputedStyle(n), pe = n === root ? (n.parentElement || n) : n.parentElement, pc = n === root ? null : view.getComputedStyle(pe), s = '', v;
+        INH.forEach(function (p) { v = c.getPropertyValue(p); if (v && (!pc || v !== pc.getPropertyValue(p))) s += p + ':' + v + ';'; });
+        v = c.getPropertyValue('font-family'); if (!pc || v !== pc.getPropertyValue('font-family')) s += 'font-family:' + (/serif|playfair|georgia/i.test(v) && !/sans-serif/i.test(v.split(',')[0]) ? 'Georgia,serif' : 'Calibri,Arial,sans-serif') + ';';
+        v = c.getPropertyValue('background-color'); if (v && !/rgba\(0, 0, 0, 0\)|transparent/.test(v)) s += 'background-color:' + v + ';';
+        BOX.forEach(function (p) { v = c.getPropertyValue(p); if (v && v !== '0px') s += p + ':' + v + ';'; });
+        ['top', 'right', 'bottom', 'left'].forEach(function (sd) { var w = c.getPropertyValue('border-' + sd + '-width'), st = c.getPropertyValue('border-' + sd + '-style'); if (w && w !== '0px' && st !== 'none') s += 'border-' + sd + ':' + w + ' ' + st + ' ' + c.getPropertyValue('border-' + sd + '-color') + ';'; });
+        v = c.getPropertyValue('border-top-left-radius'); if (v && v !== '0px') s += 'border-radius:' + v + ';';
+        v = c.getPropertyValue('text-decoration-line'); if (v && v !== 'none' && (!pc || v !== pc.getPropertyValue('text-decoration-line'))) s += 'text-decoration:' + v + ';';
+        if (TBL.test(n.tagName)) { v = n.getBoundingClientRect().width; if (v) s += 'width:' + Math.round(v) + 'px;'; if (n.tagName === 'TABLE') s += 'border-collapse:' + c.getPropertyValue('border-collapse') + ';'; if (n.tagName === 'TD' || n.tagName === 'TH') s += 'vertical-align:' + c.getPropertyValue('vertical-align') + ';'; }
+        var dd = c.display, mapd = dd === 'flex' || dd === 'grid' ? 'block' : dd === 'inline-flex' ? 'inline-block' : dd;
+        if (pc && /flex|grid/.test(pc.display) && !/column/.test(pc.getPropertyValue('flex-direction')) && !/^(TD|TH|TR|LI)$/.test(n.tagName) && dd !== 'inline') mapd = 'inline-block';   // a row of flex items: side by side, as far as OneNote can
+        if (mapd === 'inline-block' && !TBL.test(n.tagName)) { var rb = n.getBoundingClientRect(); if (rb.width && rb.height && !n.textContent.trim()) s += 'width:' + Math.round(rb.width) + 'px;height:' + Math.round(rb.height) + 'px;'; }   // empty swatches keep their size
+        if (INLINE.test(n.tagName) ? mapd !== 'inline' : (n.tagName === 'DIV' || n.tagName === 'P' || n.tagName === 'SECTION' || n.tagName === 'HEADER') ? mapd !== 'block' : false) s += 'display:' + mapd + ';';
+        return s;
+      });
+      all.forEach(function (n, i) { n.setAttribute('style', cs[i]); ['class', 'id', 'onclick', 'title', 'aria-label', 'data-nc', 'colspan_'].forEach(function (a) { n.removeAttribute(a); }); });
+      var text = (root.innerText || root.textContent || '').replace(/\n{3,}/g, '\n\n').trim();
+      return { html: '<div>' + root.innerHTML + '</div>', text: text };
+    } finally { if (fr) fr.remove(); if (host) host.remove(); }
+  }
   // 3 practice tests + the actual test in one go: same settings, names … PRACTICE 1 / 2 / 3 and … ACTUAL TEST, 4 codes in a row, each its own random versions
   function makeSet(d, b, np) {
     np = np === 2 ? 2 : 3;   // how many practice tests (the actual test is always one more)
+    var rcb = $('aptt-mk-r'), wantR = !!(S.m.recap && rcb && rcb.checked); if (rcb) lsSet('apttMkRecap', rcb.checked ? '1' : '0');   // also copy the page's extra (grammar recap / vocab list) in the one click
     var out = $('aptt-mk-out'), say = function (h) { out.innerHTML = '<div class="aptt-mkwarn">' + h + '</div>'; };
     var c0 = $('aptt-mk-c').value.replace(/\s+/g, '').toUpperCase(), m = /^([A-Z]*)(\d+)$/.exec(c0);
     if (!m) { say('Give the first code as letters and a number (e.g. STF107): the ' + (np === 2 ? 'two' : 'three') + ' practice tests get that code' + (np === 2 ? ' and the next one' : ' and the next two') + '; the actual test gets its own code that cannot be guessed.'); return; }
@@ -3048,8 +3096,8 @@ var APTT = (function () {
     chain.then(function () {
       out.innerHTML = '<div class="aptt-mkok">✅ ' + (np + 1) + ' tests made, each with its own ' + VERSIONS + ' random versions. They are also saved in your list on the AP Tests page.</div>'
         + T.map(function (t) { return '<div class="aptt-mkrow"><div class="aptt-mklink">🔗 <a href="' + esc(t.link) + '" target="_blank" rel="noopener">' + esc(t.n + ' (' + t.c + ')') + '</a></div><button type="button" class="aph-btn aph-btn-primary">📋 Copy link</button></div>'; }).join('')
-        + '<div class="aptt-mkact" style="justify-content:flex-start"><button type="button" class="aph-btn aph-btn-primary" id="aptt-mk-all">📋 Copy the ' + np + ' PRACTICE tests as links</button></div>'
-        + '<div class="aptt-mkhint">For OneNote (EW): the ' + (np === 2 ? 'two' : 'three') + ' practice tests only, each pasted as its name with the long address hidden inside it. The ACTUAL TEST is never in this copy: copy its own link in the lesson.</div>'
+        + '<div class="aptt-mkact" style="justify-content:flex-start"><button type="button" class="aph-btn aph-btn-primary" id="aptt-mk-all">📋 Copy the ' + np + ' PRACTICE tests as links' + (wantR ? ' + ' + S.m.recapShort : '') + '</button></div>'
+        + '<div class="aptt-mkhint">For OneNote (EW): the ' + (np === 2 ? 'two' : 'three') + ' practice tests only, each pasted as its name with the long address hidden inside it. The ACTUAL TEST is never in this copy: copy its own link in the lesson.' + (wantR ? ' After the links comes the ' + esc(S.m.recapShort) + ', ready to paste into the same OneNote page.' : '') + '</div>'
         + '<label>Lines for tests.txt (the ' + np + ' practice codes only)</label><div class="aptt-mkrow"><textarea readonly rows="' + np + '" style="flex:1;min-width:0;font-size:.75rem">' + esc(T.slice(0, np).map(function (t) { return t.line; }).join('\n')) + '</textarea><button type="button" class="aph-btn">📋 Copy lines</button></div>'
         + '<div class="aptt-mkhint" style="color:#b42318;font-weight:700">🔒 The ACTUAL TEST (' + esc(T[np].c) + ') is not on the AP Tests page yet, so the boys cannot use it. In the lesson: Test Library › its yellow box › Release code now (or Copy ACTUAL TEST link).</div>';
       var rows = out.querySelectorAll('.aptt-mkrow');
@@ -3057,7 +3105,8 @@ var APTT = (function () {
       rows[np + 1].querySelector('button').onclick = function () { copyText(T.slice(0, np).map(function (t) { return t.line; }).join('\n'), this); };
       $('aptt-mk-all').onclick = function () {
         var P = T.slice(0, np);
-        copyHTML('<ul>' + P.map(function (t) { return '<li><a href="' + esc(t.link) + '">' + esc(t.n + ' (' + t.c + ')') + '</a></li>'; }).join('') + '</ul>', P.map(function (t) { return t.n + ' (' + t.c + ')\n' + t.link; }).join('\n\n'), this);
+        var R = wantR ? recapCopy() : null, U = null; if (wantR && S.m.recapUrl) { try { U = S.m.recapUrl(); } catch (e) { U = null; } }
+        copyHTML('<ul>' + P.map(function (t) { return '<li><a href="' + esc(t.link) + '">' + esc(t.n + ' (' + t.c + ')') + '</a></li>'; }).join('') + '</ul>' + (U ? '<p><a href="' + esc(U.url) + '">' + esc(U.label) + '</a></p>' : '') + (R ? R.html : ''), P.map(function (t) { return t.n + ' (' + t.c + ')\n' + t.link; }).join('\n\n') + (U ? '\n\n' + U.label + '\n' + U.url : '') + (R ? '\n\n' + R.text : ''), this);
       };
       b.textContent = '✓ Made'; b.style.display = 'none';
       var cx = $('aptt-mk-x'); if (cx) { cx.textContent = '✓ Close'; cx.className = 'aph-btn aph-btn-primary'; }
@@ -3087,6 +3136,7 @@ var APTT = (function () {
       + '<label>Make</label><div class="aptt-mkq"><label><input type="radio" name="aptt-mk-m" value="1" checked> One test</label>'
       + '<label' + (RUN ? '' : ' class="off"') + '><input type="radio" name="aptt-mk-m" value="set"' + (RUN ? '' : ' disabled') + '> 3 practice tests + the actual test <small>(PRACTICE 1, 2, 3 for EW, with codes in a row; the ACTUAL TEST gets a code the boys cannot guess and stays off the AP Tests page until you release it in the lesson; each has its own ' + VERSIONS + ' random versions)</small></label>'
       + '<label' + (RUN ? '' : ' class=\'off\'') + '><input type=\'radio\' name=\'aptt-mk-m\' value=\'set2\'' + (RUN ? '' : ' disabled') + '> 2 practice tests + the actual test <small>(the same, with PRACTICE 1 and 2 only)</small></label></div>'
+      + (S.m.recap ? '<div class="aptt-mkq" style="margin-top:6px"><label><input type="checkbox" id="aptt-mk-r"' + (lsGet('apttMkRecap') === '0' ? '' : ' checked') + '> Include the ' + S.m.recapName + ' in the one-click copy <small>(practice links first, then this, for OneNote; used when you make the practice tests + actual test)</small></label></div>' : '')
       + '<label>Library heading</label><select id="aptt-mk-cat">' + (function () { var c = catOf(S.m), L = CATS.indexOf(c) < 0 ? [c].concat(CATS) : CATS; return L.map(function (x) { return '<option' + (x === c ? ' selected' : '') + '>' + esc(x) + '</option>'; }).join(''); })() + '</select>'
       + '<label>Folder inside it (optional: e.g. C Block Set 2, Autumn 2026)</label><input id="aptt-mk-f" type="text" list="aptt-mk-fl" maxlength="40" placeholder="none"><datalist id="aptt-mk-fl">' + folders().map(function (x) { return '<option value="' + esc(x) + '">'; }).join('') + '</datalist>'
       + '<label>Code (for the AP Tests page: the next free number is filled in' + (gkey() ? '; it is added automatically' : '') + ')</label><input id="aptt-mk-c" type="text" placeholder="e.g. STF101" autocapitalize="characters" maxlength="12">'
@@ -3162,7 +3212,7 @@ function apttSpot(o) {
   var items = [];
   o.rows.forEach(function (g) { g.forEach(function (x) { items.push({ prompt: o.q(x), answer: o.a(x), kind: o.kindOf ? o.kindOf(x) : o.kind, label: o.label ? o.label(x) : '', html: true }); }); });
   var sc = String(o.id || '').split('|')[0];
-  APTT.open({ id: o.id, app: APTT_APP, kicker: APTT_KICK, title: o.title, meta: o.meta, detail: o.detail, lang: o.lang, items: items, total: 10, level: AP_LEVEL.NAMES[apLv(sc)] || '' });
+  APTT.open({ id: o.id, app: APTT_APP, kicker: APTT_KICK, title: o.title, meta: o.meta, detail: o.detail, lang: o.lang, items: items, total: 10, level: AP_LEVEL.NAMES[apLv(sc)] || '', recap: o.recap, recapName: o.recapName, recapShort: o.recapShort, recapUrl: o.recapUrl });
 }
 // the boy must choose his level (Easy / Medium / Hard / Mixed) before a timed & submitted Spot Test is drawn
 function apttLevel(sc, run) {
@@ -4803,10 +4853,10 @@ function copySDTest(which) {
   });
 }
 
-function printSDTest(mode) {
-  mode = mode || 'both';
-  if (!sdTestItems.length) return;
-  const isToFr = sdState.direction === 'fr';
+// The sentence-test sheet behind printSDTest AND the one-click-copy vocab list: { title, css1 (page), css2 (sheet), css (both), body }.
+// o = { items, isToFr, mix, label, mode ('student' | 'teacher' | 'both'), noPrint (no Print button) }
+function sdTestSheet(o) {
+  const mode = o.mode || 'both', sdTestItems = o.items, sdTestMix = o.mix, sdTestSetLabel = o.label, isToFr = o.isToFr;
   // Question/answer sides detected per-pair (data order inconsistent).
   const dirLabel = sdTestMix ? mixTitle(sdTestMix) : isToFr ? '→ French' : '→ English';
   const title = 'Sentence Test — ' + sdTestSetLabel.replace(/_/g,' ') + dirP(dirLabel);
@@ -4841,7 +4891,7 @@ function printSDTest(mode) {
     + '</table>';
 
   const teacherBlock =
-    aphPrintHead({ kicker: 'Eton A Level &middot; VVs, Gr EWs &amp; Translation &middot; Answers', title: bandTitle, meta: 'VVs Sentence Drill &nbsp;&middot;&nbsp; ' + dirLabel + ' &nbsp;&middot;&nbsp; Answer sheet', strip: false, print: mode === 'teacher' })
+    aphPrintHead({ kicker: 'Eton A Level &middot; VVs, Gr EWs &amp; Translation &middot; Answers', title: bandTitle, meta: 'VVs Sentence Drill &nbsp;&middot;&nbsp; ' + dirLabel + ' &nbsp;&middot;&nbsp; Answer sheet', strip: false, print: mode === 'teacher' && !o.noPrint })
     + '<table>'
     + '<tr><th>#</th><th>' + (sdTestMix ? '🇬🇧 ↔ 🇫🇷 Question' : isToFr ? '🇬🇧 English' : '🇫🇷 French') + '</th><th>' + (sdTestMix ? '🇬🇧 ↔ 🇫🇷 Answer' : isToFr ? '🇫🇷 Answer' : '🇬🇧 Answer') + '</th></tr>'
     + answerRows
@@ -4858,16 +4908,24 @@ function printSDTest(mode) {
     bodyInner = studentBlock + aphPrintFoot('Eton A Level VVs, Gr EWs &amp; Translation &middot; Test &middot; Student sheet') + '<div style="page-break-before:always;">' + teacherBlock + '</div>';
   }
 
-  const html = `<!DOCTYPE html><html><head><meta charset="UTF-8">
-  <title>${title}</title>
-  <style>${aphCSS()}</style>
-  <style>
+  const css2 = `
     body{font-family:var(--aph-body);background:#fff;color:#1a2744;margin:1.2cm 1.5cm;font-size:10.5pt;}
     table{width:100%;border-collapse:collapse;margin-bottom:24px;}
     th{background:#1a2744;color:#c9a84c;padding:6px 8px;font-size:8.5pt;text-align:left;border:1px solid #1a2744;}
     @media print{.no-print{display:none}}
-  </style></head><body>
-  ${bodyInner}
+  `;
+  return { title: title, css1: aphCSS(), css2: css2, css: aphCSS() + css2, body: bodyInner };
+}
+
+function printSDTest(mode) {
+  mode = mode || 'both';
+  if (!sdTestItems.length) return;
+  const sh = sdTestSheet({ items: sdTestItems, isToFr: sdState.direction === 'fr', mix: sdTestMix, label: sdTestSetLabel, mode: mode });
+  const html = `<!DOCTYPE html><html><head><meta charset="UTF-8">
+  <title>${sh.title}</title>
+  <style>${sh.css1}</style>
+  <style>${sh.css2}</style></head><body>
+  ${sh.body}
   <script>window.onload=function(){window.print();}<\/script>
   </body></html>`;
 
@@ -5039,7 +5097,10 @@ function generateSDSpotTest(timed) {
   if (timed) {
     apttSpot({ id: 'sd|' + setKey + '|' + (spotMix ? 'mix' + spotMix : isToFr ? 'en>fr' : 'fr>en') + '|' + apLv('sd') + '|' + totalNeeded, title: setKey.replace(/_/g,' ') + apLvTag('sd') + dirP(dirLabel),
       meta: (spotMix ? mixLabel(spotMix) : isToFr ? '🇬🇧 → 🇫🇷' : '🇫🇷 → 🇬🇧') + ' &nbsp;·&nbsp; 5 rows × ' + itemsPerRow + ' = ' + totalNeeded + ' sentences', lang: spotMix || isToFr ? 'French' : 'English', kind: 'sentence', rows: rows,
-      q: function (p) { return sdMk(p) + (sdQA(p, sdTF(p, isToFr)).q || '').trim(); }, a: function (p) { return (sdQA(p, sdTF(p, isToFr)).a || '').trim(); } });
+      q: function (p) { return sdMk(p) + (sdQA(p, sdTF(p, isToFr)).q || '').trim(); }, a: function (p) { return (sdQA(p, sdTF(p, isToFr)).a || '').trim(); },
+      // the one-click copy: the print view of this same selection (the level-filtered sentence pool), answers shown
+      recapName: 'vocab list (the print view of the selected list)', recapShort: 'vocab list',
+      recap: function () { var sh = sdTestSheet({ items: pool, isToFr: isToFr, mix: 0, label: setKey, mode: 'teacher', noPrint: true }); return { html: sh.body, css: sh.css }; } });
     return;
   }
 
@@ -5330,7 +5391,16 @@ function generateVVSpotTest(timed) {
   if (timed) {
     apttSpot({ id: 'vv|' + key + '|' + (spotMixOn ? 'mix' + vvMix : spotMixed ? 'mix' : isEnToFr ? 'en>fr' : 'fr>en') + '|' + apLv('vv') + '|' + (5 * per), title: setLabel,
       meta: (spotMixOn ? mixLabel(vvMix) : hQFlag + ' → ' + hAFlag) + ' &nbsp;·&nbsp; 5 × ' + per + ' = ' + (5 * per) + ' items', lang: isEnToFr ? 'French' : 'English', kind: 'word', rows: rows,
-      q: function (p) { return spotTag(p) + cleanVVHtml(p[spotDirs.get(p).qi]); }, a: function (p) { return cleanVVHtml(p[spotDirs.get(p).ai]); } });
+      q: function (p) { return spotTag(p) + cleanVVHtml(p[spotDirs.get(p).qi]); }, a: function (p) { return cleanVVHtml(p[spotDirs.get(p).ai]); },
+      // the one-click copy: the print view (Content List) of this same selection (the level-filtered set), both languages shown
+      recapName: 'vocab list (the print view of the selected list)', recapShort: 'vocab list',
+      recap: function () {
+        var items = [];
+        raw.forEach(function (p) { var idx = rawAll.indexOf(p); if (idx < 0) return; var pr = getVVPair(key, idx); items.push({ set: key, idx: idx, n: idx + 1, en: pr[0], fr: pr[1], key: key + '|' + idx }); });
+        items.forEach(function (it) { it.tier = vvbTierOfItem(it); });
+        var sh = vvbSheet('list', [{ set: key, label: setLabel, items: items }], { setsTitle: setLabel, print: false });
+        return { html: sh.body, css: sh.css };
+      } });
     return;
   }
 
@@ -5968,11 +6038,11 @@ function vvbReveal(key){
 }
 
 // ── Printing ─────────────────────────────────────────────────
-function vvbPrint(kind){
+// The sheet behind the Print buttons AND the one-click-copy vocab list: { title, css1 (page), css2 (sheet), css (both), body }. opt: { setsTitle, print:false (no Print button) }
+function vvbSheet(kind, groups, opt){
   const mixPct = kind === 'testmix50' ? 50 : kind === 'testmix70' ? 70 : 0;
   const lvTest = kind === 'testfr' || kind === 'testen' || mixPct > 0;
-  const groups = vvbChosen().map(g => ({set:g.set, label:g.label, items: lvTest ? apLvFilter('vvb', g.items, apVvbLevel) : g.items})).filter(g => g.items.length);
-  if (!groups.length) { if (lvTest && vvbChosen().length) apLvShort('vvb', null, 0, 1); return; }
+  opt = opt || {};
   const total = groups.reduce((s,g)=>s+g.items.length,0);
   // Mix both ways: each item gets its own direction (ef = English -> French). Recognition (tier R) items stay French -> English while the Recognition lock is on and are left out of the split.
   if (mixPct) {
@@ -5982,8 +6052,11 @@ function vvbPrint(kind){
     free.forEach((it, i) => { it.ef = efs[i]; });
   }
   const mkp = it => mixPct ? '<span style="display:inline-block;margin-right:7px;padding:0 6px;border:1px solid #c9a84c;border-radius:9px;font-size:0.62rem;font-weight:700;color:#7a5c00;background:#fffaf0;white-space:nowrap;">' + (it.ef ? '→ French' : '→ English') + '</span>' : '';
-  const setNames = vvbGroupBy === 'set' ? groups.map(g => vvbLabel(g.set)) : vvbSel.map(vvbLabel);   // the title names the sets chosen, however the list is grouped
-  const setsTitle = setNames.length <= 4 ? setNames.join(', ') : setNames.slice(0,3).join(', ') + ' + ' + (setNames.length-3) + ' more';
+  let setsTitle = opt.setsTitle;
+  if (setsTitle == null) {
+    const setNames = vvbGroupBy === 'set' ? groups.map(g => vvbLabel(g.set)) : vvbSel.map(vvbLabel);   // the title names the sets chosen, however the list is grouped
+    setsTitle = setNames.length <= 4 ? setNames.join(', ') : setNames.slice(0,3).join(', ') + ' + ' + (setNames.length-3) + ' more';
+  }
   const kindName = {list:'Content List', study:'Study Sheet', testfr:'Test — English → French', testen:'Test — French → English', testmix50:'Test — ' + mixTitle(50), testmix70:'Test — ' + mixTitle(70)}[kind] + (lvTest ? apLvTag('vvb') : '');
   const isTest = lvTest;
 
@@ -6031,11 +6104,7 @@ function vvbPrint(kind){
             + '<table class="list ans"><tbody>'+rows+'</tbody></table>' + aphPrintFoot('Eton A Level VVs, Gr EWs &amp; Translation &middot; Test &middot; Teacher sheet') + '</div>';
   }
 
-  const html = [
-    '<!DOCTYPE html><html><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">',
-    '<title>Eton A Level VVs, Gr EWs &amp; Translation — '+vvbEsc(setsTitle)+' — '+kindName+'</title>',
-    '<style>'+aphCSS()+'</style>',
-    '<style>',
+  const css2 = [
     '*{box-sizing:border-box;margin:0;padding:0;}',
     'html,body{-webkit-print-color-adjust:exact;print-color-adjust:exact;}',
     'body{font-family:var(--aph-body);background:#fff;color:#1a2744;padding:0.7cm 0.9cm;}',
@@ -6066,13 +6135,24 @@ function vvbPrint(kind){
     'strong{font-weight:700;}',
     '.answers{break-before:page;page-break-before:always;padding-top:0.2cm;}',
     'table.ans td{padding:3px 8px;font-size:0.7rem;}',
-    '</style></head><body>',
-    aphPrintHead({ kicker: 'Eton A Level &middot; VVs, Gr EWs &amp; Translation &middot; '+kindName, title: '<em>'+vvbEsc(setsTitle)+'</em> &mdash; '+total+' phrase'+(total===1?'':'s'), strip: isTest, total: total }),
+  ].join('');
+  const bodyHtml = [
+    aphPrintHead({ kicker: 'Eton A Level &middot; VVs, Gr EWs &amp; Translation &middot; '+kindName, title: '<em>'+vvbEsc(setsTitle)+'</em> &mdash; '+total+' phrase'+(total===1?'':'s'), strip: isTest, total: total, print: opt.print }),
     body,
     answers,
     aphPrintFoot('Eton A Level VVs, Gr EWs &amp; Translation &middot; '+(isTest ? 'Test &middot; Student sheet' : kindName)),
-    '</body></html>'
   ].join('');
+  return { title: 'Eton A Level VVs, Gr EWs &amp; Translation — '+vvbEsc(setsTitle)+' — '+kindName, css1: aphCSS(), css2: css2, css: aphCSS()+css2, body: bodyHtml };
+}
+
+function vvbPrint(kind){
+  const mixPct = kind === 'testmix50' ? 50 : kind === 'testmix70' ? 70 : 0;
+  const lvTest = kind === 'testfr' || kind === 'testen' || mixPct > 0;
+  const groups = vvbChosen().map(g => ({set:g.set, label:g.label, items: lvTest ? apLvFilter('vvb', g.items, apVvbLevel) : g.items})).filter(g => g.items.length);
+  if (!groups.length) { if (lvTest && vvbChosen().length) apLvShort('vvb', null, 0, 1); return; }
+  const sh = vvbSheet(kind, groups);
+  const html = '<!DOCTYPE html><html><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">'
+    + '<title>' + sh.title + '</title><style>' + sh.css1 + '</style><style>' + sh.css2 + '</style></head><body>' + sh.body + '</body></html>';
 
   const w = window.open('', '_blank');
   if (!w) { alert('Pop-up blocked — please allow pop-ups for this page and try again.'); return; }
@@ -46333,7 +46413,9 @@ function generateGrEwsSpotTestMenu(timed) {
     const allT = items.every(function (x) { return x.type !== 'rule'; });   // rules are answered in English
     apttSpot({ id: 'grews|' + (useMulti ? grEwsSelectedKeys.join('+') : grEwsState.grKey) + '|' + grEwsTypeFilter + '|' + apLv('grews') + '|' + totalNeeded, title: title,
       meta: (allT ? '🇬🇧 → 🇫🇷 &nbsp;·&nbsp; ' : '') + '5 rows × ' + itemsPerRow + ' = ' + totalNeeded + ' items', lang: allT ? 'French' : '', kind: 'sentence', rows: rows,
-      q: function (x) { return x.en; }, a: function (x) { return alAns(x); }, label: function (x) { return x.grRef || ''; } });
+      q: function (x) { return x.en; }, a: function (x) { return alAns(x); }, label: function (x) { return x.grRef || ''; },
+      recap: function () { return (useMulti ? grEwsSelectedKeys : [grEwsState.grKey]).map(function (k) { var c = GR_EWS_RECAP[k]; if (!c) return ''; return '<div style="margin:18px 0 6px;padding-bottom:4px;border-bottom:3px solid #1a2744;font-size:1.25rem;font-weight:700;color:#1a2744">Grammar recap · Gr ' + k.replace('gr', '') + ' · ' + ((GR_EWS_DATA[k] || {}).title || '') + '</div>' + grEwsRecapFull(k); }).join(''); },
+      recapUrl: function () { return { url: location.href.replace(/[#?].*$/, '') + '#recap=' + (useMulti ? grEwsSelectedKeys : [grEwsState.grKey]).join('+'), label: '▶ Open the live grammar recap: tick the “Now I can…” boxes and press Check to see the model answers' }; } });
     return;
   }
 
@@ -46906,7 +46988,9 @@ function generateGrEwsSpotTestInline(timed) {
     const allT = items.every(function (x) { return x.type !== 'rule'; });   // rules are answered in English
     apttSpot({ id: 'grews|' + grEwsState.grKey + '|drill|' + apLv('grews') + '|' + totalNeeded, title: data.title + apLvTag('grews'),
       meta: (allT ? '🇬🇧 → 🇫🇷 &nbsp;·&nbsp; ' : '') + '5 rows × ' + itemsPerRow + ' = ' + totalNeeded + ' items', lang: allT ? 'French' : '', kind: 'sentence', rows: rows,
-      q: function (x) { return x.en; }, a: function (x) { return alAns(x); }, label: function (x) { return x.grRef || ''; } });
+      q: function (x) { return x.en; }, a: function (x) { return alAns(x); }, label: function (x) { return x.grRef || ''; },
+      recap: function () { return [grEwsState.grKey].map(function (k) { var c = GR_EWS_RECAP[k]; if (!c) return ''; return '<div style="margin:18px 0 6px;padding-bottom:4px;border-bottom:3px solid #1a2744;font-size:1.25rem;font-weight:700;color:#1a2744">Grammar recap · Gr ' + k.replace('gr', '') + ' · ' + ((GR_EWS_DATA[k] || {}).title || '') + '</div>' + grEwsRecapFull(k); }).join(''); },
+      recapUrl: function () { return { url: location.href.replace(/[#?].*$/, '') + '#recap=' + [grEwsState.grKey].join('+'), label: '▶ Open the live grammar recap: tick the “Now I can…” boxes and press Check to see the model answers' }; } });
     return;
   }
 
@@ -48248,6 +48332,7 @@ body{background:var(--cream)}
       + '<span><b>Grammar recaps: pick one or several</b><small>Read them together, print or save as PDF' + (n > 1 ? ' · ' + n + ' ticked' : '') + '</small></span><span class="rcp-ar">▶</span></button>';
   };
   window.rcpOpen = function (ctx) { R.ctx = ctx || 'ews'; R.keys = initial(R.ctx); page(); };
+  window.rcpOpenKeys = function (keys) { R.ctx = 'ews'; R.keys = order(keys.map(function (k) { return 'e:' + k; })); if (R.keys.length) page(); };
   window.rcpClose = function () { var o = document.getElementById('rcp-ov'); if (o) o.remove(); document.body.style.overflow = ''; };
   function page() {
     var old = document.getElementById('rcp-ov'); if (old) old.remove();
@@ -49228,4 +49313,14 @@ function mlfLeisureStart(deck) {
 })();
 /* ===== END ===== */
 
+
+// a link like  <this page>#recap=gr3+gr5  opens those grammar recaps live, with the “Now I can…” boxes and their Check buttons
+(function () {
+  function go() {
+    var m = /^#recap=([A-Za-z0-9+_-]+)/.exec(location.hash || ''); if (!m || typeof rcpOpenKeys !== 'function') return;
+    try { rcpOpenKeys(m[1].split('+')); } catch (e) { }
+  }
+  window.addEventListener('hashchange', go);
+  if (document.readyState === 'complete') setTimeout(go, 300); else window.addEventListener('load', function () { setTimeout(go, 300); });
+})();
 </script>
