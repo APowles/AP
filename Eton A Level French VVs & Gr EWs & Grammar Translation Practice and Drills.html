@@ -47374,27 +47374,42 @@ var AP_LEVEL = (function () {
   }
   function length(tl) { var n = norm(tl).split(' ').filter(Boolean).length; return n; }
   // raw difficulty score: unfamiliar-looking words + length (higher = harder)
-  function score(en, tl, lang, like) {
+  function score(en, tl, lang, like, extra) {
     if (like == null) like = likeness(en, tl, lang);
     var n = length(tl);
-    return (1 - like) * 2 + Math.min(n, 14) / 5;
+    return (1 - like) * 2 + Math.min(n, 14) / 5 + (extra || 0);   // extra = how hard the grammar point itself is (0 for word sets)
   }
   // levels are graded within each word set (vocab items, sentences, a phrase bank …): the easiest third of the
   // whole set = Easy, middle third = Medium, hardest third = Hard. Cut points come from the WHOLE set, so a
   // word's level never depends on what else is selected.
   var CACHE = {};
-  function leveller(key, items, enOf, tlOf, lang, likeOf) {
+  function leveller(key, items, enOf, tlOf, lang, likeOf, extraOf, groupOf) {
     var ck = key + '|' + lang + '|' + items.length;
     if (CACHE[ck]) return CACHE[ck];
-    var sc = items.map(function (it) { return score(enOf(it), tlOf(it), lang, likeOf ? likeOf(it) : null); });
-    // rank-based thirds: ties broken by length, then list order, so each set splits into true thirds
-    var idx = []; sc.forEach(function (x, i) { if (isFinite(x)) idx.push(i); });
+    var sc = items.map(function (it) { return score(enOf(it), tlOf(it), lang, likeOf ? likeOf(it) : null, extraOf ? extraOf(it) : 0); });
     var tl = items.map(function (it) { return String(tlOf(it) || '').length; });
-    idx.sort(function (a, b) { return (sc[a] - sc[b]) || (tl[a] - tl[b]) || (a - b); });
-    var n = idx.length, map = new Map();
-    idx.forEach(function (i, r) { map.set(items[i], r < n / 3 ? 'E' : r < 2 * n / 3 ? 'M' : 'H'); });
-    var c1 = n ? sc[idx[Math.floor(n / 3)]] : 0, c2 = n ? sc[idx[Math.floor(2 * n / 3)]] : 0;
-    var f = function (it) { return map.has(it) ? map.get(it) : (function () { var v = score(enOf(it), tlOf(it), lang, likeOf ? likeOf(it) : null); return v < c1 ? 'E' : v < c2 ? 'M' : 'H'; })(); };
+    var idx = []; sc.forEach(function (x, i) { if (isFinite(x)) idx.push(i); });
+    function order(a, b) { return (sc[a] - sc[b]) || (tl[a] - tl[b]) || (a - b); }
+    // rank position 0..1 of every item over the whole set
+    idx.sort(order);
+    var n = idx.length, pos = {}, i;
+    idx.forEach(function (ix, r) { pos[ix] = n > 1 ? r / (n - 1) : 0; });
+    // with groups (a grammar chapter): half the position is the item's place over the whole set, half its place within its own group,
+    // so a hard chapter is mostly Hard but still has Easy and Medium items to practise on, and an easy chapter still has Hard ones
+    var blend = pos;
+    if (groupOf) {
+      var G = {}; idx.forEach(function (ix) { var g = groupOf(items[ix]); (G[g] = G[g] || []).push(ix); });
+      blend = {};
+      Object.keys(G).forEach(function (g) {
+        var m = G[g].slice().sort(order);
+        m.forEach(function (ix, r) { blend[ix] = 0.5 * pos[ix] + 0.5 * (m.length > 1 ? r / (m.length - 1) : 0); });
+      });
+    }
+    var ord = idx.slice().sort(function (a, b) { return (blend[a] - blend[b]) || order(a, b); });
+    var map = new Map();
+    ord.forEach(function (ix, r) { map.set(items[ix], r < n / 3 ? 'E' : r < 2 * n / 3 ? 'M' : 'H'); });
+    var c1 = n ? sc[ord[Math.floor(n / 3)]] : 0, c2 = n ? sc[ord[Math.floor(2 * n / 3)]] : 0;
+    var f = function (it) { return map.has(it) ? map.get(it) : (function () { var v = score(enOf(it), tlOf(it), lang, likeOf ? likeOf(it) : null, extraOf ? extraOf(it) : 0); return v < c1 ? 'E' : v < c2 ? 'M' : 'H'; })(); };
     CACHE[ck] = f; return f;
   }
   function reset() { CACHE = {}; }
@@ -47475,9 +47490,9 @@ AP_TLV_UNIT = { vv: 'phrases', vvb: 'phrases', sd: 'sentences', gr: 'sentences',
 function apLvClean(s) { return String(s || '').replace(/\*\*/g, '').replace(/<[^>]+>/g, ' ').replace(/&nbsp;/g, ' ').replace(/&amp;/g, '&'); }
 var _apLvG = {};
 // one grader per word set, built again only if the set grows or shrinks (edits)
-function apLvGrader(key, count, build, enOf, tlOf, lang, likeOf) {
+function apLvGrader(key, count, build, enOf, tlOf, lang, likeOf, extraOf, groupOf) {
   var n = count(), g = _apLvG[key];
-  if (!g || g.n !== n) g = _apLvG[key] = { n: n, f: AP_LEVEL.leveller(key, build(), enOf, tlOf, lang, likeOf) };
+  if (!g || g.n !== n) g = _apLvG[key] = { n: n, f: AP_LEVEL.leveller(key, build(), enOf, tlOf, lang, likeOf, extraOf, groupOf) };
   return g.f;
 }
 // the real VV sets only (not the VVn_Entire copies, nor a combined set made for a Speed Challenge test)
@@ -47497,11 +47512,48 @@ function apGrLevel(s) {
     function () { var a = []; GR_SETS.forEach(function (x) { (x.sentences || []).forEach(function (q) { a.push(q); }); }); return a; },
     function (q) { return apLvClean(q.en); }, function (q) { return apLvClean(q.fr); }, 'fr')(s);
 }
+// How hard each grammar point is to APPLY (0 easy · 1 moderate · 2 hard · 3 very hard), keyed by Point number (a letter such as 29c can override).
+// Added to the word-looks score (length counts half as much for these items), so a short sentence on a hard point is no longer graded Easy.
+var AP_GR_DIFF = {
+  '1':0,'2':0,'3':0,'4':0,'5':1,'6':0,'7':1,'8':1,'9':0,'10':1,
+  '11':1,'12':0,'13':1,'14':1,'15':0,'16':1,'17':0,'18':2,'19':1,'20':1,
+  '21':1,'22':1,'23':2,'24':1,'25':2,'26':1,'27':1,
+  '29':2,'29a':1,'29b':1,'29c':3,'29d':2,'30':2,'31':1,'32':3,
+  '34':1,'35':2,'36':1,'37':2,'38':2,
+  '39':2,'40':1,'41':1,'42':1,'43':1,
+  '44':1,'45':2,'46':2,'47':2,'48':2,
+  '49':1,'50':1,'51':2,'52':2,'53':2,'54':1,'55':2,'56':1,'57':1,'58':1,'59':1,
+  '60':2,'61':2,'62':3,'63':1,
+  '64':2,'65':2,'66':1,'67':2,'68':2,'69':2,
+  '71':1,'72':3,'73':3,'74':3,'75':2,'76':2,'80':3,'81':2,
+  '82':2,'83':2,'84':1,
+  '85':2,'85C':3,'86':1,'87':2,
+  '88':2,'89':3,'90':3,'91':3,
+  '92':2,'93':3,'94':3,'95':3,
+  '96':2,'97':3,'98':2,'99':2,
+  '101':1,'102':2,'103':2,'104':2,'105':1,
+  '106':1,'107':2,'108':1,'109':1,'110':1,'111':1,'113':2,'114':2,'115':1,'116':2,'117':1,'118':1,
+  '119':1,'120':1,'121':2,'122':2,'123':2,'124':2,'125':3
+};
+var AP_GR_DIFF_W = 1;   // one step of grammar difficulty = 0.8 on the score (a full word-looks + length score runs 0 to 4.8)
+function apGrDiffOf(ref) {
+  var m = String(ref || '').match(/\[([^\]]*)\]/); if (!m) return 1;
+  var best = -1;
+  m[1].split(/[,;–-]/).forEach(function (p) {
+    p = p.trim().replace(/^(\d+)([a-z]*)(.*)$/i, function (_, n, l) { return n + l; });
+    var n = p.replace(/[a-z]+$/i, '');
+    var d = AP_GR_DIFF[p] != null ? AP_GR_DIFF[p] : (AP_GR_DIFF[n] != null ? AP_GR_DIFF[n] : null);
+    if (d != null && d > best) best = d;
+  });
+  return best < 0 ? 1 : best;
+}
 function apGrEwsAll(rule) { var a = []; Object.keys(GR_EWS_DATA).forEach(function (k) { (GR_EWS_DATA[k].items || []).forEach(function (it) { if ((it.type === 'rule') === rule) a.push(it); }); }); return a; }
 function apGrEwsLevel(it) {
   var rule = it.type === 'rule';
   return apLvGrader(rule ? 'grews-rules' : 'grews', function () { return apGrEwsAll(rule).length; }, function () { return apGrEwsAll(rule); },
-    function (q) { return apLvClean(q.en); }, function (q) { return apLvClean(q.fr); }, rule ? 'en' : 'fr', rule ? function () { return 1; } : null)(it);
+    function (q) { return apLvClean(q.en); }, function (q) { return apLvClean(q.fr); }, rule ? 'en' : 'fr', rule ? function () { return 1; } : null,
+    rule ? null : function (q) { return apGrDiffOf(q.grRef) * AP_GR_DIFF_W - 0.5 * Math.min(AP_LEVEL.length(apLvClean(q.fr)), 14) / 5; },   // grammar counts; length counts only half as much
+    rule ? null : function (q) { return (String(q.grRef).match(/^Gr (\d+)/) || [0, 0])[1]; })(it);
 }
 function apMlfSide(p, l) { var o = p && p[l]; return o ? String(o.display || o.real || o.original || '') : ''; }
 // a formula's level in a language pair = its level in the language of the pair that is not English
