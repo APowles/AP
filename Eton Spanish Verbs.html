@@ -5,7 +5,7 @@
 <script id="ap-update">
 /* AP auto-update: if this copy is older than the published version, reload once with the new one (saved answers are kept) */
 (function () {
-  var B = '0e00297213'; window.AP_BUILD = B;
+  var B = 'f5cca38fa9'; window.AP_BUILD = B;
   function check() {
     if (!/^https?:$/.test(location.protocol) || !window.fetch) return;
     var f = decodeURIComponent(location.pathname.split('/').pop() || '');
@@ -566,6 +566,7 @@ body{min-height:100vh;overflow-x:hidden}
   <div class="aph-row"><button class="aph-btn aph-btn-sm" onclick="document.getElementById('testPanel').style.display='none';window.scrollTo({top:0})">✕ Close</button><button class="aph-btn aph-btn-sm" onclick="document.getElementById('testPanel').style.display='none';goHome()">&#8962; Home</button></div>
   </div>
   <div id="spTabConj">
+    <div class="vq-slot"></div>
     <div class="aph-label">Tenses</div>
     <div id="spTestTenseBtns" class="aph-row"></div>
     <div class="ap-lv-row"><div class="aph-label">Level <span class="vb-light">Easy: regular verbs · Medium: common irregulars · Hard: other irregulars &amp; reflexives</span></div><div class="aph-row">
@@ -616,6 +617,7 @@ body{min-height:100vh;overflow-x:hidden}
     </div>
     <div class="aph-label">Verb set <span class="vb-light">as chosen on the home screen</span></div>
     <div class="aph-row"><span id="sentTestVerbSet" class="aph-chip on" style="cursor:default"></span></div>
+    <div class="vq-slot"></div>
     <div id="sentTestHint" style="margin:12px 0 0 0;"></div>
     <div class="aph-label">Regularity <span id="sentTestAvail" class="vb-light"></span></div>
     <div class="aph-row">
@@ -3348,7 +3350,7 @@ function renderIntro(){
 
   const _personOpts = [['ALL','All persons'],['0','yo'],['1','tú'],['2','él/ella'],['3','nosotros'],['4','vosotros'],['5','ellos/as']];
   const personHtml = mode === 'single' ? `<div class="aph-label">Person</div><div class="aph-row">${_personOpts.map(([val,lbl])=>vbChip(_personFilter===val,`setPersonFilter('${val}')`,lbl)).join('')}</div>` : '';
-  const verbSetHtml = '<div class="aph-label">Verb set</div><div class="aph-row">'+Object.keys(VERB_SETS).map(k=>vbChip(verbSetFilter===k,`setVerbSetFilter('${k}')`,VERB_SET_LABEL[k]||k)).join('')+'</div>';
+  const verbSetHtml = '<div class="aph-label">Verb set</div><div class="aph-row">'+Object.keys(VERB_SETS).map(k=>vbChip(verbSetFilter===k,`setVerbSetFilter('${k}')`,VERB_SET_LABEL[k]||k)).join('')+'</div>'+vqRowHtml();
 
   document.getElementById('drill').innerHTML = `<div class="aph-wrap"><div class="aph-card intro-card">
     <h2 class="aph-h">Ready to conjugate?</h2>
@@ -4687,7 +4689,7 @@ function copySpVerbList(){
   // and apply whatever search filter is currently active
   const q = (document.getElementById('spVerbSearch').value||'').trim().toLowerCase();
   const seen = new Map();
-  for(const v of VERBS.filter(vsOK)){
+  for(const v of vqListVerbs()){
     if(v.tense!=='PRESENT') continue;
     if(!seen.has(v.inf)) seen.set(v.inf, {en:v.en, inf:v.inf, usage_es:v.usage_es||''});
   }
@@ -4710,14 +4712,15 @@ function filterSpVerbList(){
 }
 function renderSpVerbList(q){
   const seen=new Map();
-  for(const v of VERBS.filter(vsOK)){
+  for(const v of vqListVerbs()){
     if(v.tense!=='PRESENT')continue;
     if(!seen.has(v.inf)){
-      seen.set(v.inf,{en:v.en,inf:v.inf,usage_es:v.usage_es||'',note:v.note||''});
+      seen.set(v.inf,{en:v.en,inf:v.inf,usage_es:v.usage_es||'',note:v.note||'',group:v.group||''});
     }
   }
   let rows=[...seen.values()].sort((a,b)=>a.en.replace(/^to /,'').localeCompare(b.en.replace(/^to /,'')));
   if(q) rows=rows.filter(r=>r.en.toLowerCase().includes(q)||r.inf.toLowerCase().includes(q)||r.note.toLowerCase().includes(q));
+  rows=vqArrange(rows);
   const isReg=r=>r.note.toLowerCase().startsWith('regular');
   const esc=s=>(s||'').replace(/"/g,'&quot;').replace(/'/g,'&#39;');
   const editorUnlocked=editModeUnlocked;
@@ -4728,12 +4731,12 @@ function renderSpVerbList(q){
     <div class="vb-vp-n">${rows.length} verbs${editorUnlocked?' &nbsp;·&nbsp; <span style="font-style:italic;">Click any cell to edit · Enter or click away to save (session only)</span>':''}</div>
     <div class="vb-vp-scroll"><table class="vb-vp-table">
       <thead><tr><th>English</th><th>Spanish</th><th>Usage (es)</th><th></th></tr></thead>
-      <tbody>${rows.map((r,i)=>`
+      <tbody>${rows.map((r,i)=>vqHead(rows,i,4)+`
       <tr>
         <td><input class="vb-en" value="${esc(r.en)}" data-field="en" data-inf="${esc(r.inf)}" ${editAttrs}></td>
         <td><input class="vb-inf" value="${esc(r.inf)}" data-field="inf" data-inf="${esc(r.inf)}" ${editAttrs}></td>
         <td><input class="vb-us" value="${esc(r.usage_es)}" data-field="usage_es" data-inf="${esc(r.inf)}" placeholder="—" ${editAttrs}></td>
-        <td class="vb-reg ${isReg(r)?'r':'i'}">${isReg(r)?'regular':'irregular'}</td>
+        <td class="vb-reg ${isReg(r)?'r':'i'}">${vqBadge(r)}${isReg(r)?'regular':'irregular'}</td>
       </tr>`).join('')}</tbody>
     </table></div>`;
   document.getElementById('spVerbListBody').innerHTML=html;
@@ -4757,24 +4760,25 @@ function printSpVerbList() {
   // Same rows as the on-screen list (renderSpVerbList): current verb set + search box
   const q = (document.getElementById('spVerbSearch').value||'').trim().toLowerCase();
   const seen = new Map();
-  for (const v of VERBS.filter(vsOK)) {
+  for (const v of vqListVerbs()) {
     if (v.tense !== 'PRESENT') continue;
-    if (!seen.has(v.inf)) seen.set(v.inf, {en:v.en, inf:v.inf, usage_es:v.usage_es||'', note:v.note||''});
+    if (!seen.has(v.inf)) seen.set(v.inf, {en:v.en, inf:v.inf, usage_es:v.usage_es||'', note:v.note||'', group:v.group||''});
   }
   let rows = [...seen.values()].sort((a,b) => a.en.replace(/^to /,'').localeCompare(b.en.replace(/^to /,'')));
   if (q) rows = rows.filter(r => r.en.toLowerCase().includes(q) || r.inf.toLowerCase().includes(q) || r.note.toLowerCase().includes(q));
+  rows = vqArrange(rows);
   const isReg = r => r.note.toLowerCase().startsWith('regular');
 
   const tableRows = rows.map((r, i) => {
     const bg = i % 2 === 0 ? '#ffffff' : '#faf8f3';
     const regColor = isReg(r) ? '#2e7d52' : '#c9a84c';
     const regLabel = isReg(r) ? 'regular' : 'irregular';
-    return '<tr style="background:'+bg+';">'
+    return vqHead(rows,i,5)+'<tr style="background:'+bg+';">'
       + '<td style="padding:5px 10px;font-size:0.82rem;color:#1a2744;border-bottom:1px solid #e8ecf4;">'+(i+1)+'.</td>'
       + '<td style="padding:5px 10px;font-size:0.82rem;color:#1a2744;border-bottom:1px solid #e8ecf4;">'+r.en+'</td>'
       + '<td style="padding:5px 10px;font-size:0.85rem;color:#3a8aaa;font-style:italic;border-bottom:1px solid #e8ecf4;">'+r.inf+'</td>'
       + '<td style="padding:5px 10px;font-size:0.78rem;color:#c9a84c;border-bottom:1px solid #e8ecf4;">'+(r.usage_es||'')+'</td>'
-      + '<td style="padding:5px 10px;font-size:0.72rem;color:'+regColor+';font-weight:600;border-bottom:1px solid #e8ecf4;white-space:nowrap;">'+regLabel+'</td>'
+      + '<td style="padding:5px 10px;font-size:0.72rem;color:'+regColor+';font-weight:600;border-bottom:1px solid #e8ecf4;white-space:nowrap;">'+vqBadge(r)+regLabel+'</td>'
       + '</tr>';
   }).join('');
 
@@ -5638,6 +5642,74 @@ var _bootFallback = setTimeout(function () { if (typeof goHub !== 'function') re
 </script>
 
 
+<script id="vq-script">
+// ═════════ IMPORTANCE: Essential / Important / Useful (the F Block verbs; separate from Easy / Medium / Hard) ═════════
+// Essential = verbs to learn and be able to use in your own speaking and writing; Important = the next most useful; Useful = worth knowing.
+// Judged only by how likely you are to need the verb to produce it. Specialist and Top Structures verbs are not graded and always stay in.
+var VQ_TIER = {"E":["ser","estar","tener","haber","hacer","ir","poder","querer","decir","ver","venir","saber","dar","vivir","trabajar","estudiar","comer","beber","jugar","llamarse","levantarse","salir","llegar","llevar","preferir","leer","escribir","pasar"],"I":["aprender","pensar","poner","ponerse","vestirse","acostarse","ducharse","lavarse","desayunar","almorzar","pagar","buscar","empezar","pedir","dormir","seguir","divertirse","abrir","decidir","practicar","tocar","creer"],"U":["sacar","cruzar","oír","caer","morir","servir","repetir","sentir","mentir","reír","sonreír","andar","caber","suponer","traer","conducir","llamar","valer","recibir","vender","nadar"]};
+var VQ_MAP = {};
+['E', 'I', 'U'].forEach(function (t) { VQ_TIER[t].forEach(function (inf) { VQ_MAP[inf] = t; }); });
+var VQ_DEF = [['E', 'Essential', 'learn it and be able to use it yourself'], ['I', 'Important', 'the next most useful verbs'], ['EI', 'Essential + Important', 'both of the above'], ['U', 'Useful', 'worth knowing; least likely to be needed'], ['ALL', 'All verbs', 'every verb in the set']];
+var VQ_NAME = { E: 'Essential', I: 'Important', U: 'Useful' };
+var vqTier = 'ALL', vqGroup = 'az';
+function vqOf(x) { if (!x) return null; var g = x.group; if (g === 'structures' || g === 'specialist') return null; return VQ_MAP[x.inf] || null; }
+function vqKeep(x) { if (vqTier === 'ALL') return true; var t = vqOf(x); return t === null || vqTier.indexOf(t) >= 0; }
+var _vqVsOK0 = vsOK; vsOK = function (v) { return _vqVsOK0(v) && vqKeep(v); };
+var _vqApLvOK0 = apLvOK; apLvOK = function (x, lv) { var y = x; if (y && y.verb) y = y.verb; else if (y && y.inf && typeof y.inf === 'object') y = y.inf; return _vqApLvOK0(x, lv) && vqKeep(y); };
+// The verb list is built from each verb's PRESENT entry; some F Block verbs only have other tenses, so they used to be missing from it. Use their first 'to …' entry instead.
+function vqListVerbs() {
+  var hasP = {}, fb = {}, out = [];
+  VERBS.forEach(function (v) { if (v.tense === 'PRESENT') hasP[v.inf] = 1; });
+  VERBS.filter(vsOK).forEach(function (v) {
+    if (v.tense === 'PRESENT') { out.push(v); return; }
+    if (v.group === 'structures' || hasP[v.inf] || fb[v.inf] || !/^to /.test(v.en || '')) return;
+    fb[v.inf] = 1; out.push(Object.assign({}, v, { tense: 'PRESENT' }));
+  });
+  return out;
+}
+function vqFillSlots() { document.querySelectorAll('.vq-slot').forEach(function (e) { e.innerHTML = vqRowHtml(); }); }
+function vqRefresh() {
+  try { var m = document.getElementById('spVerbListModal'); if (m && m.style.display !== 'none') renderSpVerbList(document.getElementById('spVerbSearch').value.trim().toLowerCase()); } catch (e) {}
+  try { vqFillSlots(); if (document.querySelector('#drill .intro-card')) renderIntro(); apLvSync(); _updateSentTestAvail(); } catch (e) {}
+}
+function vqSet(k) { vqTier = k; vqRefresh(); }
+function vqSetGroup(g) { vqGroup = g; vqRefresh(); }
+function vqRowHtml(style) {
+  var chips = VQ_DEF.map(function (x) {
+    var on = vqTier === x[0], oc = "vqSet('" + x[0] + "')";
+    if (style === 'pill') return '<button onclick="' + oc + '" title="' + x[1] + ': ' + x[2] + '" style="padding:6px 14px;border-radius:20px;border:1.5px solid ' + (on ? '#1a2744' : '#e2e6f0') + ';background:' + (on ? '#1a2744' : 'transparent') + ';color:' + (on ? '#c9a84c' : '#8899bb') + ';font-size:0.78rem;font-weight:600;cursor:pointer">' + x[1] + '</button>';
+    return vbChip(on, oc, x[1]);
+  }).join('');
+  if (style === 'pill') return '<div style="margin:0 0 16px 0"><div style="font-size:0.68rem;font-weight:600;color:#8899bb;text-transform:uppercase;letter-spacing:.07em;margin:0 0 8px 0">IMPORTANCE <span style="text-transform:none;letter-spacing:0;font-weight:500">— F Block verbs only</span></div><div style="display:flex;gap:6px;flex-wrap:wrap">' + chips + '</div></div>';
+  return '<div class="aph-label">Importance <span class="vb-light">F Block verbs only</span></div><div class="aph-row">' + chips + '</div>';
+}
+function vqBadge(r) { var t = vqOf(r); return t ? '<span title="' + VQ_NAME[t] + '" style="display:inline-block;min-width:1.35em;text-align:center;font:700 .6875rem/1.35 sans-serif;border-radius:4px;margin-right:6px;padding:0 3px;color:#fff;background:' + (t === 'E' ? '#1a2744' : t === 'I' ? '#a8862e' : '#8a93a8') + '">' + t + '</span>' : ''; }
+// View & Print: A-Z (as before) or grouped Essential / Important / Useful
+function vqArrange(rows) {
+  if (vqGroup !== 'tier') return rows;
+  var o = { E: 0, I: 1, U: 2 }, key = function (r) { var t = vqOf(r); return t ? o[t] : 3; };
+  return rows.map(function (r, i) { return [r, i]; }).sort(function (a, b) { return key(a[0]) - key(b[0]) || a[1] - b[1]; }).map(function (x) { return x[0]; });
+}
+function vqHead(rows, i, n) {
+  if (vqGroup !== 'tier') return '';
+  var t = vqOf(rows[i]) || 'O'; if (i > 0 && (vqOf(rows[i - 1]) || 'O') === t) return '';
+  var c = rows.filter(function (r) { return (vqOf(r) || 'O') === t; }).length, name = t === 'O' ? 'Other verbs (not graded)' : VQ_NAME[t];
+  return '<tr><td colspan="' + n + '" style="background:#1a2744;color:#ffd76a;padding:6px 10px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;font-size:.75rem">' + name + ' · ' + c + ' verb' + (c === 1 ? '' : 's') + '</td></tr>';
+}
+function vqToolsHtml() {
+  return '<span class="vq-tools" style="display:inline-flex;flex-wrap:wrap;gap:6px;align-items:center">' + VQ_DEF.map(function (x) { return '<button class="aph-btn aph-btn-sm' + (vqTier === x[0] ? ' aph-btn-primary' : '') + '" onclick="vqSet(\'' + x[0] + '\')">' + x[1] + '</button>'; }).join('')
+    + '<span style="font-size:.8125rem;color:#8899bb;margin:0 2px 0 8px">Group by</span>' + [['az', 'A–Z'], ['tier', 'Tier']].map(function (x) { return '<button class="aph-btn aph-btn-sm' + (vqGroup === x[0] ? ' aph-btn-primary' : '') + '" onclick="vqSetGroup(\'' + x[0] + '\')">' + x[1] + '</button>'; }).join('') + '</span>';
+}
+vqFillSlots();
+var _vqRVLT0 = renderSpVerbList;
+renderSpVerbList = function (q) {
+  var r = _vqRVLT0.apply(this, arguments);
+  var t = document.querySelector('#spVerbListModal .vb-vp-tools'); if (t) { var s = t.querySelector('.vq-tools'); if (s) s.remove(); t.insertAdjacentHTML('afterbegin', vqToolsHtml()); }
+  return r;
+};
+</script>
+
+
 <script>
 
 window.__cj = { code: 'es', name: 'Spanish', ex: '“responderemos”', infEx: '“to answer” → responder', infHintEx: 'responder',
@@ -6471,3 +6543,4 @@ if (window.__cj) window.__cj.speedTest = function (kind, g) {
 /* ===== END ===== */
 
 </script>
+<script>if (window.__cj && window.__cj.inSet) { var _vqInSet0 = window.__cj.inSet; window.__cj.inSet = function (v, s) { return _vqInSet0(v, s) && vqKeep(v); }; }</script>

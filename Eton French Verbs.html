@@ -5,7 +5,7 @@
 <script id="ap-update">
 /* AP auto-update: if this copy is older than the published version, reload once with the new one (saved answers are kept) */
 (function () {
-  var B = 'b2838a231e'; window.AP_BUILD = B;
+  var B = '6b92dd1599'; window.AP_BUILD = B;
   function check() {
     if (!/^https?:$/.test(location.protocol) || !window.fetch) return;
     var f = decodeURIComponent(location.pathname.split('/').pop() || '');
@@ -4310,7 +4310,7 @@ function renderTestPanel(){
 
     // ── CONJUGATION TAB ──
     '<div id="testTabConj" style="display:'+(isConj?'block':'none')+';">'+
-    '<div class="aph-label">Verb set</div><div class="aph-row">'+verbSetHtmlTP+'</div>'+
+    '<div class="aph-label">Verb set</div><div class="aph-row">'+verbSetHtmlTP+'</div>'+vqRowHtml()+
     '<div class="aph-label">Tenses</div><div class="aph-row">'+tenseHtml+'</div>'+
     '<div class="aph-label">Regularity</div><div class="aph-row">'+regHtml+'</div>'+
     '<div class="aph-label">Person</div>'+
@@ -4880,7 +4880,7 @@ function renderIntro(){
   const personHtml=mode==='single'?`<div class="aph-label">Person</div><div class="aph-row">${_po.map(([v,l])=>vbChip(_personFilter===v,`setPersonFilter('${v}')`,l)).join('')}</div>`:'';
   const editorUnlocked=editModeUnlocked;
   const vsModes2=[{k:'quizlet',l:'📚 Quizlet'},{k:'specialist',l:'🎓 Specialist'},{k:'both',l:'⚡ Both'},{k:'structures',l:'🧩 Top Structures'}];
-  const verbSetHtml='<div class="aph-label">Verb set</div><div class="aph-row">'+vsModes2.map(m=>`<button data-vmode="${m.k}" class="aph-chip${verbMode===m.k?' on':''}" onclick="setVerbMode('${m.k}')">${m.l}</button>`).join('')+'</div>';
+  const verbSetHtml='<div class="aph-label">Verb set</div><div class="aph-row">'+vsModes2.map(m=>`<button data-vmode="${m.k}" class="aph-chip${verbMode===m.k?' on':''}" onclick="setVerbMode('${m.k}')">${m.l}</button>`).join('')+'</div>'+vqRowHtml();
   document.getElementById('drill').innerHTML=`<div class="aph-wrap"><div class="aph-card intro-card">
     <h2 class="aph-h">Ready to conjugate?</h2>
     <button class="aph-banner" onclick="openConjChallenge()"><span class="aph-banner-icon">⚡</span><span class="aph-banner-text"><b>Eton Speed Challenge</b><small>Race against the clock, solo or in teams</small></span><span class="aph-banner-play">&#9654; Play</span></button>
@@ -5551,6 +5551,7 @@ function renderVerbListTable(q){
   }
   let rows=[...seen.values()].sort((a,b)=>a.en.replace('to ','').localeCompare(b.en.replace('to ','')));
   if(q) rows=rows.filter(r=>r.en.toLowerCase().includes(q)||r.inf.toLowerCase().includes(q)||r.note.toLowerCase().includes(q));
+  rows=vqArrange(rows);
   const isReg=r=>r.note.toLowerCase().startsWith('regular');
   const esc=s=>(s||'').replace(/"/g,'&quot;').replace(/'/g,'&#39;');
   const editorUnlocked=editModeUnlocked;
@@ -5561,12 +5562,12 @@ function renderVerbListTable(q){
     <div class="vb-vp-n">${rows.length} verbs${editorUnlocked?' &nbsp;·&nbsp; <span style="font-style:italic;">Click any cell to edit · Enter or click away to save</span>':''}</div>
     <div class="vb-vp-scroll"><table class="vb-vp-table">
       <thead><tr><th>English</th><th>French</th><th>Usage (fr)</th><th></th></tr></thead>
-      <tbody>${rows.map((r,i)=>`
+      <tbody>${rows.map((r,i)=>vqHead(rows,i,4)+`
       <tr>
         <td><input class="vb-en" value="${esc(r.en)}" data-field="en" data-inf="${esc(r.inf)}" ${editAttrs}></td>
         <td><input class="vb-inf" value="${esc(r.inf)}" data-field="inf" data-inf="${esc(r.inf)}" ${editAttrs}></td>
         <td><input class="vb-us" value="${esc(r.usage_fr)}" data-field="usage_fr" data-inf="${esc(r.inf)}" placeholder="—" ${editAttrs}></td>
-        <td class="vb-reg ${isReg(r)?'r':'i'}">${isReg(r)?'regular':'irregular'}</td>
+        <td class="vb-reg ${isReg(r)?'r':'i'}">${vqBadge(r)}${isReg(r)?'regular':'irregular'}</td>
       </tr>`).join('')}</tbody>
     </table></div>`;
   document.getElementById('verbListBody').innerHTML=html;
@@ -6168,22 +6169,23 @@ function printItVerbList() {
   for (const v of VERBS_ALL.filter(inVerbSet)) {
     if (v.group==='structures' ? v.tense!=='SET' : v.tense!=='PRESENT') continue;
     const _k = v.group==='structures' ? v.inf+'|'+v.en : v.inf;
-    if (!seen.has(_k)) seen.set(_k, {en:v.en, inf:v.inf, usage_fr:v.usage_fr||'', note:v.note||''});
+    if (!seen.has(_k)) seen.set(_k, {en:v.en, inf:v.inf, usage_fr:v.usage_fr||'', note:v.note||'', group:v.group||''});
   }
   let rows = [...seen.values()].sort((a,b) => a.en.replace('to ','').localeCompare(b.en.replace('to ','')));
   if (q) rows = rows.filter(r => r.en.toLowerCase().includes(q) || r.inf.toLowerCase().includes(q) || r.note.toLowerCase().includes(q));
+  rows = vqArrange(rows);
   const isReg = r => r.note.toLowerCase().startsWith('regular');
 
   const tableRows = rows.map((r, i) => {
     const bg = i % 2 === 0 ? '#ffffff' : '#faf8f3';
     const regColor = isReg(r) ? '#2e7d52' : '#c9a84c';
     const regLabel = isReg(r) ? 'regular' : 'irregular';
-    return '<tr style="background:'+bg+';">'
+    return vqHead(rows,i,5)+'<tr style="background:'+bg+';">'
       + '<td style="padding:5px 10px;font-size:0.82rem;color:#8899bb;border-bottom:1px solid #e8ecf4;width:4%;">'+(i+1)+'.</td>'
       + '<td style="padding:5px 10px;font-size:0.82rem;color:#1a2744;border-bottom:1px solid #e8ecf4;width:30%;">'+r.en+'</td>'
       + '<td style="padding:5px 10px;font-size:0.85rem;color:#3a8aaa;font-style:italic;border-bottom:1px solid #e8ecf4;width:28%;">'+r.inf+'</td>'
       + '<td style="padding:5px 10px;font-size:0.78rem;color:#c9a84c;border-bottom:1px solid #e8ecf4;width:26%;">'+(r.usage_fr||'')+'</td>'
-      + '<td style="padding:5px 10px;font-size:0.72rem;color:'+regColor+';font-weight:600;border-bottom:1px solid #e8ecf4;white-space:nowrap;width:12%;">'+regLabel+'</td>'
+      + '<td style="padding:5px 10px;font-size:0.72rem;color:'+regColor+';font-weight:600;border-bottom:1px solid #e8ecf4;white-space:nowrap;width:12%;">'+vqBadge(r)+regLabel+'</td>'
       + '</tr>';
   }).join('');
 
@@ -6586,7 +6588,7 @@ function startCompoundDrill(){
   let pool = VERBS_ALL.filter(v=>
     ['PLUPERFECT','FUTUR_ANT','COND_PASSE'].includes(v.tense) &&
     sel.has(v.tense) &&
-    (vm==='structures'?v.group==='structures':v.group!=='structures'&&(vm==='quizlet'?(!v.group||v.group!=='specialist'):vm==='specialist'?v.group==='specialist':true))
+    (vm==='structures'?v.group==='structures':v.group!=='structures'&&(vm==='quizlet'?(!v.group||v.group!=='specialist'):vm==='specialist'?v.group==='specialist':true))&&vqKeep(v)
   );
   if(!pool.length){alert('No cards match the current selection.');return;}
   let cards=[];
@@ -6630,7 +6632,7 @@ function showCompoundTestPanel(){
     +'<div style="font-family:var(--aph-body);font-size:1.3rem;font-weight:700;color:#1a2744;">🔗 Compound Test</div>'
     +'<button onclick="renderIntro()" style="padding:5px 14px;border-radius:8px;border:1px solid #e2e6f0;background:none;color:#8899bb;font-size:0.78rem;cursor:pointer;">← Back</button>'
     +'</div>'
-    +'<div style="margin:0 0 16px 0"><div style="font-size:0.68rem;font-weight:600;color:#8899bb;text-transform:uppercase;letter-spacing:.07em;margin:0 0 8px 0">VERB SET</div><div style="display:flex;gap:6px;flex-wrap:wrap">'+vsHtml+'</div></div>'
+    +'<div style="margin:0 0 16px 0"><div style="font-size:0.68rem;font-weight:600;color:#8899bb;text-transform:uppercase;letter-spacing:.07em;margin:0 0 8px 0">VERB SET</div><div style="display:flex;gap:6px;flex-wrap:wrap">'+vsHtml+'</div></div>'+vqRowHtml('pill')
     +'<div style="margin:0 0 16px 0"><div style="font-size:0.68rem;font-weight:600;color:#8899bb;text-transform:uppercase;letter-spacing:.07em;margin:0 0 8px 0">TENSES</div><div style="display:flex;gap:6px;flex-wrap:wrap">'+tenseHtml+'</div></div>'
     +apLvRowHtml('comp')
     +'<div style="margin:0 0 16px 0"><div style="font-size:0.68rem;font-weight:600;color:#8899bb;text-transform:uppercase;letter-spacing:.07em;margin:0 0 8px 0">QUESTIONS <span style="font-weight:700;color:#cc0000">(<span id="apCompAvail">'+available+'</span> AVAILABLE)</span></div>'
@@ -6742,6 +6744,62 @@ function openCompTestPDF(type){
   w.document.close();
 }
 
+</script>
+<script id="vq-script">
+// ═════════ IMPORTANCE: Essential / Important / Useful (the Quizlet verbs; separate from Easy / Medium / Hard) ═════════
+// Essential = verbs to learn and be able to use in your own speaking and writing; Important = the next most useful; Useful = worth knowing.
+// Judged only by how likely you are to need the verb to produce it. Specialist and Top Structures verbs are not graded and always stay in.
+var VQ_TIER = {"E":["être","avoir","aller","faire","pouvoir","vouloir","devoir","savoir","voir","dire","prendre","venir","donner","y avoir","falloir","sortir","partir","rester","arriver","trouver","jouer","regarder","passer","commencer","comprendre","s'appeler","rentrer","demander","acheter","visiter","voyager","préférer","écouter","lire","s'amuser","décider","aider","choisir","apprendre","connaître"],"I":["attendre","boire","chercher","conduire","coûter","devenir","entrer","envoyer","espérer","expliquer","montrer","offrir","oublier","ouvrir","payer","porter","réussir","se coucher","se dépêcher","écrire","essayer","apporter","dormir","se reposer","s'occuper de","finir","répondre","quitter","s'ennuyer","rendre visite à"],"U":["se disputer","appartenir","se casser","amener","se plaindre","encourager","défendre","se fâcher","se faire mal","compter","rire","ressembler à","obliger","rater","remarquer","reconnaître","se souvenir","courir","partager","emmener","enlever","ranger","promettre","vendre","téléphoner","entendre","se tromper","continuer","recevoir","appeler"]};
+var VQ_MAP = {};
+['E', 'I', 'U'].forEach(function (t) { VQ_TIER[t].forEach(function (inf) { VQ_MAP[inf] = t; }); });
+var VQ_DEF = [['E', 'Essential', 'learn it and be able to use it yourself'], ['I', 'Important', 'the next most useful verbs'], ['EI', 'Essential + Important', 'both of the above'], ['U', 'Useful', 'worth knowing; least likely to be needed'], ['ALL', 'All verbs', 'every verb in the set']];
+var VQ_NAME = { E: 'Essential', I: 'Important', U: 'Useful' };
+var vqTier = 'ALL', vqGroup = 'az';
+function vqOf(x) { if (!x) return null; var g = x.group; if (g === 'structures' || g === 'specialist') return null; return VQ_MAP[x.inf] || null; }
+function vqKeep(x) { if (vqTier === 'ALL') return true; var t = vqOf(x); return t === null || vqTier.indexOf(t) >= 0; }
+var _vqInVerbSet0 = inVerbSet; inVerbSet = function (v) { return _vqInVerbSet0(v) && vqKeep(v); };
+var _vqInSentSet0 = inSentSet; inSentSet = function (s, vs) { return _vqInSentSet0(s, vs) && vqKeep(s); };
+var _vqApLvOK0 = apLvOK; apLvOK = function (x, lv) { var y = x; if (y && y.verb) y = y.verb; else if (y && y.inf && typeof y.inf === 'object') y = y.inf; return _vqApLvOK0(x, lv) && vqKeep(y); };
+function vqRefresh() {
+  try { var m = document.getElementById('verbListModal'); if (m && m.style.display !== 'none') renderVerbListTable(document.getElementById('verbListSearch').value.trim().toLowerCase()); } catch (e) {}
+  try { if (document.getElementById('testPanelMarker')) renderTestPanel(); else if (document.getElementById('apCompAvail')) showCompoundTestPanel(); else if (document.querySelector('#drill .intro-card')) renderIntro(); } catch (e) {}
+}
+function vqSet(k) { vqTier = k; vqRefresh(); }
+function vqSetGroup(g) { vqGroup = g; vqRefresh(); }
+function vqRowHtml(style) {
+  var chips = VQ_DEF.map(function (x) {
+    var on = vqTier === x[0], oc = "vqSet('" + x[0] + "')";
+    if (style === 'pill') return '<button onclick="' + oc + '" title="' + x[1] + ': ' + x[2] + '" style="padding:6px 14px;border-radius:20px;border:1.5px solid ' + (on ? '#1a2744' : '#e2e6f0') + ';background:' + (on ? '#1a2744' : 'transparent') + ';color:' + (on ? '#c9a84c' : '#8899bb') + ';font-size:0.78rem;font-weight:600;cursor:pointer">' + x[1] + '</button>';
+    return vbChip(on, oc, x[1]);
+  }).join('');
+  if (style === 'pill') return '<div style="margin:0 0 16px 0"><div style="font-size:0.68rem;font-weight:600;color:#8899bb;text-transform:uppercase;letter-spacing:.07em;margin:0 0 8px 0">IMPORTANCE <span style="text-transform:none;letter-spacing:0;font-weight:500">— Quizlet verbs only</span></div><div style="display:flex;gap:6px;flex-wrap:wrap">' + chips + '</div></div>';
+  return '<div class="aph-label">Importance <span class="vb-light">Quizlet verbs only</span></div><div class="aph-row">' + chips + '</div>';
+}
+function vqBadge(r) { var t = vqOf(r); return t ? '<span title="' + VQ_NAME[t] + '" style="display:inline-block;min-width:1.35em;text-align:center;font:700 .6875rem/1.35 sans-serif;border-radius:4px;margin-right:6px;padding:0 3px;color:#fff;background:' + (t === 'E' ? '#1a2744' : t === 'I' ? '#a8862e' : '#8a93a8') + '">' + t + '</span>' : ''; }
+// View & Print: A-Z (as before) or grouped Essential / Important / Useful
+function vqArrange(rows) {
+  if (vqGroup !== 'tier') return rows;
+  var o = { E: 0, I: 1, U: 2 }, key = function (r) { var t = vqOf(r); return t ? o[t] : 3; };
+  return rows.map(function (r, i) { return [r, i]; }).sort(function (a, b) { return key(a[0]) - key(b[0]) || a[1] - b[1]; }).map(function (x) { return x[0]; });
+}
+function vqHead(rows, i, n) {
+  if (vqGroup !== 'tier') return '';
+  var t = vqOf(rows[i]) || 'O'; if (i > 0 && (vqOf(rows[i - 1]) || 'O') === t) return '';
+  var c = rows.filter(function (r) { return (vqOf(r) || 'O') === t; }).length, name = t === 'O' ? 'Other verbs (not graded)' : VQ_NAME[t];
+  return '<tr><td colspan="' + n + '" style="background:#1a2744;color:#ffd76a;padding:6px 10px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;font-size:.75rem">' + name + ' · ' + c + ' verb' + (c === 1 ? '' : 's') + '</td></tr>';
+}
+function vqToolsHtml() {
+  return '<span class="vq-tools" style="display:inline-flex;flex-wrap:wrap;gap:6px;align-items:center">' + VQ_DEF.map(function (x) { return '<button class="aph-btn aph-btn-sm' + (vqTier === x[0] ? ' aph-btn-primary' : '') + '" onclick="vqSet(\'' + x[0] + '\')">' + x[1] + '</button>'; }).join('')
+    + '<span style="font-size:.8125rem;color:#8899bb;margin:0 2px 0 8px">Group by</span>' + [['az', 'A–Z'], ['tier', 'Tier']].map(function (x) { return '<button class="aph-btn aph-btn-sm' + (vqGroup === x[0] ? ' aph-btn-primary' : '') + '" onclick="vqSetGroup(\'' + x[0] + '\')">' + x[1] + '</button>'; }).join('') + '</span>';
+}
+var _vqRVLT0 = renderVerbListTable;
+renderVerbListTable = function (q) {
+  var r = _vqRVLT0.apply(this, arguments);
+  var t = document.querySelector('#verbListModal .vb-vp-tools'); if (t) { var s = t.querySelector('.vq-tools'); if (s) s.remove(); t.insertAdjacentHTML('afterbegin', vqToolsHtml()); }
+  return r;
+};
+</script>
+<script>
 renderIntro();
 </script>
 
@@ -6778,6 +6836,7 @@ function closeConjChallenge() {
 }
 
 </script>
+<script>if (window.__cj && window.__cj.inSet) { var _vqInSet0 = window.__cj.inSet; window.__cj.inSet = function (v, s) { return _vqInSet0(v, s) && vqKeep(v); }; }</script>
 </body>
 </html>
 <script>
