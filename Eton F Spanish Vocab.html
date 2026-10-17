@@ -6584,6 +6584,12 @@ function generateSVSpotTest(keepPool, timed) {
       meta: (mixed ? mixLabel() : qFlag + ' &#x2192; ' + aFlag) + ' &nbsp;&middot;&nbsp; 5 x ' + tPer + ' = ' + (5 * tPer) + ' items', lang: mixed ? 'English and Spanish' : t === 'es' ? 'Spanish' : 'English', kind: 'word', rows: tRows,
       q: function (p) { return (p.qf ? p.qf + '&thinsp;' : '') + p.q; }, a: function (p) { return p.a; },
       recapName: 'vocab list (the print view of the selected list)', recapShort: 'vocab list',
+      recapUrl: function () {
+        var secs = (typeof selectedSections !== 'undefined' && selectedSections.size) ? Array.from(selectedSections) : Array.from(new Set(getSelectedPhrases().map(function (p) { return p.sec; })));
+        secs = secs.sort(natSort); if (!secs.length) return null;
+        var d = (document.getElementById('lang-from') || {}).value === 'es' ? 'es' : 'en';
+        return { url: location.href.replace(/[#?].*$/, '') + '#sv=' + secs.map(encodeURIComponent).join('+') + '&d=' + d + (mixPct ? '&mx=' + mixPct : ''), label: '\u25B6 Open this vocab set live in the app: view it, drill it, test yourself or play Speed on exactly this selection' };
+      },
       recap: function () {
         var sh = svStudySheet([{code:'en',flag:'🇬🇧',name:'English'},{code:'es',flag:'🇪🇸',name:'Spanish'}]);
         if (!sh.count) return null;
@@ -7868,5 +7874,24 @@ if (window.__spv) window.__spv.speedTest = function (kind, secs, rev, lv, mix) {
   });
 })();
 /* ===== END ===== */
-
+/* ===== LIVE VOCAB LINK (#sv=sections joined by +, &d=en|es, &mx=50|70) ===== */
+(function () {
+  function boot() {
+    var m = /^#sv=([^&]+)(?:&(.*))?$/.exec(location.hash || ''); if (!m) return;
+    try {
+      var known = {}; ALL_PHRASES.forEach(function (p) { known[p.sec] = 1; });
+      var secs = m[1].split('+').map(function (x) { try { return decodeURIComponent(x); } catch (e) { return ''; } }).filter(function (x) { return known[x]; });
+      if (!secs.length) return;
+      var q = {}; (m[2] || '').split('&').forEach(function (kv) { var i = kv.indexOf('='); if (i > 0) q[kv.slice(0, i)] = kv.slice(i + 1); });
+      selectedSections = new Set(secs);
+      var es = q.d === 'es', fe = document.getElementById('lang-from'), te = document.getElementById('lang-to');
+      if (fe && te) { fe.value = es ? 'es' : 'en'; te.value = es ? 'en' : 'es'; try { onLangChange(); } catch (e) { } }
+      mixPct = (q.mx === '50' || q.mx === '70') ? +q.mx : 0;
+      try { if (document.getElementById('intro-sel-unit')) renderIntro(); } catch (e) { }
+      openTopicOverview();
+    } catch (e) { }
+  }
+  window.addEventListener('hashchange', boot);
+  window.addEventListener('load', function () { setTimeout(boot, 300); });
+})();
 </script>

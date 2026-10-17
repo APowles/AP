@@ -8823,6 +8823,11 @@ function generateEWsSpotTest(timed) {
       meta: (mixOn() ? mixTitle() : (LANG_FLAGS[f]||'') + ' → ' + (LANG_FLAGS[t]||'')) + ' &nbsp;·&nbsp; 5 × ' + per + ' = ' + need + ' items', lang: LN[mixOn() ? mixTarget() : t] || '', kind: 'word', rows: rows,
       q: function (p) { return p.q; }, a: function (p) { return p.a; },
       recapName: 'vocab list (the print view of the selected list)', recapShort: 'vocab list',
+      recapUrl: function () {
+        var seen = {}, secs = []; getSelectedPhrases().forEach(function (p) { if (!seen[p.sec]) { seen[p.sec] = 1; secs.push(p.sec); } });
+        if (!secs.length) return null;
+        return { url: location.href.replace(/[#?].*$/, '') + '#voc=' + secs.map(encodeURIComponent).join('+') + '&f=' + f + '&t=' + t, label: '▶ Open this vocab list live in the app: view it, drill it, test yourself or play Speed on exactly this selection' };
+      },
       recap: function () {
         // same sections the spot test draws from (sel-section), not the list overview's own tick-boxes
         var seen = {}, secs = []; getSelectedPhrases().forEach(function (p) { if (!seen[p.sec]) { seen[p.sec] = 1; secs.push(p.sec); } });
@@ -10822,6 +10827,23 @@ if (window.__voc) window.__voc.lvlOf = function (i, lang) { return vocLvlOf(ALL_
   function go() {
     var m = /^#recap=([A-Za-z0-9+_-]+)(?:&l=(fr|it|es))?/.exec(location.hash || ''); if (!m || typeof ggGoGr !== 'function') return;
     try { ggGoGr(m[2] || 'fr'); var ks = m[1].split('+').filter(function (k) { return GGD[k]; }); if (ks.length) ggOpenRecaps(ks); } catch (e) { }
+  }
+  window.addEventListener('hashchange', go);
+  if (document.readyState === 'complete') setTimeout(go, 300); else window.addEventListener('load', function () { setTimeout(go, 300); });
+})();
+
+// a link like  <this page>#voc=V2+V4&f=fr&t=en  opens the “Choose lists” panel with exactly those lists ticked (View / Drill / Speed ready)
+(function () {
+  function go() {
+    var m = /^#voc=([^&]+)(?:&f=(en|fr|it|es))?(?:&t=(en|fr|it|es))?/.exec(location.hash || ''); if (!m || typeof openListOverview !== 'function') return;
+    try {
+      var secs = [], known = {}; ALL_PHRASES.forEach(function (p) { known[p.sec] = 1; });
+      m[1].split(/[+ ]/).forEach(function (k) { try { k = decodeURIComponent(k); } catch (e) { return; } if (known[k] && secs.indexOf(k) < 0) secs.push(k); });
+      if (!secs.length) return;
+      var fe = document.getElementById('lang-from'), te = document.getElementById('lang-to');
+      if (m[2] && m[3] && m[2] !== m[3] && fe && te) { fe.value = m[2]; te.value = m[3]; try { onLangChange(); } catch (e) { } }
+      _ovSecs = secs; _ovSelOption(); openListOverview();
+    } catch (e) { }
   }
   window.addEventListener('hashchange', go);
   if (document.readyState === 'complete') setTimeout(go, 300); else window.addEventListener('load', function () { setTimeout(go, 300); });
