@@ -5089,6 +5089,17 @@ function _openSpotPrintWindow(html) {
   w.document.close();
 }
 
+// the one-click copy for a VV set or its sentence drills: the whole vocab list (the Content List print view), every phrase of the set, not the practice sentences
+function vvListRecap(key, label) {
+  var all = VV_DATA[key] || [];
+  if (!all.length) return null;
+  var items = [];
+  all.forEach(function (p, idx) { var pr = getVVPair(key, idx); items.push({ set: key, idx: idx, n: idx + 1, en: pr[0], fr: pr[1], key: key + '|' + idx }); });
+  items.forEach(function (it) { it.tier = vvbTierOfItem(it); });
+  var sh = vvbSheet('list', [{ set: key, label: label, items: items }], { setsTitle: label, print: false });
+  return { html: sh.body, css: sh.css };
+}
+
 function generateSDSpotTest(timed) {
   timed = timed === true;   // ⏱ timed & submitted: the same draw, on screen
   if (!timed) apLvRan('sd', generateSDSpotTest);
@@ -5114,7 +5125,7 @@ function generateSDSpotTest(timed) {
       q: function (p) { return sdMk(p) + (sdQA(p, sdTF(p, isToFr)).q || '').trim(); }, a: function (p) { return (sdQA(p, sdTF(p, isToFr)).a || '').trim(); },
       // the one-click copy: the print view of this same selection (the whole selected sentence set, whatever the test level), answers shown
       recapName: 'vocab list (the print view of the selected list)', recapShort: 'vocab list',
-      recap: function () { var sh = sdTestSheet({ items: getSdPool(), isToFr: isToFr, mix: 0, label: setKey, mode: 'teacher', noPrint: true }); return { html: sh.body, css: sh.css }; } });
+      recap: function () { return vvListRecap(setKey, setKey.replace(/_/g, ' ')); } });
     return;
   }
 
@@ -5408,13 +5419,7 @@ function generateVVSpotTest(timed) {
       q: function (p) { return spotTag(p) + cleanVVHtml(p[spotDirs.get(p).qi]); }, a: function (p) { return cleanVVHtml(p[spotDirs.get(p).ai]); },
       // the one-click copy: the print view (Content List) of this same selection (the whole selected set, whatever the test level), both languages shown
       recapName: 'vocab list (the print view of the selected list)', recapShort: 'vocab list',
-      recap: function () {
-        var items = [];
-        rawAll.forEach(function (p, idx) { var pr = getVVPair(key, idx); items.push({ set: key, idx: idx, n: idx + 1, en: pr[0], fr: pr[1], key: key + '|' + idx }); });
-        items.forEach(function (it) { it.tier = vvbTierOfItem(it); });
-        var sh = vvbSheet('list', [{ set: key, label: setLabel, items: items }], { setsTitle: setLabel, print: false });
-        return { html: sh.body, css: sh.css };
-      } });
+      recap: function () { return vvListRecap(key, setLabel); } });
     return;
   }
 
