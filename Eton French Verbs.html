@@ -5,7 +5,7 @@
 <script id="ap-update">
 /* AP auto-update: if this copy is older than the published version, reload once with the new one (saved answers are kept) */
 (function () {
-  var B = 'c555dfa0fb'; window.AP_BUILD = B;
+  var B = '30d3588e3b'; window.AP_BUILD = B;
   function check() {
     if (!/^https?:$/.test(location.protocol) || !window.fetch) return;
     var f = decodeURIComponent(location.pathname.split('/').pop() || '');
@@ -4336,6 +4336,7 @@ function renderTestPanel(){
     '</div>'+
     '<div class="aph-row vb-gen">'+
     '<button class="aph-btn aph-btn-primary" onclick="generateTest()">&#128221; Generate Test</button>'+
+    (FT_DEF[verbMode]?'<button class="aph-btn aph-btn-primary" onclick="generateTrialsPartI()" title="A: Useful verbs · B: Essential · C: Important · D: Essential (verbs not shown elsewhere on the paper)">&#128203; Trials Part I paper</button>':'')+
     '<button class="aph-btn" onclick="generateItalianSpotTest()">&#128203; Eton Spot Test</button>'+
     '<button class="aph-btn aptt-btn" onclick="apttLevel(\'conj\',function(){generateItalianSpotTest(true)})">⏱ Eton Spot Test: timed &amp; submitted</button>'+
     '</div>'+
@@ -6857,6 +6858,94 @@ setVerbMode = function (m) {
   if (FT_DEF[m]) { var keep = Array.from(selectedTenses).filter(function (t) { return FT_DEF[m].t[t]; }); selectedTenses.clear(); (keep.length ? keep : ['PRESENT']).forEach(function (t) { selectedTenses.add(t); }); }
   return _ftSVM0(m);
 };
+// ───── Trials Part I paper: A Useful verbs, B Essential, C Important, D Essential (verbs not already shown elsewhere on the paper) ─────
+var TR_NAME = { ftrials: 'F Michaelmas Trials', etrials: 'E Block Michaelmas Trials', fsummer: 'F Block Summer Trials', esummer: 'E Block Summer Trials' };
+var TR_SUBJ = ['je', 'tu', 'il', 'nous', 'vous', 'ils'];
+function trCap(x) { return x.charAt(0).toUpperCase() + x.slice(1); }
+function trForm(f, pi, alt) { // "il (elle) a dormi" -> "il a dormi" / "elle a dormi"
+  if (pi === 2) return f.replace(/^il \(elle\)/, alt ? 'elle' : 'il');
+  if (pi === 5) return f.replace(/^ils \(elles\)/, alt ? 'elles' : 'ils');
+  return f;
+}
+function trPlan(sec, k) { // tenses wanted for the form questions of a section (INF = an infinitive question)
+  var f = verbMode === 'ftrials';
+  var P = { A: f ? ['PRESENT', 'PRESENT', 'PRESENT', 'PRESENT', 'PRESENT', 'PRESENT', 'PRESENT', 'PASSE_COMPOSE', 'PASSE_COMPOSE', 'PASSE_COMPOSE'] : ['PRESENT', 'PRESENT', 'PRESENT', 'PASSE_COMPOSE', 'PASSE_COMPOSE', 'PASSE_COMPOSE', 'IMPERFECT', 'IMPERFECT', 'FUTURE', 'FUTURE'] };
+  P.B = P.A;
+  P.C = f ? ['PRESENT', 'PRESENT', 'PRESENT', 'PRESENT', 'PRESENT', 'PRESENT', 'PASSE_COMPOSE', 'PASSE_COMPOSE', 'INF', 'INF'] : ['PRESENT', 'PRESENT', 'PASSE_COMPOSE', 'PASSE_COMPOSE', 'IMPERFECT', 'IMPERFECT', 'FUTURE', 'FUTURE', 'INF', 'INF'];
+  P.D = f ? ['PRESENT', 'PRESENT', 'PRESENT', 'PRESENT', 'PASSE_COMPOSE', 'PASSE_COMPOSE', 'INF', 'INF', 'INF', 'INF'] : ['PRESENT', 'PRESENT', 'PASSE_COMPOSE', 'PASSE_COMPOSE', 'IMPERFECT', 'FUTURE', 'INF', 'INF', 'INF', 'INF'];
+  return P[sec];
+}
+function trBuild() {
+  var pool = {}; // tier -> tense -> [verb entries]
+  liveVerbs.forEach(function (v) {
+    if (!ftSet(v, verbMode) || v.group) return; var t = vqOf(v); if (!t) return;
+    ((pool[t] = pool[t] || {})[v.tense] = pool[t][v.tense] || []).push(v);
+  });
+  var used = {}, shown = {}; // used: verbs on this paper; shown: verbs whose infinitive or form is visible
+  function pick(tier, tense, avoid) {
+    var c = ((pool[tier] || {})[tense] || []).filter(function (v) { return !used[v.inf] && !(avoid && avoid[v.inf]); });
+    if (!c.length) c = ((pool[tier] || {})[tense] || []).filter(function (v) { return !used[v.inf]; });
+    if (!c.length) c = ((pool[tier] || {})[tense] || []);
+    if (!c.length) return null; return c[Math.floor(Math.random() * c.length)];
+  }
+  function item(sec, tier, avoid, reflexFirst) {
+    var plan = shuffle(trPlan(sec).slice()), out = [];
+    plan.forEach(function (t) {
+      var tense = t === 'INF' ? 'PRESENT' : t, v = pick(tier, tense, avoid);
+      for (var tr = 0; sec === 'B' && tr < 10 && v && v.forms.filter(function (f) { return f && f !== '—' && f !== '---'; }).length < 2; tr++) { used[v.inf] = 1; v = pick(tier, tense, avoid); }
+      if (!v) { tense = 'PRESENT'; v = pick(tier, 'PRESENT', avoid); }
+      if (!v) return; used[v.inf] = 1;
+      var ok = function (p) { var f = v.forms[p]; return f && f !== '—' && f !== '---'; }, pi = Math.floor(Math.random() * 6), alt = Math.random() < 0.5;
+      if (!ok(pi)) { pi = [2, 0, 1, 3, 4, 5].filter(ok)[0]; if (pi === undefined) return; }
+      out.push({ v: v, inf: t === 'INF', tense: tense, pi: pi, alt: alt });
+    });
+    return out;
+  }
+  var A = item('A', 'U'), B = item('B', 'E'), C = item('C', 'I');
+  var seen = {}; [A, B, C].forEach(function (S) { S.forEach(function (x) { seen[x.v.inf] = 1; }); });
+  var D = item('D', 'E', seen);
+  // infinitive questions in fixed places, as on the 2026 paper (C: Q25, Q26; D: 3, 4, 6, 10)
+  function place(S, spots) { var inf = S.filter(function (x) { return x.inf; }), fm = S.filter(function (x) { return !x.inf; }), out = []; for (var i = 0; i < S.length; i++) out.push(spots.indexOf(i) >= 0 && inf.length ? inf.shift() : (fm.shift() || inf.shift())); return out.filter(Boolean); }
+  C = place(C, [4, 5]); D = place(D, [2, 3, 5, 9]);
+  function en(x) { return x.inf ? x.v.en : conjEn(x.v.en, x.pi, x.tense).replace(/he \(she\)/g, 'he/she').replace(/they \(f\)/g, 'they'); }
+  function fr(x, pi) { pi = pi === undefined ? x.pi : pi; var f = x.v.forms[pi]; return x.inf ? x.v.inf : trForm(f, pi, x.alt); }
+  function pres0(x) { var p = liveVerbs.filter(function (y) { return y.inf === x.v.inf && y.tense === 'PRESENT'; })[0]; return p ? (p.forms.filter(function (f) { return f && f !== '—' && f !== '---'; })[0] || x.v.inf) : x.v.inf; }
+  var Q = { A: [], B: [], C: [], D: [] };
+  A.forEach(function (x) { Q.A.push({ q: trCap(fr(x)), a: en(x) }); });
+  B.forEach(function (x) { var pj, ok = function (p) { var f = x.v.forms[p]; return f && f !== '—' && f !== '---'; }, tries = 0; do { pj = Math.floor(Math.random() * 6); } while ((pj === x.pi || !ok(pj)) && ++tries < 60); if (!ok(pj) || pj === x.pi) pj = [0, 1, 2, 3, 4, 5].filter(function (p) { return p !== x.pi && ok(p); })[0]; var alt = Math.random() < 0.5; Q.B.push({ q: trCap(fr(x)) + ' - (' + (pj === 2 ? (alt ? 'elle' : 'il') : pj === 5 ? (alt ? 'elles' : 'ils') : TR_SUBJ[pj]) + ')', a: trCap(trForm(x.v.forms[pj], pj, alt)) }); });
+  C.forEach(function (x) { Q.C.push({ q: trCap(en(x)) + '   [' + (x.inf ? pres0(x) : x.v.inf) + ']', a: x.inf ? x.v.inf : trCap(fr(x)), inf: x.inf }); });
+  D.forEach(function (x) { Q.D.push({ q: x.inf ? x.v.en : trCap(en(x)), a: x.inf ? x.v.inf : trCap(fr(x)), inf: x.inf }); });
+  return Q;
+}
+function trSections(Q) {
+  var infC = [], n = 0; Q.A.forEach(function () { n++; }); Q.B.forEach(function () { n++; });
+  Q.C.forEach(function (x, i) { if (x.inf) infC.push(n + i + 1); });
+  var cInstr = 'The infinitive of the verb is given in [square brackets].' + (infC.length ? '  For Q' + infC.join(' and Q') + ' the answer is an infinitive, so a present-tense form is given instead.' : '');
+  return [['A', 'Translate into English', 'Translate each French verb form into English.', 'A', 'Useful'], ['B', 'Change the person', 'Rewrite each verb with the new subject shown in brackets.', 'B', 'Essential'], ['C', 'Translate into French', cInstr, 'C', 'Important'], ['D', 'Translate into French', '', 'D', 'Essential']];
+}
+function generateTrialsPartI() {
+  var Q = trBuild(); window._trials = Q;
+  var out = document.getElementById('testOut'); if (!out) return;
+  out.style.display = 'block'; out.removeAttribute('data-spot');
+  var n = Q.A.length + Q.B.length + Q.C.length + Q.D.length;
+  out.innerHTML = '<div class="vb-out-btns"><button class="aph-btn aph-btn-sm" onclick="openTrialsPDF(\'questions\')">🖨 Print / PDF · Paper</button><button class="aph-btn aph-btn-sm" onclick="openTrialsPDF(\'answers\')">🖨 Print / PDF · Answers</button><button class="aph-btn aph-btn-sm" onclick="generateTrialsPartI()">🔀 New paper</button></div>'
+    + '<div class="vb-out-label">' + TR_NAME[verbMode] + ' · Part I · ' + n + ' questions</div><div class="vb-out-box">' + trSections(Q).map(function (S) { return '<div style="margin:6px 0 2px"><b>' + S[0] + '. ' + S[1] + '</b> <span class="vb-light">(' + S[4] + ' verbs)</span></div>' + Q[S[3]].map(function (x) { return '<div class="vb-out-row"><span class="q">' + x.q + '</span> <span class="ar">→</span> <strong>' + x.a + '</strong></div>'; }).join(''); }).join('') + '</div>';
+}
+function openTrialsPDF(kind) {
+  var Q = window._trials; if (!Q) { generateTrialsPartI(); Q = window._trials; }
+  var isA = kind === 'answers', k = 0, S = trSections(Q), f = verbMode === 'ftrials';
+  var sub = f ? 'Quizlet VERBS: Infinitives, Present Tense, and Perfect Tense (avoir only)' : 'Quizlet VERBS: Infinitives, Present, Perfect, Imperfect and Future Tenses';
+  var body = S.map(function (sec) {
+    var h = '<h3 style="margin:18px 0 2px;font-size:1.05rem">' + sec[0] + '.&nbsp; ' + sec[1] + '&nbsp; (Q' + (k + 1) + '–' + (k + Q[sec[3]].length) + ')' + (isA ? ' <span style="font-weight:400;font-size:.8rem;color:#8899bb">' + sec[4] + ' verbs</span>' : '') + '</h3>' + (sec[2] ? '<div style="font-size:.85rem;margin-bottom:6px">' + sec[2] + '</div>' : '');
+    return h + Q[sec[3]].map(function (x) { k++; return '<div style="margin:0 0 ' + (isA ? '6' : '16') + 'px;break-inside:avoid"><b>' + k + '.</b>&nbsp; ' + x.q + (isA ? ' &nbsp;→&nbsp; <b style="color:#1a2744">' + x.a + '</b>' : '<div style="border-bottom:1px solid #999;height:20px;margin-top:4px"></div>') + '</div>'; }).join('');
+  }).join('');
+  var html = '<!DOCTYPE html><html><head><meta charset="UTF-8"><title>' + TR_NAME[verbMode] + ' — Part I' + (isA ? ' (answers)' : '') + '</title><style>' + aphCSS() + '</style><style>body{font-family:var(--aph-body);margin:0;padding:28px 36px;color:#1a2744;background:#fff;line-height:1.4}@media print{@page{margin:1.5cm 1.8cm;size:A4}.no-print{display:none!important}}</style></head><body>'
+    + '<div style="font-weight:700;letter-spacing:.06em;text-transform:uppercase;font-size:.75rem;color:#8899bb">' + TR_NAME[verbMode] + ' 2026 · F French</div><h2 style="margin:4px 0 2px">PART I' + (isA ? ' — ANSWERS' : '') + ' <span style="font-weight:400;font-size:.9rem">(20 marks after scaling)</span></h2>'
+    + '<div style="font-size:.9rem;margin-bottom:6px"><b>' + sub + '</b></div>' + (isA ? '<div style="font-size:.78rem;color:#555;margin-bottom:6px">Perfect tense: accept the past simple or the "have" form in English (e.g. he slept / he has slept). Accept she/he for il (elle).</div>' : '') + body
+    + '</body></html>';
+  var w = window.open('', '_blank'); if (!w) { alert('Please allow pop-ups for this page, then try again.'); return; }
+  w.document.open(); w.document.write(html); w.document.close(); w.focus(); setTimeout(function () { w.print(); }, 800);
+}
 </script>
 <script>
 renderIntro();
