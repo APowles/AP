@@ -29414,6 +29414,11 @@ function generateIGCSESpotTest(timed) {
       meta: (mixOn() ? mixLabel() : qFlag + ' → ' + aFlag) + ' &nbsp;·&nbsp; 5 × ' + per + ' = ' + (5 * per) + ' items', lang: mixOn() ? '' : (LANG_NAMES[t] || ''), kind: 'sentence', rows: rows,
       q: function (p) { return p.q || ''; }, a: function (p) { return p.a || ''; },
       recapName: 'phrase list (the print view of the selected list)', recapShort: 'phrase list',
+      recapUrl: function () {
+        var cs = getCheckedSections(), all = document.querySelectorAll('.sec-checkbox').length;
+        var h = '#ep=' + (!cs.length || cs.length === all ? '*' : cs.map(encodeURIComponent).join('+')) + '&f=' + f + '&t=' + t + (mixOn() ? '&x=' + epMix : '');
+        return { url: location.href.replace(/[#?].*$/, '') + h, label: '\u25B6 Open this phrase list live in the app: view it, drill it, test yourself or play Speed on exactly this selection' };
+      },
       recap: function () {
         var LN = { en: ['🇬🇧', 'English'], es: ['🇪🇸', 'Spanish'], fr: ['🇫🇷', 'French'], it: ['🇮🇹', 'Italian'] }, codes = ['en'];
         [f, t, mixOn() ? mixTarget() : ''].forEach(function (c) { if (LN[c] && codes.indexOf(c) < 0) codes.push(c); });
@@ -65683,6 +65688,31 @@ if (window.__voc) window.__voc.speedTest = function (kind, lang, secs, rev, lv, 
       w.restart(); w.epStart();
     }
   });
+})();
+/* ===== END ===== */
+
+/* ===== Essential Phrases: live deep link (#ep=<lists joined by +, or *>&f=<from>&t=<to>[&x=50|70]) ===== */
+(function () {
+  function boot() {
+    var m = /^#ep=([^&]*)&f=([a-z]{2})&t=([a-z]{2})(?:&x=(\d+))?/.exec(location.hash || ''); if (!m) return;
+    try {
+      var L = ['en', 'fr', 'it', 'es'], f = m[2], t = m[3], x = +m[4] || 0;
+      if (L.indexOf(f) < 0 || L.indexOf(t) < 0 || f === t) return;
+      if (!document.getElementById('lang-from') || typeof onSectionChange !== 'function' || typeof onLangChange !== 'function') return;
+      var cbs = document.querySelectorAll('.sec-checkbox'), want = {}, i;
+      if (m[1] !== '*') { var ids = m[1].split('+'); for (i = 0; i < ids.length; i++) want[decodeURIComponent(ids[i])] = 1; }
+      var known = 0; for (i = 0; i < cbs.length; i++) if (m[1] === '*' || want[cbs[i].value]) known++;
+      if (!known) return;   // nothing recognised: leave the page as it is
+      var app = document.getElementById('phrases-app'); if (app) app.style.display = '';
+      document.getElementById('lang-from').value = f; document.getElementById('lang-to').value = t; onLangChange();
+      if ((x === 50 || x === 70) && (f === 'en' || t === 'en') && typeof epSetMix === 'function') epSetMix(x);
+      for (i = 0; i < cbs.length; i++) cbs[i].checked = m[1] === '*' || !!want[cbs[i].value];
+      onSectionChange();
+      try { var first = document.querySelector('.sec-checkbox:checked'); if (first) first.closest('.sec-cb-item').scrollIntoView({ block: 'nearest' }); } catch (e) { }
+    } catch (e) { }
+  }
+  if (document.readyState === 'complete') setTimeout(boot, 300); else window.addEventListener('load', function () { setTimeout(boot, 300); });
+  window.addEventListener('hashchange', function () { if (/^#ep=/.test(location.hash)) setTimeout(boot, 300); });
 })();
 /* ===== END ===== */
 
