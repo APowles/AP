@@ -5158,6 +5158,7 @@ function generateSDSpotTest(timed) {
       q: function (p) { return sdMk(p) + (sdQA(p, sdTF(p, isToFr)).q || '').trim(); }, a: function (p) { return (sdQA(p, sdTF(p, isToFr)).a || '').trim(); },
       // the one-click copy: the print view of this same selection (the whole selected sentence set, whatever the test level), answers shown
       recapName: 'vocab list (the print view of the selected list)', recapShort: 'vocab list',
+      recapUrl: function () { return { url: location.href.replace(/[#?].*$/, '') + '#sd=' + encodeURIComponent(setKey) + '', label: '▶ Open this sentence set live in the app: view it, drill it, test yourself or play Speed on exactly this selection' }; },
       recap: function () { return vvListRecap(setKey, setKey.replace(/_/g, ' ')); } });
     return;
   }
@@ -5452,6 +5453,7 @@ function generateVVSpotTest(timed) {
       q: function (p) { return spotTag(p) + cleanVVHtml(p[spotDirs.get(p).qi]); }, a: function (p) { return cleanVVHtml(p[spotDirs.get(p).ai]); },
       // the one-click copy: the print view (Content List) of this same selection (the whole selected set, whatever the test level), both languages shown
       recapName: 'vocab list (the print view of the selected list)', recapShort: 'vocab list',
+      recapUrl: function () { return { url: location.href.replace(/[#?].*$/, '') + '#vv=' + encodeURIComponent(key) + '', label: '▶ Open this vocab set live in the app: view it, drill it, test yourself or play Speed on exactly this selection' }; },
       recap: function () { return vvListRecap(key, setLabel); } });
     return;
   }
@@ -47615,6 +47617,7 @@ function generateMlfSpotTest(timed) {
       meta: F.flag + ' ' + F.label + ' → ' + T.flag + ' ' + T.label + apLvTag('mlf') + ' &nbsp;·&nbsp; 5 × ' + per + ' = ' + needed + ' items', lang: T.label, kind: 'word', rows: rows,
       q: function (x) { return (x[F.key] || {}).display || ''; }, a: function (x) { return (x[T.key] || {}).display || ''; },
       recapName: 'metalanguage formulae list (the print view of the selected list)', recapShort: 'formulae list',
+      recapUrl: function () { return { url: location.href.replace(/[#?].*$/, '') + '#mlf=1', label: '▶ Open this formulae list live in the app: view it, drill it, drill it or test yourself' }; },
       recap: function () { var sh = mlfTestSheet({ items: mlfGetPool(), mode: 'teacher', list: true }); return { html: sh.body, css: sh.css }; } });
     return;
   }
@@ -49386,6 +49389,9 @@ function mlfLeisureStart(deck) {
 // a link like  <this page>#recap=gr3+gr5  opens those grammar recaps live, with the “Now I can…” boxes and their Check buttons
 (function () {
   function go() {
+    var h = location.hash || '', v = /^#(vv|sd)=([A-Za-z0-9_]+)/.exec(h);
+    if (v) { try { if (v[1] === 'vv' && VV_DATA[v[2]]) { switchMode('vv'); currentVV = v[2]; vvKeepRecognitionFrToEn(); renderIntro(); } else if (v[1] === 'sd' && (SD_DATA[v[2]] || /^VV\d+_Entire$/.test(v[2]))) { switchMode('sd'); sdState.currentSet = v[2]; sdState.idx = 0; sdState.shuffled = []; renderSD(); } } catch (e) { } return; }
+    if (/^#mlf=1/.test(h)) { try { switchMode('mlf'); } catch (e) { } return; }
     var m = /^#recap=([A-Za-z0-9+_:.-]+)/.exec(location.hash || ''); if (!m || typeof rcpOpenKeys !== 'function') return;
     try { rcpOpenKeys(m[1].split('+')); } catch (e) { }
   }
