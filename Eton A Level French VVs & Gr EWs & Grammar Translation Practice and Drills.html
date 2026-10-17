@@ -40233,7 +40233,9 @@ function grOptionsSpotTest(setId, timed) {
   if (timed) {
     apttSpot({ id: 'gr|' + setId + '|topic' + grTopicFilter + '|' + apLv('gr') + '|' + totalNeeded, title: set.title + apLvTag('gr'),
       meta: '🇬🇧 → 🇫🇷 &nbsp;·&nbsp; 5 rows × ' + itemsPerRow + ' = ' + totalNeeded + ' sentences', lang: 'French', kind: 'sentence', rows: rows,
-      q: function (x) { return grQ(x); }, a: function (x) { return grTestAns(x); }, kindOf: grItemKind });
+      q: function (x) { return grQ(x); }, a: function (x) { return grTestAns(x); }, kindOf: grItemKind,
+      recap: function () { return [setId].map(function (id) { var x = GR_SETS.filter(function (z) { return z.id === id; })[0]; return x ? '<div style="margin:18px 0 6px;padding-bottom:4px;border-bottom:3px solid #1a2744;font-size:1.25rem;font-weight:700;color:#1a2744">Grammar recap · ' + (x.chip || x.title) + '</div>' + grRecapFull(x) : ''; }).join(''); },
+      recapUrl: function () { return { url: location.href.replace(/[#?].*$/, '') + '#recap=' + [setId].map(function (id) { return 'd:' + id; }).join('+'), label: '▶ Open the live grammar recap: tick the “Now I can…” boxes and press Check to see the model answers' }; } });
     return;
   }
 
@@ -41027,7 +41029,9 @@ function generateGrammarSpotTestInline(timed) {
   if (timed) {
     apttSpot({ id: 'gr|' + (grState.setId === '__multi__' ? 'multi:' + (grState.multiIds || []).join(',') : grState.setId) + '|topic' + grTopicFilter + '|' + apLv('gr') + '|' + totalNeeded, title: set.title + apLvTag('gr'),
       meta: '🇬🇧 → 🇫🇷 &nbsp;·&nbsp; 5 rows × ' + itemsPerRow + ' = ' + totalNeeded + ' sentences', lang: 'French', kind: 'sentence', rows: rows,
-      q: function (x) { return grQ(x); }, a: function (x) { return grTestAns(x); }, kindOf: grItemKind });
+      q: function (x) { return grQ(x); }, a: function (x) { return grTestAns(x); }, kindOf: grItemKind,
+      recap: function () { return (grState.setId === '__multi__' ? (grState.multiIds || []) : [grState.setId]).map(function (id) { var x = GR_SETS.filter(function (z) { return z.id === id; })[0]; return x ? '<div style="margin:18px 0 6px;padding-bottom:4px;border-bottom:3px solid #1a2744;font-size:1.25rem;font-weight:700;color:#1a2744">Grammar recap · ' + (x.chip || x.title) + '</div>' + grRecapFull(x) : ''; }).join(''); },
+      recapUrl: function () { return { url: location.href.replace(/[#?].*$/, '') + '#recap=' + (grState.setId === '__multi__' ? (grState.multiIds || []) : [grState.setId]).map(function (id) { return 'd:' + id; }).join('+'), label: '▶ Open the live grammar recap: tick the “Now I can…” boxes and press Check to see the model answers' }; } });
     return;
   }
 
@@ -47483,17 +47487,11 @@ function exportMlfHtml() {
 
 // ==================== MLF TEST ====================
 
-function generateMlfTest() {
-  apLvRan('mlf', generateMlfTest);
-  const pool = apLvPool('mlf', mlfGetPool(), apMlfLevelP);   // the chosen level only
-  if (pool.length < 10 && apLv('mlf') !== 'X' && mlfGetPool().length >= 10) { apLvShort('mlf', 'mlfTestOutput', pool.length, 10, false, 'a test'); return; }
-  if (pool.length < 10) { alert('Not enough formulas for a test in this language pair.'); return; }
-  const mlfOut = document.getElementById('mlfTestOutput'); if (mlfOut && mlfOut.querySelector('.ap-lv-short')) mlfOut.innerHTML = '';
+// the Metalanguage Formulae test / list sheet: o = { items, mode ('both' = student sheet + answer key | 'teacher' = answers only), list (a plain list of the formulae, for the OneNote copy) }
+function mlfTestSheet(o) {
+  const items = o.items, mode = o.mode || 'both';
   const fromLabel = MLF_LANGS[mlfState.fromLang].flag + ' ' + MLF_LANGS[mlfState.fromLang].label;
   const toLabel = MLF_LANGS[mlfState.toLang].flag + ' ' + MLF_LANGS[mlfState.toLang].label;
-  const count = Math.min(mlfState.drillCount, pool.length);
-  const items = [...pool].sort(() => Math.random() - 0.5).slice(0, count);
-
   const title = 'Eton Metalanguage Formulae — ' + fromLabel + ' → ' + toLabel + apLvTag('mlf');
   const qRows = items.map((item, i) =>
     '<tr><td style="padding:6px 8px;border:1px solid #ccc;font-weight:700;text-align:center;width:28px;color:#1a2744;">'+(i+1)+'</td>'
@@ -47506,18 +47504,35 @@ function generateMlfTest() {
     + '<td style="padding:8px;border:1px solid #ccc;font-size:10pt;font-weight:600;color:#1a2744;">'+(item[mlfState.toLang]||{}).display+'</td></tr>'
   ).join('');
 
-  const html = `<!DOCTYPE html><html><head><meta charset="UTF-8"><title>${title}</title>
-<style>${aphCSS()}</style>
-<style>body{font-family:var(--aph-body);background:#fff;color:#1a2744;margin:1.2cm 1.5cm;font-size:10.5pt;}table{width:100%;border-collapse:collapse;margin-bottom:24px;}th{background:#1a2744;color:#ffd76a;padding:6px 8px;font-size:8.5pt;text-align:left;border:1px solid #1a2744;}</style>
+  const bandTitle = o.list ? 'Metalanguage Formulae &mdash; <em>' + fromLabel + ' → ' + toLabel + apLvTag('mlf') + '</em>' : 'Metalanguage Test &mdash; <em>' + fromLabel + ' → ' + toLabel + apLvTag('mlf') + '</em>';
+  const studentBlock = aphPrintHead({ kicker: 'Eton A Level &middot; VVs, Gr EWs &amp; Translation', title: bandTitle, meta: 'Eton Metalanguage Formulae &nbsp;&middot;&nbsp; ' + items.length + ' questions', total: items.length })
+    + '<table><tr><th>#</th><th>' + fromLabel + '</th><th>' + toLabel + '</th></tr>' + qRows + '</table>'
+    + aphPrintFoot('Eton A Level VVs, Gr EWs &amp; Translation &middot; Test &middot; Student sheet');
+  const teacherBlock = aphPrintHead({ kicker: 'Eton A Level &middot; VVs, Gr EWs &amp; Translation &middot; ' + (o.list ? 'Formulae' : 'Answers'), title: bandTitle, meta: o.list ? items.length + ' formulae' : 'Answer key', strip: false, print: false })
+    + '<table><tr><th>#</th><th>' + fromLabel + '</th><th>' + toLabel + '</th></tr>' + aRows + '</table>'
+    + aphPrintFoot('Eton A Level VVs, Gr EWs &amp; Translation &middot; ' + (o.list ? 'Formulae list' : 'Test &middot; Teacher sheet'));
+  const body = mode === 'teacher' ? teacherBlock : studentBlock + '\n<div style="page-break-before:always;">\n' + teacherBlock + '\n</div>';
+  const css2 = 'body{font-family:var(--aph-body);background:#fff;color:#1a2744;margin:1.2cm 1.5cm;font-size:10.5pt;}table{width:100%;border-collapse:collapse;margin-bottom:24px;}th{background:#1a2744;color:#ffd76a;padding:6px 8px;font-size:8.5pt;text-align:left;border:1px solid #1a2744;}';
+  return { title: title, css1: aphCSS(), css2: css2, css: aphCSS() + css2, body: body };
+}
+
+function generateMlfTest() {
+  apLvRan('mlf', generateMlfTest);
+  const pool = apLvPool('mlf', mlfGetPool(), apMlfLevelP);   // the chosen level only
+  if (pool.length < 10 && apLv('mlf') !== 'X' && mlfGetPool().length >= 10) { apLvShort('mlf', 'mlfTestOutput', pool.length, 10, false, 'a test'); return; }
+  if (pool.length < 10) { alert('Not enough formulas for a test in this language pair.'); return; }
+  const mlfOut = document.getElementById('mlfTestOutput'); if (mlfOut && mlfOut.querySelector('.ap-lv-short')) mlfOut.innerHTML = '';
+  const fromLabel = MLF_LANGS[mlfState.fromLang].flag + ' ' + MLF_LANGS[mlfState.fromLang].label;
+  const toLabel = MLF_LANGS[mlfState.toLang].flag + ' ' + MLF_LANGS[mlfState.toLang].label;
+  const count = Math.min(mlfState.drillCount, pool.length);
+  const items = [...pool].sort(() => Math.random() - 0.5).slice(0, count);
+
+  const sh = mlfTestSheet({ items: items, mode: 'both' });
+  const html = `<!DOCTYPE html><html><head><meta charset="UTF-8"><title>${sh.title}</title>
+<style>${sh.css1}</style>
+<style>${sh.css2}</style>
 </head><body>
-${aphPrintHead({ kicker: 'Eton A Level &middot; VVs, Gr EWs &amp; Translation', title: 'Metalanguage Test &mdash; <em>' + fromLabel + ' → ' + toLabel + apLvTag('mlf') + '</em>', meta: 'Eton Metalanguage Formulae &nbsp;&middot;&nbsp; ' + items.length + ' questions', total: items.length })}
-<table><tr><th>#</th><th>${fromLabel}</th><th>${toLabel}</th></tr>${qRows}</table>
-${aphPrintFoot('Eton A Level VVs, Gr EWs &amp; Translation &middot; Test &middot; Student sheet')}
-<div style="page-break-before:always;">
-${aphPrintHead({ kicker: 'Eton A Level &middot; VVs, Gr EWs &amp; Translation &middot; Answers', title: 'Metalanguage Test &mdash; <em>' + fromLabel + ' → ' + toLabel + apLvTag('mlf') + '</em>', meta: 'Answer key', strip: false, print: false })}
-<table><tr><th>#</th><th>${fromLabel}</th><th>${toLabel}</th></tr>${aRows}</table>
-${aphPrintFoot('Eton A Level VVs, Gr EWs &amp; Translation &middot; Test &middot; Teacher sheet')}
-</div>
+${sh.body}
 <script>window.onload=function(){window.print();}<\/script>
 </body></html>`;
   const w = window.open('','_blank'); w.document.write(html); w.document.close();
@@ -47546,7 +47561,9 @@ function generateMlfSpotTest(timed) {
     const F = MLF_LANGS[mlfState.fromLang], T = MLF_LANGS[mlfState.toLang];
     apttSpot({ id: 'mlf|' + mlfState.fromLang + '>' + mlfState.toLang + '|' + apLv('mlf') + '|' + needed, title: 'Metalanguage Formulae',
       meta: F.flag + ' ' + F.label + ' → ' + T.flag + ' ' + T.label + apLvTag('mlf') + ' &nbsp;·&nbsp; 5 × ' + per + ' = ' + needed + ' items', lang: T.label, kind: 'word', rows: rows,
-      q: function (x) { return (x[F.key] || {}).display || ''; }, a: function (x) { return (x[T.key] || {}).display || ''; } });
+      q: function (x) { return (x[F.key] || {}).display || ''; }, a: function (x) { return (x[T.key] || {}).display || ''; },
+      recapName: 'metalanguage formulae list (the print view of the selected list)', recapShort: 'formulae list',
+      recap: function () { var sh = mlfTestSheet({ items: apLvPool('mlf', mlfGetPool(), apMlfLevelP), mode: 'teacher', list: true }); return { html: sh.body, css: sh.css }; } });
     return;
   }
 
@@ -48332,7 +48349,7 @@ body{background:var(--cream)}
       + '<span><b>Grammar recaps: pick one or several</b><small>Read them together, print or save as PDF' + (n > 1 ? ' · ' + n + ' ticked' : '') + '</small></span><span class="rcp-ar">▶</span></button>';
   };
   window.rcpOpen = function (ctx) { R.ctx = ctx || 'ews'; R.keys = initial(R.ctx); page(); };
-  window.rcpOpenKeys = function (keys) { R.ctx = 'ews'; R.keys = order(keys.map(function (k) { return 'e:' + k; })); if (R.keys.length) page(); };
+  window.rcpOpenKeys = function (keys) { R.ctx = 'ews'; R.keys = order(keys.map(function (k) { return /^[ed]:/.test(k) ? k : 'e:' + k; })); if (R.keys.length) page(); };
   window.rcpClose = function () { var o = document.getElementById('rcp-ov'); if (o) o.remove(); document.body.style.overflow = ''; };
   function page() {
     var old = document.getElementById('rcp-ov'); if (old) old.remove();
@@ -49317,7 +49334,7 @@ function mlfLeisureStart(deck) {
 // a link like  <this page>#recap=gr3+gr5  opens those grammar recaps live, with the “Now I can…” boxes and their Check buttons
 (function () {
   function go() {
-    var m = /^#recap=([A-Za-z0-9+_-]+)/.exec(location.hash || ''); if (!m || typeof rcpOpenKeys !== 'function') return;
+    var m = /^#recap=([A-Za-z0-9+_:.-]+)/.exec(location.hash || ''); if (!m || typeof rcpOpenKeys !== 'function') return;
     try { rcpOpenKeys(m[1].split('+')); } catch (e) { }
   }
   window.addEventListener('hashchange', go);
