@@ -211,6 +211,10 @@ body.aph-at-home .aph-header .aph-home{display:none}   /* no Home on the home sc
 .aph-chip{font:600 .9375rem/1.2 var(--aph-body);color:var(--text2);background:#fff;border:1.5px solid var(--border);border-radius:20px;padding:6px 15px;min-height:36px;cursor:pointer;transition:background .12s,border-color .12s,color .12s}
 .aph-chip:hover{border-color:var(--navy);color:var(--navy)}
 .aph-chip.on,.aph-chip.on:hover{background:var(--navy);border-color:var(--navy);color:var(--gold2)}
+/* VVs What to practise: navy + gold means only "this is the row in use"; options inside a row are pale gold when chosen (ticks show a ✓); the padlock shows its state in its own colours */
+.vv-tier .aph-chip.on,.vv-tier .aph-chip.on:hover{background:#fff3c4;border-color:#c9a84c;color:#1a2744;font-weight:800}
+.vv-tier .aph-chip.vv-lock.locked,.vv-tier .aph-chip.vv-lock.locked:hover{background:#e6eefc;border-color:#3b6fd4;color:#1a2744;font-weight:800}
+.vv-tier .aph-chip.vv-lock.open,.vv-tier .aph-chip.vv-lock.open:hover{background:#e3f6ea;border-color:#1faa59;color:#1a2744;font-weight:800}
 .aph-step{width:38px;height:38px;border-radius:8px;border:1.5px solid var(--border);background:#fff;color:var(--text);font:600 1.15rem/1 var(--aph-body);cursor:pointer;display:inline-flex;align-items:center;justify-content:center}
 .aph-step:hover{border-color:var(--navy)}
 .aph-step-val{font-weight:700;font-size:1.05rem;color:var(--navy);min-width:46px;text-align:center}
@@ -3676,8 +3680,8 @@ function vvTierRow() {
   return `<div class="aph-row vv-tier" style="margin:-2px 0 10px 10px;gap:6px;flex-wrap:wrap">
       <span class="aph-note" style="min-width:auto">Which structures:</span>
       ${VS_TIER_UI.map(u => `<button class="aph-chip${act === u[0] ? ' on' : ''}" onclick="vvSetTier('${u[0]}')">${u[1]}</button>`).join('')}
-      ${act === 'R' ? `<button class="aph-chip${vsRecogUnlocked ? ' on' : ''}" onclick="vvToggleRecogLock()" style="flex-basis:auto">${vsRecogUnlocked ? '🔓 Either direction' : '🔒 French → English only'}</button>
-      <div class="aph-note" style="flex-basis:100%">${vsRecogUnlocked ? 'Unlocked: you can practise Recognition structures either way round. Press the button to lock it again.' : 'Recognition structures are practised French → English only. Press 🔒 to unlock English → French.'}</div>` : ''}
+      ${act === 'R' ? `<button class="aph-chip vv-lock ${vsRecogUnlocked ? 'open' : 'locked'}" onclick="vvToggleRecogLock()" style="flex-basis:auto">${vsRecogUnlocked ? '🔓 Either direction' : '🔒 French → English only'}</button>
+      <div class="aph-note" style="flex-basis:100%;font-size:.9375rem;font-weight:600;color:#1a2744;line-height:1.4">${vsRecogUnlocked ? 'Unlocked: you can practise Recognition structures either way round, into French as well as into English. Press the 🔓 padlock to lock it back to French → English only.' : 'Locked: Recognition structures are practised French → English only. Want to be tested into French as well, not just into English? Simply press the 🔒 padlock to unlock it.'}</div>` : ''}
     </div>`;
 }
 // tick / untick one kind of structure to add to the topic vocabulary (keeps the same week; at least one stays on)
@@ -3697,10 +3701,10 @@ function vvComboRow() {
   const lock = vcLockOn();
   return `<div class="aph-row vv-tier vv-combo" style="margin:-2px 0 10px 10px;gap:6px;flex-wrap:wrap">
       <span class="aph-note" style="min-width:auto">Add these structures:</span>
-      ${VC_UI.filter(u => u[0] !== 'R').map(u => `<button class="aph-chip${vcTiers[u[0]] ? ' on' : ''}" onclick="vcToggle('${u[0]}')">${u[1]}</button>`).join('')}
+      ${VC_UI.filter(u => u[0] !== 'R').map(u => `<button class="aph-chip${vcTiers[u[0]] ? ' on' : ''}" onclick="vcToggle('${u[0]}')">${vcTiers[u[0]] ? '✓ ' : ''}${u[1]}</button>`).join('')}
       <div class="vv-combo-pair" style="flex-basis:100%;display:flex;flex-wrap:wrap;gap:6px;align-items:center">
-        <button class="aph-chip${vcTiers.R ? ' on' : ''}" onclick="vcToggle('R')">Recognition</button>
-        <button class="aph-chip${lock ? '' : ' on'}" onclick="vcToggleLock()" style="flex-basis:auto">${lock ? '🔒 French → English only' : '🔓 Either direction'}</button>
+        <button class="aph-chip${vcTiers.R ? ' on' : ''}" onclick="vcToggle('R')">${vcTiers.R ? '✓ ' : ''}Recognition</button>
+        <button class="aph-chip vv-lock ${lock ? 'locked' : 'open'}" onclick="vcToggleLock()" style="flex-basis:auto">${lock ? '🔒 French → English only' : '🔓 Either direction'}</button>
       </div>
       <div class="aph-note" style="flex-basis:100%;font-size:.9375rem;font-weight:600;color:#1a2744;line-height:1.4">${lock ? 'Locked: this set is practised French → English only. Want to be tested into French as well, not just into English? Simply press the 🔒 padlock to unlock it.' : 'Unlocked: you can practise either way round, into French as well as into English. Press the 🔓 padlock to lock it back to French → English only.'}</div>
     </div>`;
