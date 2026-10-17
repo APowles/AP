@@ -33290,9 +33290,27 @@ apFloat('.audio-panel', function(el){ return document.getElementById('section-ca
     return subtle().importKey('jwk', { kty: 'EC', crv: 'P-256', x: PUB.x, y: PUB.y, d: String(d).replace(/^AP-/, '').trim(), ext: true }, ALG, false, ['sign'])
       .then(function (k) { return subtle().sign(SIG, k, utf8(tok)); }).then(b64u);
   }
+  var TEACHERS_URL = 'https://raw.githubusercontent.com/APowles/AP/main/teachers.json', _TL = null;
+  function loadTeachers() {   // { id: { pub, prefix, repo, name } } from teachers.json (AP-only file); the last good copy is kept on this device for when the network is down
+    if (_TL) return _TL;
+    _TL = fetch(TEACHERS_URL, { cache: 'no-store' }).then(function (r) { if (!r.ok) throw new Error('teachers'); return r.text(); })
+      .then(function (t) { try { localStorage.setItem('apTeachersCache', t); } catch (e) { } return t; })
+      .catch(function () { try { return localStorage.getItem('apTeachersCache') || '{}'; } catch (e) { return '{}'; } })
+      .then(function (t) {
+        var L = {}; try { ((JSON.parse(t) || {}).teachers || []).forEach(function (x) { if (x && x.id && x.pub && x.pub.x && x.pub.y && String(x.id).toLowerCase() !== 'ap') L[String(x.id).toLowerCase()] = { name: x.name || x.id, prefix: x.prefix || '', repo: x.repo || '', pub: { kty: 'EC', crv: 'P-256', x: x.pub.x, y: x.pub.y } }; }); } catch (e) { }
+        return L;
+      });
+    return _TL;
+  }
+  function teacherPub(id) { return !id || id === 'ap' ? Promise.resolve(PUB) : loadTeachers().then(function (L) { return L[id] ? L[id].pub : null; }); }
   function verify(tok, sig) {
     if (!subtle()) return Promise.reject(new Error('nocrypto'));
-    return subtle().importKey('jwk', PUB, ALG, false, ['verify']).then(function (k) { return subtle().verify(SIG, k, unb64u(sig), utf8(tok)); });
+    var chk = function (pub) { return subtle().importKey('jwk', pub, ALG, false, ['verify']).then(function (k) { return subtle().verify(SIG, k, unb64u(sig), utf8(tok)); }); };
+    // AP's own tests are checked first, exactly as before; only if that fails is a colleague's listed key tried (the test must name them: tk)
+    return chk(PUB).then(function (ok) {
+      if (ok) return true;
+      return unzip(tok).then(function (j) { var id = String((JSON.parse(j) || {}).tk || '').toLowerCase(); if (!id || id === 'ap') return false; return teacherPub(id).then(function (p) { return p ? chk(p) : false; }); }).catch(function () { return false; });
+    });
   }
   /* ── Unsaved test codes (Oct 2026): every test link made with a code is noted on this device, and the note is cleared only when the code is really
         on the Eton Tests page. Anything left over shows a red banner on every Eton page until it is added (or copied into tests.txt). ── */
