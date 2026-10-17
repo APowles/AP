@@ -5,7 +5,7 @@
 <script id="ap-update">
 /* AP auto-update: if this copy is older than the published version, reload once with the new one (saved answers are kept) */
 (function () {
-  var B = '02cd31da5f'; window.AP_BUILD = B;
+  var B = '924d7b3534'; window.AP_BUILD = B;
   function check() {
     if (!/^https?:$/.test(location.protocol) || !window.fetch) return;
     var f = decodeURIComponent(location.pathname.split('/').pop() || '');
@@ -6071,7 +6071,7 @@ function closeConjChallenge() {
     if (size() < need) { alert('Not enough questions on this unit yet.'); return; }
     var ns = kind === 'spot' ? [5, 10, 15, 20] : kind === 'test' ? [5, 10, 15, 20, 30, 40] : [10, 20, 30, -1];
     if (ns.indexOf(S.n) < 0) S.n = kind === 'spot' ? 10 : 20;
-    if (speed) { SP.kind = 'speed'; gramSpeedGo(); return; }
+    if (speed) { gramSpeed(); return; }
     S.kind = kind;
     if (kind === 'drill') gramStart(false); else gramMakeTest();
   };
@@ -6256,111 +6256,47 @@ function closeConjChallenge() {
     w.document.close();
   };
 
-  /* ---------- SPEED CHALLENGE: grammar (tiles, solo or teams) ---------- */
-  var SP = { teams: 2, tiles: 16, gt: 180, tt: 20 }, G = null, gTimer = null;
-  var TEAM_NAMES = ['Red', 'Blue', 'Green'];
-  function gClose() { if (gTimer) { clearInterval(gTimer); gTimer = null; } var o = $('grs-ov'); if (o) o.remove(); document.documentElement.style.overflow = ''; G = null; }
-  W.gramSpeedClose = gClose;
-  function gOverlay(html) {
-    var o = $('grs-ov');
-    if (!o) { o = document.createElement('div'); o.id = 'grs-ov'; document.body.appendChild(o); document.documentElement.style.overflow = 'hidden'; }
-    o.innerHTML = html; o.scrollTop = 0;
-  }
-  function gFmt(t) { t = Math.max(0, t | 0); return Math.floor(t / 60) + ':' + ('0' + (t % 60)).slice(-2); }
-  function tileText(q) {
-    if (q.t === 'mc') return '<span class="grs-q">' + esc(q.q) + '</span><span class="grs-o">' + q.o.map(function (o, k) { return '<i>' + 'ABCD'[k] + '</i> ' + esc(o); }).join('<br>') + '</span>';
-    return '<span class="grs-q">' + esc(q.q).replace('___', '<u>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</u>') + '</span>';
-  }
-  function gAnswer(q) { return q.t === 'mc' ? 'ABCD'[q.a] + '  ' + q.o[q.a] : q.a.join('  /  '); }
-  W.gramSpeed = function () { SP.kind = 'speed'; speedSetup(); };
-  function speedSetup() {
-    G = null; if (gTimer) { clearInterval(gTimer); gTimer = null; }
-    var p = poolU(), chips = function (key, vals, lab) { return '<div class="grs-lb">' + lab + '</div><div class="aph-row">' + vals.map(function (v) { return vbChip(SP[key] === v[0], "gramSpeedSet('" + key + "'," + v[0] + ')', v[1]); }).join('') + '</div>'; };
-    var can = canSign();
-    gOverlay('<div class="grs-wrap"><div class="grs-top"><b>&#9889; Eton Speed Challenge &middot; Grammar</b><button class="grs-x" onclick="gramSpeedClose()">&#10005; Close</button></div>'
-      + '<p class="grs-p">Say the answer to each tile aloud, then tap the tile to check. &#10003; Right greys it out and scores a point. &#10007; Wrong swaps in a new tile to try.</p>'
-      + '<div class="grs-lb">Units <span class="grs-c">' + p.length + ' questions available</span></div><div class="aph-row">'
-      + vbChip(UNITS.every(function (u) { return S.units[u.code]; }), "gramSpeedUnit('*')", 'All units') + '<button class="aph-chip gh-clear" onclick="gramSpeedUnit(\'-\')">&#10005; Clear all</button>' + UNITS.map(function (u) { return vbChip(S.units[u.code], "gramSpeedUnit('" + u.code + "')", esc(uName(u.code))); }).join('') + '</div>'
-      + lvRow('gramSpeedLv') + chips('teams', [[1, 'Solo'], [2, '2 teams'], [3, '3 teams']], 'Teams') + chips('tiles', [[12, '12'], [16, '16'], [20, '20']], 'Tiles')
-      + chips('gt', [[120, '2 min'], [180, '3 min'], [300, '5 min'], [0, 'No limit']], 'Game time') + chips('tt', [[15, '15 s'], [20, '20 s'], [30, '30 s'], [0, 'No limit']], 'Time for each turn')
-      + '<div class="aph-stack" style="margin-top:18px"><button class="aph-btn aph-btn-primary aph-btn-block" ' + (p.length >= 4 ? '' : 'disabled') + ' onclick="gramSpeedGo()">&#9654; Start</button>'
-      + (can ? '<button class="aph-btn aph-btn-block" ' + (p.length >= 4 ? '' : 'disabled') + ' onclick="APDL.make()">&#128273; Teacher: set this as an EW (link / code)</button>' : '') + '</div></div>');
-  }
+  /* ---------- SPEED CHALLENGE: grammar. The standard Eton Speed Challenge engine (APCJ_TPL, the same one as the verbs), fed with the grammar questions ---------- */
+  var GTAIL = "/* ===== GRAMMAR ADAPTER: the same Speed Challenge engine, fed with the F Block grammar questions ===== */\nvar LV = 'mix', LVN = { e: 'Easy', m: 'Medium', h: 'Hard', s: 'Stretch', mix: 'Mixed' }, LVO = ['e', 'm', 'h', 's', 'mix'], LVC = { e: '#2e8b57', m: '#b07a00', h: '#c0392b', s: '#6a3fb0' };\nvar GQ = API.qs, GU = API.units, CJ = { units: API.sel().slice() };\nLV = API.lv() || 'mix';\nvar ITEMS = {};\nfunction uTitle(c) { var u = GU.filter(function (x) { return x.code === c; })[0]; return u ? u.title.replace(/ — .*$/, '') : c; }\nfunction gKey(q) { return q.q + '|' + (q.t === 'mc' ? q.o[q.a] : q.a[0]); }\nfunction cjPool(lv) {\n  lv = lv || LV; var seen = {}, out = [];\n  GQ.forEach(function (q, i) {\n    if (CJ.units.indexOf(q.u) < 0 || (lv === 'mix' ? q.d === 's' : q.d !== lv)) return;\n    var k = gKey(q); if (seen[k]) return; seen[k] = 1; out.push('g' + i);\n  });\n  return out;\n}\nfunction cjItem(id) { return GQ[+id.slice(1)]; }\nfunction cjSeen() { try { return JSON.parse(localStorage.getItem('apcg_seen') || '{}'); } catch (e) { return {}; } }\nfunction cjHardMap() { try { return JSON.parse(localStorage.getItem('apcg_hard') || '{}'); } catch (e) { return {}; } }\nfunction cjWeight(id, s, hd) { return (1 + 1.5 * (hd[id] || 0)) / Math.pow(1 + (s[id] || 0), 1.5); }\nfunction cjMark(ids) { try { var s = cjSeen(); ids.forEach(function (id) { s[id] = (s[id] || 0) + 1; }); localStorage.setItem('apcg_seen', JSON.stringify(s)); } catch (e) {} }\nfunction cjWpick(c, s, hd) {\n  var w = c.map(function (id) { return cjWeight(id, s, hd); }), tot = w.reduce(function (a, b) { return a + b; }, 0), r = Math.random() * tot, i = 0;\n  while (i < c.length - 1 && r > w[i]) { r -= w[i]; i++; }\n  return c[i];\n}\nfunction cjSample(a) { return a.length > 400 ? a.slice().sort(function () { return Math.random() - .5; }).slice(0, 400) : a; }\n// smart deal: spread the chosen units evenly, favour questions the class has seen least or got wrong\nfunction cjPick() {\n  var pool = cjPool(), s = cjSeen(), hd = cjHardMap(), out = [], used = {};\n  if (!pool.length) return [];\n  var byU = {}; pool.forEach(function (id) { var u = cjItem(id).u; (byU[u] = byU[u] || []).push(id); });\n  var us = Object.keys(byU).sort(function () { return Math.random() - .5; }), k = 0, guard = 0;\n  while (out.length < Q.n && guard++ < 800) {\n    var u = us[k++ % us.length], c = byU[u].filter(function (id) { return !used[id]; });\n    if (!c.length) { if (us.every(function (x) { return !byU[x].some(function (id) { return !used[id]; }); })) break; continue; }\n    var p = cjWpick(cjSample(c), s, hd); used[p] = 1; out.push(p);\n  }\n  cjMark(out);\n  if (LV === 'mix') out.sort(function (a, b) { return 'emhs'.indexOf(cjItem(a).d) - 'emhs'.indexOf(cjItem(b).d); });\n  return out;\n}\nfunction cjHard(id, d) { try { var h = cjHardMap(); h[id] = Math.max(0, (h[id] || 0) + d); localStorage.setItem('apcg_hard', JSON.stringify(h)); } catch (e) {} }\nqfHard = function (id, d) { cjHard(id, d); };\nfunction gCue(q) {\n  if (q.t === 'mc') return q.q + '\\n' + q.o.map(function (o, k) { return 'ABCD'[k] + '  ' + o; }).join('\\n');\n  return q.q.replace('___', '______');\n}\nfunction gAns(q) { return q.t === 'mc' ? 'ABCD'[q.a] + '  ' + q.o[q.a] : q.a.join('  /  '); }\nIT = {\n  en: function (id) { return gCue(cjItem(id)); },\n  tl: function (id) { return gAns(cjItem(id)); },\n  tag: function (id) { var q = cjItem(id); return '<b style=\"color:' + LVC[q.d] + '\">' + (q.u === 'C' ? 'Section C' : 'Unit ' + q.u) + ' · ' + LVN[q.d] + '<\/b>'; },\n  say: function (id) { },\n  pick: function () { return cjPick(); },\n  replace: function (id, others) {\n    var used = {}; others.forEach(function (o) { used[o] = 1; }); used[id] = 1;\n    var d = cjItem(id).d, pool = cjPool().filter(function (x) { return !used[x]; });\n    var same = pool.filter(function (x) { return cjItem(x).d === d; }); if (same.length) pool = same;\n    if (!pool.length) return null;\n    var nid = cjWpick(cjSample(pool), cjSeen(), cjHardMap()); cjMark([nid]); return nid;\n  },\n  printTitle: function () { return 'Eton F Block Spanish Grammar — ' + cjSummary(); },\n  printSub: function () { return 'Answer each question: choose the right option, or write the missing word.'; },\n  testKinds: ['test', 'spot', 'tspot']\n};\nIT.test = function (k) {\n  if (!cjPool().length) { alert('Nothing matches these choices — choose more units or another level.'); return; }\n  try { API.speedTest(k, { units: CJ.units.slice(), lv: LV }); } catch (e) { alert('Could not open the test: please reload the page.'); }\n};\nfunction cjSummary() {\n  var u = CJ.units, all = u.length === GU.length;\n  return (all ? 'All units' : u.length === 1 ? uTitle(u[0]) : u.length + ' units (' + u.join(', ') + ')') + ' · ' + LVN[LV] + ' · ' + cjPool().length + ' questions';\n}\nfunction cjOpen() {\n  var chip = function (on, js, label) { return '<button class=\"chip' + (on ? ' on' : '') + '\" onclick=\"' + js + '\">' + label + '<\/button>'; };\n  var h = '<h3>📚 Choose units<\/h3>'\n    + '<div class=\"sec\"><div class=\"lb\">Units <span>(choose one or more)<\/span><\/div>'\n    + chip(CJ.units.length === GU.length, \"cjUnit('*')\", 'All units') + chip(false, \"cjUnit('-')\", '✕ Clear all')\n    + GU.map(function (u) { return chip(CJ.units.indexOf(u.code) >= 0, \"cjUnit('\" + u.code + \"')\", uTitle(u.code).replace(/&/g, '&amp;').replace(/<\/g, '&lt;')); }).join('') + '<\/div>'\n    + '<div class=\"sec\"><div class=\"lb\">Level <span>(Easy = one rule, short and simple · Hard = for the strong · Stretch = for future top linguists, not in Mixed)<\/span><\/div>'\n    + LVO.map(function (l) { return chip(LV === l, \"cjLvSet('\" + l + \"')\", LVN[l] + ' (' + cjPool(l).length + ')'); }).join('') + '<\/div>'\n    + '<div class=\"ft\"><span id=\"cjcount\"><\/span><button class=\"pri\" onclick=\"cjApply()\">✓ Use these<\/button><\/div>';\n  document.getElementById('cfgbox').innerHTML = h;\n  var n = cjPool().length; document.getElementById('cjcount').textContent = n ? n + ' questions to choose from' : '⚠ Nothing matches — choose a unit' + (LV !== 'mix' ? ' or another level' : '');\n  document.getElementById('cfgm').classList.add('open');\n}\nfunction cjUnit(c) {\n  if (c === '-') CJ.units = []; else if (c === '*') CJ.units = CJ.units.length === GU.length ? [] : GU.map(function (u) { return u.code; });\n  else { var i = CJ.units.indexOf(c); if (i >= 0) CJ.units.splice(i, 1); else CJ.units.push(c); }\n  cjOpen();\n}\nfunction cjLvSet(l) { LV = l; cjLabel(); qfLvMark(); cjOpen(); }\nfunction cjLv(l) { LV = l; cjLabel(); qfLvMark(); qfNew(); }\nfunction qfLvMark() { document.querySelectorAll('#qflv button').forEach(function (b, i) { b.className = LVO[i] === LV ? 'on' : ''; }); }\nfunction cjApply() {\n  if (!cjPool().length) { alert('Nothing matches these choices — choose at least one unit' + (LV !== 'mix' ? ', or another level' : '') + '.'); return; }\n  try { API.setSel(CJ.units.slice(), LV); } catch (e) {}\n  document.getElementById('cfgm').classList.remove('open'); cjLabel(); qfNew();\n}\nfunction cjLabel() { document.getElementById('cfgsum').textContent = cjSummary(); }\nHOW = {\n  solo: ['⚡ Grammar fast — solo', 'How many can you get right before the time runs out?', [\n    'Click 📚 Choose units (top) to choose which units are in play and the Level (Easy · Medium · Hard · Stretch · Mixed).',\n    'Choose the number of tiles and the time limit, then press ▶ Start.',\n    'Each tile is a grammar question: either a multiple-choice (say A, B, C or D) or a sentence with a gap (say the missing word). Say the number of the tile you are going for, then your answer.',\n    'Click the tile (or type its number): the answer appears. ✓ Right — it turns grey and counts. ✗ Wrong — a new question takes its place.',\n    'Beeps at ⅓ and ⅔ of the time; buzzer at the end. Your score is how many you got right in the time.',\n    'At the end, choose what next: ▶ play the ones left on screen, ✗ play the ones you got wrong, 📋 go through the wrong ones with no timer, or 🔀 a new full set. You can also make a test or Spot Test from the same units.']],\n  teams: ['⚡ Grammar fast — teams', 'The team with the most tiles when the game time runs out wins.', [\n    'Click 📚 Choose units (top) to choose what is in play. Choose 2, 3 or 4 teams (click a team name to rename it), the game time and the length of each turn. Press ▶ Start.',\n    'A flashing sign and a sound announce whose turn it is. That team has its turn time (shown on its scoreboard box) to win as many tiles as it can.',\n    'Say the number of the tile you are going for, then your answer. Click the tile (or type its number): the answer appears.',\n    '✓ Right — the tile is won in the team\\'s colour (1 point) and the same team carries on. ✗ Wrong — a new question takes its place and play passes straight to the next team.',\n    'When a team\\'s turn time runs out, play passes to the next team. The big clock is the whole game, with beeps at ⅓ and ⅔.',\n    'When it runs out (or every tile is won) the team with the most tiles wins. Then choose what next: ▶ play the ones left on screen, ✗ play the ones that were wrong, 📋 go through the wrong ones as a class with no timer, or 🔀 a new full set.']]\n};\nhowTo = function (which) {\n  which = which || (Q.teams ? 'teams' : 'solo');\n  var H = HOW[which];\n  document.getElementById('howbox').innerHTML = '<div class=\"tabs2\">' + [['solo', '⚡ Solo'], ['teams', '⚡ Teams']].map(function (x) { return '<button class=\"' + (x[0] === which ? 'on' : '') + '\" onclick=\"howTo(\\'' + x[0] + '\\')\">' + x[1] + '<\/button>'; }).join('') + '<\/div>'\n    + '<h3>' + H[0] + '<\/h3><div class=\"sub\">' + H[1] + '<\/div><ol>' + H[2].map(function (s) { return '<li>' + s + '<\/li>'; }).join('') + '<\/ol><button class=\"close\" onclick=\"document.getElementById(\\'howm\\').classList.remove(\\'open\\')\">Got it<\/button>';\n  document.getElementById('howm').classList.add('open');\n};\nvar _qfRender0 = qfRender;\nqfRender = function (cover) {\n  _qfRender0(cover);\n  document.querySelector('.qftitle p').textContent = Q.teams\n    ? 'Team game: each team has ' + Q.tt + ' seconds per turn to win as many tiles as it can — a wrong answer passes play to the next team. Most tiles when the game time runs out wins.'\n    : 'How many can you get right before the time runs out? Say the answer to each question, then click the tile to check.';\n  qfLvMark();\n  if (!Q.ids.length) document.getElementById('qfbanner').textContent = '⚠ Nothing matches your choices — click 📚 Choose units.';\n};\n// live state for the teacher's \"set as an EW\" link\nAPI.cur = function () { return { u: CJ.units.slice(), lv: LV, tm: Q.teams, ti: Q.n, gt: Q.teams ? Q.gt : Q.t, tt: Q.tt }; };\n// start\ndocument.body.classList.add('qfmode');\ncjLabel();\nqfNew();\nif (!CJ.units.length) setTimeout(cjOpen, 300);\n(function () {\n  var top = document.querySelector('.top');\n  if (API.canSign()) {\n    var t = document.createElement('button'); t.textContent = '🔑 Teacher: set as EW';\n    t.style.cssText = 'background:#fff;color:#1a2744;border:0;border-radius:8px;padding:7px 14px;font-weight:800;font-size:.85rem;cursor:pointer;margin-right:8px';\n    t.onclick = function () { try { PA.APDL.make(); } catch (e) {} };\n    top.appendChild(t);\n  }\n  var b = document.createElement('button'); b.textContent = '✕ Back to app';\n  b.style.cssText = 'background:#c9a84c;color:#1a2744;border:0;border-radius:8px;padding:7px 14px;font-weight:800;font-size:.85rem;cursor:pointer';\n  b.onclick = function () { try { speechSynthesis.cancel(); PA.speechSynthesis.cancel(); } catch (e) {} try { PA.closeConjChallenge(); } catch (e) {} };\n  top.appendChild(b);\n})();\n\n";
   function canSign() { try { return !!(localStorage.getItem('apTeacherKey') && W.APTT && APTT.pack && W.APDL); } catch (e) { return false; } }
-  W.gramSpeedSet = function (k, v) { SP[k] = v; speedSetup(); };
-  W.gramSpeedUnit = function (c) {
-    if (c === '-') UNITS.forEach(function (u) { S.units[u.code] = false; });
-    else if (c === '*') { var all = UNITS.every(function (u) { return S.units[u.code]; }); UNITS.forEach(function (u) { S.units[u.code] = !all; }); } else S.units[c] = !S.units[c];
-    speedSetup();
-  };
-  W.gramSpeedGo = function () {
-    var p = shuf(poolU()), seen = {}, items = [];
-    p.forEach(function (q) { var k = q.q + '|' + (q.t === 'mc' ? q.o[q.a] : q.a[0]); if (!seen[k]) { seen[k] = 1; items.push(q); } });
-    if (items.length < 4) { alert('Choose more units: not enough questions.'); return; }
-    var n = Math.min(SP.tiles, items.length);
-    G = { hand: items.slice(0, n), spare: items.slice(n), done: [], wrong: [], score: [], turn: 0, tleft: SP.tt, gleft: SP.gt, sel: -1, show: false, over: false, turns: 0, started: false };
-    for (var i = 0; i < SP.teams; i++) G.score.push(0);
-    G.done = G.hand.map(function () { return false; }); G.bad = G.hand.map(function () { return false; });
-    gDraw();
-  };
-  function gDraw() {
-    if (!G) return;
-    var teams = SP.teams > 1, tile = '';
-    G.hand.forEach(function (q, i) {
-      var cls = 'grs-tile' + (G.done[i] ? ' done' : '') + (G.bad[i] ? ' bad' : '') + (G.sel === i ? ' sel' : '');
-      tile += '<button class="' + cls + '" ' + (G.done[i] || G.sel >= 0 || !G.started || G.over ? 'disabled' : '') + ' onclick="gramSpeedTile(' + i + ')">' + (G.done[i] ? '<span class="grs-tick">' + (G.bad[i] ? '&#10007;' : '&#10003;') + '</span>' : tileText(q)) + '</button>';
-    });
-    var left = G.done.filter(function (d) { return !d; }).length;
-    var sc = G.score.map(function (v, i) { return '<span class="grs-sc t' + i + (teams && i === G.turn && !G.over ? ' on' : '') + '">' + (teams ? TEAM_NAMES[i] + ': ' : 'Score: ') + v + '</span>'; }).join('');
-    var panel = '';
-    if (G.sel >= 0) {
-      var q = G.hand[G.sel];
-      panel = '<div class="grs-panel"><div class="grs-big">' + tileText(q) + '</div>'
-        + (G.show ? '<div class="grs-ans"><b>' + esc(gAnswer(q)) + '</b><span>' + esc(q.e) + '</span></div><div class="grs-jr"><button class="grs-ok" onclick="gramSpeedJudge(true)">&#10003; Right</button><button class="grs-no" onclick="gramSpeedJudge(false)">&#10007; Wrong</button></div>'
-          : '<button class="aph-btn aph-btn-primary aph-btn-block" onclick="gramSpeedShow()">Show the answer</button>') + '</div>';
+  function gtpl() {
+    var t = W.APCJ_TPL, i = t.indexOf('var CJ = {'), j = t.lastIndexOf('<' + '/script></body></html>');
+    if (i < 0 || j < 0) return null;
+    var head = t.slice(0, i).replace('API = PA.__cj;', 'API = PA.__gcj;').split("'apc_qf'").join("'apcg_qf'");
+    head = head.replace('<h2>Conjugate them fast!</h2>', '<h2>Grammar fast!</h2>').replace('Eton Speed Challenge · Spanish Verbs', 'Eton Speed Challenge · F Block Grammar').replace('📚 Choose verbs', '📚 Choose units');
+    head = head.replace(/<span class="grp" id="qflv">[\s\S]*?<\/span><\/span>/, '<span class="grp" id="qflv"><button onclick="cjLv(\'e\')" title="One rule, short and simple">Easy</button><button onclick="cjLv(\'m\')">Medium</button><button onclick="cjLv(\'h\')" title="For the strong">Hard</button><button onclick="cjLv(\'s\')" title="For future top linguists">Stretch</button><button onclick="cjLv(\'mix\')" title="Easy, Medium and Hard (not Stretch)">Mixed</button></span></span>');
+    head = head.replace('</style>', '#qfimppair,.pair:has(#qfdir){display:none!important}.tile .cue{white-space:pre-line;text-align:left;font-size:clamp(.85rem,5.4cqi,1.25rem);line-height:1.25}.tile .ans{font-size:clamp(.95rem,6cqi,1.5rem)}</style>');
+    return head + t.slice(i, i).concat(GTAIL) + t.slice(j);
+  }
+  W.__gcj = {
+    qs: QS, units: UNITS, tenses: [], types: [], sets: [['x', 'x']], code: 'gram', name: 'Spanish', ex: '', persons: ['', ''],
+    sel: function () { return selUnits(); }, lv: function () { return S.lv; }, canSign: canSign,
+    setSel: function (u, lv) { setUnits(u); S.lv = lv; },
+    speedTest: function (kind, g) {
+      setUnits(g.units); S.lv = g.lv; S.type = 'mix';
+      if (!pool().length) { alert('Not enough questions on those units.'); return; }
+      var spot = kind !== 'test', ns = spot ? [5, 10, 15, 20] : [5, 10, 15, 20, 30, 40];
+      if (ns.indexOf(S.n) < 0) S.n = spot ? 10 : 20;
+      W.closeConjChallenge();
+      S.kind = spot ? 'spot' : 'test';
+      gramMakeTest();
+      if (kind === 'tspot') gramSpotTimed();
     }
-    gOverlay('<div class="grs-wrap"><div class="grs-top"><b>&#9889; Eton Speed Challenge &middot; Grammar</b><span class="grs-clock" id="grs-g">' + (SP.gt ? '&#9201; ' + gFmt(G.gleft) : '') + '</span><button class="grs-x" onclick="gramSpeedClose()">&#10005; Close</button></div>'
-      + '<div class="grs-bar">' + sc + (SP.tt && G.started && !G.over ? '<span class="grs-turn" id="grs-t">' + (teams ? esc(TEAM_NAMES[G.turn]) + ' team: ' : '') + G.tleft + ' s</span>' : '') + '<span class="grs-c">' + left + ' of ' + G.hand.length + ' left</span></div>'
-      + (G.started ? '' : '<button class="aph-btn aph-btn-primary aph-btn-block grs-start" onclick="gramSpeedBegin()">&#9654; Start' + (teams ? ' &mdash; ' + TEAM_NAMES[0] + ' team first' : '') + '</button>'
-        + '<button class="aph-btn aph-btn-block" style="margin-top:8px" onclick="gramSpeed()">&#9881;&#65039; Change teams, tiles, time or difficulty</button>')
-      + panel + '<div class="grs-grid">' + tile + '</div></div>');
-  }
-  W.gramSpeedBegin = function () {
-    if (!G) return; G.started = true; G.tleft = SP.tt; gDraw();
-    gTimer = setInterval(function () {
-      if (!G || G.over) return;
-      if (SP.gt) { G.gleft--; if (G.gleft <= 0) { gEnd(); return; } }
-      if (SP.tt && G.sel < 0) { G.tleft--; if (G.tleft <= 0) { gNext(false); return; } }
-      var a = $('grs-g'), b = $('grs-t');
-      if (a && SP.gt) a.innerHTML = '&#9201; ' + gFmt(G.gleft);
-      if (b) b.textContent = (SP.teams > 1 ? TEAM_NAMES[G.turn] + ' team: ' : '') + G.tleft + ' s';
-    }, 1000);
   };
-  W.gramSpeedTile = function (i) { if (!G || G.over || !G.started || G.sel >= 0 || G.done[i]) return; G.sel = i; G.show = false; gDraw(); };
-  W.gramSpeedShow = function () { if (!G) return; G.show = true; gDraw(); };
-  W.gramSpeedJudge = function (ok) {
-    if (!G || G.sel < 0) return;
-    var i = G.sel, q = G.hand[i];
-    if (ok) { G.score[G.turn]++; G.done[i] = true; }
-    else { G.wrong.push(q); if (G.spare.length) { G.hand[i] = G.spare.shift(); } else { G.done[i] = true; G.bad[i] = true; } }
-    G.sel = -1; G.show = false; gNext(true);
+  W.gramSpeedClose = function () { W.closeConjChallenge(); };
+  W.gramSpeed = function () {
+    var h = gtpl(); if (!h) { alert('The Speed Challenge is not available on this page.'); return; }
+    W.closeConjChallenge();
+    try { if (window.speechSynthesis) speechSynthesis.cancel(); } catch (e) {}
+    var o = document.createElement('div'); o.id = 'apcj-overlay'; o.setAttribute('data-gram', '1');
+    o.style.cssText = 'position:fixed;inset:0;z-index:12000;background:#0b1226';
+    var f = document.createElement('iframe'); f.id = 'apcj-frame'; f.setAttribute('allow', 'autoplay');
+    f.style.cssText = 'width:100%;height:100%;border:0;display:block';
+    f.srcdoc = h; o.appendChild(f); document.body.appendChild(o);
+    document.documentElement.style.overflow = 'hidden';
   };
-  function gNext() {
-    G.turns++; G.turn = (G.turn + 1) % SP.teams; G.tleft = SP.tt;
-    if (G.done.every(function (d) { return d; })) { gEnd(); return; }
-    gDraw();
-  }
-  function gEnd() {
-    if (gTimer) { clearInterval(gTimer); gTimer = null; }
-    if (!G) return; G.over = true; G.sel = -1;
-    var teams = SP.teams > 1, best = Math.max.apply(null, G.score), winners = G.score.map(function (v, i) { return v === best ? i : -1; }).filter(function (i) { return i >= 0; });
-    var head = !teams ? 'You scored ' + G.score[0] : winners.length > 1 ? 'A draw!' : TEAM_NAMES[winners[0]] + ' team wins!';
-    var rev = G.wrong.map(function (q) { return '<div class="gq-rev"><div class="gq-rq">' + (q.t === 'mc' ? esc(q.q) : esc(q.q).replace('___', '<span class="gq-blank ok">' + esc(q.a[0]) + '</span>')) + '</div><div class="gq-ra">Answer: <b>' + esc(gAnswer(q)) + '</b></div><div class="gq-re">' + esc(q.e) + '</div></div>'; }).join('');
-    gOverlay('<div class="grs-wrap"><div class="grs-top"><b>&#9889; Eton Speed Challenge &middot; Grammar</b><button class="grs-x" onclick="gramSpeedClose()">&#10005; Close</button></div>'
-      + '<div class="grs-end"><h2>' + head + '</h2><div class="grs-bar">' + G.score.map(function (v, i) { return '<span class="grs-sc t' + i + '">' + (teams ? TEAM_NAMES[i] + ': ' : 'Score: ') + v + '</span>'; }).join('') + '<span class="grs-c">' + G.turns + ' turns &middot; ' + G.wrong.length + ' wrong</span></div>'
-      + (rev ? '<div class="grs-lb">Go through the ones that were wrong</div>' + rev : '<p class="grs-p">No wrong answers. Superb!</p>')
-      + '<div class="aph-stack" style="margin-top:16px"><button class="aph-btn aph-btn-primary aph-btn-block" onclick="gramSpeedGo()">&#8635; Play again (new tiles)</button><button class="aph-btn aph-btn-block" onclick="gramSpeed()">Change the settings</button></div></div></div>');
-  }
+  W.gramSpeedGo = W.gramSpeed;
+  function gramLive() { var o = $('apcj-overlay'); return !!(o && o.getAttribute('data-gram') && W.__gcj.cur); }
 
   /* ---------- teacher-set links and codes (the shared AP DRILL LINKS engine calls these) ---------- */
   function setUnits(a) { UNITS.forEach(function (u) { S.units[u.code] = a.indexOf(u.code) >= 0; }); }
@@ -6369,15 +6305,14 @@ function closeConjChallenge() {
   W.AP_GRAM = {
     units: UNITS, questions: QS,
     visible: function () {
-      if ($('grs-ov')) return !!(G === null);   // the speed set-up (not while playing)
+      if ($('apcj-overlay')) return false;   // the speed game has its own teacher button
       return !!(document.querySelector('#drill .gh-setup') && S.kind === 'drill');
     },
     capture: function () {
       var u = selUnits(), n = pool().length;
-      if ($('grs-ov')) n = poolU().length;
       if (!u.length || !n) return { why: 'Choose at least one unit with questions first.' };
       var ul = u.length === UNITS.length ? 'all units' : (u.length === 1 ? uName(u[0]) : 'Units ' + u.join(', '));
-      if ($('grs-ov')) return { cfg: { g: 1, k: 'speed', u: u, ty: 'mix', lv: S.lv, tm: SP.teams, ti: SP.tiles, gt: SP.gt, tt: SP.tt }, title: 'F Block Grammar speed challenge (' + ul + ', ' + (S.lv === 'mix' ? 'mixed levels' : LVN[S.lv]) + '): ' + (SP.teams === 1 ? 'solo' : SP.teams + ' teams') + ', ' + SP.tiles + ' tiles' };
+      if (gramLive()) { var c = W.__gcj.cur(); if (!c.u.length) return { why: 'Choose at least one unit first.' }; var ul2 = c.u.length === UNITS.length ? 'all units' : (c.u.length === 1 ? uName(c.u[0]) : 'Units ' + c.u.join(', ')); return { cfg: { g: 1, k: 'speed', u: c.u, ty: 'mix', lv: c.lv, tm: c.tm, ti: c.ti, gt: c.gt, tt: c.tt }, title: 'F Block Grammar speed challenge (' + ul2 + ', ' + (c.lv === 'mix' ? 'mixed levels' : LVN[c.lv]) + '): ' + (!c.tm ? 'solo' : c.tm + ' teams') + ', ' + c.ti + ' tiles' }; }
       return { cfg: { g: 1, k: 'drill', u: u, ty: S.type, lv: S.lv, n: S.n }, title: 'F Block Grammar drill (' + ul + ', ' + (S.lv === 'mix' ? 'mixed levels' : LVN[S.lv]) + '): ' + typeLabel() + ', ' + (S.n === -1 ? n : Math.min(S.n, n)) + ' questions' };
     },
     apply: function (c) {
@@ -6386,7 +6321,7 @@ function closeConjChallenge() {
       for (var i = 0; i < c.u.length; i++) if (codes.indexOf(c.u[i]) < 0) return false;
       if (['mix', 'mc', 'gap'].indexOf(c.ty) < 0) return false;
       var lvl = c.lv == null ? 'mix' : c.lv; if (['mix', 'e', 'm', 'h', 's'].indexOf(lvl) < 0) return false;
-      if (c.k === 'speed' && ([1, 2, 3].indexOf(c.tm) < 0 || [12, 16, 20].indexOf(c.ti) < 0 || [0, 120, 180, 300].indexOf(c.gt) < 0 || [0, 15, 20, 30].indexOf(c.tt) < 0)) return false;
+      if (c.k === 'speed' && (typeof c.tm !== 'number' || c.tm < 0 || c.tm > 4 || typeof c.ti !== 'number' || typeof c.gt !== 'number' || typeof c.tt !== 'number')) return false;
       if (c.k === 'drill' && !(c.n === -1 || [10, 20, 30].indexOf(c.n) >= 0)) return false;
       if (c.k !== 'drill' && c.k !== 'speed') return false;
       setUnits(c.u); S.lv = lvl; S.type = c.k === 'speed' ? 'mix' : c.ty;
@@ -6396,8 +6331,10 @@ function closeConjChallenge() {
         S.n = c.n; S.kind = 'drill'; gramStart(false); return true;
       }
       if (c.k === 'speed') {
-        if ([1, 2, 3].indexOf(c.tm) < 0 || [12, 16, 20].indexOf(c.ti) < 0 || [0, 120, 180, 300].indexOf(c.gt) < 0 || [0, 15, 20, 30].indexOf(c.tt) < 0) return false;
-        SP.teams = c.tm; SP.tiles = c.ti; SP.gt = c.gt; SP.tt = c.tt; gramSpeed(); return true;
+        var tm = c.tm <= 1 ? 0 : c.tm, ti = [6, 9, 12, 16].indexOf(c.ti) >= 0 ? c.ti : (c.ti > 16 ? 16 : c.ti < 9 ? 6 : 12), tt = [20, 30, 45, 60].indexOf(c.tt) >= 0 ? c.tt : (c.tt >= 45 ? 45 : c.tt && c.tt <= 20 ? 20 : 30);
+        var gt = tm ? ([60, 120, 180, 300, 480, 0].indexOf(c.gt) >= 0 ? c.gt : 180) : ([30, 60, 90, 120, 0].indexOf(c.gt) >= 0 ? c.gt : 60);
+        try { localStorage.setItem('apcg_qf', JSON.stringify({ n: ti, t: tm ? 60 : gt, l: 0, teams: tm, tt: tt, gt: tm ? gt : 180, rev: 0 })); } catch (e) { }
+        gramSpeed(); return true;
       }
       return false;
     }
