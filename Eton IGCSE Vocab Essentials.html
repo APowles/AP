@@ -8902,6 +8902,13 @@ function generateIGCSESpotTest(timed) {
       kind: isVoc ? 'word' : 'sentence', rows: rows,
       q: function (p) { return p.q; }, a: function (p) { return p.a; },
       recapName: 'vocab list (the print view of the selected list)', recapShort: 'vocab list',
+      recapUrl: function () {
+        var ss = []; getSelectedPhrases().forEach(function (p) { if (ss.indexOf(p.sec) < 0) ss.push(p.sec); });
+        ss.sort(natSort);
+        var fe = document.getElementById('lang-from'), te = document.getElementById('lang-to');
+        var h = '#ves=' + ss.map(encodeURIComponent).join('+') + '&m=' + (vocabMode === 'vocab' ? 'v' : 's') + '&f=' + (fe ? fe.value : f) + '&t=' + (te ? te.value : t) + (mixMode ? '&mx=' + mixMode : '');
+        return { url: location.href.replace(/[#?].*$/, '') + h, label: '\u25B6 Open this vocab list live in the app: view it, drill it, test yourself or play Speed on exactly this selection' };
+      },
       recap: function () { var h = ssBuildSheet(f, t, getSelectedPhrases(), label, true); return { html: h.body, css: h.css }; } });
     return;
   }
@@ -9778,5 +9785,30 @@ window.__voc.speedTest = function (kind, lang, secs, rev, mode, lv, mx) {
 })();
 /* ===== END ===== */
 
+/* ===== Vocab Essentials live link: #ves=<sections joined by +>&m=v|s&f=..&t=..[&mx=50|70] ===== */
+(function () {
+  function apply() {
+    var h = location.hash; if (!/^#ves=/.test(h)) return;
+    try {
+      var q = {}; h.slice(1).split('&').forEach(function (kv) { var i = kv.indexOf('='); if (i > 0) q[kv.slice(0, i)] = kv.slice(i + 1); });
+      var hc = document.getElementById('home-controls');
+      if (!hc || hc.style.display === 'none') { location.reload(); return; }   // not on the home screen: reload, which re-applies the link
+      var ok = {}; ALL_PHRASES.concat(VOCAB_PHRASES).forEach(function (p) { ok[p.sec] = 1; });
+      var ss = (q.ves || '').split('+').map(function (x) { return decodeURIComponent(x); }).filter(function (x) { return ok[x]; });
+      if (!ss.length) return;
+      var L = ['en', 'fr', 'it', 'es'], f = q.f, t = q.t;
+      setVocabMode(q.m === 's' ? 'sentences' : 'vocab');
+      if (L.indexOf(f) >= 0 && L.indexOf(t) >= 0 && f !== t) {
+        mixMode = (q.mx === '50' || q.mx === '70') ? +q.mx : 0;
+        document.getElementById('lang-from').value = f; document.getElementById('lang-to').value = t; onLangChange();
+      }
+      tsSelected.clear(); ss.forEach(function (s) { tsSelected.add(s); });
+      applyCustomSelection();
+      try { hc.scrollIntoView(); } catch (e) {}
+    } catch (e) { }
+  }
+  window.addEventListener('hashchange', apply);
+  if (document.readyState === 'complete') setTimeout(apply, 300); else window.addEventListener('load', function () { setTimeout(apply, 300); });
+})();
 </script>
 </body></html>
