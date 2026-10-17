@@ -5,7 +5,7 @@
 <script id="ap-update">
 /* AP auto-update: if this copy is older than the published version, reload once with the new one (saved answers are kept) */
 (function () {
-  var B = '18dca8d95f'; window.AP_BUILD = B;
+  var B = 'c555dfa0fb'; window.AP_BUILD = B;
   function check() {
     if (!/^https?:$/.test(location.protocol) || !window.fetch) return;
     var f = decodeURIComponent(location.pathname.split('/').pop() || '');
@@ -4284,10 +4284,10 @@ var italianSpotRows=[], italianSpotLabel='', italianSpotQFlag='', italianSpotAFl
 
 function renderTestPanel(){
   const tenses=[{k:'INFINITIVE',l:verbMode==='structures'?'Infinitives / Set structures':'Infinitive',c:'#2e7d52'},{k:'PRESENT',l:'Present',c:'#1a65c0'},{k:'FUTURE',l:'Future',c:'#0a7050'},{k:'PASSE_COMPOSE',l:'Perfect (PC)',c:'#9a1060'},{k:'IMPERFECT',l:'Imperfect',c:'#6020a0'},{k:'CONDITIONNEL',l:'Conditional',c:'#1a4090'},{k:'SUBJONCTIF',l:'Subjunctive',c:'#805010'},{k:'PLUPERFECT',l:'Pluperfect',c:'#7b2d8b'},{k:'FUTUR_ANT',l:'Future Perfect',c:'#c05020'},{k:'COND_PASSE',l:'Conditional Perfect',c:'#20608b'}];
-  const vsModes=[{k:'quizlet',l:'📚 Quizlet'},{k:'specialist',l:'🎓 Specialist'},{k:'both',l:'⚡ Both'},{k:'structures',l:'🧩 Top Structures'}];
+  const vsModes=[{k:'quizlet',l:'📚 Quizlet'},{k:'specialist',l:'🎓 Specialist'},{k:'both',l:'⚡ Both'},{k:'structures',l:'🧩 Top Structures'},{k:'ftrials',l:'🏅 F Michaelmas Trials'},{k:'etrials',l:'🏅 E Block Michaelmas Trials'},{k:'fsummer',l:'🏅 F Block Summer Trials'},{k:'esummer',l:'🏅 E Block Summer Trials'}];
   const verbSetHtmlTP=vsModes.map(function(m){return vbChip(verbMode===m.k,'setVerbMode(\''+m.k+'\');renderTestPanel();',m.l);}).join('');
-  const allSelected2=['PRESENT','FUTURE','PASSE_COMPOSE','IMPERFECT','CONDITIONNEL','SUBJONCTIF','PLUPERFECT','FUTUR_ANT','COND_PASSE'].every(t=>selectedTenses.has(t));
-  const tenseHtml=vbChip(allSelected2,'selectAllTenses()','All Tenses')+tenses.map(function(t){return vbTenseChip(selectedTenses.has(t.k),'testToggleTense(\''+t.k+'\');',t.l,t.c);}).join('');
+  const allSelected2=ftList(['PRESENT','FUTURE','PASSE_COMPOSE','IMPERFECT','CONDITIONNEL','SUBJONCTIF','PLUPERFECT','FUTUR_ANT','COND_PASSE']).every(t=>selectedTenses.has(t));
+  const tenseHtml=vbChip(allSelected2,'selectAllTenses()','All Tenses')+ftTenses(tenses).map(function(t){return vbTenseChip(selectedTenses.has(t.k),'testToggleTense(\''+t.k+'\');',t.l,t.c);}).join('');
   const regHtml=[{k:'all',l:'All'},{k:'regular',l:'Regular'},{k:'irregular',l:'Irregular'}].map(function(r){const a=regFilter===r.k;return '<button class="aph-chip reg-btn'+(a?' active-reg':'')+'" data-reg="'+r.k+'" onclick="setReg(\''+r.k+'\')">'+r.l+'</button>';}).join('');
   const savedMode=mode; mode='single';
   const available=buildPool().filter(function(x){return apLvOK(x);}).length;
@@ -4345,7 +4345,7 @@ function renderTestPanel(){
     // ── SENTENCE TAB ──
     '<div id="testTabSent" style="display:'+(!isConj?'block':'none')+';">'+
     '<div class="aph-label">Tenses</div><div class="aph-row">'+
-    sentTenses.map(function(t){return vbTenseChip(ST.has(t.k),'toggleSentTestTense(\''+t.k+'\')',t.l,t.c,' id="stt-'+t.k+'"');}).join('')+
+    ftTenses(sentTenses, window._sentTestVerbSet).map(function(t){return vbTenseChip(ST.has(t.k),'toggleSentTestTense(\''+t.k+'\')',t.l,t.c,' id="stt-'+t.k+'"');}).join('')+
     '</div>'+
     '<div class="aph-label">Verb set <span id="sentTestAvail" class="vb-light"></span></div>'+
     '<div class="aph-row">'+
@@ -4353,6 +4353,10 @@ function renderTestPanel(){
     '<button class="aph-chip" id="svs-specialist" onclick="setSentTestVerbSet(\'specialist\')">🎓 Specialist</button>'+
     '<button class="aph-chip" id="svs-both" onclick="setSentTestVerbSet(\'both\')">⚡ Both</button>'+
     '<button class="aph-chip" id="svs-structures" onclick="setSentTestVerbSet(\'structures\')">🧩 Top Structures</button>'+
+    '<button class="aph-chip" id="svs-ftrials" onclick="setSentTestVerbSet(\'ftrials\')">🏅 F Michaelmas Trials</button>'+
+    '<button class="aph-chip" id="svs-etrials" onclick="setSentTestVerbSet(\'etrials\')">🏅 E Block Michaelmas Trials</button>'+
+    '<button class="aph-chip" id="svs-fsummer" onclick="setSentTestVerbSet(\'fsummer\')">🏅 F Block Summer Trials</button>'+
+    '<button class="aph-chip" id="svs-esummer" onclick="setSentTestVerbSet(\'esummer\')">🏅 E Block Summer Trials</button>'+
     '</div>'+
     vbLvRow('sent')+
     '<div class="aph-label">Questions</div>'+
@@ -4521,7 +4525,7 @@ function setReg(r){regFilter=r;document.querySelectorAll('.reg-btn').forEach(b=>
 
 function toggleTense(t){if(selectedTenses.has(t))selectedTenses.delete(t);else selectedTenses.add(t);updateTenseButtons();updateDeckInfo();}
 function selectAllTenses(){
-  const ALL_TENSES=['PRESENT','FUTURE','PASSE_COMPOSE','IMPERFECT','CONDITIONNEL','SUBJONCTIF','INFINITIVE','PLUPERFECT','FUTUR_ANT','COND_PASSE'];
+  const ALL_TENSES=ftList(['PRESENT','FUTURE','PASSE_COMPOSE','IMPERFECT','CONDITIONNEL','SUBJONCTIF','INFINITIVE','PLUPERFECT','FUTUR_ANT','COND_PASSE']);
   const allSelected=ALL_TENSES.every(t=>selectedTenses.has(t))&&true;
   if(allSelected){selectedTenses.clear();}
   else{ALL_TENSES.forEach(t=>selectedTenses.add(t));selectedTenses.delete('PR');}
@@ -4868,9 +4872,9 @@ function buildSpecialistDeck() {
 function renderIntro(){
   const tenses=[{k:'PRESENT',l:'Present',c:'#1a65c0'},{k:'FUTURE',l:'Future',c:'#0a7050'},{k:'PASSE_COMPOSE',l:'Perfect (PC)',c:'#9a1060'},{k:'IMPERFECT',l:'Imperfect',c:'#6020a0'},{k:'CONDITIONNEL',l:'Conditional',c:'#1a4090'},{k:'SUBJONCTIF',l:'Subjunctive',c:'#805010'},{k:'INFINITIVE',l:verbMode==='structures'?'Infinitives / Set structures':'Infinitive',c:'#2e7d52'},{k:'PLUPERFECT',l:'Pluperfect',c:'#7b2d8b'},{k:'FUTUR_ANT',l:'Future Perfect',c:'#c05020'},{k:'COND_PASSE',l:'Conditional Perfect',c:'#20608b'}];
   const modeHtml=[{k:'full',l:'📑 Full (6 forms)'},{k:'single',l:'🎯 Single form'},{k:'infinitives',l:'🔤 Infinitives'},{k:'sentences',l:'💬 Sentences'}].map(m=>`<button class="aph-chip vb-mode${mode===m.k?' on':''}" onclick="introSetMode('${m.k}')">${m.l}</button>`).join('');
-  const ALL_TENSES=['PRESENT','FUTURE','PASSE_COMPOSE','IMPERFECT','CONDITIONNEL','SUBJONCTIF','INFINITIVE','PLUPERFECT','FUTUR_ANT','COND_PASSE'];
+  const ALL_TENSES=ftList(['PRESENT','FUTURE','PASSE_COMPOSE','IMPERFECT','CONDITIONNEL','SUBJONCTIF','INFINITIVE','PLUPERFECT','FUTUR_ANT','COND_PASSE']);
   const allSelected=ALL_TENSES.every(t=>selectedTenses.has(t))&&true;
-  const tenseHtml=vbChip(allSelected,'selectAllTenses()','All Tenses')+tenses.map(t=>vbTenseChip(selectedTenses.has(t.k),`introToggleTense('${t.k}')`,t.l,t.c)).join('');
+  const tenseHtml=vbChip(allSelected,'selectAllTenses()','All Tenses')+ftTenses(tenses).map(t=>vbTenseChip(selectedTenses.has(t.k),`introToggleTense('${t.k}')`,t.l,t.c)).join('');
   const regHtml=[{k:'all',l:'All'},{k:'regular',l:'Regular'},{k:'irregular',l:'Irregular'}].map(r=>vbChip(regFilter===r.k,`introSetReg('${r.k}')`,r.l)).join('');
   const pool=mode==='infinitives'?getLiveInfCards():mode==='sentences'?SENTENCES.filter(s=>inSentSet(s,verbMode)&&sentTenseOn(s)):(selectedTenses.size>0&&mode?buildPool():[]);
   const cardCount=_selectedCount===-1?pool.length:Math.min(_selectedCount,pool.length);
@@ -4879,7 +4883,7 @@ function renderIntro(){
   const _po=[['ALL','All persons'],['0','je'],['1','tu'],['2','il (elle)'],['3','nous'],['4','vous'],['5','ils (elles)']];
   const personHtml=mode==='single'?`<div class="aph-label">Person</div><div class="aph-row">${_po.map(([v,l])=>vbChip(_personFilter===v,`setPersonFilter('${v}')`,l)).join('')}</div>`:'';
   const editorUnlocked=editModeUnlocked;
-  const vsModes2=[{k:'quizlet',l:'📚 Quizlet'},{k:'specialist',l:'🎓 Specialist'},{k:'both',l:'⚡ Both'},{k:'structures',l:'🧩 Top Structures'}];
+  const vsModes2=[{k:'quizlet',l:'📚 Quizlet'},{k:'specialist',l:'🎓 Specialist'},{k:'both',l:'⚡ Both'},{k:'structures',l:'🧩 Top Structures'},{k:'ftrials',l:'🏅 F Michaelmas Trials'},{k:'etrials',l:'🏅 E Block Michaelmas Trials'},{k:'fsummer',l:'🏅 F Block Summer Trials'},{k:'esummer',l:'🏅 E Block Summer Trials'}];
   const verbSetHtml='<div class="aph-label">Verb set</div><div class="aph-row">'+vsModes2.map(m=>`<button data-vmode="${m.k}" class="aph-chip${verbMode===m.k?' on':''}" onclick="setVerbMode('${m.k}')">${m.l}</button>`).join('')+'</div>'+vqRowHtml();
   document.getElementById('drill').innerHTML=`<div class="aph-wrap"><div class="aph-card intro-card">
     <h2 class="aph-h">Ready to conjugate?</h2>
@@ -5473,6 +5477,7 @@ function openItalianContentPDF(){
   const seen = new Map();
   liveVerbs.forEach(function(v){
     if((verbMode==='structures') !== (v.group==='structures')) return;
+    if(FT_DEF[verbMode] && !ftSet(v,verbMode)) return;
     if(!seen.has(v.inf)) seen.set(v.inf, {en:v.en, inf:v.inf, usage:v.usage_fr||v.usage_en||''});
   });
   const unique = Array.from(seen.values());
@@ -6026,6 +6031,7 @@ function generateItalianSpotTest(timed) {
   var filtered = VERBS.filter(function(v){
     if(!selectedTenses.has(v.tense)) return false;
     if((verbMode==='structures') !== (v.group==='structures')) return false;
+    if(FT_DEF[verbMode] && !ftSet(v,verbMode)) return false;
     if(regFilter !== 'all' && regFilter !== 'piacere' && classifyNote(v.note) !== regFilter) return false;
     return true;
   });
@@ -6459,7 +6465,7 @@ function toggleSentTestTense(t) {
 
 function setSentTestVerbSet(vs) {
   window._sentTestVerbSet = vs;
-  ['quizlet','specialist','both','structures'].forEach(v => {
+  ['quizlet','specialist','both','structures','ftrials','etrials','fsummer','esummer'].forEach(v => {
     const btn = document.getElementById('svs-'+v);
     if (btn) btn.classList.toggle('on', v === vs);
   });
@@ -6830,6 +6836,27 @@ apttLevel = function (sc, run) {
   blk.addEventListener('click', function (e) { var b = e.target.closest('button[data-q]'); if (!b) return; e.stopPropagation(); vqTier = b.getAttribute('data-q'); paint(); });
   box.insertBefore(blk, h);
 };
+// ───── Michaelmas Trials sets: every Quizlet verb, but only some tenses ─────
+// F Michaelmas Trials: Infinitive, Present and Perfect (avoir verbs only). E Block Michaelmas Trials: Infinitive, Present, Perfect (all verbs), Imperfect and Future.
+var FT_DEF = { ftrials: { t: { INFINITIVE: 1, PRESENT: 1, PASSE_COMPOSE: 1 }, avoir: true }, etrials: { t: { INFINITIVE: 1, PRESENT: 1, PASSE_COMPOSE: 1, IMPERFECT: 1, FUTURE: 1 }, avoir: false } };
+FT_DEF.fsummer = FT_DEF.etrials; FT_DEF.esummer = FT_DEF.etrials;   // F Block Summer Trials and E Block Summer Trials: the same tenses as E Block Michaelmas Trials
+var FT_AVOIR = {};
+VERBS_ALL.forEach(function (v) { if (v.tense === 'PASSE_COMPOSE' && /^j['’]ai\b/.test((v.forms && v.forms[0]) || '')) FT_AVOIR[v.inf] = 1; });
+function ftSet(x, k) {
+  var d = FT_DEF[k]; if (!d) return true;
+  if (!x || x.group === 'structures' || x.group === 'specialist') return false;
+  var t = x.tense === 'SET' ? 'INFINITIVE' : x.tense; if (!d.t[t]) return false;
+  return !(d.avoir && t === 'PASSE_COMPOSE') || !!FT_AVOIR[x.inf];
+}
+function ftTenses(arr, k) { var d = FT_DEF[k || verbMode]; return d ? arr.filter(function (t) { return d.t[t.k]; }) : arr; }
+function ftList(arr, k) { var d = FT_DEF[k || verbMode]; return d ? arr.filter(function (t) { return d.t[t]; }) : arr; }
+var _ftInVerbSet0 = inVerbSet; inVerbSet = function (v) { return FT_DEF[verbMode] ? ftSet(v, verbMode) && vqKeep(v) : _ftInVerbSet0(v); };
+var _ftInSentSet0 = inSentSet; inSentSet = function (s, vs) { return FT_DEF[vs] ? ftSet(s, vs) && vqKeep(s) : _ftInSentSet0(s, vs); };
+var _ftSVM0 = setVerbMode;
+setVerbMode = function (m) {
+  if (FT_DEF[m]) { var keep = Array.from(selectedTenses).filter(function (t) { return FT_DEF[m].t[t]; }); selectedTenses.clear(); (keep.length ? keep : ['PRESENT']).forEach(function (t) { selectedTenses.add(t); }); }
+  return _ftSVM0(m);
+};
 </script>
 <script>
 renderIntro();
@@ -6839,7 +6866,7 @@ renderIntro();
 
 window.__cj = { code: 'fr', name: 'French', ex: '“nous répondrons”', infEx: '“to answer” → répondre', infHintEx: 'répondre',
   persons: ['je / tu / il', 'nous / vous / ils'],
-  sets: [['quizlet', '📚 Quizlet'], ['specialist', '🎓 Specialist'], ['both', '⚡ Both'], ['structures', '🧩 Top Structures']],
+  sets: [['quizlet', '📚 Quizlet'], ['specialist', '🎓 Specialist'], ['both', '⚡ Both'], ['structures', '🧩 Top Structures'], ['ftrials', '🏅 F Michaelmas Trials'], ['etrials', '🏅 E Block Michaelmas Trials'], ['fsummer', '🏅 F Block Summer Trials'], ['esummer', '🏅 E Block Summer Trials']],
   tenses: [['PRESENT', 'Present'], ['PASSE_COMPOSE', 'Perfect'], ['IMPERFECT', 'Imperfect'], ['FUTURE', 'Future'], ['CONDITIONNEL', 'Conditional'], ['SUBJONCTIF', 'Subjunctive'], ['PLUPERFECT', 'Pluperfect'], ['FUTUR_ANT', 'Future perfect'], ['COND_PASSE', 'Conditional perfect']],
   types: [['er', 'Regular -ER'], ['ir', 'Regular -IR'], ['re', 'Regular -RE'], ['irr', 'Irregular'], ['refl', 'Reflexive']],
   typeOf: function (v) { var n = (v.note || '').toLowerCase(); return { base: /^regular -er/.test(n) ? 'er' : /^regular -ir/.test(n) ? 'ir' : /^regular -re/.test(n) ? 're' : 'irr', refl: /reflexive/.test(n) || /^(se |s['’])/.test(v.inf) }; },
@@ -6869,7 +6896,7 @@ function closeConjChallenge() {
 
 </script>
 <script>if (window.__cj) window.__cj.imp = { get: function () { return vqTier; }, set: function (k) { vqSet(k); }, defs: function () { return VQ_DEF; }, text: function () { return vqTierText(); }, count: function (k, fn) { var o = vqTier; vqTier = k; try { return fn(); } finally { vqTier = o; } } };
-if (window.__cj && window.__cj.inSet) { var _vqInSet0 = window.__cj.inSet; window.__cj.inSet = function (v, s) { return _vqInSet0(v, s) && vqKeep(v); }; }</script>
+if (window.__cj && window.__cj.inSet) { var _vqInSet0 = window.__cj.inSet; window.__cj.inSet = function (v, s) { if (FT_DEF[s]) return ftSet(v, s) && vqKeep(v); return _vqInSet0(v, s) && vqKeep(v); }; }</script>
 </body>
 </html>
 <script>
@@ -6903,7 +6930,7 @@ if (window.__cj) window.__cj.speedTest = function (kind, g) {
   apTestLevel = g.level || 'X';   // the test panel shows and uses the game's level
   var tenses = (g.tenses || []).slice(); if (g.inf) tenses.push('INFINITIVE');
   if (!tenses.length) { alert('Choose at least one tense first (📚 Choose verbs).'); return; }
-  if (['quizlet', 'specialist', 'both', 'structures'].indexOf(g.set) >= 0) verbMode = g.set;
+  if (['quizlet', 'specialist', 'both', 'structures', 'ftrials', 'etrials', 'fsummer', 'esummer'].indexOf(g.set) >= 0) verbMode = g.set;
   selectedTenses = new Set(tenses);
   // verb types: the test can only filter regular / irregular, so use the nearest match
   var ty = g.types || {}, base = ['er', 'ir', 're', 'irr'].filter(function (t) { return ty[t]; }), reg = base.filter(function (t) { return t !== 'irr'; });
@@ -7065,7 +7092,7 @@ if (window.__cj) window.__cj.speedTest = function (kind, g) {
 /* ===== AP DRILL LINKS: French Verbs adapter ===== */
 (function () {
   function $(i) { return document.getElementById(i); }
-  var L = {"app": "Eton French Verbs", "lang": "French", "prefix": "DRF", "cat": "IGCSE French ▸ Drills", "short": "French Verbs", "tenses": [["PRESENT", "Present"], ["FUTURE", "Future"], ["PASSE_COMPOSE", "Perfect (PC)"], ["IMPERFECT", "Imperfect"], ["CONDITIONNEL", "Conditional"], ["SUBJONCTIF", "Subjunctive"], ["INFINITIVE", "Infinitive"], ["PLUPERFECT", "Pluperfect"], ["FUTUR_ANT", "Future Perfect"], ["COND_PASSE", "Conditional Perfect"]], "sets": {"quizlet": "Quizlet", "specialist": "Specialist", "both": "Quizlet + Specialist", "structures": "Top Structures"}, "regs": {"all": "All", "regular": "Regular", "irregular": "Irregular"}, "persons": ["je", "tu", "il (elle)", "nous", "vous", "ils (elles)"]};
+  var L = {"app": "Eton French Verbs", "lang": "French", "prefix": "DRF", "cat": "IGCSE French ▸ Drills", "short": "French Verbs", "tenses": [["PRESENT", "Present"], ["FUTURE", "Future"], ["PASSE_COMPOSE", "Perfect (PC)"], ["IMPERFECT", "Imperfect"], ["CONDITIONNEL", "Conditional"], ["SUBJONCTIF", "Subjunctive"], ["INFINITIVE", "Infinitive"], ["PLUPERFECT", "Pluperfect"], ["FUTUR_ANT", "Future Perfect"], ["COND_PASSE", "Conditional Perfect"]], "sets": {"quizlet": "Quizlet", "specialist": "Specialist", "both": "Quizlet + Specialist", "structures": "Top Structures", "ftrials": "F Michaelmas Trials", "etrials": "E Block Michaelmas Trials", "fsummer": "F Block Summer Trials", "esummer": "E Block Summer Trials"}, "regs": {"all": "All", "regular": "Regular", "irregular": "Irregular"}, "persons": ["je", "tu", "il (elle)", "nous", "vous", "ils (elles)"]};
   function inList(a, v) { return a.indexOf(v) >= 0; }
   function pool() {
     if (mode === 'infinitives') return getLiveInfCards();
