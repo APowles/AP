@@ -49387,13 +49387,65 @@ function mlfLeisureStart(deck) {
 
 
 // a link like  <this page>#recap=gr3+gr5  opens those grammar recaps live, with the “Now I can…” boxes and their Check buttons
+// Deep links (#vv= #sd= #mlf=1 #recap=) land with the chosen content and its action buttons on screen: no scrolling, nothing to re-select.
 (function () {
+  var seq = 0;
+  function inView(e) { if (!e) return false; var r = e.getBoundingClientRect(); return r.height > 0 && r.top >= 0 && r.bottom <= window.innerHeight; }
+  // run fn now and again while the page settles (about 1.5 s); stop early if the boy scrolls, taps or types
+  function settle(fn) {
+    var id = ++seq, stop = false, evs = ['wheel', 'touchstart', 'keydown', 'mousedown'];
+    function cancel() { stop = true; evs.forEach(function (n) { window.removeEventListener(n, cancel, true); }); }
+    evs.forEach(function (n) { window.addEventListener(n, cancel, { capture: true, passive: true }); });
+    [0, 120, 300, 600, 1000, 1500].forEach(function (ms, i, a) {
+      setTimeout(function () {
+        if (stop || id !== seq) return;
+        try { fn(); } catch (e) { }
+        if (i === a.length - 1) cancel();
+      }, ms);
+    });
+  }
+  // show the heading (anchor) and the action buttons together; scrolling alone first
+  function show(anchor, action, collapse) {
+    if (!anchor) return;
+    if (inView(anchor) && (!action || inView(action))) return;
+    anchor.scrollIntoView({ block: 'start' }); window.scrollBy(0, -10);
+    if (action && !inView(action) && collapse) { collapse(); anchor = collapse.anchor ? collapse.anchor() : anchor; anchor.scrollIntoView({ block: 'start' }); window.scrollBy(0, -10); }
+  }
+  function simple(cid) {
+    var c = document.getElementById(cid); if (!c) return;
+    show(c.querySelector('h2'), c.querySelector('.aph-tools') || c.querySelector('.aph-btn-primary'));
+  }
+  // VVs Drill: if the chosen set and Start/Test buttons will not both fit, fold away the other set groups (this link only)
+  function vvShow() {
+    var c = document.getElementById('drillContainer'), card = c && c.querySelector('.intro-card'); if (!card) return;
+    function anchor() { var on = card.querySelector('.vv-grp.on'); return on ? (on.closest('.vv-glow-box') || on) : card.querySelector('h2'); }
+    var act = card.querySelector('.aph-tools') || card.querySelector('.aph-btn-primary');
+    var collapse = function () {
+      if (card.querySelector('[data-dl-fold]')) return;
+      var lab = [].slice.call(card.querySelectorAll('.aph-label')).filter(function (l) { return /what to practise/i.test(l.textContent); })[0]; if (!lab) return;
+      var s = lab.nextElementSibling, prevKept = false;
+      while (s && !s.classList.contains('aph-label')) {
+        var keep = !!(s.classList.contains('on') || s.querySelector('.vv-grp.on') || (s.classList.contains('vv-tier') && prevKept)), nx = s.nextElementSibling;
+        if (!keep) s.style.display = 'none';
+        prevKept = keep && s.classList.contains('vv-grp'); s = nx;
+      }
+      var b = document.createElement('button'); b.type = 'button'; b.className = 'aph-chip'; b.setAttribute('data-dl-fold', '1'); b.textContent = 'Choose a different set ▾'; b.style.margin = '0 0 10px';
+      b.onclick = function () { renderIntro(); };
+      lab.parentNode.insertBefore(b, lab.nextElementSibling);
+    };
+    collapse.anchor = anchor;
+    show(anchor(), act, collapse);
+  }
   function go() {
     var h = location.hash || '', v = /^#(vv|sd)=([A-Za-z0-9_]+)/.exec(h);
-    if (v) { try { if (v[1] === 'vv' && VV_DATA[v[2]]) { switchMode('vv'); currentVV = v[2]; vvKeepRecognitionFrToEn(); renderIntro(); } else if (v[1] === 'sd' && (SD_DATA[v[2]] || /^VV\d+_Entire$/.test(v[2]))) { switchMode('sd'); sdState.currentSet = v[2]; sdState.idx = 0; sdState.shuffled = []; renderSD(); } } catch (e) { } return; }
-    if (/^#mlf=1/.test(h)) { try { switchMode('mlf'); } catch (e) { } return; }
+    if (v) { try { if (v[1] === 'vv' && VV_DATA[v[2]]) { switchMode('vv'); currentVV = v[2]; vvKeepRecognitionFrToEn(); renderIntro(); settle(vvShow); } else if (v[1] === 'sd' && (SD_DATA[v[2]] || /^VV\d+_Entire$/.test(v[2]))) { switchMode('sd'); sdState.currentSet = v[2]; sdState.idx = 0; sdState.shuffled = []; renderSD(); settle(function () { simple('sdContainer'); }); } } catch (e) { } return; }
+    if (/^#mlf=1/.test(h)) { try { switchMode('mlf'); settle(function () { simple('mlfContainer'); }); } catch (e) { } return; }
     var m = /^#recap=([A-Za-z0-9+_:.-]+)/.exec(location.hash || ''); if (!m || typeof rcpOpenKeys !== 'function') return;
-    try { rcpOpenKeys(m[1].split('+')); } catch (e) { }
+    try {
+      rcpOpenKeys(m[1].split('+'));
+      // the picker comes first in the recap page; start at the recap itself (contents bar + first recap)
+      settle(function () { var a = document.getElementById('rcp-view'); if (a && a.firstElementChild && a.getBoundingClientRect().top > 12) { a.scrollIntoView({ block: 'start' }); var o = document.getElementById('rcp-ov'); if (o) o.scrollTop = Math.max(0, o.scrollTop - 10); } });
+    } catch (e) { }
   }
   window.addEventListener('hashchange', go);
   if (document.readyState === 'complete') setTimeout(go, 300); else window.addEventListener('load', function () { setTimeout(go, 300); });
