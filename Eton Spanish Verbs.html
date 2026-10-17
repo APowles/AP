@@ -5,7 +5,7 @@
 <script id="ap-update">
 /* AP auto-update: if this copy is older than the published version, reload once with the new one (saved answers are kept) */
 (function () {
-  var B = '2c3af5b4a5'; window.AP_BUILD = B;
+  var B = '95b8969a9e'; window.AP_BUILD = B;
   function check() {
     if (!/^https?:$/.test(location.protocol) || !window.fetch) return;
     var f = decodeURIComponent(location.pathname.split('/').pop() || '');
@@ -5887,7 +5887,18 @@ function closeConjChallenge() {
         return '<div class="nc-item" data-nc="es-' + code + '-' + i + '-' + k + '"><div class="nc-row"><button type="button" class="nc-box" onclick="ncTick(this)" aria-label="Tick when you can do this" title="Tick when you can do this">\u2610</button><span class="nc-t">' + esc(it.t) + '</span><button type="button" class="nc-chk" onclick="ncCheck(this)" title="Show a model answer">Check</button></div><div class="nc-ans" style="display:none">' + it.a + '</div></div>';
       }).join('') + '</div>';
   }
-  function notesHtml(only) {
+  /* End-of-chapter practice panel: Drill / Test / Spot Test / Speed on THIS unit, no set-up screens (gramGo locks the unit in) */
+  function practiceHtml(u) {
+    var c = u.code;
+    return '<div class="gp-box aph-noprint"><div class="gp-h">&#9999;&#65039; Practise ' + esc(u.title) + '</div>'
+      + '<p class="gp-p">Finished reading? Go straight to practice on this unit.</p><div class="gp-row">'
+      + '<button class="aph-btn aph-btn-primary" onclick="gramGo(\'' + c + '\',\'drill\')">&#9999;&#65039; Drill</button>'
+      + '<button class="aph-btn" onclick="gramGo(\'' + c + '\',\'test\')">&#128221; Test</button>'
+      + '<button class="aph-btn" onclick="gramGo(\'' + c + '\',\'spot\')">&#9201;&#65039; Spot Test</button>'
+      + '<button class="aph-btn" onclick="gramGo(\'' + c + '\',\'speed\')">&#9889; Speed</button>'
+      + '</div></div>';
+  }
+  function notesHtml(only, forPrint) {
     var h = '';
     UNITS.forEach(function (u) {
       var parts = '';
@@ -5895,7 +5906,7 @@ function closeConjChallenge() {
         var ok = only ? (only.c === u.code && only.i === i) : S.notes[nKey(u.code, i)];
         if (ok) parts += '<h3 class="tp"><span class="sec">Vocab ' + esc(t.sec) + '</span>' + esc(t.title) + '</h3>' + t.html + ncHtml(u.code, i);
       });
-      if (parts) h += '<div class="ub"><h2>' + esc(u.title) + '</h2><p>' + esc(u.summary) + '</p></div>' + parts;
+      if (parts) h += '<div class="ub"><h2>' + esc(u.title) + '</h2><p>' + esc(u.summary) + '</p></div>' + parts + (forPrint ? '' : practiceHtml(u));
     });
     return h;
   }
@@ -5908,7 +5919,7 @@ function closeConjChallenge() {
     w.document.write('<!DOCTYPE html><html><head><meta charset="UTF-8"><title>Eton F Block Spanish Grammar</title><style>' + aphCSS() + '</style><style>' + CSS + '</style><style>'
       + 'body{font-family:var(--aph-body);background:#fff;padding:0;color:#1a2744;max-width:none}#gv{zoom:1.15}.ub{margin-top:14px}.nc-chk{display:none}.nc-ans{display:none!important}@page{size:A4;margin:12mm}@media print{.aph-noprint{display:none}}</style></head><body>'
       + aphPrintHead({ kicker: 'Eton F Block &middot; Spanish', title: 'Grammar <em>for beginners</em>', meta: n + ' page' + (n === 1 ? '' : 's') + ' of notes', strip: false })
-      + '<div id="gv">' + notesHtml(only) + '</div>' + aphPrintFoot('Eton F Block Spanish &middot; Grammar for beginners') + '</body></html>');
+      + '<div id="gv">' + notesHtml(only, true) + '</div>' + aphPrintFoot('Eton F Block Spanish &middot; Grammar for beginners') + '</body></html>');
     w.document.close();
   };
 
@@ -5950,6 +5961,19 @@ function closeConjChallenge() {
   W.gramSpeedLv = function (l) { S.lv = l; speedSetup(); };
   W.gramType = function (t) { S.type = t; gramSetup(S.kind); };
   W.gramN = function (n) { S.n = n; gramSetup(S.kind); };
+  /* Straight from the end of a notes chapter into practice: the unit is locked in, the pupil's last difficulty / question-type settings are kept
+     (and eased back to Mixed only if they would leave nothing to ask), and no set-up screen is shown. */
+  W.gramGo = function (code, kind) {
+    UNITS.forEach(function (u) { S.units[u.code] = (u.code === code); });
+    var speed = kind === 'speed', need = speed ? 4 : 1, size = function () { return (speed ? poolU() : pool()).length; };
+    if (size() < need) { S.lv = 'mix'; S.type = 'mix'; }
+    if (size() < need) { alert('Not enough questions on this unit yet.'); return; }
+    var ns = kind === 'spot' ? [5, 10, 15, 20] : kind === 'test' ? [5, 10, 15, 20, 30, 40] : [10, 20, 30, -1];
+    if (ns.indexOf(S.n) < 0) S.n = kind === 'spot' ? 10 : 20;
+    if (speed) { SP.kind = 'speed'; gramSpeedGo(); return; }
+    S.kind = kind;
+    if (kind === 'drill') gramStart(false); else gramMakeTest();
+  };
 
   /* ---------- marking helpers ---------- */
   function clean(s) { return String(s).toLowerCase().replace(/[¿?¡!.,;:"“”()]/g, '').replace(/\s+/g, ' ').trim(); }
@@ -6196,7 +6220,8 @@ function closeConjChallenge() {
     }
     gOverlay('<div class="grs-wrap"><div class="grs-top"><b>&#9889; Eton Speed Challenge &middot; Grammar</b><span class="grs-clock" id="grs-g">' + (SP.gt ? '&#9201; ' + gFmt(G.gleft) : '') + '</span><button class="grs-x" onclick="gramSpeedClose()">&#10005; Close</button></div>'
       + '<div class="grs-bar">' + sc + (SP.tt && G.started && !G.over ? '<span class="grs-turn" id="grs-t">' + (teams ? esc(TEAM_NAMES[G.turn]) + ' team: ' : '') + G.tleft + ' s</span>' : '') + '<span class="grs-c">' + left + ' of ' + G.hand.length + ' left</span></div>'
-      + (G.started ? '' : '<button class="aph-btn aph-btn-primary aph-btn-block grs-start" onclick="gramSpeedBegin()">&#9654; Start' + (teams ? ' &mdash; ' + TEAM_NAMES[0] + ' team first' : '') + '</button>')
+      + (G.started ? '' : '<button class="aph-btn aph-btn-primary aph-btn-block grs-start" onclick="gramSpeedBegin()">&#9654; Start' + (teams ? ' &mdash; ' + TEAM_NAMES[0] + ' team first' : '') + '</button>'
+        + '<button class="aph-btn aph-btn-block" style="margin-top:8px" onclick="gramSpeed()">&#9881;&#65039; Change teams, tiles, time or difficulty</button>')
       + panel + '<div class="grs-grid">' + tile + '</div></div>');
   }
   W.gramSpeedBegin = function () {
@@ -6279,6 +6304,11 @@ function closeConjChallenge() {
 
   /* inject the notes CSS (scoped to #gv) and the screen CSS */
   var st = document.createElement('style'); st.id = 'gram-css'; st.textContent = CSS; document.head.appendChild(st);
+  var sp = document.createElement('style'); sp.id = 'gram-practice-css';
+  sp.textContent = '.gp-box{margin:26px 0 8px;padding:16px 18px;border:2px solid #c9a84c;border-radius:14px;background:#fffaf0;color:#1a2744}'
+    + '.gp-h{font-weight:800;font-size:1.05rem;margin:0 0 4px}.gp-p{margin:0 0 12px;font-size:.9rem}'
+    + '.gp-row{display:flex;flex-wrap:wrap;gap:10px}.gp-row .aph-btn{flex:1 1 130px}';
+  document.head.appendChild(sp);
   /* Back from the first screen of Verbs or Grammar goes to the hub (the house Back button handles every other step) */
   try { var bc = APBK.cs.filter(function (x) { return x.el === $('drill'); })[0]; if (bc) bc.inner = W.goHub; } catch (e) { }
 })(window);
