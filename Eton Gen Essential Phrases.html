@@ -65708,8 +65708,42 @@ if (window.__voc) window.__voc.speedTest = function (kind, lang, secs, rev, lv, 
       if ((x === 50 || x === 70) && (f === 'en' || t === 'en') && typeof epSetMix === 'function') epSetMix(x);
       for (i = 0; i < cbs.length; i++) cbs[i].checked = m[1] === '*' || !!want[cbs[i].value];
       onSectionChange();
-      try { var first = document.querySelector('.sec-checkbox:checked'); if (first) first.closest('.sec-cb-item').scrollIntoView({ block: 'nearest' }); } catch (e) { }
+      try { land(); } catch (e) { }
     } catch (e) { }
+  }
+  /* Deep-link landing: show the chosen lists (one compact line instead of the long picker) and scroll so the
+     setup card runs from the Speed banner to the Drill / Test / View buttons on one screen. Deep link only. */
+  function land() {
+    var lst = document.getElementById('sec-picker-list'), wrap = document.getElementById('sec-picker-wrap'), sum = document.getElementById('ep-dl-sum');
+    if (lst && wrap) {
+      var ck = document.querySelectorAll('.sec-checkbox:checked'), tot = document.querySelectorAll('.sec-checkbox').length, txt = '', j;
+      if (ck.length === tot) txt = 'All ' + tot + ' lists';
+      else if (ck.length <= 3) { var a = []; for (j = 0; j < ck.length; j++) { var it = ck[j].closest('.sec-cb-item'); a.push(((it.querySelector('.sec-cb-code') || {}).textContent || ck[j].value) + ' ' + ((it.querySelector('.sec-cb-title') || {}).textContent || '')); } txt = a.join(' \u00b7 '); }
+      else { var c = []; for (j = 0; j < ck.length; j++) c.push(ck[j].value); txt = ck.length + ' lists: ' + c.join(', '); }
+      if (!sum) {
+        sum = document.createElement('div'); sum.id = 'ep-dl-sum';
+        sum.style.cssText = 'font-size:.8125rem;font-weight:700;color:var(--navy);border:1.5px solid var(--border);border-radius:10px;background:#fff;padding:6px 12px;cursor:pointer;white-space:nowrap;overflow:hidden;text-overflow:ellipsis';
+        sum.title = 'Tap to show the full list picker';
+        sum.onclick = function () { lst.style.display = ''; sum.style.display = 'none'; var pc = wrap.querySelector('.sec-picker-controls'); if (pc) pc.style.display = ''; };
+        wrap.appendChild(sum);
+      }
+      sum.textContent = '\u2713 ' + txt; sum.style.display = ''; lst.style.display = 'none'; var pc2 = wrap.querySelector('.sec-picker-controls'); if (pc2) pc2.style.display = 'none';
+    }
+    var stop = false, t0 = Date.now();
+    function cancel() { stop = true; }
+    window.addEventListener('wheel', cancel, { once: true, passive: true }); window.addEventListener('touchstart', cancel, { once: true, passive: true });
+    function place() {
+      if (stop) return;
+      var ban = document.querySelector('#phrases-app .aph-banner'), tools = document.querySelector('#phrases-app .ep-tools3');
+      if (ban && tools) {
+        var sy = window.pageYOffset, top = ban.getBoundingClientRect().top + sy, bot = tools.getBoundingClientRect().bottom + sy, ih = window.innerHeight;
+        var y = Math.max(0, top - 8);
+        if (bot - y > ih - 8) y = bot - ih + 12;
+        if (Math.abs(y - sy) > 1) window.scrollTo(0, y);
+      }
+      if (Date.now() - t0 < 1500) setTimeout(function () { requestAnimationFrame(place); }, 150);
+    }
+    requestAnimationFrame(place);
   }
   if (document.readyState === 'complete') setTimeout(boot, 300); else window.addEventListener('load', function () { setTimeout(boot, 300); });
   window.addEventListener('hashchange', function () { if (/^#ep=/.test(location.hash)) setTimeout(boot, 300); });
