@@ -3,7 +3,7 @@
 <script id="ap-update">
 /* AP auto-update: if this copy is older than the published version, reload once with the new one (saved answers are kept) */
 (function () {
-  var B = '5a4367a7d2'; window.AP_BUILD = B;
+  var B = 'e6f04a24f6'; window.AP_BUILD = B;
   function check() {
     if (!/^https?:$/.test(location.protocol) || !window.fetch) return;
     var f = decodeURIComponent(location.pathname.split('/').pop() || '');
@@ -2449,7 +2449,26 @@ var APTT = (function () {
      The boy must type, or write with his Apple Pencil, a reason before he can resume. Every pause (when, how long, why) is kept in S.pzs and
      printed in red on the PDF. It is not a break: the Test Guard (APTG) still logs and sounds the siren if he leaves the page. ── */
   function pzCan() { return !!(S && S.mode === 'timed' && !S.pzAt && !S.markDone && (!S.locked || S.shown)); }
+/* ── 🔆 AP KEEP AWAKE: while a timed test is on screen (answering, paused or marking) the iPad is asked not to dim or lock itself (Screen Wake Lock,
+     Safari 16.4+; quietly does nothing where it is not available). He can still lock it by hand; the Test Guard still logs that. ── */
+  var WAKE = { l: null, want: false, busy: false };
+  function wakeOn() {
+    WAKE.want = true;
+    try {
+      if (!navigator.wakeLock || WAKE.l || WAKE.busy) return;
+      WAKE.busy = true;
+      navigator.wakeLock.request('screen').then(function (l) {
+        WAKE.busy = false; WAKE.l = l; try { l.addEventListener('release', function () { if (WAKE.l === l) WAKE.l = null; }); } catch (e) { }
+        if (!WAKE.want) wakeOff();
+      }, function () { WAKE.busy = false; });
+    } catch (e) { WAKE.busy = false; }
+  }
+  function wakeOff() { WAKE.want = false; try { if (WAKE.l) { var l = WAKE.l; WAKE.l = null; l.release(); } } catch (e) { } }
+  try { document.addEventListener('visibilitychange', function () { if (document.visibilityState === 'visible' && WAKE.want && !WAKE.l) wakeOn(); }); } catch (e) { }
+  function pzWake() { if (S && $('aptt-ov') && S.mode === 'timed' && !S.markDone) wakeOn(); else wakeOff(); }
+  /* ── end keep awake ── */
   function pzUI() {
+    try { pzWake(); } catch (e) { }
     var ov = $('aptt-ov'); if (!ov || !S) return;
     var b = $('aptt-pzb'), on = pzCan() && !ov.classList.contains('aptt-nomode');
     if (!b) {
@@ -2594,7 +2613,7 @@ var APTT = (function () {
   }
   function close() {
     if (window.APTG && !APTG.backOut()) return;
-    clearInterval(TICK); TICK = null; save();
+    clearInterval(TICK); TICK = null; save(); try { wakeOff(); } catch (e) { }
     var k = $('aptt-key'); if (k) k.remove();
     var ov = $('aptt-ov'); if (ov) ov.remove();
     document.documentElement.classList.remove('aptt-open');
@@ -32269,7 +32288,26 @@ var APTT = (function () {
      The boy must type, or write with his Apple Pencil, a reason before he can resume. Every pause (when, how long, why) is kept in S.pzs and
      printed in red on the PDF. It is not a break: the Test Guard (APTG) still logs and sounds the siren if he leaves the page. ── */
   function pzCan() { return !!(S &amp;&amp; S.mode === 'timed' &amp;&amp; !S.pzAt &amp;&amp; !S.markDone &amp;&amp; (!S.locked || S.shown)); }
+/* ── 🔆 AP KEEP AWAKE: while a timed test is on screen (answering, paused or marking) the iPad is asked not to dim or lock itself (Screen Wake Lock,
+     Safari 16.4+; quietly does nothing where it is not available). He can still lock it by hand; the Test Guard still logs that. ── */
+  var WAKE = { l: null, want: false, busy: false };
+  function wakeOn() {
+    WAKE.want = true;
+    try {
+      if (!navigator.wakeLock || WAKE.l || WAKE.busy) return;
+      WAKE.busy = true;
+      navigator.wakeLock.request('screen').then(function (l) {
+        WAKE.busy = false; WAKE.l = l; try { l.addEventListener('release', function () { if (WAKE.l === l) WAKE.l = null; }); } catch (e) { }
+        if (!WAKE.want) wakeOff();
+      }, function () { WAKE.busy = false; });
+    } catch (e) { WAKE.busy = false; }
+  }
+  function wakeOff() { WAKE.want = false; try { if (WAKE.l) { var l = WAKE.l; WAKE.l = null; l.release(); } } catch (e) { } }
+  try { document.addEventListener('visibilitychange', function () { if (document.visibilityState === 'visible' &amp;&amp; WAKE.want &amp;&amp; !WAKE.l) wakeOn(); }); } catch (e) { }
+  function pzWake() { if (S &amp;&amp; $('aptt-ov') &amp;&amp; S.mode === 'timed' &amp;&amp; !S.markDone) wakeOn(); else wakeOff(); }
+  /* ── end keep awake ── */
   function pzUI() {
+    try { pzWake(); } catch (e) { }
     var ov = $('aptt-ov'); if (!ov || !S) return;
     var b = $('aptt-pzb'), on = pzCan() &amp;&amp; !ov.classList.contains('aptt-nomode');
     if (!b) {
@@ -32414,7 +32452,7 @@ var APTT = (function () {
   }
   function close() {
     if (window.APTG &amp;&amp; !APTG.backOut()) return;
-    clearInterval(TICK); TICK = null; save();
+    clearInterval(TICK); TICK = null; save(); try { wakeOff(); } catch (e) { }
     var k = $('aptt-key'); if (k) k.remove();
     var ov = $('aptt-ov'); if (ov) ov.remove();
     document.documentElement.classList.remove('aptt-open');

@@ -3,7 +3,7 @@
 <script id="ap-update">
 /* AP auto-update: if this copy is older than the published version, reload once with the new one (saved answers are kept) */
 (function () {
-  var B = '21f24b2749'; window.AP_BUILD = B;
+  var B = '8ee3b3a735'; window.AP_BUILD = B;
   function check() {
     if (!/^https?:$/.test(location.protocol) || !window.fetch) return;
     var f = decodeURIComponent(location.pathname.split('/').pop() || '');
@@ -37022,7 +37022,24 @@ window.AP_RD_PAPERS.push({
      before he can carry on; each pause is printed on the PDF. Leaving the page is still logged and sounds the siren. ── */
   function tEl() { return (T.pzAt || Date.now()) - T.t0 - (T.pz || 0); }
   function pzCan() { return !!(T && T.on && !T.locked && !T.view && !T.pzAt); }
+/* ── 🔆 keep awake while the paper is being answered (Screen Wake Lock, Safari 16.4+; does nothing where unavailable) ── */
+  var WK = { l: null, want: false, busy: false };
+  function wkOn() {
+    WK.want = true;
+    try {
+      if (!navigator.wakeLock || WK.l || WK.busy) return;
+      WK.busy = true;
+      navigator.wakeLock.request('screen').then(function (l) {
+        WK.busy = false; WK.l = l; try { l.addEventListener('release', function () { if (WK.l === l) WK.l = null; }); } catch (e) { }
+        if (!WK.want) wkOff();
+      }, function () { WK.busy = false; });
+    } catch (e) { WK.busy = false; }
+  }
+  function wkOff() { WK.want = false; try { if (WK.l) { var l = WK.l; WK.l = null; l.release(); } } catch (e) { } }
+  try { document.addEventListener('visibilitychange', function () { if (document.visibilityState === 'visible' && WK.want && !WK.l) wkOn(); }); } catch (e) { }
+  function pzWake() { if (T && T.on && !T.locked && !T.view) wkOn(); else wkOff(); }
   function pzUI() {
+    try { pzWake(); } catch (e) { }
     var b = $('rd-pzb'), on = pzCan();
     if (!b) {
       if (!on) { if (T && T.pzAt && T.on && !T.locked && !$('rd-pz')) pzShow(); return; }
@@ -37080,7 +37097,7 @@ window.AP_RD_PAPERS.push({
     var z = $('rd-pz'); if (z) z.remove();
     tick(); pzUI();
   }
-  function pzOff() { var z = $('rd-pz'); if (z) z.remove(); var b = $('rd-pzb'); if (b) b.remove(); }
+  function pzOff() { try { wkOff(); } catch (e) { } var z = $('rd-pz'); if (z) z.remove(); var b = $('rd-pzb'); if (b) b.remove(); }
   function pzTot() { var t = 0; ((T && T.pzs) || []).forEach(function (p) { t += p.secs || 0; }); return t; }
   function pzHTML(red) {
     var P = (T && T.pzs) || []; if (!P.length) return '';

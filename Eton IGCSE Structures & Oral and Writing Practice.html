@@ -3,7 +3,7 @@
 <script id="ap-update">
 /* AP auto-update: if this copy is older than the published version, reload once with the new one (saved answers are kept) */
 (function () {
-  var B = '5cf2368ee8'; window.AP_BUILD = B;
+  var B = 'df5a4df070'; window.AP_BUILD = B;
   function check() {
     if (!/^https?:$/.test(location.protocol) || !window.fetch) return;
     var f = decodeURIComponent(location.pathname.split('/').pop() || '');
@@ -11634,7 +11634,26 @@ var APTT = (function () {
      The boy must type, or write with his Apple Pencil, a reason before he can resume. Every pause (when, how long, why) is kept in S.pzs and
      printed in red on the PDF. It is not a break: the Test Guard (APTG) still logs and sounds the siren if he leaves the page. ── */
   function pzCan() { return !!(S && S.mode === 'timed' && !S.pzAt && !S.markDone && (!S.locked || S.shown)); }
+/* ── 🔆 AP KEEP AWAKE: while a timed test is on screen (answering, paused or marking) the iPad is asked not to dim or lock itself (Screen Wake Lock,
+     Safari 16.4+; quietly does nothing where it is not available). He can still lock it by hand; the Test Guard still logs that. ── */
+  var WAKE = { l: null, want: false, busy: false };
+  function wakeOn() {
+    WAKE.want = true;
+    try {
+      if (!navigator.wakeLock || WAKE.l || WAKE.busy) return;
+      WAKE.busy = true;
+      navigator.wakeLock.request('screen').then(function (l) {
+        WAKE.busy = false; WAKE.l = l; try { l.addEventListener('release', function () { if (WAKE.l === l) WAKE.l = null; }); } catch (e) { }
+        if (!WAKE.want) wakeOff();
+      }, function () { WAKE.busy = false; });
+    } catch (e) { WAKE.busy = false; }
+  }
+  function wakeOff() { WAKE.want = false; try { if (WAKE.l) { var l = WAKE.l; WAKE.l = null; l.release(); } } catch (e) { } }
+  try { document.addEventListener('visibilitychange', function () { if (document.visibilityState === 'visible' && WAKE.want && !WAKE.l) wakeOn(); }); } catch (e) { }
+  function pzWake() { if (S && $('aptt-ov') && S.mode === 'timed' && !S.markDone) wakeOn(); else wakeOff(); }
+  /* ── end keep awake ── */
   function pzUI() {
+    try { pzWake(); } catch (e) { }
     var ov = $('aptt-ov'); if (!ov || !S) return;
     var b = $('aptt-pzb'), on = pzCan() && !ov.classList.contains('aptt-nomode');
     if (!b) {
@@ -11779,7 +11798,7 @@ var APTT = (function () {
   }
   function close() {
     if (window.APTG && !APTG.backOut()) return;
-    clearInterval(TICK); TICK = null; save();
+    clearInterval(TICK); TICK = null; save(); try { wakeOff(); } catch (e) { }
     var k = $('aptt-key'); if (k) k.remove();
     var ov = $('aptt-ov'); if (ov) ov.remove();
     document.documentElement.classList.remove('aptt-open');
@@ -12883,7 +12902,7 @@ function tmKey() {
 }
 function tmClose() {
   if (window.APTG && !APTG.backOut()) return;
-  clearInterval(_tmTick); _tmTick = null; _tmSave();
+  clearInterval(_tmTick); _tmTick = null; _tmSave(); try { _tmWkOff(); } catch (e) { }
   var ov = document.getElementById('tm-ov'); if (ov) ov.remove();
   document.documentElement.classList.remove('tm-open');
 }
@@ -13070,7 +13089,24 @@ function _tmPzNow() { return (_tmS && _tmS.pzAt) || Date.now(); }
 /* ── ⏸ Emergency pause (same rules as every Eton timed test): stops the clock and covers the exercise; a reason must be typed or written before
    he can carry on; each pause is printed on the PDF. Leaving the page is still logged and sounds the siren (APTG). ── */
 function _tmPzCan() { var S = _tmS; return !!(S && (S.mode === 'timed' || S.mode === 'quick') && !S.pzAt && !S.markDone && (!S.locked || (S.shown && S.mode === 'quick'))); }
+/* ── 🔆 keep awake while the paper is being answered (Screen Wake Lock, Safari 16.4+; does nothing where unavailable) ── */
+var TW = { l: null, want: false, busy: false };
+function _tmWkOn() {
+  TW.want = true;
+  try {
+    if (!navigator.wakeLock || TW.l || TW.busy) return;
+    TW.busy = true;
+    navigator.wakeLock.request('screen').then(function (l) {
+      TW.busy = false; TW.l = l; try { l.addEventListener('release', function () { if (TW.l === l) TW.l = null; }); } catch (e) { }
+      if (!TW.want) _tmWkOff();
+    }, function () { TW.busy = false; });
+  } catch (e) { TW.busy = false; }
+}
+function _tmWkOff() { TW.want = false; try { if (TW.l) { var l = TW.l; TW.l = null; l.release(); } } catch (e) { } }
+try { document.addEventListener('visibilitychange', function () { if (document.visibilityState === 'visible' && TW.want && !TW.l) _tmWkOn(); }); } catch (e) { }
+function _tmPzWake() { if (_tmS && document.getElementById('tm-ov') && (_tmS.mode === 'timed' || _tmS.mode === 'quick') && !_tmS.markDone) _tmWkOn(); else _tmWkOff(); }
 function _tmPzUI() {
+  try { _tmPzWake(); } catch (e) { }
   var ov = document.getElementById('tm-ov'), S = _tmS; if (!ov || !S) return;
   var b = document.getElementById('tm-pzb'), on = _tmPzCan() && !ov.classList.contains('tm-nomode');
   if (!b) {
