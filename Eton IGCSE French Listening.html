@@ -3,7 +3,7 @@
 <script id="ap-update">
 /* AP auto-update: if this copy is older than the published version, reload once with the new one (saved answers are kept) */
 (function () {
-  var B = '6de2e61be9'; window.AP_BUILD = B;
+  var B = '21f24b2749'; window.AP_BUILD = B;
   function check() {
     if (!/^https?:$/.test(location.protocol) || !window.fetch) return;
     var f = decodeURIComponent(location.pathname.split('/').pop() || '');
@@ -36962,7 +36962,7 @@ window.AP_RD_PAPERS.push({
   }
   function saveState() {
     if (!T || T.view) return;
-    lsSet(T.key, JSON.stringify({ t0: T.t0, ans: ans, curSec: curSec, locked: !!T.locked, endAt: T.endAt || 0, auto: !!T.auto, log: T.log, att: T.att }));
+    lsSet(T.key, JSON.stringify({ pz: T.pz || 0, pzAt: T.pzAt || 0, pzs: T.pzs || [], t0: T.t0, ans: ans, curSec: curSec, locked: !!T.locked, endAt: T.endAt || 0, auto: !!T.auto, log: T.log, att: T.att }));
   }
   function tBegin(o, i, code, view) {
     var p = PAPERS[i], key = 'aprt:' + (code || o.id || o.r), st = null, subset = '';
@@ -36974,15 +36974,15 @@ window.AP_RD_PAPERS.push({
         p = Object.assign({}, p, { sections: secs, marks: secs.reduce(function (a, x) { return a + x.marks; }, 0), qs: secs.reduce(function (a, x) { return a + x.questions.length; }, 0), title: p.title + ' (' + subset + ')' });
       }
     }
-    T = { o: o, i: i, p: p, subset: subset, code: code, view: view, limit: +o.s || 3600, key: key, on: false, locked: false, t0: 0, endAt: 0, auto: false, att: 0, log: [], away: 0 };
+    T = { o: o, i: i, p: p, subset: subset, code: code, view: view, limit: +o.s || 3600, key: key, on: false, locked: false, t0: 0, endAt: 0, auto: false, att: 0, log: [], away: 0, pz: 0, pzAt: 0, pzs: [] };
     cur = p; curSec = 0; ans = {}; done = {}; resultsShown = false;
     if (!view) { try { st = JSON.parse(ls(key) || 'null'); } catch (e) { st = null; } }
     quiet(); homeBtn(false);
     if (st && st.t0 && Date.now() - st.t0 < RESUME_MS) {
-      T.t0 = st.t0; T.att = st.att || 1; T.log = st.log || []; ans = st.ans || {}; curSec = Math.min(st.curSec || 0, p.sections.length - 1);
+      T.t0 = st.t0; T.att = st.att || 1; T.log = st.log || []; T.pz = st.pz || 0; T.pzAt = st.pzAt || 0; T.pzs = st.pzs || []; ans = st.ans || {}; curSec = Math.min(st.curSec || 0, p.sections.length - 1);
       if (st.locked) { T.locked = true; T.endAt = st.endAt; T.auto = st.auto; T.on = true; finish(); return; }
       tCard('<div class="lang-chip chip-fr">&#127467;&#127479; Timed Reading</div><h2>Welcome back</h2><p><b>' + esc(p.rdcode) + ' &middot; ' + esc(p.title) + '</b></p>'
-        + '<p>Your answers are saved and the clock has kept running: <b>' + mmss(T.limit * 1000 - (Date.now() - T.t0)) + '</b> left' + (Date.now() - T.t0 > T.limit * 1000 ? ' (time is up: the paper will lock now)' : '') + '.</p>'
+        + '<p>Your answers are saved and the clock has kept running: <b>' + mmss(T.limit * 1000 - tEl()) + '</b> left' + (tEl() > T.limit * 1000 ? ' (time is up: the paper will lock now)' : '') + '.</p>'
         + '<button class="aph-btn aph-btn-primary lg" onclick="AP_READING.tStart(true)">&#9654; Carry on</button>');
       return;
     }
@@ -36990,7 +36990,7 @@ window.AP_RD_PAPERS.push({
     tCard('<div class="lang-chip chip-fr">&#127467;&#127479; ' + (view ? '&#128065; View only' : 'Timed Reading') + '</div><h2>' + esc(o.n || ('Timed Reading Paper: ' + p.rdcode)) + '</h2>'
       + '<p class="rd-tmeta">' + esc(p.rdcode) + ' &middot; ' + esc(p.code) + ' &middot; ' + p.qs + ' questions &middot; ' + p.marks + ' marks' + (code ? ' &middot; code ' + esc(code) : '') + '</p>'
       + (view ? '<div class="rd-trules">&#128065; your teacher&rsquo;s view: the paper as the boys see it. Nothing is timed, alarmed, logged or saved.</div>'
-        : '<div class="rd-trules"><b>&#9201; ' + lim + ' minutes' + (subset ? ' for ' + subset : ' for the whole paper') + '.</b> The clock starts when you tap Start and cannot be paused. When it runs out you get 30 more seconds, then the paper locks by itself and blank answers score 0.<br><br>'
+        : '<div class="rd-trules"><b>&#9201; ' + lim + ' minutes' + (subset ? ' for ' + subset : ' for the whole paper') + '.</b> The clock starts when you tap Start. It can be paused only for a real emergency (the &#9208; Pause button): you must write why, and it is printed on your PDF. When it runs out you get 30 more seconds, then the paper locks by itself and blank answers score 0.<br><br>'
         + 'You can move between sections and change answers until you lock in. You see no marks until then.<br><br>'
         + '<b>Stay on this page.</b> Leaving it (another app, another tab, Split View, closing it) sounds an alarm, is logged, and is printed on your PDF.<br><br>'
         + 'At the end, save the PDF and upload it to OneNote.</div>')
@@ -36998,12 +36998,12 @@ window.AP_RD_PAPERS.push({
   }
   function tStart(resume) {
     if (!T || T.on) return;
-    if (!T.view && !resume && !window.confirm('Start the ' + mins(T.limit) + '-minute timer now?\n\nThe clock starts as soon as you tap OK and cannot be paused.')) return;
+    if (!T.view && !resume && !window.confirm('Start the ' + mins(T.limit) + '-minute timer now?\n\nThe clock starts as soon as you tap OK. You can pause it only for a real emergency, and you must write why.')) return;
     if (!resume) { T.t0 = Date.now(); T.att = (+ls('aprtAtt:' + T.key) || 0) + 1; if (!T.view) lsSet('aprtAtt:' + T.key, String(T.att)); ans = {}; done = {}; curSec = 0; }
     T.on = true; resultsShown = false;
     if (!T.view) { try { var AC = window.AudioContext || window.webkitAudioContext; if (AC) T.ac = new AC(); } catch (e) { } guardOn(); saveState(); }
     clockOn(); show('rd-play'); render(); try { window.scrollTo(0, 0); } catch (e) { }
-    tick();
+    tick(); try { pzUI(); } catch (e) { }
   }
   function clockOn() {
     if (T.view) return;
@@ -37012,11 +37012,82 @@ window.AP_RD_PAPERS.push({
   }
   function tick() {
     if (!T || !T.on || T.locked || T.view) return;
-    var c = $('rd-clock'), left = T.limit * 1000 - (Date.now() - T.t0);
+    var c = $('rd-clock'), left = T.limit * 1000 - tEl(); try { pzUI(); } catch (e) { }
     if (left > 0) { if (c) { c.className = left < 60000 ? 'crit' : left < 300000 ? 'warn' : ''; c.innerHTML = '&#9201; ' + mmss(left) + ' left'; } }
     else if (left > -GRACE * 1000) { if (c) { c.className = 'crit'; c.innerHTML = '&#9201; Time is up: ' + mmss(GRACE * 1000 + left) + ' to finish'; } }
     else tLock(true);
   }
+
+  /* ── ⏸ Emergency pause (same rules as the other Eton timed tests): stops the clock and covers the paper; a reason must be typed or written
+     before he can carry on; each pause is printed on the PDF. Leaving the page is still logged and sounds the siren. ── */
+  function tEl() { return (T.pzAt || Date.now()) - T.t0 - (T.pz || 0); }
+  function pzCan() { return !!(T && T.on && !T.locked && !T.view && !T.pzAt); }
+  function pzUI() {
+    var b = $('rd-pzb'), on = pzCan();
+    if (!b) {
+      if (!on) { if (T && T.pzAt && T.on && !T.locked && !$('rd-pz')) pzShow(); return; }
+      b = document.createElement('button'); b.id = 'rd-pzb'; b.type = 'button'; b.innerHTML = '&#9208; Pause'; b.title = 'Emergency only: stops the clock. You must write why.'; b.onclick = pzAsk;
+      b.style.cssText = 'position:fixed;top:14px;right:14px;z-index:9000;background:#fff;color:#1a2744;border:2px solid #c0392b;border-radius:999px;padding:8px 14px;font:800 .9rem var(--aph-body,system-ui,sans-serif);cursor:pointer;box-shadow:0 4px 14px rgba(8,13,28,.3)';
+      document.body.appendChild(b);
+    }
+    b.hidden = !on;
+    if (T && T.pzAt) { if (!$('rd-pz')) pzShow(); else pzTick(); }
+  }
+  function pzAsk() { if (!pzCan()) return; T.pzAt = Date.now(); saveState(); tick(); pzShow(); }
+  function pzTick() {
+    var c = $('rd-pz-c'); if (!c || !T || !T.pzAt) return;
+    var k = $('rd-clock'), t = k ? String(k.textContent || '').trim() : '', s = Math.round((Date.now() - T.pzAt) / 1000);
+    c.textContent = (t ? 'Clock stopped: ' + t + ' · ' : '') + 'paused for ' + Math.floor(s / 60) + ':' + ('0' + s % 60).slice(-2);
+  }
+  function pzShow() {
+    if (!T || !T.pzAt) return;
+    var z = $('rd-pz'); if (z) z.remove();
+    if (!$('rd-pzcss')) {
+      var st = document.createElement('style'); st.id = 'rd-pzcss';
+      st.textContent = '#rd-pz{position:fixed;inset:0;z-index:2147483000;background:#0f1a33;overflow-y:auto;display:flex;align-items:center;justify-content:center;padding:16px;box-sizing:border-box;font-family:var(--aph-body,system-ui,sans-serif)}'
+        + '.rd-pz-box{background:#fff;border:4px solid #c9a84c;border-radius:16px;max-width:560px;width:100%;padding:22px 20px;color:#1a2744;text-align:center}'
+        + '.rd-pz-i{font-size:3rem;line-height:1}#rd-pz h2{margin:6px 0 8px;font:800 1.7rem/1.2 var(--aph-display,Georgia,serif);color:#1a2744}'
+        + '.rd-pz-c{font-weight:800;font-size:1.1rem;margin:0 0 12px;color:#7a5500}'
+        + '.rd-pz-w{font-size:.95rem;background:#fff4f2;border:2px solid #c0392b;border-radius:10px;padding:10px 12px;margin:0 0 14px;color:#8a1f12;text-align:left}'
+        + '#rd-pz label{display:block;text-align:left;margin:0 0 6px;font-size:.95rem}'
+        + '#rd-pz textarea{width:100%;box-sizing:border-box;font:inherit;font-size:1.05rem;padding:10px;border:2px solid #1a2744;border-radius:10px;resize:vertical;color:#1a2744;background:#fff}'
+        + '.rd-pz-n{min-height:1.2em;font-size:.85rem;color:#8a1f12;text-align:left;margin:4px 0 10px}'
+        + '#rd-pz-go{width:100%;font:800 1.1rem var(--aph-body,system-ui,sans-serif);padding:14px;border-radius:12px;border:0;background:#1a2744;color:#fff;cursor:pointer}'
+        + '#rd-pz-go:disabled{opacity:.35;cursor:not-allowed}';
+      document.head.appendChild(st);
+    }
+    z = document.createElement('div'); z.id = 'rd-pz'; z.setAttribute('role', 'alertdialog'); z.setAttribute('aria-modal', 'true');
+    z.innerHTML = '<div class="rd-pz-box"><div class="rd-pz-i">&#9208;</div><h2>Paper paused</h2><div class="rd-pz-c" id="rd-pz-c"></div>'
+      + '<p class="rd-pz-w"><b>For a real emergency only</b> (a fire alarm, for example). The clock is stopped. You must still stay on this page: do not open another app or website. Leaving this page is still logged and sounds the siren.</p>'
+      + '<label for="rd-pz-r"><b>Why are you pausing?</b> Type it, or write it with your Apple Pencil. You cannot carry on until you have given a reason.</label>'
+      + '<textarea id="rd-pz-r" rows="3" maxlength="300" autocomplete="off" autocapitalize="sentences" placeholder="My reason for pausing&hellip;"></textarea>'
+      + '<div class="rd-pz-n" id="rd-pz-n"></div>'
+      + '<button type="button" id="rd-pz-go" disabled>&#9654; Resume the paper</button></div>';
+    document.body.appendChild(z);
+    var r = $('rd-pz-r'), g = $('rd-pz-go'), n = $('rd-pz-n');
+    function chk() { var k = r.value.replace(/\s+/g, ' ').trim().length; g.disabled = k < 8; n.textContent = k < 8 ? 'Write a few words so your teacher can see what happened (' + k + ' of 8 characters so far).' : ''; }
+    ['input', 'keyup', 'change', 'paste', 'blur'].forEach(function (t) { r.addEventListener(t, chk); });
+    g.onclick = pzGo; chk(); pzTick();
+    try { r.focus(); } catch (e) { }
+  }
+  function pzGo() {
+    if (!T || !T.pzAt) return;
+    var r = $('rd-pz-r'), why = r ? r.value.replace(/\s+/g, ' ').trim() : '';
+    if (why.length < 8) return;
+    var d = Date.now() - T.pzAt;
+    T.pz = (T.pz || 0) + d; (T.pzs = T.pzs || []).push({ at: T.pzAt, secs: Math.round(d / 1000), why: why.slice(0, 300) });
+    T.pzAt = 0; saveState();
+    var z = $('rd-pz'); if (z) z.remove();
+    tick(); pzUI();
+  }
+  function pzOff() { var z = $('rd-pz'); if (z) z.remove(); var b = $('rd-pzb'); if (b) b.remove(); }
+  function pzTot() { var t = 0; ((T && T.pzs) || []).forEach(function (p) { t += p.secs || 0; }); return t; }
+  function pzHTML(red) {
+    var P = (T && T.pzs) || []; if (!P.length) return '';
+    return '<br><b class="' + (red ? '' : 'bad') + '"' + (red ? ' style="color:#c0392b"' : '') + '>&#9208; Paused ' + P.length + (P.length === 1 ? ' time' : ' times') + ' (' + mmss(pzTot() * 1000) + ' in all)</b>: '
+      + P.map(function (p) { return hhmm(p.at) + ', ' + mmss((p.secs || 0) * 1000) + ': &ldquo;' + esc(p.why) + '&rdquo;'; }).join('; ');
+  }
+  /* ── end emergency pause ── */
   function tPrev() { if (curSec > 0) { curSec--; show('rd-play'); render(); try { window.scrollTo(0, 0); } catch (e) { } saveState(); } }
   function tFinish() {
     if (!T || T.locked) return;
@@ -37027,12 +37098,12 @@ window.AP_RD_PAPERS.push({
   }
   function tLock(auto) {
     if (!T || T.locked) return;
-    T.locked = true; T.auto = !!auto; T.endAt = Date.now(); clearInterval(TICK); guardOff();
+    T.locked = true; T.auto = !!auto; T.endAt = Date.now(); clearInterval(TICK); guardOff(); pzOff();
     var c = $('rd-clock'); if (c) c.remove();
     saveState(); finish();
   }
   function tClose() {
-    clearInterval(TICK); guardOff(); var c = $('rd-clock'); if (c) c.remove();
+    clearInterval(TICK); guardOff(); pzOff(); var c = $('rd-clock'); if (c) c.remove();
     T = null; try { history.replaceState(null, '', location.pathname + location.search); } catch (e) { location.hash = ''; }
     home();
   }
@@ -37061,17 +37132,17 @@ window.AP_RD_PAPERS.push({
   function tInfoHTML() {
     if (!T) return '';
     if (T.view) return '<div class="rd-tinfo">&#128065; View only: nothing was timed or recorded.</div>';
-    var took = (T.endAt || Date.now()) - T.t0, n = T.log.length;
+    var took = (T.endAt || Date.now()) - T.t0 - (T.pz || 0), n = T.log.length;
     return '<div class="rd-tinfo">&#9201; ' + (T.auto ? '<b class="bad">Locked automatically</b> at ' : 'Locked in at ') + mmss(Math.min(took, T.limit * 1000 + GRACE * 1000)) + ' (limit ' + mins(T.limit) + ' min)'
       + ' &middot; attempt ' + T.att + (T.code ? ' &middot; ' + esc(T.code) : '') + '<br>'
-      + (n ? '<b class="bad">&#128680; Left the page ' + n + ' time' + (n > 1 ? 's' : '') + ' (' + mmss(awayTotal()) + ' away)</b>' : '&#9989; Stayed on the page') + '</div>';
+      + (n ? '<b class="bad">&#128680; Left the page ' + n + ' time' + (n > 1 ? 's' : '') + ' (' + mmss(awayTotal()) + ' away)</b>' : '&#9989; Stayed on the page') + pzHTML(false) + '</div>';
   }
   function tPdfNote() {
     if (!T || T.view) return '';
-    var took = (T.endAt || Date.now()) - T.t0, n = T.log.length;
+    var took = (T.endAt || Date.now()) - T.t0 - (T.pz || 0), n = T.log.length;
     return '<b>Timed ' + mins(T.limit) + ' min</b>' + (T.code ? ' &middot; ' + APMP.esc(T.code) : '') + ' &middot; started ' + hhmm(T.t0) + ', locked in ' + hhmm(T.endAt || Date.now()) + (T.auto ? ' <b style="color:#c0392b">(locked automatically)</b>' : '')
       + ' &middot; took ' + mmss(Math.min(took, T.limit * 1000 + GRACE * 1000)) + ' &middot; attempt ' + T.att
-      + (n ? ' &middot; <b style="color:#c0392b">LEFT THE PAGE ' + n + ' time' + (n > 1 ? 's' : '') + ' (' + mmss(awayTotal()) + ' away)</b>' : ' &middot; stayed on the page') + '<br>';
+      + (n ? ' &middot; <b style="color:#c0392b">LEFT THE PAGE ' + n + ' time' + (n > 1 ? 's' : '') + ' (' + mmss(awayTotal()) + ' away)</b>' : ' &middot; stayed on the page') + pzHTML(true) + '<br>';
   }
 
   // ───────── start-up ─────────

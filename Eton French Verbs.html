@@ -5,7 +5,7 @@
 <script id="ap-update">
 /* AP auto-update: if this copy is older than the published version, reload once with the new one (saved answers are kept) */
 (function () {
-  var B = '30d3588e3b'; window.AP_BUILD = B;
+  var B = '75532be954'; window.AP_BUILD = B;
   function check() {
     if (!/^https?:$/.test(location.protocol) || !window.fetch) return;
     var f = decodeURIComponent(location.pathname.split('/').pop() || '');
@@ -1803,7 +1803,87 @@ var APTT = (function () {
   function mmss(x) { x = Math.max(0, Math.ceil(x)); return Math.floor(x / 60) + ':' + ('0' + x % 60).slice(-2); }
   function dur(sec) { sec = Math.round(sec || 0); var m = Math.floor(sec / 60), s = sec % 60; return m ? m + ' min ' + (s < 10 ? '0' : '') + s + ' s' : s + ' s'; }
   function hhmm(ms) { if (!ms) return ''; var d = new Date(ms); return ('0' + d.getHours()).slice(-2) + ':' + ('0' + d.getMinutes()).slice(-2); }
-  function elapsed() { return S && S.t0 ? Math.max(0, Math.round((Date.now() - S.t0) / 1000)) : 0; }
+  function pzNow() { return (S && S.pzAt) || Date.now(); }
+  /* ── ⏸ AP PAUSE (shared; identical in every AP app with timed tests) ──
+     An emergency pause (a fire alarm at home, say): it stops the clock (answering or marking) and covers the test with a full-screen panel.
+     The boy must type, or write with his Apple Pencil, a reason before he can resume. Every pause (when, how long, why) is kept in S.pzs and
+     printed in red on the PDF. It is not a break: the Test Guard (APTG) still logs and sounds the siren if he leaves the page. ── */
+  function pzCan() { return !!(S && S.mode === 'timed' && !S.pzAt && !S.markDone && (!S.locked || S.shown)); }
+  function pzUI() {
+    var ov = $('aptt-ov'); if (!ov || !S) return;
+    var b = $('aptt-pzb'), on = pzCan() && !ov.classList.contains('aptt-nomode');
+    if (!b) {
+      if (!on) { if (S.pzAt && !$('aptt-pz')) pzShow(); return; }
+      b = document.createElement('button'); b.id = 'aptt-pzb'; b.type = 'button'; b.setAttribute('data-nogrow', '1');
+      b.innerHTML = '⏸ Pause'; b.title = 'Emergency only: stops the clock. You must write why.'; b.onclick = pzAsk;
+      b.style.cssText = 'position:fixed;top:14px;right:14px;z-index:14011;background:#fff;color:#1a2744;border:2px solid #c0392b;border-radius:999px;padding:8px 14px;font:800 .9rem var(--aph-body,system-ui,sans-serif);cursor:pointer;box-shadow:0 4px 14px rgba(8,13,28,.3)';
+      ov.appendChild(b);
+    }
+    b.hidden = !on;
+    if (S.pzAt) { if (!$('aptt-pz')) pzShow(); else pzTick(); }
+  }
+  function pzAsk() {
+    if (!pzCan()) return;
+    S.pzAt = Date.now(); save();
+    try { clock(); } catch (e) { }
+    pzShow();
+  }
+  function pzTick() {
+    var c = $('aptt-pz-c'); if (!c || !S || !S.pzAt) return;
+    var k = $('aptt-clock'), t = k ? String(k.textContent || '').replace('▾', '').replace('▴', '').trim() : '';
+    c.textContent = (t ? 'Clock stopped at ' + t + ' · ' : '') + 'paused for ' + dur((Date.now() - S.pzAt) / 1000);
+  }
+  function pzShow() {
+    var ov = $('aptt-ov'); if (!ov || !S || !S.pzAt) return;
+    var z = $('aptt-pz'); if (z) z.remove();
+    if (!$('aptt-pzcss')) {
+      var st = document.createElement('style'); st.id = 'aptt-pzcss';
+      st.textContent = '#aptt-pz{position:fixed;inset:0;z-index:2147483000;background:#0f1a33;overflow-y:auto;display:flex;align-items:center;justify-content:center;padding:16px;box-sizing:border-box;font-family:var(--aph-body,system-ui,sans-serif)}'
+        + '.aptt-pz-box{background:#fff;border:4px solid #c9a84c;border-radius:16px;max-width:560px;width:100%;padding:22px 20px;color:#1a2744;text-align:center}'
+        + '.aptt-pz-i{font-size:3rem;line-height:1}#aptt-pz h2{margin:6px 0 8px;font:800 1.7rem/1.2 var(--aph-display,Georgia,serif);color:#1a2744}'
+        + '.aptt-pz-c{font-weight:800;font-size:1.1rem;margin:0 0 12px;color:#7a5500}'
+        + '.aptt-pz-w{font-size:.95rem;background:#fff4f2;border:2px solid #c0392b;border-radius:10px;padding:10px 12px;margin:0 0 14px;color:#8a1f12;text-align:left}'
+        + '#aptt-pz label{display:block;text-align:left;margin:0 0 6px;font-size:.95rem}'
+        + '#aptt-pz textarea{width:100%;box-sizing:border-box;font:inherit;font-size:1.05rem;padding:10px;border:2px solid #1a2744;border-radius:10px;resize:vertical;color:#1a2744;background:#fff}'
+        + '.aptt-pz-n{min-height:1.2em;font-size:.85rem;color:#8a1f12;text-align:left;margin:4px 0 10px}'
+        + '#aptt-pz-go{width:100%;font:800 1.1rem var(--aph-body,system-ui,sans-serif);padding:14px;border-radius:12px;border:0;background:#1a2744;color:#fff;cursor:pointer}'
+        + '#aptt-pz-go:disabled{opacity:.35;cursor:not-allowed}';
+      document.head.appendChild(st);
+    }
+    z = document.createElement('div'); z.id = 'aptt-pz'; z.setAttribute('role', 'alertdialog'); z.setAttribute('aria-modal', 'true'); z.setAttribute('data-nogrow', '1');
+    z.innerHTML = '<div class="aptt-pz-box"><div class="aptt-pz-i">⏸</div><h2>Test paused</h2><div class="aptt-pz-c" id="aptt-pz-c"></div>'
+      + '<p class="aptt-pz-w"><b>For a real emergency only</b> (a fire alarm, for example). The clock is stopped. You must still stay on this page: do not open another app or website. Leaving this page is still logged and sounds the siren.</p>'
+      + '<label for="aptt-pz-r"><b>Why are you pausing?</b> Type it, or write it with your Apple Pencil. You cannot carry on until you have given a reason.</label>'
+      + '<textarea id="aptt-pz-r" rows="3" maxlength="300" autocomplete="off" autocapitalize="sentences" placeholder="My reason for pausing…"></textarea>'
+      + '<div class="aptt-pz-n" id="aptt-pz-n"></div>'
+      + '<button type="button" id="aptt-pz-go" disabled>▶ Resume the test</button></div>';
+    ov.appendChild(z);
+    var r = $('aptt-pz-r'), g = $('aptt-pz-go'), n = $('aptt-pz-n');
+    function chk() { var k = r.value.replace(/\s+/g, ' ').trim().length; g.disabled = k < 8; n.textContent = k < 8 ? 'Write a few words so your teacher can see what happened (' + k + ' of 8 characters so far).' : ''; }
+    ['input', 'keyup', 'change', 'paste', 'blur'].forEach(function (t) { r.addEventListener(t, chk); });
+    g.onclick = pzGo; chk(); pzTick();
+    try { r.focus(); } catch (e) { }
+  }
+  function pzGo() {
+    if (!S || !S.pzAt) return;
+    var r = $('aptt-pz-r'), why = r ? r.value.replace(/\s+/g, ' ').trim() : '';
+    if (why.length < 8) return;
+    var d = Date.now() - S.pzAt, mk = !!S.locked;
+    if (mk) S.pzM = (S.pzM || 0) + d; else S.pzA = (S.pzA || 0) + d;
+    (S.pzs = S.pzs || []).push({ at: S.pzAt, secs: Math.round(d / 1000), why: why.slice(0, 300), ph: mk ? 'marking' : 'answering' });
+    S.pzAt = 0; save();
+    var z = $('aptt-pz'); if (z) z.remove();
+    try { clock(); } catch (e) { }
+    try { $('aptt-ov').focus({ preventScroll: true }); } catch (e) { }
+  }
+  function pzPrint() {
+    var P = (S && S.pzs) || []; if (!P.length) return '';
+    var t = 0; P.forEach(function (p) { t += p.secs || 0; });
+    return '<br><b class="apmp-bad">⏸ Paused ' + P.length + (P.length === 1 ? ' time' : ' times') + ' (' + dur(t) + ' in all)</b>: '
+      + P.map(function (p) { return hhmm(p.at) + ', ' + dur(p.secs) + (p.ph === 'marking' ? ', while marking' : '') + ': &ldquo;' + esc(p.why) + '&rdquo;'; }).join('; ');
+  }
+  /* ── END AP PAUSE ── */
+  function elapsed() { return S && S.t0 ? Math.max(0, Math.round((pzNow() - S.t0 - (S.pzA || 0)) / 1000)) : 0; }
   function list(a) { return a.length > 1 ? Noun(2) + ' ' + a.slice(0, -1).join(', ') + ' and ' + a[a.length - 1] : Noun(1) + ' ' + a[0]; }
   function $(id) { return document.getElementById(id); }
   function sum() {
@@ -1857,6 +1937,7 @@ var APTT = (function () {
     document.documentElement.classList.add('aptt-open');
     render();
     try { ov.focus({ preventScroll: true }); } catch (e) { }
+    try { pzUI(); } catch (e) { }
     clearInterval(TICK);
     TICK = setInterval(function () {
       if (!S || !$('aptt-ov')) return;
@@ -1866,6 +1947,7 @@ var APTT = (function () {
       try { if (S.shown && !S.markDone) todo(); } catch (e) { }
       if (document.visibilityState && document.visibilityState !== 'visible') return;
       if (!S.mode) return;
+      if (S.pzAt) return;
       if (!S.locked) S.tAns++; else if (S.shown && !(S.mode === 'timed' && S.markDone)) S.tMark++; else return;
       if ((S.tAns + S.tMark) % 5 === 0) save();
     }, 1000);
@@ -1922,11 +2004,11 @@ var APTT = (function () {
       + '<div class="aptt-legend" id="aptt-legend"' + (S.shown ? '' : ' hidden') + '>' + legend() + '</div></div>'
       + (S.m.set ? '<div class="aptt-mode aptt-setmode" id="aptt-mode"><div class="aptt-set">✅ TEST SET BY YOUR TEACHER' + (S.m.set.code ? ': <b>' + esc(S.m.set.code) + '</b>' : '') + '<span>' + esc(S.m.set.name || plain(S.m.title)) + ' · ⏱ ' + mins + ' minutes</span></div><div class="aptt-mode-b">'
         + '<button type="button" class="aptt-mode-t" onclick="APTT.mode(\'timed\')"><b>⏱ Start: ' + mins + ' minutes</b><span>The clock starts when you tap. Blanks score 0.</span></button>'
-        + '</div><div class="aptt-mode-n"><details class="aptt-how"><summary>How it works</summary>Tap the clock at the top to make it smaller (tap again to make it bigger); it stays on screen. When the time is up you get 30 more seconds, then your answers lock in by themselves. Then you have ' + dur(markLimit()) + ' to mark yourself: anything not marked in time scores 0. The test code, your times and your attempt number are printed on your PDF.</details></div></div>' : '')
+        + '</div><div class="aptt-mode-n"><details class="aptt-how"><summary>How it works</summary>Tap the clock at the top to make it smaller (tap again to make it bigger); it stays on screen. When the time is up you get 30 more seconds, then your answers lock in by themselves. Then you have ' + dur(markLimit()) + ' to mark yourself: anything not marked in time scores 0. The test code, your times and your attempt number are printed on your PDF. <b>Emergency only:</b> in a timed test the ⏸ Pause button stops the clock and covers the test. You must write why before you can carry on, and every pause is printed on your PDF. Leaving this page is still not allowed.</details></div></div>' : '')
       + (S.m.set ? '' : '<div class="aptt-mode" id="aptt-mode"><div class="aptt-mode-h">Choose how you are doing this: ⏱ Timed or 🏠 Untimed</div><div class="aptt-mode-b">'
       + '<button type="button" class="aptt-mode-t" onclick="APTT.mode(\'timed\')"><b>⏱ Timed: ' + mins + ' minutes</b><span>In Birley Schools (or if set as EW). The clock starts when you tap. Blanks score 0.</span></button>'
       + '<button type="button" class="aptt-mode-f" onclick="APTT.mode(\'free\')"><b>🏠 Untimed</b><span>Attempt all ' + N + ' before you lock in.</span></button>'
-      + '</div><div class="aptt-mode-n">You can’t change mode once you start.<details class="aptt-how"><summary>How it works</summary>Timed: tap the clock at the top to make it smaller (tap again to make it bigger); it stays on screen. When the time is up you get 30 more seconds, then your answers lock in by themselves. Then you have ' + dur(markLimit()) + ' to mark yourself: anything not marked in time scores 0. Untimed: no clock and no marking time limit. Your choice, your times and your attempt number are printed on your PDF.</details></div>'
+      + '</div><div class="aptt-mode-n">You can’t change mode once you start.<details class="aptt-how"><summary>How it works</summary>Timed: tap the clock at the top to make it smaller (tap again to make it bigger); it stays on screen. When the time is up you get 30 more seconds, then your answers lock in by themselves. Then you have ' + dur(markLimit()) + ' to mark yourself: anything not marked in time scores 0. Untimed: no clock and no marking time limit. Your choice, your times and your attempt number are printed on your PDF. <b>Emergency only:</b> in a timed test the ⏸ Pause button stops the clock and covers the test. You must write why before you can carry on, and every pause is printed on your PDF. Leaving this page is still not allowed.</details></div>'
       + (tkey() && !S.m.set && !S.mode ? '<div class="aptt-key-row"><label class="aptt-tlab">🔑 Teacher: time <select class="aptt-tsel" onchange="APTT.setTime(this.value)">' + (function () { var o = '', cur = limit(), x; for (x = 60; x <= 1200; x += 30) o += '<option value="' + x + '"' + (x === cur ? ' selected' : '') + '>' + minsTxt(x) + ' min</option>'; return o; })() + '</select></label></div>' : '')
       + (tkey() && S.m.offer && !S.mode ? '<div class="aptt-key-row"><button type="button" class="aptt-key-btn" onclick="APTT.' + (S.m.all ? 'auto' : 'all') + '()">🔑 Teacher: ' + (S.m.all ? 'back to the ' + S.m.offer.n + '-' + noun(2).slice(0, -1) + ' test (' + minsTxt(S.m.offer.secs) + ' minutes)' : 'keep all ' + S.m.offer.nAll + ' ' + noun(2) + ' instead (' + minsTxt(S.m.offer.secsAll) + ' minutes)') + '</button></div>' : '')
       + (tkey() ? '<div class="aptt-key-row"><button type="button" class="aptt-key-btn aptt-mkbtn" onclick="APTT.maker()">🔑 Teacher: make a test link from these settings</button></div>' : '')
@@ -2017,7 +2099,7 @@ var APTT = (function () {
   }
   function mode(m) {
     if (!S || S.mode || (m !== 'timed' && m !== 'free')) return;
-    if (m === 'timed' && !window.confirm('Start the ' + (limit() / 60) + '-minute timer now?\n\nThe clock starts as soon as you tap OK and cannot be paused.')) return;
+    if (m === 'timed' && !window.confirm('Start the ' + (limit() / 60) + '-minute timer now?\n\nThe clock starts as soon as you tap OK. You can pause it only for a real emergency, and you must write why.')) return;
     S.mode = m; S.t0 = Date.now(); try { APTG.prime(); } catch (e) { }
     try { var ak = 'apttAttempts:' + S.key, A = JSON.parse(lsGet(ak) || '{}') || {}; A[m] = (A[m] || 0) + 1; lsSet(ak, JSON.stringify(A)); S.att = A[m]; } catch (e) { S.att = 0; }
     save(); modeUI(); clock(); steps();
@@ -2026,7 +2108,7 @@ var APTT = (function () {
   }
   function lockNow(auto) {
     S.locked = true; S.auto = !!auto;
-    S.lockAt = auto ? limit() + GRACE : elapsed(); S.endAt = auto ? S.t0 + (limit() + GRACE) * 1000 : Date.now();
+    S.lockAt = auto ? limit() + GRACE : elapsed(); S.endAt = auto ? S.t0 + (S.pzA || 0) + (limit() + GRACE) * 1000 : Date.now();
     save();
     var msg = $('aptt-msg'); if (msg) msg.hidden = true;
     document.querySelectorAll('#aptt-items .aptt-item').forEach(function (r) { r.classList.remove('aptt-empty'); });
@@ -2073,7 +2155,7 @@ var APTT = (function () {
     if (c.title !== t) c.title = t;
   }
   function clockToggle() { CMIN = !CMIN; try { localStorage.setItem('apttClockMin', CMIN ? '1' : '0'); } catch (e) { } clockMin(); }
-  function clock() { try { clock0(); clockMin(); } catch (e) { showErr('clock: ' + (e && (e.message || e))); } }
+  function clock() { try { clock0(); clockMin(); pzUI(); } catch (e) { showErr('clock: ' + (e && (e.message || e))); } }
   function clock0() {
     var c = $('aptt-clock'), b = $('aptt-tban'); if (!S || !c) return;
     if (S.locked) {
@@ -2082,7 +2164,7 @@ var APTT = (function () {
       if (S.mode === 'timed' && S.shown) {
         if (S.markDone) c.innerHTML = '✔ Marking time over';
         else {
-          var ml = markLimit() - Math.max(0, Math.round((Date.now() - (S.m0 || Date.now())) / 1000));
+          var ml = markLimit() - Math.max(0, Math.round((pzNow() - (S.m0 || Date.now()) - (S.pzM || 0)) / 1000));
           c.className = 'aptt-clock' + (ml <= 15 ? ' red pulse' : ml <= 45 ? ' amber' : ''); c.innerHTML = '✔ Marking: ' + mmss(ml);
           if (ml <= 0) markEnd();
         }
@@ -2274,7 +2356,7 @@ var APTT = (function () {
           + (S.unm && S.unm.length ? ' &middot; <span class="apmp-bad">not marked in time: ' + noun(S.unm.length) + ' ' + S.unm.join(', ') + '</span>' : '')
           + '<br>' + (timed ? '⏱ <b>Timed: ' + mins + ' minutes (class)</b>' : '🏠 <b>Untimed (in House, EW)</b>')
           + (S.t0 ? (S.att ? ' &middot; <b' + (S.att > 1 ? ' class="apmp-bad"' : '') + '>attempt ' + S.att + ' on this test</b>' : '') + ' &middot; started ' + hhmm(S.t0) + (S.endAt ? ', locked in ' + hhmm(S.endAt) : '') + ' on ' + new Date(S.t0).toLocaleDateString('en-GB') : '')
-          + '<br>⏱ ' + (S.auto ? '<b class="apmp-bad">Locked automatically at ' + dur(S.lockAt) + '</b> (time limit ' + mins + ' min + 30 s)' : 'Translating: <b>' + dur(S.lockAt || S.tAns) + '</b>' + (timed ? ' (limit ' + mins + ' min)' : ' (no time limit)'))
+          + pzPrint() + '<br>⏱ ' + (S.auto ? '<b class="apmp-bad">Locked automatically at ' + dur(S.lockAt) + '</b> (time limit ' + mins + ' min + 30 s)' : 'Translating: <b>' + dur(S.lockAt || S.tAns) + '</b>' + (timed ? ' (limit ' + mins + ' min)' : ' (no time limit)'))
           + (S.na && S.na.length ? ' &middot; <span class="apmp-bad">not attempted: ' + noun(S.na.length) + ' ' + S.na.join(', ') + '</span>' : '')
           + ' &middot; Marking: <b>' + dur(S.tMark) + '</b>' + (timed ? ' (limit ' + dur(ml) + ')' : ''),
         body: body, top: top, foot: S.m.app + ' &middot; Eton Spot Test: timed &amp; submitted',
