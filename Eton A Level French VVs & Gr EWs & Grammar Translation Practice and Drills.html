@@ -3,7 +3,7 @@
 <script id="ap-update">
 /* AP auto-update: if this copy is older than the published version, reload once with the new one (saved answers are kept) */
 (function () {
-  var B = 'e07bdbef06'; window.AP_BUILD = B;
+  var B = '2cc13f0ec9'; window.AP_BUILD = B;
   function check() {
     if (!/^https?:$/.test(location.protocol) || !window.fetch) return;
     var f = decodeURIComponent(location.pathname.split('/').pop() || '');
@@ -3536,7 +3536,8 @@ function vvTierRow() {
   return `<div class="aph-row vv-tier" style="margin:-2px 0 10px 10px;gap:6px;flex-wrap:wrap">
       <span class="aph-note" style="min-width:auto">Which structures:</span>
       ${VS_TIER_UI.map(u => `<button class="aph-chip${act === u[0] ? ' on' : ''}" onclick="vvSetTier('${u[0]}')">${u[1]}</button>`).join('')}
-      ${act === 'R' ? '<div class="aph-note" style="flex-basis:100%">Recognition structures are practised French → English only.</div>' : ''}
+      ${act === 'R' ? `<button class="aph-chip${vsRecogUnlocked ? ' on' : ''}" onclick="vvToggleRecogLock()" style="flex-basis:auto">${vsRecogUnlocked ? '🔓 Either direction' : '🔒 French → English only'}</button>
+      <div class="aph-note" style="flex-basis:100%">${vsRecogUnlocked ? 'Unlocked: you can practise Recognition structures either way round. Press the button to lock it again.' : 'Recognition structures are practised French → English only. Press 🔒 to unlock English → French.'}</div>` : ''}
     </div>`;
 }
 function vvPickSet(g, k) { currentVV = k; vvKeepRecognitionFrToEn(); renderIntro(); }
@@ -3647,7 +3648,16 @@ function introSwapDir() {
   renderIntro();
 }
 // Recognition structures are French -> English only: on that set the direction cannot be turned round
-function vvKeepRecognitionFrToEn() { if (vsTierOfKey(currentVV) === 'R') { fromLang = 'fr'; toLang = 'en'; } }
+function vvKeepRecognitionFrToEn() { if (!vsRecogUnlocked && vsTierOfKey(currentVV) === 'R') { fromLang = 'fr'; toLang = 'en'; } }
+// the 🔒 button on the Recognition screen: unlocked, Recognition can be practised either way round (kept on this device)
+let vsRecogUnlocked = false;
+try { vsRecogUnlocked = localStorage.getItem('apvv_recog_unlocked') === '1'; } catch (e) {}
+function vvToggleRecogLock() {
+  vsRecogUnlocked = !vsRecogUnlocked;
+  try { localStorage.setItem('apvv_recog_unlocked', vsRecogUnlocked ? '1' : '0'); } catch (e) {}
+  vvKeepRecognitionFrToEn();
+  renderIntro();
+}
 function introStartDrill() {
   const vvSel = document.getElementById('intro-vv-select');
   if (vvSel) currentVV = vvSel.value;
