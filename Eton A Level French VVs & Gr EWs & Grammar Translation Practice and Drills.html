@@ -184,7 +184,9 @@ body.aph-at-home .aph-header .aph-home{display:none}   /* no Home on the home sc
 .aph-h{font:700 1.6rem/1.2 var(--aph-display);color:var(--navy);margin:0 0 16px}
 .aph-label{font-size:.75rem;font-weight:700;letter-spacing:.09em;text-transform:uppercase;color:var(--text3);margin:18px 0 8px}
 .aph-row{display:flex;flex-wrap:wrap;align-items:center;gap:8px}
-.vv-grp.vv-glow{border:3px solid #e8112d!important;box-shadow:0 0 0 2px rgba(232,17,45,.30),0 0 12px 3px rgba(232,17,45,.65),0 0 26px 6px rgba(232,17,45,.30)!important}
+.vv-glow-box{margin-bottom:10px;padding:10px 12px;border:3px solid #e8112d;border-radius:14px;background:#fff;box-shadow:0 0 0 2px rgba(232,17,45,.30),0 0 12px 3px rgba(232,17,45,.65),0 0 26px 6px rgba(232,17,45,.30)}
+.vv-glow-box .vv-grp{margin-bottom:0!important;padding:0!important;border:none!important;background:transparent!important}
+.vv-glow-box .vv-combo{margin:10px 0 0 0!important}
 .aph-note{font-size:.8125rem;color:var(--text3)}
 .aph-divider{border:0;border-top:1px solid var(--border);margin:20px 0}
 .aph-select,.aph-input{font:500 .9375rem/1.2 var(--aph-body);color:var(--text);background:#fff;border:1.5px solid var(--border);border-radius:8px;padding:8px 10px;max-width:100%;min-height:40px}
@@ -3609,7 +3611,7 @@ function vvSetLabel(k) {
   return m ? VS_TIER_NAMES[m[1]] + m[2].replace(/_/g, ' ') : String(k).replace(/_/g, ' ');
 }
 // which structures are added to the topic vocabulary in the combined sets ('TV' + letters in E, I, R order); at least one is always on
-let vcTiers = { E: false, I: false, R: true };   // default: Recognition only (with the French -> English lock on)
+let vcTiers = { E: true, I: false, R: false };   // default: topic vocabulary + Essential structures; Important and Recognition are added on request
 function vcPrefix() { return 'TV' + VC_UI.filter(function (u) { return vcTiers[u[0]]; }).map(function (u) { return u[0]; }).join(''); }
 function vcSync(k) { const m = /^(TVEIR|TVEI|TVER|TVIR|TVE|TVI|TVR)\d/.exec(k || ''); if (m) VC_UI.forEach(function (u) { vcTiers[u[0]] = m[1].indexOf(u[0], 2) >= 0; }); }
 // the 🔒: the whole combined set is practised French -> English only (on by default while Recognition is ticked; the choice is kept on this device)
@@ -3681,6 +3683,7 @@ function vcToggle(t) {
   const on = VC_UI.filter(function (u) { return vcTiers[u[0]]; }).length;
   if (vcTiers[t] && on === 1) return;
   vcTiers[t] = !vcTiers[t];
+  if (t === 'R') { try { localStorage.removeItem('apvv_combo_lock'); } catch (e) {} }   // ticking / unticking Recognition resets the lock to its default: French -> English only while Recognition is in
   vvSwitchGroup('TC');
 }
 function vcToggleLock() {
@@ -3710,11 +3713,11 @@ function vvGroupRows() {
     let key = currentVV;
     if (!on) { const m = /^[A-Z]+(\d+(?:[a-z]|_Entire))$/.exec(currentVV), pre = g[0] === 'VS' ? vsPrefix() : g[0] === 'TC' ? vcPrefix() : g[0]; key = (m && VV_DATA[pre + m[1]]) ? pre + m[1] : (g[0] === 'TV' ? 'TV1a' : g[0] === 'VS' ? vsPrefix() + '1a' : g[0] === 'TC' ? vcPrefix() + '1a' : 'VV1a'); }
     const n = (VV_DATA[key] || []).length;
-    return `<div class="aph-row vv-grp${on ? ' on' : ''}${g[0] === 'TC' ? ' vv-glow' : ''}" style="margin-bottom:8px;padding:8px 10px;border:1.5px solid ${on ? '#c9a84c' : '#e3e0d6'};border-radius:12px;background:${on ? '#fffaf0' : 'transparent'}">
+    return `${g[0] === 'TC' ? '<div class="vv-glow-box">' : ''}<div class="aph-row vv-grp${on ? ' on' : ''}" style="margin-bottom:8px;padding:8px 10px;border:1.5px solid ${on ? '#c9a84c' : '#e3e0d6'};border-radius:12px;background:${on ? '#fffaf0' : 'transparent'}">
       <button class="aph-chip${on ? ' on' : ''}" onclick="vvSwitchGroup('${g[0]}')" style="min-width:190px">${g[1]}</button>
       <select class="aph-select" ${on ? 'id="intro-vv-select" ' : ''}aria-label="${g[1]}: set" onchange="vvPickSet('${g[0]}',this.value)" style="max-width:${g[0] === 'TC' ? 290 : 200}px">${getVVOptions(g[0], key)}</select>
       <span class="aph-note intro-phrase-count">${n} phrases</span>
-    </div>${g[0] === 'VS' ? vvTierRow() : g[0] === 'TC' ? vvComboRow() : ''}`; }).join('');
+    </div>${g[0] === 'VS' ? vvTierRow() : g[0] === 'TC' ? vvComboRow() + '</div>' : ''}`; }).join('');
 }
 
 function renderIntro() {
