@@ -3159,6 +3159,20 @@ var APTT = (function () {
     }
     try {
       [].forEach.call(root.querySelectorAll('.nc-ans,.nc-chk,script,style,button:not(.nc-box)'), function (n) { n.remove(); });
+      // print-sheet header: the crest floats mid-page once pasted, and a group heading repeating the title is redundant
+      [].forEach.call(root.querySelectorAll('.aph-avatar,.aph-pbtn'), function (n) { n.remove(); });
+      try {
+        var pt = root.querySelector('.aph-ptitle');
+        if (pt) {
+          var tp = pt.textContent.split(/\s[\u2014\u2013-]\s/)[0].trim();
+          if (tp.length > 3) [].some.call(root.querySelectorAll('div,h2,h3,p'), function (n) {
+            if (n.closest('.aph-pband') || n.children.length > 3) return false;
+            var tx = n.textContent.trim();
+            if (tx.indexOf(tp) === 0 && tx.length < tp.length + 12) { n.remove(); return true; }
+            return false;
+          });
+        }
+      } catch (e) {}
       [].forEach.call(root.querySelectorAll('.nc-row'), function (r) {
         var t = r.querySelector('.nc-t'), tx = (t ? t.textContent : r.textContent).replace(/^\s*☐\s*/, '').replace(/\s*Check\s*$/, '');
         r.innerHTML = ''; r.setAttribute('style', 'margin:6px 0;line-height:1.5;color:#1a2744;font-weight:600'); r.appendChild(document.createTextNode('☐  ' + tx));
@@ -8855,7 +8869,7 @@ function generateIGCSESpotTest(timed) {
       kind: isVoc ? 'word' : 'sentence', rows: rows,
       q: function (p) { return p.q; }, a: function (p) { return p.a; },
       recapName: 'vocab list (the print view of the selected list)', recapShort: 'vocab list',
-      recap: function () { var h = ssBuildSheet(f, t, raw, label, true); return { html: h.body, css: h.css }; } });
+      recap: function () { var h = ssBuildSheet(f, t, getSelectedPhrases(), label, true); return { html: h.body, css: h.css }; } });
     return;
   }
   igcseSpotRows=rows; igcseSpotLabel=label; igcseSpotQFlag=qFlag; igcseSpotAFlag=aFlag;
