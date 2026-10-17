@@ -544,6 +544,7 @@ main{display:block}
 .gg-rtoc{display:flex;flex-wrap:wrap;align-items:center;gap:5px;margin:0 0 12px}
 .gg-rtoc>span{font-size:.75rem;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--text3);margin-right:4px}
 .gg-rch{margin:0 0 18px;scroll-margin-top:72px}
+.gg-lbar{margin:0 0 12px;padding:10px 12px;border:2px solid var(--navy,#1a2744);border-radius:12px;background:#f4f7ff;scroll-margin-top:8px}.gg-lbar-h{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin:0 0 8px;font-size:.9rem;color:#1a2744}.gg-lbar-h em{font-style:normal;color:#445}.gg-lbar-b{display:flex;flex-wrap:wrap;gap:8px}.gg-lbar-b button{flex:1 1 150px;min-height:48px;padding:8px 12px;font:700 .95rem/1.2 var(--aph-body,inherit);border-radius:10px;border:2px solid #1a2744;background:#fff;color:#1a2744;cursor:pointer}.gg-lbar-b button.pri{background:#1a2744;color:#fff}.gg-lbar-b button.cl{flex:0 1 120px;border-color:#9aa6bd;color:#445}
 .gg-rch-h{display:flex;align-items:center;gap:10px;flex-wrap:wrap;background:linear-gradient(135deg,#1a2744,#2a3d6b);color:#fff;border-radius:12px 12px 0 0;padding:9px 14px}
 .gg-rch-l{color:#ffd76a;font-weight:800;font-size:1rem}.gg-rch-t{flex:1;min-width:140px;font-size:.875rem}
 .gg-rch-h .gg-mini{margin-left:auto}
@@ -10079,7 +10080,27 @@ function ggRecapEntry() {
     + '<span class="gg-rcopen-t"><b>Want an Eton grammar recap?' + (n ? ' <em>' + ggEsc(ggSelLabel()) + '</em>' : '') + '</b><small>'
     + (n ? 'Read ' + (n > 1 ? 'them' : 'it') + ' here, print or save as PDF' : 'Read, print or save as PDF · choose chapters above, or on the next page') + '</small></span><span class="gg-rbar-ar">▶</span></button>';
 }
-function ggOpenRecaps(keys) {
+// action bar shown ONLY when the recap was opened by a #recap= link (ggR.link = the link's chapters): practise exactly those chapters
+function ggRBarHtml() {
+  const ks = (ggR.link || []).filter(k => GGD[k]); if (!ks.length) return '';
+  const b = (w, t, c) => '<button' + (c ? ' class="' + c + '"' : '') + ' onclick="ggRGo(\'' + w + '\')">' + t + '</button>';
+  return '<div class="gg-lbar" id="ggRBar"><div class="gg-lbar-h"><b>Practise this grammar</b><em>' + ggEsc(ggSelLabel(ks)) + '</em></div><div class="gg-lbar-b">'
+    + b('drill', '▶ Drill', 'pri') + b('test', '📝 Generate test') + b('spot', '📋 Eton Spot Test') + b('timed', '⏱ Spot test: timed &amp; submitted') + b('speed', '⚡ Speed Challenge') + b('home', 'All activities') + b('close', '✕ Close', 'cl')
+    + '</div></div>';
+}
+function ggRGo(w) {
+  const ks = (ggR.link || []).filter(k => GGD[k]); if (!ks.length) return;
+  if (w === 'close') { ggR.link = null; ggS.stage = 'pick'; ggHome(); window.scrollTo(0, 0); return; }
+  ggS.combo = ks.slice(); ggS.key = ks[0]; ggS.stage = 'act'; ggSave(); ggHome(); window.scrollTo(0, 0);   // the normal “choose what to do” page, with these chapters locked in
+  const out = () => { const e = document.getElementById('ggTestOut'); if (e) e.scrollIntoView({ block: 'start' }); };
+  if (w === 'drill') ggStart();
+  else if (w === 'test') { ggTestMenu(); out(); }
+  else if (w === 'spot') { ggSpotMenu(); out(); }
+  else if (w === 'timed') apttLevel('gg', function () { ggSpotMenu(true); });
+  else if (w === 'speed') openGgChallenge();
+}
+function ggOpenRecaps(keys, fromLink) {
+  ggR.link = fromLink && keys && keys.length ? keys.slice() : null;
   ggR.keys = keys && keys.length ? ggOrder().filter(k => keys.includes(k)) : ggSelKeys();
   ggRecapsPage();
   window.scrollTo(0, 0);
@@ -10121,10 +10142,10 @@ function ggRecapsPage() {
 function ggRRender() {
   const v = document.getElementById('ggRView'); if (!v) return;
   const keys = ggR.keys;
-  if (!keys.length) v.innerHTML = '<div class="gg-rempty">Tick a chapter above to read its recap here.</div>';
+  if (!keys.length) v.innerHTML = ggRBarHtml() + '<div class="gg-rempty">Tick a chapter above to read its recap here.</div>';
   else {
     const toc = keys.length > 1 ? '<div class="gg-rtoc"><span>Jump to</span>' + keys.map(k => '<button class="gg-chip" title="' + ggEsc(GGD[k].title) + '" onclick="ggRJump(\'' + k + '\')">' + ggEsc(ggShort(k)) + '</button>').join('') + '</div>' : '';
-    v.innerHTML = toc + keys.map(k => { const d = GGD[k];
+    v.innerHTML = ggRBarHtml() + toc + keys.map(k => { const d = GGD[k];
       return '<section class="gg-rch" id="ggRc_' + k + '"><div class="gg-rch-h"><span class="gg-rch-l">' + ggEsc(d.label) + '</span><span class="gg-rch-t">' + ggEsc(d.title) + '</span>'
         + (keys.length > 1 ? '<button class="gg-mini" onclick="ggPrintRecap(\'' + k + '\',ggR.big)">🖨 Just this one</button>' : '') + '</div>'
         + '<div class="gg-rbody">' + ggRecapBody(d) + '</div></section>'; }).join('');
@@ -10826,13 +10847,13 @@ if (window.__voc) window.__voc.lvlOf = function (i, lang) { return vocLvlOf(ALL_
 (function () {
   function go() {
     var m = /^#recap=([A-Za-z0-9+_-]+)(?:&l=(fr|it|es))?/.exec(location.hash || ''); if (!m || typeof ggGoGr !== 'function') return;
-    try { ggGoGr(m[2] || 'fr'); var ks = m[1].split('+').filter(function (k) { return GGD[k]; }); if (ks.length) { ggOpenRecaps(ks); showRecap(ks[0]); } } catch (e) { }
+    try { ggGoGr(m[2] || 'fr'); var ks = m[1].split('+').filter(function (k) { return GGD[k]; }); if (ks.length) { ggOpenRecaps(ks, true); showRecap(); } } catch (e) { }
   }
   // deep link only: bring the chosen recap itself to the top of the screen (content renders asynchronously, so re-check for ~1.5 s unless the boy scrolls)
-  function showRecap(k) {
+  function showRecap() {
     var last = -1, t0 = Date.now(), moved = false;
     function tick() {
-      var e = document.getElementById('ggRc_' + k);
+      var e = document.getElementById('ggRBar');
       if (e && !moved) { if (last >= 0 && Math.abs(window.scrollY - last) > 4) { moved = true; return; } e.scrollIntoView({ block: 'start' }); last = window.scrollY; }
       if (!moved && Date.now() - t0 < 1500) setTimeout(tick, 100);
     }
