@@ -49436,6 +49436,71 @@ function mlfLeisureStart(deck) {
     collapse.anchor = anchor;
     show(anchor(), act, collapse);
   }
+  // #recap= links only: a practice bar at the top of the recap page (drill / test / spot test / timed spot test / Speed Challenge), set up for exactly the chapters in the recap
+  function rcpKeys(g) { return [].slice.call(document.querySelectorAll('#rcp-list input[data-k]')).filter(function (i) { return i.checked && (!g || i.dataset.k.charAt(0) === g); }).map(function (i) { return i.dataset.k; }); }
+  function rcpLab(g) { return rcpKeys(g).map(function (k) { var r = document.querySelector('#rcp-list input[data-k="' + k + '"]'); var l = r && r.parentNode.querySelector('.rcp-row-l'); return l ? l.textContent : k; }).join(' + '); }
+  function rcpBar() {
+    var view = document.getElementById('rcp-view'); if (!view) return;
+    if (!document.getElementById('rcp-act-css')) {
+      var st = document.createElement('style'); st.id = 'rcp-act-css';
+      st.textContent = '#rcp-act{background:#fff;border:2px solid #c9a84c;border-radius:12px;padding:12px 14px 10px;margin:0 0 14px;box-shadow:0 2px 10px rgba(26,39,68,.12)}'
+        + '#rcp-act .ra-h{display:flex;align-items:center;justify-content:space-between;gap:10px;margin:0 0 6px;font-size:1.0625rem;font-weight:800;color:#1a2744}'
+        + '#rcp-act .ra-g{margin:6px 0 0}#rcp-act .ra-l{font-size:.75rem;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:#667;margin:0 0 5px}'
+        + '#rcp-act .ra-b{display:flex;flex-wrap:wrap;gap:8px}'
+        + '#rcp-act .ra-b button{flex:1 1 140px;min-height:48px;padding:8px 12px;border-radius:10px;border:1.5px solid #1a2744;background:#fff;color:#1a2744;font:700 .9375rem/1.2 inherit;font-family:inherit;cursor:pointer}'
+        + '#rcp-act .ra-b button.p{background:#1a2744;color:#ffd76a}';
+      document.head.appendChild(st);
+    }
+    var bar = document.getElementById('rcp-act');
+    if (!bar) { bar = document.createElement('div'); bar.id = 'rcp-act'; view.parentNode.insertBefore(bar, view); }
+    var gs = [['e', 'Gr EWs chapters'], ['d', 'Grammar Drills sets']].filter(function (g) { return rcpKeys(g[0]).length; });
+    if (!gs.length) { bar.style.display = 'none'; return; }
+    bar.style.display = '';
+    bar.innerHTML = '<div class="ra-h"><span>Practise this grammar</span><button type="button" class="rcp-chip" onclick="rcpClose()">✕ Close</button></div>'
+      + gs.map(function (g) {
+        return '<div class="ra-g"><div class="ra-l">' + g[1] + ': ' + rcpLab(g[0]).replace(/&/g, '&amp;').replace(/</g, '&lt;') + '</div><div class="ra-b">'
+          + '<button type="button" class="p" onclick="rcpAct(\'drill\',\'' + g[0] + '\')">▶ Start Drill</button>'
+          + '<button type="button" onclick="rcpAct(\'test\',\'' + g[0] + '\')">📝 Generate Test</button>'
+          + '<button type="button" onclick="rcpAct(\'spot\',\'' + g[0] + '\')">📋 Eton Spot Test</button>'
+          + '<button type="button" onclick="rcpAct(\'tspot\',\'' + g[0] + '\')">⏱ Timed &amp; submitted</button>'
+          + '<button type="button" onclick="rcpAct(\'speed\',\'' + g[0] + '\')">⚡ Speed Challenge</button></div></div>';
+      }).join('');
+  }
+  // keep the bar in step with the ticks if the boy changes them in the picker
+  (function () { var o = window.rcpSync; if (typeof o === 'function' && !o._bar) { window.rcpSync = function () { o.apply(this, arguments); if (document.getElementById('rcp-act')) rcpBar(); }; window.rcpSync._bar = 1; } })();
+  // each button: leave the recap, set the app's own selection to these chapters, open the app's own screen and call its own function
+  window.rcpAct = function (kind, g) {
+    var ks = rcpKeys(g).map(function (k) { return k.slice(2); }); if (!ks.length) return;
+    rcpClose();
+    if (g === 'e') {
+      switchMode('gr_ews'); grEwsSelectedKeys = ks.length > 1 ? ks.slice() : []; grEwsState.grKey = ks[0]; renderGrEws();
+      if (kind === 'drill') { if (ks.length > 1) startGrEwsDrillCombo(); else startGrEwsDrill(ks[0]); }
+      else if (kind === 'test') grEwsOpenTestPanel();
+      else if (kind === 'spot') grEwsOpenSpotTestPanel();
+      else if (kind === 'tspot') apttLevel('grews', function () { grEwsOpenSpotTestPanel(true); });
+      else if (kind === 'speed') openGrChallenge();
+    } else {
+      switchMode('gr'); grSelected = new Set(ks);
+      if (ks.length === 1) {
+        var id = ks[0]; renderGrammarOptions(id);
+        if (kind === 'drill') startGrammarDrill(id);
+        else if (kind === 'test') grOptionsGenerateTest(id);
+        else if (kind === 'spot') grOptionsSpotTest(id);
+        else if (kind === 'tspot') apttLevel('gr', function () { grOptionsSpotTest(id, true); });
+        else if (kind === 'speed') openGdChallenge(ks);
+      } else {
+        renderGrammarMenu();
+        if (kind === 'drill') startMultiGrammarDrill();
+        else if (kind === 'speed') openGdChallenge(ks);
+        else {
+          openMultiGrammarTestPanel();
+          if (kind === 'spot') generateGrammarSpotTestInline();
+          else if (kind === 'tspot') apttLevel('gr', function () { generateGrammarSpotTestInline(true); });
+        }
+      }
+    }
+    try { window.scrollTo(0, 0); } catch (e) { }
+  };
   function go() {
     var h = location.hash || '', v = /^#(vv|sd)=([A-Za-z0-9_]+)/.exec(h);
     if (v) { try { if (v[1] === 'vv' && VV_DATA[v[2]]) { switchMode('vv'); currentVV = v[2]; vvKeepRecognitionFrToEn(); renderIntro(); settle(vvShow); } else if (v[1] === 'sd' && (SD_DATA[v[2]] || /^VV\d+_Entire$/.test(v[2]))) { switchMode('sd'); sdState.currentSet = v[2]; sdState.idx = 0; sdState.shuffled = []; renderSD(); settle(function () { simple('sdContainer'); }); } } catch (e) { } return; }
@@ -49443,8 +49508,9 @@ function mlfLeisureStart(deck) {
     var m = /^#recap=([A-Za-z0-9+_:.-]+)/.exec(location.hash || ''); if (!m || typeof rcpOpenKeys !== 'function') return;
     try {
       rcpOpenKeys(m[1].split('+'));
-      // the picker comes first in the recap page; start at the recap itself (contents bar + first recap)
-      settle(function () { var a = document.getElementById('rcp-view'); if (a && a.firstElementChild && a.getBoundingClientRect().top > 12) { a.scrollIntoView({ block: 'start' }); var o = document.getElementById('rcp-ov'); if (o) o.scrollTop = Math.max(0, o.scrollTop - 10); } });
+      rcpBar();
+      // the picker comes first in the recap page; start at the practice bar (then the contents bar + first recap)
+      settle(function () { var a = document.getElementById('rcp-act') || document.getElementById('rcp-view'); if (a && (a.id === 'rcp-act' || a.firstElementChild) && a.getBoundingClientRect().top > 12) { a.scrollIntoView({ block: 'start' }); var o = document.getElementById('rcp-ov'); if (o) o.scrollTop = Math.max(0, o.scrollTop - 10); } });
     } catch (e) { }
   }
   window.addEventListener('hashchange', go);
