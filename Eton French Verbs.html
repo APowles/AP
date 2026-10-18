@@ -7152,7 +7152,7 @@ showSingleCard = function (item, progress) {
     <div class="card aph-qcard vb-card">
       <span class="vb-badge badge-${verb.tense}">${tl}</span>
       <div class="aph-qmeta">Card ${idx + 1} of ${deck.length} · Single form · French → English</div>
-      <div class="aph-prompt card-question">${fr}</div>
+      <div class="aph-prompt card-question">${fr}${vdUse(verb.usage_en)}</div>
       ${showInfHint ? `<div id="inf-hint" class="infinitive-hint">${verb.inf}${verb.usage_fr ? ' <span class="vb-uf">' + verb.usage_fr + '</span>' : ''}</div>` : ''}
       <div id="answerArea"></div>
       ${verb.note ? `<div class="note-box" id="noteBox" style="display:none">💡 ${verb.note}</div>` : ''}
@@ -7169,7 +7169,7 @@ revealSingle = function () {
   var it = deck[idx]; if (!it || !it.verb || !vdRev(it)) return _vdRS0();
   revealed = true;
   var verb = it.verb, en = conjEn(verb.en, it.personIdx, verb.tense);
-  document.getElementById('answerArea').innerHTML = '<div class="big-answer">' + en + vdUse(verb.usage_en) + '</div>';
+  document.getElementById('answerArea').innerHTML = '<div class="big-answer">' + en + '</div>';
   document.getElementById('revealBtn').style.display = 'none';
   document.getElementById('feedbackRow').style.display = 'flex';
   var nb = document.getElementById('noteBox'); if (nb) nb.style.display = '';
@@ -7200,7 +7200,7 @@ var _vdRI0 = revealInf;
 revealInf = function () {
   var it = deck[idx]; if (!it || !vdRev(it)) return _vdRI0();
   revealed = true;
-  document.getElementById('answerArea').innerHTML = '<div class="big-answer">' + it.en + vdUse(it.usage_en && it.usage_en !== '(X)' && !/\(/.test(it.en) ? it.usage_en : '') + '</div>';
+  document.getElementById('answerArea').innerHTML = '<div class="big-answer">' + it.en + '</div>';
   document.getElementById('revealBtn').style.display = 'none';
   document.getElementById('feedbackRow').style.display = 'flex';
   var nb = document.getElementById('noteBox'); if (nb) nb.style.display = '';
@@ -7217,9 +7217,9 @@ lzConjCard = function (item) {
   else { fr = vdFr(item.verb, item.personIdx); en = conjEn(item.verb.en, item.personIdx, item.verb.tense); ue = item.verb.usage_en || ''; tense = item.verb.tense; }
   return {
     badge: base.badge,
-    q: '<div class="aph-prompt">' + fr + (uf ? ' <span class="vb-uf">' + uf + '</span>' : '') + '</div>',
+    q: '<div class="aph-prompt">' + fr + (uf ? ' <span class="vb-uf">' + uf + '</span>' : '') + (!item.isInfinitive ? vdUse(ue) : '') + '</div>',
     qSay: [['tl', fr]],
-    a: '<div class="big-answer">' + en + vdUse(ue && !/\(/.test(en) ? ue : '') + '</div>',
+    a: '<div class="big-answer">' + en + '</div>',
     aSay: [['en', en]]
   };
 };
@@ -7229,11 +7229,11 @@ function vdSwap(item, it) {
   if (!vdRev(item)) return it;
   if (item.isInfinitive || (!item.verb && item.inf && typeof item.inf === 'object')) {
     var c = item.inf && typeof item.inf === 'object' ? item.inf : item, u = c.usage_en && !c.usage_en.startsWith('that ') ? ' ' + c.usage_en : '';
-    return { q: c.inf + (c.usage_fr ? ' ' + c.usage_fr : '') + (testOpts.tense ? ' [Infinitive]' : ''), a: c.en + u };
+    return { q: c.inf + (c.usage_fr ? ' ' + c.usage_fr : '') + (testOpts.tense ? ' [Infinitive]' : ''), a: c.en };
   }
   var v = item.verb, pi = item.personIdx; if (v.forms[0] === '---' && v.forms[1] === '---' && v.forms[2] !== '---') pi = 2;
   var u2 = v.usage_en && !v.usage_en.startsWith('that ') ? ' ' + v.usage_en : '';
-  return { q: vdFr(v, pi) + (testOpts.tense ? ' [' + (VD_TN[v.tense] || v.tense) + ']' : ''), a: conjEn(v.en, pi, v.tense) + u2 };
+  return { q: vdFr(v, pi) + u2 + (testOpts.tense ? ' [' + (VD_TN[v.tense] || v.tense) + ']' : ''), a: conjEn(v.en, pi, v.tense) };
 }
 var vdSpotN = 0, vdSpotT = 0;
 function vdSpot(item, base) { vdSpotT++; var r = vdSwap(item, base); if (r !== base) vdSpotN++; return r; }
