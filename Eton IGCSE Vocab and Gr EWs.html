@@ -3302,12 +3302,17 @@ const LANG_FLAGS  = { en:"🇬🇧", fr:"🇫🇷", it:"🇮🇹", es:"🇪🇸"
 
 // ── MIX BOTH WAYS: one session holds cards in both directions between English and one chosen language ──
 // Each card carries its own direction (_f → _t). Nothing is remembered: it always starts Off.
-let mixMode = 'off';   // 'off' | '50' | '70'  (first number = % of cards English → the language)
-function mixOn(){ return mixMode === '50' || mixMode === '70'; }
+// 'rec' = BY IMPORTANCE (the default): Essential + Important words English → the language, Recognition words the language → English.
+// 'rec1' = Essential only English → the language; Important and Recognition words the language → English (for the boys who need the lightest load).
+// 'off' = every word in the one direction chosen (for the stronger boys: the whole list into the language).
+let mixMode = 'rec';   // 'off' | '50' | '70' | 'rec' | 'rec1'  (the first number = % of cards English → the language)
+function mixVal(m){ return (m === '50' || m === '70' || m === 'rec' || m === 'rec1') ? m : 'off'; }
+function mixIsRec(){ return mixMode === 'rec' || mixMode === 'rec1'; }
+function mixOn(){ return mixMode === '50' || mixMode === '70' || mixIsRec(); }
 function mixNums(){ return mixMode === '70' ? '70–30' : '50–50'; }
 function mixTarget(){ const f = getLangFrom(), t = getLangTo(); return f === 'en' ? t : (t === 'en' ? f : t); }
-function mixBanner(){ return 'Mix English ↔ ' + LANG_NAMES[mixTarget()] + ' · ' + mixNums(); }
-function mixTitle(){ return 'Mix ' + mixNums() + ' (English ↔ ' + LANG_NAMES[mixTarget()] + ')'; }
+function mixBanner(){ return mixIsRec() ? 'By importance · English ↔ ' + LANG_NAMES[mixTarget()] : 'Mix English ↔ ' + LANG_NAMES[mixTarget()] + ' · ' + mixNums(); }
+function mixTitle(){ return mixIsRec() ? 'By importance (' + (mixMode === 'rec1' ? 'Essential' : 'Essential + Important') + ' English → ' + LANG_NAMES[mixTarget()] + ', the rest ' + LANG_NAMES[mixTarget()] + ' → English)' : 'Mix ' + mixNums() + ' (English ↔ ' + LANG_NAMES[mixTarget()] + ')'; }
 function dirLabel(f, t){ return mixOn() ? mixBanner() : LANG_FLAGS[f] + ' ' + LANG_NAMES[f] + ' → ' + LANG_FLAGS[t] + ' ' + LANG_NAMES[t]; }
 // Mix needs English on one side: if neither side is English, From becomes English (the screen is redrawn so it shows)
 function mixFix(){
@@ -3318,6 +3323,10 @@ function mixFix(){
 // every card gets its OWN direction, dealt exactly: shuffle, then round(N × share) cards English → language, the rest language → English
 function mixDeal(cards){
   if (!mixOn()) return cards;
+  if (mixIsRec()) {   // each word's direction follows its importance: the words to PRODUCE go English → the language, the rest the language → English
+    const tl = mixTarget(), only = mixMode === 'rec1';
+    return cards.map(p => { const g = (typeof vocTierOf === 'function') ? vocTierOf(p) : null, prod = only ? (g === null || g === 'E') : g !== 'R'; return Object.assign({}, p, prod ? { _f: 'en', _t: tl } : { _f: tl, _t: 'en' }); });
+  }
   const tl = mixTarget(), n = cards.length, k = Math.round(n * (mixMode === '70' ? 70 : 50) / 100), fl = [];
   for (let i = 0; i < n; i++) fl.push(i < k);
   for (let i = n - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); const x = fl[i]; fl[i] = fl[j]; fl[j] = x; }
@@ -3326,12 +3335,13 @@ function mixDeal(cards){
 function cardF(p){ return (mixOn() && p && p._f) ? p._f : getLangFrom(); }
 function cardT(p){ return (mixOn() && p && p._t) ? p._t : getLangTo(); }
 function mixHintText(m, f, t){
+  if (m === 'rec' || m === 'rec1') { const L = LANG_NAMES[f === 'en' ? t : f]; return (m === 'rec1' ? 'Essential words' : 'Essential and Important words') + ': English → ' + L + '. All the other words: ' + L + ' → English. For the whole list in one direction, choose Off.'; }
   if (m !== '50' && m !== '70') return '';
   const L = LANG_NAMES[f === 'en' ? t : f], a = m === '70' ? 70 : 50;
   return a + '% English → ' + L + ', ' + (100 - a) + '% ' + L + ' → English';
 }
 function mixChips(fn, cur){
-  return [['off', 'Off'], ['50', '50–50'], ['70', '70–30']].map(x => `<button class="aph-chip${cur === x[0] ? ' on' : ''}" data-mix="${x[0]}" onclick="${fn}('${x[0]}')">${x[1]}</button>`).join('');
+  return [['rec', 'By importance'], ['rec1', 'Essential only'], ['off', 'Off'], ['50', '50–50'], ['70', '70–30']].map(x => `<button class="aph-chip${cur === x[0] ? ' on' : ''}" data-mix="${x[0]}" onclick="${fn}('${x[0]}')">${x[1]}</button>`).join('');
 }
 
 let timerSecs = 8;
@@ -7345,7 +7355,7 @@ function renderIntro(){
         <select class="aph-select" id="intro-to" onchange="introOnDirChange()">${toOpts}</select>
       </div>
 
-      <div class="aph-label">Mix both ways</div>
+      <div class="aph-label">Direction by importance, or mix both ways</div>
       <div class="aph-row" id="intro-mix">${mixChips('introSetMix', mixMode)}</div>
       ${mixOn() ? `<div class="vg-sub" style="margin:6px 0 0;font-size:.8125rem;color:#8899bb">${mixHintText(mixMode, f, t)}</div>` : ''}
 
@@ -7408,7 +7418,7 @@ function introOnDirChange() {
 }
 function introSetMix(m) {
   introOnDirChange();
-  mixMode = (m === '50' || m === '70') ? m : 'off';
+  mixMode = mixVal(m);
   mixFix();
   renderIntro();
 }
@@ -8602,7 +8612,7 @@ function renderErrorReview() {
     </div>`;
 }
 
-let _adjMix = 'off';
+let _adjMix = 'rec';
 function renderAdjust() {
   if (countdown) clearInterval(countdown);
   _adjMix = mixMode;
@@ -8625,7 +8635,7 @@ function renderAdjust() {
           <button class="aph-swap" onclick="(function(){const f=document.getElementById('adj-from'),t=document.getElementById('adj-to'),v=f.value;f.value=t.value;t.value=v;})()">&#8644; Swap</button>
           <select class="aph-select" id="adj-to" onchange="adjDirChange()">${toOpts}</select>
         </div>
-        <div class="aph-label">Mix both ways</div>
+        <div class="aph-label">Direction by importance, or mix both ways</div>
         <div class="aph-row" id="adj-mix">${mixChips('adjSetMix', _adjMix)}</div>
         <div class="vg-sub" id="adj-mix-hint" style="margin:6px 0 0;font-size:.8125rem;color:#8899bb">${mixHintText(_adjMix, f, t)}</div>
         <div class="aph-label">Cards per session</div>
@@ -8645,7 +8655,7 @@ function adjDirChange() {
   const h = document.getElementById('adj-mix-hint'); if (h) h.textContent = mixHintText(_adjMix, f.value, t.value);
 }
 function adjSetMix(m) {
-  _adjMix = (m === '50' || m === '70') ? m : 'off';
+  _adjMix = mixVal(m);
   document.querySelectorAll('#adj-mix .aph-chip').forEach(b => b.classList.toggle('on', b.getAttribute('data-mix') === _adjMix));
   adjDirChange();
 }
@@ -10384,7 +10394,7 @@ function apSpeedOverlayClose() {
 if (window.__voc) window.__voc.speedTest = function (kind, lang, secs, rev, lvl, mix) {
   if (!secs || !secs.length) { alert('Choose at least one list first (📚 Choose lists).'); return; }
   _ovSecs = secs.slice(); _ovSave(); _ovSelOption();
-  mixMode = (mix === '50' || mix === '70') ? mix : 'off';
+  mixMode = mixVal(mix);
   if (mixOn()) rev = 0;
   var fe = document.getElementById('lang-from'), te = document.getElementById('lang-to');
   if (fe && te) { fe.value = rev ? lang : 'en'; te.value = rev ? 'en' : lang; try { onLangChange(); } catch (e) {} }
@@ -10852,7 +10862,7 @@ if (window.__voc) window.__voc.lvlOf = function (i, lang) { return vocLvlOf(ALL_
       if (c.m === 'voc') {
         if (!own(NM, c.f) || !own(NM, c.t) || c.f === c.t || typeof c.lv !== 'string' || !/^[EMH]{1,3}$/.test(c.lv) || !int(c.tm, 5, 30)) return false;
         if ([10, 20, 30, 50, -1].indexOf(c.n) < 0) return false;
-        if (c.mx !== undefined && ((c.mx !== '50' && c.mx !== '70') || (c.f !== 'en' && c.t !== 'en'))) return false;
+        if (c.mx !== undefined && (mixVal(c.mx) === 'off' || (c.f !== 'en' && c.t !== 'en'))) return false;
         var sel = $('sel-section'), secOk = {}; ALL_PHRASES.forEach(function (p) { secOk[p.sec] = 1; });
         if (c.ss !== undefined) { if (!Array.isArray(c.ss) || !c.ss.length || c.ss.length > 60) return false; for (i = 0; i < c.ss.length; i++) if (typeof c.ss[i] !== 'string' || !secOk[c.ss[i]]) return false; }
         else { var okv = false; for (i = 0; i < sel.options.length; i++) if (sel.options[i].value === c.s && c.s !== 'OVSEL') okv = true; if (!okv) return false; }
@@ -10860,7 +10870,7 @@ if (window.__voc) window.__voc.lvlOf = function (i, lang) { return vocLvlOf(ALL_
           if (typeof ggVisible === 'function' && ggVisible()) ggGoVocab();
           $('lang-from').value = c.f; $('lang-to').value = c.t;
           cogOn = c.lv; _selectedCount = c.n; timerSecs = c.tm;
-          mixMode = (c.mx === '50' || c.mx === '70') ? c.mx : 'off';
+          mixMode = mixVal(c.mx);
           if (c.ss) { _ovSecs = c.ss.slice(); _ovSelOption(); } else sel.value = c.s;
           try { updatePhraseCount(); } catch (e) { }
           if (!getSelectedPhrases().length) return false;
