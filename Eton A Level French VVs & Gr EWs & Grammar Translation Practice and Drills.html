@@ -5473,7 +5473,11 @@ function generateVVSpotTest(timed) {
   const setLabel = (introSel ? introSel.options[introSel.selectedIndex].text : key.replace(/_/g,' ')) + apLvTag('vv') + vvMixSfx();
   const rawAll = VV_DATA[key] || [];
   if (!timed) apLvRan('vv', generateVVSpotTest);
-  const raw = apLvPool('vv', rawAll, apVVLevel);   // the chosen level only
+  let raw = apLvPool('vv', rawAll, apVVLevel);   // the chosen level only
+  if (apLv('vv') !== 'X' && raw.length < 5 && rawAll.length >= 5) {   // too few at this level: top up from the nearest level so the test can still be set
+    const ord = { E: ['M', 'H'], M: ['E', 'H'], H: ['M', 'E'] }[apLv('vv')] || [], have = new Set(raw);
+    ord.forEach(function (l) { rawAll.forEach(function (p) { if (raw.length < 10 && !have.has(p) && apVVLevel(p) === l) { raw = raw.concat([p]); have.add(p); } }); });
+  }
   const fit = apLvFit('vv', apSpotFit(raw.length, (timed && (vvSpotItemsPerRow || 3) >= 3) ? 4 : (vvSpotItemsPerRow || 3)));
   if (!fit && apLv('vv') !== 'X' && rawAll.length >= 5) { apLvShort('vv', 'vvTestOutput', raw.length, 5); return; }
   if (!fit) { alert('Not enough items in this VV set for a spot test (need at least 5).'); return; }
