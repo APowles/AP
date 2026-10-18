@@ -11855,7 +11855,7 @@ var APTT = (function () {
       + '</div><div class="aptt-mode-n">You can’t change mode once you start.<details class="aptt-how"><summary>How it works</summary>Timed: tap the clock at the top to make it smaller (tap again to make it bigger); it stays on screen. When the time is up you get 30 more seconds, then your answers lock in by themselves. Then you have ' + dur(markLimit()) + ' to mark yourself: anything not marked in time scores 0. Untimed: no clock and no marking time limit. Your choice, your times and your attempt number are printed on your PDF. <b>Emergency only:</b> in a timed test the ⏸ Pause button stops the clock and covers the test. You must write why before you can carry on, and every pause is printed on your PDF. Leaving this page is still not allowed.</details></div>'
       + (tkey() && !S.m.set && !S.mode ? '<div class="aptt-key-row"><label class="aptt-tlab">🔑 Teacher: time <select class="aptt-tsel" onchange="APTT.setTime(this.value)">' + (function () { var o = '', cur = limit(), x; for (x = 60; x <= 1200; x += 30) o += '<option value="' + x + '"' + (x === cur ? ' selected' : '') + '>' + minsTxt(x) + ' min</option>'; return o; })() + '</select></label></div>' : '')
       + (tkey() && S.m.offer && !S.mode ? '<div class="aptt-key-row"><button type="button" class="aptt-key-btn" onclick="APTT.' + (S.m.all ? 'auto' : 'all') + '()">🔑 Teacher: ' + (S.m.all ? 'back to the ' + S.m.offer.n + '-' + noun(2).slice(0, -1) + ' test (' + minsTxt(S.m.offer.secs) + ' minutes)' : 'keep all ' + S.m.offer.nAll + ' ' + noun(2) + ' instead (' + minsTxt(S.m.offer.secsAll) + ' minutes)') + '</button></div>' : '')
-      + (tkey() ? '<div class="aptt-key-row"><button type="button" class="aptt-key-btn aptt-mkbtn" onclick="APTT.maker()">🔑 Teacher: make a test link from these settings</button></div>' : '')
+      + ((tkey() || !S.m.set) ? '<div class="aptt-key-row"><button type="button" class="aptt-key-btn aptt-mkbtn" onclick="APTT.maker()">' + (tkey() ? '🔑 Teacher: make a test link from these settings' : '🔗 Make a link to share this test') + '</button></div>' : '')
       + '</div>')
       + '<div id="aptt-items">' + S.items.map(row).join('') + '</div>'
       + '<div class="aptt-msg" id="aptt-msg" role="alert" hidden></div>'
@@ -12307,12 +12307,19 @@ var APTT = (function () {
     document.body.appendChild(d);
   }
   setTimeout(apPendShow, 1500);
-  function pack(o) { if (teacherId() !== 'ap') o.tk = teacherId(); return zip(JSON.stringify(o)).then(function (t) { return sign(t, tkey()).then(function (g) { var tok = t + '.' + g; try { apPendNote(o, tok); } catch (e) { } return tok; }); }); }
+  function pack(o) { if (!tkey()) return zip(JSON.stringify(o)).then(function (t) { return t + '.u'; }); if (teacherId() !== 'ap') o.tk = teacherId(); return zip(JSON.stringify(o)).then(function (t) { return sign(t, tkey()).then(function (g) { var tok = t + '.' + g; try { apPendNote(o, tok); } catch (e) { } return tok; }); }); }
   // token "payload.signature" → the test (rejects if it was not signed by AP's key)
+  function aptSan(o) {   /* an unsigned (anyone-made) link: nothing in it may carry script or a claim to be AP's */
+    var A = /<(?!\/?(?:b|i|u|em|strong|sup|sub|br)\s*\/?>|span class="[\w -]*">|\/span>)/gi, F = ['n','k','t','m','d','a','l','lc','lv','id','cat','f'];
+    F.forEach(function (f) { if (typeof o[f] === 'string') o[f] = o[f].replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#39;'); else if (o[f] != null) delete o[f]; });
+    o.V = (Array.isArray(o.V) ? o.V : []).map(function (V) { return (Array.isArray(V) ? V : []).map(function (r) { r = Array.isArray(r) ? r : []; var h = r[4] ? 1 : 0, cl = function (x) { x = String(x == null ? '' : x); return h ? x.replace(A, '&lt;') : x; }; return [cl(r[0]), cl(r[1]), r[2] ? 1 : 0, String(r[3] == null ? '' : r[3]).replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;'), h]; }); });
+    o.s = +o.s || 0; o.q = o.q === 'draw' ? 'draw' : 'same'; o.c = ''; o.u = 1; delete o.kind; return o;
+  }
   function unpack(token) {
     token = String(token || '').trim().replace(/^.*#t=/, ''); var i = token.lastIndexOf('.');
     if (i < 2) return Promise.reject(new Error('bad'));
     var t = token.slice(0, i), g = token.slice(i + 1);
+    if (g === 'u') return unzip(t).then(function (j) { var o = JSON.parse(j); if (o.kind) throw new Error('unsigned'); o = aptSan(o); o.tok = token; return o; });
     return verify(t, g).then(function (ok) { if (!ok) throw new Error('unsigned'); return unzip(t); }).then(function (j) { var o = JSON.parse(j); o.tok = token; return o; });
   }
   function listGet() { try { return JSON.parse(lsGet('apTestLinks') || '[]') || []; } catch (e) { return []; } }
@@ -12583,7 +12590,8 @@ var APTT = (function () {
     }).catch(function (e) { b.disabled = false; b.textContent = '🔑 Make link'; say('Sorry, the tests could not be made (' + esc(e && e.message || e) + '). Is your teacher key set on this device?'); });
   }
   function maker() {
-    if (!S || !tkey()) return;
+    if (!S) return;
+    var UN = !tkey();   // no teacher key: anyone may make a plain link to share (opens as an ordinary practice test); nothing is filed and no code is made
     var d = $('aptt-mk'); if (d) d.remove();
     var secs = limit(), opts = '';
     for (var x = 60; x <= 1200; x += 30) opts += '<option value="' + x + '"' + (x === secs ? ' selected' : '') + '>' + minsTxt(x) + ' min</option>';
@@ -12603,9 +12611,16 @@ var APTT = (function () {
       + '<div class="aptt-mkact"><button type="button" class="aph-btn" id="aptt-mk-x" onclick="document.getElementById(\'aptt-mk\').remove()">Close</button><button type="button" class="aph-btn aph-btn-primary" id="aptt-mk-go">🔑 Make link</button></div>'
       + '<div id="aptt-mk-out"></div></div>';
     document.body.appendChild(d);
+    if (UN) {   // hide everything that needs a key: sets, recap copy, library heading, folder, code
+      var hide = function (x) { if (x) x.style.display = 'none'; }, hl = function (x) { if (!x) return; hide(x); var p = x.previousElementSibling; if (p && p.tagName === 'LABEL') hide(p); };
+      Array.prototype.forEach.call(d.querySelectorAll('input[name=aptt-mk-m]'), function (r) { if (r.value === 'set' || r.value === 'set2') hide(r.parentNode); });
+      var ml = d.querySelector('input[name=aptt-mk-m]'); if (ml && ml.parentNode && ml.parentNode.parentNode) { var mlab = ml.parentNode.parentNode.previousElementSibling; if (mlab && mlab.tagName === 'LABEL') hide(mlab); hide(ml.parentNode.parentNode); }
+      ['aptt-mk-r', 'aptt-mk-p'].forEach(function (id) { var x = $(id); if (x && x.parentNode && x.parentNode.parentNode) hide(x.parentNode.parentNode); });
+      hl($('aptt-mk-cat')); hl($('aptt-mk-f')); hl($('aptt-mk-c')); hide($('aptt-mk-fl'));
+    }
     var esc0 = function (e) { if (e.key !== 'Escape') return; if (document.getElementById('aptt-mk') === d) d.remove(); document.removeEventListener('keydown', esc0); };
     document.addEventListener('keydown', esc0);
-    nextCode(function (c) { var i = $('aptt-mk-c'); if (i && !i.dataset.typed) i.value = c; });
+    if (!UN) nextCode(function (c) { var i = $('aptt-mk-c'); if (i && !i.dataset.typed) i.value = c; });
     // the time limit is always the end of the name: "… · 4½ min" (kept in step when the limit is changed)
     var nm = $('aptt-mk-n'), sl = $('aptt-mk-s'), tl = function () { nm.value = nm.value.replace(/\s*·\s*\d+½?\s*min\s*$/, '') + ' · ' + minsTxt(+sl.value) + ' min'; };
     tl(); sl.addEventListener('change', tl);
@@ -12619,8 +12634,8 @@ var APTT = (function () {
         V: V.map(function (its) { return its.map(function (it) { return [it.prompt, it.answer, it.kind === 'sentence' ? 1 : 0, it.label || '', it.html ? 1 : 0]; }); }) };
       pack(o).then(function (tok) {
         var link = linkFor(tok), line = (code || 'ST???') + ' | ' + name.replace(/\|/g, '/') + ' | ' + cat + ' | ' + fol + ' | ' + tok;
-        listAdd({ n: name, c: code, cat: cat, f: fol, made: o.made, s: s2, q: q, v: V.length, items: S.items.length, t: plain(S.m.title), lv: S.m.level, app: plain(S.m.app), tok: tok });
-        $('aptt-mk-out').innerHTML = '<div class="aptt-mkok">✅ Link made' + (q === 'draw' ? ' (' + V.length + ' versions)' : '') + '. It is also saved in your list on the AP Tests page.</div>'
+        if (!UN) listAdd({ n: name, c: code, cat: cat, f: fol, made: o.made, s: s2, q: q, v: V.length, items: S.items.length, t: plain(S.m.title), lv: S.m.level, app: plain(S.m.app), tok: tok });
+        $('aptt-mk-out').innerHTML = '<div class="aptt-mkok">✅ Link made' + (q === 'draw' ? ' (' + V.length + ' versions)' : '') + (UN ? '. Copy it and paste it where your boys will find it (OneNote, Teams, an email).' : '. It is also saved in your list on the AP Tests page.') + '</div>'
           + '<label>Link for OneNote / Teams</label><div class="aptt-mkrow"><div class="aptt-mklink">🔗 <a href="' + esc(link) + '" target="_blank" rel="noopener">' + esc((name || 'Eton test') + (code ? ' (' + code + ')' : '')) + '</a></div><button type="button" class="aph-btn aph-btn-primary">📋 Copy link</button></div>'
           + '<div class="aptt-mkhint">Pastes as the name above, with the long address hidden inside it. <button type="button" class="aptt-mkplain">Copy the plain address instead</button></div>'
           + '<label>Line for tests.txt (for a code)</label><div class="aptt-mkrow"><input readonly value="' + esc(line) + '"><button type="button" class="aph-btn">📋 Copy line</button></div>'
@@ -12629,6 +12644,7 @@ var APTT = (function () {
         rows[0].querySelector('button').onclick = function () { copyLink(name + (code ? ' (' + code + ')' : ''), link, this); };
         $('aptt-mk-out').querySelector('.aptt-mkplain').onclick = function () { copyText(link, this); };
         rows[1].querySelector('button').onclick = function () { copyText(line, this); };
+        if (UN) { rows[1].style.display = 'none'; if (rows[1].previousElementSibling) rows[1].previousElementSibling.style.display = 'none'; }
         b.textContent = '✓ Made';
         // the link is made and saved: Close turns gold (it never undoes anything)
         var cx = $('aptt-mk-x'); if (cx) { cx.textContent = '✓ Close'; cx.className = 'aph-btn aph-btn-primary'; b.style.display = 'none'; }
