@@ -436,6 +436,8 @@ body{min-height:100vh;overflow-x:hidden}
 .ap-lv-note,.ap-spot-note{font-size:.875rem!important}
 #apst-overlay .vb-panel{margin:0;max-width:none;box-shadow:none;border:0;padding:4px 2px 0}
 /* View & Print (list of infinitives) */
+.vp-conj th{width:auto!important}.vp-conj td{vertical-align:top}.vp-first{font-weight:700;white-space:nowrap}.vp-en{font-weight:400;font-size:.78rem;color:#667}.vp-sech{font:700 1.05rem Georgia,serif;color:#1a2744;margin:14px 0 4px}
+
 .vb-vp{position:fixed;inset:0;background:rgba(10,18,40,.72);z-index:1000;overflow-y:auto;padding:20px 16px;box-sizing:border-box}
 .vb-vp-box{max-width:760px;margin:0 auto}
 .vb-vp .aph-panel-head{align-items:flex-start;flex-wrap:wrap;margin-bottom:6px}
@@ -7105,6 +7107,71 @@ function closeConjChallenge() {
 </script>
 <script>if (window.__cj) window.__cj.imp = { get: function () { return vqTier; }, set: function (k) { vqSet(k); }, defs: function () { return VQ_DEF; }, text: function () { return vqTierText(); }, count: function (k, fn) { var o = vqTier; vqTier = k; try { return fn(); } finally { vqTier = o; } } };
 if (window.__cj && window.__cj.inSet) { var _vqInSet0 = window.__cj.inSet; window.__cj.inSet = function (v, s) { if (FT_DEF[s]) return ftSet(v, s) && vqKeep(v); return _vqInSet0(v, s) && vqKeep(v); }; }</script>
+<script id="vp-full">
+/* View & Print: full conjugations (every form of the chosen verbs in the chosen tenses), as well as the list of infinitives */
+var vpFull = false;
+function vpOrder() { return ['PRESENT','FUTURE','PASSE_COMPOSE','IMPERFECT','CONDITIONNEL','SUBJONCTIF','PLUPERFECT','FUTUR_ANT','COND_PASSE'].filter(function (t) { return selectedTenses.has(t); }); }
+function vpData(q) {
+  var secs = [], ts = vpOrder(), seen = {};
+  ts.forEach(function (t) {
+    var rows = liveVerbs.filter(function (v) { return v.tense === t && inVerbSet(v) && (regFilter === 'all' || regFilter === 'piacere' || classifyNote(v.note) === regFilter); });
+    if (q) rows = rows.filter(function (v) { return v.en.toLowerCase().indexOf(q) >= 0 || v.inf.toLowerCase().indexOf(q) >= 0; });
+    rows = rows.slice().sort(function (a, b) { return a.en.replace('to ', '').localeCompare(b.en.replace('to ', '')); });
+    rows = vqArrange(rows);
+    rows.forEach(function (v) { seen[v.inf] = 1; });
+    if (rows.length) secs.push({ t: t, rows: rows });
+  });
+  return { secs: secs, n: Object.keys(seen).length, ts: ts };
+}
+function vpTable(sec, print) {
+  var rows = sec.rows, th = print ? 'padding:6px 8px;text-align:left;font-size:.66rem;color:#c9a84c;font-weight:700;letter-spacing:.08em;text-transform:uppercase;' : '';
+  var td = print ? 'padding:5px 8px;border-bottom:1px solid #e8ecf4;font-size:.82rem;color:#1a2744;' : '';
+  var body = rows.map(function (v, i) {
+    var f = v.forms || [];
+    return vqHead(rows, i, 7) + '<tr' + (print && i % 2 ? ' style="background:#faf8f3"' : '') + '><td' + (print ? ' style="' + td + 'font-weight:700;white-space:nowrap"' : ' class="vp-first"') + '>' + v.inf + '<div' + (print ? ' style="font-weight:400;font-size:.72rem;color:#667"' : ' class="vp-en"') + '>' + v.en + ' ' + vqBadge(v) + '</div></td>'
+      + [0, 1, 2, 3, 4, 5].map(function (k) { return '<td' + (print ? ' style="' + td + '"' : '') + '>' + (f[k] || '') + '</td>'; }).join('') + '</tr>';
+  }).join('');
+  return '<table class="vb-vp-table' + (print ? '' : ' vp-conj') + '"' + (print ? ' style="width:100%;border-collapse:collapse;border:1px solid #e2e6f0;margin:4px 0 14px"' : '') + '><thead><tr' + (print ? ' style="background:#1a2744"' : '') + '><th' + (print ? ' style="' + th + '"' : '') + '>Verb</th>' + ['je', 'tu', 'il (elle)', 'nous', 'vous', 'ils (elles)'].map(function (h) { return '<th' + (print ? ' style="' + th + '"' : '') + '>' + h + '</th>'; }).join('') + '</tr></thead><tbody>' + body + '</tbody></table>';
+}
+function vpSecHead(sec, print) { return '<div' + (print ? ' style="font:700 1rem Georgia,serif;color:#1a2744;margin:14px 0 2px;break-after:avoid"' : ' class="vp-sech"') + '>' + (TENSE_LABEL[sec.t] || sec.t) + ' <span style="font-weight:400;font-size:.8em;color:#8899bb">· ' + sec.rows.length + ' verb' + (sec.rows.length === 1 ? '' : 's') + '</span></div>'; }
+function vpOK() { return verbMode === 'quizlet'; }
+function vpToolsHtml() {
+  if (!vpOK()) return '';
+  return '<span class="vp-tools" style="display:inline-flex;gap:6px;align-items:center;margin-right:10px"><button class="aph-btn aph-btn-sm' + (vpFull ? '' : ' aph-btn-primary') + '" onclick="vpSetFull(false)">List of infinitives</button><button class="aph-btn aph-btn-sm' + (vpFull ? ' aph-btn-primary' : '') + '" onclick="vpSetFull(true)">Full conjugations</button></span>';
+}
+function vpSetFull(b) { vpFull = !!b && vpOK(); filterVerbList(); }
+var _vpRVLT0 = renderVerbListTable;
+renderVerbListTable = function (q) {
+  if (!vpOK()) vpFull = false;
+  var r = _vpRVLT0.apply(this, arguments);
+  var t = document.querySelector('#verbListModal .vb-vp-tools');
+  if (t) { var o = t.querySelector('.vp-tools'); if (o) o.remove(); t.insertAdjacentHTML('afterbegin', vpToolsHtml()); }
+  var sub = document.querySelector('#verbListModal .vb-vp-sub'); if (sub) sub.innerHTML = vpFull ? '&#127467;&#127479; Full conjugations · the chosen verbs in the tenses chosen on the main page' : '&#127467;&#127479; List of infinitives · the verbs in the chosen verb set';
+  if (vpFull) {
+    var d = vpData((q || '').trim().toLowerCase());
+    document.getElementById('verbListBody').innerHTML = !d.ts.length
+      ? '<div class="vb-vp-n">Choose at least one tense (not just Infinitive) on the main page, then open View &amp; Print again.</div>'
+      : '<div class="vb-vp-n">' + d.n + ' verb' + (d.n === 1 ? '' : 's') + ' · ' + d.ts.map(function (x) { return TENSE_LABEL[x] || x; }).join(', ') + (vqTierText() ? ' · ' + vqTierText() + ' only' : '') + (regFilter !== 'all' ? ' · ' + regFilter + ' only' : '') + '</div><div class="vb-vp-scroll">'
+        + (d.secs.length ? d.secs.map(function (sc) { return vpSecHead(sc, false) + vpTable(sc, false); }).join('') : '<div class="vb-vp-n">No verbs match.</div>') + '</div>';
+  }
+  return r;
+};
+var _vpShow0 = showVerbList;
+showVerbList = function () { vpFull = (mode === 'full') && vpOK(); return _vpShow0.apply(this, arguments); };
+var _vpPrint0 = printItVerbList;
+printItVerbList = function () {
+  if (!vpFull || !vpOK()) return _vpPrint0.apply(this, arguments);
+  var q = (document.getElementById('verbListSearch').value || '').trim().toLowerCase(), d = vpData(q);
+  if (!d.secs.length) { alert('There are no verbs to print. Choose at least one tense (not just Infinitive) on the main page.'); return; }
+  var meta = d.n + ' verbs &nbsp;&middot;&nbsp; ' + d.ts.map(function (x) { return TENSE_LABEL[x] || x; }).join(', ') + (vqTierText() ? ' &nbsp;&middot;&nbsp; ' + vqTierText() + ' only' : '') + (regFilter !== 'all' ? ' &nbsp;&middot;&nbsp; ' + regFilter + ' only' : '');
+  var html = '<!DOCTYPE html><html><head><meta charset="UTF-8"><title>Eton French Verbs — Full conjugations</title><style>' + aphCSS() + '</style><style>body{font-family:var(--aph-body);margin:0;padding:24px 28px;color:#1a2744;background:#fff}@media print{body{padding:10px 14px}@page{margin:1cm;size:A4 landscape}.no-print{display:none!important}tr{break-inside:avoid}}</style></head><body>'
+    + aphPrintHead({ kicker: 'Eton &middot; French Verbs', title: 'Full conjugations &mdash; <em>' + (d.ts.length === 1 ? (TENSE_LABEL[d.ts[0]] || d.ts[0]) : d.ts.length + ' tenses') + '</em>', meta: meta, strip: false })
+    + d.secs.map(function (sc) { return vpSecHead(sc, true) + vpTable(sc, true); }).join('')
+    + aphPrintFoot('Eton French Verbs &middot; View &amp; Print &middot; Full conjugations') + '</body></html>';
+  var w = window.open('', '_blank'); if (!w) { alert('Please allow pop-ups for this page, then try again.'); return; }
+  w.document.write(html); w.document.close();
+};
+</script>
 </body>
 </html>
 <script>
