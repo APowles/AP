@@ -5931,6 +5931,7 @@ function openVVBrowse(){
         <div class="vvb-foot">
           <div id="vvbCount" class="vvb-count"></div>
           <div id="vvbLvSlot"></div>
+          <label id="vvbAnsRow" style="display:flex;align-items:center;gap:8px;margin:2px 0 8px;font-size:0.82rem;font-weight:600;color:#1a2744;cursor:pointer"><input type="checkbox" id="vvbAnsChk" style="width:18px;height:18px" onchange="vvbAns=this.checked"> Include the answers on a separate last page <span style="font-weight:400;color:#8899bb">(off: the sheet is for the boys, with no answers)</span></label>
           <div class="vvb-prints">
             <button class="vvb-pbtn navy" onclick="vvbPrint('list')">&#128424; List</button>
             <button class="vvb-pbtn" onclick="vvbPrint('study')">&#128424; Study Sheet</button>
@@ -6141,6 +6142,7 @@ function vvbReveal(key){
 
 // ── Printing ─────────────────────────────────────────────────
 // The sheet behind the Print buttons AND the one-click-copy vocab list: { title, css1 (page), css2 (sheet), css (both), body }. opt: { setsTitle, print:false (no Print button) }
+var vvbAns = false;   // View & Print tests: answers only when the teacher ticks 'Include the answers'
 function vvbSheet(kind, groups, opt){
   const mixPct = kind === 'testmix50' ? 50 : kind === 'testmix70' ? 70 : 0;
   const lvTest = kind === 'testfr' || kind === 'testen' || mixPct > 0;
@@ -6195,7 +6197,7 @@ function vvbSheet(kind, groups, opt){
 
   // Answer key on a fresh page for the two test versions
   let answers = '';
-  if (isTest) {
+  if (isTest && (opt.answers != null ? opt.answers : vvbAns)) {
     let n = 0, rows = '';
     groups.forEach(g => g.items.forEach(it => {
       n++;
