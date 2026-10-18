@@ -3522,7 +3522,7 @@ let isLeisureMode = false;
 let isAutotime = false;
 let fromLang = 'en';
 let toLang = 'fr';
-let _selectedCount = 20;
+let _selectedCount = -1;   // default: all the cards
 // ── Mix both ways ── 0 = Off (one direction, as set above); 50 or 70 = % of cards English → French, the rest French → English.
 // Never remembered: every visit starts Off.
 let vvMix = 0;
@@ -40035,7 +40035,7 @@ function renderGrammarMenu() {
         <span class="aph-note">Cards per session</span>
         ${(()=>{const tot=[...grSelected].reduce((n,id)=>{const s=GR_SETS.find(x=>x.id===id);return n+(s?grFilterSentences(s.sentences).length:0);},0);
         return [10,20].filter(n=>n<tot).map(n=>`<button class="aph-chip ${grState.drillCount===n?'on':''}" onclick="grSetCount(${n})">${n}</button>`).join('')
-        + `<button class="aph-chip ${grState.drillCount===tot?'on':''}" onclick="grSetCount(${tot})">All ${tot}</button>`
+        + `<button class="aph-chip ${(!grState.drillCount||grState.drillCount>=tot)?'on':''}" onclick="grSetCount(${tot})">All ${tot}</button>`
         + (tot>20?`<input class="aph-input" type="number" min="1" max="${tot}" value="${Math.min(grState.drillCount||tot,tot)}" onchange="grSetCount(Math.min(${tot},Math.max(1,parseInt(this.value)||10)))" style="width:70px;text-align:center" placeholder="N">`:'');
         })()}
       </div>
@@ -40160,7 +40160,7 @@ function startMultiGrammarDrill() {
     if (s) pool = pool.concat(grFilterSentences(s.sentences).map((sen, i) => ({...sen, _setId: id, _origIdx: i})));
   });
   pool.sort(() => Math.random() - 0.5);
-  const count = grState.drillCount || 40;
+  const count = grState.drillCount || 99999;
   const shuffled = pool.slice(0, count);
   if (grState.leisure) { grLeisureStart(shuffled, '__multi__', ids); return; }   // hands-free, no marking
   grState = {
@@ -40243,14 +40243,14 @@ function renderGrammarOptions(setId) {
       </div>
       <div class="aph-row">
         ${[10,20].filter(n=>n<grFilterSentences(set.sentences).length).map(n=>`<button class="aph-chip ${grState.drillCount===n?'on':''}" onclick="grSetCount(${n})">${n}</button>`).join('')}
-        <button class="aph-chip ${grState.drillCount===grFilterSentences(set.sentences).length?'on':''}" onclick="grSetCount(${grFilterSentences(set.sentences).length})">All ${grFilterSentences(set.sentences).length}</button>
+        <button class="aph-chip ${(!grState.drillCount||grState.drillCount>=grFilterSentences(set.sentences).length)?'on':''}" onclick="grSetCount(${grFilterSentences(set.sentences).length})">All ${grFilterSentences(set.sentences).length}</button>
         ${grFilterSentences(set.sentences).length>20?`<input class="aph-input" type="number" min="1" max="${grFilterSentences(set.sentences).length}" value="${Math.min(grState.drillCount||grFilterSentences(set.sentences).length,grFilterSentences(set.sentences).length)}" onchange="grSetCount(Math.min(${grFilterSentences(set.sentences).length},Math.max(1,parseInt(this.value)||10)))" style="width:70px;text-align:center">`:''}
       </div>
       <div class="aph-label">Timer per card</div>
       <div class="aph-row">
         ${[10,15,20,30].map(s=>`<button class="aph-chip ${!grState.leisure&&grState.timerSecs===s?'on':''}" onclick="grSetTimer(${s})">${s}s</button>`).join('')}
       </div>
-      <button onclick="startGrammarDrill('${setId}')" class="aph-btn aph-btn-primary aph-btn-block" style="margin-top:22px">&#9654; ${grState.leisure ? 'Start Leisure Mode' : 'Start Drill'} · ${Math.min(grState.drillCount || 40, grFilterSentences(set.sentences).length)} cards</button>
+      <button onclick="startGrammarDrill('${setId}')" class="aph-btn aph-btn-primary aph-btn-block" style="margin-top:22px">&#9654; ${grState.leisure ? 'Start Leisure Mode' : 'Start Drill'} · ${Math.min(grState.drillCount || 99999, grFilterSentences(set.sentences).length)} cards</button>
       <div class="aph-stack">
         <button class="aph-btn aph-btn-block ${grState.leisure?'on':''}" onclick="grToggleLeisure()">☕ Leisure Mode${grState.leisure?' · On':''}</button>
         ${grState.leisure ? APLZ.ctrlHTML('gr', 'setup') : ''}
@@ -40407,7 +40407,7 @@ function startGrammarDrill(setId) {
   const set = GR_SETS.find(s => s.id === setId);
   if (!set) return;
   const pool = grFilterSentences(set.sentences);
-  const count = Math.min(grState.drillCount || 40, pool.length);
+  const count = Math.min(grState.drillCount || 99999, pool.length);
   const shuffled = [...pool].map((s,i)=>({...s,_origIdx:i})).sort(() => Math.random() - 0.5).slice(0, count);
   if (grState.leisure) { grLeisureStart(shuffled, setId); return; }   // hands-free, no marking
   grState = {
@@ -47202,7 +47202,7 @@ let mlfState = {
   showBonus: { fr: false, es: false, it: false },
   timerSecs: 15,
   leisure: false,
-  drillCount: 20,
+  drillCount: 99999,
   shuffled: [],
   idx: 0,
   errors: [],
@@ -47249,7 +47249,7 @@ function renderMLF() {
       <div class="aph-label">Cards per session</div>
       <div class="aph-row">
         ${[10,20].filter(n=>n<pool.length).map(n=>`<button class="aph-chip ${mlfState.drillCount===n?'on':''}" onclick="mlfSetCount(${n})">${n}</button>`).join('')}
-        <button class="aph-chip ${mlfState.drillCount===pool.length?'on':''}" onclick="mlfSetCount(${pool.length})">All ${pool.length}</button>
+        <button class="aph-chip ${mlfState.drillCount>=pool.length?'on':''}" onclick="mlfSetCount(${pool.length})">All ${pool.length}</button>
         <input class="aph-input" type="number" min="1" max="${pool.length}" value="${Math.min(mlfState.drillCount,pool.length)}" onchange="mlfSetCount(Math.min(${pool.length},Math.max(1,parseInt(this.value)||10)))" style="width:70px;text-align:center">
       </div>
       <div class="aph-label">Timer per card</div>
@@ -49362,7 +49362,7 @@ function mlfLeisureStart(deck) {
         else ids = GR_SETS.map(function (s) { return s.id; }).filter(function (id) { return grSelected.has(id); });
         if (!ids.length) return { why: 'No grammar sets are chosen. Tick the sets first.' };
         pool = grPool(ids); if (!pool) return { why: 'No sentences in that selection.' };
-        c = { m: 'gr', ids: ids, tp: grTopicFilter, n: grState.drillCount || 40, tm: grState.timerSecs || 15, lz: grState.leisure ? 1 : 0 };
+        c = { m: 'gr', ids: ids, tp: grTopicFilter, n: grState.drillCount || 99999, tm: grState.timerSecs || 15, lz: grState.leisure ? 1 : 0 };
         var names = ids.map(function (id) { return GR_SETS.filter(function (x) { return x.id === id; })[0].title; });
         var lab = ids.length === GR_SETS.length ? 'all ' + ids.length + ' sets' : (ids.length > 2 ? ids.length + ' sets' : names.join(' + '));
         return { cfg: c, title: 'Grammar Drill: ' + lab + (c.tp ? ' · ' + (c.tp === -1 ? 'Generic' : 'Topic ' + c.tp + ' ' + GR_TOPIC_NAMES[c.tp]) : '') + ' · ' + Math.min(c.n, pool) + ' cards' + (c.lz ? ' · Leisure Mode' : ' · ' + c.tm + 's') };
