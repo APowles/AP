@@ -2576,8 +2576,20 @@ function aptResumeBox() {
   aptResumeBox();
   var h = location.hash || '';
   if (/^#t=/.test(h)) aptRun(h.slice(3));
+  else if (/^#p=/.test(h)) aptPrintLink(h.slice(3));
   else if (/^#c=/.test(h)) { var c = decodeURIComponent(h.slice(3)); document.getElementById('apt-code').value = c; aptCode(c); }
 })();
+
+// a paper-copy link: Eton Tests.html#p=<signed test>  opens the student sheet (questions and lines, no answers) ready to print
+function aptPrintLink(token) {
+  aptMsg('Opening the paper copy…', 'wait');
+  APTT.unpack(token).then(function (o) {
+    aptFix(o);
+    var e = { o: o, tok: token, n: o.n, c: '', t: o.t };
+    if (!aptCanPrint(e) || o.kind) throw new Error('bad');
+    APT_LIB = [e]; window.APT_SELF = true; aptPrint(0, 's');
+  }).catch(function () { aptMsg('This paper copy could not be opened. Please ask the person who sent you the link.', 'bad'); });
+}
 
 // ── AP's teacher area (unlocked with AP's teacher key on this device) ──
 function aptTeacher() {
@@ -2750,6 +2762,7 @@ function aptPrint(i, what) {
     + '<div class="apr-bar">🖨 Paper copy &middot; ' + aptEsc(aptLinkName(e)) + '<button onclick="window.print()">🖨 Print</button></div>' + body
     + '<scr' + 'ipt>window.addEventListener("load",function(){setTimeout(function(){try{window.print()}catch(e){}},400)});</scr' + 'ipt></body></html>';
   var p = document.getElementById('apt-pr'); if (p) p.remove();
+  if (window.APT_SELF) { document.open(); document.write(html); document.close(); return; }   // a paper-copy link (#p=): the sheet replaces this page
   var w = null; try { w = window.open('', '_blank'); } catch (x) { }
   if (w && w.document) { w.document.open(); w.document.write(html); w.document.close(); return; }
   var ov = document.createElement('div'); ov.className = 'apmp-frame'; ov.innerHTML = '<div class="apmp-frame-bar"><button type="button" class="apmp-btn on-dark">🖨 Print</button><span>Pop-ups are blocked, so the paper copy is shown here.</span><button type="button" class="aph-btn aph-btn-sm">✕ Close</button></div>';
