@@ -2507,44 +2507,14 @@ var APTT = (function () {
     return new Response(new Blob([b]).stream().pipeThrough(new DecompressionStream('deflate-raw'))).text();
   }
   function subtle() { return window.crypto && window.crypto.subtle; }
-  // A teacher key is either AP's (a bare string, or 'AP-…': the private number d, paired with the built-in PUB), or a colleague's bundle {"id":"js","x":…,"y":…,"d":…}.
-  // A colleague's public key is listed in teachers.json (only AP can edit it); a test they sign names them (tk) and counts only if it checks out against that listed key.
-  function tkInfo(d) {
-    var s = String(d || '').trim();
-    if (s.charAt(0) === '{') { try { var j = JSON.parse(s); if (j && j.id && j.x && j.y && j.d) return { id: String(j.id).toLowerCase(), pub: { kty: 'EC', crv: 'P-256', x: j.x, y: j.y }, d: String(j.d) }; } catch (e) { } }
-    return { id: 'ap', pub: PUB, d: s.replace(/^AP-/, '').trim() };
-  }
-  function teacherId() { return tkInfo(tkey()).id; }
-  function signKey(d) { var t = tkInfo(d); return subtle().importKey('jwk', { kty: 'EC', crv: 'P-256', x: t.pub.x, y: t.pub.y, d: t.d, ext: true }, ALG, false, ['sign']); }
-  var TEACHERS_URL = 'https://raw.githubusercontent.com/APowles/AP/main/teachers.json', _TL = null;
-  function loadTeachers() {   // { id: { pub, prefix, repo, name } } from teachers.json (AP-only file); the last good copy is kept on this device for when the network is down
-    if (_TL) return _TL;
-    _TL = fetch(TEACHERS_URL, { cache: 'no-store' }).then(function (r) { if (!r.ok) throw new Error('teachers'); return r.text(); })
-      .then(function (t) { try { localStorage.setItem('apTeachersCache', t); } catch (e) { } return t; })
-      .catch(function () { try { return localStorage.getItem('apTeachersCache') || '{}'; } catch (e) { return '{}'; } })
-      .then(function (t) {
-        var L = {}; try { ((JSON.parse(t) || {}).teachers || []).forEach(function (x) { if (x && x.id && x.pub && x.pub.x && x.pub.y && String(x.id).toLowerCase() !== 'ap') L[String(x.id).toLowerCase()] = { name: x.name || x.id, prefix: x.prefix || '', repo: x.repo || '', pub: { kty: 'EC', crv: 'P-256', x: x.pub.x, y: x.pub.y } }; }); } catch (e) { }
-        return L;
-      });
-    return _TL;
-  }
-  function teacherPub(id) { return !id || id === 'ap' ? Promise.resolve(PUB) : loadTeachers().then(function (L) { return L[id] ? L[id].pub : null; }); }
+  function signKey(d) { return subtle().importKey('jwk', { kty: 'EC', crv: 'P-256', x: PUB.x, y: PUB.y, d: String(d).replace(/^AP-/, '').trim(), ext: true }, ALG, false, ['sign']); }
   function sign(tok, d) { return signKey(d).then(function (k) { return subtle().sign(SIG, k, utf8(tok)); }).then(b64u); }
   function verify(tok, sig) {
     if (!subtle()) return Promise.reject(new Error('nocrypto'));
-    var chk = function (pub) { return subtle().importKey('jwk', pub, ALG, false, ['verify']).then(function (k) { return subtle().verify(SIG, k, unb64u(sig), utf8(tok)); }); };
-    // AP's own tests are checked first, exactly as before; only if that fails is a colleague's listed key tried (the test must name them: tk)
-    return chk(PUB).then(function (ok) {
-      if (ok) return true;
-      return unzip(tok).then(function (j) { var id = String((JSON.parse(j) || {}).tk || '').toLowerCase(); if (!id || id === 'ap') return false; return teacherPub(id).then(function (p) { return p ? chk(p) : false; }); }).catch(function () { return false; });
-    });
+    return subtle().importKey('jwk', PUB, ALG, false, ['verify']).then(function (k) { return subtle().verify(SIG, k, unb64u(sig), utf8(tok)); });
   }
   // a teacher key is good if what it signs checks out with the public key
-  function checkKey(d) {   // good if what it signs checks out with its own public key, and (for a colleague) that key is the one AP listed
-    var ti = tkInfo(d), t = 'AP key check ' + Date.now();
-    return sign(t, d).then(function (g) { return subtle().importKey('jwk', ti.pub, ALG, false, ['verify']).then(function (k) { return subtle().verify(SIG, k, unb64u(g), utf8(t)); }); })
-      .then(function (ok) { if (!ok || ti.id === 'ap') return ok; return teacherPub(ti.id).then(function (p) { return !!p && p.x === ti.pub.x && p.y === ti.pub.y; }); }).catch(function () { return false; });
-  }
+  function checkKey(d) { var t = 'AP key check ' + Date.now(); return sign(t, d).then(function (g) { return verify(t, g); }).catch(function () { return false; }); }
   /* ── Unsaved test codes (Oct 2026): every test link made with a code is noted on this device, and the note is cleared only when the code is really
         on the Eton Tests page. Anything left over shows a red banner on every Eton page until it is added (or copied into tests.txt). ── */
   var _ghAdd0 = ghAdd;
@@ -2585,7 +2555,7 @@ var APTT = (function () {
     document.body.appendChild(d);
   }
   setTimeout(apPendShow, 1500);
-  function pack(o) { if (!tkey()) return zip(JSON.stringify(o)).then(function (t) { return t + '.u'; }); if (teacherId() !== 'ap') o.tk = teacherId(); return zip(JSON.stringify(o)).then(function (t) { return sign(t, tkey()).then(function (g) { var tok = t + '.' + g; try { apPendNote(o, tok); } catch (e) { } return tok; }); }); }
+  function pack(o) { return zip(JSON.stringify(o)).then(function (t) { if (!tkey()) return t + '.u'; return sign(t, tkey()).then(function (g) { var tok = t + '.' + g; try { apPendNote(o, tok); } catch (e) { } return tok; }); }); }
   // token "payload.signature" → the test (rejects if it was not signed by AP's key)
   function aptSan(o) {   /* an unsigned (anyone-made) link: nothing in it may carry script or a claim to be AP's */
     var A = /<(?!\/?(?:b|i|u|em|strong|sup|sub|br)\s*\/?>|span class="[\w -]*">|\/span>)/gi, F = ['n','k','t','m','d','a','l','lc','lv','id','cat','f'];
