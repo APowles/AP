@@ -6885,13 +6885,14 @@ function openCompTestPDF(type){
 // Essential = verbs to learn and be able to use in your own speaking and writing; Important = the next most useful; Useful = worth knowing.
 // Judged only by how likely you are to need the verb to produce it. Specialist and Top Structures verbs are not graded and always stay in.
 var VQ_TIER = {"E":["être","avoir","aller","faire","pouvoir","vouloir","devoir","savoir","voir","dire","prendre","venir","donner","y avoir","falloir","sortir","partir","rester","arriver","trouver","jouer","regarder","passer","commencer","comprendre","s'appeler","rentrer","demander","acheter","visiter","voyager","préférer","écouter","lire","s'amuser","décider","aider","choisir","apprendre","connaître"],"I":["attendre","boire","chercher","conduire","coûter","devenir","entrer","envoyer","espérer","expliquer","montrer","offrir","oublier","ouvrir","payer","porter","réussir","se coucher","se dépêcher","écrire","essayer","apporter","dormir","se reposer","s'occuper de","finir","répondre","quitter","s'ennuyer","rendre visite à"],"U":["se disputer","appartenir","se casser","amener","se plaindre","encourager","défendre","se fâcher","se faire mal","compter","rire","ressembler à","obliger","rater","remarquer","reconnaître","se souvenir","courir","partager","emmener","enlever","ranger","promettre","vendre","téléphoner","entendre","se tromper","continuer","recevoir","appeler"]};
-var VQ_MAP = {};
+var VQ_MAP = {}, VQ_HALF = {};
+VQ_TIER.E.forEach(function (inf, i) { VQ_HALF[inf] = i < 20 ? 1 : 2; });   // Essential 1 = the first 20 Essential verbs, Essential 2 = the second 20
 ['E', 'I', 'U'].forEach(function (t) { VQ_TIER[t].forEach(function (inf) { VQ_MAP[inf] = t; }); });
-var VQ_DEF = [['E', 'Essential', 'learn it and be able to use it yourself'], ['I', 'Important', 'the next most useful verbs'], ['EI', 'Essential + Important', 'both of the above'], ['U', 'Useful', 'worth knowing; least likely to be needed'], ['ALL', 'All verbs', 'every verb in the set']];
-var VQ_NAME = { E: 'Essential', I: 'Important', U: 'Useful' };
+var VQ_DEF = [['E', 'Essential', 'learn it and be able to use it yourself (all 40)'], ['E1', 'Essential 1', 'the first 20 Essential verbs: a gentler start'], ['E2', 'Essential 2', 'the second 20 Essential verbs'], ['I', 'Important', 'the next most useful verbs'], ['EI', 'Essential + Important', 'both of the above'], ['U', 'Useful', 'worth knowing; least likely to be needed'], ['ALL', 'All verbs', 'every verb in the set']];
+var VQ_NAME = { E: 'Essential', E1: 'Essential 1', E2: 'Essential 2', I: 'Important', U: 'Useful' };
 var vqTier = 'ALL', vqGroup = 'az';
 function vqOf(x) { if (!x) return null; var g = x.group; if (g === 'structures' || g === 'specialist') return null; return VQ_MAP[x.inf] || null; }
-function vqKeep(x) { if (vqTier === 'ALL') return true; var t = vqOf(x); return t === null || vqTier.indexOf(t) >= 0; }
+function vqKeep(x) { if (vqTier === 'ALL') return true; var t = vqOf(x); if (t === null) return true; if (vqTier === 'E1' || vqTier === 'E2') return t === 'E' && VQ_HALF[x.inf] === (vqTier === 'E1' ? 1 : 2); return vqTier.indexOf(t) >= 0; }
 var _vqInVerbSet0 = inVerbSet; inVerbSet = function (v) { return _vqInVerbSet0(v) && vqKeep(v); };
 var _vqInSentSet0 = inSentSet; inSentSet = function (s, vs) { return _vqInSentSet0(s, vs) && vqKeep(s); };
 var _vqApLvOK0 = apLvOK; apLvOK = function (x, lv) { var y = x; if (y && y.verb) y = y.verb; else if (y && y.inf && typeof y.inf === 'object') y = y.inf; return _vqApLvOK0(x, lv) && vqKeep(y); };
@@ -6910,17 +6911,18 @@ function vqRowHtml(style) {
   if (style === 'pill') return '<div style="margin:0 0 16px 0"><div style="font-size:0.68rem;font-weight:600;color:#8899bb;text-transform:uppercase;letter-spacing:.07em;margin:0 0 8px 0">IMPORTANCE <span style="text-transform:none;letter-spacing:0;font-weight:500">— Quizlet verbs only</span></div><div style="display:flex;gap:6px;flex-wrap:wrap">' + chips + '</div></div>';
   return '<div class="aph-label">Importance <span class="vb-light">Quizlet verbs only</span></div><div class="aph-row">' + chips + '</div>';
 }
-function vqBadge(r) { var t = vqOf(r); return t ? '<span title="' + VQ_NAME[t] + '" style="display:inline-block;min-width:1.35em;text-align:center;font:700 .6875rem/1.35 sans-serif;border-radius:4px;margin-right:6px;padding:0 3px;color:#fff;background:' + (t === 'E' ? '#1a2744' : t === 'I' ? '#a8862e' : '#8a93a8') + '">' + t + '</span>' : ''; }
+function vqBadge(r) { var t = vqOf(r); return t ? '<span title="' + VQ_NAME[t] + '" style="display:inline-block;min-width:1.35em;text-align:center;font:700 .6875rem/1.35 sans-serif;border-radius:4px;margin-right:6px;padding:0 3px;color:#fff;background:' + (t === 'E' ? '#1a2744' : t === 'I' ? '#a8862e' : '#8a93a8') + '">' + (t === 'E' && VQ_HALF[r.inf] ? 'E' + VQ_HALF[r.inf] : t) + '</span>' : ''; }
 // View & Print: A-Z (as before) or grouped Essential / Important / Useful
 function vqArrange(rows) {
   if (vqGroup !== 'tier') return rows;
-  var o = { E: 0, I: 1, U: 2 }, key = function (r) { var t = vqOf(r); return t ? o[t] : 3; };
+  var o = { E1: 0, E2: 1, I: 2, U: 3 }, key = function (r) { var t = vqG(r); return t ? o[t] : 4; };
   return rows.map(function (r, i) { return [r, i]; }).sort(function (a, b) { return key(a[0]) - key(b[0]) || a[1] - b[1]; }).map(function (x) { return x[0]; });
 }
+function vqG(r) { var t = vqOf(r); return t === 'E' && VQ_HALF[r.inf] ? 'E' + VQ_HALF[r.inf] : t; }
 function vqHead(rows, i, n) {
   if (vqGroup !== 'tier') return '';
-  var t = vqOf(rows[i]) || 'O'; if (i > 0 && (vqOf(rows[i - 1]) || 'O') === t) return '';
-  var c = rows.filter(function (r) { return (vqOf(r) || 'O') === t; }).length, name = t === 'O' ? 'Other verbs (not graded)' : VQ_NAME[t];
+  var t = vqG(rows[i]) || 'O'; if (i > 0 && (vqG(rows[i - 1]) || 'O') === t) return '';
+  var c = rows.filter(function (r) { return (vqG(r) || 'O') === t; }).length, name = t === 'O' ? 'Other verbs (not graded)' : VQ_NAME[t];
   return '<tr><td colspan="' + n + '" style="background:#1a2744;color:#ffd76a;padding:6px 10px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;font-size:.75rem">' + name + ' · ' + c + ' verb' + (c === 1 ? '' : 's') + '</td></tr>';
 }
 function vqToolsHtml() {
