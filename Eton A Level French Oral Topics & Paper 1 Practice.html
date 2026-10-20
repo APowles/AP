@@ -4,7 +4,7 @@
 <script id="ap-update">
 /* AP auto-update: if this copy is older than the published version, reload once with the new one (saved answers are kept) */
 (function () {
-  var B = '412c5c06f3'; window.AP_BUILD = B;
+  var B = '5aa725d2ed'; window.AP_BUILD = B;
   function check() {
     if (!/^https?:$/.test(location.protocol) || !window.fetch) return;
     var f = decodeURIComponent(location.pathname.split('/').pop() || '');
@@ -13571,6 +13571,7 @@ body.proj .hero-panel{max-width:min(1300px,90%)}
 .mc-img.spin img{filter:blur(2px) saturate(1.25)}
 .mc-ph{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;color:#f3d98a;font-family:var(--head);font-size:clamp(1.2rem,3vw,2rem);text-align:center;padding:20px}
 .mc-ph b{font-size:clamp(3rem,9vw,6rem)}
+:fullscreen body{overflow:auto}:fullscreen .mc-img{width:min(100%,calc((100vh - 250px)*var(--ar)))}
 .mc-bg{position:absolute;inset:0;background:#101828 center/cover no-repeat;animation:mcdrift 14s ease-in-out infinite alternate}
 @keyframes mcdrift{from{transform:scale(1)}to{transform:scale(1.05)}}
 .mc-ph2{justify-content:flex-end;padding:0 0 3%;gap:2px;background:linear-gradient(0deg,rgba(8,14,30,.95) 0,rgba(8,14,30,.8) 22%,rgba(8,14,30,.35) 36%,rgba(8,14,30,0) 46%)}
@@ -13811,6 +13812,7 @@ function go(v,sub,k){
   svStop();spClear();if(v!=="machine"&&typeof mcStop==="function")mcStop();if(v==="home")HM.pick=0;if(v==="ktr"&&sub!=null&&k!=null){try{localStorage.setItem("ktr-studio-last",JSON.stringify({sub:sub,k:k}))}catch(e){}}
   if(v!=='speed'&&typeof spdStop==='function')spdStop();
   if(v!=='ktr')S.fromMachine=false;
+  if(v!=='machine')mcFs(false);
   S.view=v;if(sub!=null)S.sub=sub;if(k!=null){S.k=k;S.stage='c';S.step=0;S.mode='deck';S.drill='recall';S.uq=0;initDrills()}
   if(v==='sub')S.story=1;
   render();window.scrollTo(0,0);
@@ -14169,16 +14171,18 @@ function mcStop(){if(MC.to){clearTimeout(MC.to);MC.to=null}if(MC.iv){clearInterv
 function mcLoc(n){for(const s of SUBS){const i=s.ktrs.findIndex(k=>k.n===n);if(i>=0)return{s:s,i:i,k:s.ktrs[i]}}return null}
 function openMachine(ids){
   if(S.view!=='machine')S.from=S.view;
-  mcStop();MC.ids=new Set((ids||[]).filter(n=>ILLUS[n]));MC.phase='setup';go('machine');
+  mcStop();MC.ids=new Set((ids&&ids.length?ids:Object.keys(ILLUS).map(Number)).filter(n=>ILLUS[n]));MC.phase='setup';mcFs(true);go('machine');
 }
-function closeMachine(){mcStop();try{speechSynthesis.cancel()}catch(e){}S.view=S.from&&S.from!=='machine'?S.from:'home';render();window.scrollTo(0,0)}
+function mcFs(on){try{const d=document.documentElement;if(on&&!document.fullscreenElement){const r=(d.requestFullscreen||d.webkitRequestFullscreen).call(d);if(r&&r.catch)r.catch(()=>{})}else if(!on&&document.fullscreenElement){const r=(document.exitFullscreen||document.webkitExitFullscreen).call(document);if(r&&r.catch)r.catch(()=>{})}}catch(e){}}
+function mcFsToggle(){mcFs(!document.fullscreenElement);setTimeout(render,150)}
+function closeMachine(){mcFs(false);mcStop();try{speechSynthesis.cancel()}catch(e){}S.view=S.from&&S.from!=='machine'?S.from:'home';render();window.scrollTo(0,0)}
 function mcSet(k,v){MC[k]=v;render()}
 function mcTog(n,on){if(on)MC.ids.add(n);else MC.ids.delete(n);render()}
 function mcGroup(sub,on){const s=SUBS.find(x=>x.subtheme===sub);s.ktrs.forEach(k=>{if(ILLUS[k.n]){if(on)MC.ids.add(k.n);else MC.ids.delete(k.n)}});render()}
 function mcTheme(th){MC.ids=new Set();SUBS.filter(s=>th===0||s.theme===th).forEach(s=>s.ktrs.forEach(k=>{if(ILLUS[k.n])MC.ids.add(k.n)}));render()}
-function mcBegin(){MC.seen=new Set();MC.ok=[];MC.near=[];MC.cur=null;MC.reset=false;MC.phase='idle';render();window.scrollTo(0,0)}
+function mcBegin(){mcFs(true);MC.seen=new Set();MC.ok=[];MC.near=[];MC.cur=null;MC.reset=false;MC.phase='idle';render();window.scrollTo(0,0)}
 function mcSpin(){
-  mcStop();try{speechSynthesis.cancel()}catch(e){}
+  mcFs(true);mcStop();try{speechSynthesis.cancel()}catch(e){}
   const all=[...MC.ids];MC.reset=false;
   let pool=all.filter(n=>!MC.seen.has(n));
   if(!pool.length){MC.seen=new Set();pool=all.slice();MC.reset=true}
@@ -14210,24 +14214,25 @@ function mcTick(){
 }
 function mcReveal(){if(MC.iv){clearInterval(MC.iv);MC.iv=null}MC.phase='reveal';MC.act=null;render()}
 function mcAct(i){MC.act=MC.act===i?null:i;render();if(MC.act!==null)fsSay(ILLUS[MC.cur].spots[MC.act].fr)}
-function mcPractise(st){const x=mcLoc(MC.cur);if(!x)return;go('ktr',x.s.subtheme,x.i);S.stage=st;S.step=0;S.fromMachine=true;render();window.scrollTo(0,0)}
-function mcBackToMachine(){S.fromMachine=false;S.view='machine';render();window.scrollTo(0,0)}
+function mcPractise(st){const x=mcLoc(MC.cur);if(!x)return;mcFs(false);go('ktr',x.s.subtheme,x.i);S.stage=st;S.step=0;S.fromMachine=true;render();window.scrollTo(0,0)}
+function mcBackToMachine(){mcFs(true);S.fromMachine=false;S.view='machine';render();window.scrollTo(0,0)}
 function mcMark(v){
   (v==='ok'?MC.ok:MC.near).push(MC.cur);try{speechSynthesis.cancel()}catch(e){}
   MC.phase=MC.seen.size>=MC.ids.size?'done':'idle';MC.cur=null;render();window.scrollTo(0,0)
 }
+function mcThemeTog(t){const ids=[];SUBS.filter(s=>s.theme===t).forEach(s=>s.ktrs.forEach(k=>{if(ILLUS[k.n])ids.push(k.n)}));const all=ids.every(n=>MC.ids.has(n));ids.forEach(n=>{if(all)MC.ids.delete(n);else MC.ids.add(n)});render()}
 function vMachineSetup(){
+  const chips=[1,2,3,4].map(t=>{const ids=[];SUBS.filter(s=>s.theme===t).forEach(s=>s.ktrs.forEach(k=>{if(ILLUS[k.n])ids.push(k.n)}));const on=ids.length&&ids.every(n=>MC.ids.has(n));
+    return `<button class="tg${on?' on':''}" onclick="mcThemeTog(${t})">Thème ${t} · ${esc(HMT[t])} (${ids.length})</button>`}).join('');
   const groups=SUBS.map(s=>{const ks=s.ktrs.filter(k=>ILLUS[k.n]);if(!ks.length)return '';
     return `<div class="sp-grp"><div class="sp-gh"><span>Sub-theme ${s.subtheme} · ${esc(s.name)}</span><span class="mini"><button onclick="mcGroup(${s.subtheme},true)">All ${ks.length}</button><button onclick="mcGroup(${s.subtheme},false)">None</button></span></div>
     <div class="sp-ks">${ks.map(k=>`<label><input type="checkbox" ${MC.ids.has(k.n)?'checked':''} onchange="mcTog(${k.n},this.checked)"><span>${esc(k.term)}</span></label>`).join('')}</div></div>`}).join('');
   const n=MC.ids.size;
   return `<div class="label">Machine à images · Image machine</div><h1 class="h1">Quelle image ? Tournez !</h1>
-  <p class="lead">The pictures spin and stop at random. The boys say which KTR it is and talk about it for the time you choose. No picture comes up twice until every one has been seen. Then you reveal the details and mark it: OK or Near.</p>
-  <div class="row" style="margin-top:12px"><span class="label" style="margin:0">Quick choice</span>
-    ${[1,2,3,4].map(t=>`<button class="btn" onclick="mcTheme(${t})">Theme ${t}</button>`).join('')}
-    <button class="btn" onclick="mcTheme(0)">Everything</button><button class="btn" onclick="MC.ids=new Set();render()">Clear</button></div>
+  <p class="lead">The pictures spin and stop at random. Say which KTR it is and talk about it for the time you choose. No picture comes up twice until every one has been seen. Then reveal the details, work on the KTR, and mark yourself.</p>
+  <div class="row" style="margin-top:12px"><span class="label" style="margin:0">Themes</span>${chips}<button class="btn" onclick="MC.ids=new Set();render()">Clear all</button><button class="btn" onclick="mcTheme(0)">Select all</button></div>
   <div class="sp-set"><label>Parler pendant · Talk time <select onchange="mcSet('secs',+this.value)">${[20,30,45,60,90].map(v=>`<option value="${v}"${v===MC.secs?' selected':''}>${v} s</option>`).join('')}</select></label></div>
-  ${groups}
+  <details style="margin-top:10px"><summary class="label" style="cursor:pointer">Choose individual KTRs</summary>${groups}</details>
   <div class="sp-sum"><span class="t">${n} picture${n===1?'':'s'} chosen${n<2?' (choose at least 2)':''}</span><button class="spbtn pri" ${n<2?'disabled':''} onclick="mcBegin()">▶ Set up the machine</button><button class="btn" onclick="closeMachine()">Back</button></div>`;
 }
 function mcTally(){return `<div class="mc-tally"><span>Vus · seen ${MC.seen.size} / ${MC.ids.size}</span><span style="color:#2b7a4b">✓ OK ${MC.ok.length}</span><span style="color:#a96a0c">≈ Near ${MC.near.length}</span></div>`}
@@ -14244,7 +14249,7 @@ function vMachine(){
   if(MC.phase==='idle'){
     const nl=MC.ids.size-MC.seen.size||MC.ids.size;
     body=`<div class="mc-img mc-idle" style="--ar:1.7778"><div class="mc-bg" style="background-image:url(${MC_READY})"></div><div class="mc-ph mc-ph2"><span>${MC.reset?'Tous vus : on recommence · All seen, starting again':'Prêts ? · Ready?'}</span><small>${nl} image${nl===1?'':'s'} à venir · to come · ${MC.secs} s</small><button class="spbtn pri mc-go" onclick="mcSpin()">▶ Tourner · Spin</button></div></div>`;
-    ctl=`<button class="spbtn pri" onclick="mcSpin()">▶ Tourner · Spin</button><button class="btn" onclick="MC.phase='setup';mcStop();render()">Change the KTRs</button><button class="btn" onclick="closeMachine()">Leave</button>`;
+    ctl=`<button class="spbtn pri" onclick="mcSpin()">▶ Tourner · Spin</button><button class="btn" onclick="MC.phase='setup';mcStop();render()">Change the KTRs</button><button class="btn" onclick="mcFsToggle()">⛶ Full screen</button><button class="btn" onclick="closeMachine()">Leave</button>`;
   }else if(MC.phase==='spin'){
     body=`<div class="mc-img spin" style="--ar:${ar}"><img id="mcimg" src="${I.src}" alt=""></div>`;
     ctl=`<span class="mc-t">…</span>`;
