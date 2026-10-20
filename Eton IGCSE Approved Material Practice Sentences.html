@@ -4,7 +4,7 @@
 <script id="ap-update">
 /* AP auto-update: if this copy is older than the published version, reload once with the new one (saved answers are kept) */
 (function () {
-  var B = 'c1ed12501b'; window.AP_BUILD = B;
+  var B = 'fc39c2423c'; window.AP_BUILD = B;
   function check() {
     if (!/^https?:$/.test(location.protocol) || !window.fetch) return;
     var f = decodeURIComponent(location.pathname.split('/').pop() || '');
@@ -8776,12 +8776,12 @@ window.splash=function(force){
 const MC={areas:new Set(['A','B','C','D','E']),secs:45,phase:'setup',seen:new Set(),cur:null,ok:[],near:[],to:null,iv:null,end:0,over:false,reset:false};
 const mcPool=()=>Q.filter(q=>hasPic(q.i)&&MC.areas.has(areaOf(q.section))).map(q=>q.i);
 function mcStop(){if(MC.to){clearTimeout(MC.to);MC.to=null}if(MC.iv){clearInterval(MC.iv);MC.iv=null}}
-window.openMachine=function(){pushNav();mcStop();MC.phase='setup';S.view='machine';render();window.scrollTo(0,0)};
+window.openMachine=function(){pushNav();mcStop();MC.phase='setup';S.view='machine';mcFs(true);render();window.scrollTo(0,0)};
 window.mcArea=function(L){if(MC.areas.has(L))MC.areas.delete(L);else MC.areas.add(L);render()};
 window.mcSecs=function(v){MC.secs=v;render()};
 window.mcBegin=function(){MC.seen=new Set();MC.ok=[];MC.near=[];MC.cur=null;MC.reset=false;MC.phase='idle';mcFs(true);render();window.scrollTo(0,0)};
 window.mcSpin=function(){
-  mcStop();try{speechSynthesis.cancel()}catch(e){}try{window.parent.speechSynthesis.cancel()}catch(e){}
+  mcFs(true);mcStop();try{speechSynthesis.cancel()}catch(e){}try{window.parent.speechSynthesis.cancel()}catch(e){}
   const all=mcPool();MC.reset=false;
   let pool=all.filter(n=>!MC.seen.has(n));
   if(!pool.length){MC.seen=new Set();pool=all.slice();MC.reset=true}
@@ -8841,7 +8841,7 @@ function vMachine(){
   }else{
     const i=MC.cur;S.pi=i;
     return mcTally()+'<div class="mc-wrap"><div class="mc-q">'+esc(Q[i].q_fr)+' <span style="color:var(--ink2);font-size:.7em">'+esc(Q[i].q_en)+'</span></div>'+stageHtml(i,true)
-      +'<div class="mc-ctl">'+demoBtnHtml(i)+'<button class="btn pri" onclick="mcMark(\'ok\')">✓ OK</button><button class="btn" onclick="mcMark(\'near\')">≈ Near</button><button class="btn" onclick="picFs()">⛶ Full screen</button></div>'
+      +'<div class="mc-ctl">'+demoBtnHtml(i)+'<button class="btn pri" onclick="mcMark(\'ok\')">✓ OK</button><button class="btn" onclick="mcMark(\'near\')">≈ Near</button><button class="btn" onclick="mcFsToggle()">⛶ Full screen</button></div>'
       +'<div style="width:100%"><div class="label">The approved answer</div>'+sentList(i)+'</div></div>';
   }
   return mcTally()+'<div class="mc-wrap">'+body+'<div class="mc-ctl">'+ctl+'</div></div>';
