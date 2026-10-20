@@ -4,7 +4,7 @@
 <script id="ap-update">
 /* AP auto-update: if this copy is older than the published version, reload once with the new one (saved answers are kept) */
 (function () {
-  var B = 'c73463e0ba'; window.AP_BUILD = B;
+  var B = '36d28dab0a'; window.AP_BUILD = B;
   function check() {
     if (!/^https?:$/.test(location.protocol) || !window.fetch) return;
     var f = decodeURIComponent(location.pathname.split('/').pop() || '');
@@ -14084,7 +14084,7 @@ function fsOpen(n){
   const I=ILLUS[n];if(!I)return;
   FS={n:n,num:SP.n===n&&SP.ph==='reveal',act:null,demo:false,en:false,api:false,tok:FS.tok};
   let o=document.getElementById('fsov');if(!o){o=document.createElement('div');o.id='fsov';document.body.appendChild(o)}
-  o.innerHTML=`<div class="fs-top"><button class="btn" id="fs-n" onclick="fsNum()"></button><button class="btn pri" id="fs-d" onclick="fsDemo()"></button><button class="btn" onclick="fsClose()">✕ Fermer · Close (Esc)</button></div>
+  o.innerHTML=`<div class="fs-top"><button class="btn" id="fs-n" onclick="fsNum()"></button><button class="btn pri" id="fs-d" onclick="fsDemo()"></button><button class="btn" id="fs-de" onclick="fsDemo(true)"></button><button class="btn" onclick="fsClose()">✕ Fermer · Close (Esc)</button></div>
     <div class="fs-stage" style="--ar:${(I.w/I.h).toFixed(4)}"><img src="${I.src}" alt="${esc(I.alt_en)}"><div id="fs-m"></div></div>
     <div class="fs-cap" id="fs-c" onclick="FS.en=!FS.en;fsUpd()" title="Click to show or hide the English"></div>`;
   o.style.display='flex';fsUpd();
@@ -14096,6 +14096,7 @@ function fsUpd(){
   m.innerHTML=FS.num?I.spots.map((s,i)=>`<button class="spmk${FS.act===i?' act':''}" style="left:${s.x}%;top:${s.y}%" onclick="fsMk(${i})" aria-label="Detail ${i+1}">${i+1}</button>`).join(''):'';
   document.getElementById('fs-n').textContent=FS.num?'Cacher les numéros · Hide numbers':'Afficher les numéros · Show numbers';
   document.getElementById('fs-d').textContent=FS.demo?'⏹ Arrêter · Stop':'🎤 Écouter la démo · Hear the 30-second model';
+  document.getElementById('fs-de').textContent=FS.demo?'⏹ Arrêter · Stop':'🇬🇧 Démo en anglais · Hear the model in English';
   const c=document.getElementById('fs-c');
   if(FS.act!==null&&FS.num){const s=I.spots[FS.act];c.innerHTML=`<span class="nn">${FS.act+1}</span>${esc(s.fr)}${FS.en?`<div class="en">${esc(s.en)}</div>`:''}`;c.style.display='block'}
   else if(FS.demo){c.innerHTML='🎤 Démo de 30 secondes · 30-second model';c.style.display='block'}
@@ -14103,11 +14104,19 @@ function fsUpd(){
 }
 function fsNum(){FS.num=!FS.num;if(!FS.num)FS.act=null;fsUpd()}
 function fsMk(i){FS.demo=false;FS.act=i;fsUpd();fsSay(ILLUS[FS.n].spots[i].fr)}
-function fsDemo(){
+function fsSayEn(t,cb){FS.tok++;const my=FS.tok;
+  try{if(typeof SV!=='undefined'){SV.tok++;SV.playing=false}speechSynthesis.cancel();const u=new SpeechSynthesisUtterance(t);u.lang='en-GB';
+    try{if(typeof pickEn==='function'&&!ENV)pickEn()}catch(e){}
+    if(typeof ENV!=='undefined'&&ENV)u.voice=ENV;u.rate=parseFloat($('rate').value)||0.9;
+    if(cb){u.onend=u.onerror=()=>{if(FS.tok===my)cb()}}
+    speechSynthesis.speak(u)}catch(e){if(cb)cb()}}
+function fsDemo(en){
   if(FS.demo){FS.demo=false;FS.tok++;try{speechSynthesis.cancel()}catch(e){};fsUpd();return}
   FS.demo=true;FS.act=null;fsUpd();
-  fsSay(ILLUS[FS.n].demo.fr,()=>{FS.demo=false;fsUpd()});
+  if(en===true)fsSayEn(ILLUS[FS.n].demo.en,()=>{FS.demo=false;fsUpd()});
+  else fsSay(ILLUS[FS.n].demo.fr,()=>{FS.demo=false;fsUpd()});
 }
+function spkDemoEn(n){const I=ILLUS[n];if(I&&I.demo)fsSayEn(I.demo.en)}
 function fsClose(){
   FS.tok++;try{speechSynthesis.cancel()}catch(e){}
   const o=document.getElementById('fsov');if(o)o.style.display='none';
@@ -14126,7 +14135,7 @@ function heroHook(k){
   return `<div class="hero${SP.clear?' clear':''}"><img class="hero-img" src="${I.src}" alt="${esc(I.alt_en)}">
     <div class="hero-wash"></div><div class="hero-panel big">${panel}</div>
     <span class="ill-chip">Illustration, not a photograph</span>
-    <div class="hero-btns"><button class="btn pri" onclick="spStart()">🔍 Observez · Spot the details</button>${I.demo?`<button class="btn" onclick="SP.demo=!SP.demo;render()">${dm?'Retour à la question · Back to the question':'🎤 Démo de 30 s · 30-second model'}</button>`:''}<button class="btn" onclick="SP.clear=!SP.clear;render()">${SP.clear?'Retour au texte · Back to the text':'Voir l’image · See the image'}</button><button class="btn" onclick="fsOpen(${k.n})">⛶ Plein écran · Full screen</button></div></div>`;
+    <div class="hero-btns"><button class="btn pri" onclick="spStart()">🔍 Observez · Spot the details</button>${I.demo?`<button class="btn" onclick="SP.demo=!SP.demo;render()">${dm?'Retour à la question · Back to the question':'🎤 Démo de 30 s · 30-second model'}</button>${dm?`<button class="btn" onclick="spkDemoEn(${k.n})">🇬🇧 Démo en anglais · Hear it in English</button>`:''}`:''}<button class="btn" onclick="SP.clear=!SP.clear;render()">${SP.clear?'Retour au texte · Back to the text':'Voir l’image · See the image'}</button><button class="btn" onclick="fsOpen(${k.n})">⛶ Plein écran · Full screen</button></div></div>`;
 }
 function spotView(k,I){
   const n=I.spots.length,rv=SP.ph==='reveal',st=SP.ph==='study',hid=SP.hide&&!rv;
@@ -14141,7 +14150,7 @@ function spotView(k,I){
       ${st?'':`<button class="btn pri" onclick="spStart()">Démarrer · Start</button>`}
       <button class="btn${st?' pri':''}" onclick="spReveal()">Révéler · Reveal</button><button class="btn" onclick="spBack()">Retour · Back</button>${fsb}`;
   const list=rv?`<div class="splist">${I.spots.map((s,i)=>`<div class="spi${SP.act===i?' act':''}"><button class="spn" onclick="spAct(${i})" aria-label="Show detail ${i+1}">${i+1}</button>${LN({fr:s.fr,en:s.en})}</div>`).join('')}</div>`:'';
-  const dem=rv&&I.demo?`<div class="spdemo"><div class="label" style="margin-bottom:6px">Démo de 30 secondes · 30-second model</div><div class="big">${LN(I.demo)}</div></div>`:'';
+  const dem=rv&&I.demo?`<div class="spdemo"><div class="label" style="margin-bottom:6px">Démo de 30 secondes · 30-second model <button class="btn" style="margin-left:8px" onclick="spkDemoEn(${k.n})">🇬🇧 Hear it in English</button></div><div class="big">${LN(I.demo)}</div></div>`:'';
   return `<div class="spwrap"><div class="sp-intro big">${intro}</div>
     ${st?`<div class="sp-bar"><i id="spbar" style="width:${pct}%"></i></div>`:''}
     <div class="spimg${hid?' hid':''}" style="--ar:${(I.w/I.h).toFixed(4)}"><img src="${I.src}" alt="${esc(I.alt_en)}"><div class="spmsg">Qu’est-ce que vous avez vu ?</div>${marks}</div>
