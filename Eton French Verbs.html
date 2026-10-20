@@ -6,7 +6,7 @@
 <script id="ap-update">
 /* AP auto-update: if this copy is older than the published version, reload once with the new one (saved answers are kept) */
 (function () {
-  var B = '0a5516f396'; window.AP_BUILD = B;
+  var B = 'addd1dd5de'; window.AP_BUILD = B;
   function check() {
     if (!/^https?:$/.test(location.protocol) || !window.fetch) return;
     var f = decodeURIComponent(location.pathname.split('/').pop() || '');
@@ -1640,7 +1640,7 @@ var APTT = (function () {
   var S = null, TICK = null, PEN = false, RUN = null;
   /* ── 🚨 AP TEST GUARD (shared; identical in every AP app with timed tests) ──
      While a test is being answered (mode chosen, answers not yet locked in), leaving the page — another tab or app, Split View /
-     Slide Over, closing or reloading, or ⌂ Back out of the test — sounds a 3-second siren, shows a flashing red warning, and is
+     Slide Over, closing or reloading, or ⌂ Back out of the test — sounds a short error buzz, shows a flashing red warning, and is
      logged in localStorage aptgLog:<test>:<start time>; the count, times and time away print in red at the top of the PDF. */
   if (!window.APTG) window.APTG = (function () {
     var P = [], AWAY = null, CTX = null, LAST = 0, PEND = false, IGN = 0;
@@ -1654,25 +1654,18 @@ var APTT = (function () {
       if (!CTX) { var A = window.AudioContext || window.webkitAudioContext; if (!A) return null; try { CTX = new A(); } catch (e) { return null; } }
       return CTX;
     }
-    function wail() {   // the klaxon: three harsh rising "ah-oo-gah" blasts (about 3 s), chosen by AP 10 Oct 2026
+    function wail() {   // the error buzz: two short low eh-eh buzzes (about 0.6 s), chosen by AP 20 Oct 2026
       var c = CTX; if (!c) return; LAST = Date.now();
       try {
-        var t = c.currentTime + 0.02, D = 3.1, m = c.createGain(), k = c.createDynamicsCompressor(), d = c.createWaveShaper(), n = 1024, cu = new Float32Array(n);
-        for (var j = 0; j < n; j++) { var x = j * 2 / n - 1; cu[j] = 19 * x / (1 + 18 * Math.abs(x)); }
-        d.curve = cu; d.connect(m);
-        m.gain.setValueAtTime(0.0001, t); m.gain.exponentialRampToValueAtTime(0.9, t + 0.05);
-        m.gain.setValueAtTime(0.9, t + D - 0.2); m.gain.exponentialRampToValueAtTime(0.0001, t + D);
-        m.connect(k); k.connect(c.destination);
-        for (var b = 0; b < 3; b++) {
-          var s = t + b * 1.02, e = s + 0.85, g = c.createGain();
-          g.gain.setValueAtTime(0.0001, s); g.gain.exponentialRampToValueAtTime(0.6, s + 0.04); g.gain.setValueAtTime(0.6, e - 0.08); g.gain.exponentialRampToValueAtTime(0.0001, e); g.connect(d);
-          [1, 1.5].forEach(function (r) {
-            var o = c.createOscillator(), lfo = c.createOscillator(), lg = c.createGain(), v = c.createGain(); o.type = 'sawtooth';
-            o.frequency.setValueAtTime(150 * r, s); o.frequency.exponentialRampToValueAtTime(330 * r, s + 0.3); o.frequency.setValueAtTime(330 * r, e - 0.15); o.frequency.exponentialRampToValueAtTime(260 * r, e);
-            lfo.frequency.value = 32; lg.gain.value = 0.35; lfo.connect(lg); v.gain.value = 0.5; lg.connect(v.gain);
-            o.connect(v); v.connect(g); o.start(s); o.stop(e + 0.02); lfo.start(s); lfo.stop(e + 0.02);
-          });
-        }
+        var t = c.currentTime + 0.02, m = c.createGain();
+        m.gain.value = 0.8; m.connect(c.destination);
+        [0, 0.27].forEach(function (d) {
+          var s = t + d, e = s + 0.2, o = c.createOscillator(), lp = c.createBiquadFilter(), g = c.createGain();
+          o.type = 'square'; o.frequency.setValueAtTime(175, s); o.frequency.exponentialRampToValueAtTime(150, e);
+          lp.type = 'lowpass'; lp.frequency.value = 1500;
+          g.gain.setValueAtTime(0.0001, s); g.gain.exponentialRampToValueAtTime(0.4, s + 0.012); g.gain.setValueAtTime(0.4, e - 0.06); g.gain.exponentialRampToValueAtTime(0.0001, e);
+          o.connect(lp); lp.connect(g); g.connect(m); o.start(s); o.stop(e + 0.02);
+        });
       } catch (e) { }
     }
     function siren() {
@@ -1874,7 +1867,7 @@ var APTT = (function () {
     }
     z = document.createElement('div'); z.id = 'aptt-pz'; z.setAttribute('role', 'alertdialog'); z.setAttribute('aria-modal', 'true'); z.setAttribute('data-nogrow', '1');
     z.innerHTML = '<div class="aptt-pz-box"><div class="aptt-pz-i">⏸</div><h2>Test paused</h2><div class="aptt-pz-c" id="aptt-pz-c"></div>'
-      + '<p class="aptt-pz-w"><b>For a real emergency only</b> (a fire alarm, for example). The clock is stopped. You must still stay on this page: do not open another app or website. Leaving this page is still logged and sounds the siren.</p>'
+      + '<p class="aptt-pz-w"><b>For a real emergency only</b> (a fire alarm, for example). The clock is stopped. You must still stay on this page: do not open another app or website. Leaving this page is still logged and sounds the error buzz.</p>'
       + '<label for="aptt-pz-r"><b>Why are you pausing?</b> Type it, or write it with your Apple Pencil. You cannot carry on until you have given a reason.</label>'
       + '<textarea id="aptt-pz-r" rows="3" maxlength="300" autocomplete="off" autocapitalize="sentences" placeholder="My reason for pausing…"></textarea>'
       + '<div class="aptt-pz-n" id="aptt-pz-n"></div>'
