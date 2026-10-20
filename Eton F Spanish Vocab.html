@@ -5536,7 +5536,22 @@ function toggleAutotime() {
 function cleanForSpeech(text, langCode) {
   // Strip everything from first bracket and square bracket
   // but a leading bracketed word is part of the phrase: "(muy) a menudo" → "muy a menudo"
-  let t = text.replace(/^\s*\(([^()]*)\)\s*/, '$1 ').replace(/\s*[\(\[].*$/g, '').trim();
+  let t = text.replace(/^\s*\(([^()]*)\)\s*/, '$1 ');
+  if (langCode && langCode.startsWith('es')) {
+    // Gender endings such as (-a) are never spoken, but the rest of the phrase still is:
+    // "encantado (-a) de conocerte" → "encantado de conocerte"
+    t = t.replace(/\s*\(\s*[-–][^()]*\)/g, ' ');
+    // "(talla)" is only an English-style gloss after "número", so it is not spoken
+    t = t.replace(/\s*\(talla\)/gi, '');
+    // Any other bracket with words after it is part of the phrase: "un (café) cortado" → "un café cortado"
+    // (a list of bracketed examples, "mucho (queso), mucha (carne)", is spoken in full too)
+    var _list = /\)\s*,/.test(t);
+    t = t.replace(/\(([^()]*)\)/g, function (m, inner, off, str) {
+      return (_list || /[A-Za-zÀ-ÿ]/.test(str.slice(off + m.length))) ? inner : m;
+    });
+    t = t.replace(/\s+([?!.,;])/g, '$1');
+  }
+  t = t.replace(/\s*[\(\[].*$/g, '').trim();
   // X pronunciation depends on language
   if (langCode && langCode.startsWith('es')) {
     t = t.replace(/\bX\b/g, 'equis');
