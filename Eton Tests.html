@@ -6,7 +6,7 @@
 <script id="ap-update">
 /* AP auto-update: if this copy is older than the published version, reload once with the new one (saved answers are kept) */
 (function () {
-  var B = 'a0c3172f1b'; window.AP_BUILD = B;
+  var B = '533a3d80bf'; window.AP_BUILD = B;
   function check() {
     if (!/^https?:$/.test(location.protocol) || !window.fetch) return;
     var f = decodeURIComponent(location.pathname.split('/').pop() || '');
@@ -2609,6 +2609,24 @@ function aptGuidesHtml() {
       + '<button class="aph-btn aph-btn-primary" type="button" onclick="APTT.copyLink(APT_GUIDES[' + i + '][0], aptGuideUrl(' + i + '), this)">📋 Copy link</button></div>';
   }).join('');
 }
+var APT_FILES = [
+  ['Eton versions (the ones boys and colleagues use)', [['A Level French Oral Topics &amp; Paper 1 Practice','Eton A Level French Oral Topics & Paper 1 Practice.html'],['A Level French VVs &amp; Gr EWs &amp; Grammar Translation Practice and Drills','Eton A Level French VVs & Gr EWs & Grammar Translation Practice and Drills.html'],['A Level Oral Phrase Bank','Eton A Level Oral Phrase Bank.html'],['A Level Oxbridge Grammar Checklist','Eton A Level Oxbridge Grammar Checklist.html'],['F Spanish Vocab','Eton F Spanish Vocab.html'],['French Verbs','Eton French Verbs.html'],['Gen Essential Phrases','Eton Gen Essential Phrases.html'],['IGCSE Approved Material Practice Sentences','Eton IGCSE Approved Material Practice Sentences.html'],['IGCSE French Listening','Eton IGCSE French Listening.html'],['IGCSE Italian Listening','Eton IGCSE Italian Listening.html'],['IGCSE Structures &amp; Oral and Writing Practice','Eton IGCSE Structures & Oral and Writing Practice.html'],['IGCSE Vocab Essentials','Eton IGCSE Vocab Essentials.html'],['IGCSE Vocab and Gr EWs','Eton IGCSE Vocab and Gr EWs.html'],['Italian Verbs','Eton Italian Verbs.html'],['Spanish Verbs','Eton Spanish Verbs.html']]],
+  ['AP only: all languages (French, Italian, Spanish together)', [['A Level French VVs &amp; Gr EWs &amp; Grammar Translation Practice and Drills','AP All Languages - A Level French VVs & Gr EWs & Grammar Translation Practice and Drills.html'],['A Level Oral Phrase Bank','AP All Languages - A Level Oral Phrase Bank.html'],['IGCSE Approved Material Practice Sentences','AP All Languages - IGCSE Approved Material Practice Sentences.html'],['IGCSE Structures &amp; Oral and Writing Practice','AP All Languages - IGCSE Structures & Oral and Writing Practice.html'],['IGCSE Vocab Essentials','AP All Languages - IGCSE Vocab Essentials.html'],['IGCSE Vocab and Gr EWs','AP All Languages - IGCSE Vocab and Gr EWs.html']]],
+  ['AP only: my other versions', [['A Level French Oral Topics &amp; Paper 1 Practice','AP A Level French Oral Topics & Paper 1 Practice.html'],['A Level French VVs &amp; Gr EWs &amp; Grammar Translation Practice and Drills','AP A Level French VVs & Gr EWs & Grammar Translation Practice and Drills.html'],['A Level Oral Phrase Bank','AP A Level Oral Phrase Bank.html'],['F Spanish Vocab','AP F Spanish Vocab.html'],['French Verbs','AP French Verbs.html'],['Gen Essential Phrases','AP Gen Essential Phrases.html'],['IGCSE AP Structures &amp; Oral and Writing Practice','AP IGCSE AP Structures & Oral and Writing Practice.html'],['IGCSE Approved Material Practice Sentences','AP IGCSE Approved Material Practice Sentences.html'],['IGCSE French Listening','AP IGCSE French Listening.html'],['IGCSE Italian Listening','AP IGCSE Italian Listening.html'],['IGCSE Vocab Essentials','AP IGCSE Vocab Essentials.html'],['IGCSE Vocab and Gr EWs','AP IGCSE Vocab and Gr EWs.html'],['Italian Verbs','AP Italian Verbs.html'],['Spanish Verbs','AP Spanish Verbs.html']]]
+];
+function aptFileUrl(f) { return String(document.baseURI || location.href).replace(/[#?].*$/, '').replace(/[^\/]*$/, '') + encodeURIComponent(f); }
+function aptFilesHtml() {
+  var n = 0;
+  return '<p>Every app, always the latest version. Paste the link into OneNote or Teams. The AP only versions are for you alone.</p>' + APT_FILES.map(function (grp) {
+    return '<div class="apt-course" style="margin-top:12px">' + grp[0] + '</div>' + grp[1].map(function (g) {
+      var i = n++; APT_FLAT[i] = g;
+      return '<div class="apt-acts" style="align-items:center"><span style="flex:1;min-width:180px;font-weight:600">' + g[0] + '</span>'
+        + '<a class="aph-btn" href="' + encodeURIComponent(g[1]) + '" target="_blank" rel="noopener" style="text-decoration:none">Open</a>'
+        + '<button class="aph-btn aph-btn-primary" type="button" onclick="APTT.copyLink(APT_FLAT[' + i + '][0], aptFileUrl(APT_FLAT[' + i + '][1]), this)">📋 Copy link</button></div>';
+    }).join('');
+  }).join('');
+}
+var APT_FLAT = [];
 function aptTRender() {
   var t = document.getElementById('apt-t');
   if (!aptKey()) {
@@ -2620,6 +2638,7 @@ function aptTRender() {
   t.innerHTML = '<h3>📚 Test Library</h3><p>Every test you have made, sorted by course and type. To make a new one: set the test up in an app, tap <b>⏱ Eton Spot Test: timed &amp; submitted</b>, then <b>🔑 Teacher: make a test link</b>.</p>'
     + '<div id="apt-lib" class="apt-acts"><button class="aph-btn aph-btn-primary" type="button" onclick="aplOpen()" style="font-size:1.05rem;padding:12px 18px">📚 Open the Test Library</button><span id="apl-count" style="align-self:center;color:#5b6478;font-weight:600">loading…</span></div>'
     + '<h4>📖 Pupil and teacher reference documents (links to send)</h4>' + aptGuidesHtml()
+    + '<h4>📂 All my apps (links to send), including my AP only ones</h4>' + aptFilesHtml()
     + '<h4>✍️ My handwritten comments</h4><div id="apt-cm"></div>'
     + '<h4>Automatic codes</h4>' + (aptGit() ? '<p>✅ GitHub key saved on this device: every new code is added to the AP Tests page by itself.</p><div class="apt-acts"><button class="aph-btn" type="button" onclick="aptGitForget()">Remove GitHub key</button></div>'
       : '<p>Save your GitHub key here once (on each device and browser) and every code you make is added to the AP Tests page by itself.</p><input class="apt-key" id="apt-git" type="password" autocomplete="new-password" name="apgit" placeholder="GitHub key (github_pat_…)"><div class="apt-acts"><button class="aph-btn aph-btn-primary" type="button" onclick="aptGitSave(this)">Save GitHub key</button></div>')
