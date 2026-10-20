@@ -4,7 +4,7 @@
 <script id="ap-update">
 /* AP auto-update: if this copy is older than the published version, reload once with the new one (saved answers are kept) */
 (function () {
-  var B = '9092d6875e'; window.AP_BUILD = B;
+  var B = '8ceee7e76b'; window.AP_BUILD = B;
   function check() {
     if (!/^https?:$/.test(location.protocol) || !window.fetch) return;
     var f = decodeURIComponent(location.pathname.split('/').pop() || '');
@@ -8726,6 +8726,13 @@ function amSound(c,n){
   [262,330,392,523].forEach((f,i)=>amTone(c,T+i*.015,f,1.3,'triangle',.24));amTone(c,T,131,1.3,'sine',.3);amTone(c,T+.06,1047,.9,'sine',.1);
 }
 function beep(f,d){try{const c=amCtx();if(c)amTone(c,c.currentTime+.01,f,d,'square',.07)}catch(e){}}
+/* picture-machine sound effects: a whoosh as the reels start, a clack for every picture that flicks past, a fanfare when one lands, a bell when the talk time ends */
+function mcSfx(k,p){try{const c=amCtx();if(!c)return;const t=c.currentTime+.01;
+  if(k==='start'){amNoise(c,t,.7,'whoosh',.4);amTone(c,t,220,.5,'sawtooth',.12)}
+  else if(k==='tick'){amNoise(c,t,.05,'crash',.35);amTone(c,t,520+(p||0)*520,.07,'square',.16);amTone(c,t,130,.06,'sine',.3)}
+  else if(k==='land'){amBoom(c,t);[523,659,784,1047].forEach((f,i)=>{amTone(c,t+.05+i*.09,f,.5,'triangle',.28);amTone(c,t+.05+i*.09,f*2,.3,'sine',.1)});amNoise(c,t,.6,'crash',.25)}
+  else if(k==='end'){[880,880,660].forEach((f,i)=>amTone(c,t+i*.22,f,.35,'triangle',.3))}
+}catch(e){}}
 
 /* ===== opening splash: picture montage with sound ===== */
 function splashEnd(){
@@ -8781,29 +8788,29 @@ window.mcArea=function(L){if(MC.areas.has(L))MC.areas.delete(L);else MC.areas.ad
 window.mcSecs=function(v){MC.secs=v;render()};
 window.mcBegin=function(){MC.seen=new Set();MC.ok=[];MC.near=[];MC.cur=null;MC.reset=false;MC.phase='idle';mcFs(true);render();window.scrollTo(0,0)};
 window.mcSpin=function(){
-  mcFs(true);mcStop();try{speechSynthesis.cancel()}catch(e){}try{window.parent.speechSynthesis.cancel()}catch(e){}
+  mcFs(true);demoStop();mcStop();try{speechSynthesis.cancel()}catch(e){}try{window.parent.speechSynthesis.cancel()}catch(e){}
   const all=mcPool();MC.reset=false;
   let pool=all.filter(n=>!MC.seen.has(n));
   if(!pool.length){MC.seen=new Set();pool=all.slice();MC.reset=true}
   const target=pool[Math.floor(Math.random()*pool.length)];
-  MC.cur=target;MC.phase='spin';MC.over=false;S.act=null;S.en=false;render();
+  MC.cur=target;MC.phase='spin';MC.over=false;S.act=null;S.en=false;mcSfx('start');render();
   const N=26;let i=0,last=-1;
   const step=()=>{
     const el=document.getElementById('mcimg');if(!el)return;
     let id=target;
     if(i<N){do{id=all[Math.floor(Math.random()*all.length)]}while(all.length>1&&id===last)}
-    last=id;el.src=picSrc(id);beep(380+Math.random()*260,.04);
+    last=id;el.src=picSrc(id);mcSfx('tick',i/N);
     i++;
     if(i<=N)MC.to=setTimeout(step,45+Math.pow(i/N,2.2)*430);else{MC.to=null;mcLand()}
   };
   MC.to=setTimeout(step,150);
 };
-function mcLand(){beep(880,.25);MC.seen.add(MC.cur);MC.phase='talk';MC.over=false;MC.end=Date.now()+MC.secs*1000;render();MC.iv=setInterval(mcTick,250)}
+function mcLand(){mcSfx('land');MC.seen.add(MC.cur);MC.phase='talk';MC.over=false;MC.end=Date.now()+MC.secs*1000;render();MC.iv=setInterval(mcTick,250)}
 const fmt=s=>{s=Math.ceil(s);return Math.floor(s/60)+':'+String(s%60).padStart(2,'0')};
 function mcTick(){
   const left=Math.max(0,MC.end-Date.now()),bar=document.getElementById('mcbar'),tt=document.getElementById('mct');
   if(bar)bar.style.width=Math.round(100*left/(MC.secs*1000))+'%';if(tt)tt.textContent=fmt(left/1000);
-  if(left<=0){clearInterval(MC.iv);MC.iv=null;MC.over=true;beep(660,.5);render()}
+  if(left<=0){clearInterval(MC.iv);MC.iv=null;MC.over=true;mcSfx('end');render()}
 }
 window.mcReveal=function(){if(MC.iv){clearInterval(MC.iv);MC.iv=null}MC.phase='reveal';S.pi=MC.cur;S.act=null;S.en=false;render();window.scrollTo(0,0)};
 window.mcMark=function(v){
@@ -8837,11 +8844,11 @@ function vMachine(){
   }else if(MC.phase==='talk'){
     const left=Math.max(0,MC.end-Date.now()),pct=Math.round(100*left/(MC.secs*1000));
     body='<div class="mc-q">Which topic is this? Talk about it for '+MC.secs+' seconds.</div><div class="mc-bar"><i id="mcbar" style="width:'+(MC.over?0:pct)+'%"></i></div><div class="mc-img"><img id="mcimg" src="'+picSrc(MC.cur)+'" alt=""></div>';
-    ctl='<span class="mc-t" id="mct">'+(MC.over?'⏰ 0:00':fmt(left/1000))+'</span><button class="btn pri" onclick="mcReveal()">Reveal</button><button class="btn" onclick="mcFsToggle()">\u26F6</button>';
+    ctl='<span class="mc-t" id="mct">'+(MC.over?'⏰ 0:00':fmt(left/1000))+'</span><button class="btn pri" onclick="mcReveal()">Reveal</button><button class="btn" onclick="mcSpin()">\u{1F3B0} Spin again</button><button class="btn" onclick="mcFsToggle()">\u26F6</button>';
   }else{
     const i=MC.cur;S.pi=i;
     return mcTally()+'<div class="mc-wrap"><div class="mc-q">'+esc(Q[i].q_fr)+' <span style="color:var(--ink2);font-size:.7em">'+esc(Q[i].q_en)+'</span></div>'+stageHtml(i,true)
-      +'<div class="mc-ctl">'+demoBtnHtml(i)+'<button class="btn pri" onclick="mcMark(\'ok\')">✓ OK</button><button class="btn" onclick="mcMark(\'near\')">≈ Near</button><button class="btn" onclick="mcFsToggle()">⛶ Full screen</button></div>'
+      +'<div class="mc-ctl">'+demoBtnHtml(i)+'<button class="btn pri" onclick="mcMark(\'ok\')">✓ OK</button><button class="btn" onclick="mcMark(\'near\')">≈ Near</button><button class="btn" onclick="mcSpin()">\u{1F3B0} Spin again</button><button class="btn" onclick="mcFsToggle()">⛶ Full screen</button></div>'
       +'<div style="width:100%"><div class="label">The approved answer</div>'+sentList(i)+'</div></div>';
   }
   return mcTally()+'<div class="mc-wrap">'+body+'<div class="mc-ctl">'+ctl+'</div></div>';
@@ -8994,7 +9001,7 @@ function showAMStudio(lang) {
   src = src.replace('/*__AMS_DATA__*/ null', function () { return json; });
   var c = document.getElementById('drillContainer');
   c.innerHTML = '<div class="aph-wrap" style="max-width:1240px;padding-top:8px"><div style="padding:0 0 6px"><button class="aph-btn aph-btn-sm" onclick="goHome()">&larr; Back to Approved Material</button></div>'
-    + '<iframe id="am-studio-frame" allowfullscreen allow="fullscreen; autoplay" title="Approved Material Studio" style="display:block;width:100%;border:0;height:calc(100vh - 150px);min-height:540px;background:#fff;border-radius:12px"></iframe></div>';
+    + '<iframe id="am-studio-frame" allowfullscreen allow="fullscreen *; autoplay *" title="Approved Material Studio" style="display:block;width:100%;border:0;height:calc(100vh - 150px);min-height:540px;background:#fff;border-radius:12px"></iframe></div>';
   document.getElementById('am-studio-frame').srcdoc = src;
   window.scrollTo(0, 0);
 }
