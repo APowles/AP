@@ -4,7 +4,7 @@
 <script id="ap-update">
 /* AP auto-update: if this copy is older than the published version, reload once with the new one (saved answers are kept) */
 (function () {
-  var B = '92c98ee5fc'; window.AP_BUILD = B;
+  var B = '1c2783144c'; window.AP_BUILD = B;
   function check() {
     if (!/^https?:$/.test(location.protocol) || !window.fetch) return;
     var f = decodeURIComponent(location.pathname.split('/').pop() || '');
@@ -7987,9 +7987,9 @@ mark.k{background:var(--hl);color:inherit;border-radius:5px;padding:0 2px}
 .mc-wall img:nth-child(even){animation-delay:-4s}
 @keyframes mcdrift{from{transform:scale(1)}to{transform:scale(1.05)}}
 .mc-bg{position:absolute;inset:0;background:#101828 center/cover no-repeat;animation:mcdrift 14s ease-in-out infinite alternate}
-.mc-ph2{justify-content:flex-end;padding-bottom:5%;gap:6px;background:linear-gradient(0deg,rgba(8,14,30,.9) 0,rgba(8,14,30,.55) 28%,rgba(8,14,30,0) 52%)}
-.mc-ph2 span{font-size:clamp(1.6rem,4.5vw,3rem)}.mc-ph2 small{font-family:var(--body,inherit);font-size:clamp(.9rem,1.8vw,1.2rem);color:#e9edf7;opacity:.9}
-.mc-go{font-size:clamp(1.1rem,2.4vw,1.6rem);padding:.6em 1.8em;margin-top:6px;box-shadow:0 6px 24px rgba(0,0,0,.45)}
+.mc-ph2{justify-content:flex-end;padding:0 0 3%;gap:2px;background:linear-gradient(0deg,rgba(8,14,30,.95) 0,rgba(8,14,30,.8) 22%,rgba(8,14,30,.35) 36%,rgba(8,14,30,0) 46%)}
+.mc-ph2 span{font-size:clamp(1.1rem,2.4vw,1.7rem);line-height:1.1}.mc-ph2 small{font-size:clamp(.75rem,1.4vw,1rem);color:#e9edf7}
+.mc-go{font-size:clamp(.9rem,1.8vw,1.2rem);padding:.35em 1.6em;margin-top:3px;box-shadow:0 4px 18px rgba(0,0,0,.5)}
 .mc-ph b{font-size:clamp(3rem,9vw,6rem)}
 .mc-bar{height:12px;width:100%;background:var(--surface2);border-radius:99px;overflow:hidden}
 .mc-bar i{display:block;height:100%;background:var(--gold)}
@@ -8799,11 +8799,64 @@ window.splash=function(force){
 /* ===== picture machine: spin, talk, reveal, mark ===== */
 const MC={areas:new Set(['A','B','C','D','E']),secs:45,phase:'setup',seen:new Set(),cur:null,ok:[],near:[],to:null,iv:null,end:0,over:false,reset:false};
 const mcPool=()=>Q.filter(q=>hasPic(q.i)&&MC.areas.has(areaOf(q.section))).map(q=>q.i);
-function mcStop(){if(MC.to){clearTimeout(MC.to);MC.to=null}if(MC.iv){clearInterval(MC.iv);MC.iv=null}}
+function mcStop(){if(MC.raf){cancelAnimationFrame(MC.raf);MC.raf=0}if(MC.to){clearTimeout(MC.to);MC.to=null}if(MC.iv){clearInterval(MC.iv);MC.iv=null}}
 window.openMachine=function(){amUnlock();pushNav();mcStop();MC.phase='setup';S.view='machine';mcFs(true);render();window.scrollTo(0,0)};
 window.mcArea=function(L){if(MC.areas.has(L))MC.areas.delete(L);else MC.areas.add(L);render()};
 window.mcSecs=function(v){MC.secs=v;render()};
 window.mcBegin=function(){amUnlock();MC.seen=new Set();MC.ok=[];MC.near=[];MC.cur=null;MC.reset=false;MC.phase='idle';mcFs(true);render();window.scrollTo(0,0)};
+/* ===== wheel spin: the Ready picture turns like a prize wheel, ticks, then the chosen picture pops out of the hub ===== */
+function wheelRun(o){
+  const cv=o.cv;if(!cv){o.fail&&o.fail();return}
+  const G=o.G,REF=1672,im=new Image(),tg=new Image();let n=0,bad=false;
+  const go=()=>{
+    if(bad){o.fail&&o.fail();return}
+    if(++n<2)return;
+    if(document.getElementById(cv.id)!==cv){return}
+    const dpr=Math.min(2,window.devicePixelRatio||1),w=cv.clientWidth||900,h=Math.round(w*9/16);
+    cv.width=Math.round(w*dpr);cv.height=Math.round(h*dpr);cv.style.height='100%';
+    const W=cv.width,H=cv.height,f=W/REF,ctx=cv.getContext('2d');
+    const cx=G.cx*f,cy=G.cy*f,rx=G.rx*f,ry=G.ry*f,k=ry/rx,hx=G.hx*f,hy=G.hy*f,hrx=G.hrx*f,hry=G.hry*f;
+    const drawImg=()=>ctx.drawImage(im,0,0,W,H);
+    const frame=(th,blur)=>{
+      ctx.setTransform(1,0,0,1,0,0);ctx.globalAlpha=1;drawImg();
+      const passes=blur>0.02?4:1;
+      for(let p=0;p<passes;p++){
+        ctx.save();ctx.beginPath();ctx.ellipse(cx,cy,rx,ry,0,0,6.2832);ctx.clip();
+        ctx.globalAlpha=p===0?1:0.3;
+        ctx.translate(cx,cy);ctx.scale(1,k);ctx.rotate(th-p*blur/3);ctx.scale(1,1/k);ctx.translate(-cx,-cy);
+        drawImg();ctx.restore();
+      }
+      ctx.globalAlpha=1;
+      ctx.save();ctx.beginPath();ctx.ellipse(hx,hy,hrx,hry,0,0,6.2832);ctx.clip();drawImg();ctx.restore();
+      ctx.save();ctx.beginPath();ctx.rect(G.px[0]*f,G.px[1]*f,(G.px[2]-G.px[0])*f,(G.px[3]-G.px[1])*f);ctx.clip();drawImg();ctx.restore();
+    };
+    const total=(5+Math.random()*2)*6.2832,dur=4300,t0=performance.now(),step=Math.PI/6;let lastW=0,lastT=0,prev=0,prevT=t0;
+    const spin=now=>{
+      if(document.getElementById(cv.id)!==cv)return;
+      const t=Math.min(1,(now-t0)/dur),e=1-Math.pow(1-t,3),th=total*e,v=(th-prev)/Math.max(1,now-prevT);prev=th;prevT=now;
+      frame(th,Math.min(0.5,v*34));
+      const wd=Math.floor(th/step);if(wd!==lastW&&now-lastT>65){lastW=wd;lastT=now;o.tick&&o.tick(t)}else if(wd!==lastW)lastW=wd;
+      if(t<1){MC.raf=requestAnimationFrame(spin)}
+      else{
+        const tp=performance.now();
+        const pop=nw=>{
+          if(document.getElementById(cv.id)!==cv)return;
+          const q=Math.min(1,(nw-tp-350)/650);
+          if(q<=0){frame(total,0);MC.raf=requestAnimationFrame(pop);return}
+          const e2=1-Math.pow(1-q,3);frame(total,0);
+          ctx.save();ctx.beginPath();const r=1+e2*(W*1.05);ctx.ellipse(hx,hy,hrx+r,hry+r,0,0,6.2832);ctx.clip();
+          const ar=tg.naturalWidth/tg.naturalHeight,cw=Math.max(W,H*ar),ch=cw/ar;ctx.drawImage(tg,(W-cw)/2,(H-ch)/2,cw,ch);ctx.restore();
+          if(q<1)MC.raf=requestAnimationFrame(pop);else{MC.raf=0;o.done&&o.done()}
+        };
+        MC.raf=requestAnimationFrame(pop);
+      }
+    };
+    MC.raf=requestAnimationFrame(spin);
+  };
+  im.onload=go;tg.onload=go;im.onerror=tg.onerror=()=>{bad=true;go();go()};
+  im.src=o.src;tg.src=o.target;
+}
+const WHG={cx:821,cy:462,rx:535,ry:425,hx:825,hy:458,hrx:198,hry:192,px:[775,0,885,88]};
 window.mcSpin=function(){
   amUnlock();mcFs(true);demoStop();mcStop();try{speechSynthesis.cancel()}catch(e){}try{window.parent.speechSynthesis.cancel()}catch(e){}
   const all=mcPool();MC.reset=false;
@@ -8811,16 +8864,7 @@ window.mcSpin=function(){
   if(!pool.length){MC.seen=new Set();pool=all.slice();MC.reset=true}
   const target=pool[Math.floor(Math.random()*pool.length)];
   MC.cur=target;MC.phase='spin';MC.over=false;S.act=null;S.en=false;mcSfx('start');render();
-  const N=26;let i=0,last=-1;
-  const step=()=>{
-    const el=document.getElementById('mcimg');if(!el)return;
-    let id=target;
-    if(i<N){do{id=all[Math.floor(Math.random()*all.length)]}while(all.length>1&&id===last)}
-    last=id;el.src=picSrc(id);mcSfx('tick',i/N);
-    i++;
-    if(i<=N)MC.to=setTimeout(step,45+Math.pow(i/N,2.2)*430);else{MC.to=null;mcLand()}
-  };
-  MC.to=setTimeout(step,150);
+  wheelRun({cv:document.getElementById('mcwh'),src:'pictures/ready.jpg',G:WHG,target:picSrc(target),tick:p=>mcSfx('tick',p),done:()=>mcLand(),fail:()=>{MC.to=setTimeout(()=>{MC.to=null;mcLand()},700)}});
 };
 function mcLand(){mcSfx('land');MC.seen.add(MC.cur);MC.phase='talk';MC.over=false;MC.end=Date.now()+MC.secs*1000;render();MC.iv=setInterval(mcTick,250)}
 const fmt=s=>{s=Math.ceil(s);return Math.floor(s/60)+':'+String(s%60).padStart(2,'0')};
@@ -8859,7 +8903,7 @@ function vMachine(){
     body='<div class="mc-img mc-idle"><div class="mc-bg" style="background-image:url(pictures/ready.jpg)"></div><div class="mc-ph mc-ph2"><span>'+(MC.reset?'All seen: starting again':'Ready?')+'</span><small>'+nl+' picture'+(nl===1?'':'s')+' to come · '+MC.secs+' seconds each</small><button class="btn pri mc-go" onclick="mcSpin()">▶ Spin</button></div></div>';
     ctl='<button class="btn pri" onclick="mcSpin()">▶ Spin</button><button class="btn" onclick="MC.phase=\'setup\';mcStop();render()">Change the areas</button><button class="btn" onclick="mcFsToggle()">\u26F6 Full screen</button><button class="btn" onclick="goBack()">Leave</button>';
   }else if(MC.phase==='spin'){
-    body='<div class="mc-img spin"><img id="mcimg" src="'+picSrc(MC.cur)+'" alt=""></div>';ctl='<span class="mc-t">…</span>';
+    body='<div class="mc-img spin"><canvas id="mcwh" style="width:100%;height:100%;display:block"></canvas></div>';ctl='<span class="mc-t">…</span>';
   }else if(MC.phase==='talk'){
     const left=Math.max(0,MC.end-Date.now()),pct=Math.round(100*left/(MC.secs*1000));
     body='<div class="mc-q">Which topic is this? Talk about it for '+MC.secs+' seconds.</div><div class="mc-bar"><i id="mcbar" style="width:'+(MC.over?0:pct)+'%"></i></div><div class="mc-img"><img id="mcimg" src="'+picSrc(MC.cur)+'" alt=""></div>';

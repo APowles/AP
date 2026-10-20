@@ -4,7 +4,7 @@
 <script id="ap-update">
 /* AP auto-update: if this copy is older than the published version, reload once with the new one (saved answers are kept) */
 (function () {
-  var B = 'a232318661'; window.AP_BUILD = B;
+  var B = 'd1b88574c0'; window.AP_BUILD = B;
   function check() {
     if (!/^https?:$/.test(location.protocol) || !window.fetch) return;
     var f = decodeURIComponent(location.pathname.split('/').pop() || '');
@@ -14169,7 +14169,7 @@ function spotView(k,I){
 }
 /* Image machine: spin through the illustrations, stop at random; the boys name the KTR and talk for the chosen time */
 const MC={ids:new Set(),secs:30,phase:'setup',seen:new Set(),cur:null,ok:[],near:[],to:null,iv:null,end:0,over:false,act:null,reset:false};
-function mcStop(){if(MC.to){clearTimeout(MC.to);MC.to=null}if(MC.iv){clearInterval(MC.iv);MC.iv=null}}
+function mcStop(){if(MC.raf){cancelAnimationFrame(MC.raf);MC.raf=0}if(MC.to){clearTimeout(MC.to);MC.to=null}if(MC.iv){clearInterval(MC.iv);MC.iv=null}}
 function mcLoc(n){for(const s of SUBS){const i=s.ktrs.findIndex(k=>k.n===n);if(i>=0)return{s:s,i:i,k:s.ktrs[i]}}return null}
 function openMachine(ids){
   if(S.view!=='machine')S.from=S.view;
@@ -14183,6 +14183,59 @@ function mcTog(n,on){if(on)MC.ids.add(n);else MC.ids.delete(n);render()}
 function mcGroup(sub,on){const s=SUBS.find(x=>x.subtheme===sub);s.ktrs.forEach(k=>{if(ILLUS[k.n]){if(on)MC.ids.add(k.n);else MC.ids.delete(k.n)}});render()}
 function mcTheme(th){MC.ids=new Set();SUBS.filter(s=>th===0||s.theme===th).forEach(s=>s.ktrs.forEach(k=>{if(ILLUS[k.n])MC.ids.add(k.n)}));render()}
 function mcBegin(){mcFs(true);MC.seen=new Set();MC.ok=[];MC.near=[];MC.cur=null;MC.reset=false;MC.phase='idle';render();window.scrollTo(0,0)}
+/* ===== wheel spin: the Ready picture turns like a prize wheel, ticks, then the chosen picture pops out of the hub ===== */
+function wheelRun(o){
+  const cv=o.cv;if(!cv){o.fail&&o.fail();return}
+  const G=o.G,REF=1672,im=new Image(),tg=new Image();let n=0,bad=false;
+  const go=()=>{
+    if(bad){o.fail&&o.fail();return}
+    if(++n<2)return;
+    if(document.getElementById(cv.id)!==cv){return}
+    const dpr=Math.min(2,window.devicePixelRatio||1),w=cv.clientWidth||900,h=Math.round(w*9/16);
+    cv.width=Math.round(w*dpr);cv.height=Math.round(h*dpr);cv.style.height='100%';
+    const W=cv.width,H=cv.height,f=W/REF,ctx=cv.getContext('2d');
+    const cx=G.cx*f,cy=G.cy*f,rx=G.rx*f,ry=G.ry*f,k=ry/rx,hx=G.hx*f,hy=G.hy*f,hrx=G.hrx*f,hry=G.hry*f;
+    const drawImg=()=>ctx.drawImage(im,0,0,W,H);
+    const frame=(th,blur)=>{
+      ctx.setTransform(1,0,0,1,0,0);ctx.globalAlpha=1;drawImg();
+      const passes=blur>0.02?4:1;
+      for(let p=0;p<passes;p++){
+        ctx.save();ctx.beginPath();ctx.ellipse(cx,cy,rx,ry,0,0,6.2832);ctx.clip();
+        ctx.globalAlpha=p===0?1:0.3;
+        ctx.translate(cx,cy);ctx.scale(1,k);ctx.rotate(th-p*blur/3);ctx.scale(1,1/k);ctx.translate(-cx,-cy);
+        drawImg();ctx.restore();
+      }
+      ctx.globalAlpha=1;
+      ctx.save();ctx.beginPath();ctx.ellipse(hx,hy,hrx,hry,0,0,6.2832);ctx.clip();drawImg();ctx.restore();
+      ctx.save();ctx.beginPath();ctx.rect(G.px[0]*f,G.px[1]*f,(G.px[2]-G.px[0])*f,(G.px[3]-G.px[1])*f);ctx.clip();drawImg();ctx.restore();
+    };
+    const total=(5+Math.random()*2)*6.2832,dur=4300,t0=performance.now(),step=Math.PI/6;let lastW=0,lastT=0,prev=0,prevT=t0;
+    const spin=now=>{
+      if(document.getElementById(cv.id)!==cv)return;
+      const t=Math.min(1,(now-t0)/dur),e=1-Math.pow(1-t,3),th=total*e,v=(th-prev)/Math.max(1,now-prevT);prev=th;prevT=now;
+      frame(th,Math.min(0.5,v*34));
+      const wd=Math.floor(th/step);if(wd!==lastW&&now-lastT>65){lastW=wd;lastT=now;o.tick&&o.tick(t)}else if(wd!==lastW)lastW=wd;
+      if(t<1){MC.raf=requestAnimationFrame(spin)}
+      else{
+        const tp=performance.now();
+        const pop=nw=>{
+          if(document.getElementById(cv.id)!==cv)return;
+          const q=Math.min(1,(nw-tp-350)/650);
+          if(q<=0){frame(total,0);MC.raf=requestAnimationFrame(pop);return}
+          const e2=1-Math.pow(1-q,3);frame(total,0);
+          ctx.save();ctx.beginPath();const r=1+e2*(W*1.05);ctx.ellipse(hx,hy,hrx+r,hry+r,0,0,6.2832);ctx.clip();
+          const ar=tg.naturalWidth/tg.naturalHeight,cw=Math.max(W,H*ar),ch=cw/ar;ctx.drawImage(tg,(W-cw)/2,(H-ch)/2,cw,ch);ctx.restore();
+          if(q<1)MC.raf=requestAnimationFrame(pop);else{MC.raf=0;o.done&&o.done()}
+        };
+        MC.raf=requestAnimationFrame(pop);
+      }
+    };
+    MC.raf=requestAnimationFrame(spin);
+  };
+  im.onload=go;tg.onload=go;im.onerror=tg.onerror=()=>{bad=true;go();go()};
+  im.src=o.src;tg.src=o.target;
+}
+const WHG={cx:837,cy:462,rx:552,ry:455,hx:836,hy:444,hrx:158,hry:148,px:[790,0,885,60]};
 function mcSpin(){
   mcFs(true);mcStop();try{speechSynthesis.cancel()}catch(e){}
   const all=[...MC.ids];MC.reset=false;
@@ -14190,18 +14243,7 @@ function mcSpin(){
   if(!pool.length){MC.seen=new Set();pool=all.slice();MC.reset=true}
   const target=pool[Math.floor(Math.random()*pool.length)];
   MC.cur=target;MC.phase='spin';MC.act=null;MC.over=false;render();
-  const N=26;let i=0,last=-1;
-  const step=()=>{
-    const el=document.getElementById('mcimg');if(!el){return}
-    let id=target;
-    if(i<N){do{id=all[Math.floor(Math.random()*all.length)]}while(all.length>1&&id===last)}
-    last=id;el.src=ILLUS[id].src;
-    try{spdBeep(380+Math.random()*260,.04)}catch(e){}
-    i++;
-    if(i<=N){MC.to=setTimeout(step,45+Math.pow(i/N,2.2)*430)}
-    else{MC.to=null;mcLand()}
-  };
-  MC.to=setTimeout(step,150);
+  wheelRun({cv:document.getElementById('mcwh'),src:MC_READY,G:WHG,target:ILLUS[target].src,tick:()=>{try{spdBeep(380+Math.random()*260,.04)}catch(e){}},done:()=>mcLand(),fail:()=>{MC.to=setTimeout(()=>{MC.to=null;mcLand()},700)}});
 }
 function mcLand(){
   try{spdBeep(880,.25)}catch(e){}
@@ -14253,7 +14295,7 @@ function vMachine(){
     body=`<div class="mc-img mc-idle" style="--ar:1.7778"><div class="mc-bg" style="background-image:url(${MC_READY})"></div><div class="mc-ph mc-ph2"><span>${MC.reset?'Tous vus : on recommence · All seen, starting again':'Prêts ? · Ready?'}</span><small>${nl} image${nl===1?'':'s'} à venir · to come · ${MC.secs} s</small><button class="spbtn pri mc-go" onclick="mcSpin()">▶ Tourner · Spin</button></div></div>`;
     ctl=`<button class="spbtn pri" onclick="mcSpin()">▶ Tourner · Spin</button><button class="btn" onclick="MC.phase='setup';mcStop();render()">Change the KTRs</button><button class="btn" onclick="mcFsToggle()">⛶ Full screen</button><button class="btn" onclick="closeMachine()">Leave</button>`;
   }else if(MC.phase==='spin'){
-    body=`<div class="mc-img spin" style="--ar:${ar}"><img id="mcimg" src="${I.src}" alt=""></div>`;
+    body=`<div class="mc-img spin" style="--ar:1.7778"><canvas id="mcwh" style="width:100%;height:100%;display:block"></canvas></div>`;
     ctl=`<span class="mc-t">…</span>`;
   }else{
     const rv=MC.phase==='reveal',left=Math.max(0,MC.end-Date.now()),pct=Math.round(100*left/(MC.secs*1000));
