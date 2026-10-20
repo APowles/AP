@@ -4,7 +4,7 @@
 <script id="ap-update">
 /* AP auto-update: if this copy is older than the published version, reload once with the new one (saved answers are kept) */
 (function () {
-  var B = '2ec7074b83'; window.AP_BUILD = B;
+  var B = '0fe6217b36'; window.AP_BUILD = B;
   function check() {
     if (!/^https?:$/.test(location.protocol) || !window.fetch) return;
     var f = decodeURIComponent(location.pathname.split('/').pop() || '');
@@ -8630,6 +8630,7 @@ function mcTick(){
   if(left<=0){clearInterval(MC.iv);MC.iv=null;MC.over=true;mcSfx('end');render()}
 }
 window.mcReveal=function(){if(MC.iv){clearInterval(MC.iv);MC.iv=null}MC.phase='reveal';S.pi=MC.cur;S.act=null;S.en=false;render();window.scrollTo(0,0)};
+window.mcPractise=function(i,tab){demoStop();mcStop();try{mcFs(false)}catch(e){}openTopic(i,tab)};
 window.mcMark=function(v){
   demoStop();(v==='ok'?MC.ok:MC.near).push(MC.cur);try{speechSynthesis.cancel()}catch(e){}try{window.parent.speechSynthesis.cancel()}catch(e){}
   MC.phase=MC.seen.size>=mcPool().length?'done':'idle';MC.cur=null;render();window.scrollTo(0,0);
@@ -8640,7 +8641,7 @@ function vMachine(){
     const chips=['A','B','C','D','E'].map(L=>{const n=Q.filter(q=>hasPic(q.i)&&areaOf(q.section)===L).length;
       return '<button class="tg'+(MC.areas.has(L)&&n?' on':'')+(n?'':' soon')+'" '+(n?'onclick="mcArea(\''+L+'\')"':'disabled')+'>'+L+' · '+esc(AREAS[L][0])+' ('+(n?n+' pictures':'soon')+')</button>'}).join('');
     const n=mcPool().length;
-    return '<div class="row" style="justify-content:space-between"><h1 class="h2">\u{1F3B0} Picture machine</h1><button class="btn" onclick="goBack()">← Back</button></div>'
+    return '<div class="row" style="justify-content:space-between"><h1 class="h2">\u{1F5BC}\uFE0F Picture machine</h1><button class="btn" onclick="goBack()">← Back</button></div>'
      +'<p class="lead">The pictures spin and stop at random. Say which topic it is and talk about it for the time you choose. No picture comes up twice until every one has been seen. Then reveal the details, hear them, and mark yourself.</p>'
      +'<div class="mc-opt"><span class="label" style="margin:0">Areas</span>'+chips+'</div>'
      +'<div class="mc-opt"><label class="label" style="margin:0">Talk time <select onchange="mcSecs(+this.value)">'+[20,30,45,60,90].map(v=>'<option value="'+v+'"'+(v===MC.secs?' selected':'')+'>'+v+' s</option>').join('')+'</select></label></div>'
@@ -8648,25 +8649,25 @@ function vMachine(){
   }
   if(MC.phase==='done'){
     const nr=MC.near.map(i=>'<button class="btn" onclick="openTopic('+i+',\'pic\')">'+esc(Q[i].q_en)+'</button>').join('');
-    return '<h1 class="h2">\u{1F3B0} Finished</h1><div class="note" style="margin-top:12px"><b>Every picture has been seen.</b> ✓ OK '+MC.ok.length+' · ≈ Near '+MC.near.length+'</div>'
+    return '<h1 class="h2">\u{1F5BC}\uFE0F Finished</h1><div class="note" style="margin-top:12px"><b>Every picture has been seen.</b> ✓ OK '+MC.ok.length+' · ≈ Near '+MC.near.length+'</div>'
      +(nr?'<div class="label" style="margin-top:16px">To revisit</div><div class="row" style="margin-top:8px">'+nr+'</div>':'')
      +'<div class="row" style="margin-top:18px"><button class="btn pri" onclick="mcBegin()">\u{1F500} Play again</button><button class="btn" onclick="MC.phase=\'setup\';render()">Change the areas</button><button class="btn" onclick="goBack()">← Back</button></div>';
   }
   let body='',ctl='';
   if(MC.phase==='idle'){
     const all=mcPool(),left=all.filter(n=>!MC.seen.has(n)),wall=shuffle((left.length>=8?left:all).slice()).slice(0,8).map(n=>'<img src="'+picSrc(n)+'" alt="">').join('');
-    body='<div class="mc-img mc-idle"><div class="mc-wall">'+wall+'</div><div class="mc-ph mc-ph2"><b>\u{1F3B0}</b><span>'+(MC.reset?'All seen: starting again':'Ready?')+'</span><small>'+(left.length||all.length)+' picture'+((left.length||all.length)===1?'':'s')+' to come · '+MC.secs+' seconds each</small><button class="btn pri mc-go" onclick="mcSpin()">\u{1F3B0} Spin</button></div></div>';
-    ctl='<button class="btn pri" onclick="mcSpin()">\u{1F3B0} Spin</button><button class="btn" onclick="MC.phase=\'setup\';mcStop();render()">Change the areas</button><button class="btn" onclick="mcFsToggle()">\u26F6 Full screen</button><button class="btn" onclick="goBack()">Leave</button>';
+    body='<div class="mc-img mc-idle"><div class="mc-wall">'+wall+'</div><div class="mc-ph mc-ph2"><span>'+(MC.reset?'All seen: starting again':'Ready?')+'</span><small>'+(left.length||all.length)+' picture'+((left.length||all.length)===1?'':'s')+' to come · '+MC.secs+' seconds each</small><button class="btn pri mc-go" onclick="mcSpin()">▶ Spin</button></div></div>';
+    ctl='<button class="btn pri" onclick="mcSpin()">▶ Spin</button><button class="btn" onclick="MC.phase=\'setup\';mcStop();render()">Change the areas</button><button class="btn" onclick="mcFsToggle()">\u26F6 Full screen</button><button class="btn" onclick="goBack()">Leave</button>';
   }else if(MC.phase==='spin'){
-    body='<div class="mc-img spin"><img id="mcimg" src="'+picSrc(MC.cur)+'" alt=""></div>';ctl='<span class="mc-t">\u{1F3B0} …</span>';
+    body='<div class="mc-img spin"><img id="mcimg" src="'+picSrc(MC.cur)+'" alt=""></div>';ctl='<span class="mc-t">…</span>';
   }else if(MC.phase==='talk'){
     const left=Math.max(0,MC.end-Date.now()),pct=Math.round(100*left/(MC.secs*1000));
     body='<div class="mc-q">Which topic is this? Talk about it for '+MC.secs+' seconds.</div><div class="mc-bar"><i id="mcbar" style="width:'+(MC.over?0:pct)+'%"></i></div><div class="mc-img"><img id="mcimg" src="'+picSrc(MC.cur)+'" alt=""></div>';
-    ctl='<span class="mc-t" id="mct">'+(MC.over?'⏰ 0:00':fmt(left/1000))+'</span><button class="btn pri" onclick="mcReveal()">Reveal</button><button class="btn" onclick="mcSpin()">\u{1F3B0} Spin again</button><button class="btn" onclick="mcFsToggle()">\u26F6</button>';
+    ctl='<span class="mc-t" id="mct">'+(MC.over?'⏰ 0:00':fmt(left/1000))+'</span><button class="btn pri" onclick="mcReveal()">Reveal</button><button class="btn" onclick="mcSpin()">▶ Spin again</button><button class="btn" onclick="mcFsToggle()">\u26F6</button>';
   }else{
     const i=MC.cur;S.pi=i;
-    return mcTally()+'<div class="mc-wrap"><div class="mc-q">'+esc(Q[i].q_fr)+' <span style="color:var(--ink2);font-size:.7em">'+esc(Q[i].q_en)+'</span></div>'+stageHtml(i,true)
-      +'<div class="mc-ctl">'+demoBtnHtml(i)+'<button class="btn pri" onclick="mcMark(\'ok\')">✓ OK</button><button class="btn" onclick="mcMark(\'near\')">≈ Near</button><button class="btn" onclick="mcSpin()">\u{1F3B0} Spin again</button><button class="btn" onclick="mcFsToggle()">⛶ Full screen</button></div>'
+    return mcTally()+'<div class="mc-wrap"><div class="mc-q">'+esc(Q[i].q_fr)+' <span style="color:var(--ink2);font-size:.7em">'+esc(Q[i].q_en)+'</span></div>'+'<div class="row mc-prac" style="margin:4px 0 10px;justify-content:center"><span class="label" style="margin:0">Practise this topic</span>'+[['study','Study'],['words',LG.words]].concat(TYPES.map(t=>[t[0],t[1]])).map(t=>'<button class="btn" onclick="mcPractise('+i+',\''+t[0]+'\')">'+esc(t[1])+'</button>').join('')+'</div>'+stageHtml(i,true)
+      +'<div class="mc-ctl">'+demoBtnHtml(i)+'<button class="btn pri" onclick="mcMark(\'ok\')">✓ OK</button><button class="btn" onclick="mcMark(\'near\')">≈ Near</button><button class="btn" onclick="mcSpin()">▶ Spin again</button><button class="btn" onclick="mcFsToggle()">⛶ Full screen</button></div>'
       +'<div style="width:100%"><div class="label">The approved answer</div>'+sentList(i)+'</div></div>';
   }
   return mcTally()+'<div class="mc-wrap">'+body+'<div class="mc-ctl">'+ctl+'</div></div>';
@@ -8681,7 +8682,7 @@ function vHome(){
   return '<div class="hx"><div class="hx-bg"'+bgS(S.bg)+'></div><div class="hx-shade"></div><div class="hx-in">'
    +'<div class="hx-kick">'+nT+' topics · '+SECS.length+' sections · '+esc(LG.name)+'</div><h1 class="hx-title">Approved Material Studio</h1><p class="hx-tag">'+esc(TAGLINE)+'</p>'
    +'<div class="hx-cta"><button class="hx-b pri" onclick="openThemes()">Choose a topic</button>'
-   +(nPics()>=2?'<button class="hx-b" onclick="openMachine()">\u{1F3B0} Picture machine</button>':'')
+   +(nPics()>=2?'<button class="hx-b" onclick="openMachine()">\u{1F5BC}\uFE0F Picture machine</button>':'')
    +(last?'<button class="hx-b" onclick="resumeLast()">↺ Resume: '+esc(lastLabel(last))+'</button>':'')
    +'</div></div></div>'
    +'<details class="hx-more"><summary>More options</summary><div class="lead" style="margin-top:0">Tests, the Speed Challenge and mixed practice use the sections you tick.</div>'+spotRow()
