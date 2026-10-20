@@ -13574,7 +13574,16 @@ body.proj .hero-panel{max-width:min(1300px,90%)}
 .mc-ph{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;color:#f3d98a;font-family:var(--head);font-size:clamp(1.2rem,3vw,2rem);text-align:center;padding:20px}
 .mc-ph b{font-size:clamp(3rem,9vw,6rem)}
 :fullscreen body{overflow:auto}
-body.mcimm .bar,body.mcimm .mc-wrap>.label{display:none}body.mcimm .mc-img{width:min(100%,calc((100vh - 310px)*var(--ar)))}body.mcimm{overflow:hidden}
+/* Image machine full screen: the picture takes the whole width of the screen (or the whole height, whichever runs out first); only the counter and buttons keep a strip, whose height depends on the stage */
+body.mcimm{overflow:hidden;--mcx:150px}
+body.mcimm[data-mcph=spin]{--mcx:100px}
+body.mcimm[data-mcph=talk]{--mcx:215px}
+body.mcimm[data-mcph=reveal]{--mcx:320px;overflow:auto}
+body.mcimm .bar,body.mcimm .mc-wrap>.label,body.mcimm #app>.label{display:none}
+body.mcimm #app.wrap.page{max-width:none;padding-inline:8px}
+body.mcimm .page{padding-block:6px 0}
+body.mcimm .mc-wrap{gap:8px}
+body.mcimm .mc-img{width:min(100%,calc((100vh - var(--mcx))*var(--ar)));border-radius:10px}
 :fullscreen .mc-img{width:min(100%,calc((100vh - 250px)*var(--ar)))}
 .mc-bg{position:absolute;inset:0;background:#101828 center/cover no-repeat;animation:mcdrift 14s ease-in-out infinite alternate}
 @keyframes mcdrift{from{transform:scale(1)}to{transform:scale(1.05)}}
@@ -13854,7 +13863,7 @@ function render(){
   const a=$('app');
   a.innerHTML=S.view==='home'?vHome():S.view==='sub'?vSub():S.view==='ktr'?vKtr():S.view==='how'?vHow():S.view==='speed'?vSpeed():S.view==='machine'?vMachine():vReview();
   syncBar();
-  try{document.body.classList.toggle('mcimm',S.view==='machine'&&MCFS.on&&MC.phase!=='setup'&&MC.phase!=='done')}catch(e){}
+  try{document.body.classList.toggle('mcimm',S.view==='machine'&&MCFS.on&&MC.phase!=='setup'&&MC.phase!=='done');document.body.setAttribute('data-mcph',MC.phase)}catch(e){}
   if(S.view==='ktr'&&S.stage==='d')bindDrill();
   if(S.view==='speed'&&SPD.phase==='setup')spdSum();
   try{hmAfter()}catch(e){}
