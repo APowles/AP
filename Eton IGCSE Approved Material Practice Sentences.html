@@ -4,7 +4,7 @@
 <script id="ap-update">
 /* AP auto-update: if this copy is older than the published version, reload once with the new one (saved answers are kept) */
 (function () {
-  var B = '026e03f72a'; window.AP_BUILD = B;
+  var B = '48f16accef'; window.AP_BUILD = B;
   function check() {
     if (!/^https?:$/.test(location.protocol) || !window.fetch) return;
     var f = decodeURIComponent(location.pathname.split('/').pop() || '');
@@ -8527,12 +8527,21 @@ function amSound(c,n){
 }
 function beep(f,d){try{const c=amCtx();if(c)amTone(c,c.currentTime+.01,f,d,'square',.07)}catch(e){}}
 /* picture-machine sound effects: a whoosh as the reels start, a clack for every picture that flicks past, a fanfare when one lands, a bell when the talk time ends */
-function mcSfx(k,p){amReady(c=>{try{const t=c.currentTime+.01;
-  if(k==='start'){amNoise(c,t,.7,'whoosh',.4);amTone(c,t,220,.5,'sawtooth',.12)}
-  else if(k==='tick'){amNoise(c,t,.05,'crash',.35);amTone(c,t,520+(p||0)*520,.07,'square',.16);amTone(c,t,130,.06,'sine',.3)}
-  else if(k==='land'){amBoom(c,t);[523,659,784,1047].forEach((f,i)=>{amTone(c,t+.05+i*.09,f,.5,'triangle',.28);amTone(c,t+.05+i*.09,f*2,.3,'sine',.1)});amNoise(c,t,.6,'crash',.25)}
-  else if(k==='end'){[880,880,660].forEach((f,i)=>amTone(c,t+i*.22,f,.35,'triangle',.3))}
-}catch(e){}})}
+const _mcW={};
+function _wav(f,sec){const R=22050,n=Math.floor(R*sec),d=new Float32Array(n);f(d,R);let pk=0;for(let i=0;i<n;i++)pk=Math.max(pk,Math.abs(d[i]));const g=pk>0?.9/pk:1,u=new Uint8Array(44+n*2),v=new DataView(u.buffer),w=(o,t)=>{for(let i=0;i<t.length;i++)v.setUint8(o+i,t.charCodeAt(i))};
+  w(0,'RIFF');v.setUint32(4,36+n*2,true);w(8,'WAVE');w(12,'fmt ');v.setUint32(16,16,true);v.setUint16(20,1,true);v.setUint16(22,1,true);v.setUint32(24,R,true);v.setUint32(28,R*2,true);v.setUint16(32,2,true);v.setUint16(34,16,true);w(36,'data');v.setUint32(40,n*2,true);
+  for(let i=0;i<n;i++)v.setInt16(44+i*2,Math.max(-1,Math.min(1,d[i]*g))*32767,true);return URL.createObjectURL(new Blob([u],{type:'audio/wav'}))}
+const _env=(t,a,dur)=>t<a?t/a:Math.exp(-(t-a)*(5/dur));
+function _tone(d,R,t0,fr,dur,type,amp){const s0=Math.floor(t0*R);for(let i=0;i<Math.floor(dur*R)&&s0+i<d.length;i++){const t=i/R,ph=2*Math.PI*fr*t;let x=type==='tri'?(2/Math.PI)*Math.asin(Math.sin(ph)):type==='sq'?(Math.sin(ph)>0?.6:-.6):Math.sin(ph);d[s0+i]+=x*_env(t,.006,dur)*amp}}
+function _sfxUrl(k,p){const key=k+(k==='tick'?Math.round((p||0)*3):'');if(_mcW[key])return _mcW[key];
+  let u;
+  if(k==='tick')u=_wav((d,R)=>{const fr=500+Math.round((p||0)*3)*130;_tone(d,R,0,fr,.07,'sq',.5);_tone(d,R,0,140,.09,'sin',.9);for(let i=0;i<Math.floor(.03*R);i++)d[i]+=(Math.random()*2-1)*Math.exp(-i/(R*.006))*.8},.1);
+  else if(k==='start')u=_wav((d,R)=>{let lp=0;for(let i=0;i<d.length;i++){const t=i/R,c=.02+.5*Math.pow(t/.7,2);lp+=c*((Math.random()*2-1)-lp);d[i]=lp*Math.sin(Math.PI*Math.min(1,t/.7))*2}_tone(d,R,0,180,.5,'tri',.15)},.7);
+  else if(k==='land')u=_wav((d,R)=>{_tone(d,R,0,150,.5,'sin',1);[523,659,784,1047].forEach((f,i)=>{_tone(d,R,.05+i*.1,f,.7,'tri',.5);_tone(d,R,.05+i*.1,f*2,.4,'sin',.15)});for(let i=0;i<Math.floor(.5*R);i++)d[i]+=(Math.random()*2-1)*Math.exp(-i/(R*.1))*.25},1.3);
+  else u=_wav((d,R)=>{[880,880,660].forEach((f,i)=>{_tone(d,R,i*.22,f,.5,'tri',.6);_tone(d,R,i*.22,f*2.4,.3,'sin',.12)})},1.1);
+  return _mcW[key]=u}
+/* picture-machine sound effects (a whoosh as the reels start, a clack for every picture that flicks past, a fanfare when one lands, a bell when the talk time ends): small sounds made in the page and played as ordinary audio, which every browser allows after a tap */
+function mcSfx(k,p){try{const a=new Audio(_sfxUrl(k,p));a.volume=1;const pr=a.play();if(pr&&pr.catch)pr.catch(()=>{})}catch(e){}}
 
 /* ===== opening splash: picture montage with sound ===== */
 function splashEnd(){
@@ -8627,7 +8636,7 @@ function vMachine(){
      +'<p class="lead">The pictures spin and stop at random. Say which topic it is and talk about it for the time you choose. No picture comes up twice until every one has been seen. Then reveal the details, hear them, and mark yourself.</p>'
      +'<div class="mc-opt"><span class="label" style="margin:0">Areas</span>'+chips+'</div>'
      +'<div class="mc-opt"><label class="label" style="margin:0">Talk time <select onchange="mcSecs(+this.value)">'+[20,30,45,60,90].map(v=>'<option value="'+v+'"'+(v===MC.secs?' selected':'')+'>'+v+' s</option>').join('')+'</select></label></div>'
-     +'<div class="row" style="margin-top:16px"><span class="label" style="margin:0">'+n+' picture'+(n===1?'':'s')+' chosen'+(n<2?' (choose at least 2)':'')+'</span><button class="btn pri" '+(n<2?'disabled':'')+' onclick="mcBegin()">▶ Set up the machine</button></div>';
+     +'<div class="row" style="margin-top:16px"><span class="label" style="margin:0">'+n+' picture'+(n===1?'':'s')+' chosen'+(n<2?' (choose at least 2)':'')+'</span><button class="btn pri" '+(n<2?'disabled':'')+' onclick="mcBegin()">▶ Set up the machine</button><button class="btn" onclick="mcSfx(\'land\')">\u{1F50A} Test the sound</button></div>';
   }
   if(MC.phase==='done'){
     const nr=MC.near.map(i=>'<button class="btn" onclick="openTopic('+i+',\'pic\')">'+esc(Q[i].q_en)+'</button>').join('');
