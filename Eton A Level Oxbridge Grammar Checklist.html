@@ -5,7 +5,7 @@
 <script id="ap-update">
 /* auto-update: if this copy is older than the published version, reload once with the new one (saved ticks are kept) */
 (function () {
-  var B = '4bc591f79d'; window.AP_BUILD = B;
+  var B = 'a8349b62ef'; window.AP_BUILD = B;
   function check() {
     if (!/^https?:$/.test(location.protocol) || !window.fetch) return;
     var f = decodeURIComponent(location.pathname.split('/').pop() || '');
@@ -261,6 +261,9 @@ a.ox-pt:hover{background:var(--nearly-bg)}
 .px-sents{list-style:none;margin:2vh auto 0;padding:0;max-width:1300px;text-align:left}
 .px-sents li{font:700 clamp(1.5rem,.9rem + 3vw,3.8rem)/1.3 var(--aph-body);padding:.18em .6em;margin:.12em 0;border-radius:14px;background:rgba(255,255,255,.08);border-left:8px solid var(--hue,#c9a24a);animation:pxin .45s ease-out}
 @keyframes pxin{from{opacity:0;transform:translateY(22px)}to{opacity:1;transform:none}}
+.px-no{display:inline-block;background:#fff;color:#0e1e3a;border-radius:999px;padding:.05em .6em;margin-right:.7em;letter-spacing:.02em}
+.px-ref{margin-top:1vh;font:700 clamp(.95rem,.8rem + .7vw,1.4rem) var(--aph-body);color:var(--gold)}
+.ox-no{display:inline-block;background:var(--navy);color:#fff;border-radius:999px;padding:1px 10px;font-weight:800;margin-right:6px}
 .px-hint{margin-top:2.5vh;font:600 1rem var(--aph-body);color:rgba(255,255,255,.6)}
 .px-marks{display:flex;gap:10px;justify-content:center;margin-top:2.5vh}
 .px-marks .px-b.bad.on{background:var(--wrong);border-color:var(--wrong);color:#fff}
@@ -311,6 +314,7 @@ function sentences(r) {
   if (!r.items.length) return '<div class="ox-empty">No practice sentences for this one yet.</div>';
   return (r.task ? '<div class="ox-task">' + esc(r.task) + (/[:?]$/.test(r.task) ? '' : ':') + '</div>' : '<div class="t">Translate into French</div>') + '<ul>' + r.items.map(function (x) { return '<li>' + esc(x) + '</li>'; }).join('') + '</ul>';
 }
+function ptText(r) { var a = r.nums.map(function (n) { return 'Pamphlet point ' + n; }).concat(r.pages.map(function (p) { return 'pamphlet p.' + p; })); return a.join(' · '); }
 function hue(c) { var i = Math.max(0, CON.indexOf(c)); return 'hsl(' + ((i * 53) % 360) + ',58%,38%)'; }
 function go(name) { S.stack.push(S.screen); S.screen = name; render(true); }
 function setScreen(name) { S.screen = name; render(true); }
@@ -346,7 +350,7 @@ var A = window.A = {
     var i = 0, rm = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
     function paint(r, prev, next) {
       var b = $('pxband'), l1 = $('pxl1'), m = $('pxm'), l3 = $('pxl3'); if (!b) return;
-      b.textContent = r.c; $('pxstage').style.setProperty('--hue', hue(r.c)); l1.textContent = prev ? prev.s : ''; m.textContent = r.s; l3.textContent = next ? next.s : '';
+      b.textContent = 'No. ' + r.n + '  ·  ' + r.c; $('pxstage').style.setProperty('--hue', hue(r.c)); l1.textContent = prev ? prev.s : ''; m.textContent = r.s; l3.textContent = next ? next.s : '';
     }
     function tick() {
       if (S.screen !== 'proj') { px.spinning = false; return; }
@@ -458,7 +462,7 @@ var V = {
     } else if (px.spinning) {
       h += '<div class="px-band" id="pxband"> </div><div class="px-reel"><div class="l" id="pxl1"> </div><div class="m" id="pxm"> </div><div class="l" id="pxl3"> </div></div>';
     } else {
-      h += '<div class="px-band">' + esc(r.c) + '</div><div class="px-reel"><div class="m">' + esc(r.s) + '</div></div>' + (r.note ? '<div class="px-note">' + esc(r.note) + '</div>' : '');
+      h += '<div class="px-band"><span class="px-no">No. ' + r.n + '</span>' + esc(r.c) + '</div><div class="px-reel"><div class="m">' + esc(r.s) + '</div></div>' + (r.note ? '<div class="px-note">' + esc(r.note) + '</div>' : '') + (ptText(r) ? '<div class="px-ref">' + esc(ptText(r)) + '</div>' : '');
       if (r.task) h += '<div class="px-task">' + esc(r.task) + (/[:?]$/.test(r.task) ? '' : ':') + '</div>';
       h += '<ul class="px-sents">' + r.items.slice(0, px.shown).map(function (x) { return '<li>' + esc(x) + '</li>'; }).join('') + '</ul>';
       var more = px.shown < r.items.length;
@@ -470,7 +474,7 @@ var V = {
   },
   pick: function () {
     var r = S.pick; if (!r) return '';
-    return '<div class="aph-wrap">' + backBtn() + '<div class="aph-card"><h2 class="aph-h">Your grammar point</h2><div class="ox-pickbox"><div class="ox-ctx">' + esc(r.c) + '</div><div class="big">' + esc(r.s) + '</div>' +
+    return '<div class="aph-wrap">' + backBtn() + '<div class="aph-card"><h2 class="aph-h">Your grammar point</h2><div class="ox-pickbox"><div class="ox-ctx"><span class="ox-no">No. ' + r.n + '</span> ' + esc(r.c) + '</div><div class="big">' + esc(r.s) + '</div>' +
       (r.note ? '<div class="ox-note">' + esc(r.note) + '</div>' : '') + '<div class="ox-pts">' + ptLinks(r) + '</div></div>' +
       '<div class="aph-label">Put these into French</div><div class="ox-sent" style="margin-top:0">' + sentences(r) + '</div>' +
       '<div class="aph-label">How did it go?</div>' + marksHTML(r.n) +
@@ -480,7 +484,7 @@ var V = {
     var P = S.P, n = P.deck[P.i], r = ROWS[n - 1], t = { ok: 0, near: 0, bad: 0 }; for (var k in P.res) t[P.res[k]]++;
     return '<div class="aph-dbar"><div class="aph-dbar-title">Practice · ' + (P.i + 1) + ' of ' + P.deck.length + '</div><div class="aph-dbar-score"><span class="ok">✓ ' + t.ok + '</span><span>~ ' + t.near + '</span><span class="bad">✗ ' + t.bad + '</span></div><button class="aph-dbar-btn" onclick="A.back()">← Back</button></div>' +
       '<div class="aph-progress"><div style="width:' + (100 * P.i / P.deck.length) + '%"></div></div>' +
-      '<div class="aph-drill"><div class="aph-drill-main"><div class="aph-qcard"><div class="aph-qmeta">Point ' + r.n + '</div><div class="ox-ctx">' + esc(r.c) + ' <span>· ' + esc(r.s) + '</span></div>' +
+      '<div class="aph-drill"><div class="aph-drill-main"><div class="aph-qcard"><div class="aph-qmeta"><span class="ox-no">No. ' + r.n + '</span></div><div class="ox-ctx">' + esc(r.c) + ' <span>· ' + esc(r.s) + '</span></div>' +
       (r.task ? '<div class="ox-task">' + esc(r.task) + (/[:?]$/.test(r.task) ? '' : ':') + '</div>' : '<div class="aph-qmeta">Put these into French</div>') +
       '<div><ul class="ox-lines">' + r.items.map(function (x) { return '<li>' + esc(x) + '</li>'; }).join('') + '</ul></div>' +
       '<div class="aph-under"><button class="aph-btn aph-btn-sm' + (P.notes ? ' on' : '') + '" onclick="A.note()">' + (P.notes ? 'Hide' : 'Show') + ' the checklist notes</button></div>' +
