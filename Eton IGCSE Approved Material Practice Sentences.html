@@ -4,7 +4,7 @@
 <script id="ap-update">
 /* AP auto-update: if this copy is older than the published version, reload once with the new one (saved answers are kept) */
 (function () {
-  var B = '899658c49f'; window.AP_BUILD = B;
+  var B = '026e03f72a'; window.AP_BUILD = B;
   function check() {
     if (!/^https?:$/.test(location.protocol) || !window.fetch) return;
     var f = decodeURIComponent(location.pathname.split('/').pop() || '');
@@ -8508,8 +8508,11 @@ const SPL={ctx:null,master:null,timers:[],el:null,live:false};
 function amCtx(){
   try{const C=window.AudioContext||window.webkitAudioContext;if(!C)return null;
     if(!SPL.ctx){let pc=null;try{pc=window.parent&&window.parent!==window?window.parent.__amCtx:null}catch(e){}SPL.ctx=pc||new C();SPL.master=SPL.ctx.createGain();SPL.master.gain.value=.7;const cp=SPL.ctx.createDynamicsCompressor();cp.threshold.value=-14;cp.ratio.value=6;SPL.master.connect(cp);cp.connect(SPL.ctx.destination)}
-    if(SPL.ctx.state==='suspended')SPL.ctx.resume();return SPL.ctx}catch(e){return null}
+    if(SPL.ctx.state!=='running'){try{SPL.ctx.resume()}catch(e){}}return SPL.ctx}catch(e){return null}
 }
+/* iPad: the ring/silent switch mutes Web Audio unless an ordinary audio element has played first, so a silent clip is played inside the tap. Sounds then wait for the context to be running. */
+let _amUnl=null;function amUnlock(){try{if(!_amUnl){_amUnl=new Audio('data:audio/wav;base64,UklGRiQAAABXQVZFZm10IBAAAAABAAEARKwAAIhYAQACABAAZGF0YQAAAAA=');_amUnl.setAttribute('playsinline','');_amUnl.loop=false}_amUnl.currentTime=0;const pr=_amUnl.play();if(pr&&pr.catch)pr.catch(()=>{})}catch(e){}const c=amCtx();try{if(c){const b=c.createBuffer(1,1,22050),n=c.createBufferSource();n.buffer=b;n.connect(c.destination);n.start(0)}}catch(e){}return c}
+function amReady(fn){const c=amCtx();if(!c)return;if(c.state==='running'){fn(c);return}let done=false;const go=()=>{if(done)return;done=true;fn(c)};try{const p=c.resume();if(p&&p.then)p.then(go,go)}catch(e){}setTimeout(go,250)}
 function amTone(c,t,f,d,type,g){const o=c.createOscillator(),a=c.createGain();o.type=type||'triangle';o.frequency.value=f;a.gain.setValueAtTime(.0001,t);a.gain.exponentialRampToValueAtTime(g||.14,t+.012);a.gain.exponentialRampToValueAtTime(.0001,t+d);o.connect(a);a.connect(SPL.master);o.start(t);o.stop(t+d+.05)}
 function amNoise(c,t,d,kind,g){const len=Math.floor(c.sampleRate*d),buf=c.createBuffer(1,len,c.sampleRate),ch=buf.getChannelData(0);for(let i=0;i<len;i++)ch[i]=Math.random()*2-1;const s=c.createBufferSource();s.buffer=buf;const f=c.createBiquadFilter();
   if(kind==='whoosh'){f.type='bandpass';f.Q.value=.9;f.frequency.setValueAtTime(250,t);f.frequency.exponentialRampToValueAtTime(3600,t+d)}else{f.type='highpass';f.frequency.value=3500}
@@ -8524,12 +8527,12 @@ function amSound(c,n){
 }
 function beep(f,d){try{const c=amCtx();if(c)amTone(c,c.currentTime+.01,f,d,'square',.07)}catch(e){}}
 /* picture-machine sound effects: a whoosh as the reels start, a clack for every picture that flicks past, a fanfare when one lands, a bell when the talk time ends */
-function mcSfx(k,p){try{const c=amCtx();if(!c)return;const t=c.currentTime+.01;
+function mcSfx(k,p){amReady(c=>{try{const t=c.currentTime+.01;
   if(k==='start'){amNoise(c,t,.7,'whoosh',.4);amTone(c,t,220,.5,'sawtooth',.12)}
   else if(k==='tick'){amNoise(c,t,.05,'crash',.35);amTone(c,t,520+(p||0)*520,.07,'square',.16);amTone(c,t,130,.06,'sine',.3)}
   else if(k==='land'){amBoom(c,t);[523,659,784,1047].forEach((f,i)=>{amTone(c,t+.05+i*.09,f,.5,'triangle',.28);amTone(c,t+.05+i*.09,f*2,.3,'sine',.1)});amNoise(c,t,.6,'crash',.25)}
   else if(k==='end'){[880,880,660].forEach((f,i)=>amTone(c,t+i*.22,f,.35,'triangle',.3))}
-}catch(e){}}
+}catch(e){}})}
 
 /* ===== opening splash: picture montage with sound ===== */
 function splashEnd(){
@@ -8580,12 +8583,12 @@ window.splash=function(force){
 const MC={areas:new Set(['A','B','C','D','E']),secs:45,phase:'setup',seen:new Set(),cur:null,ok:[],near:[],to:null,iv:null,end:0,over:false,reset:false};
 const mcPool=()=>Q.filter(q=>hasPic(q.i)&&MC.areas.has(areaOf(q.section))).map(q=>q.i);
 function mcStop(){if(MC.to){clearTimeout(MC.to);MC.to=null}if(MC.iv){clearInterval(MC.iv);MC.iv=null}}
-window.openMachine=function(){pushNav();mcStop();MC.phase='setup';S.view='machine';mcFs(true);render();window.scrollTo(0,0)};
+window.openMachine=function(){amUnlock();pushNav();mcStop();MC.phase='setup';S.view='machine';mcFs(true);render();window.scrollTo(0,0)};
 window.mcArea=function(L){if(MC.areas.has(L))MC.areas.delete(L);else MC.areas.add(L);render()};
 window.mcSecs=function(v){MC.secs=v;render()};
-window.mcBegin=function(){MC.seen=new Set();MC.ok=[];MC.near=[];MC.cur=null;MC.reset=false;MC.phase='idle';mcFs(true);render();window.scrollTo(0,0)};
+window.mcBegin=function(){amUnlock();MC.seen=new Set();MC.ok=[];MC.near=[];MC.cur=null;MC.reset=false;MC.phase='idle';mcFs(true);render();window.scrollTo(0,0)};
 window.mcSpin=function(){
-  mcFs(true);demoStop();mcStop();try{speechSynthesis.cancel()}catch(e){}try{window.parent.speechSynthesis.cancel()}catch(e){}
+  amUnlock();mcFs(true);demoStop();mcStop();try{speechSynthesis.cancel()}catch(e){}try{window.parent.speechSynthesis.cancel()}catch(e){}
   const all=mcPool();MC.reset=false;
   let pool=all.filter(n=>!MC.seen.has(n));
   if(!pool.length){MC.seen=new Set();pool=all.slice();MC.reset=true}
