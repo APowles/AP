@@ -4,7 +4,7 @@
 <script id="ap-update">
 /* AP auto-update: if this copy is older than the published version, reload once with the new one (saved answers are kept) */
 (function () {
-  var B = '8b6ab45ea4'; window.AP_BUILD = B;
+  var B = 'e48ab15028'; window.AP_BUILD = B;
   function check() {
     if (!/^https?:$/.test(location.protocol) || !window.fetch) return;
     var f = decodeURIComponent(location.pathname.split('/').pop() || '');
@@ -7895,9 +7895,9 @@ function say(t,cb){
   try{if(window.parent&&typeof window.parent.speak==='function'){window.parent.speak(t,LG.code,cb);return}}catch(e){}
   try{const S=window.speechSynthesis;S.cancel();const u=new SpeechSynthesisUtterance(t);u.lang=LG.tts;u.rate=.92;if(cb)u.onend=cb;S.speak(u)}catch(e){}
 }
-function sayEn(t){
-  try{if(window.parent&&typeof window.parent.speak==='function'){window.parent.speak(t,'en');return}}catch(e){}
-  try{const S=window.speechSynthesis;S.cancel();const u=new SpeechSynthesisUtterance(t);u.lang='en-GB';u.rate=.95;S.speak(u)}catch(e){}
+function sayEn(t,cb){
+  try{if(window.parent&&typeof window.parent.speak==='function'){window.parent.speak(t,'en',cb);return}}catch(e){}
+  try{const S=window.speechSynthesis;S.cancel();const u=new SpeechSynthesisUtterance(t);u.lang='en-GB';u.rate=.95;if(cb)u.onend=cb;S.speak(u)}catch(e){}
 }
 window.sayBtn=function(b){say(b.dataset.t)};
 function spkBtn(t){return '<button class="spk" data-t="'+esc(t)+'" onclick="sayBtn(this)" aria-label="Hear it in '+LG.name+'">'+SPK+'</button>'}
@@ -8372,7 +8372,7 @@ function stageHtml(i,marks){
   const sps=PICS[String(i+1)]||[],A=areaOf(Q[i].section),adj=spreadSpots(sps);
   const mk=marks?sps.map((sp,k)=>'<button class="mk" data-k="'+k+'" style="left:'+adj[k].x.toFixed(1)+'%;top:'+adj[k].y.toFixed(1)+'%" onclick="picAct('+k+')" aria-label="Detail '+(k+1)+'">'+(k+1)+'</button>').join(''):'';
   const img=hasPic(i)?'<img src="'+picSrc(i)+'" alt="" onerror="this.parentNode.classList.add(\'nopic\')">':'';
-  return '<div class="pic-box" id="pic-box"><div class="pic-img'+(hasPic(i)?'':' nopic')+'">'+img+'<div class="pic-ph"><b>'+AREAS[A][1]+'</b><span>Picture coming soon</span></div>'+mk+'</div><div class="pic-fsbar"><button class="fsb dm-fs" onclick="demoToggle()">'+(DM.on?'\u25A0 Stop':'\u25B6 Hear the whole answer')+'</button><button class="fsb" onclick="fsEn()">English</button><button class="fsb" onclick="picFs()">\u2715 Exit full screen</button></div><div class="pic-cap" id="pic-cap">'+capHtml(i)+'</div></div>';
+  return '<div class="pic-box" id="pic-box"><div class="pic-img'+(hasPic(i)?'':' nopic')+'">'+img+'<div class="pic-ph"><b>'+AREAS[A][1]+'</b><span>Picture coming soon</span></div>'+mk+'</div><div class="pic-fsbar"><button class="fsb dm-fs" onclick="demoToggle()">'+(DM.on?'\u25A0 Stop':'\u25B6 Hear the whole answer')+'</button><button class="fsb dm-fs-en" onclick="demoToggle(true)">'+(DM.on?'\u25A0 Stop':'\u25B6 Whole answer in English')+'</button><button class="fsb" onclick="fsEn()">English</button><button class="fsb" onclick="picFs()">\u2715 Exit full screen</button></div><div class="pic-cap" id="pic-cap">'+capHtml(i)+'</div></div>';
 }
 function paintStage(){
   const box=document.getElementById('pic-box');if(!box)return;
@@ -8390,23 +8390,26 @@ window.fsEn=function(){if(S.act==null)return;S.en=!S.en;paintStage();const i=S.p
 window.picFs=function(){const b=document.getElementById('pic-box');if(!b)return;try{if(document.fullscreenElement)document.exitFullscreen();else (b.requestFullscreen||b.webkitRequestFullscreen).call(b)}catch(e){}};
 const DM={on:false,tok:0,k:-1};
 const demoSecs=i=>Math.max(5,Math.round(Q[i].fr.join(' ').split(/\s+/).length/2.3));
-function demoBtnHtml(i){return '<button class="btn pri" id="dm-btn" onclick="demoToggle()">'+(DM.on?'■ Stop':'▶ Hear the whole answer (about '+demoSecs(i)+' s)')+'</button>'}
+function demoBtnHtml(i){return '<button class="btn pri" id="dm-btn" onclick="demoToggle()">'+(DM.on?'■ Stop':'▶ Hear the whole answer (about '+demoSecs(i)+' s)')+'</button><button class="btn" id="dm-btn-en" onclick="demoToggle(true)">'+(DM.on?'■ Stop':'▶ Whole answer in English')+'</button>'}
 function paintDemo(){
   document.querySelectorAll('.dm-fs').forEach(x=>{x.innerHTML=DM.on?'\u25A0 Stop':'\u25B6 Hear the whole answer'});
+  document.querySelectorAll('.dm-fs-en').forEach(x=>{x.innerHTML=DM.on?'\u25A0 Stop':'\u25B6 Whole answer in English'});
+  const be=document.getElementById('dm-btn-en');if(be)be.innerHTML=DM.on?'■ Stop':'▶ Whole answer in English';
   const b=document.getElementById('dm-btn');if(b)b.innerHTML=DM.on?'■ Stop':'▶ Hear the whole answer (about '+demoSecs(S.pi)+' s)';
   document.querySelectorAll('.dem-s').forEach(e=>e.classList.toggle('now',DM.on&&+e.dataset.j===DM.k));
   document.querySelectorAll('.pt').forEach(e=>e.classList.toggle('now',DM.on&&+e.dataset.j===DM.k));
   const sps=PICS[String(S.pi+1)]||[];
   document.querySelectorAll('.mk').forEach(m=>{const sp=sps[+m.dataset.k];m.classList.toggle('pulse',!!(DM.on&&sp&&sp.j===DM.k))});
 }
-window.demoToggle=function(){if(DM.on)demoStop();else demoStart(S.pi)};
-function demoStart(i){
-  const ss=Q[i].fr;demoStop();DM.on=true;const tok=++DM.tok;DM.k=0;S.act=null;S.en=false;paintStage();
+window.demoToggle=function(en){if(DM.on)demoStop();else demoStart(S.pi,en===true)};
+function demoStart(i,en){
+  const ss=en?Q[i].en:Q[i].fr;demoStop();DM.on=true;const tok=++DM.tok;DM.k=0;S.act=null;S.en=false;paintStage();
   const step=()=>{
     if(!DM.on||DM.tok!==tok)return;
     if(DM.k>=ss.length){DM.on=false;DM.k=-1;paintDemo();return}
     paintDemo();
-    say(ss[DM.k],()=>{if(!DM.on||DM.tok!==tok)return;DM.k++;setTimeout(step,300)});
+    const nx=()=>{if(!DM.on||DM.tok!==tok)return;DM.k++;setTimeout(step,300)};
+    if(en)sayEn(ss[DM.k],nx);else say(ss[DM.k],nx);
   };
   step();
 }
