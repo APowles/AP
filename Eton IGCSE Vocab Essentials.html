@@ -4,7 +4,7 @@
 <script id="ap-update">
 /* AP auto-update: if this copy is older than the published version, reload once with the new one (saved answers are kept) */
 (function () {
-  var B = '9a83fa5510'; window.AP_BUILD = B;
+  var B = 'a930e89570'; window.AP_BUILD = B;
   function check() {
     if (!/^https?:$/.test(location.protocol) || !window.fetch) return;
     var f = decodeURIComponent(location.pathname.split('/').pop() || '');
@@ -2792,6 +2792,24 @@ var APTT = (function () {
   ghAdd = function (code, line) { return _ghAdd0(code, line).then(function (r) { apPendDone([code]); return r; }); };
   if (typeof ghAddMany === 'function') { var _ghAddMany0 = ghAddMany; ghAddMany = function (L) { return _ghAddMany0(L).then(function (r) { apPendDone(L.map(function (x) { return x.code; })); return r; }); }; }
   if (typeof ghRemove === 'function') { var _ghRemove0 = ghRemove; ghRemove = function (code) { return _ghRemove0(code).then(function (r) { apPendDone([code]); return r; }); }; }
+  /* ── Test codes without a size limit (Oct 2026): the long token of a new test is kept in its own small file, tests/CODE.txt, and tests.txt only gets a
+        short index line  CODE | name | heading | folder | @  . Old lines with the token inside keep working. ── */
+  var GHD = 'https://api.github.com/repos/APowles/AP/contents/tests/';
+  function ghTokPut(code, tok) {
+    var u = GHD + encodeURIComponent(code) + '.txt';
+    return fetch(u + '?ref=main&t=' + Date.now(), { headers: ghHead(), cache: 'no-store' })
+      .then(function (r) { return r.status === 404 ? null : r.ok ? r.json() : Promise.reject(new Error('GitHub ' + r.status)); })
+      .then(function (j) { var b = { message: 'Test ' + code, content: b64bytes(utf8(tok)), branch: 'main' }; if (j && j.sha) b.sha = j.sha; return fetch(u, { method: 'PUT', headers: ghHead(), body: JSON.stringify(b) }); })
+      .then(function (r) { if (!r.ok) throw new Error('GitHub ' + r.status); return true; });
+  }
+  function ghSlim(code, line) {   // → the short index line (the token is saved to its own file first)
+    var p = String(line).split('|'), tok = p[p.length - 1].trim();
+    if (p.length < 4 || tok.length < 200 || tok === '@') return Promise.resolve(line);
+    return ghTokPut(String(code).toUpperCase(), tok).then(function () { p[p.length - 1] = ' @'; return p.join('|'); });
+  }
+  var _ghAdd1 = ghAdd; ghAdd = function (code, line) { return ghSlim(code, line).then(function (l2) { return _ghAdd1(code, l2); }); };
+  if (typeof ghReplace === 'function') { var _ghRep1 = ghReplace; ghReplace = function (code, line) { return ghSlim(code, line).then(function (l2) { return _ghRep1(code, l2); }); }; }
+  if (typeof ghAddMany === 'function') { var _ghMany1 = ghAddMany; ghAddMany = function (L) { return Promise.all(L.map(function (x) { return ghSlim(x.code, x.line).then(function (l2) { return { code: x.code, line: l2 }; }); })).then(function (L2) { return _ghMany1(L2); }); }; }
   function apPendGet() { try { return JSON.parse(lsGet('apttPend') || '[]') || []; } catch (e) { return []; } }
   function apPendSet(l) { lsSet('apttPend', JSON.stringify(l)); }
   function apPendNote(o, tok) {
