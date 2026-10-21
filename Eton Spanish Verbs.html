@@ -6,7 +6,7 @@
 <script id="ap-update">
 /* AP auto-update: if this copy is older than the published version, reload once with the new one (saved answers are kept) */
 (function () {
-  var B = '968db3908b'; window.AP_BUILD = B;
+  var B = '25cfbd2333'; window.AP_BUILD = B;
   function check() {
     if (!/^https?:$/.test(location.protocol) || !window.fetch) return;
     var f = decodeURIComponent(location.pathname.split('/').pop() || '');
@@ -5948,7 +5948,7 @@ function closeConjChallenge() {
       + '<button class="gh-card gh-sm" onclick="gramNotes()"><span class="gh-ic">&#128214;</span><span class="gh-t">NOTES</span><span class="gh-s">Read the grammar. Choose the pages you want.</span></button>'
       + '<button class="gh-card gh-sm gh-alt" onclick="gramSetup(\'drill\')"><span class="gh-ic">&#9999;&#65039;</span><span class="gh-t">DRILLS</span><span class="gh-s">Practise with instant feedback.</span></button>'
       + '<button class="gh-card gh-sm gh-alt2" onclick="gramSetup(\'test\')"><span class="gh-ic">&#128221;</span><span class="gh-t">TESTS</span><span class="gh-s">Make a test to print, or take it on screen.</span></button>'
-      + '<button class="gh-card gh-sm gh-alt3" onclick="gramSetup(\'spot\')"><span class="gh-ic">&#9201;&#65039;</span><span class="gh-t">SPOT TEST</span><span class="gh-s">Short test: printed, or timed and handed in.</span></button>'
+      + '<button class="gh-card gh-sm gh-alt3" onclick="gramSetup(\'spot\')"><span class="gh-ic">&#9201;&#65039;</span><span class="gh-t">SPOT TEST</span><span class="gh-s">Short test: Paper Spot Test, or Submitted Spot Test on the iPad.</span></button>'
       + '<button class="gh-card gh-sm gh-alt4" onclick="gramSpeed()"><span class="gh-ic">&#9889;</span><span class="gh-t">SPEED</span><span class="gh-s">Race the clock: solo or in teams.</span></button>'
       + '</div></div></div>');
   };
@@ -6006,7 +6006,8 @@ function closeConjChallenge() {
       + '<p class="gp-p">Finished reading? Go straight to practice on this unit.</p><div class="gp-row">'
       + '<button class="aph-btn aph-btn-primary" onclick="gramGo(\'' + c + '\',\'drill\')">&#9999;&#65039; Drill</button>'
       + '<button class="aph-btn" onclick="gramGo(\'' + c + '\',\'test\')">&#128221; Test</button>'
-      + '<button class="aph-btn" onclick="gramGo(\'' + c + '\',\'spot\')">&#9201;&#65039; Spot Test</button>'
+      + '<button class="aph-btn aptt-btn" onclick="gramGo(\'' + c + '\',\'spot\',\'submitted\')">&#9997; Submitted Spot Test</button>'
+      + '<button class="aph-btn" onclick="gramGo(\'' + c + '\',\'spot\',\'paper\')">&#128424; Paper Spot Test</button>'
       + '<button class="aph-btn" onclick="gramGo(\'' + c + '\',\'speed\')">&#9889; Speed</button>'
       + '</div></div>';
   }
@@ -6075,7 +6076,7 @@ function closeConjChallenge() {
   W.gramN = function (n) { S.n = n; gramSetup(S.kind); };
   /* Straight from the end of a notes chapter into practice: the unit is locked in, the pupil's last difficulty / question-type settings are kept
      (and eased back to Mixed only if they would leave nothing to ask), and no set-up screen is shown. */
-  W.gramGo = function (code, kind) {
+  W.gramGo = function (code, kind, how) {
     UNITS.forEach(function (u) { S.units[u.code] = (u.code === code); });
     var speed = kind === 'speed', need = speed ? 4 : 1, size = function () { return (speed ? poolU() : pool()).length; };
     if (size() < need) { S.lv = 'mix'; S.type = 'mix'; }
@@ -6084,7 +6085,7 @@ function closeConjChallenge() {
     if (ns.indexOf(S.n) < 0) S.n = kind === 'spot' ? 10 : 20;
     if (speed) { gramSpeed(); return; }
     S.kind = kind;
-    if (kind === 'drill') gramStart(false); else gramMakeTest();
+    if (kind === 'drill') gramStart(false); else { gramMakeTest(); if (how === 'submitted') gramSpotTimed(); }
   };
 
   /* ---------- marking helpers ---------- */
@@ -6219,9 +6220,9 @@ function closeConjChallenge() {
     show('<div class="aph-wrap gh-ready"><div class="aph-card"><h2 class="aph-h">' + (spot ? 'Your Spot Test is ready' : 'Your test is ready') + '</h2>'
       + '<p class="gh-p"><b>' + qs.length + ' questions</b> &middot; ' + esc(unitsLabel(qs)) + '</p>'
       + '<div class="aph-stack">'
-      + (spot ? '<button class="aph-btn aph-btn-primary aph-btn-block" onclick="gramSpotTimed()">&#9201; Submitted Spot Test</button>' : '')
-      + '<button class="aph-btn' + (spot ? '' : ' aph-btn-primary') + ' aph-btn-block" onclick="gramPrintTest(false)">&#128424; Student sheet</button>'
-      + '<button class="aph-btn aph-btn-block" onclick="gramPrintTest(true)">&#128273; Answer key</button>'
+      + (spot ? '<button class="aph-btn aptt-btn aph-btn-block" onclick="gramSpotTimed()">&#9997; Submitted Spot Test</button>' : '')
+      + '<button class="aph-btn' + (spot ? '' : ' aph-btn-primary') + ' aph-btn-block" onclick="gramPrintTest(false)">&#128424; ' + (spot ? 'Paper Spot Test: Student sheet' : 'Student sheet') + '</button>'
+      + '<button class="aph-btn aph-btn-block" onclick="gramPrintTest(true)">&#128273; ' + (spot ? 'Paper Spot Test: Answer key' : 'Answer key') + '</button>'
       + (spot ? '' : '<button class="aph-btn aph-btn-block" onclick="gramTakeTest()">&#9654; Take it on screen</button>')
       + '<button class="aph-btn aph-btn-block" onclick="gramMakeTest()">&#8635; New questions, same settings</button></div></div></div>');
   };
@@ -6232,7 +6233,7 @@ function closeConjChallenge() {
   }
   function spotAnswer(q) { return q.t === 'mc' ? 'ABCD'[q.a] + '  ' + q.o[q.a] : q.a.join('  /  '); }
   W.gramSpotTimed = function () {
-    if (!W.APTT || !APTT.open) { alert('The timed Spot Test is not available on this page.'); return; }
+    if (!W.APTT || !APTT.open) { alert('The Submitted Spot Test is not available on this page.'); return; }
     var first = S.test;
     var run = function () {
       var qs = (!APTT.capturing && first) ? first : drawTest(first ? first.length : S.n); first = null;
