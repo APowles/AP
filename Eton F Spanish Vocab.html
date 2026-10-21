@@ -6,7 +6,7 @@
 <script id="ap-update">
 /* AP auto-update: if this copy is older than the published version, reload once with the new one (saved answers are kept) */
 (function () {
-  var B = '7efd64819b'; window.AP_BUILD = B;
+  var B = 'b4fc27689d'; window.AP_BUILD = B;
   function check() {
     if (!/^https?:$/.test(location.protocol) || !window.fetch) return;
     var f = decodeURIComponent(location.pathname.split('/').pop() || '');
@@ -2456,7 +2456,14 @@ var APTT = (function () {
   function ghHead(k) { return { Authorization: 'Bearer ' + (k || gkey()), Accept: 'application/vnd.github+json' }; }
   function ghGet(k) {   // → { text, sha } of tests.txt as it is on GitHub right now
     return fetch(GH + '?ref=main&t=' + Date.now(), { headers: ghHead(k), cache: 'no-store' }).then(function (r) { if (!r.ok) throw new Error('GitHub ' + r.status); return r.json(); })
-      .then(function (j) { return { text: new TextDecoder().decode(unb64u(String(j.content || '').replace(/\s+/g, '').replace(/\+/g, '-').replace(/\//g, '_'))), sha: j.sha }; });
+      .then(function (j) {
+        if (!j.content && j.size > 0) {   // over 1 MB GitHub sends no content in the JSON: ask for the raw text instead (never treat it as an empty file)
+          var hh = ghHead(k); hh.Accept = 'application/vnd.github.raw+json';
+          return fetch(GH + '?ref=main&t=' + Date.now(), { headers: hh, cache: 'no-store' }).then(function (r) { if (!r.ok) throw new Error('GitHub ' + r.status); return r.text(); })
+            .then(function (t) { if (!t) throw new Error('GitHub sent an empty file'); return { text: t, sha: j.sha }; });
+        }
+        return { text: new TextDecoder().decode(unb64u(String(j.content || '').replace(/\s+/g, '').replace(/\+/g, '-').replace(/\//g, '_'))), sha: j.sha };
+      });
   }
   function b64bytes(u) { var s = '', i, n = u.length; for (i = 0; i < n; i += 8192) s += String.fromCharCode.apply(null, Array.prototype.slice.call(u, i, i + 8192)); return btoa(s); }   // chunked: a long tests.txt overflowed the stack
   function ghAdd(code, line) {
