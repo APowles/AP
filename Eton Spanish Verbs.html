@@ -6,7 +6,7 @@
 <script id="ap-update">
 /* AP auto-update: if this copy is older than the published version, reload once with the new one (saved answers are kept) */
 (function () {
-  var B = '25cfbd2333'; window.AP_BUILD = B;
+  var B = '37252f27b1'; window.AP_BUILD = B;
   function check() {
     if (!/^https?:$/.test(location.protocol) || !window.fetch) return;
     var f = decodeURIComponent(location.pathname.split('/').pop() || '');
@@ -5917,6 +5917,8 @@ function closeConjChallenge() {
     run: null, test: null, open: {}
   };
   UNITS.forEach(function (u) { S.units[u.code] = false; });   // nothing is chosen until the pupil chooses
+  S.tops = null; S.pscope = 'part';   // tops: practice limited to some parts of one chapter (from the practice row under each part)
+  function inTops(q) { return !S.tops || (q.u === S.tops.u && S.tops.t.indexOf(q.topic) >= 0); }
 
   function stopAll() {
     try { if (typeof timerInterval !== 'undefined' && timerInterval) { clearInterval(timerInterval); timerInterval = null; } } catch (e) { }
@@ -6011,13 +6013,40 @@ function closeConjChallenge() {
       + '<button class="aph-btn" onclick="gramGo(\'' + c + '\',\'speed\')">&#9889; Speed</button>'
       + '</div></div>';
   }
+  /* Practice row under EACH part of a chapter (F Block beginners go slowly): this part only, or the chapter so far */
+  function nQ(code, titles) { return QS.filter(function (q) { return q.u === code && titles.indexOf(q.topic) >= 0 && q.d !== 's'; }).length; }
+  function partTitles(u, i, sofar) { var a = []; u.topics.forEach(function (t, k) { if (sofar ? k <= i : k === i) a.push(t.title); }); return a; }
+  function partPracticeHtml(u, i) {
+    var c = u.code, nP = nQ(c, partTitles(u, i, false)), nS = nQ(c, partTitles(u, i, true)), id = 'gpp-' + c + '-' + i;
+    if (!nP) return '';
+    var two = i > 0;
+    return '<div class="gp-part aph-noprint" id="' + id + '" data-sc="part"><div class="gp-h">&#9999;&#65039; Practise this part now</div>'
+      + (two ? '<div class="gp-sc"><button class="aph-chip on" data-s="part" onclick="gramScope(\'' + id + '\',\'part\')">Just this part (' + nP + ')</button><button class="aph-chip" data-s="sofar" onclick="gramScope(\'' + id + '\',\'sofar\')">This chapter so far (' + nS + ')</button></div>' : '<p class="gp-p">' + nP + ' questions on this part.</p>')
+      + '<div class="gp-row">'
+      + '<button class="aph-btn aph-btn-primary" onclick="gramGoT(\'' + c + '\',' + i + ',\'drill\')">&#9999;&#65039; Drill</button>'
+      + '<button class="aph-btn" onclick="gramGoT(\'' + c + '\',' + i + ',\'test\')">&#128221; Test</button>'
+      + '<button class="aph-btn aptt-btn" onclick="gramGoT(\'' + c + '\',' + i + ',\'spot\',\'submitted\')">&#9997; Submitted Spot Test</button>'
+      + '<button class="aph-btn" onclick="gramGoT(\'' + c + '\',' + i + ',\'spot\',\'paper\')">&#128424; Paper Spot Test</button>'
+      + '<button class="aph-btn" onclick="gramGoT(\'' + c + '\',' + i + ',\'speed\')">&#9889; Speed</button>'
+      + '</div></div>';
+  }
+  W.gramScope = function (id, sc) {
+    var b = document.getElementById(id); if (!b) return;
+    b.setAttribute('data-sc', sc);
+    [].forEach.call(b.querySelectorAll('.gp-sc .aph-chip'), function (x) { x.classList.toggle('on', x.getAttribute('data-s') === sc); });
+  };
+  W.gramGoT = function (code, i, kind, how) {
+    var u = UNITS.filter(function (x) { return x.code === code; })[0]; if (!u) return;
+    var box = document.getElementById('gpp-' + code + '-' + i), sc = box ? box.getAttribute('data-sc') : 'part';
+    W.gramGo(code, kind, how, { u: code, t: partTitles(u, i, sc === 'sofar') });
+  };
   function notesHtml(only, forPrint) {
     var h = '';
     UNITS.forEach(function (u) {
       var parts = '';
       u.topics.forEach(function (t, i) {
         var ok = only ? (only.c === u.code && only.i === i) : S.notes[nKey(u.code, i)];
-        if (ok) parts += '<h3 class="tp"><span class="sec">Vocab ' + esc(t.sec) + '</span>' + esc(t.title) + '</h3>' + t.html + ncHtml(u.code, i);
+        if (ok) parts += '<h3 class="tp"><span class="sec">Vocab ' + esc(t.sec) + '</span>' + esc(t.title) + '</h3>' + t.html + ncHtml(u.code, i) + (forPrint ? '' : partPracticeHtml(u, i));
       });
       if (parts) h += '<div class="ub"><h2>' + esc(u.title) + '</h2><p>' + esc(u.summary) + '</p></div>' + parts + (forPrint ? '' : practiceHtml(u));
     });
@@ -6038,13 +6067,13 @@ function closeConjChallenge() {
 
   /* ---------- DRILLS AND TESTS: SETUP ---------- */
   function pool() {
-    return QS.filter(function (q) { return S.units[q.u] && (S.type === 'mix' || q.t === S.type) && (S.lv === 'mix' ? q.d !== 's' : q.d === S.lv); });
+    return QS.filter(function (q) { return S.units[q.u] && inTops(q) && (S.type === 'mix' || q.t === S.type) && (S.lv === 'mix' ? q.d !== 's' : q.d === S.lv); });
   }
-  function poolU() { return QS.filter(function (q) { return S.units[q.u] && (S.lv === 'mix' ? q.d !== 's' : q.d === S.lv); }); }
+  function poolU() { return QS.filter(function (q) { return S.units[q.u] && inTops(q) && (S.lv === 'mix' ? q.d !== 's' : q.d === S.lv); }); }
   var LVL = [['mix', 'Mixed'], ['e', 'Easy'], ['m', 'Medium'], ['h', 'Hard'], ['s', 'Stretch']], LVN = { e: 'Easy', m: 'Medium', h: 'Hard', s: 'Stretch' };
   function lvRow(fn) { return '<div class="aph-label">Difficulty <span class="vb-light">Easy = one rule, short and simple &middot; Hard = for the strong &middot; Stretch = for future top linguists (not in Mixed)</span></div><div class="aph-row">' + LVL.map(function (l) { return vbChip(S.lv === l[0], fn + "('" + l[0] + "')", l[1]); }).join('') + '</div>'; }
   W.gramSetup = function (kind) {
-    S.kind = kind;
+    S.kind = kind; S.tops = null;
     var test = kind === 'test' || kind === 'spot', spot = kind === 'spot', p = pool();
     var uh = '<div class="aph-label">Units <span class="vb-light">tap to choose</span></div><div class="aph-row">'
       + vbChip(UNITS.every(function (u) { return S.units[u.code]; }), 'gramUnit(\'*\')', 'All units') + '<button class="aph-chip gh-clear" onclick="gramUnit(\'-\')">&#10005; Clear all</button>'
@@ -6076,7 +6105,8 @@ function closeConjChallenge() {
   W.gramN = function (n) { S.n = n; gramSetup(S.kind); };
   /* Straight from the end of a notes chapter into practice: the unit is locked in, the pupil's last difficulty / question-type settings are kept
      (and eased back to Mixed only if they would leave nothing to ask), and no set-up screen is shown. */
-  W.gramGo = function (code, kind, how) {
+  W.gramGo = function (code, kind, how, tops) {
+    S.tops = tops || null;
     UNITS.forEach(function (u) { S.units[u.code] = (u.code === code); });
     var speed = kind === 'speed', need = speed ? 4 : 1, size = function () { return (speed ? poolU() : pool()).length; };
     if (size() < need) { S.lv = 'mix'; S.type = 'mix'; }
@@ -6212,6 +6242,7 @@ function closeConjChallenge() {
   }
   function unitsLabel(qs) {
     var c = UNITS.filter(function (u) { return S.units[u.code]; }).map(function (u) { return u.code; });
+    if (S.tops) return 'Unit ' + S.tops.u + ' · ' + (S.tops.t.length === 1 ? S.tops.t[0] : 'this chapter so far (' + S.tops.t.length + ' parts)');
     return c.length >= UNITS.length - 1 ? 'all units' : (c.length === 1 ? (c[0] === 'C' ? 'Section C' : 'Unit ' + c[0]) : 'Units ' + c.join(', '));
   }
   W.gramMakeTest = function () {
@@ -6281,11 +6312,11 @@ function closeConjChallenge() {
     return head + t.slice(i, i).concat(GTAIL) + t.slice(j);
   }
   W.__gcj = {
-    qs: QS, units: UNITS, tenses: [], types: [], sets: [['x', 'x']], code: 'gram', name: 'Spanish', ex: '', persons: ['', ''],
+    get qs() { return S.tops ? QS.filter(inTops) : QS; }, units: UNITS, tenses: [], types: [], sets: [['x', 'x']], code: 'gram', name: 'Spanish', ex: '', persons: ['', ''],
     sel: function () { return selUnits(); }, lv: function () { return S.lv; }, canSign: canSign,
-    setSel: function (u, lv) { setUnits(u); S.lv = lv; },
+    setSel: function (u, lv) { S.tops = null; setUnits(u); S.lv = lv; },
     speedTest: function (kind, g) {
-      setUnits(g.units); S.lv = g.lv; S.type = 'mix';
+      S.tops = null; setUnits(g.units); S.lv = g.lv; S.type = 'mix';
       if (!pool().length) { alert('Not enough questions on those units.'); return; }
       var spot = kind !== 'test', ns = spot ? [5, 10, 15, 20] : [5, 10, 15, 20, 30, 40];
       if (ns.indexOf(S.n) < 0) S.n = spot ? 10 : 20;
@@ -6357,7 +6388,8 @@ function closeConjChallenge() {
   var sp = document.createElement('style'); sp.id = 'gram-practice-css';
   sp.textContent = '.gp-box{margin:26px 0 8px;padding:16px 18px;border:2px solid #c9a84c;border-radius:14px;background:#fffaf0;color:#1a2744}'
     + '.gp-h{font-weight:800;font-size:1.05rem;margin:0 0 4px}.gp-p{margin:0 0 12px;font-size:.9rem}'
-    + '.gp-row{display:flex;flex-wrap:wrap;gap:10px}.gp-row .aph-btn{flex:1 1 130px}';
+    + '.gp-row{display:flex;flex-wrap:wrap;gap:10px}.gp-row .aph-btn{flex:1 1 130px}'
+    + '.gp-part{margin:18px 0 6px;padding:12px 14px;border:1.5px solid #c9a84c;border-radius:12px;background:#fffaf0;color:#1a2744}.gp-part .gp-h{font-size:.98rem}.gp-sc{display:flex;flex-wrap:wrap;gap:8px;margin:2px 0 10px}';
   document.head.appendChild(sp);
   /* Back from the first screen of Verbs or Grammar goes to the hub (the house Back button handles every other step) */
   try { var bc = APBK.cs.filter(function (x) { return x.el === $('drill'); })[0]; if (bc) bc.inner = W.goHub; } catch (e) { }
