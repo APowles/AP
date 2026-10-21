@@ -1,0 +1,1163 @@
+<!DOCTYPE html>
+<html lang="en"><head>
+<meta charset="UTF-8">
+<meta name="robots" content="noindex, nofollow">
+<script id="ap-update">
+/* auto-update: if this copy is older than the published version, reload once with the new one (saved ticks are kept) */
+(function () {
+  var B = 'c49eddaa8d'; window.AP_BUILD = B;
+  function check() {
+    if (!/^https?:$/.test(location.protocol) || !window.fetch) return;
+    var f = decodeURIComponent(location.pathname.split('/').pop() || '');
+    fetch('versions.json?t=' + Date.now(), { cache: 'no-store' }).then(function (r) { return r.json(); }).then(function (v) {
+      var n = v && v[f]; if (!n || n === B) return;
+      try { if (sessionStorage.getItem('apUpdTo:' + f) === n) return; sessionStorage.setItem('apUpdTo:' + f, n); } catch (e) { }
+      var u = location.href.replace(/([?&])v=[^&#]*&?/, '$1').replace(/[?&]$/, '').replace(/#.*$/, '');
+      location.replace(u + (u.indexOf('?') < 0 ? '?' : '&') + 'v=' + n + location.hash);
+    }).catch(function () { });
+  }
+  check();
+  window.addEventListener('pageshow', function (e) { if (e.persisted) check(); });
+})();
+</script>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Eton IPA Studio</title>
+<style id="aph-style">
+/* ===== AP HOUSE STYLE v1 ===== */
+/* One shared look for every AP app. Paste this block unchanged into each app (inside <style id="aph-style">);
+   each app's own CSS comes after it and holds only app-specific bits. Class names all start with "aph-".
+   Fonts (Andrew's font rule): Playfair Display ONLY for the app title in the header and each screen's main heading
+   (.aph-title, .aph-h, .aph-panel-title, .aph-res-score, print titles .aph-ptitle); DM Sans for everything else —
+   prompts, answers, tiles, drill-bar name, card titles, sub-headings, tables, buttons/inputs/selects. */
+@import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;700&family=DM+Sans:wght@400;500;600;700;800&display=swap');
+:root{
+  --navy:#1a2744; --navy2:#243260; --gold:#c9a84c; --gold-light:#f0d78c; --gold2:#ffd76a;
+  --cream:#faf8f3; --white:#fff; --text:#1a2744; --text2:#4a5a7a; --text3:#8899bb; --border:#e2e6f0;
+  --correct:#2e7d52; --correct-bg:#eaf5ef; --nearly:#b8922a; --nearly-bg:#fdf6e3; --wrong:#c0392b; --wrong-bg:#fdecea;
+  --radius:10px; --shadow:0 2px 16px rgba(26,39,68,.10);
+  --aph-display:'Playfair Display',Georgia,'Times New Roman',serif;
+  --aph-body:'DM Sans',system-ui,-apple-system,'Segoe UI',Roboto,'Helvetica Neue',sans-serif;
+}
+body{font-family:var(--aph-body);background:var(--cream);color:var(--text)}
+button,input,select,textarea,optgroup{font-family:inherit}
+
+/* ── 1 · Header: navy bar, gold rule; "AP <course>" white + app name gold; small-caps subtitle; ⌂ Home + portrait top right ── */
+.aph-header{background:var(--navy);border-bottom:3px solid var(--gold);color:#fff}
+.aph-header-in{display:flex;align-items:center;gap:12px;padding:10px 24px}
+.aph-titles{flex:1;min-width:0}
+.aph-title{font:700 1.3rem/1.2 var(--aph-display);color:#fff;margin:0}
+.aph-title em{font-style:normal;color:var(--gold)}
+.aph-sub{font-size:.75rem;line-height:1.35;font-weight:500;letter-spacing:.09em;text-transform:uppercase;color:#aab6d3;margin-top:3px}
+.aph-home{font:700 .9375rem/1.1 var(--aph-body);color:var(--gold);background:rgba(201,168,76,.12);border:1.5px solid rgba(201,168,76,.7);border-radius:8px;padding:8px 12px;cursor:pointer;white-space:nowrap;flex:none}
+.aph-home:hover{background:rgba(201,168,76,.26);color:var(--gold2)}
+.aph-avatar{width:44px;height:44px;border-radius:50%;border:2px solid var(--gold);object-fit:cover;display:block;flex:none;background:#fff}
+body.aph-at-home .aph-header .aph-home{display:none}   /* no Home on the home screen itself */
+
+/* ── Page column, cards, headings, labels ── */
+.aph-wrap{max-width:640px;margin:0 auto;padding:20px 16px 48px}
+.aph-card{background:var(--white);border:1px solid var(--border);border-radius:14px;box-shadow:var(--shadow);padding:24px}
+.aph-h{font:700 1.6rem/1.2 var(--aph-display);color:var(--navy);margin:0 0 16px}
+.aph-label{font-size:.75rem;font-weight:700;letter-spacing:.09em;text-transform:uppercase;color:var(--text3);margin:18px 0 8px}
+.aph-row{display:flex;flex-wrap:wrap;align-items:center;gap:8px}
+.aph-note{font-size:.8125rem;color:var(--text3)}
+.aph-divider{border:0;border-top:1px solid var(--border);margin:20px 0}
+.aph-select,.aph-input{font:500 .9375rem/1.2 var(--aph-body);color:var(--text);background:#fff;border:1.5px solid var(--border);border-radius:8px;padding:8px 10px;max-width:100%;min-height:40px}
+.aph-select{cursor:pointer}
+.aph-swap{font:700 .9375rem/1.2 var(--aph-body);color:var(--nearly);background:#fff;border:1.5px solid var(--gold);border-radius:8px;padding:8px 12px;min-height:40px;cursor:pointer;white-space:nowrap}
+.aph-swap:hover{background:var(--nearly-bg)}
+
+/* ── 4 · Buttons: main (navy + gold, full width, one per screen) · secondary (white, thin border) · option chips ── */
+.aph-btn{display:inline-flex;align-items:center;justify-content:center;gap:6px;font:600 .9375rem/1.25 var(--aph-body);color:var(--text);background:#fff;border:1.5px solid var(--border);border-radius:8px;padding:10px 16px;min-height:44px;cursor:pointer;text-align:center;text-decoration:none;transition:background .12s,border-color .12s,color .12s}
+.aph-btn:hover{border-color:var(--navy);color:var(--navy)}
+.aph-btn:disabled{opacity:.45;cursor:not-allowed}
+.aph-btn.on{border-color:var(--gold);background:var(--nearly-bg);color:var(--navy)}   /* a toggle that is switched on */
+.aph-btn-primary{background:var(--navy);border-color:var(--navy);color:var(--gold2);font-weight:700;font-size:1.0625rem;padding:13px 18px;min-height:50px}
+.aph-btn-primary:hover{background:var(--navy2);border-color:var(--navy2);color:var(--gold2)}
+.aph-btn-block{display:flex;width:100%}
+.aph-btn-sm{min-height:36px;padding:7px 12px;white-space:nowrap}
+.aph-stack{display:grid;gap:8px}
+.aph-tools{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}
+.aph-tools .aph-btn{padding:10px 8px}
+.aph-chip{font:600 .9375rem/1.2 var(--aph-body);color:var(--text2);background:#fff;border:1.5px solid var(--border);border-radius:20px;padding:6px 15px;min-height:36px;cursor:pointer;transition:background .12s,border-color .12s,color .12s}
+.aph-chip:hover{border-color:var(--navy);color:var(--navy)}
+.aph-chip.on,.aph-chip.on:hover{background:var(--navy);border-color:var(--navy);color:var(--gold2)}
+.aph-step{width:38px;height:38px;border-radius:8px;border:1.5px solid var(--border);background:#fff;color:var(--text);font:600 1.15rem/1 var(--aph-body);cursor:pointer;display:inline-flex;align-items:center;justify-content:center}
+.aph-step:hover{border-color:var(--navy)}
+.aph-step-val{font-weight:700;font-size:1.05rem;color:var(--navy);min-width:46px;text-align:center}
+
+/* ── Keyboard legend: the same three colours as the marking row ── */
+.aph-keys{display:flex;flex-wrap:wrap;justify-content:center;align-items:center;gap:8px 16px;margin-top:16px;font-size:.8125rem;color:var(--text2)}
+.aph-keys>span{display:inline-flex;align-items:center;gap:6px}
+.aph-key{display:inline-flex;align-items:center;justify-content:center;min-width:28px;height:24px;padding:0 6px;border-radius:6px;font-weight:800;font-size:.8125rem;border:1.5px solid transparent}
+.aph-key.bad{border-color:var(--wrong);color:var(--wrong);background:#fff}
+.aph-key.near{background:var(--nearly);border-color:var(--nearly);color:#fff}
+.aph-key.ok{background:var(--correct);border-color:var(--correct);color:#fff}
+
+/* ── 7 · ⚡ AP Speed Challenge banner (top of the set-up card) ── */
+.aph-banner{display:flex;align-items:center;gap:12px;width:100%;margin:0 0 4px;text-align:left;background:linear-gradient(135deg,var(--navy),#24366a);color:#fff;border:0;border-radius:12px;padding:12px 14px;cursor:pointer;font:inherit}
+.aph-banner-icon{font-size:1.6rem;line-height:1;flex:none}
+.aph-banner-text{flex:1;min-width:0}
+.aph-banner-text b{display:block;color:var(--gold2);font-size:1rem;font-weight:700}
+.aph-banner-text small{display:block;color:#c9d2ea;font-size:.8125rem;line-height:1.3;margin-top:1px}
+.aph-banner-play{flex:none;background:var(--gold);color:var(--navy);font-weight:800;font-size:.9375rem;border-radius:8px;padding:8px 14px;white-space:nowrap}
+.aph-banner:hover .aph-banner-play{background:var(--gold2)}
+
+/* ── 5 · Drill screen: navy drill bar, card in the middle, side column stacks under it on narrow screens ── */
+.aph-dbar{background:var(--navy);color:#fff;display:flex;align-items:center;flex-wrap:wrap;gap:8px 10px;padding:8px 16px;position:sticky;top:0;z-index:10}
+.aph-dbar-title{font:700 1.1rem/1.2 var(--aph-body);color:var(--gold);margin-right:auto;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.aph-dbar-score{display:inline-flex;gap:10px;background:rgba(255,255,255,.1);border-radius:20px;padding:5px 12px;font-weight:700;font-size:.9375rem;white-space:nowrap}
+.aph-dbar-score .ok{color:#6fcf97}.aph-dbar-score .bad{color:#ff8a80}
+.aph-dbar-btn{font:600 .9375rem/1.1 var(--aph-body);color:#dfe5f3;background:transparent;border:1px solid rgba(255,255,255,.3);border-radius:7px;padding:7px 11px;cursor:pointer;white-space:nowrap}
+.aph-dbar-btn:hover{border-color:var(--gold);color:var(--gold2)}
+.aph-dbar-btn.on{background:var(--gold);border-color:var(--gold);color:var(--navy)}
+.aph-dbar-btn:disabled{opacity:.4;cursor:not-allowed;border-color:rgba(255,255,255,.3);color:#dfe5f3}
+.aph-progress{height:4px;background:var(--border)}
+.aph-progress>div{height:100%;background:var(--gold);transition:width .4s}
+.aph-drill{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,760px) minmax(0,1fr);gap:16px;padding:20px 16px 48px;align-items:start}
+.aph-drill-main{grid-column:2;min-width:0}
+.aph-drill-side{grid-column:3;display:grid;gap:10px;max-width:200px;min-width:0}
+.aph-qcard{background:var(--white);border:1px solid var(--border);border-radius:14px;box-shadow:var(--shadow);padding:16px 20px 20px;text-align:center}
+.aph-qmeta{font-size:.8125rem;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:var(--text3);margin:6px 0}
+.aph-prompt{font:600 clamp(1.25rem,.85rem + 1.25vw,2.2rem)/1.35 var(--aph-body);color:var(--text);margin:8px 0 10px}
+.aph-under{display:flex;flex-wrap:wrap;justify-content:center;gap:8px;margin-top:12px}
+.aph-side-keys{display:grid;gap:6px;font-size:.8125rem;color:var(--text2)}
+.aph-side-keys>span{display:flex;align-items:center;gap:8px}
+/* marking row: ✗ Major error (←) · ~ Nearly (↓) · ✓ Got it (→), key shown as a small second line */
+.aph-mark{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;margin-top:14px}
+.aph-mark.two{grid-template-columns:repeat(2,minmax(0,1fr))}
+.aph-mark-btn{display:flex;flex-direction:column;align-items:center;justify-content:center;font:800 1rem/1.2 var(--aph-body);border:2px solid transparent;border-radius:10px;padding:11px 6px;min-height:60px;cursor:pointer;transition:background .12s,border-color .12s,filter .12s}
+.aph-mark-btn small{display:block;font-weight:500;font-size:.75rem;opacity:.9;margin-top:3px}
+.aph-mark-btn.bad{background:#fff;border-color:var(--wrong);color:var(--wrong)}
+.aph-mark-btn.bad:hover{background:var(--wrong-bg)}
+.aph-mark-btn.near{background:var(--nearly);border-color:var(--nearly);color:#fff}
+.aph-mark-btn.ok{background:var(--correct);border-color:var(--correct);color:#fff}
+.aph-mark-btn.near:hover,.aph-mark-btn.ok:hover{filter:brightness(.92)}
+.aph-mark-btn.skip{background:#fff;border-color:var(--border);color:var(--text2)}
+.aph-mark-btn.skip:hover{border-color:var(--navy)}
+
+/* ── 6 · Results / error review ── */
+.aph-results{max-width:560px;margin:0 auto;padding:28px 16px 48px}
+.aph-res{text-align:center}
+.aph-res-score{font:700 3rem/1 var(--aph-display);color:var(--navy)}
+.aph-res-pct{font-size:.875rem;color:var(--text3);margin:6px 0 14px}
+.aph-res-bar{height:6px;background:var(--border);border-radius:3px;overflow:hidden;margin-bottom:16px}
+.aph-res-bar>div{height:100%;border-radius:3px}
+.aph-revisit{background:var(--wrong-bg);border-radius:10px;padding:10px 12px 12px;text-align:left;margin-bottom:14px}
+.aph-revisit-head{display:flex;justify-content:space-between;align-items:center;gap:8px;margin-bottom:8px}
+.aph-revisit-title{font-weight:800;color:var(--wrong);font-size:.9375rem}
+.aph-revisit-list{display:grid;gap:5px}
+.aph-revisit-item{display:flex;justify-content:space-between;align-items:center;gap:10px;background:#fff;border-radius:6px;padding:7px 10px;font-size:.875rem}
+.aph-clean{background:var(--correct-bg);color:var(--correct);border-radius:8px;padding:12px;font-weight:600;font-size:.875rem;margin-bottom:14px}
+.aph-res-actions{display:grid;gap:8px}
+.aph-res-row{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:8px}
+
+/* ── 8 · Panels (Generate Test, View & Print, Adjust) ── */
+.aph-panel-top{max-width:608px;margin:20px auto 0}
+.aph-panel-head{display:flex;justify-content:space-between;align-items:center;gap:10px}
+.aph-panel-title{font:700 1.3rem/1.2 var(--aph-display);color:var(--navy);margin:0}
+.aph-out{margin-top:16px}
+
+/* ── 8 · Print band (used inside printed / PDF sheets) ── */
+.aph-pband{background:var(--navy);color:#fff;border-radius:6px 6px 0 0;padding:8px 14px;display:flex;align-items:center;gap:12px;-webkit-print-color-adjust:exact;print-color-adjust:exact}
+.aph-pband-text{flex:1;min-width:0}
+.aph-pkicker{font-size:.6rem;font-weight:800;letter-spacing:.13em;text-transform:uppercase;color:var(--gold)}
+.aph-ptitle{font:700 1.15rem/1.2 var(--aph-display);color:#fff;margin-top:2px}
+.aph-ptitle em{font-style:normal;color:var(--gold)}
+.aph-pmeta{font-size:.62rem;letter-spacing:.06em;text-transform:uppercase;color:#c9d2ea;margin-top:3px}
+.aph-pband .aph-avatar{width:44px;height:44px}
+.aph-pbtn{background:var(--gold);color:var(--navy);border:0;border-radius:4px;padding:5px 10px;font:700 .68rem var(--aph-body);cursor:pointer;white-space:nowrap}
+.aph-pstrip{display:flex;justify-content:space-between;gap:12px;font-size:.66rem;letter-spacing:.08em;text-transform:uppercase;color:#777;border:1px solid #e3e3e3;border-top:0;border-radius:0 0 6px 6px;padding:6px 14px;background:#fafafa;margin-bottom:8px;-webkit-print-color-adjust:exact;print-color-adjust:exact}
+.aph-pband.aph-solo{border-radius:6px;margin-bottom:8px}
+.aph-pfoot{font-size:.62rem;color:#999;text-align:right;padding-top:6px}
+@media print{.aph-noprint{display:none!important}}
+
+/* ── 9 · Phone and projector ── */
+@media (min-width:1600px){.aph-drill{grid-template-columns:minmax(0,1fr) minmax(0,900px) minmax(0,1fr)}.aph-drill-side{max-width:230px}}
+@media (max-width:900px){.aph-drill{grid-template-columns:minmax(0,1fr)}.aph-drill-main,.aph-drill-side{grid-column:1}.aph-drill-side{max-width:none}.aph-side-keys{display:flex;flex-wrap:wrap;justify-content:center;gap:8px 16px}.aph-drill-side>.aph-btn{max-width:320px;justify-self:center}}
+@media (max-width:640px){.aph-panel-top{margin:16px 16px 0}}
+@media (max-width:600px){
+  .aph-header-in{padding:10px 16px;gap:10px}
+  .aph-title{font-size:1.1rem}
+  .aph-home{padding:7px 10px;font-size:.875rem}
+  .aph-card{padding:18px 16px}
+  .aph-h{font-size:1.4rem}
+  .aph-dbar{padding:8px 12px;gap:6px;flex-wrap:nowrap}
+  .aph-dbar-title{font-size:.95rem;flex:1 1 auto}
+  .aph-dbar-btn{font-size:.875rem;padding:6px 8px}
+  .aph-dbar-score{font-size:.875rem;padding:4px 9px;gap:7px}
+  .aph-drill{padding:14px 16px 40px}
+  .aph-qcard{padding:14px 14px 16px}
+  .aph-mark{gap:8px}
+  .aph-mark-btn{font-size:.9375rem;padding:10px 4px}
+  .aph-select{width:100%}
+  .aph-row .aph-select{width:auto;flex:1 1 0;min-width:0}
+}
+@media (max-width:420px){.aph-tools{grid-template-columns:1fr}}
+/* ===== END AP HOUSE STYLE ===== */
+</style>
+<style>
+/* ===== Eton IPA Studio: app-specific bits ===== */
+.ipa-back{min-height:36px;padding:7px 12px;white-space:nowrap}
+.ipa-chips{display:flex;flex-wrap:wrap;gap:8px}
+.ipa-chips .aph-chip small,.aph-chip small{opacity:.7;margin-left:6px;font-weight:700}
+.ipa-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(88px,1fr));gap:8px}
+.ipa-tile{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;min-height:82px;background:#fff;border:2.5px solid var(--border);border-radius:12px;cursor:pointer;padding:8px 4px;color:var(--navy);transition:transform .1s,box-shadow .1s}
+.ipa-tile:hover{box-shadow:var(--shadow);transform:translateY(-1px);border-color:var(--navy)}
+.ipa-tile.ok{border-color:var(--correct);background:var(--correct-bg)}
+.ipa-tile.near{border-color:var(--nearly);background:var(--nearly-bg)}
+.ipa-tile.bad{border-color:var(--wrong);background:var(--wrong-bg)}
+.ipa-sym{font-size:2rem;font-weight:600;line-height:1.1}
+.ipa-ex{font-size:.8125rem;color:var(--text2)}
+.ipa-k{padding:1px 8px;border-radius:10px;font-weight:700;font-size:.8125rem;border:2px solid}
+.ipa-k.ok{border-color:var(--correct);background:var(--correct-bg);color:var(--correct)}
+.ipa-k.near{border-color:var(--nearly);background:var(--nearly-bg);color:var(--nearly)}
+.ipa-k.bad{border-color:var(--wrong);background:var(--wrong-bg);color:var(--wrong)}
+.ipa-big{font-size:clamp(3.2rem,2.2rem + 4vw,5.6rem);font-weight:600;line-height:1.1;color:var(--navy);text-align:center;margin:10px 0 4px;letter-spacing:.02em}
+.ipa-big.sm{font-size:clamp(2rem,1.6rem + 2vw,3.2rem)}
+.ipa-big.xl{font-size:clamp(4.5rem,3rem + 6vw,8rem)}
+.ipa-wbig{font-size:clamp(2.2rem,1.6rem + 2.6vw,3.6rem);font-weight:700;color:var(--navy);text-align:center;margin:8px 0 2px}
+.ipa-wbig.xl{font-size:clamp(3rem,2rem + 5vw,6rem)}
+.ipa-hint{text-align:center;color:var(--text3);font-size:.9375rem;margin:4px 0 8px}
+.ipa-d{text-align:center;font-weight:700;color:var(--text2);text-transform:uppercase;letter-spacing:.06em;font-size:.8125rem;margin:6px 0}
+.ipa-tip{background:var(--cream);border-left:4px solid var(--gold);padding:10px 14px;border-radius:0 8px 8px 0;text-align:left;line-height:1.5;margin:10px 0}
+.ipa-trap{background:#fff7e0;border:1.5px solid var(--gold);color:#6b5210;border-radius:10px;padding:10px 14px;margin:12px 0;text-align:left;line-height:1.45;font-size:.9375rem}
+.ipa-wlist{display:grid;gap:8px}
+.ipa-word{display:flex;align-items:center;gap:12px;background:#fff;border:1.5px solid var(--border);border-radius:10px;padding:10px 14px;cursor:pointer;text-align:left;font:inherit;color:var(--text)}
+.ipa-word:hover{border-color:var(--navy)}
+.ipa-w{font-weight:700;font-size:1.25rem}
+.ipa-t{font-size:1.15rem;color:var(--navy)}
+.ipa-t.big{font-size:1.6rem;font-weight:600}
+.ipa-gl{color:var(--text3);font-size:.875rem;margin-left:auto}
+.ipa-hit{color:#fff;background:var(--navy);border-radius:4px;padding:0 3px;font-weight:700}
+.ipa-say{background:transparent;border:0;cursor:pointer;font-size:.6em;vertical-align:middle;padding:2px 6px;border-radius:8px}
+.ipa-say:hover{background:var(--nearly-bg)}
+.ipa-ans{text-align:center;margin:10px 0}
+.ipa-ans .ipa-t{font-size:2.2rem;font-weight:600}
+.ipa-note{border-top:1px solid var(--border);padding:12px 0;text-align:left}
+.ipa-note h3{margin:0 0 4px;font-size:1rem;color:var(--navy)}
+.ipa-note p{margin:0;line-height:1.55;color:var(--text2)}
+.ipa-cur{outline:4px solid var(--navy);outline-offset:2px}
+.ipa-prog{display:flex;height:10px;border-radius:5px;overflow:hidden;background:var(--border);margin-top:6px}
+.ipa-prog i{display:block;height:100%}.ipa-prog .ok{background:var(--correct)}.ipa-prog .near{background:var(--nearly)}.ipa-prog .bad{background:var(--wrong)}
+.ipa-field{display:flex;align-items:center;justify-content:center;gap:6px;margin:12px auto;max-width:460px;font-size:2rem;color:var(--text3)}
+.ipa-field input{flex:1;min-width:0;font:600 2rem/1.2 var(--aph-body);color:var(--navy);text-align:center;border:0;border-bottom:3px solid var(--gold);background:transparent;padding:6px 4px;outline:none}
+.ipa-kb{display:flex;flex-wrap:wrap;justify-content:center;gap:7px;margin:14px auto;max-width:680px}
+.ipa-key{min-width:48px;height:52px;padding:0 10px;border:1.5px solid var(--border);border-radius:10px;background:#fff;color:var(--navy);font:600 1.45rem/1 var(--aph-body);cursor:pointer;box-shadow:0 2px 0 var(--border)}
+.ipa-key:hover{border-color:var(--navy)}.ipa-key:active{transform:translateY(2px);box-shadow:none}
+.ipa-key.stress{background:var(--nearly-bg);border-color:var(--gold)}
+.ipa-key.wide{font-size:1rem;min-width:72px}
+.ipa-res{margin:12px auto;max-width:560px;border-radius:10px;padding:10px 14px;text-align:left;border:2px solid}
+.ipa-res.ok{background:var(--correct-bg);border-color:var(--correct);color:var(--correct)}
+.ipa-res.near{background:var(--nearly-bg);border-color:var(--nearly);color:#7a5d12}
+.ipa-res.bad{background:var(--wrong-bg);border-color:var(--wrong);color:var(--wrong)}
+.ipa-cmp{display:flex;flex-wrap:wrap;justify-content:center;gap:10px 40px;margin:8px 0}
+.ipa-cmp>div{text-align:center}
+.df-bad{color:var(--wrong);background:var(--wrong-bg);border-radius:4px;padding:0 2px;text-decoration:underline wavy}
+.df-ok{color:var(--correct);background:var(--correct-bg);border-radius:4px;padding:0 2px}
+.ipa-opts{display:grid;gap:10px;margin:14px auto;max-width:560px}
+.ipa-opts.two{grid-template-columns:1fr 1fr}
+.ipa-opt{display:flex;align-items:center;gap:12px;background:#fff;border:2px solid var(--border);border-radius:12px;padding:14px 16px;cursor:pointer;font:inherit;color:var(--navy);min-height:60px;text-align:left}
+.ipa-opts.two .ipa-opt{flex-direction:column;justify-content:center;text-align:center;min-height:110px}
+.ipa-opt:hover{border-color:var(--navy)}
+.ipa-opt.right{border-color:var(--correct);background:var(--correct-bg)}
+.ipa-opt.wrong{border-color:var(--wrong);background:var(--wrong-bg)}
+.ipa-no{display:inline-flex;align-items:center;justify-content:center;width:26px;height:26px;border-radius:50%;background:var(--navy);color:var(--gold2);font-weight:800;font-size:.8125rem;flex:none}
+.ipa-lz{min-height:320px;display:flex;flex-direction:column;justify-content:center}
+.ipa-lzipa{opacity:0;transform:translateY(8px);transition:opacity .5s,transform .5s;min-height:70px;text-align:center}
+.ipa-lzipa.show{opacity:1;transform:none}
+.ipa-lzipa .ipa-t{font-size:clamp(2rem,1.4rem + 2.4vw,3.4rem);font-weight:600}
+.ipa-lzrow{display:flex;justify-content:center;gap:16px;align-items:baseline;margin:6px 0}
+/* speed challenge */
+.sp-teams{display:flex;gap:10px;justify-content:center;margin:0 0 12px;flex-wrap:wrap}
+.sp-team{display:flex;align-items:center;gap:10px;padding:8px 16px;border-radius:30px;border:3px solid var(--border);background:#fff;font-weight:700}
+.sp-team b{font-size:1.4rem}
+.sp-team.cur{box-shadow:0 0 0 4px rgba(201,168,76,.45)}
+.t0{--tc:#2a5db0}.t1{--tc:#c0392b}.t2{--tc:#2e7d52}.t3{--tc:#7b3fa0}
+.sp-team[class*=" t"]{border-color:var(--tc)}.sp-team b{color:var(--tc)}
+.sp-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-top:10px}
+.sp-tile{aspect-ratio:1.4;font:800 clamp(1.4rem,1rem + 2vw,2.4rem)/1 var(--aph-body);border-radius:14px;border:2px solid var(--navy);background:var(--navy);color:var(--gold2);cursor:pointer}
+.sp-tile:hover:not(:disabled){background:var(--navy2);transform:scale(1.03)}
+.sp-tile.own{background:var(--tc);border-color:var(--tc);color:#fff;cursor:default}
+.sp-tile.dead{background:#fff;border-color:var(--wrong);color:var(--wrong);cursor:default;opacity:.7}
+.sp-clock{float:right;font-weight:800;font-size:1.6rem;color:var(--navy);border:3px solid var(--navy);border-radius:50%;width:64px;height:64px;display:flex;align-items:center;justify-content:center}
+.sp-clock.low{border-color:var(--wrong);color:var(--wrong);animation:ipapulse .5s infinite alternate}
+@keyframes ipapulse{to{transform:scale(1.12)}}
+.sp-flash{position:fixed;inset:0;z-index:50;display:flex;flex-direction:column;align-items:center;justify-content:center;background:var(--tc);color:#fff;font-weight:800;font-size:clamp(3rem,10vw,8rem);animation:ipaflash .3s steps(2) infinite;pointer-events:none}
+.sp-flash small{font-size:.35em;letter-spacing:.3em}
+@keyframes ipaflash{50%{filter:brightness(1.7)}}
+/* printed test */
+#pr{display:none}
+.pr-score{font:700 1.6rem/1 var(--aph-display);color:#d00;border:3px solid #d00;border-radius:50%;width:84px;height:84px;display:flex;align-items:center;justify-content:center;background:#fff;-webkit-print-color-adjust:exact;print-color-adjust:exact}
+.pr-t{width:100%;border-collapse:collapse;font-size:.85rem;margin-top:10px}
+.pr-t th,.pr-t td{border-bottom:1px solid #ddd;padding:5px 6px;text-align:left}
+.pr-t tr.bad td{color:#b00}.pr-t tr.near td{color:#8a6a00}
+@media print{body.printing header,body.printing #app{display:none!important}body.printing #pr{display:block}}
+@media (max-width:640px){.sp-grid{grid-template-columns:repeat(4,1fr)}.ipa-opts.two{grid-template-columns:1fr 1fr}}
+</style>
+</head>
+<body class="aph-at-home">
+<header class="aph-header">
+  <div class="aph-header-in">
+    <div class="aph-titles">
+      <h1 class="aph-title">Eton <em>IPA Studio</em></h1>
+      <div class="aph-sub">French &amp; Italian · Symbols · Ear · Transcription</div>
+    </div>
+    <button class="aph-home" onclick="A.home()">&#8962; Home</button>
+    <img class="aph-avatar" alt="" src="data:image/png;base64,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ffTsUMjctWvPypUv5vPF008/ddy48b+5/oZrf3vD2IkTn3jiyXw2yzlXgISUKMlkrx4Urlj6/Gc+87nW9q6JkycvWLggFAqbuhkJxS776GVLl60IxROXffKTb8VFOBRGzwu8hsbGou3Onj1XCBCBAIBUKnXsnNk3/flm1/fPv+D8c885p6+3h5CBBmjGOSWIAEg5Iq5fv9b23I99/HKk9Njj57Z3dTz0yMMvvvTy9JlHXXnll9at2+i4wY//9ye+L8hhcZbpYTswpFTxePziiy5qaKi7++57r7nmmoceeujHP/7xypUvTZs25aSTFv7k/37yk//7PyGCTZs3G7q2f25KIYRD5ubNm0pByuTJk8aMGX3XXffccsstDz30UC6fBYCzzzpr8eLFJ86bZ5rm4akaE0KkVNFINBwKVVSUByIoFSGllFOmTFq0aNFtt/3d9/0RI0c6juP7AaUUFWqcU0IRgDGWzqQt2/74xz+ZLxQb6htv+/vtxaI1YcL4hoaGYtGybe+iiy56dvGztbV18XhcSXkYIHG4fAgCSqlUKjnzqJlLXljW2dHx859fZZpGe3vHTTfdnMmkTznl5Pb29uXLl1900UVr165duGBB6aAsRQ2IyjD4smXL8vnC5MmTRo4Ycd21186ZM/uUU07esWPH3XffM2vWrBkzpr28enXRsoYMGbJnzx79cFXDo7FoNpuNRqJSSrK3hzGTzY8dPWbjhg3PPPPMghNP9DzfsizTSCIi47wUeBumvn3LnokTJs6cNatlT8uzzz1/yaWXxmKx0mVtJ/BcN56Im6bZ29ur67rv+HSAcfc+KW4hAhQLxT27d1/+8Y9LqdKZXFlZ+de//rWdO3ctWbL0rLPOcBy7qbm5s6MjEPL1cCJC4K5duyorK4877ribbv7TokWLRo4ctWzZcs75hRdesGrVquXLV86aObOruzsWi72750UIeafOR4nAN3r0aMPQlVQlz1fTNMZYwSoef8IJmzZuJEBM08hkMqXfZ3upDIyR7u7uUaPHhELhRx597OKLPywVPLt48fMvvPDkU89kMul4PJZO97uOGwqFLMvaxyAkhIhBPS+DACIC081du3b1drUvOv00BDBNkwJomk44+cill954ww1jRo8488yz+9PpZ599rqe7q6Kq2rJsIIigGKf5XEZK9Y3vfH/FihVDm5uUkn+99VbG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">
+  </div>
+</header>
+<div id="app"></div>
+<div id="pr"></div>
+<script>
+(function () {
+/* ===== IPA DATA ===== (nasal vowels are written with ~ after the vowel and converted to a combining tilde at load) */
+var RAW = {
+  fr: {
+    name: 'French', tts: 'fr-FR',
+    groups: [
+      { id: 'v', name: 'Oral vowels' },
+      { id: 'n', name: 'Nasal vowels' },
+      { id: 'g', name: 'Glides' },
+      { id: 'c', name: 'Special consonants' },
+      { id: 'p', name: 'Plain consonants' },
+      { id: 'x', name: 'Mixed words' }
+    ],
+    sounds: [
+      ['v', 'i', 'close front unrounded', 'Smile, tongue high and forward. Shorter and tenser than English "ee".', [['si', 'si', 'if'], ['vie', 'vi', 'life'], ['ici', 'isi', 'here'], ['ville', 'vil', 'town']], ''],
+      ['v', 'e', 'close-mid front unrounded', 'Like the start of English "day" but kept pure: no glide towards /i/. Usual in an open syllable: été, parler.', [['été', 'ete', 'summer'], ['parler', 'paʁle', 'to speak'], ['les', 'le', 'the (pl.)'], ['clé', 'kle', 'key']], 'e vs ɛ: open syllable → /e/ (été), closed syllable → /ɛ/ (mère, fête).'],
+      ['v', 'ɛ', 'open-mid front unrounded', 'Like English "bed" with the mouth more open. Usual in a closed syllable: mère, fête; also -ais, -ait.', [['mère', 'mɛʁ', 'mother'], ['fête', 'fɛt', 'party'], ['lait', 'lɛ', 'milk'], ['merci', 'mɛʁsi', 'thank you']], ''],
+      ['v', 'a', 'open front unrounded', 'A front "a", not the back "a" of English "father". The everyday a of patte, chat, là.', [['chat', 'ʃa', 'cat'], ['patte', 'pat', 'paw'], ['là', 'la', 'there'], ['ami', 'ami', 'friend']], ''],
+      ['v', 'ɑ', 'open back unrounded', 'A back "a" as in pâte, bas. Fading: many Parisian speakers now say /a/ here, so check whether your course keeps /ɑ/.', [['pâte', 'pɑt', 'pasta'], ['bas', 'bɑ', 'low'], ['âne', 'ɑn', 'donkey'], ['âme', 'ɑm', 'soul']], 'pâte /pɑt/ vs patte /pat/ is a traditional contrast only.'],
+      ['v', 'ɔ', 'open-mid back rounded', 'Like English "off", lips rounded. Usual in a closed syllable: porte, sol, homme.', [['porte', 'pɔʁt', 'door'], ['sol', 'sɔl', 'ground'], ['homme', 'ɔm', 'man'], ['école', 'ekɔl', 'school']], ''],
+      ['v', 'o', 'close-mid back rounded', 'Lips rounded and pushed forward; a pure vowel with no glide towards /u/ (English "go" glides). Open syllable, or before /z/: beau, mot, rose.', [['beau', 'bo', 'beautiful'], ['mot', 'mo', 'word'], ['rose', 'ʁoz', 'pink'], ['chaud', 'ʃo', 'hot']], 'o vs ɔ: open syllable → /o/ (beau), closed syllable → /ɔ/ (porte); but rose /ʁoz/.'],
+      ['v', 'u', 'close back rounded', 'Like "oo" in "too" but with the lips tighter and further forward.', [['tout', 'tu', 'all'], ['vous', 'vu', 'you'], ['route', 'ʁut', 'road'], ['jour', 'ʒuʁ', 'day']], ''],
+      ['v', 'y', 'close front rounded', 'Say /i/, keep the tongue exactly where it is, then round the lips as for /u/. No English equivalent.', [['tu', 'ty', 'you'], ['rue', 'ʁy', 'street'], ['lune', 'lyn', 'moon'], ['sur', 'syʁ', 'on']], 'Not /u/: tu /ty/ is not tout /tu/.'],
+      ['v', 'ø', 'close-mid front rounded', 'Say /e/ and round the lips. Open syllable, or before /z/: deux, peu, heureuse.', [['deux', 'dø', 'two'], ['peu', 'pø', 'little'], ['bleu', 'blø', 'blue'], ['heureux', 'øʁø', 'happy']], ''],
+      ['v', 'œ', 'open-mid front rounded', 'Say /ɛ/ and round the lips. Closed syllable: peur, sœur, fleur (but not before /z/).', [['peur', 'pœʁ', 'fear'], ['sœur', 'sœʁ', 'sister'], ['fleur', 'flœʁ', 'flower'], ['cœur', 'kœʁ', 'heart']], 'ø vs œ follows the same open/closed pattern as e v ɛ and o v ɔ.'],
+      ['v', 'ə', 'mid central (schwa)', 'The weak vowel of le, je, demain: lips slightly rounded. It is often dropped altogether (the "mute e"); transcriptions vary on this.', [['le', 'lə', 'the'], ['je', 'ʒə', 'I'], ['demain', 'dəmɛ~', 'tomorrow'], ['petit', 'pəti', 'small']], ''],
+
+      ['n', 'ɑ~', 'open back nasal', 'Say /ɑ/ with the air also going through the nose. The n or m is NOT pronounced.', [['dans', 'dɑ~', 'in'], ['vent', 'vɑ~', 'wind'], ['enfant', 'ɑ~fɑ~', 'child'], ['temps', 'tɑ~', 'time']], 'dans /dɑ̃/ is not /dɑn/: no consonant is heard.'],
+      ['n', 'ɛ~', 'open-mid front nasal', 'Say /ɛ/ through the nose. Spelt in, im, ain, ein, and -ien = /jɛ̃/.', [['vin', 'vɛ~', 'wine'], ['main', 'mɛ~', 'hand'], ['pain', 'pɛ~', 'bread'], ['bien', 'bjɛ~', 'well']], ''],
+      ['n', 'ɔ~', 'open-mid back nasal', 'Rounded lips, through the nose. The symbol is ɔ but the sound is close to /o/. Spelt on, om.', [['bon', 'bɔ~', 'good'], ['nom', 'nɔ~', 'name'], ['long', 'lɔ~', 'long'], ['maison', 'mɛzɔ~', 'house']], ''],
+      ['n', 'œ~', 'open-mid front rounded nasal', 'Say /œ/ through the nose. Many speakers now merge it with /ɛ̃/: check whether your course keeps it.', [['un', 'œ~', 'one'], ['brun', 'bʁœ~', 'brown'], ['lundi', 'lœ~di', 'Monday'], ['parfum', 'paʁfœ~', 'perfume']], ''],
+
+      ['g', 'j', 'palatal glide', 'Like English "y" in "yes". Spelt i + vowel, y, -ill-, and -il after a vowel.', [['hier', 'jɛʁ', 'yesterday'], ['fille', 'fij', 'girl'], ['travail', 'tʁavaj', 'work'], ['yeux', 'jø', 'eyes']], 'Not every -ill- is /j/: ville /vil/, mille /mil/, tranquille /tʁɑ̃kil/.'],
+      ['g', 'w', 'labial-velar glide', 'Like English "w" in "we". Spelt ou + vowel; oi = /wa/.', [['oui', 'wi', 'yes'], ['moi', 'mwa', 'me'], ['louer', 'lwe', 'to rent'], ['oiseau', 'wazo', 'bird']], ''],
+      ['g', 'ɥ', 'labial-palatal glide', 'Say /y/ quickly before another vowel: lips rounded, tongue forward. Spelt u + vowel.', [['huit', 'ɥit', 'eight'], ['nuit', 'nɥi', 'night'], ['lui', 'lɥi', 'him'], ['cuisine', 'kɥizin', 'kitchen']], 'oui /wi/ is not huit /ɥit/.'],
+
+      ['c', 'ʃ', 'voiceless postalveolar fricative', 'English "sh". Spelt ch.', [['chat', 'ʃa', 'cat'], ['riche', 'ʁiʃ', 'rich'], ['chanson', 'ʃɑ~sɔ~', 'song'], ['chien', 'ʃjɛ~', 'dog']], ''],
+      ['c', 'ʒ', 'voiced postalveolar fricative', 'The "s" of English "measure". Spelt j; g before e, i; ge before a, o.', [['je', 'ʒə', 'I'], ['rouge', 'ʁuʒ', 'red'], ['manger', 'mɑ~ʒe', 'to eat'], ['jour', 'ʒuʁ', 'day']], 'No /dʒ/ (English "judge") in native French words.'],
+      ['c', 'ɲ', 'palatal nasal', 'Like "ny" in "canyon": ONE sound, spelt gn.', [['agneau', 'aɲo', 'lamb'], ['montagne', 'mɔ~taɲ', 'mountain'], ['signe', 'siɲ', 'sign'], ['champagne', 'ʃɑ~paɲ', 'champagne']], ''],
+      ['c', 'ʁ', 'voiced uvular fricative', 'Raise the back of the tongue towards the uvula for a soft gargle; never the English or Italian r. Some courses write /r/; /ʁ/ is the precise symbol.', [['rue', 'ʁy', 'street'], ['rouge', 'ʁuʒ', 'red'], ['mari', 'maʁi', 'husband'], ['mère', 'mɛʁ', 'mother']], ''],
+      ['c', 'ŋ', 'velar nasal', 'Only in English loanwords: parking, camping, shopping.', [['parking', 'paʁkiŋ', 'car park'], ['camping', 'kɑ~piŋ', 'campsite']], ''],
+
+      ['p', 'p', 'voiceless bilabial stop', 'Unaspirated: no puff of air, unlike English "p" in "pin". Test with a hand in front of the mouth.', [['patte', 'pat', 'paw'], ['porte', 'pɔʁt', 'door'], ['soupe', 'sup', 'soup']], ''],
+      ['p', 't', 'voiceless dental stop', 'Tongue against the back of the upper teeth, and no puff of air.', [['tu', 'ty', 'you'], ['table', 'tabl', 'table'], ['thé', 'te', 'tea']], ''],
+      ['p', 'k', 'voiceless velar stop', 'No puff of air. Spelt c (a, o, u), k, qu.', [['café', 'kafe', 'coffee'], ['quand', 'kɑ~', 'when'], ['qui', 'ki', 'who']], ''],
+      ['p', 'b', 'voiced bilabial stop', 'Voiced all the way through, as in English.', [['bon', 'bɔ~', 'good'], ['beau', 'bo', 'beautiful'], ['robe', 'ʁɔb', 'dress']], ''],
+      ['p', 'd', 'voiced dental stop', 'Tongue on the back of the teeth.', [['deux', 'dø', 'two'], ['dans', 'dɑ~', 'in'], ['vide', 'vid', 'empty']], ''],
+      ['p', 'ɡ', 'voiced velar stop', 'Always hard here: g before a, o, u; gu before e, i. Written ɡ (open-tail g) in IPA.', [['gare', 'ɡaʁ', 'station'], ['gauche', 'ɡoʃ', 'left'], ['guerre', 'ɡɛʁ', 'war']], ''],
+      ['p', 'f', 'voiceless labiodental fricative', 'As in English. Spelt f and ph.', [['fou', 'fu', 'mad'], ['feu', 'fø', 'fire'], ['photo', 'fɔto', 'photo']], ''],
+      ['p', 'v', 'voiced labiodental fricative', 'As in English.', [['vie', 'vi', 'life'], ['vous', 'vu', 'you'], ['avoir', 'avwaʁ', 'to have']], ''],
+      ['p', 's', 'voiceless alveolar fricative', 'Spelt s- , ss, c before e/i, ç, and -tion.', [['soir', 'swaʁ', 'evening'], ['poisson', 'pwasɔ~', 'fish'], ['ici', 'isi', 'here'], ['garçon', 'ɡaʁsɔ~', 'boy']], 'Between vowels a single s is /z/: poison /pwazɔ̃/ is not poisson /pwasɔ̃/.'],
+      ['p', 'z', 'voiced alveolar fricative', 'Spelt z, and s between two vowels; also in liaison: les amis.', [['zéro', 'zeʁo', 'zero'], ['maison', 'mɛzɔ~', 'house'], ['rose', 'ʁoz', 'pink'], ['les amis', 'lezami', 'the friends']], ''],
+      ['p', 'm', 'bilabial nasal', 'As in English.', [['mère', 'mɛʁ', 'mother'], ['maman', 'mamɑ~', 'mum']], ''],
+      ['p', 'n', 'alveolar nasal', 'Tongue-tip against the teeth.', [['nous', 'nu', 'we'], ['ne', 'nə', 'not']], ''],
+      ['p', 'l', 'alveolar lateral', 'Always a "clear" l, tongue-tip against the teeth; never the dark English l of "milk".', [['lune', 'lyn', 'moon'], ['livre', 'livʁ', 'book'], ['salle', 'sal', 'room']], '']
+    ],
+    extra: [
+      ['bonjour', 'bɔ~ʒuʁ', 'hello'], ['beaucoup', 'boku', 'a lot'], ['toujours', 'tuʒuʁ', 'always'], ['aujourd’hui', 'oʒuʁdɥi', 'today'],
+      ['pourquoi', 'puʁkwa', 'why'], ['français', 'fʁɑ~sɛ', 'French'], ['anglais', 'ɑ~ɡlɛ', 'English'], ['université', 'ynivɛʁsite', 'university'],
+      ['vraiment', 'vʁɛmɑ~', 'really'], ['musique', 'myzik', 'music'], ['bureau', 'byʁo', 'office'], ['jaune', 'ʒon', 'yellow'],
+      ['cheval', 'ʃəval', 'horse'], ['cinéma', 'sinema', 'cinema'], ['télévision', 'televizjɔ~', 'television'], ['tête', 'tɛt', 'head'],
+      ['vieux', 'vjø', 'old'], ['ciel', 'sjɛl', 'sky'], ['coiffeur', 'kwafœʁ', 'hairdresser'], ['gentil', 'ʒɑ~ti', 'kind'],
+      ['examen', 'ɛɡzamɛ~', 'exam'], ['croissant', 'kʁwasɑ~', 'croissant'], ['boulangerie', 'bulɑ~ʒʁi', 'bakery'], ['écrire', 'ekʁiʁ', 'to write'],
+      ['ouvrir', 'uvʁiʁ', 'to open'], ['nuage', 'nɥaʒ', 'cloud'], ['soleil', 'sɔlɛj', 'sun'], ['famille', 'famij', 'family'],
+      ['semaine', 'səmɛn', 'week'], ['fenêtre', 'fənɛtʁ', 'window']
+    ],
+    pairs: [
+      ['tu', 'ty', 'tout', 'tu', '/y/ vs /u/'], ['rue', 'ʁy', 'roue', 'ʁu', '/y/ vs /u/'], ['dessus', 'dəsy', 'dessous', 'dəsu', '/y/ vs /u/'], ['lu', 'ly', 'loup', 'lu', '/y/ vs /u/'],
+      ['poisson', 'pwasɔ~', 'poison', 'pwazɔ~', '/s/ vs /z/'], ['vent', 'vɑ~', 'vin', 'vɛ~', '/ɑ̃/ vs /ɛ̃/'], ['dans', 'dɑ~', 'dont', 'dɔ~', '/ɑ̃/ vs /ɔ̃/'], ['vin', 'vɛ~', 'vont', 'vɔ~', '/ɛ̃/ vs /ɔ̃/'],
+      ['beau', 'bo', 'bon', 'bɔ~', '/o/ vs /ɔ̃/'], ['les', 'le', 'lait', 'lɛ', '/e/ vs /ɛ/'], ['ses', 'se', 'sait', 'sɛ', '/e/ vs /ɛ/'], ['chou', 'ʃu', 'joue', 'ʒu', '/ʃ/ vs /ʒ/'],
+      ['peu', 'pø', 'peur', 'pœʁ', '/ø/ vs /œ/'], ['lui', 'lɥi', 'Louis', 'lwi', '/ɥ/ vs /w/']
+    ],
+    notes: [
+      ['Conventions: check your course', 'Transcriptions differ between textbooks. This studio uses /ʁ/ for the French r (many courses write /r/), keeps /ɑ/ and /œ̃/ as separate symbols (many speakers have merged them with /a/ and /ɛ̃/), and writes the mute e as /ə/ where it is usually pronounced. When you type an answer, /r/ for /ʁ/, /a/ for /ɑ/ and /ɛ̃/ for /œ̃/ are accepted as "Nearly", not wrong. Always follow your own course convention in assessed work.'],
+      ['Open and closed syllables (loi de position)', '/e/, /ø/, /o/ come at the end of a syllable (été, deux, beau); /ɛ/, /œ/, /ɔ/ come in a closed syllable (mère, peur, porte). The usual exception: before /z/ the close vowel stays (rose /ʁoz/, heureuse /øʁøz/).'],
+      ['Nasal vowels', 'There are four: /ɑ̃ ɛ̃ ɔ̃ œ̃/. The n or m only shows that the vowel is nasal; no consonant is pronounced (bon /bɔ̃/, not /bɔn/). The consonant IS pronounced when it is doubled or followed by a vowel: bonne /bɔn/, bonne amie /bɔnami/.'],
+      ['No aspiration', 'French /p t k/ are unaspirated, and /t d n l/ are dental. Nothing in the IPA symbol shows this, but it is what makes an English accent audible.'],
+      ['s between vowels', 'One s between two vowels is /z/ (maison /mɛzɔ̃/); ss is /s/ (poisson /pwasɔ̃/). Liaison also gives /z/: les amis /lezami/.'],
+      ['-ill-', 'Usually /j/ (fille /fij/, travail /tʁavaj/), but not in ville /vil/, mille /mil/, tranquille /tʁɑ̃kil/.'],
+      ['Glides', 'Before a vowel: u → /ɥ/ (huit), ou → /w/ (oui), i → /j/ (hier). Compare lui /lɥi/ and Louis /lwi/.']
+    ],
+    keys: ['i', 'e', 'ɛ', 'a', 'ɑ', 'ɔ', 'o', 'u', 'y', 'ø', 'œ', 'ə', 'ɑ~', 'ɛ~', 'ɔ~', 'œ~', 'j', 'w', 'ɥ', 'p', 'b', 't', 'd', 'k', 'ɡ', 'f', 'v', 's', 'z', 'ʃ', 'ʒ', 'm', 'n', 'ɲ', 'ŋ', 'l', 'ʁ']
+  },
+
+  it: {
+    name: 'Italian', tts: 'it-IT',
+    groups: [
+      { id: 'v', name: 'Vowels' },
+      { id: 'c', name: 'Plain consonants' },
+      { id: 'a', name: 'c, g, sc, z' },
+      { id: 'l', name: 'gli, gn, ng' },
+      { id: 'j', name: 'Glides' },
+      { id: 'd', name: 'Double consonants' },
+      { id: 'x', name: 'Mixed words' }
+    ],
+    sounds: [
+      ['v', 'i', 'close front unrounded', 'Pure and short, with no glide.', [['vino', 'ˈvino', 'wine'], ['libro', 'ˈlibro', 'book'], ['amico', 'aˈmiko', 'friend'], ['sì', 'si', 'yes']], ''],
+      ['v', 'e', 'close-mid front unrounded (e chiusa)', 'The closed e, tongue high. Unstressed e is always closed; stressed e is closed in perché, tre, sera, -ere verbs.', [['sera', 'ˈsera', 'evening'], ['tre', 'tre', 'three'], ['perché', 'perˈke', 'why'], ['vedere', 'veˈdere', 'to see']], 'Only stressed e and o have an open/closed contrast; spelling does not show it (except è and é).'],
+      ['v', 'ɛ', 'open-mid front unrounded (e aperta)', 'The open e, as in English "bed". Only under stress: è, bello, caffè.', [['è', 'ɛ', 'is'], ['bello', 'ˈbɛllo', 'beautiful'], ['caffè', 'kafˈfɛ', 'coffee'], ['tempo', 'ˈtɛmpo', 'time / weather']], 'Minimal pairs: pèsca /ˈpɛska/ (peach) vs pésca /ˈpeska/ (fishing).'],
+      ['v', 'a', 'open front unrounded', 'An open a, a little shorter than English "father".', [['pala', 'ˈpala', 'shovel'], ['cane', 'ˈkane', 'dog'], ['amore', 'aˈmore', 'love'], ['mare', 'ˈmare', 'sea']], ''],
+      ['v', 'ɔ', 'open-mid back rounded (o aperta)', 'The open o, like English "off". Only under stress: notte, otto, parola, and after a glide: uomo, cuore.', [['notte', 'ˈnɔtte', 'night'], ['otto', 'ˈɔtto', 'eight'], ['parola', 'paˈrɔla', 'word'], ['cuore', 'ˈkwɔre', 'heart']], 'Minimal pairs: còsta /ˈkɔsta/ (coast) vs cósta /ˈkosta/ (it costs).'],
+      ['v', 'o', 'close-mid back rounded (o chiusa)', 'The closed o, lips rounded, no glide towards /u/. Unstressed o is always closed.', [['sole', 'ˈsole', 'sun'], ['amore', 'aˈmore', 'love'], ['rosso', 'ˈrosso', 'red'], ['giorno', 'ˈdʒorno', 'day']], ''],
+      ['v', 'u', 'close back rounded', 'Pure and short, lips rounded.', [['uno', 'ˈuno', 'one'], ['luna', 'ˈluna', 'moon'], ['tutto', 'ˈtutto', 'all']], ''],
+
+      ['c', 'p', 'voiceless bilabial stop', 'Unaspirated, as in French: no puff of air as in English "pin".', [['pane', 'ˈpane', 'bread'], ['pasta', 'ˈpasta', 'pasta']], ''],
+      ['c', 'b', 'voiced bilabial stop', 'As in English.', [['bene', 'ˈbɛne', 'well'], ['bambino', 'bamˈbino', 'child']], ''],
+      ['c', 't', 'voiceless dental stop', 'Tongue against the teeth, no puff of air.', [['tavolo', 'ˈtavolo', 'table'], ['tre', 'tre', 'three']], ''],
+      ['c', 'd', 'voiced dental stop', 'Tongue against the teeth.', [['dove', 'ˈdove', 'where'], ['dito', 'ˈdito', 'finger']], ''],
+      ['c', 'k', 'voiceless velar stop', 'Spelt c before a, o, u; ch before e, i; q. No puff of air.', [['cane', 'ˈkane', 'dog'], ['che', 'ke', 'what'], ['chi', 'ki', 'who'], ['quando', 'ˈkwando', 'when']], 'ch before e/i is /k/: chi /ki/, but ci /tʃi/.'],
+      ['c', 'ɡ', 'voiced velar stop', 'Spelt g before a, o, u; gh before e, i. Written ɡ (open-tail g) in IPA.', [['gatto', 'ˈɡatto', 'cat'], ['gola', 'ˈɡola', 'throat'], ['spaghetti', 'spaˈɡetti', 'spaghetti'], ['ghiaccio', 'ˈɡjattʃo', 'ice']], ''],
+      ['c', 'f', 'voiceless labiodental fricative', 'As in English.', [['fame', 'ˈfame', 'hunger'], ['fiume', 'ˈfjume', 'river']], ''],
+      ['c', 'v', 'voiced labiodental fricative', 'As in English.', [['vino', 'ˈvino', 'wine'], ['vento', 'ˈvɛnto', 'wind']], ''],
+      ['c', 's', 'voiceless alveolar fricative', 'At the start of a word before a vowel, before a voiceless consonant, and when doubled.', [['sole', 'ˈsole', 'sun'], ['sera', 'ˈsera', 'evening'], ['sono', 'ˈsono', 'I am']], ''],
+      ['c', 'z', 'voiced alveolar fricative', 'Before a voiced consonant (sbaglio) and, in much of the North and in dictionaries, between vowels: casa, rosa. In the South it is voiceless: follow your course.', [['casa', 'ˈkaza', 'house'], ['rosa', 'ˈrɔza', 'rose'], ['cosa', 'ˈkɔza', 'thing'], ['sbaglio', 'ˈzbaʎʎo', 'mistake']], 'Intervocalic s varies by region: /ˈkaza/ in the North, /ˈkasa/ in the South.'],
+      ['c', 'm', 'bilabial nasal', 'As in English.', [['madre', 'ˈmadre', 'mother'], ['mare', 'ˈmare', 'sea']], ''],
+      ['c', 'n', 'alveolar nasal', 'Tongue-tip against the teeth.', [['nome', 'ˈnome', 'name'], ['notte', 'ˈnɔtte', 'night']], ''],
+      ['c', 'l', 'alveolar lateral', 'Always a "clear" l; never the dark English l of "milk".', [['luna', 'ˈluna', 'moon'], ['libro', 'ˈlibro', 'book'], ['sole', 'ˈsole', 'sun']], ''],
+      ['c', 'r', 'alveolar trill', 'Tap or trill the tongue-tip against the ridge behind the upper teeth. Written /r/ (not ʁ or ɹ).', [['rosso', 'ˈrosso', 'red'], ['caro', 'ˈkaro', 'dear'], ['treno', 'ˈtrɛno', 'train']], ''],
+
+      ['a', 'tʃ', 'voiceless postalveolar affricate', 'English "ch" in "church". Spelt c before e, i (ci before a, o, u).', [['cena', 'ˈtʃena', 'dinner'], ['cinema', 'ˈtʃinema', 'cinema'], ['ciao', 'ˈtʃao', 'hello'], ['arrivederci', 'arriveˈdertʃi', 'goodbye']], 'ci /tʃi/ is not chi /ki/.'],
+      ['a', 'dʒ', 'voiced postalveolar affricate', 'English "j" in "judge". Spelt g before e, i (gi before a, o, u).', [['gelato', 'dʒeˈlato', 'ice cream'], ['giorno', 'ˈdʒorno', 'day'], ['mangiare', 'manˈdʒare', 'to eat'], ['buongiorno', 'bwonˈdʒorno', 'good morning']], ''],
+      ['a', 'ʃ', 'voiceless postalveolar fricative', 'English "sh". Spelt sc before e, i (sci before a, o, u). Always long between vowels.', [['scena', 'ˈʃɛna', 'scene'], ['sci', 'ʃi', 'ski'], ['sciare', 'ʃiˈare', 'to ski'], ['pesce', 'ˈpeʃʃe', 'fish']], 'sch is /sk/: schema /ˈskɛma/.'],
+      ['a', 'ts', 'voiceless alveolar affricate', 'The "ts" of English "cats", also at the start of a word. Spelt z. Always long between vowels.', [['zio', 'ˈtsio', 'uncle'], ['pizza', 'ˈpittsa', 'pizza'], ['grazie', 'ˈɡrattsje', 'thank you'], ['ragazzo', 'raˈɡattso', 'boy']], 'Spelling does not tell /ts/ from /dz/: learn each word.'],
+      ['a', 'dz', 'voiced alveolar affricate', 'The "dz" of English "adze". Spelt z. Always long between vowels.', [['zero', 'ˈdzɛro', 'zero'], ['mezzo', 'ˈmɛddzo', 'half'], ['zanzara', 'dzanˈdzara', 'mosquito']], ''],
+
+      ['l', 'ʎ', 'palatal lateral', 'Spelt gli. Like "lli" in "million", ONE sound; always long between vowels.', [['figlio', 'ˈfiʎʎo', 'son'], ['famiglia', 'faˈmiʎʎa', 'family'], ['voglio', 'ˈvɔʎʎo', 'I want'], ['gli', 'ʎi', 'the (pl.)']], 'A few words keep /ɡl/: glicine /ˈɡlitʃine/, negligente.'],
+      ['l', 'ɲ', 'palatal nasal', 'Spelt gn. Like "ny" in "canyon", ONE sound; always long between vowels.', [['gnocchi', 'ˈɲɔkki', 'gnocchi'], ['bagno', 'ˈbaɲɲo', 'bathroom'], ['montagna', 'monˈtaɲɲa', 'mountain'], ['ogni', 'ˈoɲɲi', 'every']], ''],
+      ['l', 'ŋ', 'velar nasal', 'The n before /k/ or /ɡ/ sounds like English "ng" in "sing".', [['anche', 'ˈaŋke', 'also'], ['lungo', 'ˈluŋɡo', 'long'], ['banca', 'ˈbaŋka', 'bank']], 'Not /n/ + /k/: the n assimilates to the following velar.'],
+
+      ['j', 'j', 'palatal glide', 'Like English "y". An i before a vowel in the same syllable.', [['più', 'pju', 'more'], ['piano', 'ˈpjano', 'slowly'], ['fiume', 'ˈfjume', 'river'], ['ieri', 'ˈjɛri', 'yesterday']], ''],
+      ['j', 'w', 'labial-velar glide', 'Like English "w". A u before a vowel: spelt u, qu, gu.', [['uomo', 'ˈwɔmo', 'man'], ['buono', 'ˈbwɔno', 'good'], ['quando', 'ˈkwando', 'when'], ['scuola', 'ˈskwɔla', 'school']], ''],
+
+      ['d', 'tt', 'long t', 'Hold the closure about twice as long, and keep the vowel before it short.', [['fatto', 'ˈfatto', 'done'], ['notte', 'ˈnɔtte', 'night'], ['sette', 'ˈsɛtte', 'seven']], 'fato /ˈfato/ (fate) is not fatto /ˈfatto/.'],
+      ['d', 'pp', 'long p', 'Hold the closure; short vowel before.', [['cappello', 'kapˈpɛllo', 'hat'], ['coppa', 'ˈkɔppa', 'cup'], ['troppo', 'ˈtrɔppo', 'too much']], ''],
+      ['d', 'kk', 'long k', 'Spelt cc before a/o/u, cch before e/i, and also in acqua /ˈakkwa/.', [['ecco', 'ˈɛkko', 'here is'], ['bocca', 'ˈbokka', 'mouth'], ['occhio', 'ˈɔkkjo', 'eye']], ''],
+      ['d', 'll', 'long l', 'Hold the tongue-tip contact.', [['palla', 'ˈpalla', 'ball'], ['bello', 'ˈbɛllo', 'beautiful'], ['bella', 'ˈbɛlla', 'beautiful (f.)']], 'pala /ˈpala/ is not palla /ˈpalla/.'],
+      ['d', 'nn', 'long n', 'Hold the nasal.', [['nonno', 'ˈnɔnno', 'grandfather'], ['penna', 'ˈpenna', 'pen'], ['anno', 'ˈanno', 'year']], ''],
+      ['d', 'rr', 'long r', 'A longer trill.', [['carro', 'ˈkarro', 'cart'], ['terra', 'ˈtɛrra', 'earth'], ['burro', 'ˈburro', 'butter']], 'caro /ˈkaro/ is not carro /ˈkarro/.'],
+      ['d', 'ss', 'long s', 'Always voiceless when doubled.', [['rosso', 'ˈrosso', 'red'], ['basso', 'ˈbasso', 'low']], ''],
+      ['d', 'ʃʃ', 'long sh', 'Between vowels /ʃ/ is always long, whatever the spelling.', [['pesce', 'ˈpeʃʃe', 'fish'], ['lascia', 'ˈlaʃʃa', 'leaves / lets']], ''],
+      ['d', 'ʎʎ', 'long palatal l', 'Between vowels /ʎ/ is always long.', [['figlio', 'ˈfiʎʎo', 'son'], ['famiglia', 'faˈmiʎʎa', 'family']], ''],
+      ['d', 'ɲɲ', 'long palatal n', 'Between vowels /ɲ/ is always long.', [['bagno', 'ˈbaɲɲo', 'bathroom'], ['montagna', 'monˈtaɲɲa', 'mountain']], ''],
+      ['d', 'ttʃ', 'long ch', 'Spelt cc before e/i, and ci between vowels: the closure is long.', [['faccia', 'ˈfattʃa', 'face'], ['braccio', 'ˈbrattʃo', 'arm'], ['freccia', 'ˈfrettʃa', 'arrow']], ''],
+      ['d', 'ddʒ', 'long j', 'Spelt gg before e/i, and gi between vowels.', [['oggi', 'ˈɔddʒi', 'today'], ['maggio', 'ˈmaddʒo', 'May'], ['leggere', 'ˈlɛddʒere', 'to read']], ''],
+      ['d', 'tts', 'long ts', 'Between vowels /ts/ is always long: grazie, pizza, ragazzo.', [['pizza', 'ˈpittsa', 'pizza'], ['grazie', 'ˈɡrattsje', 'thank you'], ['ragazzo', 'raˈɡattso', 'boy']], ''],
+      ['d', 'ddz', 'long dz', 'Between vowels /dz/ is always long: mezzo, azzurro.', [['mezzo', 'ˈmɛddzo', 'half'], ['azzurro', 'adˈdzurro', 'blue']], '']
+    ],
+    extra: [
+      ['ciao', 'ˈtʃao', 'hello'], ['prego', 'ˈprɛɡo', 'please / you’re welcome'], ['città', 'tʃitˈta', 'city'], ['università', 'universiˈta', 'university'],
+      ['perché', 'perˈke', 'why'], ['caffè', 'kafˈfɛ', 'coffee'], ['acqua', 'ˈakkwa', 'water'], ['gelato', 'dʒeˈlato', 'ice cream'],
+      ['gnocchi', 'ˈɲɔkki', 'gnocchi'], ['scuola', 'ˈskwɔla', 'school'], ['vino', 'ˈvino', 'wine'], ['spaghetti', 'spaˈɡetti', 'spaghetti'],
+      ['parola', 'paˈrɔla', 'word'], ['ragazzo', 'raˈɡattso', 'boy'], ['aeroporto', 'aeroˈpɔrto', 'airport'], ['teatro', 'teˈatro', 'theatre'],
+      ['cucina', 'kuˈtʃina', 'kitchen'], ['giovane', 'ˈdʒovane', 'young'], ['mangiare', 'manˈdʒare', 'to eat'], ['famiglia', 'faˈmiʎʎa', 'family'],
+      ['occhiali', 'okˈkjali', 'glasses'], ['sciopero', 'ˈʃɔpero', 'strike'], ['pizzeria', 'pittseˈria', 'pizzeria'], ['quaderno', 'kwaˈdɛrno', 'exercise book'],
+      ['lasciare', 'laʃˈʃare', 'to leave'], ['peggio', 'ˈpɛddʒo', 'worse'], ['bistecca', 'bisˈtekka', 'steak'], ['stazione', 'statˈtsjone', 'station']
+    ],
+    pairs: [
+      ['pala', 'ˈpala', 'palla', 'ˈpalla', 'single vs double /l/'], ['caro', 'ˈkaro', 'carro', 'ˈkarro', '/r/ vs /rr/'], ['fato', 'ˈfato', 'fatto', 'ˈfatto', '/t/ vs /tt/'],
+      ['pena', 'ˈpena', 'penna', 'ˈpenna', '/n/ vs /nn/'], ['nono', 'ˈnɔno', 'nonno', 'ˈnɔnno', '/n/ vs /nn/'], ['capello', 'kaˈpɛllo', 'cappello', 'kapˈpɛllo', '/p/ vs /pp/'],
+      ['tuta', 'ˈtuta', 'tutta', 'ˈtutta', '/t/ vs /tt/'], ['ci', 'tʃi', 'chi', 'ki', '/tʃ/ vs /k/'], ['li', 'li', 'gli', 'ʎi', '/l/ vs /ʎ/'], ['si', 'si', 'sci', 'ʃi', '/s/ vs /ʃ/']
+    ],
+    notes: [
+      ['Conventions: check your course', 'Textbooks differ. This studio follows dictionary-style (DOP) phonemic transcription: ˈ marks the stressed syllable, doubled letters show long consonants (some courses write /tː/ instead), ɡ is the open-tail g, and the r is /r/. Intervocalic s is shown voiced (casa /ˈkaza/) as in Northern and dictionary usage. When you type an answer, /tː/ is accepted for /tt/. Always follow your own course convention in assessed work.'],
+      ['Seven vowels, but only under stress', 'The contrast between /e/ and /ɛ/, and between /o/ and /ɔ/, exists only in stressed syllables. Unstressed e and o are always closed. Spelling does not show the difference (apart from è vs é), so it has to be learnt word by word: pèsca /ˈpɛska/ (peach) vs pésca /ˈpeska/ (fishing).'],
+      ['Stress mark', 'ˈ goes BEFORE the stressed syllable: /ˈfatto/, /kapˈpɛllo/, /tʃitˈta/. Words of one syllable carry no mark: /tre/, /ke/. The written accent (città) marks stress only on a final vowel.'],
+      ['Long (double) consonants', 'Doubled letters are long consonants, and the vowel before is short. After a vowel, /ʃ ʎ ɲ ts dz/ are ALWAYS long even when the spelling has one letter: pesce /ˈpeʃʃe/, famiglia /faˈmiʎʎa/, bagno /ˈbaɲɲo/, grazie /ˈɡrattsje/. At the start of a word they are single: gnocchi /ˈɲɔkki/, zio /ˈtsio/.'],
+      ['c and g', 'Before e, i: c = /tʃ/, g = /dʒ/ (cena, gelato). With h they are hard: che /ke/, ghetto. Before a, o, u: c = /k/, g = /ɡ/; with i they soften: ciao /ˈtʃao/, giorno /ˈdʒorno/.'],
+      ['sc, gli, gn', 'sc before e, i = /ʃ/ (scena, sci); sch = /sk/. gli = /ʎ/ (figlio); gn = /ɲ/ (bagno). Each is a single sound.'],
+      ['z: /ts/ or /dz/?', 'The letter z has two values and the spelling does not say which: zio /ˈtsio/ but zero /ˈdzɛro/. Look each word up. Between vowels both are long: pizza /ˈpittsa/, mezzo /ˈmɛddzo/.'],
+      ['Ear training with a computer voice', 'A computer voice often does not distinguish /e/ from /ɛ/, /o/ from /ɔ/, or /s/ from /z/ reliably. Use the voice for consonant length, c/g, gli, gn and sc, and check vowel quality against a recording of a human speaker.']
+    ],
+    keys: ['i', 'e', 'ɛ', 'a', 'ɔ', 'o', 'u', 'ˈ', 'j', 'w', 'p', 'b', 't', 'd', 'k', 'ɡ', 'f', 'v', 's', 'z', 'ʃ', 'm', 'n', 'ɲ', 'ŋ', 'l', 'ʎ', 'r', 'tʃ', 'dʒ', 'ts', 'dz']
+  }
+};
+
+/* ===== ETON IPA STUDIO ===== */
+var NT = '̃';
+function fx(s) { return String(s).replace(/~/g, NT); }
+var KEY = 'eton.ipa.v1';
+
+/* ---- build the working data ---- */
+var L = {};
+Object.keys(RAW).forEach(function (lg) {
+  var R = RAW[lg], o = { id: lg, name: R.name, tts: R.tts, groups: R.groups, sounds: [], words: {}, wlist: [], pairs: [], notes: R.notes, keys: R.keys.map(fx) };
+  R.sounds.forEach(function (r) {
+    var snd = { id: lg + ':s:' + fx(r[1]), lg: lg, g: r[0], s: fx(r[1]), d: r[2], tip: r[3], ex: [], trap: r[5] };
+    r[4].forEach(function (e) {
+      var wid = lg + ':w:' + e[0], w = o.words[wid];
+      if (!w) { w = o.words[wid] = { id: wid, lg: lg, w: e[0], ipa: fx(e[1]), gloss: e[2], gs: {}, f: [] }; o.wlist.push(w); }
+      w.gs[r[0]] = true; w.f.push(snd.id); snd.ex.push(w);
+    });
+    o.sounds.push(snd);
+  });
+  R.extra.forEach(function (e) {
+    var wid = lg + ':w:' + e[0], w = o.words[wid];
+    if (!w) { w = o.words[wid] = { id: wid, lg: lg, w: e[0], ipa: fx(e[1]), gloss: e[2], gs: {}, f: [] }; o.wlist.push(w); }
+    w.gs.x = true;
+  });
+  R.pairs.forEach(function (p) { o.pairs.push({ a: p[0], ai: fx(p[1]), b: p[2], bi: fx(p[3]), c: p[4] }); });
+  L[lg] = o;
+});
+
+/* ---- IPA helpers ---- */
+var VOW = 'iueɛaɑɔoyøœə';
+function tok(ipa, lg) {
+  var re = lg === 'it' ? /tʃ|dʒ|ts|dz|[^̃ːˈˌ.\s]̃?ː?|[ˈˌ]/g : /[^̃ːˈˌ.\s]̃?ː?|[ˈˌ]/g;
+  return ipa.match(re) || [];
+}
+function isV(t) { return t && VOW.indexOf(t.charAt(0)) >= 0; }
+function hl(ipa, sym, lg) {
+  var t = tok(ipa, lg), key = tok(sym, lg).join(''), n = tok(sym, lg).length, idx = [], i, out = [], a, b;
+  t.forEach(function (x, k) { if (x !== 'ˈ' && x !== 'ˌ') idx.push(k); });
+  for (i = 0; i + n <= idx.length; i++) {
+    if (idx.slice(i, i + n).map(function (k) { return t[k]; }).join('') === key) { a = idx[i]; b = idx[i + n - 1]; break; }
+  }
+  t.forEach(function (x, k) {
+    if (a !== undefined && k === a) out.push('<b class="ipa-hit">');
+    out.push(esc(x));
+    if (a !== undefined && k === b) out.push('</b>');
+  });
+  return out.join('');
+}
+function hasSound(w, sym) { var key = tok(sym, w.lg), t = tok(w.ipa, w.lg).filter(function (x) { return x !== 'ˈ' && x !== 'ˌ'; }), n = key.length, k = key.join(''), i; for (i = 0; i + n <= t.length; i++) if (t.slice(i, i + n).join('') === k) return true; return false; }
+
+var CONF = {
+  fr: { 'i': ['y', 'e', 'ɛ'], 'e': ['ɛ', 'i', 'ə'], 'ɛ': ['e', 'a', 'œ'], 'a': ['ɑ', 'ɛ', 'ɔ'], 'ɑ': ['a', 'ɔ'], 'ɔ': ['o', 'ɑ', 'œ'], 'o': ['ɔ', 'u', 'ø'], 'u': ['y', 'o', 'ɔ'], 'y': ['u', 'ø', 'i'], 'ø': ['œ', 'o', 'y'], 'œ': ['ø', 'ɔ', 'ɛ'], 'ə': ['ø', 'e', 'œ'],
+    'ɑ~': ['ɔ~', 'ɛ~', 'ɑn'], 'ɔ~': ['ɑ~', 'ɛ~', 'ɔn'], 'ɛ~': ['ɑ~', 'ɔ~', 'ɛn'], 'œ~': ['ɛ~', 'œn'], 'j': ['ʒ', 'i'], 'w': ['ɥ', 'u'], 'ɥ': ['w', 'y'], 'ʃ': ['ʒ', 's'], 'ʒ': ['ʃ', 'z', 'dʒ'], 's': ['z', 'ʃ'], 'z': ['s', 'ʒ'], 'ɲ': ['n', 'nj'], 'ʁ': ['r', 'l'], 'ŋ': ['n'], 'k': ['ɡ'], 'ɡ': ['k', 'ʒ'], 't': ['d'], 'd': ['t'], 'p': ['b'], 'b': ['p'], 'f': ['v'], 'v': ['f'], 'l': ['ʁ'], 'm': ['n'], 'n': ['m'] },
+  it: { 'i': ['e', 'ɛ'], 'e': ['ɛ', 'i', 'a'], 'ɛ': ['e', 'a', 'i'], 'a': ['ɔ', 'ɛ'], 'ɔ': ['o', 'a', 'u'], 'o': ['ɔ', 'u', 'a'], 'u': ['o', 'i'], 'tʃ': ['k', 'ʃ', 'dʒ'], 'dʒ': ['tʃ', 'ɡ', 'ʒ'], 'ʃ': ['s', 'tʃ', 'sk'], 'ʎ': ['l', 'lj', 'ɡl'], 'ɲ': ['n', 'nj'], 'ts': ['dz', 's', 'tʃ'], 'dz': ['ts', 'z'], 'k': ['tʃ', 'ɡ'], 'ɡ': ['dʒ', 'k'], 's': ['z', 'ʃ'], 'z': ['s', 'dz'], 'r': ['ʁ', 'l'], 'j': ['ʎ', 'i'], 'w': ['u', 'v'], 'ŋ': ['n'], 't': ['d', 'tʃ'], 'd': ['t'], 'p': ['b'], 'b': ['p'], 'f': ['v'], 'v': ['f'], 'l': ['r', 'ʎ'], 'm': ['n'], 'n': ['m', 'ɲ'] }
+};
+(function () { ['fr', 'it'].forEach(function (lg) { var c = {}; Object.keys(CONF[lg]).forEach(function (k) { c[fx(k)] = CONF[lg][k].map(fx); }); CONF[lg] = c; }); })();
+
+function sel(a) { return a[Math.floor(Math.random() * a.length)]; }
+function shuffle(a) { a = a.slice(); for (var i = a.length - 1; i > 0; i--) { var j = Math.floor(Math.random() * (i + 1)), t = a[i]; a[i] = a[j]; a[j] = t; } return a; }
+function sym(s) { return '/' + s + '/'; }
+
+function distractors(w, n) {
+  var lg = w.lg, t = tok(w.ipa, lg), c = [], seen = {}, i;
+  seen[w.ipa] = 1;
+  function add(arr, why) { var s = arr.join(''); if (seen[s] || !s) return; seen[s] = 1; c.push({ ipa: s, why: why, pos: why.pos }); }
+  var AFF = { 'ts': 1, 'dz': 1, 'tʃ': 1, 'dʒ': 1 };
+  t.forEach(function (x, i) {
+    if (lg === 'it' && (x === 't' || x === 'd') && AFF[t[i + 1]]) return;
+    (CONF[lg][x] || []).forEach(function (r) {
+      var a = t.slice();
+      if (lg === 'it' && AFF[x] && (t[i - 1] === 't' || t[i - 1] === 'd') && AFF[r]) { a[i - 1] = r.charAt(0) === 'd' ? 'd' : 't'; }
+      else if (lg === 'it' && AFF[x] && (t[i - 1] === 't' || t[i - 1] === 'd')) { a.splice(i - 1, 1); a[i - 1] = r; add(a, { pos: i, text: 'it has a single ' + sym(r) + ' where the word has a long (double) consonant' }); return; }
+      a[i] = r; add(a, { pos: i, text: 'it has ' + sym(r) + ' where the word has ' + sym(x) });
+    });
+  });
+  if (lg === 'it') {
+    for (i = 1; i < t.length; i++) {
+      if (t[i] === t[i - 1] && !isV(t[i]) && t[i] !== 'ˈ') { var a = t.slice(); a.splice(i, 1); add(a, { pos: i, text: 'it has a single ' + sym(t[i]) + ' where the word has a long (double) consonant' }); }
+    }
+    for (i = 1; i < t.length - 1; i++) {
+      var p = t[i - 1] === 'ˈ' ? t[i - 2] : t[i - 1];
+      if (isV(p) && !isV(t[i]) && t[i] !== 'ˈ' && t[i] !== 'j' && t[i] !== 'w' && isV(t[i + 1]) && t[i] !== 'ʃ' && t[i] !== 'ʎ' && t[i] !== 'ɲ') { var b = t.slice(); b.splice(i, 0, t[i]); add(b, { pos: i, text: 'it has a long (double) ' + sym(t[i]) + ' where the word has a single consonant' }); }
+    }
+    if (t.indexOf('ˈ') >= 0) {
+      var base = t.filter(function (x) { return x !== 'ˈ'; });
+      base.forEach(function (x, k) {
+        if (!isV(x)) return;
+        var o = k;
+        while (o > 0 && !isV(base[o - 1])) { o--; if (o > 0 && base[o - 1] === base[o] && !isV(base[o])) break; }
+        var arr = base.slice(); arr.splice(o, 0, 'ˈ');
+        add(arr, { pos: 100 + k, text: 'the stress mark is on the wrong syllable' });
+      });
+    }
+  }
+  var picked = [], used = {}, pool = shuffle(c);
+  pool.forEach(function (x) { if (picked.length < n && !used[x.pos]) { used[x.pos] = 1; picked.push(x); } });
+  pool.forEach(function (x) { if (picked.length < n && picked.indexOf(x) < 0) picked.push(x); });
+  var extra = 0;
+  while (picked.length < n && extra < 20) { extra++; var v = sel(lg === 'fr' ? ['a', 'i', 'u', 'o', 'e', 'ɛ', 'y'] : ['a', 'i', 'u', 'o', 'e', 'ɛ', 'ɔ']), a2 = t.slice(), idx = [], k2; t.forEach(function (x, k) { if (isV(x)) idx.push(k); }); if (!idx.length) break; k2 = sel(idx); if (a2[k2] === v) continue; a2[k2] = v; var s2 = a2.join(''); if (seen[s2]) continue; seen[s2] = 1; picked.push({ ipa: s2, why: { text: 'it has ' + sym(v) + ' where the word has ' + sym(t[k2]) } }); }
+  return picked;
+}
+
+function qWord(w) {
+  var ds = distractors(w, 3), opts = ds.map(function (d) { return { t: d.ipa, ok: false, why: d.why.text }; });
+  opts.push({ t: w.ipa, ok: true });
+  return { k: 'w2i', w: w, opts: shuffle(opts), prompt: w.w, ans: w.ipa };
+}
+function qSound(snd, lg) {
+  var good = sel(snd.ex), bad = shuffle(L[lg].wlist.filter(function (w) { return !hasSound(w, snd.s); })).slice(0, 3);
+  var opts = bad.map(function (w) { return { t: w.w, ipa: w.ipa, ok: false, why: sym(w.ipa) + ' has no ' + sym(snd.s) }; });
+  opts.push({ t: good.w, ipa: good.ipa, ok: true });
+  return { k: 's2w', snd: snd, opts: shuffle(opts), prompt: sym(snd.s), ans: good.w, ipa: good.ipa };
+}
+
+/* ---- typed-answer checking ---- */
+function canon(s, lg) {
+  s = String(s).replace(/[\/\[\]\s.]/g, '').replace(/:/g, 'ː').replace(/g/g, 'ɡ').replace(/([aeiouɑɛɔœ])~/g, '$1' + NT).replace(/~/g, '');
+  s = s.replace(/(.)ː/g, '$1$1');
+  if (lg === 'fr') s = s.replace(/[rʀ]/g, 'ʁ');
+  return s;
+}
+function gradeTyped(ans, w) {
+  var lg = w.lg, u = canon(ans, lg), c = canon(w.ipa, lg), ns = function (x) { return x.replace(/[ˈˌ]/g, ''); };
+  if (u === c && lg === 'fr' && /[rʀ]/.test(String(ans)) && !/ʁ/.test(String(ans))) return { r: 'near', note: 'Right: /ʁ/ is the precise symbol for the French r (some courses write /r/, so I accept it as Nearly).' };
+  if (u === c) return { r: 'ok' };
+  if (lg === 'fr' && ns(u) === ns(c)) return { r: 'ok' };
+  if (lg === 'it' && ns(u) === ns(c)) return { r: 'near', note: 'The sounds are right but the stress mark is missing or in the wrong place.' };
+  if (lg === 'fr') {
+    var m = function (x) { return ns(x).replace(/ɑ/g, 'a').replace(new RegExp('œ' + NT, 'g'), 'ɛ' + NT); };
+    if (m(u) === m(c)) return { r: 'near', note: 'Right, allowing for the common mergers (/ɑ/ with /a/, /œ̃/ with /ɛ̃/). Check your own course convention.' };
+  }
+  return { r: 'bad' };
+}
+function diffHTML(user, right, lg) {
+  var a = tok(canon(user, lg), lg), b = tok(canon(right, lg), lg), n = a.length, m = b.length, D = [], i, j;
+  for (i = 0; i <= n; i++) { D[i] = []; for (j = 0; j <= m; j++) D[i][j] = i === 0 ? j : j === 0 ? i : 0; }
+  for (i = 1; i <= n; i++) for (j = 1; j <= m; j++) D[i][j] = Math.min(D[i - 1][j] + 1, D[i][j - 1] + 1, D[i - 1][j - 1] + (a[i - 1] === b[j - 1] ? 0 : 1));
+  var ua = [], ub = []; i = n; j = m;
+  while (i > 0 || j > 0) {
+    if (i > 0 && j > 0 && D[i][j] === D[i - 1][j - 1] + (a[i - 1] === b[j - 1] ? 0 : 1)) { var same = a[i - 1] === b[j - 1]; ua.unshift(same ? esc(a[i - 1]) : '<b class="df-bad">' + esc(a[i - 1]) + '</b>'); ub.unshift(same ? esc(b[j - 1]) : '<b class="df-ok">' + esc(b[j - 1]) + '</b>'); i--; j--; }
+    else if (i > 0 && D[i][j] === D[i - 1][j] + 1) { ua.unshift('<b class="df-bad">' + esc(a[i - 1]) + '</b>'); i--; }
+    else { ub.unshift('<b class="df-ok">' + esc(b[j - 1]) + '</b>'); j--; }
+  }
+  return { u: ua.join(''), r: ub.join('') };
+}
+
+/* ---- sound (computer voice: the target-language word only, never English) ---- */
+var VOICES = [];
+function loadVoices() { try { VOICES = window.speechSynthesis ? window.speechSynthesis.getVoices() : []; } catch (e) { VOICES = []; } }
+if (window.speechSynthesis) { loadVoices(); try { window.speechSynthesis.onvoiceschanged = loadVoices; } catch (e) { } }
+function voiceFor(tag) {
+  var pre = tag.slice(0, 2), best = null, sc = -1;
+  VOICES.forEach(function (v) {
+    if (String(v.lang).replace('_', '-').slice(0, 2).toLowerCase() !== pre) return;
+    var s = 1; if (String(v.lang).replace('_', '-').toLowerCase() === tag.toLowerCase()) s += 2; if (/natural|online/i.test(v.name)) s += 4; if (/premium|enhanced/i.test(v.name)) s += 3;
+    if (s > sc) { sc = s; best = v; }
+  });
+  return best;
+}
+var SND = { on: true, rate: 0.85 };
+function say(text, lg, rate, done) {
+  if (!window.speechSynthesis || !SND.on) { if (done) done(); return; }
+  try {
+    window.speechSynthesis.cancel();
+    var u = new SpeechSynthesisUtterance(text), v = voiceFor(L[lg].tts);
+    u.lang = L[lg].tts; if (v) u.voice = v; u.rate = rate || SND.rate;
+    if (done) { u.onend = done; u.onerror = done; }
+    window.speechSynthesis.speak(u);
+  } catch (e) { if (done) done(); }
+}
+var AC = null;
+function tone(f, d, t0, type, vol) {
+  try {
+    AC = AC || new (window.AudioContext || window.webkitAudioContext)();
+    var o = AC.createOscillator(), g = AC.createGain(), t = AC.currentTime + (t0 || 0);
+    o.type = type || 'sine'; o.frequency.value = f; g.gain.setValueAtTime(vol || 0.15, t); g.gain.exponentialRampToValueAtTime(0.0001, t + d);
+    o.connect(g); g.connect(AC.destination); o.start(t); o.stop(t + d + 0.02);
+  } catch (e) { }
+}
+function sndOk() { tone(660, 0.12, 0); tone(880, 0.18, 0.1); }
+function sndBad() { tone(150, 0.3, 0, 'sawtooth', 0.12); }
+function sndHand() { tone(520, 0.14, 0, 'square', 0.1); tone(780, 0.14, 0.16, 'square', 0.1); tone(1040, 0.3, 0.32, 'square', 0.1); }
+
+/* ---- state ---- */
+var S = { lg: 'fr', sel: {}, st: {}, stack: [], screen: 'home', setup: null, o: { mode: 'mix', order: 'random', which: 'all', dn: '20', n: '10', rounds: '10', pace: '4', lz: 'words', sp: { type: 'w2i', teams: 2, tiles: 16, secs: 20, mins: 3 } }, mem: false, P: null, T: null, E: null, Q: null, Z: null, G: null, pick: null, nt: null };
+var $ = function (id) { return document.getElementById(id); };
+function esc(s) { return String(s == null ? '' : s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;'); }
+function load() { try { var v = JSON.parse(localStorage.getItem(KEY) || 'null'); if (v && v.st) S.st = v.st; } catch (e) { S.mem = true; } }
+function save() { try { localStorage.setItem(KEY, JSON.stringify({ st: S.st })); } catch (e) { S.mem = true; } }
+function LG() { return L[S.lg]; }
+function anySel() { var k; for (k in S.sel) if (S.sel[k]) return true; return false; }
+function gOn(g) { return !anySel() || !!S.sel[S.lg + ':' + g]; }
+function poolSounds() { return LG().sounds.filter(function (s) { return gOn(s.g); }); }
+function poolWords() { return LG().wlist.filter(function (w) { return Object.keys(w.gs).some(gOn); }); }
+function setSt(id, v) { S.st[id] = v; save(); }
+function tally(ids) { var t = { ok: 0, near: 0, bad: 0, none: 0 }; ids.forEach(function (i) { t[S.st[i] || 'none']++; }); return t; }
+function mix(a) { return shuffle(a); }
+function stopAll() { stopLz(); stopSp(); try { if (window.speechSynthesis) window.speechSynthesis.cancel(); } catch (e) { } }
+
+/* ---- navigation ---- */
+function go(name) { stopAll(); S.stack.push(S.screen); S.screen = name; render(true); }
+function enter(name) { if (S.screen === 'setup') go(name); else setScreen(name); }
+function setScreen(name) { stopAll(); S.screen = name; render(true); }
+function render(top) { var v = V[S.screen]; $('app').innerHTML = v(); document.body.classList.toggle('aph-at-home', S.screen === 'home'); if (top) window.scrollTo(0, 0); afterRender(); }
+function backBtn() { return '<button class="aph-btn ipa-back" onclick="A.back()">← Back</button>'; }
+function dbarBack() { return '<button class="aph-dbar-btn" onclick="A.back()">← Back</button>'; }
+function afterRender() {
+  var el = $('typed'); if (el && S.T && !S.T.shown) { try { el.focus({ preventScroll: true }); } catch (e) { } }
+}
+function chip(on, fn, label) { return '<button class="aph-chip' + (on ? ' on' : '') + '" onclick="' + fn + '">' + label + '</button>'; }
+function markRow(fnBase) {
+  return '<div class="aph-mark"><button class="aph-mark-btn bad" onclick="' + fnBase + '(\'bad\')">✗ Major error<small>←</small></button><button class="aph-mark-btn near" onclick="' + fnBase + '(\'near\')">~ Nearly<small>↓</small></button><button class="aph-mark-btn ok" onclick="' + fnBase + '(\'ok\')">✓ Got it<small>→</small></button></div>';
+}
+function soundBtn(text, lg, cls) { return '<button class="ipa-say ' + (cls || '') + '" title="Hear it" onclick="A.say(\'' + esc(text).replace(/'/g, '\\\'') + '\',\'' + lg + '\',event)">🔊</button>'; }
+function ipaSpan(ipa, f, lg) { return '<span class="ipa-t">/' + (f ? hl(ipa, f, lg) : esc(ipa)) + '/</span>'; }
+function progBar(t, n) { return '<div class="ipa-prog" title="Your progress">' + ['ok', 'near', 'bad'].map(function (k) { return '<i class="' + k + '" style="width:' + (100 * t[k] / n) + '%"></i>'; }).join('') + '</div>'; }
+
+/* ---- actions ---- */
+var A = {
+  home: function () { stopAll(); S.stack = []; S.screen = 'home'; S.P = S.T = S.E = S.Q = S.Z = S.G = S.pick = null; render(true); },
+  back: function () { stopAll(); S.screen = S.stack.pop() || 'home'; render(true); },
+  lang: function (lg) { S.lg = lg; S.sel = {}; render(); },
+  tg: function (g) { var k = S.lg + ':' + g; S.sel[k] = !S.sel[k]; render(); },
+  clr: function () { S.sel = {}; render(); },
+  all: function () { LG().groups.forEach(function (g) { S.sel[S.lg + ':' + g.id] = true; }); render(); },
+  open: function (kind) { S.setup = kind; go('setup'); },
+  opt: function (k, v) { S.o[k] = v; render(); },
+  sp: function (k, v) { S.o.sp[k] = v; render(); },
+  say: function (t, lg, ev) { if (ev) ev.stopPropagation(); say(t, lg); },
+  learn: function () { go('learn'); },
+  notes: function () { go('notes'); },
+  pickSound: function (id) { S.pick = id; go('sound'); },
+  markSound: function (v) { var id = S.pick; if (S.st[id] === v) delete S.st[id]; else S.st[id] = v; save(); render(); },
+  reset: function () { if (window.confirm('Clear all your ticks and progress on this device?\n\nThis cannot be undone.')) { S.st = {}; save(); render(); } },
+  go: function () {
+    var k = S.setup;
+    if (k === 'drill') A.startDrill(); else if (k === 'typed') A.startTyped(); else if (k === 'ear') A.startEar(); else if (k === 'test') A.startTest(); else if (k === 'leisure') A.startLz(); else if (k === 'speed') A.startSp();
+  },
+
+  /* ----- flashcard drill ----- */
+  startDrill: function () {
+    var m = S.o.mode, items = [], ss = poolSounds(), ws = poolWords();
+    if (m === 'sym' || m === 'mix') ss.forEach(function (s) { items.push({ k: 'sym', id: s.id, s: s }); });
+    if (m === 'w2i' || m === 'mix') ws.forEach(function (w) { items.push({ k: 'w2i', id: w.id, w: w }); });
+    if (m === 'i2w' || m === 'mix') ws.forEach(function (w) { items.push({ k: 'i2w', id: w.id, w: w }); });
+    if (S.o.which === 'notgot') items = items.filter(function (x) { return S.st[x.id] !== 'ok'; });
+    if (!items.length) { window.alert('Nothing to practise with these choices. Everything you chose is already marked Got it.'); return; }
+    items = S.o.order === 'random' ? mix(items) : items;
+    if (S.o.dn !== 'all') items = items.slice(0, +S.o.dn);
+    S.P = { deck: items, i: 0, res: {}, rev: false };
+    enter('drill');
+    if (items[0].k === 'w2i') say(items[0].w.w, S.lg);
+  },
+  flip: function () { var P = S.P; if (!P) return; P.rev = !P.rev; render(); var it = P.deck[P.i]; if (P.rev && it.k === 'i2w') say(it.w.w, S.lg); if (P.rev && it.k === 'sym') say(it.s.ex[0].w, S.lg); },
+  pmark: function (v) {
+    var P = S.P; if (!P || !P.rev) { A.flip(); return; }
+    var it = P.deck[P.i]; P.res[P.i] = v; setSt(it.id, v); P.i++; P.rev = false;
+    if (P.i >= P.deck.length) { setScreen('results'); return; }
+    render(true); var nx = P.deck[P.i]; if (nx.k === 'w2i') say(nx.w.w, S.lg);
+  },
+  missed: function () { var P = S.P, items = P.deck.filter(function (x, i) { return P.res[i] && P.res[i] !== 'ok'; }); if (!items.length) return; S.P = { deck: mix(items), i: 0, res: {}, rev: false }; enter('drill'); },
+
+  /* ----- typed transcription ----- */
+  startTyped: function () {
+    var ws = poolWords();
+    if (S.o.which === 'notgot') ws = ws.filter(function (w) { return S.st[w.id] !== 'ok'; });
+    if (!ws.length) { window.alert('Nothing to practise with these choices.'); return; }
+    ws = mix(ws); if (S.o.n !== 'all') ws = ws.slice(0, +S.o.n);
+    S.T = { deck: ws, i: 0, res: {}, val: '', shown: false, hint: false, last: null };
+    enter('typed'); say(ws[0].w, S.lg);
+  },
+  tkey: function (k) { var el = $('typed'); if (!el) return; el.value = canon(el.value + k, S.lg); S.T.val = el.value; if (window.matchMedia && !window.matchMedia('(pointer:coarse)').matches) el.focus(); },
+  tback: function () { var el = $('typed'); if (!el) return; var t = tok(el.value, S.lg); t.pop(); el.value = t.join(''); S.T.val = el.value; },
+  tclear: function () { var el = $('typed'); if (!el) return; el.value = ''; S.T.val = ''; },
+  thint: function () { S.T.val = $('typed') ? $('typed').value : S.T.val; S.T.hint = true; render(); },
+  tcheck: function () {
+    var T = S.T, w = T.deck[T.i], el = $('typed'); if (T.shown) { A.tnext(); return; }
+    var v = el ? el.value : T.val; if (!v.replace(/\s/g, '')) return;
+    var g = gradeTyped(v, w); if (g.r === 'ok' && T.hint) g = { r: 'near', note: 'Right, but you used the hint.' };
+    T.shown = true; T.val = v; T.last = g; T.res[T.i] = g.r; setSt(w.id, g.r);
+    if (g.r === 'ok') sndOk(); else if (g.r === 'bad') sndBad();
+    render(); say(w.w, S.lg);
+  },
+  tnext: function () {
+    var T = S.T; T.i++; T.shown = false; T.hint = false; T.val = ''; T.last = null;
+    if (T.i >= T.deck.length) { S.P = { deck: T.deck.map(function (w) { return { k: 'w2i', id: w.id, w: w }; }), i: T.deck.length, res: T.res, rev: false, typed: true }; setScreen('results'); return; }
+    render(true); say(T.deck[T.i].w, S.lg);
+  },
+
+  /* ----- ear training ----- */
+  startEar: function () {
+    var ps = LG().pairs, n = +S.o.rounds, deck = [], i;
+    deck = mix(ps).concat(mix(ps)).slice(0, n).map(function (p) { return { p: p, which: Math.random() < 0.5 ? 'a' : 'b' }; });
+    S.E = { deck: deck, i: 0, ok: 0, ans: null, slow: false };
+    enter('ear'); A.eplay();
+  },
+  eplay: function () { var E = S.E; if (!E) return; var q = E.deck[E.i]; say(q.p[q.which], S.lg, E.slow ? 0.6 : 0.85); },
+  eslow: function () { S.E.slow = !S.E.slow; render(); A.eplay(); },
+  eans: function (x) {
+    var E = S.E, q = E.deck[E.i]; if (E.ans) return; E.ans = x; if (x === q.which) { E.ok++; sndOk(); } else sndBad(); render();
+  },
+  enext: function () {
+    var E = S.E; E.i++; E.ans = null; if (E.i >= E.deck.length) { setScreen('earend'); return; } render(true); A.eplay();
+  },
+
+  /* ----- test (20, marked, PDF) ----- */
+  startTest: function () {
+    var ws = poolWords(), ss = poolSounds().filter(function (s) { return s.ex.length >= 1; }), qs = [], i;
+    if (ws.length < 4) { window.alert('Choose more sound groups: this test needs at least four words.'); return; }
+    var w1 = mix(ws), w2 = mix(ws);
+    for (i = 0; i < 12; i++) qs.push(qWord(w1[i % w1.length]));
+    var s1 = mix(ss.length ? ss : LG().sounds);
+    for (i = 0; i < 4; i++) qs.push(qSound(s1[i % s1.length], S.lg));
+    for (i = 0; i < 4; i++) { var tw = w2[i % w2.length]; qs.push({ k: 'typed', w: tw, prompt: tw.w, ans: tw.ipa }); }
+    S.Q = { qs: qs, i: 0, res: [], ans: [], date: new Date(), shown: false, val: '' };
+    enter('test'); say(qs[0].w ? qs[0].w.w : '', S.lg);
+  },
+  qpick: function (idx) {
+    var Q = S.Q, q = Q.qs[Q.i]; if (Q.shown) return; Q.shown = true; Q.ans[Q.i] = idx; var ok = q.opts[idx].ok; Q.res[Q.i] = ok ? 'ok' : 'bad';
+    if (ok) sndOk(); else sndBad();
+    if (q.w) setSt(q.w.id, ok ? 'ok' : 'bad'); render();
+  },
+  qtyped: function () {
+    var Q = S.Q, q = Q.qs[Q.i], el = $('typed'); if (Q.shown) { A.qnext(); return; }
+    var v = el ? el.value : ''; if (!v.replace(/\s/g, '')) return;
+    var g = gradeTyped(v, q.w); Q.shown = true; Q.ans[Q.i] = v; Q.res[Q.i] = g.r; Q.note = g.note; setSt(q.w.id, g.r);
+    if (g.r === 'ok') sndOk(); else if (g.r === 'bad') sndBad(); render();
+  },
+  qnext: function () {
+    var Q = S.Q; Q.i++; Q.shown = false; Q.note = null;
+    if (Q.i >= Q.qs.length) { setScreen('testend'); return; }
+    render(true); var q = Q.qs[Q.i]; if (q.k !== 's2w') say(q.w.w, S.lg);
+  },
+  qpdf: function () {
+    var pr = $('pr'); pr.innerHTML = printSheet(); document.body.classList.add('printing');
+    setTimeout(function () { try { window.print(); } catch (e) { } setTimeout(function () { document.body.classList.remove('printing'); pr.innerHTML = ''; }, 400); }, 60);
+  },
+
+  /* ----- Leisure Mode ----- */
+  startLz: function () {
+    var items = [], ws = mix(poolWords()), ss = mix(poolSounds());
+    if (S.o.lz === 'words') items = ws.map(function (w) { return { k: 'w', w: w }; });
+    else { var a = ws.map(function (w) { return { k: 'w', w: w }; }), b = ss.map(function (s) { return { k: 's', s: s }; }), i, j = 0; for (i = 0; i < a.length; i++) { items.push(a[i]); if (i % 4 === 3 && b[j]) items.push(b[j++]); } while (j < b.length) items.push(b[j++]); }
+    if (!items.length) { window.alert('Nothing to play with these choices.'); return; }
+    S.Z = { items: items, i: 0, paused: false, tm: [], ph: 0 };
+    enter('leisure'); lzStep();
+  },
+  lzPause: function () { var Z = S.Z; Z.paused = !Z.paused; if (Z.paused) { clearLz(); try { window.speechSynthesis.cancel(); } catch (e) { } } else lzStep(); render(); },
+  lzNext: function (d) { var Z = S.Z; clearLz(); Z.i = (Z.i + d + Z.items.length) % Z.items.length; Z.paused = false; lzStep(); },
+  lzPace: function (v) { S.o.pace = v; if (S.Z && !S.Z.paused) lzStep(); else render(); },
+
+  /* ----- Speed Challenge ----- */
+  startSp: function () {
+    var o = S.o.sp, ws = poolWords(), ss = poolSounds(), tiles = [], i, mixed = o.type === 'mix';
+    if (ws.length < 4) { window.alert('Choose more sound groups: the Speed Challenge needs at least four words.'); return; }
+    var w1 = mix(ws), s1 = mix(ss.length ? ss : LG().sounds);
+    for (i = 0; i < o.tiles; i++) {
+      var useS = o.type === 's2w' || (mixed && i % 2 === 1);
+      tiles.push({ n: i + 1, owner: null, q: useS ? qSound(s1[i % s1.length], S.lg) : qWord(w1[i % w1.length]), tried: false });
+    }
+    var teams = []; for (i = 0; i < o.teams; i++) teams.push({ name: o.teams === 1 ? 'You' : 'Team ' + String.fromCharCode(65 + i), score: 0 });
+    S.G = { tiles: tiles, teams: teams, cur: 0, tile: null, ans: null, left: o.secs, total: o.mins * 60, tm: null, flash: false, over: false, wrong: [] };
+    enter('speed'); spTick();
+  },
+  spTile: function (n) {
+    var G = S.G; if (!G || G.tile !== null || G.over || G.flash) return; var t = G.tiles[n - 1]; if (t.owner !== null || t.tried) return;
+    G.tile = n; G.ans = null; G.left = S.o.sp.secs; render(); var q = t.q; if (q.k === 'w2i') say(q.w.w, S.lg);
+  },
+  spAns: function (idx) {
+    var G = S.G; if (!G || G.tile === null || G.ans !== null) return; var t = G.tiles[G.tile - 1], q = t.q, ok = q.opts[idx].ok; G.ans = idx;
+    if (ok) { t.owner = G.cur; G.teams[G.cur].score++; sndOk(); if (q.w) setSt(q.w.id, 'ok'); } else { sndBad(); t.tried = true; G.wrong.push(t); if (q.w) setSt(q.w.id, 'bad'); }
+    render();
+    setTimeout(function () { if (S.G === G) spNext(ok); }, ok ? 900 : 1500);
+  },
+  spQuit: function () { if (window.confirm('End the game now?')) { spEnd(); } },
+  spBack: function () { var G = S.G; if (G && !G.over && !window.confirm('Leave the game? Your scores will be lost.')) return; A.back(); },
+  spReview: function () { go('spreview'); }
+};
+
+/* ---- Leisure helpers ---- */
+function clearLz() { if (S.Z) { S.Z.tm.forEach(clearTimeout); S.Z.tm = []; } }
+function stopLz() { clearLz(); }
+function lzStep() {
+  var Z = S.Z; if (!Z) return; clearLz(); Z.ph = 0; render();
+  var it = Z.items[Z.i], p = +S.o.pace * 1000;
+  function at(ms, fn) { Z.tm.push(setTimeout(function () { if (S.Z === Z && !Z.paused && S.screen === 'leisure') fn(); }, ms)); }
+  if (it.k === 'w') {
+    say(it.w.w, S.lg, 0.8);
+    at(p * 0.4, function () { Z.ph = 1; render(); });
+    at(p * 0.7, function () { say(it.w.w, S.lg, 0.7); });
+  } else {
+    say(it.s.ex[0].w, S.lg, 0.8);
+    at(p * 0.35, function () { Z.ph = 1; render(); say(it.s.ex[1] ? it.s.ex[1].w : it.s.ex[0].w, S.lg, 0.8); });
+  }
+  at(p, function () { Z.i = (Z.i + 1) % Z.items.length; lzStep(); });
+}
+
+/* ---- Speed helpers ---- */
+function stopSp() { if (S.G && S.G.tm) { clearInterval(S.G.tm); S.G.tm = null; } }
+function spTick() {
+  var G = S.G; stopSp();
+  G.tm = setInterval(function () {
+    if (S.screen !== 'speed' || G.over) return;
+    G.total -= 0.25; if (G.tile !== null && G.ans === null) G.left -= 0.25;
+    if (G.total <= 0) { spEnd(); return; }
+    if (G.tile !== null && G.ans === null && G.left <= 0) { var t = G.tiles[G.tile - 1]; t.tried = true; G.wrong.push(t); G.ans = -1; sndBad(); render(); setTimeout(function () { if (S.G === G) spNext(false); }, 1400); return; }
+    var el = $('sp-clock'); if (el) el.textContent = clock(G.total); var el2 = $('sp-left'); if (el2) { el2.textContent = Math.ceil(G.left); el2.parentNode.classList.toggle('low', G.left <= 5); }
+  }, 250);
+}
+function clock(s) { s = Math.max(0, Math.ceil(s)); var m = Math.floor(s / 60), r = s % 60; return m + ':' + (r < 10 ? '0' : '') + r; }
+function spNext(ok) {
+  var G = S.G; if (!G || G.over) return; var free = G.tiles.filter(function (t) { return t.owner === null && !t.tried; }).length;
+  G.tile = null; G.ans = null;
+  if (!free) { spEnd(); return; }
+  if (G.teams.length > 1) { G.cur = (G.cur + 1) % G.teams.length; G.flash = true; sndHand(); render(); setTimeout(function () { if (S.G === G) { G.flash = false; render(); } }, 1500); }
+  else render();
+}
+function spEnd() { var G = S.G; if (!G) return; G.over = true; stopSp(); S.screen = 'spend'; render(true); }
+
+/* ---- Views ---- */
+var V = {
+  home: function () {
+    var lg = LG(), ids = lg.sounds.map(function (s) { return s.id; }).concat(lg.wlist.map(function (w) { return w.id; })), t = tally(ids);
+    var gchips = lg.groups.map(function (g) {
+      var n = g.id === 'x' ? lg.wlist.filter(function (w) { return w.gs.x; }).length : lg.sounds.filter(function (s) { return s.g === g.id; }).length;
+      return '<button class="aph-chip' + (S.sel[lg.id + ':' + g.id] ? ' on' : '') + '" onclick="A.tg(\'' + g.id + '\')">' + esc(g.name) + '<small>' + n + '</small></button>';
+    }).join('');
+    var ns = poolSounds().length, nw = poolWords().length;
+    return '<div class="aph-wrap"><div class="aph-card"><h2 class="aph-h">Master the IPA</h2>' +
+      '<p class="aph-note" style="margin:0 0 10px">Learn the symbols, hear them, then transcribe real words until it is automatic. Everything is marked ✗ ~ ✓ and your progress is remembered.</p>' +
+      '<div class="aph-row">' + chip(S.lg === 'fr', 'A.lang(\'fr\')', 'French') + chip(S.lg === 'it', 'A.lang(\'it\')', 'Italian') + '</div>' +
+      '<div class="aph-label">Sound groups (tick one or more, or none for all)</div><div class="ipa-chips">' + gchips + '</div>' +
+      '<div class="aph-row" style="margin-top:8px"><button class="aph-btn aph-btn-sm" onclick="A.all()">Tick all</button><button class="aph-btn aph-btn-sm" onclick="A.clr()">Clear</button></div>' +
+      '<p class="aph-note" style="margin-top:8px">' + (anySel() ? 'Your choice: ' : 'No group ticked: everything is included: ') + ns + ' sounds and ' + nw + ' words.</p>' +
+      '<hr class="aph-divider">' +
+      '<button class="aph-banner" onclick="A.open(\'speed\')"><span class="aph-banner-icon">⚡</span><span class="aph-banner-text"><b>Eton Speed Challenge</b><small>Race against the clock, solo or in teams</small></span><span class="aph-banner-play">Play ▶</span></button>' +
+      '<div class="aph-stack" style="margin-top:12px">' +
+      '<button class="aph-btn aph-btn-primary aph-btn-block" onclick="A.learn()">📖 Learn the chart</button>' +
+      '<button class="aph-btn aph-btn-block" onclick="A.open(\'drill\')">🃏 Drill: flashcards you mark yourself</button>' +
+      '<button class="aph-btn aph-btn-block" onclick="A.open(\'typed\')">⌨ Transcribe: type the IPA of a word</button>' +
+      '<button class="aph-btn aph-btn-block" onclick="A.open(\'ear\')">👂 Ear training: which word did you hear?</button>' +
+      '<button class="aph-btn aph-btn-block" onclick="A.open(\'test\')">📝 Test: 20 questions, marked, save as PDF</button>' +
+      '<button class="aph-btn aph-btn-block" onclick="A.open(\'leisure\')">🌊 Leisure Mode: hands-free listening</button>' +
+      '<button class="aph-btn aph-btn-block" onclick="A.notes()">📋 Conventions and traps (read this)</button></div>' +
+      '<div class="aph-label">Your progress in ' + lg.name + ' (' + ids.length + ' items)</div>' + progBar(t, ids.length) +
+      '<p class="aph-note">' + t.ok + ' got it · ' + t.near + ' nearly · ' + t.bad + ' major error · ' + t.none + ' not tried</p>' +
+      '<hr class="aph-divider">' + memNote() + '<div class="aph-row"><button class="aph-btn aph-btn-sm" onclick="A.reset()">Clear all my progress</button></div></div></div>';
+  },
+  learn: function () {
+    var lg = LG(), h = '<div class="aph-wrap"><div class="aph-card"><div class="aph-row" style="justify-content:space-between"><h2 class="aph-h" style="margin:0">' + lg.name + ' IPA chart</h2>' + backBtn() + '</div>' +
+      '<p class="aph-note" style="margin:8px 0 4px">Tap a symbol to see how to make it and hear key words. Border colour = your progress: <b class="ipa-k ok">got it</b> <b class="ipa-k near">nearly</b> <b class="ipa-k bad">major error</b>. The 🔊 voice is a computer voice: see the note on the Conventions page.</p>';
+    lg.groups.forEach(function (g) {
+      if (g.id === 'x' || !gOn(g.id)) return;
+      var ss = lg.sounds.filter(function (s) { return s.g === g.id; }); if (!ss.length) return;
+      h += '<div class="aph-label">' + esc(g.name) + '</div><div class="ipa-grid">' + ss.map(function (s) {
+        return '<button class="ipa-tile ' + (S.st[s.id] || '') + '" onclick="A.pickSound(\'' + s.id.replace(/'/g, '\\\'') + '\')"><span class="ipa-sym">' + esc(s.s) + '</span><span class="ipa-ex">' + esc(s.ex[0].w) + '</span></button>';
+      }).join('') + '</div>';
+    });
+    return h + '</div></div>';
+  },
+  sound: function () {
+    var lg = LG(), s = null; lg.sounds.forEach(function (x) { if (x.id === S.pick) s = x; });
+    var cur = S.st[s.id];
+    return '<div class="aph-wrap"><div class="aph-card"><div class="aph-row" style="justify-content:space-between"><span class="aph-qmeta" style="margin:0">' + esc(s.d) + '</span>' + backBtn() + '</div>' +
+      '<div class="ipa-big">/' + esc(s.s) + '/</div>' +
+      '<p class="ipa-tip"><b>How to make it.</b> ' + esc(s.tip) + '</p>' +
+      '<div class="aph-label">Key words (tap to hear)</div><div class="ipa-wlist">' + s.ex.map(function (w) {
+        return '<button class="ipa-word" onclick="A.say(\'' + esc(w.w).replace(/'/g, '\\\'') + '\',\'' + lg.id + '\',event)"><span class="ipa-w">' + esc(w.w) + '</span>' + ipaSpan(w.ipa, s.s, lg.id) + '<span class="ipa-gl">' + esc(w.gloss) + '</span><span>🔊</span></button>';
+      }).join('') + '</div>' +
+      (s.trap ? '<div class="ipa-trap"><b>⚠ Watch out.</b> ' + esc(s.trap) + '</div>' : '') +
+      '<div class="aph-label">How well do you know it?</div><div class="aph-mark">' + [['bad', '✗ Major error'], ['near', '~ Nearly'], ['ok', '✓ Got it']].map(function (m) { return '<button class="aph-mark-btn ' + m[0] + (cur === m[0] ? ' ipa-cur' : '') + '" onclick="A.markSound(\'' + m[0] + '\')">' + m[1] + '</button>'; }).join('') + '</div></div></div>';
+  },
+  notes: function () {
+    var lg = LG(), other = S.lg === 'fr' ? 'it' : 'fr';
+    return '<div class="aph-wrap"><div class="aph-card"><div class="aph-row" style="justify-content:space-between"><h2 class="aph-h" style="margin:0">' + lg.name + ': conventions and traps</h2>' + backBtn() + '</div>' +
+      lg.notes.map(function (n) { return '<div class="ipa-note"><h3>' + esc(n[0]) + '</h3><p>' + esc(n[1]) + '</p></div>'; }).join('') +
+      '<div class="ipa-note"><h3>The computer voice</h3><p>🔊 uses the voice built into your device, in the language you are studying, and only ever says the French or Italian word. It is best in Edge on Windows (natural voices) and a little flatter on iPad and Mac. It is a model, not a final authority: check anything that sounds odd against a recording of a real speaker.</p></div></div></div>';
+  },
+  setup: function () {
+    var k = S.setup, o = S.o, lg = LG(), h = '', sp = o.sp;
+    var title = { drill: 'Drill', typed: 'Transcribe', ear: 'Ear training', test: 'Test', leisure: 'Leisure Mode', speed: 'Eton Speed Challenge' }[k];
+    var summ = '<p class="aph-note">' + lg.name + ' · ' + (anySel() ? 'the groups you ticked' : 'all groups') + ': ' + poolSounds().length + ' sounds, ' + poolWords().length + ' words. Change this on the Home screen.</p>';
+    function row(label, key, opts) { return '<div class="aph-label">' + label + '</div><div class="aph-row">' + opts.map(function (x) { return chip(o[key] === x[0], 'A.opt(\'' + key + '\',\'' + x[0] + '\')', x[1]); }).join('') + '</div>'; }
+    function srow(label, key, opts) { return '<div class="aph-label">' + label + '</div><div class="aph-row">' + opts.map(function (x) { return chip(sp[key] === x[0], 'A.sp(\'' + key + '\',' + JSON.stringify(x[0]) + ')', x[1]); }).join('') + '</div>'; }
+    if (k === 'drill') h = row('What to practise', 'mode', [['mix', 'Mixed'], ['sym', 'Sound → how, and words'], ['w2i', 'Word → IPA'], ['i2w', 'IPA → word']]) + row('Which cards', 'which', [['all', 'All'], ['notgot', 'Only those not yet Got it']]) + row('How many cards', 'dn', [['20', '20'], ['40', '40'], ['all', 'All']]) + row('Order', 'order', [['random', 'Random'], ['list', 'In order']]) + '<p class="aph-note" style="margin-top:10px">Look at the card, say it or write it in your head, press Space to reveal, then mark yourself honestly: ← major error, ↓ nearly, → got it.</p>';
+    else if (k === 'typed') h = row('How many words', 'n', [['10', '10'], ['20', '20'], ['all', 'All']]) + row('Which words', 'which', [['all', 'All'], ['notgot', 'Only those not yet Got it']]) + '<p class="aph-note" style="margin-top:10px">You get the written word (and can hear it). Type the IPA using the keyboard on screen. ' + (S.lg === 'it' ? 'Include the stress mark ˈ before the stressed syllable, and double a letter for a long consonant. ' : '') + 'You are marked on the spot, and any mismatch is shown sound by sound.</p>';
+    else if (k === 'ear') h = row('How many rounds', 'rounds', [['10', '10'], ['20', '20']]) + '<p class="aph-note" style="margin-top:10px">You will hear one word of a pair that differs by a single sound. Choose which you heard. ' + (S.lg === 'it' ? 'The pairs here are about long and short consonants and c/g/gli/sc, which a computer voice reproduces reliably. ' : '') + 'Pairs ignore the groups you ticked.</p>';
+    else if (k === 'test') h = '<p class="aph-note">20 questions: 12 pick the IPA of a word, 4 pick the word containing a sound, 4 type the IPA. Marked out of 20 (whole number), then save the marked paper as a PDF.</p>';
+    else if (k === 'leisure') h = row('Pace', 'pace', [['6', 'Slow (6 s)'], ['4', 'Steady (4 s)'], ['3', 'Quick (3 s)']]) + row('What you will hear', 'lz', [['words', 'Words only'], ['both', 'Words, with a sound card every few words']]) + '<p class="aph-note" style="margin-top:10px">No marking and no errors: just listen, read the IPA as it appears, and let the sounds sink in. You can change the pace while it plays.</p>';
+    else if (k === 'speed') h = srow('Question type', 'type', [['w2i', 'See word → pick IPA'], ['s2w', 'See sound → pick word'], ['mix', 'Mixed']]) + srow('Teams', 'teams', [[1, 'Solo'], [2, '2 teams'], [3, '3 teams'], [4, '4 teams']]) + srow('Tiles', 'tiles', [[8, '8'], [12, '12'], [16, '16'], [20, '20'], [24, '24']]) + srow('Seconds per go', 'secs', [[10, '10'], [15, '15'], [20, '20'], [30, '30']]) + srow('Whole game', 'mins', [[2, '2 min'], [3, '3 min'], [5, '5 min'], [10, '10 min']]) + '<p class="aph-note" style="margin-top:10px">Teams take it in turns to choose a tile and answer in time. A wrong answer or a timeout passes play at once. Most tiles wins. Missed tiles are reviewed at the end with no clock.</p>';
+    return '<div class="aph-wrap"><div class="aph-card"><div class="aph-row" style="justify-content:space-between"><h2 class="aph-h" style="margin:0">' + title + '</h2>' + backBtn() + '</div>' + summ + h +
+      '<hr class="aph-divider"><button class="aph-btn aph-btn-primary aph-btn-block" onclick="A.go()">' + (k === 'speed' ? '⚡ Start the challenge' : 'Start') + '</button></div></div>';
+  },
+  drill: function () {
+    var P = S.P, it = P.deck[P.i], t = { ok: 0, near: 0, bad: 0 }, k, lg = LG(), front = '', back = '';
+    for (k in P.res) t[P.res[k]]++;
+    if (it.k === 'sym') {
+      front = '<div class="aph-qmeta">Sound</div><div class="ipa-big">/' + esc(it.s.s) + '/</div><div class="ipa-hint">How do you make it? Which words have it?</div>';
+      back = '<div class="ipa-d">' + esc(it.s.d) + '</div><p class="ipa-tip">' + esc(it.s.tip) + '</p><div class="ipa-wlist">' + it.s.ex.map(function (w) { return '<button class="ipa-word" onclick="A.say(\'' + esc(w.w).replace(/'/g, '\\\'') + '\',\'' + lg.id + '\',event)"><span class="ipa-w">' + esc(w.w) + '</span>' + ipaSpan(w.ipa, it.s.s, lg.id) + '<span class="ipa-gl">' + esc(w.gloss) + '</span><span>🔊</span></button>'; }).join('') + '</div>' + (it.s.trap ? '<div class="ipa-trap">⚠ ' + esc(it.s.trap) + '</div>' : '');
+    } else if (it.k === 'w2i') {
+      front = '<div class="aph-qmeta">Write the IPA for</div><div class="ipa-wbig">' + esc(it.w.w) + ' ' + soundBtn(it.w.w, lg.id) + '</div><div class="ipa-hint">' + esc(it.w.gloss) + '</div>';
+      back = '<div class="ipa-ans">' + ipaSpan(it.w.ipa, it.w.f.length ? LG().sounds.filter(function (x) { return x.id === it.w.f[0]; })[0].s : '', lg.id) + '</div>';
+    } else {
+      front = '<div class="aph-qmeta">Which word is this?</div><div class="ipa-big sm">/' + esc(it.w.ipa) + '/</div><div class="ipa-hint">Say it aloud first</div>';
+      back = '<div class="ipa-wbig">' + esc(it.w.w) + ' ' + soundBtn(it.w.w, lg.id) + '</div><div class="ipa-hint">' + esc(it.w.gloss) + '</div>';
+    }
+    return '<div class="aph-dbar"><div class="aph-dbar-title">Drill · ' + (P.i + 1) + ' of ' + P.deck.length + '</div><div class="aph-dbar-score"><span class="ok">✓ ' + t.ok + '</span><span>~ ' + t.near + '</span><span class="bad">✗ ' + t.bad + '</span></div>' + dbarBack() + '</div>' +
+      '<div class="aph-progress"><div style="width:' + (100 * P.i / P.deck.length) + '%"></div></div>' +
+      '<div class="aph-drill"><div class="aph-drill-main"><div class="aph-qcard">' + front + (P.rev ? '<hr class="aph-divider">' + back + markRow('A.pmark') : '<div class="aph-under"><button class="aph-btn aph-btn-primary" onclick="A.flip()">Show the answer <small>(Space)</small></button></div>') + '</div></div>' +
+      '<div class="aph-drill-side"><div class="aph-side-keys"><span><b>Space</b> reveal</span><span><b>←</b> Major error</span><span><b>↓</b> Nearly</span><span><b>→</b> Got it</span></div></div></div>';
+  },
+  typed: function () {
+    var T = S.T, w = T.deck[T.i], lg = LG(), t = { ok: 0, near: 0, bad: 0 }, k, h;
+    for (k in T.res) t[T.res[k]]++;
+    var nS = tok(w.ipa, lg.id).filter(function (x) { return x !== 'ˈ' && x !== 'ˌ'; }).length;
+    var stressHint = lg.id === 'it' && w.ipa.indexOf('ˈ') >= 0 ? ' · stress on syllable ' + (function () { var tt = tok(w.ipa, 'it'), c = 0, i, si = tt.indexOf('ˈ'); for (i = 0; i < tt.length; i++) if (isV(tt[i])) { if (i > si) { return c + 1; } c++; } return c; })() : '';
+    h = '<div class="aph-dbar"><div class="aph-dbar-title">Transcribe · ' + (T.i + 1) + ' of ' + T.deck.length + '</div><div class="aph-dbar-score"><span class="ok">✓ ' + t.ok + '</span><span>~ ' + t.near + '</span><span class="bad">✗ ' + t.bad + '</span></div>' + dbarBack() + '</div>' +
+      '<div class="aph-progress"><div style="width:' + (100 * T.i / T.deck.length) + '%"></div></div>' +
+      '<div class="aph-wrap"><div class="aph-qcard"><div class="aph-qmeta">Write the IPA for</div><div class="ipa-wbig">' + esc(w.w) + ' ' + soundBtn(w.w, lg.id) + '</div><div class="ipa-hint">' + esc(w.gloss) + '</div>' +
+      '<div class="ipa-field"><span>/</span><input id="typed" type="text" inputmode="none" autocomplete="off" autocapitalize="off" spellcheck="false" value="' + esc(T.val) + '"' + (T.shown ? ' readonly' : '') + ' oninput="S.T.val=this.value" onkeydown="if(event.key===\'Enter\'){A.tcheck();event.preventDefault();event.stopPropagation();}"><span>/</span></div>';
+    if (T.hint && !T.shown) h += '<div class="ipa-hint">Hint: ' + nS + ' sounds' + stressHint + '</div>';
+    if (!T.shown) {
+      h += '<div class="ipa-kb">' + lg.keys.map(function (x) { return '<button class="ipa-key' + (x === 'ˈ' ? ' stress' : '') + '" onclick="A.tkey(\'' + x + '\')">' + esc(x) + '</button>'; }).join('') + '<button class="ipa-key wide" onclick="A.tback()">⌫</button><button class="ipa-key wide" onclick="A.tclear()">Clear</button></div>' +
+        '<div class="aph-under"><button class="aph-btn" onclick="A.thint()">Hint</button><button class="aph-btn aph-btn-primary" onclick="A.tcheck()">Check <small>(Enter)</small></button></div>';
+    } else {
+      var g = T.last, d = diffHTML(T.val, w.ipa, lg.id);
+      h += '<div class="ipa-res ' + g.r + '"><b>' + (g.r === 'ok' ? '✓ Got it' : g.r === 'near' ? '~ Nearly' : '✗ Major error') + '</b>' + (g.note ? ' ' + esc(g.note) : '') + '</div>';
+      if (g.r !== 'ok') h += '<div class="ipa-cmp"><div><span class="aph-note">You wrote</span><div class="ipa-t big">/' + d.u + '/</div></div><div><span class="aph-note">Answer</span><div class="ipa-t big">/' + d.r + '/</div></div></div>';
+      else h += '<div class="ipa-cmp"><div><span class="aph-note">Answer</span><div class="ipa-t big">/' + esc(w.ipa) + '/</div></div></div>';
+      h += '<div class="aph-under"><button class="aph-btn aph-btn-primary" onclick="A.tnext()">' + (T.i + 1 >= T.deck.length ? 'Finish' : 'Next') + ' <small>(Enter)</small></button></div>';
+    }
+    return h + '</div></div>';
+  },
+  results: function () {
+    var P = S.P, t = { ok: 0, near: 0, bad: 0 }, k, miss = [], n = P.typed ? P.deck.length : P.deck.length;
+    for (k in P.res) t[P.res[k]]++;
+    Object.keys(P.res).forEach(function (i) { if (P.res[i] !== 'ok') miss.push(P.deck[+i]); });
+    function nm(x) { return x.k === 'sym' ? '/' + esc(x.s.s) + '/' : esc(x.w.w) + ' ' + ipaSpan(x.w.ipa, '', S.lg); }
+    return '<div class="aph-results"><div class="aph-card aph-res"><div class="aph-res-score">' + t.ok + ' / ' + n + '</div><div class="aph-res-pct">got it · ' + t.near + ' nearly · ' + t.bad + ' major error</div>' +
+      '<div class="aph-res-bar"><div style="width:' + (100 * t.ok / n) + '%;background:var(--correct)"></div></div>' +
+      (miss.length ? '<div class="aph-revisit"><div class="aph-revisit-head"><span class="aph-revisit-title">To revisit (' + miss.length + ')</span></div><div class="aph-revisit-list">' + miss.map(function (x) { return '<div class="aph-revisit-item">' + nm(x) + '</div>'; }).join('') + '</div></div>' : '<div class="aph-clean">Perfect: every one marked Got it.</div>') +
+      '<div class="aph-res-actions">' + (miss.length && !P.typed ? '<button class="aph-btn aph-btn-primary aph-btn-block" onclick="A.missed()">Practise the ' + miss.length + ' again</button>' : '') + '<button class="aph-btn aph-btn-block" onclick="A.back()">← Back</button></div></div></div>';
+  },
+  ear: function () {
+    var E = S.E, q = E.deck[E.i], lg = LG(), h;
+    h = '<div class="aph-dbar"><div class="aph-dbar-title">Ear training · ' + (E.i + 1) + ' of ' + E.deck.length + '</div><div class="aph-dbar-score"><span class="ok">✓ ' + E.ok + '</span></div>' + dbarBack() + '</div>' +
+      '<div class="aph-progress"><div style="width:' + (100 * E.i / E.deck.length) + '%"></div></div>' +
+      '<div class="aph-wrap"><div class="aph-qcard"><div class="aph-qmeta">Which word did you hear?</div>' +
+      '<div class="aph-under"><button class="aph-btn aph-btn-primary" onclick="A.eplay()">🔊 Play again</button><button class="aph-btn' + (E.slow ? ' on' : '') + '" onclick="A.eslow()">🐢 Slow</button></div><div class="ipa-opts two">';
+    ['a', 'b'].forEach(function (x) {
+      var cls = '', ip = x === 'a' ? q.p.ai : q.p.bi;
+      if (E.ans) { if (x === q.which) cls = ' right'; else if (x === E.ans) cls = ' wrong'; }
+      h += '<button class="ipa-opt' + cls + '" onclick="A.eans(\'' + x + '\')"><span class="ipa-w">' + esc(q.p[x]) + '</span>' + (E.ans ? ipaSpan(ip, '', lg.id) : '') + '</button>';
+    });
+    h += '</div>';
+    if (E.ans) h += '<div class="ipa-res ' + (E.ans === q.which ? 'ok' : 'bad') + '"><b>' + (E.ans === q.which ? '✓ Got it' : '✗ Major error') + '</b> The contrast is ' + esc(q.p.c) + '.</div><div class="aph-under"><button class="aph-btn aph-btn-primary" onclick="A.enext()">' + (E.i + 1 >= E.deck.length ? 'Finish' : 'Next') + '</button></div>';
+    return h + '</div></div>';
+  },
+  earend: function () {
+    var E = S.E;
+    return '<div class="aph-results"><div class="aph-card aph-res"><div class="aph-res-score">' + E.ok + ' / ' + E.deck.length + '</div><div class="aph-res-pct">heard correctly</div><div class="aph-res-bar"><div style="width:' + (100 * E.ok / E.deck.length) + '%;background:var(--correct)"></div></div><div class="aph-res-actions"><button class="aph-btn aph-btn-primary aph-btn-block" onclick="A.startEar()">Play again</button><button class="aph-btn aph-btn-block" onclick="A.back()">← Back</button></div></div></div>';
+  },
+  test: function () {
+    var Q = S.Q, q = Q.qs[Q.i], lg = LG(), h, t = { ok: 0, near: 0, bad: 0 }, k;
+    for (k in Q.res) t[Q.res[k]]++;
+    h = '<div class="aph-dbar"><div class="aph-dbar-title">Test · question ' + (Q.i + 1) + ' of ' + Q.qs.length + '</div><div class="aph-dbar-score"><span class="ok">✓ ' + t.ok + '</span><span>~ ' + t.near + '</span><span class="bad">✗ ' + t.bad + '</span></div>' + dbarBack() + '</div>' +
+      '<div class="aph-progress"><div style="width:' + (100 * Q.i / Q.qs.length) + '%"></div></div><div class="aph-wrap"><div class="aph-qcard">';
+    if (q.k === 'w2i') h += '<div class="aph-qmeta">Choose the correct IPA</div><div class="ipa-wbig">' + esc(q.prompt) + ' ' + soundBtn(q.w.w, lg.id) + '</div>';
+    else if (q.k === 's2w') h += '<div class="aph-qmeta">Which word contains the sound</div><div class="ipa-big sm">' + esc(q.prompt) + '</div>';
+    else h += '<div class="aph-qmeta">Type the IPA for</div><div class="ipa-wbig">' + esc(q.prompt) + ' ' + soundBtn(q.w.w, lg.id) + '</div>';
+    if (q.k === 'typed') {
+      h += '<div class="ipa-field"><span>/</span><input id="typed" type="text" inputmode="none" autocomplete="off" autocapitalize="off" spellcheck="false" value="' + esc(Q.shown ? Q.ans[Q.i] : '') + '"' + (Q.shown ? ' readonly' : '') + ' onkeydown="if(event.key===\'Enter\'){A.qtyped();event.preventDefault();event.stopPropagation();}"><span>/</span></div>';
+      if (!Q.shown) h += '<div class="ipa-kb">' + lg.keys.map(function (x) { return '<button class="ipa-key' + (x === 'ˈ' ? ' stress' : '') + '" onclick="A.tkeyQ(\'' + x + '\')">' + esc(x) + '</button>'; }).join('') + '<button class="ipa-key wide" onclick="A.tbackQ()">⌫</button><button class="ipa-key wide" onclick="A.tclearQ()">Clear</button></div><div class="aph-under"><button class="aph-btn aph-btn-primary" onclick="A.qtyped()">Check <small>(Enter)</small></button></div>';
+      else {
+        var g = gradeTyped(Q.ans[Q.i], q.w), d = diffHTML(Q.ans[Q.i], q.ans, lg.id);
+        h += '<div class="ipa-res ' + g.r + '"><b>' + (g.r === 'ok' ? '✓ Got it' : g.r === 'near' ? '~ Nearly' : '✗ Major error') + '</b> ' + (g.note ? esc(g.note) : '') + '</div>' + (g.r !== 'ok' ? '<div class="ipa-cmp"><div><span class="aph-note">You wrote</span><div class="ipa-t big">/' + d.u + '/</div></div><div><span class="aph-note">Answer</span><div class="ipa-t big">/' + d.r + '/</div></div></div>' : '') + '<div class="aph-under"><button class="aph-btn aph-btn-primary" onclick="A.qnext()">' + (Q.i + 1 >= Q.qs.length ? 'Finish' : 'Next') + ' <small>(Enter)</small></button></div>';
+      }
+    } else {
+      h += '<div class="ipa-opts">' + q.opts.map(function (o, i) {
+        var cls = ''; if (Q.shown) { if (o.ok) cls = ' right'; else if (Q.ans[Q.i] === i) cls = ' wrong'; }
+        return '<button class="ipa-opt' + cls + '" onclick="A.qpick(' + i + ')"><span class="ipa-no">' + (i + 1) + '</span>' + (q.k === 'w2i' ? '<span class="ipa-t big">/' + esc(o.t) + '/</span>' : '<span class="ipa-w">' + esc(o.t) + '</span>' + (Q.shown ? ipaSpan(o.ipa, q.snd.s, lg.id) : '')) + '</button>';
+      }).join('') + '</div>';
+      if (Q.shown) {
+        var pk = q.opts[Q.ans[Q.i]];
+        h += '<div class="ipa-res ' + (pk.ok ? 'ok' : 'bad') + '"><b>' + (pk.ok ? '✓ Got it' : '✗ Major error') + '</b> ' + (pk.ok ? '' : 'Your choice: ' + esc(pk.why) + '.') + '</div><div class="aph-under"><button class="aph-btn aph-btn-primary" onclick="A.qnext()">' + (Q.i + 1 >= Q.qs.length ? 'Finish' : 'Next') + ' <small>(Enter)</small></button></div>';
+      }
+    }
+    return h + '</div></div>';
+  },
+  testend: function () {
+    var Q = S.Q, sc = testScore(), miss = [];
+    Q.qs.forEach(function (q, i) { if (Q.res[i] !== 'ok') miss.push([q, Q.res[i]]); });
+    return '<div class="aph-results"><div class="aph-card aph-res"><div class="aph-res-score">' + sc + ' / 20</div><div class="aph-res-pct">' + LG().name + ' IPA test · whole-number mark</div><div class="aph-res-bar"><div style="width:' + (5 * sc) + '%;background:var(--correct)"></div></div>' +
+      (miss.length ? '<div class="aph-revisit"><div class="aph-revisit-head"><span class="aph-revisit-title">To revisit (' + miss.length + ')</span></div><div class="aph-revisit-list">' + miss.map(function (m) { var q = m[0]; return '<div class="aph-revisit-item"><span>' + (q.k === 's2w' ? 'Sound ' + esc(q.prompt) : esc(q.prompt)) + '</span><span>' + (q.k === 's2w' ? esc(q.ans) + ' ' + ipaSpan(q.ipa, q.snd.s, S.lg) : '/' + esc(q.ans) + '/') + '</span></div>'; }).join('') + '</div></div>' : '<div class="aph-clean">Perfect: 20 out of 20.</div>') +
+      '<div class="aph-res-actions"><button class="aph-btn aph-btn-primary aph-btn-block" onclick="A.qpdf()">💾 Save the marked paper as PDF</button><div class="aph-res-row"><button class="aph-btn" onclick="A.startTest()">New test</button><button class="aph-btn" onclick="A.back()">← Back</button></div></div></div></div>';
+  },
+  leisure: function () {
+    var Z = S.Z, it = Z.items[Z.i], lg = LG(), body;
+    if (it.k === 'w') body = '<div class="ipa-wbig xl">' + esc(it.w.w) + '</div><div class="ipa-lzipa' + (Z.ph ? ' show' : '') + '">' + ipaSpan(it.w.ipa, it.w.f.length ? LG().sounds.filter(function (x) { return x.id === it.w.f[0]; })[0].s : '', lg.id) + '</div>';
+    else body = '<div class="ipa-big xl">/' + esc(it.s.s) + '/</div><div class="ipa-lzipa' + (Z.ph ? ' show' : '') + '"><div class="ipa-d">' + esc(it.s.d) + '</div>' + it.s.ex.slice(0, 2).map(function (w) { return '<div class="ipa-lzrow"><span class="ipa-w">' + esc(w.w) + '</span>' + ipaSpan(w.ipa, it.s.s, lg.id) + '</div>'; }).join('') + '</div>';
+    return '<div class="aph-dbar"><div class="aph-dbar-title">Leisure Mode · ' + lg.name + '</div>' + dbarBack() + '</div><div class="aph-wrap"><div class="aph-qcard ipa-lz">' + body +
+      '<div class="aph-under"><button class="aph-btn" onclick="A.lzNext(-1)">⏮</button><button class="aph-btn aph-btn-primary" onclick="A.lzPause()">' + (Z.paused ? '▶ Play' : '⏸ Pause') + '</button><button class="aph-btn" onclick="A.lzNext(1)">⏭</button></div>' +
+      '<div class="aph-label">Pace</div><div class="aph-row" style="justify-content:center">' + [['6', 'Slow'], ['4', 'Steady'], ['3', 'Quick']].map(function (x) { return chip(S.o.pace === x[0], 'A.lzPace(\'' + x[0] + '\')', x[1]); }).join('') + '</div></div></div>';
+  },
+  speed: function () {
+    var G = S.G, o = S.o.sp, lg = LG(), q, t, cur = G.teams[G.cur];
+    var bar = '<div class="aph-dbar"><div class="aph-dbar-title">⚡ Eton Speed Challenge</div><div class="aph-dbar-score"><span>⏱ <b id="sp-clock">' + clock(G.total) + '</b></span></div><button class="aph-dbar-btn" onclick="A.spQuit()">End game</button>' + '<button class="aph-dbar-btn" onclick="A.spBack()">← Back</button></div>';
+    var score = '<div class="sp-teams">' + G.teams.map(function (tm, i) { return '<div class="sp-team t' + i + (i === G.cur ? ' cur' : '') + '"><span>' + esc(tm.name) + '</span><b>' + tm.score + '</b></div>'; }).join('') + '</div>';
+    var flash = G.flash ? '<div class="sp-flash t' + G.cur + '"><div>' + esc(cur.name) + '</div><small>YOUR GO</small></div>' : '';
+    if (G.tile === null) {
+      return bar + '<div class="aph-wrap" style="max-width:760px">' + score + flash + '<div class="aph-qmeta" style="text-align:center">' + (G.teams.length > 1 ? esc(cur.name) + ': choose a tile' : 'Choose a tile') + '</div><div class="sp-grid">' + G.tiles.map(function (t) {
+        return '<button class="sp-tile' + (t.owner !== null ? ' own t' + t.owner : '') + (t.tried ? ' dead' : '') + '" ' + (t.owner !== null || t.tried ? 'disabled' : '') + ' onclick="A.spTile(' + t.n + ')">' + (t.owner !== null ? '✓' : t.tried ? '✗' : t.n) + '</button>';
+      }).join('') + '</div></div>';
+    }
+    t = G.tiles[G.tile - 1]; q = t.q;
+    var h = bar + '<div class="aph-wrap" style="max-width:760px">' + score + '<div class="aph-qcard"><div class="sp-clock' + (G.left <= 5 ? ' low' : '') + '"><span id="sp-left">' + Math.ceil(G.left) + '</span>s</div><div class="aph-qmeta">' + esc(cur.name) + ' · tile ' + t.n + '</div>';
+    h += q.k === 'w2i' ? '<div class="ipa-wbig">' + esc(q.prompt) + ' ' + soundBtn(q.w.w, lg.id) + '</div>' : '<div class="aph-qmeta">Which word contains the sound</div><div class="ipa-big sm">' + esc(q.prompt) + '</div>';
+    h += '<div class="ipa-opts">' + q.opts.map(function (op, i) {
+      var cls = ''; if (G.ans !== null) { if (op.ok) cls = ' right'; else if (G.ans === i) cls = ' wrong'; }
+      return '<button class="ipa-opt' + cls + '" onclick="A.spAns(' + i + ')"><span class="ipa-no">' + (i + 1) + '</span>' + (q.k === 'w2i' ? '<span class="ipa-t big">/' + esc(op.t) + '/</span>' : '<span class="ipa-w">' + esc(op.t) + '</span>') + '</button>';
+    }).join('') + '</div>';
+    if (G.ans === -1) h += '<div class="ipa-res bad"><b>⏱ Time up</b> Play passes on.</div>';
+    return h + '</div></div>';
+  },
+  spend: function () {
+    var G = S.G, max = Math.max.apply(null, G.teams.map(function (t) { return t.score; })), win = G.teams.filter(function (t) { return t.score === max; });
+    var left = G.tiles.filter(function (t) { return t.owner === null; });
+    return '<div class="aph-results"><div class="aph-card aph-res"><div class="aph-res-pct">' + (G.teams.length === 1 ? 'Your score' : win.length > 1 ? 'A draw' : 'Winner') + '</div><div class="aph-res-score">' + (G.teams.length === 1 ? G.teams[0].score + ' / ' + G.tiles.length : win.map(function (t) { return esc(t.name); }).join(' & ')) + '</div>' +
+      '<div class="sp-teams" style="margin:14px 0">' + G.teams.map(function (tm, i) { return '<div class="sp-team t' + i + '"><span>' + esc(tm.name) + '</span><b>' + tm.score + '</b></div>'; }).join('') + '</div>' +
+      '<div class="aph-res-actions">' + (left.length ? '<button class="aph-btn aph-btn-primary aph-btn-block" onclick="A.spReview()">Review the ' + left.length + ' left or missed (no clock)</button>' : '<div class="aph-clean">Every tile claimed.</div>') + '<div class="aph-res-row"><button class="aph-btn" onclick="A.startSp()">Play again</button><button class="aph-btn" onclick="A.back()">← Back</button></div></div></div></div>';
+  },
+  spreview: function () {
+    var G = S.G, left = G.tiles.filter(function (t) { return t.owner === null; }), lg = LG();
+    return '<div class="aph-wrap"><div class="aph-card"><div class="aph-row" style="justify-content:space-between"><h2 class="aph-h" style="margin:0">Review: left or missed</h2>' + backBtn() + '</div><p class="aph-note">Go through these as a group, no clock. Say each aloud before reading the answer.</p><div class="aph-revisit-list" style="margin-top:12px">' + left.map(function (t) {
+      var q = t.q; return '<div class="aph-revisit-item"><span>' + (q.k === 'w2i' ? esc(q.prompt) + ' ' + soundBtn(q.w.w, lg.id) : 'Sound ' + esc(q.prompt)) + '</span><span>' + (q.k === 'w2i' ? ipaSpan(q.ans, '', lg.id) : esc(q.ans) + ' ' + ipaSpan(q.ipa, q.snd.s, lg.id)) + '</span></div>';
+    }).join('') + '</div></div></div>';
+  }
+};
+
+function memNote() { return '<p class="aph-note">Your progress is saved on this device, in this browser only' + (S.mem ? ' (saving is switched off here, so it will be lost when you close the page)' : '') + '. It does not go to anyone.</p>'; }
+function testScore() { var Q = S.Q, s = 0; Q.res.forEach(function (r) { s += r === 'ok' ? 1 : r === 'near' ? 0.5 : 0; }); return Math.round(s); }
+function printSheet() {
+  var Q = S.Q, lg = LG(), sc = testScore(), d = Q.date, ds = ('0' + d.getDate()).slice(-2) + '/' + ('0' + (d.getMonth() + 1)).slice(-2) + '/' + d.getFullYear();
+  var img = document.querySelector('.aph-avatar') ? document.querySelector('.aph-avatar').src : '';
+  return '<div class="aph-pband"><div class="aph-pband-text"><div class="aph-pkicker">Eton IPA Studio</div><div class="aph-ptitle">' + lg.name + ' <em>IPA test</em></div><div class="aph-pmeta">' + ds + ' · self-marked</div></div>'+(img?'<img class="aph-avatar" src="'+img+'" alt="">':'')+'<div class="pr-score">' + sc + '/20</div></div>' +
+    '<table class="pr-t"><thead><tr><th>#</th><th>Question</th><th>Your answer</th><th>Answer</th><th></th></tr></thead><tbody>' + Q.qs.map(function (q, i) {
+      var r = Q.res[i] || 'bad', you, ans;
+      if (q.k === 'typed') { you = '/' + esc(Q.ans[i] || '') + '/'; ans = '/' + esc(q.ans) + '/'; }
+      else { var o = q.opts[Q.ans[i]]; you = o ? (q.k === 'w2i' ? '/' + esc(o.t) + '/' : esc(o.t)) : ''; ans = q.k === 'w2i' ? '/' + esc(q.ans) + '/' : esc(q.ans) + ' /' + esc(q.ipa) + '/'; }
+      return '<tr class="' + r + '"><td>' + (i + 1) + '</td><td>' + (q.k === 's2w' ? 'Word with ' + esc(q.prompt) : esc(q.prompt)) + '</td><td>' + you + '</td><td>' + ans + '</td><td>' + (r === 'ok' ? '✓' : r === 'near' ? '~' : '✗') + '</td></tr>';
+    }).join('') + '</tbody></table>';
+}
+
+/* typed-keyboard variants for the test screen */
+A.tkeyQ = function (k) { var el = $('typed'); if (!el) return; el.value = canon(el.value + k, S.lg); };
+A.tbackQ = function () { var el = $('typed'); if (!el) return; var t = tok(el.value, S.lg); t.pop(); el.value = t.join(''); };
+A.tclearQ = function () { var el = $('typed'); if (el) el.value = ''; };
+
+/* ---- keyboard shortcuts ---- */
+document.addEventListener('keydown', function (e) {
+  var tg = e.target && e.target.tagName, typing = tg === 'INPUT' || tg === 'TEXTAREA';
+  if (S.screen === 'drill' && !typing) {
+    if (e.key === ' ' || e.key === 'Enter') { e.preventDefault(); if (!S.P.rev) A.flip(); }
+    else if (S.P.rev && e.key === 'ArrowLeft') A.pmark('bad'); else if (S.P.rev && e.key === 'ArrowDown') { e.preventDefault(); A.pmark('near'); } else if (S.P.rev && e.key === 'ArrowRight') A.pmark('ok');
+  } else if (S.screen === 'typed' && S.T && S.T.shown && e.key === 'Enter') { e.preventDefault(); A.tnext(); }
+  else if (S.screen === 'test' && S.Q) {
+    var q = S.Q.qs[S.Q.i];
+    if (q.k !== 'typed' && !S.Q.shown && /^[1-4]$/.test(e.key)) A.qpick(+e.key - 1);
+    else if (S.Q.shown && (e.key === 'Enter' || e.key === ' ')) { e.preventDefault(); A.qnext(); }
+  } else if (S.screen === 'speed' && S.G && S.G.tile !== null && /^[1-4]$/.test(e.key)) A.spAns(+e.key - 1);
+  else if (S.screen === 'ear' && S.E) { if (e.key === ' ') { e.preventDefault(); if (S.E.ans) A.enext(); else A.eplay(); } else if (!S.E.ans && (e.key === '1' || e.key === 'ArrowLeft')) A.eans('a'); else if (!S.E.ans && (e.key === '2' || e.key === 'ArrowRight')) A.eans('b'); }
+});
+window.A = A; window.S = S;
+load(); render(true);
+
+})();
+</script>
+</body></html>
