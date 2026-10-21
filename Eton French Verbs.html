@@ -6,7 +6,7 @@
 <script id="ap-update">
 /* AP auto-update: if this copy is older than the published version, reload once with the new one (saved answers are kept) */
 (function () {
-  var B = '4e4697cec8'; window.AP_BUILD = B;
+  var B = '2bb0030813'; window.AP_BUILD = B;
   function check() {
     if (!/^https?:$/.test(location.protocol) || !window.fetch) return;
     var f = decodeURIComponent(location.pathname.split('/').pop() || '');
@@ -2498,12 +2498,13 @@ var APTT = (function () {
     return fetch(GH + '?ref=main&t=' + Date.now(), { headers: ghHead(k), cache: 'no-store' }).then(function (r) { if (!r.ok) throw new Error('GitHub ' + r.status); return r.json(); })
       .then(function (j) { return { text: new TextDecoder().decode(unb64u(String(j.content || '').replace(/\s+/g, '').replace(/\+/g, '-').replace(/\//g, '_'))), sha: j.sha }; });
   }
+  function b64bytes(u) { var s = '', i, n = u.length; for (i = 0; i < n; i += 8192) s += String.fromCharCode.apply(null, Array.prototype.slice.call(u, i, i + 8192)); return btoa(s); }   // chunked: a long tests.txt overflowed the stack
   function ghAdd(code, line) {
     return ghGet().then(function (f) {
       var used = f.text.split(/\r?\n/).some(function (l) { return l.split('|')[0].trim().toUpperCase() === code; });
       if (used) throw new Error('used');
       var txt = f.text.replace(/\s*$/, '\n') + line + '\n';
-      return fetch(GH, { method: 'PUT', headers: ghHead(), body: JSON.stringify({ message: 'Test code ' + code, content: btoa(String.fromCharCode.apply(null, Array.from(utf8(txt)))), sha: f.sha, branch: 'main' }) })
+      return fetch(GH, { method: 'PUT', headers: ghHead(), body: JSON.stringify({ message: 'Test code ' + code, content: b64bytes(utf8(txt)), sha: f.sha, branch: 'main' }) })
         .then(function (r) { if (!r.ok) throw new Error('GitHub ' + r.status); return true; });
     });
   }
@@ -2511,7 +2512,7 @@ var APTT = (function () {
     return ghGet().then(function (f) {
       var L = f.text.split(/\r?\n/), keep = L.filter(function (l) { return l.split('|')[0].trim().toUpperCase() !== code; });
       if (keep.length === L.length) throw new Error('not found');
-      return fetch(GH, { method: 'PUT', headers: ghHead(), body: JSON.stringify({ message: 'Remove test code ' + code, content: btoa(String.fromCharCode.apply(null, Array.from(utf8(keep.join('\n'))))), sha: f.sha, branch: 'main' }) })
+      return fetch(GH, { method: 'PUT', headers: ghHead(), body: JSON.stringify({ message: 'Remove test code ' + code, content: b64bytes(utf8(keep.join('\n'))), sha: f.sha, branch: 'main' }) })
         .then(function (r) { if (!r.ok) throw new Error('GitHub ' + r.status); return true; });
     });
   }
@@ -2519,7 +2520,7 @@ var APTT = (function () {
     return ghGet().then(function (f) {
       var hit = false, L = f.text.split(/\r?\n/).map(function (l) { if (l.split('|')[0].trim().toUpperCase() === code) { hit = true; return line; } return l; });
       if (!hit) throw new Error('not found');
-      return fetch(GH, { method: 'PUT', headers: ghHead(), body: JSON.stringify({ message: 'Edit test code ' + code, content: btoa(String.fromCharCode.apply(null, Array.from(utf8(L.join('\n'))))), sha: f.sha, branch: 'main' }) })
+      return fetch(GH, { method: 'PUT', headers: ghHead(), body: JSON.stringify({ message: 'Edit test code ' + code, content: b64bytes(utf8(L.join('\n'))), sha: f.sha, branch: 'main' }) })
         .then(function (r) { if (!r.ok) throw new Error('GitHub ' + r.status); return true; });
     });
   }
@@ -2638,7 +2639,7 @@ var APTT = (function () {
     });
   }
   function libPut(d, sha, msg) {
-    var body = { message: msg || 'Test Library', content: btoa(String.fromCharCode.apply(null, Array.from(utf8(JSON.stringify(d))))), branch: 'main' }; if (sha) body.sha = sha;
+    var body = { message: msg || 'Test Library', content: b64bytes(utf8(JSON.stringify(d))), branch: 'main' }; if (sha) body.sha = sha;
     return fetch(GHL, { method: 'PUT', headers: ghHead(), body: JSON.stringify(body) }).then(function (r) { if (!r.ok) throw new Error('GitHub ' + r.status); return r.json(); }).then(function (j) { return j.content && j.content.sha; });
   }
   function holdKey() {
@@ -2667,7 +2668,7 @@ var APTT = (function () {
       var used = L.filter(function (x) { return have[x.code]; }).map(function (x) { return x.code; });
       if (used.length) throw new Error('used:' + used.join(', '));
       var txt = f.text.replace(/\s*$/, '\n') + L.map(function (x) { return x.line; }).join('\n') + '\n';
-      return fetch(GH, { method: 'PUT', headers: ghHead(), body: JSON.stringify({ message: 'Test codes ' + L.map(function (x) { return x.code; }).join(', '), content: btoa(String.fromCharCode.apply(null, Array.from(utf8(txt)))), sha: f.sha, branch: 'main' }) })
+      return fetch(GH, { method: 'PUT', headers: ghHead(), body: JSON.stringify({ message: 'Test codes ' + L.map(function (x) { return x.code; }).join(', '), content: b64bytes(utf8(txt)), sha: f.sha, branch: 'main' }) })
         .then(function (r) { if (!r.ok) throw new Error('GitHub ' + r.status); return true; });
     });
   }

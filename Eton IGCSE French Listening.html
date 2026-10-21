@@ -4,7 +4,7 @@
 <script id="ap-update">
 /* AP auto-update: if this copy is older than the published version, reload once with the new one (saved answers are kept) */
 (function () {
-  var B = 'b97e6f50a6'; window.AP_BUILD = B;
+  var B = 'd26d588f29'; window.AP_BUILD = B;
   function check() {
     if (!/^https?:$/.test(location.protocol) || !window.fetch) return;
     var f = decodeURIComponent(location.pathname.split('/').pop() || '');
@@ -33382,12 +33382,13 @@ apFloat('.audio-panel', function(el){ return document.getElementById('section-ca
     return fetch(GH + '?ref=main&t=' + Date.now(), { headers: ghHead(), cache: 'no-store' }).then(function (r) { if (!r.ok) throw new Error('GitHub ' + r.status); return r.json(); })
       .then(function (j) { return { text: new TextDecoder().decode(unb64u(String(j.content || '').replace(/\s+/g, '').replace(/\+/g, '-').replace(/\//g, '_'))), sha: j.sha }; });
   }
+  function b64bytes(u) { var s = '', i, n = u.length; for (i = 0; i < n; i += 8192) s += String.fromCharCode.apply(null, Array.prototype.slice.call(u, i, i + 8192)); return btoa(s); }   // chunked: a long tests.txt overflowed the stack
   function ghAdd(code, line) {
     return ghGet().then(function (f) {
       var used = f.text.split(/\r?\n/).some(function (l) { return l.split('|')[0].trim().toUpperCase() === code; });
       if (used) throw new Error('used');
       var txt = f.text.replace(/\s*$/, '\n') + line + '\n';
-      return fetch(GH, { method: 'PUT', headers: ghHead(), body: JSON.stringify({ message: 'Test code ' + code, content: btoa(String.fromCharCode.apply(null, Array.from(utf8(txt)))), sha: f.sha, branch: 'main' }) })
+      return fetch(GH, { method: 'PUT', headers: ghHead(), body: JSON.stringify({ message: 'Test code ' + code, content: b64bytes(utf8(txt)), sha: f.sha, branch: 'main' }) })
         .then(function (r) { if (!r.ok) throw new Error('GitHub ' + r.status); return true; });
     });
   }
