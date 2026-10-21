@@ -5,7 +5,7 @@
 <script id="ap-update">
 /* auto-update: if this copy is older than the published version, reload once with the new one (saved ticks are kept) */
 (function () {
-  var B = 'bb58b56288'; window.AP_BUILD = B;
+  var B = '4572b19226'; window.AP_BUILD = B;
   function check() {
     if (!/^https?:$/.test(location.protocol) || !window.fetch) return;
     var f = decodeURIComponent(location.pathname.split('/').pop() || '');
@@ -311,6 +311,7 @@ body.aph-at-home .aph-header .aph-home{display:none}   /* no Home on the home sc
 .crs-card p{margin:0 0 10px}.crs-card ol{margin:6px 0 10px 20px;padding:0}
 .meet-en{margin:10px 0;font-size:1.05rem}
 .ipa-wlist.meet .ipa-word{margin:4px 0}
+.crs-big{margin-bottom:10px}
 </style>
 </head>
 <body class="aph-at-home">
@@ -707,7 +708,7 @@ function sndBad() { tone(150, 0.3, 0, 'sawtooth', 0.12); }
 function sndHand() { tone(520, 0.14, 0, 'square', 0.1); tone(780, 0.14, 0.16, 'square', 0.1); tone(1040, 0.3, 0.32, 'square', 0.1); }
 
 /* ---- state ---- */
-var S = { lg: 'fr', sel: {}, st: {}, stack: [], screen: 'home', setup: null, o: { mode: 'mix', order: 'random', which: 'all', dn: '20', n: '10', rounds: '10', pace: '4', lz: 'words', sp: { type: 'w2i', teams: 2, tiles: 16, secs: 20, mins: 3 } }, mem: false, P: null, T: null, E: null, Q: null, Z: null, G: null, pick: null, nt: null };
+var S = { lg: 'fr', sel: {}, st: {}, stack: [], screen: 'home', setup: null, o: { mode: 'mix', order: 'random', which: 'all', dn: '20', n: '10', rounds: '10', pace: '4', lz: 'words', sp: { type: 'w2i', teams: 1, tiles: 16, secs: 20, mins: 3 } }, mem: false, P: null, T: null, E: null, Q: null, Z: null, G: null, pick: null, nt: null };
 var $ = function (id) { return document.getElementById(id); };
 function esc(s) { return String(s == null ? '' : s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;'); }
 function load() { try { var v = JSON.parse(localStorage.getItem(KEY) || 'null'); if (v && v.st) S.st = v.st; if (v && v.crs) { ['fr', 'it'].forEach(function (g) { if (v.crs[g]) S.crs[g] = Object.assign({ intro: false, pref: '', L: {}, K: {} }, v.crs[g]); }); } if (v && v.sr) S.sr = v.sr; } catch (e) { S.mem = true; } }
@@ -959,8 +960,8 @@ var V = {
       '<div class="aph-row" style="margin-top:8px"><button class="aph-btn aph-btn-sm" onclick="A.all()">Tick all</button><button class="aph-btn aph-btn-sm" onclick="A.clr()">Clear</button></div>' +
       '<p class="aph-note" style="margin-top:8px">' + (anySel() ? 'Your choice: ' : 'No group ticked: everything is included: ') + ns + ' sounds and ' + nw + ' words.</p>' +
       '<hr class="aph-divider">' +
-      '<button class="aph-banner" onclick="A.open(\'speed\')"><span class="aph-banner-icon">⚡</span><span class="aph-banner-text"><b>Eton Speed Challenge</b><small>Race against the clock, solo or in teams</small></span><span class="aph-banner-play">Play ▶</span></button>' +
       '<button class="aph-btn aph-btn-primary aph-btn-block crs-big" onclick="A.course()">🎓 Start here: the Course<small>' + courseLine() + '</small></button>' +
+      '<button class="aph-banner" onclick="A.open(\'speed\')"><span class="aph-banner-icon">⚡</span><span class="aph-banner-text"><b>Eton Speed Challenge</b><small>Race against the clock, solo or in teams</small></span><span class="aph-banner-play">Play ▶</span></button>' +
       '<div class="aph-label">Then practise</div><div class="aph-stack">' +
       '<button class="aph-btn aph-btn-block" onclick="A.learn()">📖 Learn the chart</button>' +
       '<button class="aph-btn aph-btn-block" onclick="A.open(\'drill\')">🃏 Drill: flashcards you mark yourself</button>' +
@@ -1524,7 +1525,7 @@ V.course = function () {
   var prevDone = true;
   items.forEach(function (it, n) {
     var state, title, sub = '', chips = '', btn = '';
-    if (it.k === 'intro') { title = 'What is IPA?'; sub = 'Five short cards, each with a check. Start here.'; state = c.intro ? 'done' : 'ready'; btn = '<button class="aph-btn aph-btn-sm' + (c.intro ? '' : ' aph-btn-primary') + '" onclick="A.introStart()">' + (c.intro ? 'Read again' : 'Start') + '</button>'; }
+    if (it.k === 'intro') { title = 'What is IPA?'; sub = 'Four short cards, each with a check. Start here.'; state = c.intro ? 'done' : 'ready'; btn = '<button class="aph-btn aph-btn-sm' + (c.intro ? '' : ' aph-btn-primary') + '" onclick="A.introStart()">' + (c.intro ? 'Read again' : 'Start') + '</button>'; }
     else if (it.k === 'lesson') {
       var l = CD[lg].lessons[it.i], r = c.L[l.id], ok = it.i === 0 || lessonDone(lg, it.i - 1); title = 'Lesson ' + (it.i + 1) + ': ' + l.title; sub = l.blurb;
       chips = l.sounds.map(function (s) { var sn = sndBy(lg, s); return '<span class="crs-chip ' + (S.st[sn.id] || '') + '">' + esc(s) + '</span>'; }).join('');
@@ -1545,13 +1546,15 @@ function runBar(C) {
   var n = C.steps.length;
   return '<div class="aph-dbar"><div class="aph-dbar-title">' + esc(C.title) + '</div><div class="aph-dbar-score"><span>Step ' + Math.min(C.i + 1, n) + ' of ' + n + '</span></div>' + dbarBack() + '</div><div class="aph-progress"><div style="width:' + (100 * C.i / n) + '%"></div></div>';
 }
+function tagH(t) { return esc(t).replace(/\/[^\/]+\//g, function (m) { return '<span style="text-transform:none">' + m + '</span>'; }); }
+function lessonIdx(C) { return C.x && C.x.i != null ? C.x.i : taughtUpTo(S.lg); }
 function mcqHTML(C, st) {
   var q = st.q, lg = S.lg, h = '';
-  if (q.k === 'w2i') h += '<div class="aph-qmeta">' + esc(st.tag || 'Pick the IPA') + '</div><div class="ipa-wbig">' + esc(q.prompt) + ' ' + soundBtn(q.w.w, lg) + '</div>';
-  else if (q.k === 'listen') h += '<div class="aph-qmeta">' + esc(st.tag) + ': hear the word, pick its IPA</div><div class="aph-under"><button class="aph-btn aph-btn-primary" onclick="A.say(\'' + esc(q.w.w).replace(/'/g, '\\\'') + '\',\'' + lg + '\',event)">🔊 Play</button><button class="aph-btn" onclick="A.slowSay(\'' + esc(q.w.w).replace(/'/g, '\\\'') + '\')">🐢 Slowly</button></div>' + (C.ans !== null ? '<div class="ipa-wbig">' + esc(q.w.w) + '</div>' : '');
-  else if (q.k === 'i2w') h += '<div class="aph-qmeta">' + esc(st.tag) + '</div><div class="ipa-big sm">/' + esc(q.prompt) + '/</div><div class="ipa-hint">Say it in your head first.</div>';
-  else if (q.k === 's2w') h += '<div class="aph-qmeta">' + esc(st.tag) + '</div><div class="ipa-big sm">' + esc(q.prompt) + '</div><div class="ipa-hint">Which word contains this sound?</div>';
-  else h += '<div class="aph-qmeta">' + esc(st.tag) + '</div><div class="ipa-wbig" style="font-size:1.5rem">' + esc(q.prompt) + '</div>';
+  if (q.k === 'w2i') h += '<div class="aph-qmeta">' + tagH(st.tag || 'Pick the IPA') + '</div><div class="ipa-wbig">' + esc(q.prompt) + ' ' + soundBtn(q.w.w, lg) + '</div>';
+  else if (q.k === 'listen') h += '<div class="aph-qmeta">' + tagH(st.tag) + ': hear the word, pick its IPA</div><div class="aph-under"><button class="aph-btn aph-btn-primary" onclick="A.say(\'' + esc(q.w.w).replace(/'/g, '\\\'') + '\',\'' + lg + '\',event)">🔊 Play</button><button class="aph-btn" onclick="A.slowSay(\'' + esc(q.w.w).replace(/'/g, '\\\'') + '\')">🐢 Slowly</button></div>' + (C.ans !== null ? '<div class="ipa-wbig">' + esc(q.w.w) + '</div>' : '');
+  else if (q.k === 'i2w') h += '<div class="aph-qmeta">' + tagH(st.tag) + '</div><div class="ipa-big sm">/' + esc(q.prompt) + '/</div><div class="ipa-hint">Say it in your head first.</div>';
+  else if (q.k === 's2w') h += '<div class="aph-qmeta">' + tagH(st.tag) + '</div><div class="ipa-big sm">' + esc(q.prompt) + '</div><div class="ipa-hint">Which word contains this sound?</div>';
+  else h += '<div class="aph-qmeta">' + tagH(st.tag) + '</div><div class="ipa-wbig" style="font-size:1.5rem">' + esc(q.prompt) + '</div>';
   h += '<div class="ipa-opts">' + q.opts.map(function (o, i) {
     var cls = ''; if (C.ans !== null) { if (o.ok) cls = ' right'; else if (C.ans === i) cls = ' wrong'; }
     var inner;
@@ -1581,7 +1584,7 @@ V.lesson = function () {
   } else if (st.t === 'about') {
     h += '<h2 class="aph-h">One last question</h2><p>How much IPA have you met before?</p><div class="aph-stack" style="max-width:380px;margin:0 auto">' + [['none', 'None at all: take it slowly'], ['some', 'Some: I know a few symbols'], ['lots', 'Quite a lot: I want to move fast']].map(function (x) { return '<button class="aph-btn aph-btn-block" onclick="A.cPref(\'' + x[0] + '\')">' + x[1] + '</button>'; }).join('') + '</div><p class="aph-note" style="margin-top:12px">Any answer is fine. You can always use "Try anyway" on a later lesson to skip ahead.</p>';
   } else if (st.t === 'meet') {
-    var s = st.s, w2 = s.ex.slice(0, 3);
+    var s = st.s, el = eligibleWords(lg, lessonIdx(C)), w2 = s.ex.filter(function (x) { return el.indexOf(x) >= 0; }).concat(s.ex).filter(function (x, i, a) { return a.indexOf(x) === i; }).slice(0, 3);
     h += '<div class="aph-qmeta">' + (st.again ? 'Another look · ' : 'New sound ' + (st.k + 1) + ' of ' + st.of + ' · ') + esc(s.d) + '</div><div class="ipa-big">/' + esc(s.s) + '/</div>' +
       '<p class="ipa-tip meet-en" style="text-align:left"><b>In English terms.</b> ' + esc(CD[lg].en[s.s] || s.tip) + '</p>' +
       (CD[lg].en[s.s] ? '<p class="aph-note" style="text-align:left;margin:6px 0"><b>How to make it.</b> ' + esc(s.tip) + '</p>' : '') +
@@ -1597,9 +1600,9 @@ V.lesson = function () {
     h += mcqHTML(C, st);
   } else if (st.t === 'typed') {
     var w = st.w, tt = tok(w.ipa, lg).filter(function (x) { return x !== 'ˈ' && x !== 'ˌ'; }), first = tt[0];
-    h += '<div class="aph-qmeta">' + esc(st.tag) + '</div><div class="ipa-wbig">' + esc(w.w) + ' ' + soundBtn(w.w, lg) + '</div><div class="ipa-hint">' + esc(w.gloss) + ' · ' + tt.length + ' sounds, the first is /' + esc(first) + '/' + (lg === 'it' && w.ipa.indexOf('ˈ') >= 0 ? ' · remember the stress mark ˈ' : '') + '</div>' +
+    h += '<div class="aph-qmeta">' + tagH(st.tag) + '</div><div class="ipa-wbig">' + esc(w.w) + ' ' + soundBtn(w.w, lg) + '</div><div class="ipa-hint">' + esc(w.gloss) + ' · ' + tt.length + ' sounds, the first is /' + esc(first) + '/' + (lg === 'it' && w.ipa.indexOf('ˈ') >= 0 ? ' · remember the stress mark ˈ' : '') + '</div>' +
       '<div class="ipa-field"><span>/</span><input id="ctyped" type="text" inputmode="none" autocomplete="off" autocapitalize="off" spellcheck="false" value="' + esc(C.shown ? C.val : '') + '"' + (C.shown ? ' readonly' : '') + ' onkeydown="if(event.key===\'Enter\'){A.cTyped();event.preventDefault();event.stopPropagation();}"><span>/</span></div>';
-    if (!C.shown) h += '<div class="ipa-kb">' + L[lg].keys.map(function (x) { return '<button class="ipa-key' + (x === 'ˈ' ? ' stress' : '') + '" onclick="A.cKey(\'' + x + '\')">' + esc(x) + '</button>'; }).join('') + '<button class="ipa-key wide" onclick="A.cBack()">⌫</button><button class="ipa-key wide" onclick="A.cClear()">Clear</button></div><div class="aph-under"><button class="aph-btn aph-btn-primary" onclick="A.cTyped()">Check <small>(Enter)</small></button></div>';
+    if (!C.shown) h += '<div class="ipa-kb">' + courseKeys(lg, lessonIdx(C)).map(function (x) { return '<button class="ipa-key' + (x === 'ˈ' ? ' stress' : '') + '" onclick="A.cKey(\'' + x + '\')">' + esc(x) + '</button>'; }).join('') + '<button class="ipa-key wide" onclick="A.cBack()">⌫</button><button class="ipa-key wide" onclick="A.cClear()">Clear</button></div><div class="aph-under"><button class="aph-btn aph-btn-primary" onclick="A.cTyped()">Check <small>(Enter)</small></button></div>';
     else {
       var g = C.g, d = diffHTML(C.val, w.ipa, lg);
       h += '<div class="ipa-res ' + g.r + '"><b>' + (g.r === 'ok' ? '✓ Got it' : g.r === 'near' ? '~ Nearly' : '✗ Not yet') + '</b> ' + (g.note ? esc(g.note) : '') + '</div>' + (g.r !== 'ok' ? '<div class="ipa-cmp"><div><span class="aph-note">You wrote</span><div class="ipa-t big">/' + d.u + '/</div></div><div><span class="aph-note">Answer</span><div class="ipa-t big">/' + d.r + '/</div></div></div>' : '<div class="ipa-cmp"><div><div class="ipa-t big">/' + esc(w.ipa) + '/</div></div></div>') + '<div class="aph-under"><button class="aph-btn aph-btn-primary" onclick="A.cNext()">Next <small>(Enter)</small></button></div>';
@@ -1644,6 +1647,8 @@ function courseLine() {
   var lg = S.lg, n = 0; CD[lg].lessons.forEach(function (l, i) { if (lessonDone(lg, i)) n++; });
   return n ? n + ' of ' + CD[lg].lessons.length + ' lessons passed. Carry on' : 'Brand new to IPA? Gentle lessons, checked every step';
 }
+
+function courseKeys(lg, upto) { var a = allowedSet(lg, upto); return L[lg].keys.filter(function (k) { return a[k] || tok(k, lg).every(function (t) { return a[t]; }); }); }
 
 /* ---- keyboard shortcuts ---- */
 document.addEventListener('keydown', function (e) {
