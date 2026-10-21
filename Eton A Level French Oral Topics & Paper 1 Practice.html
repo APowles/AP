@@ -4,7 +4,7 @@
 <script id="ap-update">
 /* AP auto-update: if this copy is older than the published version, reload once with the new one (saved answers are kept) */
 (function () {
-  var B = '3f49b7d0d5'; window.AP_BUILD = B;
+  var B = '92914f83d2'; window.AP_BUILD = B;
   function check() {
     if (!/^https?:$/.test(location.protocol) || !window.fetch) return;
     var f = decodeURIComponent(location.pathname.split('/').pop() || '');
@@ -7165,6 +7165,7 @@ function setAPItems(n) {
 }
 
 function generateAPSpotTest(timed) {
+  var paper = timed === 'paper';   // from KTR Studio: the compact printed Spot Test, shown over the Studio
   timed = timed === true;   // ⏱ timed & submitted: the same draw, on screen
   var raw=getFiltered();
   var numQ = 5; // always 5 questions
@@ -7172,12 +7173,12 @@ function generateAPSpotTest(timed) {
   var expandedPool = apSpotPool(raw, spec);
   if (_studioNs) expandedPool = apStudioDedupe(expandedPool);   // the Studio repeats items between Words, Say it and Use it: ask each only once
   var useLv = true;   // every Spot Test source has levels
-  if (!timed) apLvRan('ktr', generateAPSpotTest);
+  if (!timed) apLvRan('ktr', paper ? function () { generateAPSpotTest('paper'); } : generateAPSpotTest);
   var allCards = expandedPool.length;
   if (useLv) expandedPool = apLvPool('ktr', expandedPool, apKtrCardLevel);   // the chosen level only
   var perQ = _studioNs ? 4 : _apItemsPerQ;   // from KTR Studio: 5 × 3 = 15 short items (trimmed to fit 4½ minutes)
   var fit = useLv ? apLvFit('ktr', apSpotFit(expandedPool.length, perQ)) : apSpotFit(expandedPool.length, perQ);
-  if (!fit && useLv && apLv('ktr') !== 'X' && allCards >= 5) { apLvShort('ktr', 'apTestOutput', expandedPool.length, 5); return; }
+  if (!fit && useLv && !paper && apLv('ktr') !== 'X' && allCards >= 5) { apLvShort('ktr', 'apTestOutput', expandedPool.length, 5); return; }
   if (!fit) {
     alert('Not enough cards for an Eton Spot Test (need at least 5, have '+expandedPool.length+').');
     return;
@@ -7212,6 +7213,15 @@ function generateAPSpotTest(timed) {
     return;
   }
   apSpotRows=rows; apSpotLabel=label; apSpotQFlag=qFlag; apSpotAFlag=aFlag;
+  if (paper) {   // the old compact AP Spot Test, from KTR Studio: preview (Student / Teacher sheets) over the Studio
+    var po = document.getElementById('aptp-ov'); if (po) po.remove();
+    po = document.createElement('div'); po.id = 'aptp-ov';
+    po.style.cssText = 'position:fixed;inset:0;z-index:12400;background:rgba(11,18,38,.72);display:flex;align-items:center;justify-content:center;padding:16px';
+    po.innerHTML = '<div style="background:#fff;border-radius:16px;max-width:760px;width:100%;max-height:92vh;overflow:auto;padding:18px;color:#1a2744;font-family:DM Sans,system-ui,sans-serif"><div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px"><div style="font:800 1.2rem Georgia,serif">🖨 Paper Spot Test</div><button type="button" onclick="document.getElementById(\'aptp-ov\').remove()" style="border:0;background:#1a2744;color:#f2d38a;border-radius:10px;padding:8px 14px;font:800 .9rem DM Sans,sans-serif;cursor:pointer">Close</button></div>'
+      + apSpotPreviewHTML(rows, ipq, label, qFlag, aFlag, fit.note, 'openAPSpotTestPDF') + '</div>';
+    document.body.appendChild(po);
+    return;
+  }
   document.getElementById('apTestOutput').innerHTML = apSpotPreviewHTML(rows, ipq, label, qFlag, aFlag, fit.note, 'openAPSpotTestPDF');
   document.getElementById('apTestOutput').scrollIntoView({behavior:'smooth',block:'nearest'});
 }
@@ -10336,14 +10346,14 @@ function apStudioAll() {
 function apStudioPairs(n, src) { var A = apStudioAll(); return ((A.by[n] || {})[src] || []); }
 function apStudioLevel(x) { return apLvGrader('ktr-studio', function () { return apStudioAll().all.length; }, function () { return apStudioAll().all; }, function (q) { return q.en || ''; }, function (q) { return q.fr || ''; }, 'fr')(x); }
 // KTR Studio → ⏱ AP Spot Test: timed & submitted on these KTRs
-function ktrStudioSpot(ns, label, mk, data) {   // mk (teacher): after the source and level, open 🔑 Make a test link straight away
+function ktrStudioSpot(ns, label, mk, data, paper) {   // mk (teacher): after the source and level, open 🔑 Make a test link straight away
   if (data) _studioData = data;
   var d = document.getElementById('aptt-srcask'); if (d) d.remove();
   d = document.createElement('div'); d.id = 'aptt-srcask';
   d.style.cssText = 'position:fixed;inset:0;z-index:12500;background:rgba(11,18,38,.72);display:flex;align-items:center;justify-content:center;padding:16px';
   var G = function (t) { return '<div style="font:800 .72rem DM Sans,sans-serif;letter-spacing:.06em;text-transform:uppercase;color:#8a6d1d;margin:10px 0 6px">' + t + '</div>'; };
   var b = function (v, t, sub) { return '<label style="display:flex;gap:10px;align-items:flex-start;margin:0 0 6px;padding:9px 12px;border:1.5px solid #c9a84c;border-radius:10px;background:#fff;color:#1a2744;font:700 .92rem DM Sans,system-ui,sans-serif;cursor:pointer"><input type="checkbox" data-v="' + v + '" style="margin-top:3px;width:18px;height:18px;accent-color:#1a2744"><span>' + t + '<small style="display:block;font-weight:400;color:#556;margin-top:2px">' + sub + '</small></span></label>'; };
-  d.innerHTML = '<div style="background:#fff;border-radius:16px;max-width:480px;width:100%;max-height:92vh;overflow:auto;padding:20px;color:#1a2744;font-family:DM Sans,system-ui,sans-serif"><div style="font:800 1.2rem Georgia,serif;margin:0 0 4px">⏱ Eton Spot Test: timed &amp; submitted</div><div style="color:#556;font-size:.85rem;margin:0 0 4px">' + label + '. What is the test on? <b>Tick one or any combination.</b></div>'
+  d.innerHTML = '<div style="background:#fff;border-radius:16px;max-width:480px;width:100%;max-height:92vh;overflow:auto;padding:20px;color:#1a2744;font-family:DM Sans,system-ui,sans-serif"><div style="font:800 1.2rem Georgia,serif;margin:0 0 4px">' + (paper ? '&#128424; Paper Spot Test' : '✍ Submitted Spot Test') + '</div><div style="color:#556;font-size:.85rem;margin:0 0 4px">' + label + '. What is the test on? <b>Tick one or any combination.</b></div>'
     + '<div style="display:flex;justify-content:space-between;align-items:center;gap:8px;margin:10px 0 6px"><div style="font:800 .72rem DM Sans,sans-serif;letter-spacing:.06em;text-transform:uppercase;color:#8a6d1d">From the Studio</div><button type="button" data-all="1" style="padding:6px 12px;border:1.5px solid #1a2744;border-radius:8px;background:#1a2744;color:#f2d38a;font:800 .8rem DM Sans,sans-serif;cursor:pointer">☑ Select all Studio</button></div>' + b('stU', 'Understand', 'Facts and the story, English → French') + b('stW', 'Words', 'Words and sentence frames, English → French')
     + b('stS', 'Say it', 'The Recall, Gaps and Rebuild sentences, English → French') + b('stA', 'Use it', 'Checklist ideas, frame and model sentence, English → French') + b('stK', 'Know it', 'Names, dates and figures: just answer the question, no translation') + b('stO', 'Word order', 'Put the jumbled words in the right order') + b('stE', 'Spot the error', 'Correct the grammar error in a sentence')
     + G('From the KTRs') + b('words', 'KTR words', 'English → French, word or phrase') + b('trtopic', 'Translation: topic sentences', 'English → French, whole sentences')
@@ -10363,7 +10373,7 @@ function ktrStudioSpot(ns, label, mk, data) {   // mk (teacher): after the sourc
     if (!vs.length) { t.textContent = 'Tick at least one first'; return; }
     d.remove();
     apSpotSrcs = vs; apSpotSrc = vs[0]; _studioNs = ns.map(Number); _studioLabel = label;
-    var run = function () { generateAPSpotTest(true); if (mk && !(window.APTT && APTT.capturing)) setTimeout(function () { try { APTT.maker(); } catch (e) { } }, 300); };
+    var run = paper ? function () { generateAPSpotTest('paper'); } : function () { generateAPSpotTest(true); if (mk && !(window.APTT && APTT.capturing)) setTimeout(function () { try { APTT.maker(); } catch (e) { } }, 300); };
     apttLevel('ktr', run);
   });
   document.body.appendChild(d); stAllLabel();
@@ -13870,7 +13880,7 @@ function vHomeOld(){
   const g=t=>SUBS.filter(s=>s.theme===t).map(tileFor).join('');
   return `<h1 class="h1">KTR Studio</h1>
   <p class="lead">${TEACH?"A demo of a new way to teach and drill the Key Topic References:":"A new way to learn the Key Topic References:"} understand the context, learn the words you need, say them in small pieces, then use them in an answer. All twelve sub-themes are built.</p>
-  <div class="row" style="margin-top:14px"><button class="spbtn pri" onclick="openSpeed([])">⚡ Speed sessions: race on the words, any KTR or combination</button>${(typeof ILLUS!=='undefined')?'<button class="spbtn" onclick="openMachine([])">🖼️ Machine à images · Image machine</button>':''}${spotHost()?`<button class="spbtn" onclick="openSpot(SUBS.flatMap(s=>s.ktrs.map(k=>k.n)),'All 69 KTRs')">⏱ Eton Timed Spot Test</button>`:''}${setTestBtn(`SUBS.flatMap(s=>s.ktrs.map(k=>k.n)),'All 69 KTRs'`)}</div>
+  <div class="row" style="margin-top:14px"><button class="spbtn pri" onclick="openSpeed([])">⚡ Speed sessions: race on the words, any KTR or combination</button>${(typeof ILLUS!=='undefined')?'<button class="spbtn" onclick="openMachine([])">🖼️ Machine à images · Image machine</button>':''}${spotHost()?`<button class="spbtn" onclick="openSpot(SUBS.flatMap(s=>s.ktrs.map(k=>k.n)),'All 69 KTRs')">✍ Submitted Spot Test</button><button class="spbtn" onclick="openPaper(SUBS.flatMap(s=>s.ktrs.map(k=>k.n)),'All 69 KTRs')">🖨 Paper Spot Test</button>`:''}${setTestBtn(`SUBS.flatMap(s=>s.ktrs.map(k=>k.n)),'All 69 KTRs'`)}</div>
   <div class="group"><div class="label">Theme 1 · Évolution de la société française</div><div class="grid">${g(1)}</div></div>
   <div class="group"><div class="label">Theme 2 · Culture politique et artistique</div><div class="grid">${g(2)}</div></div>
   <div class="group"><div class="label">Theme 3 · Immigration et société multiculturelle</div><div class="grid">${g(3)}</div></div>
@@ -13897,6 +13907,7 @@ function spdStop(){if(SPD.timer){clearInterval(SPD.timer);SPD.timer=null}SPD.run
 function spdBeep(f,d){try{const A=spdBeep.A=spdBeep.A||new (window.AudioContext||window.webkitAudioContext)();const o=A.createOscillator(),g=A.createGain();o.frequency.value=f;g.gain.value=.15;o.connect(g);g.connect(A.destination);o.start();o.stop(A.currentTime+d)}catch(e){}}
 const spotHost=()=>{try{return window.parent!==window&&typeof window.parent.ktrStudioSpot==='function'?window.parent:null}catch(e){return null}};
 const openSpot=(ns,label,mk)=>{const P=spotHost();if(P)P.ktrStudioSpot(ns,label,mk,DATA)};
+const openPaper=(ns,label)=>{const P=spotHost();if(P)P.ktrStudioSpot(ns,label,false,DATA,'paper')};
 const isTeacher=()=>{try{return !!window.parent.localStorage.getItem('apTeacherKey')}catch(e){return false}};
 const setTestBtn=(args)=>spotHost()&&isTeacher()?`<button class="spbtn" onclick="openSpot(${args},true)">🔑 Set as a test (link / code)</button>`:'';
 const spdHost=()=>{try{return window.parent!==window&&typeof window.parent.openKTRChallenge==='function'?window.parent:null}catch(e){return null}};
@@ -14053,7 +14064,7 @@ function vSubOld(){
   <h2 class="h2" style="margin-top:14px;font-weight:600">${FL({fr:st.title_fr,en:st.title_en})}</h2>
   <div class="svbar"><span class="seglab" title="Which language you HEAR (what you SEE is chosen with the See buttons at the top)">Hear</span><span class="seg" role="group" aria-label="Voice language"><button class="${SV.mode==='fr'?'on':''}" onclick="svSetMode('fr')">🔊 Français</button><button class="${SV.mode==='en'?'on':''}" onclick="svSetMode('en')">🔊 English</button><button class="${SV.mode==='both'?'on':''}" onclick="svSetMode('both')">🔊 Both</button></span><button class="spbtn" onclick="svToggleAuto()" title="Read each new paragraph aloud automatically">${SV.auto?'☑':'☐'} Auto-play</button><button class="spbtn" onclick="svToggleBig()" title="Full-screen karaoke: big words with a yellow highlighter following the voice">${SV.big?'☑':'☐'} 🎤 Karaoke</button><button class="spbtn" id="sv-play" onclick="svPlayAll()">${SV.playing?'■ Stop':'▶ Play the whole story'}</button></div>
   <div class="story">${shown}</div>
-  <div class="nav"><button class="spbtn" onclick="openSpeedNow([${s.ktrs.map(k=>k.n)}])">⚡ Speed session: this sub-theme</button>${(typeof ILLUS!=='undefined'&&s.ktrs.some(k=>ILLUS[k.n]))?`<button class="spbtn" onclick="openMachine([${s.ktrs.map(k=>k.n)}])">🖼️ Machine à images: this sub-theme</button>`:''}${spotHost()?`<button class="spbtn" onclick="openSpot([${s.ktrs.map(k=>k.n)}],'${esc(s.name).replace(/'/g,"\\'")}')">⏱ Eton Timed Spot Test: this sub-theme</button>`:''}${setTestBtn(`[${s.ktrs.map(k=>k.n)}],'${esc(s.name).replace(/'/g,"\\'")}'`)}${more?`<button class="btn pri" onclick="svNext()">Continue the story</button>`:''}
+  <div class="nav"><button class="spbtn" onclick="openSpeedNow([${s.ktrs.map(k=>k.n)}])">⚡ Speed session: this sub-theme</button>${(typeof ILLUS!=='undefined'&&s.ktrs.some(k=>ILLUS[k.n]))?`<button class="spbtn" onclick="openMachine([${s.ktrs.map(k=>k.n)}])">🖼️ Machine à images: this sub-theme</button>`:''}${spotHost()?`<button class="spbtn" onclick="openSpot([${s.ktrs.map(k=>k.n)}],'${esc(s.name).replace(/'/g,"\\'")}')">✍ Submitted Spot Test: this sub-theme</button><button class="spbtn" onclick="openPaper([${s.ktrs.map(k=>k.n)}],'${esc(s.name).replace(/'/g,"\\'")}')">🖨 Paper Spot Test: this sub-theme</button>`:''}${setTestBtn(`[${s.ktrs.map(k=>k.n)}],'${esc(s.name).replace(/'/g,"\\'")}'`)}${more?`<button class="btn pri" onclick="svNext()">Continue the story</button>`:''}
     ${S.story>1?`<button class="btn" onclick="svShowAll()">Show all</button>`:''}</div>
   ${yourVids(s)}${timeline(s)}<div class="group"><div class="label">The ${s.ktrs.length} KTRs, in teaching order</div>
   <div class="story" style="margin-top:10px">${s.ktrs.map((k,i)=>`<button class="ktr-tile" onclick="go('ktr',${s.subtheme},${i})"><span class="t">${esc(k.term)}</span>${pips(k.n)}</button>`).join('')}</div></div>`;
@@ -14072,7 +14083,7 @@ function vKtr(){
     <button class="btn" ${i===0?'disabled':''} onclick="go('ktr',${S.sub},${i-1})">Previous KTR</button>
     <button class="btn" ${i===n-1?'disabled':''} onclick="go('ktr',${S.sub},${i+1})">Next KTR</button>
     ${S.fromMachine?`<button class="btn pri" onclick="mcBackToMachine()">← Back to the image machine</button>`:''}<button class="btn" onclick="go('sub')">Back to ${esc(cur().name)}</button>
-    <button class="spbtn" onclick="openSpeedNow([${k.n}])">⚡ Speed session: this KTR</button>${spotHost()?`<button class="spbtn" onclick="openSpot([${k.n}],'KTR ${k.n} · ${esc(k.term).replace(/'/g,"\\'")}')">⏱ Eton Timed Spot Test: this KTR</button>`:''}${setTestBtn(`[${k.n}],'KTR ${k.n} · ${esc(k.term).replace(/'/g,"\\'")}'`)}</div>`;
+    <button class="spbtn" onclick="openSpeedNow([${k.n}])">⚡ Speed session: this KTR</button>${spotHost()?`<button class="spbtn" onclick="openSpot([${k.n}],'KTR ${k.n} · ${esc(k.term).replace(/'/g,"\\'")}')">✍ Submitted Spot Test: this KTR</button><button class="spbtn" onclick="openPaper([${k.n}],'KTR ${k.n} · ${esc(k.term).replace(/'/g,"\\'")}')">🖨 Paper Spot Test: this KTR</button>`:''}${setTestBtn(`[${k.n}],'KTR ${k.n} · ${esc(k.term).replace(/'/g,"\\'")}'`)}</div>`;
 }
 const pips1=(n,st)=>`<i class="pip${(PR[n]||{})[st]?' on':''}"></i>`;
 
@@ -14361,7 +14372,7 @@ function vHome(){
     <div class="hm-kick">${n} KTRs · ${SUBS.length} sous-thèmes</div><h1 class="hm-title">KTR Studio</h1><p class="hm-tag">Regardez. Repérez. Parlez.</p>
     <div class="hm-cta"><button class="hm-b pri" onclick="HM.pick=1;render();window.scrollTo(0,0)">Choisir une KTR</button>${keys.length?`<button class="hm-b" onclick="openMachine([])">🖼️ Machine à images</button>`:''}${last?`<button class="hm-b" onclick="go('ktr',${last.sub},${last.k})">↺ Reprendre · KTR ${last.n}</button>`:''}</div></div></div>
   <details class="hm-more"><summary>Plus d'options</summary>
-    <div class="row"><button class="spbtn pri" onclick="openSpeed([])">⚡ Speed sessions: race on the words, any KTR or a mix</button>${spotHost()?`<button class="spbtn" onclick="openSpot(${all})">⏱ Eton Timed Spot Test</button>`:''}${setTestBtn(all)}<button class="spbtn" onclick="toggle('proj')">Large type</button><button class="spbtn" onclick="openHow()">How this works</button>${keys.length?`<button class="spbtn" onclick="hmSplash(true)">▶ Revoir l'intro</button>`:''}</div>
+    <div class="row"><button class="spbtn pri" onclick="openSpeed([])">⚡ Speed sessions: race on the words, any KTR or a mix</button>${spotHost()?`<button class="spbtn" onclick="openSpot(${all})">✍ Submitted Spot Test</button><button class="spbtn" onclick="openPaper(${all})">🖨 Paper Spot Test</button>`:''}${setTestBtn(all)}<button class="spbtn" onclick="toggle('proj')">Large type</button><button class="spbtn" onclick="openHow()">How this works</button>${keys.length?`<button class="spbtn" onclick="hmSplash(true)">▶ Revoir l'intro</button>`:''}</div>
     ${TEACH?'<div class="row" style="margin-top:12px"><button class="btn pri" onclick="go(\'review\')">Review notes for Andrew</button></div>':''}
   </details>`;
 }
