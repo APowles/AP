@@ -4507,7 +4507,7 @@ function renderTestPanel(){
     [1,2,3].map(function(x){return '<button class="aph-chip'+(apSpotPer===x?' active-reg':'')+'" id="sper'+x+'" onclick="setSpotPer('+x+')">'+x+'</button>';}).join('')+
     '</div>'+
     '<div class="aph-row vb-gen">'+
-    '<button class="aph-btn aph-btn-primary" onclick="generateTest()">&#128221; Generate Test</button>'+(verbMode==='quizlet'?'<button class="aph-btn" onclick="generateXqTest()">&#129513; Exercise paper</button>':'')+
+    '<button class="aph-btn aph-btn-primary" onclick="generateTest()">&#128221; Generate Test</button>'+
     '<button class="aph-btn" onclick="generateItalianSpotTest()">&#128424; Paper Spot Test</button>'+
     '<button class="aph-btn aptt-btn" onclick="apttLevel(\'conj\',function(){generateItalianSpotTest(true)})">✍ Submitted Spot Test</button>'+
     '</div>'+
@@ -4569,6 +4569,7 @@ function toggleTestOpt(opt){
 }
 
 function generateTest(){
+  if(mode==='exer'&&verbMode==='quizlet'){generateXqTest();return;}
   const savedMode=mode;mode='single';
   const pool=shuffle([...buildPool()].filter(function(x){return apLvOK(x);}));
   mode=savedMode;
@@ -6239,6 +6240,8 @@ function generateItalianSpotTest(timed) {
     });
   }
   expanded = expanded.filter(function(x){ return apLvOK(x); });
+  var _xq = (mode === 'exer' && verbMode === 'quizlet');
+  if (_xq) { expanded = []; XQ_DEF.forEach(function (d) { if (!xqOn.has(d[0])) return; xqSpecs(d[0], true).forEach(function (s) { expanded.push(s.isInf ? { inf: s.c, xqs: s } : { verb: s.v, personIdx: s.pi, xqs: s }); }); }); }
   if (expanded.length < 5) { alert(apTestLevel!=='X' ? 'Not enough '+apLvName()+' verbs (need 5+): only '+expanded.length+' in this selection.' : 'Not enough verbs (need 5+).'); return; }
   var per = Math.min((timed && apSpotPer >= 3) ? 4 : apSpotPer, Math.floor(expanded.length/5));
   var spotNote = per < apSpotPer ? 'Only '+expanded.length+' '+(apTestLevel!=='X'?apLvName()+' ':'')+'items in this selection — using '+per+' per box' : '';
@@ -6247,6 +6250,7 @@ function generateItalianSpotTest(timed) {
   var TNAME_SPOT={PRESENT:'Present',FUTURE:'Future',PASSE_COMPOSE:'Perfect (PC)',IMPERFECT:'Imperfect',CONDITIONNEL:'Conditional',SUBJONCTIF:'Subjunctive',INFINITIVE:'Infinitive'};
   vdSpotN=0; vdSpotT=0;
   var rows = []; for(var i=0;i<5;i++) rows.push(items.slice(i*per,i*per+per).map(function(item){ return vdSpot(item,(function(item){
+    if(item.xqs){ xqFill(item.xqs); return {q: item.xqs.q, a: item.xqs.a}; }
     if(item.inf){
       var c = item.inf, usage = c.usage_en && !c.usage_en.startsWith('that ') ? ' '+c.usage_en : '';
       return {q: c.en + usage + (testOpts.tense ? ' [Infinitive]' : ''), a: c.inf};
@@ -6263,15 +6267,17 @@ function generateItalianSpotTest(timed) {
     if(v.tense === 'SUBJONCTIF'){ var qa = ans; if(/^(il|ils|elle|elles)/.test(qa)) ans = "qu'" + qa; else ans = 'que ' + qa; }
     return {q: q, a: ans};
   })(item)); }));
-  var _vdD = vdDirOf(vdSpotN, vdSpotT);
+  var _vdD = _xq ? 'mixed' : vdDirOf(vdSpotN, vdSpotT);
+  var _xqN = _xq ? XQ_DEF.filter(function (d) { return xqOn.has(d[0]); }).map(function (d) { return d[1]; }).join(' + ') : '';
   if (timed) {   // ⏱ the same draw, on screen (AP TIMED TEST)
     var _vd = APTT.verbDetail(items, TNAME_SPOT, { reg: ({regular:'Regular verbs only',irregular:'Irregular verbs only',piacere:'piacere only'}[regFilter]||''), person: _personFilter==='ALL' ? '' : 'Person: '+PERSONS[+_personFilter] });
-    apttSpot({ id: 'conj|' + verbMode + '|' + Array.from(selectedTenses).sort().join(',') + '|' + regFilter + '|p' + _personFilter + '|' + (testOpts.tense ? 't' : '') + (testOpts.person ? 'p' : '') + (testOpts.inf ? 'i' : '') + '|' + apTestLevel + '|' + (5 * per) + '|d' + vdMode,
+    if (_xq) { _vd.short = _xqN; _vd.detail = '<b>Exercises:</b> ' + esc(_xqN) + ' &middot; ' + _vd.detail; }
+    apttSpot({ id: (_xq ? 'xq' + Array.from(xqOn).sort().join('') + '|' : '') + 'conj|' + verbMode + '|' + Array.from(selectedTenses).sort().join(',') + '|' + regFilter + '|p' + _personFilter + '|' + (testOpts.tense ? 't' : '') + (testOpts.person ? 'p' : '') + (testOpts.inf ? 'i' : '') + '|' + apTestLevel + '|' + (5 * per) + '|d' + vdMode,
       title: 'French Verbs: ' + _vd.short + apLvSuffix(), detail: _vd.detail, meta: vdFlags(_vdD) + ' &nbsp;·&nbsp; 5 × ' + per + ' = ' + (5 * per) + ' items' + (spotNote ? ' &nbsp;·&nbsp; ' + spotNote : ''),
       lang: _vdD === 'fren' ? 'English' : _vdD === 'mixed' ? '' : 'French', kind: 'word', rows: rows, q: function (p) { return p.q; }, a: function (p) { return p.a; } });
     return;
   }
-  _stRows=rows; _stPer=per; _stShown=true; _stLabel='French Verbs'+apLvSuffix(); _stQFlag=(_vdD==='fren'?'&#127467;&#127479;':'&#127468;&#127463;'); _stAFlag=(_vdD==='fren'?'&#127468;&#127463;':'&#127467;&#127479;'); if(_vdD==='mixed'){_stQFlag='&#127468;&#127463;/&#127467;&#127479;'; _stAFlag='&#127467;&#127479;/&#127468;&#127463;';}
+  _stRows=rows; _stPer=per; _stShown=true; _stLabel='French Verbs'+(_xq ? ': ' + _xqN : '')+apLvSuffix(); _stQFlag=(_vdD==='fren'?'&#127467;&#127479;':'&#127468;&#127463;'); _stAFlag=(_vdD==='fren'?'&#127468;&#127463;':'&#127467;&#127479;'); if(_vdD==='mixed'){_stQFlag='&#127468;&#127463;/&#127467;&#127479;'; _stAFlag='&#127467;&#127479;/&#127468;&#127463;';} if(_xq){_stQFlag='';_stAFlag='';}
   var ic=['#1a2744','#b03a2e','#1a6b3a'];
   var thS='padding:5px 8px;font-size:0.75rem;font-weight:700;text-transform:uppercase;letter-spacing:0.07em;color:#8899bb;background:#f0f3f8;border:1px solid #ddd;text-align:left;';
   var tdN='padding:6px 8px;border:1px solid #ddd;text-align:center;font-weight:700;font-size:0.82rem;color:#1a2744;vertical-align:middle;width:32px;';
@@ -7147,7 +7153,7 @@ var XQ_DEF = [
 ];
 var xqOn = new Set(['A', 'B', 'C', 'D']);
 function xqNm(t) { return XQ_DEF.filter(function (x) { return x[0] === t; })[0][1]; }
-function xqToggle(t) { if (xqOn.has(t)) { if (xqOn.size > 1) xqOn.delete(t); } else xqOn.add(t); xqRefresh(); }
+function xqToggle(t) { if (mode !== 'exer') { mode = 'exer'; xqRefresh(); return; } if (xqOn.has(t)) { if (xqOn.size > 1) xqOn.delete(t); } else xqOn.add(t); xqRefresh(); }
 function xqRefresh() { if (document.getElementById('testPanelMarker')) renderTestPanel(); else renderIntro(); }
 function xqChipsHtml() {
   return '<div class="aph-label">Exercise <span class="vb-light">tap to choose any mix</span></div><div class="aph-row">'
@@ -7293,6 +7299,9 @@ function hmOpen(door) {
   else { verbMode = 'both'; if (mode === 'exer') mode = 'single'; }
   setVerbMode(verbMode);
 }
+function hmTest() { testCount = _selectedCount > 0 ? _selectedCount : 50; showTestPanel(); generateTest(); }
+function hmPaperSpot() { showTestPanel(); generateItalianSpotTest(); }
+function hmSubmittedSpot() { apttLevel('conj', function () { generateItalianSpotTest(true); }); }
 function hmLand() { apHome = 'landing'; renderIntro(); }
 function hmEx(t) { if (mode !== 'exer') { mode = 'exer'; renderIntro(); } else xqToggle(t); }
 function hmMode(m) { mode = m; renderIntro(); }
@@ -7380,18 +7389,19 @@ function hmSetup(pool, cardCount) {
     + [['specialist', 'Specialist Verbs'], ['both', 'Both'], ['structures', 'Specialist Verb Structures']].map(function (s) { return '<button class="' + (verbMode === s[0] ? 'on' : '') + '" onclick="setVerbMode(\'' + s[0] + '\')">' + s[1] + '</button>'; }).join('')
     + '<select class="hm-sel' + (hmIsTrial(verbMode) ? ' on' : '') + '" aria-label="Trials" onchange="hmTrial(this.value)"><option value="">Trials</option>' + Object.keys(TR_NAME).map(function (k) { return '<option value="' + k + '"' + (verbMode === k ? ' selected' : '') + '>' + TR_NAME[k] + '</option>'; }).join('') + '</select></div></div>';
   var title = verbMode === 'quizlet' ? 'Quizlet Verbs' : hmSetName(verbMode);
-  var counts = [10, 20, 30, 50, -1].map(function (n) { return '<option value="' + n + '"' + (_selectedCount === n ? ' selected' : '') + '>' + (n === -1 ? 'All' : n) + ' cards</option>'; }).join('');
+  var counts = [10, 20, 30, 50, -1].map(function (n) { return '<option value="' + n + '"' + (_selectedCount === n ? ' selected' : '') + '>' + (n === -1 ? 'All' : n) + ' questions</option>'; }).join('');
   return `<div class="hm-wrap intro-card">
     <div class="hm-top"><div class="hm-tl"><button class="hm-back" onclick="hmLand()" aria-label="Back to the start screen">&#8249; French Verbs</button><h2 class="hm-title hm-t2">${title}</h2></div>
-      <div class="hm-tr"><div class="hm-seg hm-tabs"><button class="on">Drill</button><button onclick="showTestPanel()">Test</button><button onclick="showVerbList()">View &amp; Print</button></div><button class="hm-spd" onclick="openConjChallenge()">Speed Challenge &#9654;</button></div></div>
+      </div>
     ${strip}
     <div class="hm-grid"><div class="hm-panel hm-left">${left}</div><div class="hm-col">${right}</div></div>
     ${more2}
-    <div class="hm-bar"><div class="hm-sum"><small>You will do</small><b>${hmSummary()} &middot; ${cardCount} card${cardCount !== 1 ? 's' : ''}</b></div>
+    <div class="hm-bar"><div class="hm-sum"><small>You will do</small><b>${hmSummary()} &middot; ${cardCount} question${cardCount !== 1 ? 's' : ''}</b></div>
       <select class="hm-ctl" aria-label="Cards per session" onchange="setSelectedCount(parseInt(this.value,10))">${counts}</select>
       <span class="hm-timer"><button class="aph-step" onclick="adjustTimer(-2)" aria-label="Less time">&#8722;</button><span class="aph-step-val" id="intro-timer-display">${timerSecs}s</span><button class="aph-step" onclick="adjustTimer(2)" aria-label="More time">+</button></span>
       <button class="hm-ctl" onclick="hmToggle('more')">More options ${hmMore ? '&#9652;' : '&#9662;'}</button>
-      <button class="hm-start" onclick="startQuickDrill(_selectedCount)">&#9654; Start Drill</button></div>
+      <button class="hm-start" onclick="startQuickDrill(_selectedCount)">&#9654; Start Drill</button>
+      <div class="hm-acts"><span class="hm-actl">Same choices:</span><button onclick="hmTest()">&#128221; Generate Test</button><button onclick="hmPaperSpot()">&#128424; Paper Spot Test</button><button onclick="hmSubmittedSpot()">&#9997; Submitted Spot Test</button><button onclick="openConjChallenge()">&#9889; Eton Speed Challenge</button><button onclick="showVerbList()">&#128214; View &amp; Print</button></div></div>
     <div class="hm-keys">${vbKeysLegend()}</div>
   </div>`;
 }
@@ -7469,13 +7479,16 @@ var _hmSQD0 = startQuickDrill; startQuickDrill = function (c) { apHome = 'setup'
 .hm-link{align-self:flex-start;border:none;background:none;color:var(--navy);text-decoration:underline;font:500 .95rem var(--aph-body);min-height:44px;padding:0 4px;cursor:pointer}
 .hm-dash{border-style:dashed}
 .hm-more{margin-top:16px;background:#fff;border:1px solid var(--border);border-radius:20px;padding:18px 22px;display:flex;flex-direction:column;gap:14px}
-.hm-bar{position:sticky;bottom:10px;z-index:5;box-shadow:0 6px 24px rgba(26,39,68,.35);margin-top:18px;background:var(--navy);border-radius:20px;padding:14px 20px;display:flex;align-items:center;gap:14px;flex-wrap:wrap;color:#fff}
+.hm-bar{position:sticky;bottom:10px;z-index:5;box-shadow:0 6px 24px rgba(26,39,68,.35);margin-top:18px;background:var(--navy);border-radius:20px;padding:12px 18px;display:flex;align-items:center;gap:14px;flex-wrap:wrap;color:#fff}
 .hm-sum{flex:1 1 260px;min-width:0}.hm-sum small{display:block;font-size:.85rem;color:#d6dcf0}.hm-sum b{display:block;font-size:1.1rem;line-height:1.3}
 .hm-ctl{min-height:46px;padding:0 16px;border-radius:12px;border:2px solid #6b7691;background:transparent;color:#fff;font:500 1rem var(--aph-body);cursor:pointer}
 .hm-ctl option{color:#1a2744}
 .hm-timer{display:inline-flex;align-items:center;gap:6px}.hm-timer .aph-step-val{color:#fff}
 .hm-start{min-height:58px;padding:0 32px;border-radius:14px;border:none;background:var(--gold2);color:var(--navy);font:700 1.2rem var(--aph-body);cursor:pointer}
 .hm-keys{margin-top:12px}
+.hm-acts{flex:1 1 100%;display:flex;flex-wrap:wrap;align-items:center;gap:6px;border-top:1px solid #3a4a78;padding-top:10px}
+.hm-actl{font-size:.9rem;color:#d6dcf0;margin-right:4px}
+.hm-acts button{min-height:44px;padding:0 11px;border-radius:12px;border:2px solid #6b7691;background:transparent;color:#fff;font:600 .9rem var(--aph-body);cursor:pointer;white-space:nowrap}
 @media (max-width:900px){.hm-land,.hm-grid{grid-template-columns:minmax(0,1fr)}.hm-door{min-height:0}}
 </style>
 <script>
@@ -7629,6 +7642,7 @@ lzConjCard = function (item) {
 // ── Generate Test and Spot Tests: swap question and answer for reversed items ──
 var VD_TN = { PRESENT: 'Present', FUTURE: 'Future', PASSE_COMPOSE: 'Perfect (PC)', IMPERFECT: 'Imperfect', CONDITIONNEL: 'Conditional', SUBJONCTIF: 'Subjunctive', INFINITIVE: 'Infinitive' };
 function vdSwap(item, it) {
+  if (item && item.xqs) return it;
   if (!vdRev(item)) return it;
   if (item.isInfinitive || (!item.verb && item.inf && typeof item.inf === 'object')) {
     var c = item.inf && typeof item.inf === 'object' ? item.inf : item, u = c.usage_en && !c.usage_en.startsWith('that ') ? ' ' + c.usage_en : '';
