@@ -508,6 +508,10 @@ body{min-height:100vh}
 <style id="am-vp-style">
 /* 📖 View & Print (Approved Material): settings panel + on-screen view, in one overlay. DM Sans; Playfair only for the main headings. */
 .am-tools4{grid-template-columns:repeat(2,minmax(0,1fr))}
+.am-tools2{grid-template-columns:repeat(2,minmax(0,1fr))}
+/* nothing chosen yet: the topics box glows red, as in the other AP apps, so a boy sees where to start */
+.am-pick-none{border:3px solid #e8112d!important;box-shadow:0 0 0 2px rgba(232,17,45,.30),0 0 12px 3px rgba(232,17,45,.65),0 0 26px 6px rgba(232,17,45,.30)!important}
+.am-pick-none em{font-style:normal;font-weight:700;color:#b00020}
 @media (max-width:420px){.am-tools4{grid-template-columns:1fr}}
 #amvp{position:fixed;inset:0;z-index:11000;background:rgba(10,18,40,.72);overflow-y:auto;overflow-x:hidden;-webkit-overflow-scrolling:touch;padding:20px 16px;box-sizing:border-box;font-family:var(--aph-body);scroll-behavior:smooth}
 #amvp .vp-box{max-width:1000px;margin:0 auto;padding:20px 22px;color:var(--text)}
@@ -4737,8 +4741,8 @@ function populateSectionSelect() {
     select.appendChild(option);
   });
   
-  if (!currentSection) currentSection = sections[0];
-  populateSubsectionSelect();
+  populateSubsectionSelect();   // no default section: a boy chooses his topics
+
 }
 
 function populateSubsectionSelect() {
@@ -4826,20 +4830,22 @@ function renderIntro() {
   const totalPhrases = subFiltered.reduce((a,s)=>a+Math.max((s.phrases_en||[]).length,(s.phrases_fr||[]).length),0);
   const subsOpts = `<option value="all"${currentSubsection==='all'?' selected':''}>All topics (${totalPhrases} phrases)</option>` +
     subsNames.map(s => `<option value="${amEsc(s)}"${s===currentSubsection?' selected':''}>${amEsc(amSubLbl(s))}</option>`).join('');
-  const sectionOpts = sectionOptStr;
+  const sectionOpts = (currentSection ? '' : '<option value="" selected></option>') + sectionOptStr;
 
   const L = amSetLangs();
   const fromOpts = L.map(l => `<option value="${l}"${l===fromLang?' selected':''}>${flags[l]} ${names[l]}</option>`).join('');
   const toOpts   = L.map(l => `<option value="${l}"${l===toLang?' selected':''}>${flags[l]} ${names[l]}</option>`).join('');
 
   const startN = amStartCount(pool.length);
+  const blank = !currentSection, dis = pool.length ? '' : ' disabled';   // nothing chosen yet: the Start buttons wait
+  const boxLabel = blank ? '' : getSectionLabel(currentSection) + (currentSubsection !== 'all' && currentSection !== '__MULTI__' ? ' · ' + amSubLbl(currentSubsection) : '');
   const isAM = amSet === 'am';
   const container = document.getElementById('drillContainer');
   container.innerHTML = `
     <div class="aph-wrap am-home">
     <div style="padding:0 0 8px"><button class="aph-btn aph-btn-sm" onclick="amToHub()">&larr; Back</button></div>
     <div class="aph-card intro-card${isAM ? ' am-set-am' : ' am-set-ps'}">
-      <h2 class="aph-h">Ready to practise?</h2>
+      <h2 class="aph-h">${blank ? 'Choose your topics to begin' : 'Ready to practise?'}</h2>
       ${amLinkNoteHtml()}
 
       <div class="am-cols"><div class="am-col">
@@ -4853,17 +4859,12 @@ function renderIntro() {
       <div class="aph-row" id="mix-row">${mixChips('setMix', mixMode)}<span class="aph-note" id="mix-note">${mixNoteText()}</span></div>
       ${amSoonNote()}
 
-      <div class="aph-label">Section <span class="aph-note" style="font-weight:600;text-transform:none;letter-spacing:0">(tick one or more)</span></div>
+      <div class="aph-label">Topics <span class="aph-note" style="font-weight:600;text-transform:none;letter-spacing:0">(tap to choose one or more)</span></div>
       <div class="aph-row">
-        ${amPickHtml('sec')}
+        <button type="button" id="amTopicBox" class="aph-select am-pick-btn am-wide${blank ? ' am-pick-none' : ''}" onclick="openAMOverview()">${blank ? '<em>Nothing chosen yet</em>' : amEsc(boxLabel)} <span class="am-pick-car">&#9662;</span></button>
         <select class="aph-select am-wide" id="intro-section" onchange="onSectionChange()" style="display:none" aria-hidden="true" tabindex="-1">${sectionOpts}</select>
-      </div>
-
-      <div class="aph-label">Topic <span class="aph-note" style="font-weight:600;text-transform:none;letter-spacing:0">(tick one or more)</span></div>
-      <div class="aph-row">
-        ${amPickHtml('top')}
         <select class="aph-select am-wide" id="intro-subsection" onchange="onSubChange()" style="display:none" aria-hidden="true" tabindex="-1">${subsOpts}</select>
-        <span class="aph-note intro-phrase-count">${pool.length} phrases</span>
+        <span class="aph-note intro-phrase-count">${blank ? '' : pool.length + ' phrases'}</span>
       </div>
 
       </div><div class="am-col">
@@ -4883,15 +4884,14 @@ function renderIntro() {
 
       <div class="aph-stack" style="margin-top:22px">
         ${isAM ? `<div class="am-study-row">
-          <button class="aph-btn aph-btn-block am-read-btn" onclick="startReadListen()">&#128214; Read &amp; listen</button>
-          <button class="aph-btn aph-btn-primary aph-btn-block" onclick="introStartDrill()">&#9654; Start Drill · <span id="startCount">${startN} card${startN===1?'':'s'}</span></button>
-        </div>` : `<button class="aph-btn aph-btn-primary aph-btn-block" onclick="introStartDrill()">&#9654; Start Drill · <span id="startCount">${startN} card${startN===1?'':'s'}</span></button>`}
-        <button class="aph-btn aph-btn-block" onclick="introStartLeisure()">&#9749; Leisure Mode</button>
-        <div class="aph-tools${isAM ? ' am-tools4' : ''}">
+          <button class="aph-btn aph-btn-block am-read-btn"${dis} onclick="startReadListen()">&#128214; Read &amp; listen</button>
+          <button class="aph-btn aph-btn-primary aph-btn-block"${dis} onclick="introStartDrill()">&#9654; Start Drill · <span id="startCount">${pool.length ? startN + ' card' + (startN===1?'':'s') : 'choose topics first'}</span></button>
+        </div>` : `<button class="aph-btn aph-btn-primary aph-btn-block"${dis} onclick="introStartDrill()">&#9654; Start Drill · <span id="startCount">${pool.length ? startN + ' card' + (startN===1?'':'s') : 'choose topics first'}</span></button>`}
+        <button class="aph-btn aph-btn-block"${dis} onclick="introStartLeisure()">&#9749; Leisure Mode</button>
+        <div class="aph-tools ${isAM ? 'am-tools3' : 'am-tools2'}">
           <button id="autotimeBtn" onclick="toggleAutotime()" class="aph-btn${isAutotime?' on':''}">⏱ Autotime: ${isAutotime?'On':'Off'}</button>
-          <button onclick="showAMTestPanel()" class="aph-btn">&#128221; Generate Test</button>
-          <button onclick="openAMOverview()" class="aph-btn">&#128218; Choose topics${amMultiTopics.length ? ' ('+amMultiTopics.length+' ticked)' : ''}</button>
-          ${isAM ? '<button id="amVpBtn" onclick="amvpOpen()" class="aph-btn">&#128214; View &amp; Print</button>' : ''}
+          <button onclick="showAMTestPanel()"${dis} class="aph-btn">&#128221; Generate Test</button>
+          ${isAM ? '<button id="amVpBtn"' + dis + ' onclick="amvpOpen()" class="aph-btn">&#128214; View &amp; Print</button>' : ''}
         </div>
         ${editModeUnlocked ? '<div class="aph-tools" style="grid-template-columns:repeat(2,minmax(0,1fr))"><button onclick="showAMPracticePdf()" class="aph-btn">&#128424; ' + amSetName() + '</button><button onclick="openAMStudyPDF()" class="aph-btn">&#128424; Study Sheet</button></div>' : ''}
       </div>
@@ -5028,6 +5028,7 @@ function introStartDrill() {
   if (sub) currentSubsection = sub.value;
   if (f) fromLang = f.value;
   if (t) toLang = t.value;
+  if (!currentSection) { alert('Choose at least one topic first.'); return; }
   startQuickDrill(_selectedCount);
 }
 function introStartLeisure() {
@@ -5039,6 +5040,7 @@ function introStartLeisure() {
   if (sub) currentSubsection = sub.value;
   if (f) fromLang = f.value;
   if (t) toLang = t.value;
+  if (!currentSection) { alert('Choose at least one topic first.'); return; }
   startLeisureMode();
 }
 
@@ -6421,6 +6423,7 @@ function amEnhanceOverview(){
   const bar = document.createElement('div');
   bar.id = 'amOverviewBar';
   bar.innerHTML = '<span id="amOverviewCount"></span>'
+    + '<button class="aph-btn aph-btn-sm" onclick="amOverviewAll()">Tick all</button>'
     + '<button class="aph-btn aph-btn-sm" onclick="amOverviewClear()">Clear ticks</button>'
     + '<button id="amOverviewUse" class="aph-btn aph-btn-primary" onclick="amOverviewUse()" style="min-height:44px;font-size:.9375rem;padding:10px 16px;">Use ticked topics</button>';
   card.appendChild(bar);
@@ -6452,8 +6455,7 @@ function amRefreshOverview(){
 
 function openAMOverview(){
   amEnhanceOverview();
-  amOverviewTicks = amMultiTopics.slice();
-  if (!amOverviewTicks.length && currentSubsection && currentSubsection !== 'all' && currentSection !== '__MULTI__') amOverviewTicks = [currentSubsection];
+  amOverviewTicks = currentSection ? [...new Set(amFilterTopics().map(d => d.subsection_en))] : [];   // what the set-up screen shows now
   amRefreshOverview();
   amOvModal().style.display = 'block';
 }
@@ -6473,13 +6475,16 @@ function amToggleSection(section){
 }
 
 function amOverviewClear(){ amOverviewTicks = []; amRefreshOverview(); }
+function amOverviewAll(){ amOverviewTicks = [...new Set(DATA().map(d => d.subsection_en))]; amRefreshOverview(); }
 
 function amOverviewUse(){
   if (!amOverviewTicks.length) return;
   // keep Overview order so tests list topics sensibly
   amMultiTopics = DATA().map(d => d.subsection_en).filter(t => amOverviewTicks.indexOf(t) !== -1);
   amOvModal().style.display = 'none';
-  if (amMultiTopics.length === 1) {
+  if (amMultiTopics.length >= new Set(DATA().map(d => d.subsection_en)).size) {
+    currentSection = '__ALL__'; currentSubsection = 'all'; amMultiTopics = [];
+  } else if (amMultiTopics.length === 1) {
     const hit = DATA().find(d => d.subsection_en === amMultiTopics[0]);
     currentSection = hit.section_en; currentSubsection = hit.subsection_en;
   } else {
@@ -6603,6 +6608,7 @@ function amEsc(s) { return String(s == null ? '' : s).replace(/&/g, '&amp;').rep
 // ── Which topics the current selection covers (shared by getPool, Read & listen…) ──
 function amFilterTopics() {
   const D = DATA();
+  if (!currentSection) return [];
   if (currentSection === '__MULTI__') return D.filter(item => amMultiTopics.indexOf(item.subsection_en) !== -1).filter(subMatches);
   if (currentSection === '__ALL__') return D.filter(subMatches);
   if (currentSection.startsWith('__') && currentSection.endsWith('__')) {

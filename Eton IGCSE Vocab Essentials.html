@@ -417,7 +417,39 @@ main{display:block}
 .error-to{font-size:.9rem;color:var(--wrong);margin-top:2px}
 .error-sec{font-size:.75rem;color:var(--text3);margin-top:3px;font-style:italic}
 </style>
-<style id="tsStyle">.ts-cb{width:16px;height:16px;margin:0 10px 0 0;flex-shrink:0;cursor:pointer;accent-color:#c9a84c;vertical-align:middle}#tsBar{position:sticky;bottom:0;background:#1a2744;color:#fff;margin:16px -24px -24px;padding:12px 24px;border-radius:0 0 12px 12px;display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;z-index:5;box-shadow:0 -4px 12px rgba(0,0,0,0.15)}#tsBar button{border-radius:8px;padding:8px 16px;font-weight:700;cursor:pointer;font-size:0.9375rem;font-family:inherit}#tsClear{background:transparent;color:#fff;border:1.5px solid rgba(255,255,255,0.4)}#tsGo{background:#c9a84c;color:#1a2744;border:none}#tsGo:disabled{opacity:0.4;cursor:default}</style></head>
+<style id="tsStyle">.ts-cb{width:16px;height:16px;margin:0 10px 0 0;flex-shrink:0;cursor:pointer;accent-color:#c9a84c;vertical-align:middle}#tsBar{position:sticky;bottom:0;background:#1a2744;color:#fff;margin:16px -24px -24px;padding:12px 24px;border-radius:0 0 12px 12px;display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;z-index:5;box-shadow:0 -4px 12px rgba(0,0,0,0.15)}#tsBar button{border-radius:8px;padding:8px 16px;font-weight:700;cursor:pointer;font-size:0.9375rem;font-family:inherit}#tsClear{background:transparent;color:#fff;border:1.5px solid rgba(255,255,255,0.4)}#tsGo{background:#c9a84c;color:#1a2744;border:none}#tsGo:disabled{opacity:0.4;cursor:default}</style><script id="ap-popshim">
+/* AP PRINT FALLBACK: if the browser (iPad Safari, a managed browser such as Prisma) blocks the new window a Print / PDF button needs, show the sheet inside this page instead, with a Print / Save as PDF button. When a window does open, nothing changes. */
+(function () {
+  if (window.__apPopShim) return; window.__apPopShim = 1;
+  var real = window.open;
+  function overlay(html) {
+    var old = document.getElementById('ap-print-ov'); if (old) old.remove();
+    var o = document.createElement('div'); o.id = 'ap-print-ov';
+    o.style.cssText = 'position:fixed;inset:0;z-index:30000;background:#525a6e;display:flex;flex-direction:column';
+    o.innerHTML = '<div style="display:flex;flex-wrap:wrap;gap:8px;align-items:center;background:#1a2744;border-bottom:3px solid #c9a84c;padding:8px 12px;color:#dfe5f3;font:500 13px/1.3 system-ui,sans-serif">'
+      + '<button type="button" id="ap-print-ov-go" style="font:700 13px system-ui,sans-serif;padding:8px 14px;border-radius:8px;border:0;background:#c9a84c;color:#1a2744">&#128424; Print / Save as PDF</button>'
+      + '<span style="flex:1;min-width:160px">New windows are blocked on this browser, so the sheet is shown here.</span>'
+      + '<button type="button" id="ap-print-ov-x" style="font:700 13px system-ui,sans-serif;padding:8px 14px;border-radius:8px;border:1px solid #8899bb;background:transparent;color:#dfe5f3">&#10005; Close</button></div>';
+    var f = document.createElement('iframe'); f.title = 'Print preview'; f.srcdoc = html;
+    f.style.cssText = 'flex:1;width:100%;border:0;background:#fff'; o.appendChild(f); document.body.appendChild(o);
+    o.querySelector('#ap-print-ov-x').onclick = function () { o.remove(); };
+    o.querySelector('#ap-print-ov-go').onclick = function () { try { f.contentWindow.focus(); f.contentWindow.print(); } catch (e) { window.print(); } };
+  }
+  window.apPrintOverlay = overlay;
+  window.open = function (url) {
+    var w = null; try { w = real.apply(window, arguments); } catch (e) { w = null; }
+    if (w) return w;
+    var u = url == null ? '' : String(url);
+    if (!(u === '' || u === 'about:blank' || u.indexOf('blob:') === 0)) return w;   // a real web address that was blocked stays blocked, as before
+    var buf = [], done = false;
+    function show() { if (done) return; done = true; overlay(buf.join('')); }
+    if (u.indexOf('blob:') === 0) { try { fetch(u).then(function (r) { return r.text(); }).then(function (t) { buf = [t]; show(); }); } catch (e) { } }
+    var d = { open: function () { buf = []; done = false; return d; }, write: function () { for (var i = 0; i < arguments.length; i++) buf.push(arguments[i]); }, writeln: function () { for (var i = 0; i < arguments.length; i++) buf.push(arguments[i]); buf.push('\n'); }, close: function () { show(); } };
+    return { document: d, closed: false, focus: function () { }, blur: function () { }, close: function () { }, print: function () { }, addEventListener: function () { }, location: {} };
+  };
+})();
+</script>
+</head>
 <body>
 
 <header class="aph-header">
