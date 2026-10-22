@@ -674,9 +674,9 @@ body{min-height:100vh}
   </div>
   <div class="aph-label">Eton Spot Test &middot; items per box</div>
   <div class="aph-row">
-    <button class="aph-chip am-topt on" onclick="setAMSpotPer(1)" id="amsp-1">1 (5 phrases)</button>
+    <button class="aph-chip am-topt" onclick="setAMSpotPer(1)" id="amsp-1">1 (5 phrases)</button>
     <button class="aph-chip am-topt" onclick="setAMSpotPer(2)" id="amsp-2">2 (10 phrases)</button>
-    <button class="aph-chip am-topt" onclick="setAMSpotPer(3)" id="amsp-3">3 (15 phrases)</button>
+    <button class="aph-chip am-topt on" onclick="setAMSpotPer(3)" id="amsp-3">3 (15 phrases)</button>
   </div>
   <div class="aph-row" style="margin-top:20px;">
     <button class="aph-btn aph-btn-primary" onclick="generateAMTest()">&#128221; Generate Test</button>
@@ -5868,7 +5868,7 @@ function printAMTestPdf(which) {
   function openPdf(html) {
     const blob = new Blob([html], {type:'text/html'});
     const w = window.open(URL.createObjectURL(blob), '_blank');
-    if (!w) { alert('Please allow pop-ups for this page, then try again.'); return; }
+    if (!w) { apPrintOverlay(html); return; }
   }
 
   if (which === 'sheet')   openPdf(makeDoc(sheetBody));
@@ -5920,7 +5920,7 @@ function openAMStudyPDF(){
   ].join('');
   const blob = new Blob([html], {type:'text/html'});
   const w = window.open(URL.createObjectURL(blob), '_blank');
-  if(!w) alert('Please allow pop-ups.');
+  if(!w) apPrintOverlay(html);
 }
 
 
@@ -5985,12 +5985,12 @@ function openAMSpotTestPDF(type) {
     '</body></html>'].join('');
   var blob=new Blob([html],{type:'text/html'});
   var w=window.open(URL.createObjectURL(blob),'_blank');
-  if(!w) alert('Please allow pop-ups.');
+  if(!w) apPrintOverlay(html);
 }
 
 
 // ── AP Spot Test ───────────────────────────────────────────────
-var amSpotRows=[], amSpotLabel='', amSpotQFlag='', amSpotAFlag='', amSpotPer=1, amSpotSet='am';
+var amSpotRows=[], amSpotLabel='', amSpotQFlag='', amSpotAFlag='', amSpotPer=3, amSpotSet='am';
 function setAMSpotPer(n){
   amSpotPer = n;
   [1,2,3].forEach(function(k){ var b=document.getElementById('amsp-'+k); if(b) b.classList.toggle('on', k===n); });
@@ -6123,7 +6123,7 @@ function openAMSpotTestPDF(btn, isTeacherNum) {
     +'</body></html>';
   var blob=new Blob([html],{type:'text/html'});
   var w=window.open(URL.createObjectURL(blob),'_blank');
-  if(!w) alert('Please allow pop-ups.');
+  if(!w) apPrintOverlay(html);
 }
 
 // ── Vocab Editor ────────────────────────────────────────────
@@ -6355,7 +6355,7 @@ function generateAMPracticePdf() {
     + '</body></html>';
 
   const w = window.open('', '_blank');
-  if (!w) { alert('Please allow pop-ups for this page, then try again.'); return; }
+  if (!w) { apPrintOverlay(html); return; }
   w.document.write(html);
   w.document.close();
   w.focus();
@@ -7105,7 +7105,7 @@ function amvpPrintHtml(o) {
 }
 function amvpOpenPrint(html) {
   var w = window.open(URL.createObjectURL(new Blob([html], { type: 'text/html' })), '_blank');
-  if (!w) alert('Please allow pop-ups for this page, then try again.');
+  if (!w) apPrintOverlay(html);
 }
 function amvpPrint() {
   var idx = amvpChosen(); if (!idx.length) return;
@@ -7119,6 +7119,22 @@ window.addEventListener('keydown', function (e) {
 }, true);
 </script>
 
+<script>
+/* AP PRINT OVERLAY: when the browser (iPad Safari, a managed browser such as Prisma) blocks the pop-up that a Print / PDF button needs, show the same sheet inside this page instead, with a Print / Save as PDF button. */
+function apPrintOverlay(html) {
+  var old = document.getElementById('ap-print-ov'); if (old) old.remove();
+  var o = document.createElement('div'); o.id = 'ap-print-ov';
+  o.style.cssText = 'position:fixed;inset:0;z-index:30000;background:#525a6e;display:flex;flex-direction:column';
+  o.innerHTML = '<div style="display:flex;flex-wrap:wrap;gap:8px;align-items:center;background:#1a2744;border-bottom:3px solid #c9a84c;padding:8px 12px;color:#dfe5f3;font:500 13px/1.3 system-ui,sans-serif">'
+    + '<button type="button" id="ap-print-ov-go" style="font:700 13px system-ui,sans-serif;padding:8px 14px;border-radius:8px;border:0;background:#c9a84c;color:#1a2744">&#128424; Print / Save as PDF</button>'
+    + '<span style="flex:1;min-width:160px">New windows are blocked on this browser, so the sheet is shown here.</span>'
+    + '<button type="button" id="ap-print-ov-x" style="font:700 13px system-ui,sans-serif;padding:8px 14px;border-radius:8px;border:1px solid #8899bb;background:transparent;color:#dfe5f3">&#10005; Close</button></div>';
+  var f = document.createElement('iframe'); f.title = 'Print preview'; f.srcdoc = html;
+  f.style.cssText = 'flex:1;width:100%;border:0;background:#fff'; o.appendChild(f); document.body.appendChild(o);
+  o.querySelector('#ap-print-ov-x').onclick = function () { o.remove(); };
+  o.querySelector('#ap-print-ov-go').onclick = function () { try { f.contentWindow.focus(); f.contentWindow.print(); } catch (e) { window.print(); } };
+}
+</script>
 <!-- Overview of Topics Modal -->
 <div id="amTopicOverviewModal" class="am-modal" style="display: none;">
   <div class="aph-card">
