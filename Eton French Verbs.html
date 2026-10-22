@@ -7312,14 +7312,14 @@ function hmLanding() {
         <span class="hm-dname">Quizlet Verbs</span>
         <span class="hm-ddesc">The ${nQ} verbs from Quizlet, in every tense, with the four exercises from the Trials papers.</span>
         <span class="hm-pills"><span>To English</span><span>Change person</span><span>Infinitive given</span><span>No help</span></span>
-        <span class="hm-dfoot"><span>Drill &middot; Test &middot; Print &middot; Trials papers</span><span class="hm-open">Open &#9654;</span></span>
+        <span class="hm-dfoot"><span>Drill &middot; Test &middot; Print</span><span class="hm-open">Open &#9654;</span></span>
       </button>
       <button class="hm-door hm-door-a" onclick="hmOpen('all')">
         <span class="hm-kick">FOR EXTRA CHALLENGE</span>
         <span class="hm-dname">All Verbs</span>
         <span class="hm-ddesc">Everything beyond the Quizlet list, on its own or all together.</span>
         <span class="hm-dlist"><span><b>Specialist Verbs</b>${nSpec ? ' &middot; ' + nSpec + ' less common verbs' : ''}</span><span><b>Specialist Verb Structures</b> &middot; set phrases such as profiter de X</span><span><b>Both</b> &middot; Quizlet and Specialist together</span></span>
-        <span class="hm-dfoot"><span>Full &middot; Single form &middot; Infinitives &middot; Sentences</span><span class="hm-open hm-open-a">Open &#9654;</span></span>
+        <span class="hm-dfoot"><span>Full &middot; Single form &middot; Infinitives &middot; Sentences &middot; Trials papers</span><span class="hm-open hm-open-a">Open &#9654;</span></span>
       </button>
     </div>
     <button class="hm-speed" onclick="openConjChallenge()"><span><b>Eton Speed Challenge</b><small>Race against the clock, solo or in teams</small></span><span class="hm-play">&#9654; Play</span></button>
@@ -7338,7 +7338,7 @@ function hmSummary() {
   return parts.join(' · ');
 }
 function hmSetup(pool, cardCount) {
-  var isQ = verbMode === 'quizlet', exOn = isQ && mode === 'exer', door = hmDoorQ();
+  var isQ = verbMode === 'quizlet', exOn = isQ && mode === 'exer', door = hmDoorQ();  // door: importance applies (Quizlet and the Trials sets)
   var tenses = [{ k: 'PRESENT', l: 'Present' }, { k: 'PASSE_COMPOSE', l: 'Perfect' }, { k: 'IMPERFECT', l: 'Imperfect' }, { k: 'FUTURE', l: 'Future' }, { k: 'INFINITIVE', l: verbMode === 'structures' ? 'Infinitives / Set structures' : 'Infinitive' }, { k: 'CONDITIONNEL', l: 'Conditional' }, { k: 'SUBJONCTIF', l: 'Subjunctive' }, { k: 'PLUPERFECT', l: 'Pluperfect' }, { k: 'FUTUR_ANT', l: 'Future Perfect' }, { k: 'COND_PASSE', l: 'Conditional Perfect' }];
   tenses = ftTenses(tenses);
   var main = tenses.slice(0, 5), more = tenses.slice(5);
@@ -7346,12 +7346,12 @@ function hmSetup(pool, cardCount) {
   var tenseHtml = vbChip(tenses.every(function (t) { return selectedTenses.has(t.k); }), 'selectAllTenses()', 'All') + main.map(function (t) { return vbChip(selectedTenses.has(t.k), "introToggleTense('" + t.k + "')", t.l); }).join('')
     + (more.length ? (moreOpen ? more.map(function (t) { return vbChip(selectedTenses.has(t.k), "introToggleTense('" + t.k + "')", t.l); }).join('') : '<button class="aph-chip hm-dash" onclick="hmToggle(\'tenses\')">More &#9662;</button>') : '');
   var left;
-  var classic = HM_MODES.map(function (m) { return vbChip(mode === m[0], "hmMode('" + m[0] + "')", m[1]); }).join('');
+  var classic = HM_MODES.filter(function (m) { return m[0] !== 'single'; }).map(function (m) { return vbChip(mode === m[0], "hmMode('" + m[0] + "')", m[1]); }).join('');
   if (isQ) {
-    left = '<div class="hm-h">WHAT TO PRACTISE <span>tick any mix</span></div>' + XQ_DEF.map(function (x) {
+    left = '<div class="hm-h">WHAT TO PRACTISE <span>one verb form at a time: tick any mix</span></div>' + XQ_DEF.map(function (x) {
       var on = exOn && xqOn.has(x[0]);
       return '<button class="hm-ex' + (on ? ' on' : '') + '" onclick="hmEx(\'' + x[0] + '\')"><span class="hm-tick">' + (on ? '&#10003;' : '') + '</span><span class="hm-exn"><b>' + x[1] + '</b><small>' + HM_EXSUB[x[0]] + '</small></span><span class="hm-exe">' + HM_EX[x[0]] + '</span></button>';
-    }).join('') + '<div class="hm-hr"></div><div class="hm-classic"><span>Classic modes:</span>' + classic + '</div>';
+    }).join('') + '<div class="hm-hr"></div><div class="hm-classic"><span>Other ways:</span>' + classic + '</div>';
   } else {
     left = '<div class="hm-h">HOW TO PRACTISE <span>choose one</span></div>' + HM_MODES.map(function (m) {
       var on = mode === m[0];
@@ -7376,8 +7376,8 @@ function hmSetup(pool, cardCount) {
       + '<div class="hm-opt"><div class="hm-row"><button class="aph-btn vb-hint' + (showInfHint ? ' on' : '') + '" onclick="showInfHint=!showInfHint;renderIntro()">Hint: ' + (showInfHint ? 'On' : 'Off') + '</button><button class="aph-btn' + (isAutotime ? ' on' : '') + '" onclick="toggleAutotime();renderIntro()">Autotime: ' + (isAutotime ? 'On' : 'Off') + '</button>'
       + (mode === 'exer' ? '' : '<button class="aph-btn" onclick="startLeisureMode()">&#9749; Leisure Mode</button>') + (editModeUnlocked ? '<button class="aph-btn" onclick="openItalianContentPDF()">&#128424; Print Content</button>' : '') + '</div></div></div>';
   }
-  var strip = '<div class="hm-strip"><span class="hm-h">VERBS</span><div class="hm-seg">'
-    + [['quizlet', 'Quizlet'], ['specialist', 'Specialist Verbs'], ['both', 'Both'], ['structures', 'Specialist Verb Structures']].map(function (s) { return '<button class="' + (verbMode === s[0] ? 'on' : '') + '" onclick="setVerbMode(\'' + s[0] + '\')">' + s[1] + '</button>'; }).join('')
+  var strip = isQ ? '' : '<div class="hm-strip"><span class="hm-h">VERB SET</span><div class="hm-seg">'
+    + [['specialist', 'Specialist Verbs'], ['both', 'Both'], ['structures', 'Specialist Verb Structures']].map(function (s) { return '<button class="' + (verbMode === s[0] ? 'on' : '') + '" onclick="setVerbMode(\'' + s[0] + '\')">' + s[1] + '</button>'; }).join('')
     + '<select class="hm-sel' + (hmIsTrial(verbMode) ? ' on' : '') + '" aria-label="Trials" onchange="hmTrial(this.value)"><option value="">Trials</option>' + Object.keys(TR_NAME).map(function (k) { return '<option value="' + k + '"' + (verbMode === k ? ' selected' : '') + '>' + TR_NAME[k] + '</option>'; }).join('') + '</select></div></div>';
   var title = verbMode === 'quizlet' ? 'Quizlet Verbs' : hmSetName(verbMode);
   var counts = [10, 20, 30, 50, -1].map(function (n) { return '<option value="' + n + '"' + (_selectedCount === n ? ' selected' : '') + '>' + (n === -1 ? 'All' : n) + ' cards</option>'; }).join('');
@@ -7469,7 +7469,7 @@ var _hmSQD0 = startQuickDrill; startQuickDrill = function (c) { apHome = 'setup'
 .hm-link{align-self:flex-start;border:none;background:none;color:var(--navy);text-decoration:underline;font:500 .95rem var(--aph-body);min-height:44px;padding:0 4px;cursor:pointer}
 .hm-dash{border-style:dashed}
 .hm-more{margin-top:16px;background:#fff;border:1px solid var(--border);border-radius:20px;padding:18px 22px;display:flex;flex-direction:column;gap:14px}
-.hm-bar{margin-top:18px;background:var(--navy);border-radius:20px;padding:14px 20px;display:flex;align-items:center;gap:14px;flex-wrap:wrap;color:#fff}
+.hm-bar{position:sticky;bottom:10px;z-index:5;box-shadow:0 6px 24px rgba(26,39,68,.35);margin-top:18px;background:var(--navy);border-radius:20px;padding:14px 20px;display:flex;align-items:center;gap:14px;flex-wrap:wrap;color:#fff}
 .hm-sum{flex:1 1 260px;min-width:0}.hm-sum small{display:block;font-size:.85rem;color:#d6dcf0}.hm-sum b{display:block;font-size:1.1rem;line-height:1.3}
 .hm-ctl{min-height:46px;padding:0 16px;border-radius:12px;border:2px solid #6b7691;background:transparent;color:#fff;font:500 1rem var(--aph-body);cursor:pointer}
 .hm-ctl option{color:#1a2744}
