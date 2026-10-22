@@ -14435,6 +14435,7 @@ function hmAfter(){
 /* ---- opening splash ---- */
 const SPL={ctx:null,master:null,timers:[],el:null,live:false};
 function hmCtx(){
+  try{if(navigator.audioSession)navigator.audioSession.type='playback'}catch(e){}
   try{const C=window.AudioContext||window.webkitAudioContext;if(!C)return null;
     if(!SPL.ctx){let pc=null;try{pc=window.parent!==window&&window.parent.__ktrAC}catch(e){}SPL.ctx=pc||new C();SPL.master=SPL.ctx.createGain();SPL.master.gain.value=.58;const cp=SPL.ctx.createDynamicsCompressor();cp.threshold.value=-14;cp.ratio.value=6;SPL.master.connect(cp);cp.connect(SPL.ctx.destination)}
     if(SPL.ctx.state==='suspended')SPL.ctx.resume();return SPL.ctx}catch(e){return null}
@@ -14536,9 +14537,9 @@ function hmSplash(force){
   document.addEventListener('keydown',hmKey,true);
   const c=hmCtx();let blocked=false;
   if(c&&c.state==='running')hmSound(c,N);
-  else if(c){blocked=true;const h=document.createElement('div');h.className='hm-snd';h.textContent='🔊 Cliquez pour le son';el.appendChild(h)}
+  else if(c){blocked=true;const h=document.createElement('div');h.className='hm-snd';h.textContent='🔊 Cliquez pour le son';el.appendChild(h);try{c.resume().then(()=>{if(SPL.live&&blocked&&c.state==='running'){blocked=false;h.remove();hmSound(c,N)}},()=>{})}catch(e){}}
   el.addEventListener('click',ev=>{
-    if(blocked&&!ev.target.closest('.hm-skip')){blocked=false;const cc=hmCtx();
+    if(blocked&&!ev.target.closest('.hm-skip')){blocked=false;try{window.parent.apIosAudio()}catch(e){}const cc=hmCtx();
       Promise.resolve(cc&&cc.resume()).then(()=>{hmEnd(true);setTimeout(()=>hmSplash(true),60)},()=>hmEnd(true));return}
     hmEnd(true)});
   const fr=$('hm-fr'),mks=$('hm-mks'),st=$('hm-st');
@@ -14892,7 +14893,10 @@ syncTeach()
 <script>
 window.aphBackHook=function(){try{var f=document.getElementById('ktr-studio-frame');return !!(f&&f.contentWindow&&f.contentWindow.ktrBack&&f.contentWindow.ktrBack())}catch(e){return false}};
 function ktrBackBtn(){var ok=false;try{ok=document.getElementById("ktr-studio-frame").contentWindow.ktrBack()}catch(e){}if(!ok)goHome()}
+/* iPad/Safari audio unlock: tell the device this page plays sound (so the silent switch does not mute it) and keep an inaudible clip looping, started inside the tap */
+function apIosAudio(){try{if(navigator.audioSession)navigator.audioSession.type='playback'}catch(e){}try{if(!window.__apSil){var n=8000,b=new ArrayBuffer(44+n*2),d=new DataView(b),w=function(o,s){for(var i=0;i<s.length;i++)d.setUint8(o+i,s.charCodeAt(i))};w(0,'RIFF');d.setUint32(4,36+n*2,true);w(8,'WAVEfmt ');d.setUint32(16,16,true);d.setUint16(20,1,true);d.setUint16(22,1,true);d.setUint32(24,8000,true);d.setUint32(28,16000,true);d.setUint16(32,2,true);d.setUint16(34,16,true);w(36,'data');d.setUint32(40,n*2,true);var a=new Audio(URL.createObjectURL(new Blob([b],{type:'audio/wav'})));a.loop=true;a.setAttribute('playsinline','');window.__apSil=a}var p=window.__apSil.play();if(p&&p.catch)p.catch(function(){})}catch(e){}}
 function showKTRStudio(){
+  apIosAudio();
   try{var AC=window.AudioContext||window.webkitAudioContext;if(AC){window.__ktrAC=window.__ktrAC||new AC();if(window.__ktrAC.state==="suspended")window.__ktrAC.resume()}}catch(e){}
   var src=document.getElementById('ktr-studio-src').textContent.replace(/<\\\/script/g,'<'+'/script');
   var app=document.getElementById('app');
