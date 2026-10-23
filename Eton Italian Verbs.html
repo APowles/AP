@@ -4796,6 +4796,7 @@ function _conjEnCore(en,pi,tense){
       const beForm = coreBase.slice(3);
       return refl(pr+' '+aux+' been '+(beForm?beForm+note:note));
     }
+    if(/^to have (?!to\b)\S/.test(en))return refl(pr+' '+(pi===2?'has':'have')+' '+en.slice(8));   // the Perfect entry already holds the participle (lost, said, put, drunk...)
     if(/^to have (just |already )?[a-z]+(ed|ied|ard|ught|ound|eld|ept|ank|oke|ore|ew|elt|ent|ang|ung|one|own|en)\b/.test(en)&&coreBase!=='have'&&coreBase!=='have to')return refl(pr+' '+(pi===2?'has':'have')+' '+en.slice(8));
     return refl(pr+' '+(pi===2?'has':'have')+' '+engPP(coreBase)+note);
   }
@@ -7040,6 +7041,7 @@ if (window.__cj) window.__cj.speedTest = function (kind, g) {
 .hm-tiles{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;margin-top:10px}
 .hm-tile{display:flex;flex-direction:column;gap:2px;text-align:left;padding:12px 16px;min-height:64px;border-radius:12px;border:2px solid var(--navy);background:#fff;color:var(--navy);cursor:pointer;font-family:var(--aph-body)}
 .hm-tile b{font-size:1.05rem}.hm-tile small{color:var(--text2);font-size:.82rem}
+.hm-tile-g{border-color:var(--gold);background:#fffaf0}
 .hm-tile-p{background:var(--navy);color:#fff;border-color:var(--gold)}.hm-tile-p small{color:#d6dcf0}
 .hm-core .hm-tiers{display:grid;grid-template-columns:repeat(4,minmax(0,1fr))}
 .hm-core .hm-tier{flex-direction:column;justify-content:center;align-items:center;gap:2px;padding:8px 10px;text-align:center}
@@ -7218,6 +7220,8 @@ function hmCoreHtml(left, tenseHtml, more2, cardCount) {
         <button class="hm-tile" onclick="hmPaperSpot()"><b>&#128424; Paper Spot Test</b><small>a quick paper quiz</small></button>
         <button class="hm-tile" onclick="hmSubmittedSpot()"><b>&#9997; Submitted Spot Test</b><small>boys answer and submit</small></button>
         <button class="hm-tile" onclick="openConjChallenge()"><b>&#9889; Eton Speed Challenge</b><small>race the clock</small></button>
+        <button class="hm-tile hm-tile-g" onclick="hmPracticePaper('F')"><b>&#128221; Practice F Paper</b><small>40 questions in the Trials layout</small></button>
+        <button class="hm-tile hm-tile-g" onclick="hmPracticePaper('E')"><b>&#128221; Practice E Paper</b><small>20 verb questions in the Trials layout</small></button>
         <button class="hm-tile" onclick="showVerbList()"><b>&#128214; View &amp; Print</b><small>the verb tables</small></button>
       </div></div>
     <div class="hm-keys">${vbKeysLegend()}</div>
@@ -7269,6 +7273,80 @@ function hmSetup(pool, cardCount) {
     </div>
     <div class="hm-keys">${vbKeysLegend()}</div>
   </div>`;
+}
+HMC.past = 'PP'; HMC.en = function (v, pi) { return conjEn(v.en, pi, v.tense); }; HMC.fOnly = function (v) { return /^ho /.test(v.forms[0] || ''); };
+
+// ───── Practice Trials paper (F-style: 40 questions A–D; E-style: 20 verb questions A–C), new questions every time ─────
+HMC.verbs = function () { return typeof liveVerbs !== 'undefined' ? liveVerbs : VERBS; };
+function hmCap(x) { return x.charAt(0).toUpperCase() + x.slice(1); }
+function hmPlan(kind, sec) {
+  var P = HMC.past, f = kind === 'F', R = function (n, t) { var a = []; for (var i = 0; i < n; i++) a.push(t); return a; };
+  var plans = {
+    F: { A: R(7, 'PRESENT').concat(R(3, P)), B: R(7, 'PRESENT').concat(R(3, P)), C: R(6, 'PRESENT').concat(R(2, P), ['INF', 'INF']), D: R(4, 'PRESENT').concat(R(2, P), R(4, 'INF')) },
+    E: { A: ['PRESENT', 'PRESENT', 'PRESENT', P, P, 'IMPERFECT', 'FUTURE'], B: ['PRESENT', 'PRESENT', P, P, 'IMPERFECT', 'FUTURE', 'INF'], C: ['PRESENT', P, 'IMPERFECT', 'FUTURE', 'INF', 'INF'] }
+  };
+  return plans[kind][sec];
+}
+function hmBuildPaper(kind) {
+  var isF = kind === 'F', pool = {}, ok = function (f) { return f && f !== '—' && f !== '---'; };
+  HMC.verbs().forEach(function (v) {
+    if (v.group || !v.forms || vqOf(v) === null || vqOf(v) === undefined) return;
+    if (isF && v.tense === HMC.past && HMC.fOnly && !HMC.fOnly(v)) return;
+    var t = vqOf(v); ((pool[t] = pool[t] || {})[v.tense] = pool[t][v.tense] || []).push(v);
+  });
+  var used = {}, bag = [];
+  function deal(not) { for (var g = 0; g < 14; g++) { if (!bag.length) Array.prototype.push.apply(bag, shuffle([0, 1, 2, 3, 4, 5])); var p = bag.shift(); if (p !== not) return p; } return 0; }
+  function pick(tier, tense, avoid, multi) {
+    var all = ((pool[tier] || {})[tense] || []).filter(function (v) { return !multi || v.forms.filter(ok).length >= 2; });
+    var c = all.filter(function (v) { return !used[v.inf] && !(avoid && avoid[v.inf]); });
+    if (!c.length) c = all.filter(function (v) { return !used[v.inf]; }); if (!c.length) c = all;
+    return c.length ? c[Math.floor(Math.random() * c.length)] : null;
+  }
+  function item(sec, tier, avoid, multi) {
+    var out = []; shuffle(hmPlan(kind, sec).slice()).forEach(function (t) {
+      var tense = t === 'INF' ? 'PRESENT' : t, v = pick(tier, tense, avoid, multi); if (!v) { tense = 'PRESENT'; v = pick(tier, tense, avoid, multi); } if (!v) return;
+      used[v.inf] = 1; var pi = deal(); while (!ok(v.forms[pi])) pi = deal(); out.push({ v: v, inf: t === 'INF', tense: tense, pi: pi });
+    }); return out;
+  }
+  function place(S, spots) { var inf = S.filter(function (x) { return x.inf; }), fm = S.filter(function (x) { return !x.inf; }), o = []; for (var i = 0; i < S.length; i++) o.push(spots.indexOf(i) >= 0 && inf.length ? inf.shift() : (fm.shift() || inf.shift())); return o.filter(Boolean); }
+  var en = function (x) { return x.inf ? String(x.v.en).toLowerCase() : hmCap(HMC.en(x.v, x.pi).replace(/he \(she\)/g, 'he/she').replace(/they \(f\)/g, 'they')); };
+  var fr = function (x, pi) { pi = pi === undefined ? x.pi : pi; return x.inf ? x.v.inf : hmCap(x.v.forms[pi]); };
+  var p0 = function (x) { var p = HMC.verbs().filter(function (y) { return y.inf === x.v.inf && y.tense === 'PRESENT'; })[0]; return p ? hmCap(p.forms.filter(ok)[0] || x.v.inf).toLowerCase() : x.v.inf; };
+  var sub = function (pi) { var o = HMC.persons[pi + 1][1].replace(/\)/g, '').split(/ \(|\//).filter(Boolean); return o[Math.floor(Math.random() * o.length)]; };
+  function qChange(x) { var pj = deal(x.pi); while (!ok(x.v.forms[pj])) pj = deal(x.pi); return { q: hmCap(fr(x)) + ' - (' + sub(pj) + ')', a: fr(x, pj) }; }
+  function qGiven(x) { return { q: (x.inf ? String(x.v.en).toLowerCase() : en(x)) + '   [' + (x.inf ? p0(x) : x.v.inf) + ']', a: x.inf ? x.v.inf : fr(x), inf: x.inf }; }
+  function qNo(x) { return { q: en(x), a: fr(x), inf: x.inf }; }
+  var Q = { mode: kind, A: [], B: [], C: [], D: [] }, seen = {};
+  if (isF) {
+    var A = item('A', 'U'), B = item('B', 'E', null, true), C = item('C', 'I'); [A, B, C].forEach(function (S) { S.forEach(function (x) { seen[x.v.inf] = 1; }); });
+    var D = item('D', 'E', seen); C = place(C, [4, 5]); D = place(D, [2, 3, 5, 9]);
+    A.forEach(function (x) { Q.A.push({ q: hmCap(fr(x)), a: en(x) }); }); B.forEach(function (x) { Q.B.push(qChange(x)); }); C.forEach(function (x) { Q.C.push(qGiven(x)); }); D.forEach(function (x) { Q.D.push(qNo(x)); });
+  } else {
+    var EA = item('A', 'U', null, true), EB = item('B', 'I'); [EA, EB].forEach(function (S) { S.forEach(function (x) { seen[x.v.inf] = 1; }); });
+    var EC = item('C', 'E', seen); EB = place(EB, [5, 6]); EC = place(EC, [2, 3, 4, 5]);
+    EA.forEach(function (x) { Q.A.push(qChange(x)); }); EB.forEach(function (x) { Q.B.push(qGiven(x)); }); EC.forEach(function (x) { Q.C.push(qNo(x)); });
+  }
+  return Q;
+}
+function hmPracticePaper(kind) {
+  var Q = hmBuildPaper(kind), isF = kind === 'F', L = HMC.lang, k = 0, off = 0;
+  var infNote = function (S, base) { var n = []; S.forEach(function (x, i) { if (x.inf) n.push(base + i + 1); }); return 'The infinitive of the verb is given in [square brackets].' + (n.length ? '  For Q' + n.join(' and Q') + ' the answer is an infinitive, so a present-tense form is given instead.' : ''); };
+  var secs = isF ? [['A', 'Translate into English', 'Translate each ' + L + ' verb form into English.', Q.A, 'Useful'], ['B', 'Change the person', 'Rewrite each verb with the new subject shown in brackets.', Q.B, 'Essential'], ['C', 'Translate into ' + L, infNote(Q.C, Q.A.length + Q.B.length), Q.C, 'Important'], ['D', 'Translate into ' + L, '', Q.D, 'Essential']]
+    : [['Verbs A', 'Change the person', 'Rewrite each verb with the new subject shown in brackets.', Q.A, 'Useful'], ['Verbs B', 'Translate into ' + L, infNote(Q.B, Q.A.length), Q.B, 'Important'], ['Verbs C', 'Translate into ' + L, '', Q.C, 'Essential']];
+  var total = 0; secs.forEach(function (s) { total += s[3].length; });
+  var past = HMC.pastLabel + (isF && HMC.fOnly ? ' (avere only)' : '');
+  var sub = isF ? '100 CORE VERBS: Infinitives, Present Tense and ' + past + ' Tense' : '100 CORE VERBS: Infinitives, Present, ' + HMC.pastLabel + ', Imperfect and Future Tenses';
+  var body = secs.map(function (s) {
+    var h = '<h3 style="margin:18px 0 2px;font-size:1.05rem">' + s[0] + '.&nbsp; ' + s[1] + '&nbsp; (Q' + (k + 1) + '–' + (k + s[3].length) + ') <span class="ans" style="font-weight:400;font-size:.8rem;color:#8899bb">' + s[4] + ' verbs</span></h3>' + (s[2] ? '<div style="font-size:.85rem;margin-bottom:6px">' + s[2] + '</div>' : '');
+    return h + s[3].map(function (x) { k++; return '<div style="margin:0 0 16px;break-inside:avoid"><b>' + k + '.</b>&nbsp; ' + x.q + '<span class="ans" style="display:none"> &nbsp;→&nbsp; <b style="color:#1a2744">' + x.a + '</b></span><div class="ln" style="border-bottom:1px solid #999;height:20px;margin-top:4px"></div></div>'; }).join('');
+  }).join('');
+  var html = '<!DOCTYPE html><html><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>' + HMC.title + ' practice paper</title><style>' + aphCSS() + '</style><style>body{font-family:var(--aph-body);margin:0;padding:28px 36px;color:#1a2744;background:#fff;line-height:1.4}.bar{display:flex;gap:10px;margin:0 0 16px}.bar button{padding:10px 16px;font:600 1rem sans-serif;border:2px solid #1a2744;border-radius:10px;background:#fff;color:#1a2744;cursor:pointer;min-height:44px}@media print{.bar{display:none}@page{margin:1.5cm 1.8cm;size:A4}}body.sa .ans{display:inline!important}body.sa .ln{display:none}body.sa h3 .ans{display:inline!important}</style></head><body>'
+    + '<div class="bar"><button id="sb" onclick="var s=document.body.classList.toggle(\'sa\');this.textContent=s?\'🙈 Hide answers\':\'👁 Show answers\'">👁 Show answers</button><button onclick="document.body.classList.remove(\'sa\');document.getElementById(\'sb\').textContent=\'👁 Show answers\';window.print()">🖨 Print paper</button><button onclick="document.body.classList.add(\'sa\');document.getElementById(\'sb\').textContent=\'🙈 Hide answers\';window.print()">🖨 Print answers</button></div>'
+    + '<div style="display:flex;justify-content:space-between;font-weight:700;letter-spacing:.06em;text-transform:uppercase;font-size:.75rem;color:#8899bb"><span>Eton College · Modern Languages</span><span>PRACTICE PAPER</span></div>'
+    + '<div style="display:flex;gap:28px;margin:10px 0 4px;font-size:.9rem"><span>Name: ______________________</span><span>Div: ________</span><span>Date: ____________</span><span style="margin-left:auto">Score: ______ / ' + total + '</span></div>'
+    + '<h2 style="margin:8px 0 2px">' + HMC.title.toUpperCase() + ' — ' + (isF ? 'PART I' : 'PART I — VERBS') + '</h2><div style="font-size:.9rem;margin-bottom:6px"><b>' + sub + '</b></div>' + body + '</body></html>';
+  var w = window.open('', '_blank'); if (!w) { alert('Please allow pop-ups for this page, then try again.'); return; }
+  w.document.open(); w.document.write(html); w.document.close(); w.focus();
 }
 renderIntro = function () {
   if (apHome === 'landing') { document.getElementById('drill').classList.remove('wide'); document.getElementById('drill').innerHTML = hmLanding(); return; }
