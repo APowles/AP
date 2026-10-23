@@ -7215,8 +7215,8 @@ function xqFill(s) {
   s.name = xqNm(t); s.ask = ask;
   if (s.isInf) {
     var c = s.c; s.tense = 'INFINITIVE';
-    if (t === 'A') { s.q = c.inf; s.a = trCap(c.en); s.sayQ = c.inf; s.qLang = 'fr'; s.aLang = 'en'; return s; }
-    s.q = t === 'C' ? trCap(c.en) + '   [' + xqPres0(c.inf) + ']' : c.en; s.a = c.inf; s.sayQ = c.en; s.qLang = 'en'; s.aLang = 'fr';
+    if (t === 'A') { s.q = c.inf; s.a = c.en; s.sayQ = c.inf; s.qLang = 'fr'; s.aLang = 'en'; return s; }
+    s.q = t === 'C' ? c.en + '   [' + xqPres0(c.inf) + ']' : c.en; s.a = c.inf; s.sayQ = c.en; s.qLang = 'en'; s.aLang = 'fr';
     return s;
   }
   var pi = s.pi; s.tense = v.tense;
@@ -7448,6 +7448,28 @@ renderIntro = function () {
   var pool = mode === 'exer' ? xqPool() : mode === 'infinitives' ? getLiveInfCards() : mode === 'sentences' ? SENTENCES.filter(function (s) { return inSentSet(s, verbMode) && sentTenseOn(s); }) : (selectedTenses.size > 0 && mode ? buildPool() : []);
   var cardCount = _selectedCount === -1 ? pool.length : Math.min(_selectedCount, pool.length);
   document.getElementById('drill').innerHTML = hmSetup(pool, cardCount);
+};
+// Generate Test panel for the 100 Core Verbs: only what is needed (the verb set, direction, regularity, level and display options are hidden)
+var _hmRTP0 = renderTestPanel;
+renderTestPanel = function () {
+  var r = _hmRTP0.apply(this, arguments);
+  try {
+    if (verbMode !== 'quizlet' || mode !== 'exer') return r;
+    var box = document.querySelector('.vb-panel'); box = box && box.children[1]; if (!box) return r;
+    var kids = Array.prototype.slice.call(box.children), hide = function (e) { if (e) e.style.display = 'none'; };
+    kids.forEach(function (e, i) {
+      var t = (e.innerText || '').trim().toUpperCase();
+      if (e.classList.contains('aph-label') && /^(VERB SET|DIRECTION|REGULARITY|SHOW IN QUESTION)/.test(t)) { hide(e); hide(kids[i + 1]); if (kids[i + 1] && kids[i + 1].classList.contains('vb-info')) hide(kids[i + 2]); }
+      if (e.classList.contains('aph-label') && /^IMPORTANCE/.test(t)) {
+        e.innerHTML = 'WHICH VERBS <span class="vb-light">tick any groups</span>';
+        var row = kids[i + 1]; if (row) row.innerHTML = [['E1', 'Essential 1 (20)'], ['E2', 'Essential 2 (20)'], ['I', 'Important (30)'], ['U', 'Useful (30)']].map(function (g) { return vbChip(vqSel.has(g[0]), "vqSelToggle('" + g[0] + "')", g[1]); }).join('');
+      }
+      if (e.classList.contains('vq-note') || e.classList.contains('vb-info') || e.classList.contains('ap-lv-row')) hide(e);
+    });
+    var sum = document.createElement('div'); sum.className = 'hm-note'; sum.style.cssText = 'margin:0 0 6px;font-weight:700';
+    sum.textContent = '100 Core Verbs · ' + (vqTierText() || 'all 100 verbs') + ' · ' + (xqTenseNames() || 'choose a tense'); box.insertBefore(sum, box.firstChild);
+  } catch (e) {}
+  return r;
 };
 var _hmSQD0 = startQuickDrill; startQuickDrill = function (c) { apHome = 'setup'; return _hmSQD0(c); };
 </script>
