@@ -6,7 +6,7 @@
 <script id="ap-update">
 /* AP auto-update: if this copy is older than the published version, reload once with the new one (saved answers are kept) */
 (function () {
-  var B = '6beee12080'; window.AP_BUILD = B;
+  var B = 'b8009c5c92'; window.AP_BUILD = B;
   function check() {
     if (!/^https?:$/.test(location.protocol) || !window.fetch) return;
     var f = decodeURIComponent(location.pathname.split('/').pop() || '');
@@ -7358,5 +7358,27 @@ var _hmSQD0 = startQuickDrill; startQuickDrill = function (c) { apHome = 'setup'
 renderIntro();
 </script>
 
+<script>
+// Speed Challenge opens on what step 1 chose (verb set, tenses, infinitives) when it is opened from the set-up screen; opened from the start screen it keeps its own saved choices
+(function () {
+  var _occ = openConjChallenge;
+  openConjChallenge = function () {
+    try {
+      if (apHome === 'setup' && selectedTenses && selectedTenses.size) {
+        var K = 'apcj_cfg_' + window.__cj.code, c = JSON.parse(localStorage.getItem(K) || 'null') || {}, known = {}, ts = [];
+        window.__cj.tenses.forEach(function (x) { known[x[0]] = 1; });
+        selectedTenses.forEach(function (x) { if (x !== 'INFINITIVE' && known[x]) ts.push(x); });
+        var inf = selectedTenses.has('INFINITIVE') ? 1 : 0;
+        if (ts.length || inf) {
+          c.tenses = ts; c.inf = inf;
+          var s = HMC.curSet(); if (window.__cj.sets.some(function (x) { return x[0] === s; })) c.set = s;
+          localStorage.setItem(K, JSON.stringify(c));
+        }
+      }
+    } catch (e) { }
+    return _occ.apply(this, arguments);
+  };
+})();
+</script>
 <script>if (window.__cj) window.__cj.imp = { get: function () { return vqTier; }, set: function (k) { vqSet(k); }, defs: function () { return vqTier === 'SEL' ? VQ_DEF.concat([['SEL', 'Your groups', vqSelText()]]) : VQ_DEF; }, text: function () { return vqTierText(); }, count: function (k, fn) { var o = vqTier; vqTier = k; try { return fn(); } finally { vqTier = o; } } };
 if (window.__cj && window.__cj.inSet) { var _vqInSet0 = window.__cj.inSet; window.__cj.inSet = function (v, s) { return _vqInSet0(v, s) && vqKeep(v); }; }</script>
