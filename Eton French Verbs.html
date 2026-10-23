@@ -7153,8 +7153,8 @@ function generateTrialsPartI() {
   var out = document.getElementById('testOut'); if (!out) return;
   out.style.display = 'block'; out.removeAttribute('data-spot');
   var n = Q.A.length + Q.B.length + Q.C.length + Q.D.length, vm = trVM();
-  out.innerHTML = '<div class="vb-out-btns"><button class="aph-btn aph-btn-sm" onclick="openTrialsPDF(\'questions\')">🖨 Print / PDF · Paper</button><button class="aph-btn aph-btn-sm" onclick="openTrialsPDF(\'answers\')">🖨 Print / PDF · Answers</button><button class="aph-btn aph-btn-sm" onclick="generateTrialsPartI()">🔀 New paper</button></div>'
-    + '<div class="vb-out-label">' + TR_NAME[vm] + ' · ' + (Q.mode === 'E' ? 'Verbs' : 'Part I') + ' · ' + n + ' questions (practice paper, new questions each time)</div><div class="vb-out-box">' + trSections(Q).map(function (S) { return '<div style="margin:6px 0 2px"><b>' + S[0] + '. ' + S[1] + '</b> <span class="vb-light">(' + S[4] + ' verbs)</span></div>' + Q[S[3]].map(function (x) { return '<div class="vb-out-row"><span class="q">' + x.q + '</span> <span class="ar">→</span> <strong>' + x.a + '</strong></div>'; }).join(''); }).join('') + '</div>';
+  out.innerHTML = '<div class="vb-out-btns"><button class="aph-btn aph-btn-sm" onclick="openTrialsPDF(\'questions\')">🖨 Print / PDF · Paper</button><button class="aph-btn aph-btn-sm" onclick="openTrialsPDF(\'answers\')">🖨 Print / PDF · Answers</button><button class="aph-btn aph-btn-sm" onclick="generateTrialsPartI()">🔀 New paper</button><button class="aph-btn aph-btn-sm" onclick="hmShowAnswers(this)">👁 Show answers</button></div>'
+    + '<div class="vb-out-label">' + TR_NAME[vm] + ' · ' + (Q.mode === 'E' ? 'Verbs' : 'Part I') + ' · ' + n + ' questions (practice paper, new questions each time)</div><div class="vb-out-box">' + (function () { var k = 0; return trSections(Q).map(function (S) { return '<div style="margin:6px 0 2px"><b>' + S[0] + '. ' + S[1] + '</b> <span class="vb-light">(' + S[4] + ' verbs)</span></div>' + Q[S[3]].map(function (x) { k++; return '<div class="vb-out-row"><span class="q">' + k + '. ' + x.q + '</span><span class="vb-ans" style="display:none"> <span class="ar">→</span> <strong>' + x.a + '</strong></span></div>'; }).join(''); }).join(''); })() + '</div>';
 }
 function openTrialsPDF(kind) {
   var Q = window._trials; if (!Q) { generateTrialsPartI(); Q = window._trials; }
@@ -7316,10 +7316,11 @@ function generateXqTest() {
   var n = 0; P.forEach(function (s) { n += s.items.length; });
   if (!n) { out.innerHTML = '<div class="vb-out-label">No questions for this selection.</div>'; return; }
   var k = 0;
-  out.innerHTML = '<div class="vb-out-btns"><button class="aph-btn aph-btn-sm" onclick="openXqPDF(\'questions\')">🖨 Print / PDF · Paper</button><button class="aph-btn aph-btn-sm" onclick="openXqPDF(\'answers\')">🖨 Print / PDF · Answers</button><button class="aph-btn aph-btn-sm" onclick="generateXqTest()">🔀 New paper</button></div>'
+  out.innerHTML = '<div class="vb-out-btns"><button class="aph-btn aph-btn-sm" onclick="openXqPDF(\'questions\')">🖨 Print / PDF · Paper</button><button class="aph-btn aph-btn-sm" onclick="openXqPDF(\'answers\')">🖨 Print / PDF · Answers</button><button class="aph-btn aph-btn-sm" onclick="generateXqTest()">🔀 New paper</button><button class="aph-btn aph-btn-sm" onclick="hmShowAnswers(this)">👁 Show answers</button></div>'
     + '<div class="vb-out-label">' + xqScope() + ' · ' + n + ' questions' + (testCount === -1 ? ' (every person of every verb)' : '') + '</div><div class="vb-out-box">'
-    + P.map(function (S) { return '<div style="margin:6px 0 2px"><b>' + S.k + '. ' + S.name + '</b></div>' + S.items.map(function (x) { k++; return '<div class="vb-out-row"><span class="q">' + k + '. ' + x.q + '</span> <span class="ar">→</span> <strong>' + x.a + '</strong></div>'; }).join(''); }).join('') + '</div>';
+    + P.map(function (S) { return '<div style="margin:6px 0 2px"><b>' + S.k + '. ' + S.name + '</b></div>' + S.items.map(function (x) { k++; return '<div class="vb-out-row"><span class="q">' + k + '. ' + x.q + '</span><span class="vb-ans" style="display:none"> <span class="ar">→</span> <strong>' + x.a + '</strong></span></div>'; }).join(''); }).join('') + '</div>';
 }
+function hmShowAnswers(b) { var o = document.getElementById('testOut'); if (!o) return; var show = b.getAttribute('data-on') !== '1'; o.querySelectorAll('.vb-ans').forEach(function (e) { e.style.display = show ? '' : 'none'; }); b.setAttribute('data-on', show ? '1' : '0'); b.textContent = show ? '🙈 Hide answers' : '👁 Show answers'; }
 function openXqPDF(kind) {
   var P = window._xqPaper; if (!P) { generateXqTest(); P = window._xqPaper; } if (!P) return;
   var isA = kind === 'answers', k = 0;
