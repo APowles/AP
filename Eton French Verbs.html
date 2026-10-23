@@ -7097,6 +7097,12 @@ function trBuild() {
     ((pool[t] = pool[t] || {})[v.tense] = pool[t][v.tense] || []).push(v);
   });
   var used = {}, shown = {}; // used: verbs on this paper; shown: verbs whose infinitive or form is visible
+  var bag = {}, tbag = [];   // persons are dealt from shuffled bags of all six, so a paper covers every person as evenly as it can
+  function dealPerson(tense, ok, not) {
+    var b = bag[tense = tense || 'x'] = bag[tense] || [];
+    for (var guard = 0; guard < 14; guard++) { if (!b.length) Array.prototype.push.apply(b, shuffle([0, 1, 2, 3, 4, 5])); var p = b.shift(); if (ok(p) && p !== not) return p; }
+    return [0, 1, 2, 3, 4, 5].filter(function (p) { return ok(p) && p !== not; })[0];
+  }
   function pick(tier, tense, avoid) {
     var c = ((pool[tier] || {})[tense] || []).filter(function (v) { return !used[v.inf] && !(avoid && avoid[v.inf]); });
     if (!c.length) c = ((pool[tier] || {})[tense] || []).filter(function (v) { return !used[v.inf]; });
@@ -7110,8 +7116,8 @@ function trBuild() {
       for (var tr = 0; (sec === 'B' || twoForms) && tr < 10 && v && v.forms.filter(function (f) { return f && f !== '—' && f !== '---'; }).length < 2; tr++) { used[v.inf] = 1; v = pick(tier, tense, avoid); }
       if (!v) { tense = 'PRESENT'; v = pick(tier, 'PRESENT', avoid); }
       if (!v) return; used[v.inf] = 1;
-      var ok = function (p) { var f = v.forms[p]; return f && f !== '—' && f !== '---'; }, pi = Math.floor(Math.random() * 6), alt = Math.random() < 0.5;
-      if (!ok(pi)) { pi = [2, 0, 1, 3, 4, 5].filter(ok)[0]; if (pi === undefined) return; }
+      var ok = function (p) { var f = v.forms[p]; return f && f !== '—' && f !== '---'; }, pi = dealPerson('all', ok), alt = Math.random() < 0.5;
+      if (pi === undefined) return;
       out.push({ v: v, inf: t === 'INF', tense: tense, pi: pi, alt: alt });
     });
     return out;
@@ -7128,7 +7134,7 @@ function trBuild() {
   function fr(x, pi) { pi = pi === undefined ? x.pi : pi; var f = x.v.forms[pi]; return x.inf ? x.v.inf : trForm(f, pi, x.alt); }
   function pres0(x) { var p = liveVerbs.filter(function (y) { return y.inf === x.v.inf && y.tense === 'PRESENT'; })[0]; return p ? (p.forms.filter(function (f) { return f && f !== '—' && f !== '---'; })[0] || x.v.inf) : x.v.inf; }
   var Q = { A: [], B: [], C: [], D: [], mode: isE ? 'E' : 'F' };
-  function qChange(x) { var pj, ok = function (p) { var f = x.v.forms[p]; return f && f !== '—' && f !== '---'; }, tries = 0; do { pj = Math.floor(Math.random() * 6); } while ((pj === x.pi || !ok(pj)) && ++tries < 60); if (!ok(pj) || pj === x.pi) pj = [0, 1, 2, 3, 4, 5].filter(function (p) { return p !== x.pi && ok(p); })[0]; var alt = Math.random() < 0.5; return { q: trCap(fr(x)) + ' - (' + (pj === 2 ? (alt ? 'elle' : 'il') : pj === 5 ? (alt ? 'elles' : 'ils') : TR_SUBJ[pj]) + ')', a: trCap(trForm(x.v.forms[pj], pj, alt)) }; }
+  function qChange(x) { var ok = function (p) { var f = x.v.forms[p]; return f && f !== '—' && f !== '---'; }, pj = dealPerson('target', ok, x.pi); var alt = Math.random() < 0.5; return { q: trCap(fr(x)) + ' - (' + (pj === 2 ? (alt ? 'elle' : 'il') : pj === 5 ? (alt ? 'elles' : 'ils') : TR_SUBJ[pj]) + ')', a: trCap(trForm(x.v.forms[pj], pj, alt)) }; }
   function qInfGiven(x) { return { q: trCap(en(x)) + '   [' + (x.inf ? pres0(x) : x.v.inf) + ']', a: x.inf ? x.v.inf : trCap(fr(x)), inf: x.inf }; }
   function qNoHelp(x) { return { q: x.inf ? x.v.en : trCap(en(x)), a: x.inf ? x.v.inf : trCap(fr(x)), inf: x.inf }; }
   if (isE) { EA.forEach(function (x) { Q.A.push(qChange(x)); }); EB.forEach(function (x) { Q.B.push(qInfGiven(x)); }); EC.forEach(function (x) { Q.C.push(qNoHelp(x)); }); }
@@ -7159,7 +7165,9 @@ function openTrialsPDF(kind) {
     return h + Q[sec[3]].map(function (x) { k++; return '<div style="margin:0 0 ' + (isA ? '6' : '16') + 'px;break-inside:avoid"><b>' + k + '.</b>&nbsp; ' + x.q + (isA ? ' &nbsp;→&nbsp; <b style="color:#1a2744">' + x.a + '</b>' : '<div style="border-bottom:1px solid #999;height:20px;margin-top:4px"></div>') + '</div>'; }).join('');
   }).join('');
   var html = '<!DOCTYPE html><html><head><meta charset="UTF-8"><title>' + TR_NAME[vm] + ' — Part I' + (isA ? ' (answers)' : '') + '</title><style>' + aphCSS() + '</style><style>body{font-family:var(--aph-body);margin:0;padding:28px 36px;color:#1a2744;background:#fff;line-height:1.4}@media print{@page{margin:1.5cm 1.8cm;size:A4}.no-print{display:none!important}}</style></head><body>'
-    + '<div style="font-weight:700;letter-spacing:.06em;text-transform:uppercase;font-size:.75rem;color:#8899bb">' + TR_NAME[vm] + ' · practice paper · ' + (f ? 'F' : 'E') + ' French</div><h2 style="margin:4px 0 2px">PART I' + (f ? '' : ' — VERBS') + (isA ? ' — ANSWERS' : '') + ' <span style="font-weight:400;font-size:.9rem">(20 marks after scaling)</span></h2>'
+    + '<div style="display:flex;justify-content:space-between;font-weight:700;letter-spacing:.06em;text-transform:uppercase;font-size:.75rem;color:#8899bb"><span>Eton College · Modern Languages</span><span>PRACTICE PAPER</span></div><div style="font-weight:700;letter-spacing:.06em;text-transform:uppercase;font-size:.8rem;margin-top:6px">' + TR_NAME[vm] + ' · ' + (f ? 'F' : 'E') + ' French</div>'
+    + (isA ? '' : '<div style="display:flex;gap:28px;margin:10px 0 4px;font-size:.9rem"><span>Name: ______________________</span><span>Div: ________</span><span>Date: ____________</span><span style="margin-left:auto">Score: ______ / ' + (f ? '40' : '20') + '</span></div>')
+    + '<h2 style="margin:8px 0 2px">PART I' + (f ? '' : ' — VERBS') + (isA ? ' — ANSWERS' : '') + ' <span style="font-weight:400;font-size:.9rem">(20 marks after scaling)</span></h2>'
     + '<div style="font-size:.9rem;margin-bottom:6px"><b>' + sub + '</b></div>' + (isA ? '<div style="font-size:.78rem;color:#555;margin-bottom:6px">Perfect tense: accept the past simple or the "have" form in English (e.g. he slept / he has slept). Accept she/he for il (elle).</div>' : '') + body
     + '</body></html>';
   var w = window.open('', '_blank'); if (!w) { alert('Please allow pop-ups for this page, then try again.'); return; }
