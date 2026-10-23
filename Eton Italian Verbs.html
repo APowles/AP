@@ -7026,6 +7026,25 @@ if (window.__cj) window.__cj.speedTest = function (kind, g) {
 /* ===== END ===== */
 
 </script>
+<style id="hm-css2">
+.hm-core .hm-step{background:#fff;border:2px solid var(--navy);border-radius:18px;padding:16px 20px;margin:0 0 12px}
+.hm-sh{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:10px;font-size:1.2rem;color:var(--navy)}
+.hm-n{display:inline-flex;align-items:center;justify-content:center;width:34px;height:34px;border-radius:50%;background:var(--navy);color:var(--gold2);font:700 1.1rem var(--aph-display)}
+.hm-banner{background:var(--navy);color:#fff;border:2px solid var(--gold);border-radius:14px;padding:10px 18px;margin:0 0 12px;display:flex;flex-direction:column;gap:2px}
+.hm-banner small{letter-spacing:.1em;font-size:.75rem;color:var(--gold2);font-weight:700}.hm-banner b{font-size:1.15rem}
+.hm-vlist{display:flex;flex-direction:column;gap:8px;margin:8px 0;font-size:.92rem;line-height:1.5}
+.hm-vlist b{display:block;color:var(--navy)}.hm-vlist span{color:var(--text2)}.hm-vlist i{color:#7a869f}
+.hm-exgrid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
+.hm-exgrid .hm-h{grid-column:1/-1;margin:0}
+.hm-ctls{margin:10px 0;align-items:center}
+.hm-tiles{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;margin-top:10px}
+.hm-tile{display:flex;flex-direction:column;gap:2px;text-align:left;padding:12px 16px;min-height:64px;border-radius:12px;border:2px solid var(--navy);background:#fff;color:var(--navy);cursor:pointer;font-family:var(--aph-body)}
+.hm-tile b{font-size:1.05rem}.hm-tile small{color:var(--text2);font-size:.82rem}
+.hm-tile-p{background:var(--navy);color:#fff;border-color:var(--gold)}.hm-tile-p small{color:#d6dcf0}
+.hm-core .hm-tiers{display:grid;grid-template-columns:repeat(4,minmax(0,1fr))}
+.hm-core .hm-tier{flex-direction:column;justify-content:center;align-items:center;gap:2px;padding:8px 10px;text-align:center}
+.hm-core .hm-ctl{color:var(--navy);border-color:var(--navy)}.hm-core .hm-timer .aph-step-val{color:var(--navy)}
+</style>
 <style id="hm-css">/* ===== Home: landing + two-column set-up ===== */
 .hm-wrap{max-width:1180px;margin:0 auto;padding:22px 24px 40px}
 .ap-landing{position:relative;overflow:hidden;min-height:calc(100vh - 90px)}
@@ -7105,7 +7124,7 @@ if (window.__cj) window.__cj.speedTest = function (kind, g) {
 </style>
 <script id="hm-script">
 // ═════════ HOME: a start screen (100 Core Verbs | All Verbs) and a two-column set-up screen: the same in the French, Spanish and Italian verbs apps ═════════
-var apHome = 'landing', hmMore = false, hmTenseMore = false;
+var apHome = 'landing', hmMore = false, hmTenseMore = false, hmVList = false;
 var HMC = { lang: 'Italian', title: 'Italian Verbs', pattern: ['sono', 'sei', 'è', 'siamo', 'siete', 'sono'], pastWord: 'perfect', pastLabel: 'Perfect', structEx: 'approfittare di X',
   core: 'igcse', all: 'allv', both: 'both', infMode: 'infinitives', steps: 6,
   sets: [['igcse', '100 Core Verbs'], ['allv', 'All Verbs'], ['structures', 'Specialist Verb Structures'], ['both', 'Both']],
@@ -7130,7 +7149,7 @@ function hmOpen(door) {
 }
 function hmLand() { apHome = 'landing'; renderIntro(); }
 function hmMode(m) { if (m === 'sentences' && selectedTenses.size === 1 && selectedTenses.has('INFINITIVE') && HMC.curSet() !== HMC.sets[2][0]) selectedTenses = new Set(['PRESENT']); introSetMode(m); }
-function hmToggle(k) { if (k === 'more') hmMore = !hmMore; else if (k === 'tenses') hmTenseMore = !hmTenseMore; renderIntro(); }
+function hmToggle(k) { if (k === 'vlist') hmVList = !hmVList; else if (k === 'more') hmMore = !hmMore; else if (k === 'tenses') hmTenseMore = !hmTenseMore; renderIntro(); }
 function hmTest() { HMC.test(); }
 function hmPaperSpot() { HMC.paperSpot(); }
 function hmSubmittedSpot() { HMC.submittedSpot(); }
@@ -7164,6 +7183,46 @@ function hmSummary() {
   if (mode !== HMC.infMode) { var ts = Array.from(selectedTenses); parts.push(ts.length <= 2 ? ts.map(function (k) { return HMC.tn[k] || k; }).join(' + ') : ts.length + ' tenses'); }
   return parts.join(' · ');
 }
+var HM_GRP = [['E1', 'Essential 1', 'the first 20 verbs', 20], ['E2', 'Essential 2', 'the second 20 verbs', 20], ['I', 'Important', 'the next 30 verbs', 30], ['U', 'Useful', 'the last 30 verbs', 30]];
+function hmSelText() {
+  var ts = HMC.tenses.map(function (t) { return t[0]; }).filter(function (k) { return selectedTenses.has(k); }).map(function (k) { return HMC.tn[k] || k; });
+  var vs = vqSel.size === 4 ? 'all 100 verbs' : HM_GRP.filter(function (g) { return vqSel.has(g[0]); }).map(function (g) { return g[1] + ' (' + g[2] + ')'; }).join(' + ');
+  return 'Testing: ' + vs + ' · ' + (mode === HMC.infMode ? 'Infinitives' : (ts.join(', ') || 'choose a tense'));
+}
+function hmGrpVerbs(g) { var all = VQ_TIER.E.concat(VQ_TIER.I, VQ_TIER.U); return all.filter(function (inf) { var t = VQ_MAP[inf]; return g === 'E1' ? (t === 'E' && VQ_HALF[inf] === 1) : g === 'E2' ? (t === 'E' && VQ_HALF[inf] === 2) : t === g; }); }
+function hmVerbList() {
+  var en = {}; try { VERBS.forEach(function (v) { if (!en[v.inf]) en[v.inf] = String(v.en || '').toLowerCase(); }); } catch (e) {}
+  return '<div class="hm-vlist">' + HM_GRP.filter(function (g) { return vqSel.has(g[0]); }).map(function (g) {
+    return '<div><b>' + g[1] + ' · ' + g[3] + '</b><span>' + hmGrpVerbs(g[0]).map(function (i) { return i + (en[i] ? ' <i>' + en[i] + '</i>' : ''); }).join(' &middot; ') + '</span></div>';
+  }).join('') + '</div>';
+}
+function hmCoreHtml(left, tenseHtml, more2, cardCount) {
+  var nSel = HM_GRP.filter(function (g) { return vqSel.has(g[0]); }).reduce(function (a, g) { return a + g[3]; }, 0);
+  var grp = HM_GRP.map(function (g) { var on = vqSel.has(g[0]); return '<button class="hm-tier' + (on ? ' on' : '') + '" onclick="vqSelToggle(\'' + g[0] + '\')"><span>' + (on ? '&#10003; ' : '') + g[1] + '</span><small>' + g[2] + '</small></button>'; }).join('');
+  var counts = [10, 20, 30, 50, -1].map(function (n) { return '<option value="' + n + '"' + (_selectedCount === n ? ' selected' : '') + '>' + (n === -1 ? 'All' : n) + ' questions</option>'; }).join('');
+  var s1 = '<div class="hm-h">WHICH VERBS <span>tick any groups: ' + nSel + ' verbs chosen</span></div><div class="hm-tiers">' + grp + '</div>'
+    + '<div class="hm-row"><button class="hm-link" onclick="vqSet(\'ALL\')">All 100</button><button class="hm-link" onclick="vqSet(\'E\')">Essential 1 + 2 (40)</button><button class="hm-link" onclick="hmToggle(\'vlist\')">' + (hmVList ? 'Hide the verbs &#9652;' : 'See the verbs in these groups &#9662;') + '</button></div>' + (hmVList ? hmVerbList() : '')
+    + '<div class="hm-h" style="margin-top:14px">WHICH TENSES <span>in the order we learn them</span></div>' + (mode === HMC.infMode ? '<div class="hm-note">Infinitives only: you see the English and give the ' + HMC.lang + ' infinitive, so tenses are not needed.</div>' : '<div class="hm-row">' + tenseHtml + '</div>');
+  return `<div class="hm-wrap intro-card hm-core">
+    <div class="hm-top"><div class="hm-tl"><button class="hm-back" onclick="hmLand()" aria-label="Back to the start screen">&#8249; ${HMC.title}</button><h2 class="hm-title hm-t2">100 Core Verbs</h2></div></div>
+    <div class="hm-step"><div class="hm-sh"><span class="hm-n">1</span><b>What do you want to test?</b></div>${s1}</div>
+    <div class="hm-banner" role="status"><small>YOU ARE TESTING</small><b>${hmSelText()}</b></div>
+    <div class="hm-step"><div class="hm-sh"><span class="hm-n">2</span><b>How do you want to be tested?</b></div>
+      <div class="hm-exgrid">${left}</div>
+      <div class="hm-row hm-ctls"><select class="hm-ctl" aria-label="Number of questions" onchange="setSelectedCount(parseInt(this.value,10))">${counts}</select>
+        <span class="hm-timer"><button class="aph-step" onclick="adjustTimer(-2)" aria-label="Less time">&#8722;</button><span class="aph-step-val" id="intro-timer-display">${timerSecs}s</span><button class="aph-step" onclick="adjustTimer(2)" aria-label="More time">+</button></span>
+        <button class="hm-ctl" onclick="hmToggle('more')">More options ${hmMore ? '&#9652;' : '&#9662;'}</button></div>${more2}
+      <div class="hm-tiles">
+        <button class="hm-tile hm-tile-p" onclick="startQuickDrill(_selectedCount)"><b>&#9654; Start Drill</b><small>${cardCount} question${cardCount !== 1 ? 's' : ''} on screen, against the clock</small></button>
+        <button class="hm-tile" onclick="hmTest()"><b>&#128221; Generate Test</b><small>a printable test</small></button>
+        <button class="hm-tile" onclick="hmPaperSpot()"><b>&#128424; Paper Spot Test</b><small>a quick paper quiz</small></button>
+        <button class="hm-tile" onclick="hmSubmittedSpot()"><b>&#9997; Submitted Spot Test</b><small>boys answer and submit</small></button>
+        <button class="hm-tile" onclick="openConjChallenge()"><b>&#9889; Eton Speed Challenge</b><small>race the clock</small></button>
+        <button class="hm-tile" onclick="showVerbList()"><b>&#128214; View &amp; Print</b><small>the verb tables</small></button>
+      </div></div>
+    <div class="hm-keys">${vbKeysLegend()}</div>
+  </div>`;
+}
 function hmSetup(pool, cardCount) {
   var core = hmIsCore(), showImp = core || HMC.curSet() === HMC.all || HMC.curSet() === HMC.both;
   var tenses = HMC.tenses.map(function (t) { return { k: t[0], l: t[1] }; });
@@ -7192,6 +7251,7 @@ function hmSetup(pool, cardCount) {
       + '<div class="hm-opt"><div class="hm-row"><button class="aph-btn vb-hint' + (showInfHint ? ' on' : '') + '" onclick="showInfHint=!showInfHint;renderIntro()">Hint: ' + (showInfHint ? 'On' : 'Off') + '</button><button class="aph-btn' + (isAutotime ? ' on' : '') + '" onclick="toggleAutotime();renderIntro()">Autotime: ' + (isAutotime ? 'On' : 'Off') + '</button>'
       + '<button class="aph-btn" onclick="startLeisureMode()">&#9749; Leisure Mode</button>' + (editModeUnlocked ? '<button class="aph-btn" onclick="' + HMC.printContent + '">&#128424; Print Content</button>' : '') + '</div></div></div>';
   }
+  if (core) return hmCoreHtml(left, tenseHtml, more2, cardCount);
   var strip = core ? '' : '<div class="hm-strip"><span class="hm-h">VERB SET</span><div class="hm-seg">' + HMC.sets.filter(function (s) { return s[0] !== HMC.core; }).map(function (s) { return '<button class="' + (HMC.curSet() === s[0] ? 'on' : '') + '" onclick="HMC.setSet(\'' + s[0] + '\')">' + s[1] + '</button>'; }).join('') + '</div></div>';
   var title = hmSetLabel(HMC.curSet());
   var counts = [10, 20, 30, 50, -1].map(function (n) { return '<option value="' + n + '"' + (_selectedCount === n ? ' selected' : '') + '>' + (n === -1 ? 'All' : n) + ' questions</option>'; }).join('');
