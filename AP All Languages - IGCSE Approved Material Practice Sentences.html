@@ -4,7 +4,7 @@
 <script id="ap-update">
 /* AP auto-update: if this copy is older than the published version, reload once with the new one (saved answers are kept) */
 (function () {
-  var B = '9a291a629c'; window.AP_BUILD = B;
+  var B = '7a6463af85'; window.AP_BUILD = B;
   function check() {
     if (!/^https?:$/.test(location.protocol) || !window.fetch) return;
     var f = decodeURIComponent(location.pathname.split('/').pop() || '');
@@ -7835,13 +7835,10 @@ window.addEventListener('keydown', function (e) {
 
 </script>
 <style id="am-speed-css">
-#am-speed{position:fixed;right:12px;bottom:12px;z-index:12000;display:flex;align-items:center;gap:6px;background:#fff;color:#1a2744;border:2px solid #c9a84c;border-radius:999px;padding:5px 12px 5px 10px;box-shadow:0 3px 14px rgba(10,18,40,.28);font:700 .8rem/1 var(--aph-body,"DM Sans",system-ui,sans-serif);user-select:none}
-#am-speed input[type=range]{width:96px;accent-color:#c9a84c;cursor:pointer;margin:0}
-#am-speed .am-sp-b{width:30px;height:30px;border-radius:50%;border:1px solid #1a2744;background:#fff;color:#1a2744;font-size:1.05rem;line-height:1;cursor:pointer;padding:0}
-#am-speed .am-sp-v{min-width:44px;text-align:center;color:#b8860b;font-weight:800;cursor:pointer}
-body{padding-bottom:58px}
-@media(max-width:480px){#am-speed input[type=range]{width:70px}#am-speed .am-sp-l{display:none}}
-@media print{#am-speed{display:none!important}body{padding-bottom:0}}
+#am-speed{display:inline-flex;align-items:center;gap:5px;flex:none;background:rgba(255,255,255,.12);color:#fff;border:1px solid rgba(255,255,255,.35);border-radius:999px;padding:3px 8px;font:700 .8rem/1 var(--aph-body,"DM Sans",system-ui,sans-serif);user-select:none}
+#am-speed .am-sp-b{width:30px;height:30px;border-radius:50%;border:1px solid rgba(255,255,255,.5);background:transparent;color:#fff;font-size:1.05rem;line-height:1;cursor:pointer;padding:0}
+#am-speed .am-sp-v{min-width:42px;text-align:center;color:#ffd76a;font-weight:800;cursor:pointer}
+@media print{#am-speed{display:none!important}}
 </style>
 <script id="am-speed-js">
 /* AP voice speed meter: always on screen; scales the speed of every voice in this app (Spanish stays slower than French/Italian). Tap the number to reset. */
@@ -7851,18 +7848,18 @@ body{padding-bottom:58px}
   window._amSpeed = v;
   function set(n) {
     n = Math.round(Math.min(1.5, Math.max(0.5, n)) * 20) / 20; window._amSpeed = n;
-    var r = document.getElementById('am-sp-r'), t = document.getElementById('am-sp-v');
-    if (r) r.value = n; if (t) t.textContent = n.toFixed(2) + '×';
+    var t = document.getElementById('am-sp-v');
+    if (t) t.textContent = n.toFixed(2) + '×';
     try { localStorage.setItem(K, String(n)); } catch (e) { }
   }
   function build() {
     if (document.getElementById('am-speed')) return;
-    var d = document.createElement('div'); d.id = 'am-speed'; d.className = 'aph-noprint'; d.setAttribute('role', 'group'); d.setAttribute('aria-label', 'Voice speed');
-    d.innerHTML = '<span class="am-sp-l">🔊 Voice</span><button type="button" class="am-sp-b" id="am-sp-m" aria-label="Slower">−</button><span title="Slower">🐢</span>'
-      + '<input id="am-sp-r" type="range" min="0.5" max="1.5" step="0.05" value="' + window._amSpeed + '" aria-label="Voice speed"><span title="Faster">🐇</span>'
-      + '<button type="button" class="am-sp-b" id="am-sp-p" aria-label="Faster">+</button><span class="am-sp-v" id="am-sp-v" title="Tap for normal speed">' + window._amSpeed.toFixed(2) + '×</span>';
-    document.body.appendChild(d);
-    document.getElementById('am-sp-r').oninput = function () { set(parseFloat(this.value)); };
+    var d = document.createElement('span'); d.id = 'am-speed'; d.className = 'aph-noprint'; d.setAttribute('role', 'group'); d.setAttribute('aria-label', 'Voice speed'); d.title = 'Voice speed (tap the number for normal speed)';
+    d.innerHTML = '<span title="Slower">🐢</span><button type="button" class="am-sp-b" id="am-sp-m" aria-label="Slower voice">−</button>'
+      + '<span class="am-sp-v" id="am-sp-v" title="Tap for normal speed">' + window._amSpeed.toFixed(2) + '×</span>'
+      + '<button type="button" class="am-sp-b" id="am-sp-p" aria-label="Faster voice">+</button><span title="Faster">🐇</span>';
+    var vb = document.querySelector('.aph-header-in .aph-voice');
+    if (vb && vb.parentNode) vb.parentNode.insertBefore(d, vb); else document.body.appendChild(d);
     document.getElementById('am-sp-m').onclick = function () { set(window._amSpeed - 0.05); };
     document.getElementById('am-sp-p').onclick = function () { set(window._amSpeed + 0.05); };
     document.getElementById('am-sp-v').onclick = function () { set(1); };
