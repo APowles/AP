@@ -41,6 +41,11 @@
   function tts() { try { return localStorage.getItem(TK) === 'on'; } catch (e) { return false; } }
   try { var SP = window.SpeechSynthesis && window.SpeechSynthesis.prototype; if (SP && !SP.__apMF) { SP.__apMF = 1; var so = SP.speak;
     SP.speak = function (u) { try { if (document.querySelector('.ms-ov .ms-grid') && !tts()) return; } catch (e) { } return so.call(this, u); }; } } catch (e) { }
+  // some apps replace speechSynthesis.speak on the object itself, so gate that one too (the prototype wrapper above would be bypassed)
+  try { var SS = window.speechSynthesis;
+    if (SS && !SS.__apMFi) { SS.__apMFi = 1; var cur = SS.speak;
+      var gate = function (u) { try { if (document.querySelector('.ms-ov .ms-grid') && !tts()) return; } catch (e) { } return cur.call(this, u); };
+      Object.defineProperty(SS, 'speak', { configurable: true, get: function () { return gate; }, set: function (f) { cur = f; } }); } } catch (e) { }
   var G = null;   // the current game
   function setT(el, t) { if (el.textContent !== t) el.textContent = t; }   // never rewrite identical text: the observer would loop
   function buildRace(sheet, tm) {
