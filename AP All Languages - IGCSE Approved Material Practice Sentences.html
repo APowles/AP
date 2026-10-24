@@ -4,7 +4,7 @@
 <script id="ap-update">
 /* AP auto-update: if this copy is older than the published version, reload once with the new one (saved answers are kept) */
 (function () {
-  var B = '41b0b095f9'; window.AP_BUILD = B;
+  var B = '0a26dff581'; window.AP_BUILD = B;
   function check() {
     if (!/^https?:$/.test(location.protocol) || !window.fetch) return;
     var f = decodeURIComponent(location.pathname.split('/').pop() || '');
@@ -10281,9 +10281,23 @@ var APAM_TPL = "<!doctype html>\n<html lang=\"en\"><head><meta charset=\"utf-8\"
     if (stars === 3 || nb) setTimeout(cheer, 1000);
     G = null;
   }
+  // Match tiles: no capital at the start of a tile (English and foreign alike), except the word I and proper nouns
+  var KEEPCAP = /^(?:I|I'm|I’m|I'll|I’ll|I've|I’ve|I'd|I’d|Monday|Tuesday|Wednesday|Thursday|Friday|Saturday|Sunday|January|February|March|April|May|June|July|August|September|October|November|December|French|English|Spanish|Italian|German|British|European|France|Spain|Italy|Germany|England|Britain|Eton|Windsor|London|Paris|Madrid|Rome|Roma|Europe|Christmas|Easter|God|Mr|Mrs|Ms|Dr)(?=$|[\s,.;:!?'’-])/;
+  function lowerTiles(sheet) {
+    var ts = sheet.querySelectorAll('.ms-t');
+    for (var i = 0; i < ts.length; i++) {
+      var n = ts[i].firstChild; while (n && n.nodeType !== 3) n = n.firstChild || n.nextSibling;
+      if (!n || !n.nodeValue) continue;
+      var v = n.nodeValue, m = /^(\s*)([A-ZÀ-ÖØ-Þ])(.*)$/s.exec(v);
+      if (!m || KEEPCAP.test(m[2] + m[3])) continue;
+      if (/^[A-ZÀ-ÖØ-Þ]{2,}/.test(m[2] + m[3])) continue;   // abbreviations such as TV
+      n.nodeValue = m[1] + m[2].toLowerCase() + m[3];
+    }
+  }
   function onMut() {
     var sheet = document.querySelector('.ms-ov .ms-sheet');
     if (!sheet) { G = null; return; }
+    try { lowerTiles(sheet); } catch (e) { }
     if (!refresh(sheet)) finish();
   }
   function start() { var OPT = { subtree: true, childList: true, attributes: true, attributeFilter: ['class'] }, mo = new MutationObserver(function () { mo.disconnect(); try { onMut(); } catch (e) { } mo.observe(document.body, OPT); });   // our own changes never re-trigger us
