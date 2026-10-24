@@ -13,6 +13,16 @@
       o.connect(g); g.connect(c.destination); o.start(t); o.stop(t + dur + 0.02); } catch (e) { }
   }
   var PENTA = [0, 2, 4, 7, 9, 12];
+  // wake the audio on any tap, so the opening splash can be heard (iPad only allows sound after a tap)
+  try { document.addEventListener('pointerdown', function () { ac(); }, true); } catch (e) { }
+  function later(ms, fn) { setTimeout(function () { try { fn(); } catch (e) { } }, ms); }
+  // the opening splash: a rising whoosh, a run of sparkles, then a bright chime as the title lands
+  function splashSound() {
+    if (!snd()) return;
+    tone('sawtooth', 110, 1100, 0.5, 0.035);
+    [0, 2, 3, 4, 5, 5].forEach(function (n, i) { later(260 + i * 90, function () { var f = 520 * Math.pow(2, PENTA[n] / 12); tone('sine', f, f * 1.5, 0.16, 0.06); }); });
+    later(820, function () { tone('triangle', 880, 880, 0.7, 0.07); tone('sine', 1320, 1320, 0.7, 0.05); tone('sine', 1760, 1760, 0.5, 0.03); });
+  }
   function pop(n) { var f = 520 * Math.pow(2, PENTA[Math.min(n || 0, 5)] / 12); tone('sine', f, f * 1.7, 0.11, 0.07); }
   function dull() { tone('triangle', 190, 120, 0.14, 0.05); }
   function cheer() { tone('sine', 660, 990, 0.14, 0.06); setTimeout(function () { tone('sine', 880, 1320, 0.18, 0.06); }, 120); }
@@ -98,7 +108,14 @@
     updateRace(sheet, tm, G.total, done);
     return true;
   }
-  function hero(sheet, src, win) { var h = document.createElement('div'); h.className = 'mfx-hero' + (win ? ' win' : ''); h.setAttribute('aria-hidden', 'true'); h.style.backgroundImage = 'url(' + src + ')'; sheet.insertBefore(h, sheet.firstChild); }
+  function hero(sheet, src, win) { var h = document.createElement('div'); h.className = 'mfx-hero' + (win ? ' win' : ''); h.setAttribute('aria-hidden', 'true'); h.style.backgroundImage = 'url(' + src + ')'; try { sheet.style.setProperty('--mfx-bg', 'url(' + src + ')'); } catch (e) { } for (var k = 0; k < (win ? 22 : 14); k++) { var s = document.createElement('i'); s.style.left = (4 + Math.random() * 92) + '%'; s.style.top = (6 + Math.random() * 78) + '%'; s.style.animationDelay = (Math.random() * 3.2).toFixed(2) + 's'; s.style.animationDuration = (2.2 + Math.random() * 2.4).toFixed(2) + 's'; h.appendChild(s); } sheet.insertBefore(h, sheet.firstChild);
+    if (!win) {
+      var v = document.createElement('div'); v.className = 'mfx-intro'; v.setAttribute('aria-hidden', 'true'); v.style.backgroundImage = 'url(' + src + ')';
+      v.innerHTML = '<b>&#129513; Match!</b><small>Race the clock</small>';
+      for (var q = 0; q < 26; q++) { var d = document.createElement('i'), an = Math.random() * 6.283, r = 90 + Math.random() * 260; d.style.setProperty('--dx', Math.round(Math.cos(an) * r) + 'px'); d.style.setProperty('--dy', Math.round(Math.sin(an) * r) + 'px'); d.style.animationDelay = (Math.random() * 0.5).toFixed(2) + 's'; v.appendChild(d); }
+      sheet.appendChild(v); splashSound(); setTimeout(function () { try { if (v.parentNode) v.parentNode.removeChild(v); } catch (e) { } }, 2500);
+    }
+  }
   function finish() {
     var sheet = document.querySelector('.ms-ov .ms-sheet'); if (!sheet) return;
     var big = sheet.querySelector('.ms-big'), h2 = sheet.querySelector('h2');
