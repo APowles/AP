@@ -4,7 +4,7 @@
 <script id="ap-update">
 /* AP auto-update: if this copy is older than the published version, reload once with the new one (saved answers are kept) */
 (function () {
-  var B = '0d610a66a7'; window.AP_BUILD = B;
+  var B = '9bf3feb175'; window.AP_BUILD = B;
   function check() {
     if (!/^https?:$/.test(location.protocol) || !window.fetch) return;
     var f = decodeURIComponent(location.pathname.split('/').pop() || '');
@@ -50133,5 +50133,261 @@ function mlfLeisureStart(deck) {
   }
   window.addEventListener('hashchange', go);
   if (document.readyState === 'complete') setTimeout(go, 300); else window.addEventListener('load', function () { setTimeout(go, 300); });
+})();
+</script>
+<style id="ap-myset-css">
+.ms-panel{margin:14px 0 4px;padding:12px 14px;border:1.5px solid #c9a84c;border-radius:12px;background:#fffdf5}
+.ms-ttl{font-family:'Playfair Display',serif;font-size:1.125rem;font-weight:700;color:#1a2744;display:flex;gap:8px;align-items:baseline;flex-wrap:wrap}
+.ms-ttl small{font-family:'DM Sans',sans-serif;font-size:.875rem;font-weight:600;color:#6b7690}
+.ms-row{display:flex;flex-wrap:wrap;gap:8px;margin-top:10px}
+.ms-note{font-size:.875rem;color:#4a5570;margin-top:8px;line-height:1.4}
+.ms-ov{position:fixed;inset:0;z-index:11500;background:rgba(11,18,38,.72);display:flex;align-items:flex-start;justify-content:center;overflow:auto;-webkit-overflow-scrolling:touch;padding:18px 12px;font-family:'DM Sans',sans-serif}
+.ms-sheet{background:#fff;border-radius:16px;width:100%;max-width:760px;padding:18px 20px 22px;color:#1a2744;box-shadow:0 12px 40px rgba(0,0,0,.35)}
+.ms-head{display:flex;justify-content:space-between;align-items:center;gap:10px;margin-bottom:10px}
+.ms-head h2{font-family:'Playfair Display',serif;font-size:1.375rem;margin:0}
+.ms-x{border:0;background:#eef0f6;border-radius:10px;width:44px;height:44px;font-size:1.25rem;cursor:pointer;color:#1a2744}
+.ms-bar{height:6px;border-radius:3px;background:#e4e8f1;margin:6px 0 14px;overflow:hidden}.ms-bar>div{height:100%;background:#c9a84c}
+.ms-big{font-size:1.5rem;font-weight:600;text-align:center;margin:10px 0;line-height:1.35}
+.ms-in{width:100%;box-sizing:border-box;font:inherit;font-size:1.25rem;padding:12px 14px;border:2px solid #c9d0e0;border-radius:12px;margin:8px 0;-webkit-appearance:none}
+.ms-in:focus{outline:none;border-color:#c9a84c}
+.ms-ans{font-size:1.375rem;font-weight:600;text-align:center;margin:12px 0;line-height:1.5}
+.ms-w.ok{color:#1f8a4c}.ms-w.acc{color:#c77d00;text-decoration:underline wavy}.ms-w.no{color:#c0392b;text-decoration:underline}
+.ms-b{font:inherit;font-weight:600;border:1.5px solid #c9d0e0;background:#fff;color:#1a2744;border-radius:12px;padding:12px 16px;min-height:48px;cursor:pointer}
+.ms-b.pri{background:#1a2744;color:#fff;border-color:#1a2744}
+.ms-b.on{background:#1a2744;color:#c9a84c;border-color:#1a2744}
+.ms-b.sm{min-height:40px;padding:8px 12px;font-size:.9375rem}
+.ms-cen{display:flex;gap:10px;justify-content:center;flex-wrap:wrap;margin:8px 0}
+.ms-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.ms-t{font:inherit;font-size:1rem;font-weight:600;line-height:1.3;padding:10px 8px;min-height:62px;border:2px solid #c9d0e0;border-radius:12px;background:#f6f8fc;color:#1a2744;cursor:pointer;display:flex;align-items:center;justify-content:center;text-align:center;touch-action:manipulation}
+.ms-t.sel{border-color:#c9a84c;background:#fff6d8}.ms-t.done{background:#e3f4ea;border-color:#1f8a4c;color:#1f8a4c;opacity:.55;pointer-events:none}.ms-t.bad{background:#fbe3df;border-color:#c0392b}
+.ms-time{font-size:1.5rem;font-weight:700;color:#1a2744;text-align:center;margin:0 0 10px}
+.ms-list{border-top:1px solid #e4e8f1;margin-top:8px}
+.ms-li{display:grid;grid-template-columns:1fr auto;gap:6px 10px;align-items:center;padding:9px 2px;border-bottom:1px solid #eef0f6}
+.ms-li .e{font-size:.8125rem;color:#6b7690}.ms-li .f{font-weight:600}
+.ms-lv{border:1.5px solid #c9d0e0;background:#fff;border-radius:999px;padding:6px 12px;font:inherit;font-size:.8125rem;font-weight:700;min-height:40px;cursor:pointer}
+.ms-lv.l3{border-color:#c0392b;color:#c0392b}.ms-lv.l2{border-color:#c77d00;color:#c77d00}.ms-lv.l1{border-color:#1f8a4c;color:#1f8a4c}
+.ms-ta{width:100%;box-sizing:border-box;font:inherit;font-size:.875rem;padding:10px;border:1.5px solid #c9d0e0;border-radius:10px;min-height:110px}
+</style>
+<script id="ap-myset">
+(function () {
+  'use strict';
+  var KEY = 'apvv_myset_v1', BEST = 'apvv_match_best', MY = 'My set';
+  var S = { c: {}, due: {}, f: 'all' }, note = '';
+  try { var raw = JSON.parse(localStorage.getItem(KEY) || 'null'); if (raw && raw.c) S = { c: raw.c, due: raw.due || {}, f: raw.f || 'all' }; } catch (e) { }
+  function save() { try { localStorage.setItem(KEY, JSON.stringify(S)); } catch (e) { } }
+  function today() { var d = new Date(); return Math.floor((d.getTime() - d.getTimezoneOffset() * 60000) / 864e5); }
+  function plain(s) { return String(s == null ? '' : s).replace(/<[^>]+>/g, '').replace(/\*\*/g, '').replace(/&nbsp;/g, ' ').replace(/\s+/g, ' ').trim(); }
+  function h53(str) { var h1 = 0xdeadbeef, h2 = 0x41c6ce57; for (var i = 0, c; i < str.length; i++) { c = str.charCodeAt(i); h1 = Math.imul(h1 ^ c, 2654435761); h2 = Math.imul(h2 ^ c, 1597334677); } h1 = Math.imul(h1 ^ (h1 >>> 16), 2246822507) ^ Math.imul(h2 ^ (h2 >>> 13), 3266489909); h2 = Math.imul(h2 ^ (h2 >>> 16), 2246822507) ^ Math.imul(h1 ^ (h1 >>> 13), 3266489909); return 4294967296 * (2097151 & h2) + (h1 >>> 0); }
+  function hid(en, fr) { return (h53(en + '|' + fr) % 2821109907456).toString(36).padStart(8, '0'); }
+  var IDX = null;
+  function index() { if (IDX) return IDX; IDX = {}; Object.keys(VV_DATA).forEach(function (k) { if (k === MY || !Array.isArray(VV_DATA[k])) return; VV_DATA[k].forEach(function (p) { if (!p || p.length < 2) return; var id = hid(p[0], p[1]); if (!IDX[id]) IDX[id] = p; }); }); return IDX; }
+  function ids() { return Object.keys(S.c); }
+  function dueNow(id) { var d = S.due[id]; return !!(d && d.d != null && d.d <= today()); }
+  function dueCount() { return ids().filter(dueNow).length; }
+  function list() {
+    var ix = index(), f = S.f;
+    return ids().filter(function (id) {
+      if (!ix[id]) return false;
+      var l = S.c[id].l || 2;
+      return f === 'all' || (f === '3' && l === 3) || (f === '23' && l >= 2) || (f === 'due' && dueNow(id));
+    }).map(function (id) { return ix[id]; });
+  }
+  function rebuild() { VV_DATA[MY] = list(); }
+  function setFilter(f) { S.f = f; save(); rebuild(); window.renderIntro(); }
+  function add(en, fr, lvl) { var id = hid(en, fr), o = S.c[id]; S.c[id] = { l: Math.max(o ? o.l || 1 : 1, lvl) }; if (!S.due[id]) S.due[id] = { b: 0, d: today() + 1 }; }
+  function mark(card, res) {
+    if (!card) return; var en = card.en != null ? card.en : card[0], fr = card.fr != null ? card.fr : card[1]; if (en == null || fr == null) return;
+    var id = hid(en, fr);
+    if (res === 'bad') { S.c[id] = { l: 3 }; S.due[id] = { b: 0, d: today() + 1 }; }
+    else if (res === 'near') { var o = S.c[id]; S.c[id] = { l: Math.max(o ? o.l || 1 : 1, 2) }; if (!o || !S.due[id]) S.due[id] = { b: 0, d: today() + 1 }; }
+    else if (res === 'ok' && S.c[id] && dueNow(id)) { var b = (S.due[id].b || 0) + 1; S.due[id] = b >= 3 ? { b: 3, d: null } : { b: b, d: today() + [1, 3, 7][b] }; }
+    save(); rebuild();
+  }
+  window.apMySetMark = mark;
+  rebuild();
+
+  // ---- hooks into the existing drill
+  var mE = window.markError, mN = window.markNearly, mC = window.markCorrect;
+  window.markError = function () { try { if (isDrilling) mark(deck[currentIndex], 'bad'); } catch (e) { } return mE.apply(this, arguments); };
+  window.markNearly = function () { try { if (isDrilling) mark(deck[currentIndex], 'near'); } catch (e) { } return mN.apply(this, arguments); };
+  window.markCorrect = function () { try { if (isDrilling) mark(deck[currentIndex], 'ok'); } catch (e) { } return mC.apply(this, arguments); };
+  var gvo = window.getVVOptions;
+  window.getVVOptions = function (only, selKey) {
+    var s = gvo.apply(this, arguments);
+    if (only !== 'VV') return s;
+    return '<option value="' + MY + '"' + (MY === (selKey || currentVV) ? ' selected' : '') + '>★ My set (' + ids().length + ')</option>' + s;
+  };
+  var ri = window.renderIntro;
+  window.renderIntro = function () {
+    rebuild(); ri.apply(this, arguments);
+    var c = document.getElementById('drillContainer'); if (!c) return;
+    var card = c.querySelector('.intro-card'); if (!card || card.querySelector('.ms-panel')) return;
+    var on = currentVV === MY, n = ids().length, dc = dueCount();
+    var fl = [['all', 'All'], ['3', 'Hard only'], ['23', 'Tricky + hard'], ['due', 'Due today (' + dc + ')']];
+    var p = document.createElement('div'); p.className = 'ms-panel';
+    p.innerHTML = '<div class="ms-ttl">★ My set <small>' + n + ' card' + (n === 1 ? '' : 's') + (dc ? ' · ' + dc + ' due today' : '') + '</small></div>'
+      + '<div class="ms-row"><button class="ms-b sm' + (on ? ' on' : ' pri') + '" onclick="apMySetUse()">' + (on ? '✓ Practising My set' : '▶ Practise My set') + '</button>'
+      + '<button class="ms-b sm" onclick="apMySetEdit()">✎ Edit</button><button class="ms-b sm" onclick="apMySetLink()">🔗 Save my set</button></div>'
+      + (on ? '<div class="ms-row">' + fl.map(function (x) { return '<button class="ms-b sm' + (S.f === x[0] ? ' on' : '') + '" onclick="apMySetFilter(\'' + x[0] + '\')">' + x[1] + '</button>'; }).join('') + '</div>' : '')
+      + '<div class="ms-note">' + (note ? '<b>' + note + '</b> ' : '') + (n ? 'Cards you mark ✗ or ~ join automatically. Drill, Speed, Generate test, Spell and Match all work on it.' : 'Empty so far. Cards you mark ✗ or ~ in a drill join automatically, and you can add cards by hand with Edit.') + '</div>';
+    var ban = card.querySelector('.aph-banner'); if (ban) ban.insertAdjacentElement('afterend', p); else card.insertBefore(p, card.children[1] || null);
+    var tools = card.querySelector('.aph-tools');
+    if (tools) tools.insertAdjacentHTML('afterend', '<div class="aph-tools" style="grid-template-columns:repeat(2,minmax(0,1fr));margin-top:8px"><button class="aph-btn" onclick="apSpell()">✍ Spell (dictée)</button><button class="aph-btn" onclick="apMatch()">🧩 Match</button></div>');
+  };
+  window.apMySetUse = function () { currentVV = MY; if (typeof vvKeepRecognitionFrToEn === 'function') vvKeepRecognitionFrToEn(); window.renderIntro(); };
+  window.apMySetFilter = setFilter;
+
+  // ---- overlays
+  var keyH = null;
+  function ov(inner) { closeOv(); var o = document.createElement('div'); o.className = 'ms-ov'; o.id = 'ms-ov'; o.innerHTML = '<div class="ms-sheet">' + inner + '</div>'; document.body.appendChild(o); document.documentElement.style.overflow = 'hidden'; return o.firstChild; }
+  function closeOv() { var o = document.getElementById('ms-ov'); if (o) o.remove(); document.documentElement.style.overflow = ''; if (keyH) { window.removeEventListener('keydown', keyH, true); keyH = null; } if (mt) { clearInterval(mt); mt = null; } try { speechSynthesis.cancel(); } catch (e) { } }
+  window.apMsClose = function () { closeOv(); refreshIntro(); };
+  function refreshIntro() { var c = document.querySelector('#drillContainer .intro-card'); if (c) { rebuild(); window.renderIntro(); } }
+  function head(t, sub) { return '<div class="ms-head"><h2>' + t + '</h2><button class="ms-x" onclick="apMsClose()" aria-label="Close">✕</button></div>' + (sub ? '<div class="ms-note" style="margin:0 0 8px">' + sub + '</div>' : ''); }
+  function keys(fn) { keyH = function (e) { if (e.key === 'Escape') { apMsClose(); return; } if (fn(e)) { e.preventDefault(); e.stopImmediatePropagation(); } else if (/^Arrow(Left|Right|Down)$/.test(e.key)) e.stopImmediatePropagation(); }; window.addEventListener('keydown', keyH, true); }
+  function shuffle(a) { a = a.slice(); for (var i = a.length - 1; i > 0; i--) { var j = Math.floor(Math.random() * (i + 1)), t = a[i]; a[i] = a[j]; a[j] = t; } return a; }
+  function esc(s) { return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/"/g, '&quot;'); }
+
+  // ---- Edit My set
+  var edSet = null;
+  window.apMySetEdit = function () { edSet = null; editView(); };
+  function editView() {
+    var ix = index(), rows = ids().filter(function (id) { return ix[id]; }).sort(function (a, b) { return (S.c[b].l || 2) - (S.c[a].l || 2); });
+    var lv = { 1: 'Easier', 2: 'Tricky', 3: 'Hard' };
+    var html = head('✎ My set', 'Tap a level to change it. ✕ takes a card out. ' + rows.length + ' cards.')
+      + '<div class="ms-row" style="margin:0 0 8px"><select id="ms-addsel" class="aph-select" style="max-width:100%">' + gvo('ALL', edSet || currentVV).replace('value="' + MY + '"', 'value="x"') + '</select><button class="ms-b sm" onclick="apMsAddFrom()">+ Add cards from this set</button></div>'
+      + '<div id="ms-addbox"></div><div class="ms-list">'
+      + (rows.length ? rows.map(function (id) { var p = ix[id], l = S.c[id].l || 2; return '<div class="ms-li"><div><div class="f">' + p[1] + '</div><div class="e">' + p[0] + '</div></div><div style="display:flex;gap:6px"><button class="ms-lv l' + l + '" onclick="apMsLv(\'' + id + '\')">' + lv[l] + '</button><button class="ms-lv" onclick="apMsDel(\'' + id + '\')" aria-label="Remove">✕</button></div></div>'; }).join('') : '<div class="ms-note">No cards yet.</div>') + '</div>';
+    var sh = ov(html); var o = document.getElementById('ms-ov'); keys(function () { return false; });
+    if (edSet) { var sel = document.getElementById('ms-addsel'); if (sel) sel.value = edSet; showAdd(); }
+  }
+  window.apMsLv = function (id) { var l = S.c[id].l || 2; S.c[id].l = l === 3 ? 1 : l + 1; save(); rebuild(); var y = document.getElementById('ms-ov').scrollTop; editView(); document.getElementById('ms-ov').scrollTop = y; };
+  window.apMsDel = function (id) { delete S.c[id]; delete S.due[id]; save(); rebuild(); var y = document.getElementById('ms-ov').scrollTop; editView(); document.getElementById('ms-ov').scrollTop = y; };
+  window.apMsAddFrom = function () { edSet = document.getElementById('ms-addsel').value; showAdd(); };
+  function showAdd() {
+    var box = document.getElementById('ms-addbox'); if (!box || !edSet || !VV_DATA[edSet]) return;
+    box.innerHTML = '<div class="ms-list" style="border-color:#c9a84c;margin-bottom:12px">' + VV_DATA[edSet].map(function (p) { var id = hid(p[0], p[1]), has = !!S.c[id]; return '<div class="ms-li"><div><div class="f">' + p[1] + '</div><div class="e">' + p[0] + '</div></div><button class="ms-lv" ' + (has ? 'disabled style="opacity:.5"' : 'onclick="apMsAdd(\'' + id + '\')"') + '>' + (has ? 'In set' : '+ Add') + '</button></div>'; }).join('') + '</div>';
+  }
+  window.apMsAdd = function (id) { var p = index()[id]; if (!p) return; S.c[id] = { l: 3 }; S.due[id] = { b: 0, d: today() + 1 }; save(); rebuild(); var y = document.getElementById('ms-ov').scrollTop; editView(); document.getElementById('ms-ov').scrollTop = y; };
+
+  // ---- Save / open link
+  function linkText() { return location.href.replace(/[#?].*$/, '') + '#myset=' + ids().map(function (id) { return id + (S.c[id].l || 2); }).join(''); }
+  window.apMySetLink = function () {
+    var n = ids().length;
+    ov(head('🔗 Save my set') + (n ? '<p class="ms-note" style="font-size:1rem">Paste this link into OneNote. Opening it, on any device, brings back these ' + n + ' cards. It is also kept on this iPad automatically.</p><textarea id="ms-link" class="ms-ta" readonly>' + esc(linkText()) + '</textarea><div class="ms-cen"><button class="ms-b pri" onclick="apMsCopy()">Copy link</button></div><div class="ms-note" id="ms-copied" style="text-align:center"></div>' : '<p class="ms-note" style="font-size:1rem">Nothing to save yet. Mark some cards ✗ or ~ in a drill, or add cards with Edit.</p>'));
+    keys(function () { return false; });
+    var t = document.getElementById('ms-link'); if (t) { t.focus(); t.select(); }
+  };
+  window.apMsCopy = function () {
+    var t = document.getElementById('ms-link'), m = document.getElementById('ms-copied'); t.focus(); t.select();
+    var done = function () { m.textContent = 'Copied. Now paste it into OneNote.'; };
+    try { if (navigator.clipboard && navigator.clipboard.writeText) { navigator.clipboard.writeText(t.value).then(done, function () { document.execCommand('copy'); done(); }); return; } } catch (e) { }
+    try { document.execCommand('copy'); done(); } catch (e) { m.textContent = 'Press and hold the link, then choose Copy.'; }
+  };
+  function openFromHash() {
+    var m = /^#myset=([0-9a-z]*)/.exec(location.hash || ''); if (!m) return;
+    var s = m[1], got = 0, miss = 0, ix = index();
+    for (var i = 0; i + 9 <= s.length; i += 9) { var id = s.substr(i, 8), l = parseInt(s.charAt(i + 8), 10); if (!(l >= 1 && l <= 3)) l = 2; if (!ix[id]) { miss++; continue; } var o = S.c[id]; S.c[id] = { l: Math.max(o ? o.l || 1 : 1, l) }; if (!S.due[id]) S.due[id] = { b: 0, d: today() }; got++; }
+    S.f = 'all'; save(); rebuild();
+    note = got + ' card' + (got === 1 ? '' : 's') + ' loaded' + (miss ? ' (' + miss + ' no longer in the list)' : '') + '.';
+    try { if (typeof switchMode === 'function') switchMode('vv'); } catch (e) { }
+    currentVV = MY; try { vvKeepRecognitionFrToEn(); } catch (e) { }
+    window.renderIntro();
+  }
+  if (document.readyState === 'complete') setTimeout(openFromHash, 400); else window.addEventListener('load', function () { setTimeout(openFromHash, 400); });
+  window.addEventListener('hashchange', openFromHash);
+
+  // ---- Spell (dictée)
+  var sp = null;
+  function pickPool() { var pool = getPool(); if (!pool.length) { showMessage(currentVV === MY ? 'My set is empty for this filter.' : 'No phrases available.'); return null; } var n = (typeof _selectedCount === 'number' && _selectedCount > 0) ? Math.min(_selectedCount, pool.length) : pool.length; return { pool: pool, n: n }; }
+  window.apSpell = function () {
+    var p = pickPool(); if (!p) return;
+    sp = { d: shuffle(p.pool).slice(0, p.n), i: 0, ok: 0, near: 0, bad: 0, miss: [], rev: false, label: vvSetLabel(currentVV) };
+    spCard();
+  };
+  function spCard() {
+    if (sp.i >= sp.d.length) return spEnd();
+    var c = sp.d[sp.i]; sp.rev = false;
+    ov(head('✍ Spell · dictée', sp.label + ' · card ' + (sp.i + 1) + ' of ' + sp.d.length) + '<div class="ms-bar"><div style="width:' + Math.round(sp.i / sp.d.length * 100) + '%"></div></div>'
+      + '<div class="ms-cen"><button class="ms-b pri" onclick="apSpListen()">🔊 Listen</button><button class="ms-b" id="ms-hint" onclick="apSpHint()">Show meaning</button></div>'
+      + '<div class="ms-big" id="ms-mean" style="display:none;font-weight:500;color:#4a5570">' + c.en + '</div>'
+      + '<input id="ms-in" class="ms-in" type="text" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false" lang="fr" placeholder="Type what you hear (or write it on paper)">'
+      + '<div class="ms-cen"><button class="ms-b pri" onclick="apSpCheck()">Check</button></div><div id="ms-res"></div>');
+    keys(function (e) {
+      if (!sp.rev) { if (e.key === 'Enter') { apSpCheck(); return true; } return false; }
+      if (e.key === 'ArrowLeft') { apSpMark('bad'); return true; } if (e.key === 'ArrowDown') { apSpMark('near'); return true; } if (e.key === 'ArrowRight' || e.key === 'Enter') { apSpMark('ok'); return true; }
+      return false;
+    });
+    apSpListen(); var i = document.getElementById('ms-in'); if (i) setTimeout(function () { try { i.focus(); } catch (e) { } }, 50);
+  }
+  window.apSpListen = function () { var c = sp.d[sp.i]; speak(c.fr, 'fr'); };
+  window.apSpHint = function () { var m = document.getElementById('ms-mean'); m.style.display = m.style.display === 'none' ? 'block' : 'none'; };
+  function norm(s) { return plain(s).replace(/[’‘`]/g, "'").replace(/\s+([,.;:!?])/g, '$1').toLowerCase(); }
+  function noacc(s) { return s.normalize('NFD').replace(/[̀-ͯ]/g, ''); }
+  window.apSpCheck = function () {
+    if (sp.rev) return; sp.rev = true;
+    var c = sp.d[sp.i], typed = norm(document.getElementById('ms-in').value), ans = plain(c.fr).replace(/[’‘`]/g, "'"), tw = typed ? typed.split(/\s+/) : [], bad = 0, acc = 0;
+    var words = ans.split(/\s+/).map(function (w) {
+      var k = w.toLowerCase(); if (!tw.length) return '<span class="ms-w">' + esc(w) + '</span>';
+      if (tw.indexOf(k) >= 0) return '<span class="ms-w ok">' + esc(w) + '</span>';
+      var kw = k.replace(/[,.;:!?]+$/, ''); if (tw.indexOf(kw) >= 0 || tw.indexOf(k.replace(/^[(«]+/, '')) >= 0) return '<span class="ms-w ok">' + esc(w) + '</span>';
+      if (tw.some(function (t) { return noacc(t) === noacc(k) || noacc(t) === noacc(kw); })) { acc++; return '<span class="ms-w acc">' + esc(w) + '</span>'; }
+      bad++; return '<span class="ms-w no">' + esc(w) + '</span>';
+    }).join(' ');
+    var msg = !tw.length ? '' : (!bad && !acc && tw.length === ans.split(/\s+/).length ? 'Every word right, accents included.' : (acc ? acc + ' accent slip' + (acc > 1 ? 's' : '') + ' (wavy orange). ' : '') + (bad ? bad + ' word' + (bad > 1 ? 's' : '') + ' wrong or missing (red).' : ''));
+    document.getElementById('ms-res').innerHTML = '<div class="ms-ans">' + words + '</div>' + (msg ? '<div class="ms-note" style="text-align:center;font-size:1rem">' + msg + '</div>' : '') + '<div class="ms-note" style="text-align:center">' + c.en + '</div>'
+      + '<div class="aph-mark" style="margin-top:12px"><button class="aph-mark-btn bad" onclick="apSpMark(\'bad\')">✗ Major error<small>← key</small></button><button class="aph-mark-btn near" onclick="apSpMark(\'near\')">~ Nearly<small>↓ key</small></button><button class="aph-mark-btn ok" onclick="apSpMark(\'ok\')">✓ Got it<small>→ key</small></button></div>';
+    var i = document.getElementById('ms-in'); if (i) i.blur();
+  };
+  window.apSpMark = function (r) {
+    var c = sp.d[sp.i]; mark(c, r); sp[r === 'ok' ? 'ok' : r]++; if (r !== 'ok') sp.miss.push(c); sp.i++; spCard();
+  };
+  function spEnd() {
+    var n = sp.d.length;
+    ov(head('✍ Spell · done') + '<div class="ms-big">' + sp.ok + ' of ' + n + ' got it</div><div class="ms-note" style="text-align:center;font-size:1rem">' + sp.near + ' nearly · ' + sp.bad + ' major error' + (sp.bad === 1 ? '' : 's') + (sp.miss.length ? ' · ' + sp.miss.length + ' added to My set' : '') + '</div>'
+      + (sp.miss.length ? '<div class="ms-list">' + sp.miss.map(function (c) { return '<div class="ms-li"><div><div class="f">' + c.fr + '</div><div class="e">' + c.en + '</div></div></div>'; }).join('') + '</div>' : '')
+      + '<div class="ms-cen" style="margin-top:14px"><button class="ms-b pri" onclick="apSpell()">↻ Again</button><button class="ms-b" onclick="apMsClose()">Close</button></div>');
+    keys(function () { return false; });
+  }
+
+  // ---- Match
+  var mt = null, mm = null;
+  window.apMatch = function () {
+    var pool = getPool(), seen = {}, u = [];
+    pool.forEach(function (c) { var k = plain(c.en).toLowerCase(), f = plain(c.fr).toLowerCase(); if (seen[k] || seen[f]) return; seen[k] = seen[f] = 1; u.push(c); });
+    if (u.length < 3) { showMessage('Match needs at least 3 different cards in the set.'); return; }
+    var d = shuffle(u).slice(0, 10);
+    mm = { d: d, en: shuffle(d.map(function (_, i) { return i; })), fr: shuffle(d.map(function (_, i) { return i; })), sel: null, done: 0, pen: 0, t0: 0, label: vvSetLabel(currentVV) };
+    var rows = d.length;
+    ov(head('🧩 Match', mm.label + ' · tap an English card, then its French') + '<div class="ms-time" id="ms-time">0.0 s</div><div class="ms-grid">'
+      + '<div style="display:grid;gap:10px">' + mm.en.map(function (i) { return '<button class="ms-t" id="ms-e' + i + '" onclick="apMatchTap(\'e\',' + i + ')">' + plain(d[i].en) + '</button>'; }).join('') + '</div>'
+      + '<div style="display:grid;gap:10px">' + mm.fr.map(function (i) { return '<button class="ms-t" id="ms-f' + i + '" onclick="apMatchTap(\'f\',' + i + ')">' + plain(d[i].fr) + '</button>'; }).join('') + '</div></div>'
+      + '<div class="ms-note" id="ms-mnote" style="text-align:center">A wrong pair adds 3 seconds.</div>');
+    keys(function () { return false; });
+    mt = setInterval(function () { if (!mm.t0) return; var t = (Date.now() - mm.t0) / 1000 + mm.pen; var el = document.getElementById('ms-time'); if (el) el.textContent = t.toFixed(1) + ' s'; }, 100);
+  };
+  window.apMatchTap = function (side, i) {
+    if (!mm.t0) mm.t0 = Date.now();
+    var el = document.getElementById('ms-' + side + i); if (!el || el.classList.contains('done')) return;
+    if (side === 'f') { try { speak(mm.d[i].fr, 'fr'); } catch (e) { } }
+    if (!mm.sel || mm.sel.side === side) { if (mm.sel) { var o = document.getElementById('ms-' + mm.sel.side + mm.sel.i); if (o) o.classList.remove('sel'); } mm.sel = { side: side, i: i }; el.classList.add('sel'); return; }
+    var a = mm.sel; mm.sel = null; var ae = document.getElementById('ms-' + a.side + a.i); var ei = side === 'e' ? i : a.i, fi = side === 'f' ? i : a.i;
+    if (ei === fi) {
+      ae.classList.remove('sel'); ae.classList.add('done'); el.classList.add('done'); mm.done++;
+      if (mm.done === mm.d.length) matchEnd();
+    } else {
+      mm.pen += 3; ae.classList.remove('sel'); ae.classList.add('bad'); el.classList.add('bad');
+      setTimeout(function () { ae.classList.remove('bad'); el.classList.remove('bad'); }, 600);
+    }
+  };
+  function matchEnd() {
+    clearInterval(mt); mt = null; var t = (Date.now() - mm.t0) / 1000 + mm.pen, best = null, nb = false;
+    if (mm.d.length === 10) { try { best = parseFloat(localStorage.getItem(BEST)); if (isNaN(best) || t < best) { localStorage.setItem(BEST, String(t)); nb = best != null && !isNaN(best); best = t; } } catch (e) { } }
+    setTimeout(function () {
+      ov(head('🧩 Match · done') + '<div class="ms-big">' + t.toFixed(1) + ' seconds</div><div class="ms-note" style="text-align:center;font-size:1rem">' + (mm.pen ? (mm.pen / 3) + ' wrong pair' + (mm.pen === 3 ? '' : 's') + ' (+' + mm.pen + ' s). ' : 'No wrong pairs. ') + (best != null ? (nb ? 'New best time! ' : '') + 'Best on this iPad: ' + best.toFixed(1) + ' s.' : '') + '</div>'
+        + '<div class="ms-cen" style="margin-top:14px"><button class="ms-b pri" onclick="apMatch()">↻ Another 10</button><button class="ms-b" onclick="apMsClose()">Close</button></div>');
+      keys(function () { return false; });
+    }, 500);
+  }
 })();
 </script>
