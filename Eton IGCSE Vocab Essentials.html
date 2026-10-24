@@ -4,7 +4,7 @@
 <script id="ap-update">
 /* AP auto-update: if this copy is older than the published version, reload once with the new one (saved answers are kept) */
 (function () {
-  var B = '1431fbbb18'; window.AP_BUILD = B;
+  var B = '5b84787310'; window.AP_BUILD = B;
   function check() {
     if (!/^https?:$/.test(location.protocol) || !window.fetch) return;
     var f = decodeURIComponent(location.pathname.split('/').pop() || '');
@@ -10196,6 +10196,15 @@ window.__voc.speedTest = function (kind, lang, secs, rev, mode, lv, mx) {
   ['updatePhraseCount', 'setVocabMode', 'renderIntro', 'setMix', 'onLangChange', 'swapLangs', 'veSetCount', 'adjustTimer', 'toggleAutotime'].forEach(function (n) {
     wrap(n, function (o, a) { var r = o.apply(this, a); try { refresh(); } catch (e) { } return r; });
   });
+
+  // Back from a drill / Leisure returns to the set-up with the chosen list kept (not a page reload)
+  window.aphBackHook = function () {
+    try {
+      var o = $('ms-ov'); if (o) { apMsClose(); return true; }
+      var a = $('app'); if (a && SEL && a.querySelector('.aph-dbar,.aph-qcard,.aph-results,.lz-card')) { window.renderIntro(); window.scrollTo(0, 0); return true; }
+    } catch (e) { }
+    return false;
+  };
 
   window.apMySetUse = function () {
     SEL = 'my'; note = '';
