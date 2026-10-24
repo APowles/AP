@@ -72,6 +72,7 @@
       b.onclick = function () { var v = !snd(); setSnd(v); b.textContent = v ? '🔊' : '🔇'; if (v) pop(0); }; sheet.appendChild(b); }
     if (!sheet.querySelector('.mfx-tts')) { var vb = document.createElement('button'); vb.className = 'mfx-tts'; vb.type = 'button'; vb.textContent = tts() ? '🗣 Voice on' : '🗣 Voice off';
       vb.onclick = function () { var v = !tts(); try { localStorage.setItem(TK, v ? 'on' : 'off'); } catch (e) { } vb.textContent = v ? '🗣 Voice on' : '🗣 Voice off'; if (!v) { try { speechSynthesis.cancel(); } catch (e) { } } }; sheet.appendChild(vb); }
+    if (!sheet.querySelector('.mfx-hero')) { if (!G.bg) { var n = 0; try { n = (parseInt(localStorage.getItem('ap_match_bg'), 10) || 0) % 5; localStorage.setItem('ap_match_bg', String(n + 1)); } catch (e) { n = Math.floor(Math.random() * 5); } G.bg = n + 1; } hero(sheet, 'assets/match-bg-' + G.bg + '.jpg', false); }
     buildRace(sheet, tm);
     var sel = sheet.querySelector('.ms-t.sel'), selSide = sel ? (/^(?:ms|ps)-([ef])/.exec(sel.id) || [])[1] : null;
     var fresh = [];
@@ -92,11 +93,13 @@
     updateRace(sheet, tm, G.total, done);
     return true;
   }
+  function hero(sheet, src, win) { var h = document.createElement('div'); h.className = 'mfx-hero' + (win ? ' win' : ''); h.setAttribute('aria-hidden', 'true'); h.style.backgroundImage = 'url(' + src + ')'; sheet.insertBefore(h, sheet.firstChild); }
   function finish() {
     var sheet = document.querySelector('.ms-ov .ms-sheet'); if (!sheet) return;
     var big = sheet.querySelector('.ms-big'), h2 = sheet.querySelector('h2');
     if (!big || big.dataset.mfx || !/Match/.test((h2 || {}).textContent || '') || !/second/.test(big.textContent)) return;
     big.dataset.mfx = 1;
+    if (!sheet.querySelector('.mfx-hero')) hero(sheet, 'assets/match-win.jpg', true);
     var note = big.nextElementSibling, ntxt = (note && note.textContent) || '', nb = /New best/i.test(ntxt), t = parseFloat(big.textContent) || 0;
     var m = /(\d+) wrong pair/.exec(ntxt), wrong = m ? +m[1] : 0, stars = wrong === 0 ? 3 : wrong === 1 ? 2 : 1;
     var sr = document.createElement('div'); sr.className = 'mfx-stars';
