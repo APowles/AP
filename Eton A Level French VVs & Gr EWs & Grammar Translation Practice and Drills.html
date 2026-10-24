@@ -4,7 +4,7 @@
 <script id="ap-update">
 /* AP auto-update: if this copy is older than the published version, reload once with the new one (saved answers are kept) */
 (function () {
-  var B = '9bf3feb175'; window.AP_BUILD = B;
+  var B = '48aa5703ab'; window.AP_BUILD = B;
   function check() {
     if (!/^https?:$/.test(location.protocol) || !window.fetch) return;
     var f = decodeURIComponent(location.pathname.split('/').pop() || '');
@@ -50171,7 +50171,7 @@ function mlfLeisureStart(deck) {
 <script id="ap-myset">
 (function () {
   'use strict';
-  var KEY = 'apvv_myset_v1', BEST = 'apvv_match_best', MY = 'My set';
+  var KEY = 'apvv_myset_v1', BEST = 'apvv_match_best', MY = 'Personalised set';
   var S = { c: {}, due: {}, f: 'all' }, note = '';
   try { var raw = JSON.parse(localStorage.getItem(KEY) || 'null'); if (raw && raw.c) S = { c: raw.c, due: raw.due || {}, f: raw.f || 'all' }; } catch (e) { }
   function save() { try { localStorage.setItem(KEY, JSON.stringify(S)); } catch (e) { } }
@@ -50215,7 +50215,7 @@ function mlfLeisureStart(deck) {
   window.getVVOptions = function (only, selKey) {
     var s = gvo.apply(this, arguments);
     if (only !== 'VV') return s;
-    return '<option value="' + MY + '"' + (MY === (selKey || currentVV) ? ' selected' : '') + '>★ My set (' + ids().length + ')</option>' + s;
+    return '<option value="' + MY + '"' + (MY === (selKey || currentVV) ? ' selected' : '') + '>★ Personalised set (' + ids().length + ')</option>' + s;
   };
   var ri = window.renderIntro;
   window.renderIntro = function () {
@@ -50225,14 +50225,14 @@ function mlfLeisureStart(deck) {
     var on = currentVV === MY, n = ids().length, dc = dueCount();
     var fl = [['all', 'All'], ['3', 'Hard only'], ['23', 'Tricky + hard'], ['due', 'Due today (' + dc + ')']];
     var p = document.createElement('div'); p.className = 'ms-panel';
-    p.innerHTML = '<div class="ms-ttl">★ My set <small>' + n + ' card' + (n === 1 ? '' : 's') + (dc ? ' · ' + dc + ' due today' : '') + '</small></div>'
-      + '<div class="ms-row"><button class="ms-b sm' + (on ? ' on' : ' pri') + '" onclick="apMySetUse()">' + (on ? '✓ Practising My set' : '▶ Practise My set') + '</button>'
-      + '<button class="ms-b sm" onclick="apMySetEdit()">✎ Edit</button><button class="ms-b sm" onclick="apMySetLink()">🔗 Save my set</button></div>'
+    p.innerHTML = '<div class="ms-ttl">★ Personalised set <small>' + n + ' card' + (n === 1 ? '' : 's') + (dc ? ' · ' + dc + ' due today' : '') + '</small></div>'
+      + '<div class="ms-row"><button class="ms-b sm' + (on ? ' on' : ' pri') + '" onclick="apMySetUse()">' + (on ? '✓ Practising my personalised set' : '▶ Practise my personalised set') + '</button>'
+      + '<button class="ms-b sm" onclick="apMySetEdit()">✎ Edit</button><button class="ms-b sm" onclick="apMySetLink()">🔗 Save my personalised set</button></div>'
       + (on ? '<div class="ms-row">' + fl.map(function (x) { return '<button class="ms-b sm' + (S.f === x[0] ? ' on' : '') + '" onclick="apMySetFilter(\'' + x[0] + '\')">' + x[1] + '</button>'; }).join('') + '</div>' : '')
       + '<div class="ms-note">' + (note ? '<b>' + note + '</b> ' : '') + (n ? 'Cards you mark ✗ or ~ join automatically. Drill, Speed, Generate test, Spell and Match all work on it.' : 'Empty so far. Cards you mark ✗ or ~ in a drill join automatically, and you can add cards by hand with Edit.') + '</div>';
     var ban = card.querySelector('.aph-banner'); if (ban) ban.insertAdjacentElement('afterend', p); else card.insertBefore(p, card.children[1] || null);
     var tools = card.querySelector('.aph-tools');
-    if (tools) tools.insertAdjacentHTML('afterend', '<div class="aph-tools" style="grid-template-columns:repeat(2,minmax(0,1fr));margin-top:8px"><button class="aph-btn" onclick="apSpell()">✍ Spell (dictée)</button><button class="aph-btn" onclick="apMatch()">🧩 Match</button></div>');
+    if (tools) tools.insertAdjacentHTML('afterend', '<div class="aph-tools" style="grid-template-columns:repeat(2,minmax(0,1fr));margin-top:8px"><button class="aph-btn" onclick="apSpell()">✍ Dictée</button><button class="aph-btn" onclick="apMatch()">🧩 Match</button></div>');
   };
   window.apMySetUse = function () { currentVV = MY; if (typeof vvKeepRecognitionFrToEn === 'function') vvKeepRecognitionFrToEn(); window.renderIntro(); };
   window.apMySetFilter = setFilter;
@@ -50254,7 +50254,7 @@ function mlfLeisureStart(deck) {
   function editView() {
     var ix = index(), rows = ids().filter(function (id) { return ix[id]; }).sort(function (a, b) { return (S.c[b].l || 2) - (S.c[a].l || 2); });
     var lv = { 1: 'Easier', 2: 'Tricky', 3: 'Hard' };
-    var html = head('✎ My set', 'Tap a level to change it. ✕ takes a card out. ' + rows.length + ' cards.')
+    var html = head('✎ Personalised set', 'Tap a level to change it. ✕ takes a card out. ' + rows.length + ' cards.')
       + '<div class="ms-row" style="margin:0 0 8px"><select id="ms-addsel" class="aph-select" style="max-width:100%">' + gvo('ALL', edSet || currentVV).replace('value="' + MY + '"', 'value="x"') + '</select><button class="ms-b sm" onclick="apMsAddFrom()">+ Add cards from this set</button></div>'
       + '<div id="ms-addbox"></div><div class="ms-list">'
       + (rows.length ? rows.map(function (id) { var p = ix[id], l = S.c[id].l || 2; return '<div class="ms-li"><div><div class="f">' + p[1] + '</div><div class="e">' + p[0] + '</div></div><div style="display:flex;gap:6px"><button class="ms-lv l' + l + '" onclick="apMsLv(\'' + id + '\')">' + lv[l] + '</button><button class="ms-lv" onclick="apMsDel(\'' + id + '\')" aria-label="Remove">✕</button></div></div>'; }).join('') : '<div class="ms-note">No cards yet.</div>') + '</div>';
@@ -50274,7 +50274,7 @@ function mlfLeisureStart(deck) {
   function linkText() { return location.href.replace(/[#?].*$/, '') + '#myset=' + ids().map(function (id) { return id + (S.c[id].l || 2); }).join(''); }
   window.apMySetLink = function () {
     var n = ids().length;
-    ov(head('🔗 Save my set') + (n ? '<p class="ms-note" style="font-size:1rem">Paste this link into OneNote. Opening it, on any device, brings back these ' + n + ' cards. It is also kept on this iPad automatically.</p><textarea id="ms-link" class="ms-ta" readonly>' + esc(linkText()) + '</textarea><div class="ms-cen"><button class="ms-b pri" onclick="apMsCopy()">Copy link</button></div><div class="ms-note" id="ms-copied" style="text-align:center"></div>' : '<p class="ms-note" style="font-size:1rem">Nothing to save yet. Mark some cards ✗ or ~ in a drill, or add cards with Edit.</p>'));
+    ov(head('🔗 Save my personalised set') + (n ? '<p class="ms-note" style="font-size:1rem">Paste this link into OneNote. Opening it, on any device, brings back these ' + n + ' cards. It is also kept on this iPad automatically.</p><textarea id="ms-link" class="ms-ta" readonly>' + esc(linkText()) + '</textarea><div class="ms-cen"><button class="ms-b pri" onclick="apMsCopy()">Copy link</button></div><div class="ms-note" id="ms-copied" style="text-align:center"></div>' : '<p class="ms-note" style="font-size:1rem">Nothing to save yet. Mark some cards ✗ or ~ in a drill, or add cards with Edit.</p>'));
     keys(function () { return false; });
     var t = document.getElementById('ms-link'); if (t) { t.focus(); t.select(); }
   };
@@ -50299,7 +50299,7 @@ function mlfLeisureStart(deck) {
 
   // ---- Spell (dictée)
   var sp = null;
-  function pickPool() { var pool = getPool(); if (!pool.length) { showMessage(currentVV === MY ? 'My set is empty for this filter.' : 'No phrases available.'); return null; } var n = (typeof _selectedCount === 'number' && _selectedCount > 0) ? Math.min(_selectedCount, pool.length) : pool.length; return { pool: pool, n: n }; }
+  function pickPool() { var pool = getPool(); if (!pool.length) { showMessage(currentVV === MY ? 'Personalised set is empty for this filter.' : 'No phrases available.'); return null; } var n = (typeof _selectedCount === 'number' && _selectedCount > 0) ? Math.min(_selectedCount, pool.length) : pool.length; return { pool: pool, n: n }; }
   window.apSpell = function () {
     var p = pickPool(); if (!p) return;
     sp = { d: shuffle(p.pool).slice(0, p.n), i: 0, ok: 0, near: 0, bad: 0, miss: [], rev: false, label: vvSetLabel(currentVV) };
@@ -50308,7 +50308,7 @@ function mlfLeisureStart(deck) {
   function spCard() {
     if (sp.i >= sp.d.length) return spEnd();
     var c = sp.d[sp.i]; sp.rev = false;
-    ov(head('✍ Spell · dictée', sp.label + ' · card ' + (sp.i + 1) + ' of ' + sp.d.length) + '<div class="ms-bar"><div style="width:' + Math.round(sp.i / sp.d.length * 100) + '%"></div></div>'
+    ov(head('✍ Dictée', sp.label + ' · card ' + (sp.i + 1) + ' of ' + sp.d.length) + '<div class="ms-bar"><div style="width:' + Math.round(sp.i / sp.d.length * 100) + '%"></div></div>'
       + '<div class="ms-cen"><button class="ms-b pri" onclick="apSpListen()">🔊 Listen</button><button class="ms-b" id="ms-hint" onclick="apSpHint()">Show meaning</button></div>'
       + '<div class="ms-big" id="ms-mean" style="display:none;font-weight:500;color:#4a5570">' + c.en + '</div>'
       + '<input id="ms-in" class="ms-in" type="text" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false" lang="fr" placeholder="Type what you hear (or write it on paper)">'
@@ -50344,7 +50344,7 @@ function mlfLeisureStart(deck) {
   };
   function spEnd() {
     var n = sp.d.length;
-    ov(head('✍ Spell · done') + '<div class="ms-big">' + sp.ok + ' of ' + n + ' got it</div><div class="ms-note" style="text-align:center;font-size:1rem">' + sp.near + ' nearly · ' + sp.bad + ' major error' + (sp.bad === 1 ? '' : 's') + (sp.miss.length ? ' · ' + sp.miss.length + ' added to My set' : '') + '</div>'
+    ov(head('✍ Dictée · done') + '<div class="ms-big">' + sp.ok + ' of ' + n + ' got it</div><div class="ms-note" style="text-align:center;font-size:1rem">' + sp.near + ' nearly · ' + sp.bad + ' major error' + (sp.bad === 1 ? '' : 's') + (sp.miss.length ? ' · ' + sp.miss.length + ' added to my personalised set' : '') + '</div>'
       + (sp.miss.length ? '<div class="ms-list">' + sp.miss.map(function (c) { return '<div class="ms-li"><div><div class="f">' + c.fr + '</div><div class="e">' + c.en + '</div></div></div>'; }).join('') + '</div>' : '')
       + '<div class="ms-cen" style="margin-top:14px"><button class="ms-b pri" onclick="apSpell()">↻ Again</button><button class="ms-b" onclick="apMsClose()">Close</button></div>');
     keys(function () { return false; });
