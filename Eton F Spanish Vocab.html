@@ -6,7 +6,7 @@
 <script id="ap-update">
 /* AP auto-update: if this copy is older than the published version, reload once with the new one (saved answers are kept) */
 (function () {
-  var B = 'e58acbc610'; window.AP_BUILD = B;
+  var B = '60912c8cb0'; window.AP_BUILD = B;
   function check() {
     if (!/^https?:$/.test(location.protocol) || !window.fetch) return;
     var f = decodeURIComponent(location.pathname.split('/').pop() || '');
@@ -5417,12 +5417,7 @@ function rewireOverviewRows(){
       + '<div style="font-size:0.75rem;color:#8899bb;">Tick sections, units or groups above</div>'
       + '</div>'
       + '<button id="ovClearBtn" onclick="ovClearSelection()" style="padding:9px 14px;border-radius:8px;border:1.5px solid #e2e6f0;background:#fff;color:#4a5a7a;font-size:0.8rem;font-weight:600;cursor:pointer;">Clear</button>'
-      + '<button id="ovDrillBtn" onclick="ovDrill()" style="padding:10px 18px;border-radius:8px;border:none;background:#1a2744;color:#c9a84c;font-size:0.85rem;font-weight:700;cursor:pointer;">&#9654; Drill selection</button>'
-      + '<button id="ovSpeedBtn" onclick="ovSpeed()" style="padding:10px 16px;border-radius:8px;border:none;background:linear-gradient(135deg,#1a2744,#24366a);color:#ffd76a;font-size:0.83rem;font-weight:700;cursor:pointer;">&#9889; Eton Speed Challenge</button>'
-      + '<button id="ovTestBtn" onclick="ovGenerateTest()" style="padding:10px 16px;border-radius:8px;border:1.5px solid #1a2744;background:#fff;color:#1a2744;font-size:0.83rem;font-weight:700;cursor:pointer;">&#128221; Generate Test</button>'
-      + '<button id="ovSpotBtn" onclick="ovSpotTest()" style="padding:10px 16px;border-radius:8px;border:1.5px solid #1a2744;background:#fff;color:#1a2744;font-size:0.83rem;font-weight:700;cursor:pointer;">&#128424; Paper Spot Test</button>'
-      + '<button id="ovTSpotBtn" onclick="ovTSpotTest()" style="padding:10px 16px;border-radius:8px;border:2px solid #c9a84c;background:#fffaf0;color:#1a2744;font-size:0.83rem;font-weight:700;cursor:pointer;">✍ Submitted Spot Test</button>'
-      + '<button id="ovStudyBtn" onclick="ovStudy()" style="padding:10px 16px;border-radius:8px;border:1.5px solid #1a6b3a;background:#fff;color:#1a6b3a;font-size:0.83rem;font-weight:700;cursor:pointer;">&#128214; View &amp; Print</button>';
+      + '<button id="ovDoneBtn" onclick="ovDone()" style="padding:11px 22px;border-radius:8px;border:none;background:#1a2744;color:#ffd76a;font-size:0.9rem;font-weight:700;cursor:pointer;">&#10003; Done: choose how to practise</button>';
     panel.appendChild(footer);
   }
   modal.dataset.ovWired = '1';
@@ -5473,6 +5468,7 @@ function openTopicOverview(){
   refreshOverviewChecks();
 }
 function ovCloseModal(){ document.getElementById('svTopicOverviewModal').style.display = 'none'; }
+function ovDone(){ ovCloseModal(); if (!selectedSections.size) return; try { renderIntro(); } catch (e) { } try { var st = document.querySelectorAll('.ms-step')[1]; if (st && st.scrollIntoView) st.scrollIntoView({ block: 'start' }); } catch (e) { } }
 function ovClearSelection(){ selectedSections.clear(); refreshOverviewChecks(); }
 function ovDrill(){ if (!selectedSections.size) return; ovCloseModal(); startDrill(_selectedCount); }
 function ovGenerateTest(){ if (!selectedSections.size) return; ovCloseModal(); showSVTestPanel(); }
@@ -7022,7 +7018,7 @@ function renderErrorReview(){
       <div>
         <div style="font-size:0.75rem;font-weight:700;text-transform:uppercase;letter-spacing:0.1em;color:#b8922a;margin-bottom:4px;">Eton F Block Spanish Vocab</div>
         <h2 class="sv-modal-title">&#128218; Choose topics</h2>
-        <div style="font-size:0.8125rem;color:#888;margin-top:4px;">Tick any sections, units or groups — then choose Drill, Generate Test or Eton Spot Test below</div>
+        <div style="font-size:0.8125rem;color:#888;margin-top:4px;">Tick any sections, units or groups, then press Done to choose how to practise them</div>
       </div>
       <button class="aph-btn aph-btn-sm" onclick="document.getElementById('svTopicOverviewModal').style.display='none'">✕ Close</button>
     </div>
@@ -8618,7 +8614,7 @@ if (window.__spv) window.__spv.speedTest = function (kind, secs, rev, lv, mix) {
       var gp = Math.min(1, t / G.best); gh.style.display = ''; gh.style.left = (gp * 100) + '%';
       var behind = t > 0.5 && yp + 0.0001 < gp - 0.02; lane.classList.toggle('behind', behind);
       setT(st, done === total ? '' : (t < 0.5 ? 'Race your best: ' + G.best.toFixed(1) + ' s' : behind ? 'Behind your best' : 'Ahead of your best'));
-    } else { gh.style.display = 'none'; lane.classList.remove('behind'); setT(st, done === total ? '' : 'Set your first best time'); }
+    } else { gh.style.display = 'none'; if (lane.classList.contains('behind')) lane.classList.remove('behind'); setT(st, done === total ? '' : 'Set your first best time'); }
   }
   function refresh(sheet) {
     var tm = sheet.querySelector('.ms-time'), tiles = sheet.querySelectorAll('.ms-t'), grid = sheet.querySelector('.ms-grid');
@@ -8678,7 +8674,8 @@ if (window.__spv) window.__spv.speedTest = function (kind, secs, rev, lv, mix) {
     if (!sheet) { G = null; return; }
     if (!refresh(sheet)) finish();
   }
-  function start() { var mo = new MutationObserver(onMut); mo.observe(document.body, { subtree: true, childList: true, attributes: true, attributeFilter: ['class'] });
+  function start() { var OPT = { subtree: true, childList: true, attributes: true, attributeFilter: ['class'] }, mo = new MutationObserver(function () { mo.disconnect(); try { onMut(); } catch (e) { } mo.observe(document.body, OPT); });   // our own changes never re-trigger us
+    mo.observe(document.body, OPT);
     document.addEventListener('pointerdown', function (e) { if (e.target.closest && e.target.closest('.ms-ov .ms-t')) ac(); }, true); }
   if (document.body) start(); else document.addEventListener('DOMContentLoaded', start);
 })();

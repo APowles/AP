@@ -4,7 +4,7 @@
 <script id="ap-update">
 /* AP auto-update: if this copy is older than the published version, reload once with the new one (saved answers are kept) */
 (function () {
-  var B = 'a40f841955'; window.AP_BUILD = B;
+  var B = '2553737079'; window.AP_BUILD = B;
   function check() {
     if (!/^https?:$/.test(location.protocol) || !window.fetch) return;
     var f = decodeURIComponent(location.pathname.split('/').pop() || '');
@@ -15026,7 +15026,7 @@ body.aporal-on .st-oral-side>#igcse-exam-wrap{order:-1;margin:0 0 12px!important
       var gp = Math.min(1, t / G.best); gh.style.display = ''; gh.style.left = (gp * 100) + '%';
       var behind = t > 0.5 && yp + 0.0001 < gp - 0.02; lane.classList.toggle('behind', behind);
       setT(st, done === total ? '' : (t < 0.5 ? 'Race your best: ' + G.best.toFixed(1) + ' s' : behind ? 'Behind your best' : 'Ahead of your best'));
-    } else { gh.style.display = 'none'; lane.classList.remove('behind'); setT(st, done === total ? '' : 'Set your first best time'); }
+    } else { gh.style.display = 'none'; if (lane.classList.contains('behind')) lane.classList.remove('behind'); setT(st, done === total ? '' : 'Set your first best time'); }
   }
   function refresh(sheet) {
     var tm = sheet.querySelector('.ms-time'), tiles = sheet.querySelectorAll('.ms-t'), grid = sheet.querySelector('.ms-grid');
@@ -15086,7 +15086,8 @@ body.aporal-on .st-oral-side>#igcse-exam-wrap{order:-1;margin:0 0 12px!important
     if (!sheet) { G = null; return; }
     if (!refresh(sheet)) finish();
   }
-  function start() { var mo = new MutationObserver(onMut); mo.observe(document.body, { subtree: true, childList: true, attributes: true, attributeFilter: ['class'] });
+  function start() { var OPT = { subtree: true, childList: true, attributes: true, attributeFilter: ['class'] }, mo = new MutationObserver(function () { mo.disconnect(); try { onMut(); } catch (e) { } mo.observe(document.body, OPT); });   // our own changes never re-trigger us
+    mo.observe(document.body, OPT);
     document.addEventListener('pointerdown', function (e) { if (e.target.closest && e.target.closest('.ms-ov .ms-t')) ac(); }, true); }
   if (document.body) start(); else document.addEventListener('DOMContentLoaded', start);
 })();
