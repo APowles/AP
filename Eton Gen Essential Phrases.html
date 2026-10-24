@@ -4,7 +4,7 @@
 <script id="ap-update">
 /* AP auto-update: if this copy is older than the published version, reload once with the new one (saved answers are kept) */
 (function () {
-  var B = 'ff9ff54a24'; window.AP_BUILD = B;
+  var B = 'ba2dc352e0'; window.AP_BUILD = B;
   function check() {
     if (!/^https?:$/.test(location.protocol) || !window.fetch) return;
     var f = decodeURIComponent(location.pathname.split('/').pop() || '');
@@ -66086,6 +66086,14 @@ if (window.__voc) window.__voc.speedTest = function (kind, lang, secs, rev, lv, 
   function chosen() { return my || getCheckedSections().length > 0; }
   function pool() { return !chosen() ? [] : getSelectedPhrases(); }
   function wrap(name, fn) { var o = window[name]; if (typeof o !== 'function') return; window[name] = function () { var r = o.apply(this, arguments); try { fn.apply(this, arguments); } catch (e) { } return r; }; }
+  // Back from a drill / Leisure returns to the set-up with the chosen level kept (not a page reload)
+  window.aphBackHook = function () {
+    try {
+      var o = document.getElementById('ms-ov'); if (o && window.apMsClose) { window.apMsClose(); return true; }
+      var ap = document.getElementById('app'); if (ap && ap.querySelector('.aph-dbar,.aph-qcard,.aph-results,.lz-card')) { window.renderIntro(); window.scrollTo(0, 0); return true; }
+    } catch (e) { }
+    return false;
+  };
   function wrapPre(name, fn) { var o = window[name]; if (typeof o !== 'function') return; window[name] = function () { try { fn.apply(this, arguments); } catch (e) { } return o.apply(this, arguments); }; }
 
   // ---- marking in any drill feeds the personalised set
