@@ -6,7 +6,7 @@
 <script id="ap-update">
 /* AP auto-update: if this copy is older than the published version, reload once with the new one (saved answers are kept) */
 (function () {
-  var B = 'f76653ff68'; window.AP_BUILD = B;
+  var B = '0734f2c800'; window.AP_BUILD = B;
   function check() {
     if (!/^https?:$/.test(location.protocol) || !window.fetch) return;
     var f = decodeURIComponent(location.pathname.split('/').pop() || '');
@@ -8122,6 +8122,86 @@ if (window.__cj && window.__cj.inSet) { var _vqInSet0 = window.__cj.inSet; windo
   function start() { var OPT = { subtree: true, childList: true, attributes: true, attributeFilter: ['class'] }, mo = new MutationObserver(function () { mo.disconnect(); try { onMut(); } catch (e) { } mo.observe(document.body, OPT); });   // our own changes never re-trigger us
     mo.observe(document.body, OPT);
     document.addEventListener('pointerdown', function (e) { if (e.target.closest && e.target.closest('.ms-ov .ms-t')) ac(); }, true); }
+  if (document.body) start(); else document.addEventListener('DOMContentLoaded', start);
+})();
+</script>
+<style id="ap-spot-css">
+.spt-hide{display:none!important}
+.spt-card{box-sizing:border-box;width:100%;flex:1 1 100%;grid-column:1/-1;margin:10px 0 4px;padding:12px 16px 14px;border:2px solid #5b3f9e;border-radius:16px;background:#f3eefb;box-shadow:0 4px 0 #5b3f9e;color:#1a2744;font-family:'DM Sans',system-ui,sans-serif;text-align:left}
+.spt-h{font-weight:800;font-size:1.1rem}
+.spt-s{font-size:.9rem;color:#4a5570;margin:2px 0 8px}
+.spt-row{display:flex;flex-wrap:wrap;gap:10px}
+.spt-pill{font:800 .95rem/1.1 'DM Sans',system-ui,sans-serif;min-height:44px;padding:10px 18px;border-radius:999px;cursor:pointer;touch-action:manipulation;color:#1a2744;background:#fff;border:2px solid #5b3f9e}
+.spt-pill.pen{background:#ffe94d;border:3px solid #d0021b;box-shadow:0 0 0 2px rgba(208,2,27,.2)}
+.spt-pill[disabled]{opacity:.4;cursor:not-allowed}
+.spt-cap{font-size:.8rem;color:#4a5570;margin-top:8px;line-height:1.35}
+.spt-quick{display:inline-block!important;width:auto!important;flex:0 0 auto;background:none!important;border:0!important;box-shadow:none!important;color:#6b7690!important;text-decoration:underline;font:600 .82rem 'DM Sans',system-ui,sans-serif!important;padding:6px 4px!important;min-height:32px;cursor:pointer}
+
+.spt-main{display:flex;flex-direction:column;gap:8px}
+.spt-big{width:100%;min-height:54px;border-radius:14px;cursor:pointer;touch-action:manipulation;font:800 1.05rem 'DM Sans',system-ui,sans-serif;color:#1a2744;background:#ffe94d;border:3px solid #d0021b;box-shadow:0 0 0 2px rgba(208,2,27,.2);display:flex;align-items:center;justify-content:center;gap:8px;flex-wrap:wrap;padding:8px 14px}
+.spt-big small{font-weight:600;font-size:.8rem;color:#4a5570}
+.spt-big.alt{background:#fff;border:2px solid #5b3f9e;box-shadow:none}
+.spt-big[disabled]{opacity:.4;cursor:not-allowed}
+.spt-pr{margin-top:10px;font-size:.88rem;color:#4a5570}
+.spt-link{background:none;border:0;padding:6px 2px;min-height:32px;font:800 .9rem 'DM Sans',system-ui,sans-serif;color:#5b3f9e;text-decoration:underline;cursor:pointer}
+.spt-link[disabled]{opacity:.4}
+</style>
+<script id="ap-spot">
+/* AP SPOT add-on: one "Spot Test" card (Apple Pencil on the iPad / Print it) in place of the separate Paper and Submitted buttons;
+   the plain Generate Test becomes a small "Quick plain test" link. Works on the rendered page; the original buttons stay (hidden) and do the work. */
+(function () {
+  var QUICK = 'No-limit test (up to the whole set)';
+  function txt(b) { return (b.textContent || '').replace(/\s+/g, ' ').trim(); }
+  function run() {
+    var bs = document.querySelectorAll('button'), seen = [];
+    for (var i = 0; i < bs.length; i++) {
+      var b = bs[i], P = b.parentNode;
+      if (!P || seen.indexOf(P) >= 0 || P.closest('.spt-card')) continue;
+      if (!/^\S{0,4}\s*(Submitted|Paper) Spot Test(\s*\(.*\))?$/.test(txt(b))) continue;
+      seen.push(P);
+      var kids = P.querySelectorAll(':scope > button, :scope > .aph-btn'), pen = null, pap = null, gen = null;
+      for (var k = 0; k < kids.length; k++) {
+        var t = txt(kids[k]);
+        if (/^\S{0,4}\s*Submitted Spot Test$/.test(t)) pen = kids[k]; else if (/^\S{0,4}\s*Paper Spot Test(\s*\(.*\))?$/.test(t)) pap = kids[k]; else if (/^\S{0,4}\s*Generate Test/.test(t) || /Generate Test/.test(t) && t.length < 40) gen = kids[k];
+      }
+      if (!pen && !pap) continue;
+      if (gen && !gen.classList.contains('spt-quick')) { gen.textContent = QUICK; gen.classList.add('spt-quick'); gen.title = 'Choose as many questions as you like, up to everything in the set'; gen.removeAttribute('style'); }
+      if (P.classList.contains('hm-acts')) {   // the verb apps' small "Same choices" row: rename only
+        if (pen) pen.textContent = '✍ Spot Test · Apple Pencil';
+        if (pap) pap.textContent = '🖨 Spot Test · Print';
+        continue;
+      }
+      var card = P.querySelector(':scope > .spt-card');
+      var first = pen || pap; if (pap && pen && pap.compareDocumentPosition(pen) & 4) first = pap;
+      if (!card) {
+        card = document.createElement('div'); card.className = 'spt-card';
+        card.innerHTML = '<div class="spt-h">\ud83d\udcdd Spot Test</div><div class="spt-s">15 short questions in boxes (or 10 or 5 if you prefer, and fewer if the set is small). You mark it yourself.</div><div class="spt-main"></div><div class="spt-pr"></div>';
+        var main = card.querySelector('.spt-main'), pr = card.querySelector('.spt-pr');
+        if (pen) { var a = document.createElement('button'); a.type = 'button'; a.className = 'spt-big'; a.innerHTML = '\u270d Do it with Apple Pencil <small>hand in as a PDF if required</small>'; a.onclick = (function (o) { return function () { o.click(); }; })(pen); main.appendChild(a); }
+        if (pap) {
+          var c = document.createElement('button'); c.type = 'button'; c.className = pen ? 'spt-link' : 'spt-big alt'; c.textContent = pen ? 'Print it' : '\ud83d\udda8 Print it';
+          c.onclick = (function (o) { return function () { o.click(); }; })(pap);
+          if (pen) { pr.appendChild(document.createTextNode('Prefer paper? ')); pr.appendChild(c); pr.appendChild(document.createTextNode(' to write on by hand.')); } else { main.appendChild(c); pr.style.display = 'none'; }
+        }
+        P.insertBefore(card, first);
+        if (gen && gen.parentNode === P) P.insertBefore(gen, card.nextSibling);
+      }
+      var pills = card.querySelectorAll('.spt-big,.spt-link'), orig = [pen, pap].filter(Boolean);
+      for (var q = 0; q < pills.length; q++) pills[q].disabled = !!(orig[q] && orig[q].disabled);
+      if (pen) pen.classList.add('spt-hide'); if (pap) pap.classList.add('spt-hide');
+      var ls = document.querySelectorAll('.aph-label,.l,div,span,label,small');
+      for (var L = 0; L < ls.length; L++) {
+        if (ls[L].children.length || !/Items per box/i.test(txt(ls[L]))) continue;
+        var sib = ls[L].nextElementSibling, cs = sib ? sib.querySelectorAll('button') : [];
+        for (var z = 0; z < cs.length; z++) { var m = /^([123])$/.exec(txt(cs[z])); if (m) cs[z].textContent = m[1] + ' \u00b7 ' + (5 * m[1]) + ' items'; }
+      }
+      var hs = document.querySelectorAll('h1,h2,h3,h4,.aph-h,span,div,b'); for (var h = 0; h < hs.length; h++) { if (hs[h].children.length === 0 && /^\W{0,4}\s*Generate Test$/.test(txt(hs[h]))) hs[h].textContent = '\ud83d\udcdd Test'; }
+    }
+  }
+  function start() {
+    var mo = new MutationObserver(function () { mo.disconnect(); try { run(); } catch (e) { } mo.observe(document.body, { subtree: true, childList: true }); });
+    mo.observe(document.body, { subtree: true, childList: true }); try { run(); } catch (e) { }
+  }
   if (document.body) start(); else document.addEventListener('DOMContentLoaded', start);
 })();
 </script>
