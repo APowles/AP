@@ -28,7 +28,22 @@
     return false;
   }
   if (!window.__sptBack) { window.__sptBack = 1; var prevBack = window.aphBackHook; window.aphBackHook = function () { try { if (closePanel()) return true; } catch (e) { } return typeof prevBack === 'function' ? prevBack.apply(this, arguments) : false; }; }
+
+  /* While a test / print panel is open it stands alone: the set-up screen below it is hidden, so the only way on is the panel's own Back / Close. */
+  function focusPanel() {
+    var open = null, ps = document.querySelectorAll('.aph-panel-top');
+    for (var i = 0; i < ps.length; i++) if (ps[i].offsetParent !== null && getComputedStyle(ps[i]).display !== 'none') { open = ps[i]; break; }
+    var all = document.querySelectorAll('[data-spt-hid]');
+    if (!open) { for (var k = 0; k < all.length; k++) { all[k].style.display = all[k].getAttribute('data-spt-hid'); all[k].removeAttribute('data-spt-hid'); } return; }
+    for (var e = open; e && e !== document.body; e = e.parentElement) {
+      for (var n = e.nextElementSibling; n; n = n.nextElementSibling) {
+        if (/^(SCRIPT|STYLE|LINK|TEMPLATE)$/.test(n.tagName) || n.hasAttribute('data-spt-hid') || getComputedStyle(n).display === 'none' || getComputedStyle(n).position === 'fixed') continue;
+        n.setAttribute('data-spt-hid', n.style.display || ''); n.style.display = 'none';
+      }
+    }
+  }
   function run() {
+    focusPanel();
     hideAnswers();
     var bs = document.querySelectorAll('button'), seen = [];
     for (var i = 0; i < bs.length; i++) {
@@ -42,7 +57,7 @@
         if (/^\S{0,4}\s*Submitted Spot Test$/.test(t)) pen = kids[k]; else if (/^\S{0,4}\s*Paper Spot Test(\s*\(.*\))?$/.test(t)) pap = kids[k]; else if (/^\S{0,4}\s*Generate Test/.test(t) || /Generate Test/.test(t) && t.length < 40) gen = kids[k];
       }
       if (!pen && !pap) continue;
-      if (gen && !gen.classList.contains('spt-quick')) { gen.textContent = QUICK; gen.classList.add('spt-quick'); gen.title = 'Choose as many questions as you like, up to everything in the set'; gen.removeAttribute('style'); }
+      if (gen && !gen.classList.contains('spt-make')) { gen.textContent = 'Make the test'; gen.classList.add('spt-make'); gen.removeAttribute('style'); gen.addEventListener('click', function () { reveal(gen); }); }
       if (P.classList.contains('hm-acts')) {   // the verb apps' small "Same choices" row: rename only
         if (pen) pen.textContent = '✍ Spot Test · Apple Pencil';
         if (pap) pap.textContent = '🖨 Spot Test · Print';
@@ -57,19 +72,23 @@
         if (pen) { var a = document.createElement('button'); a.type = 'button'; a.className = 'spt-big'; a.innerHTML = '\u270d Do it with Apple Pencil <small>hand in as a PDF if required</small>'; a.onclick = (function (o) { return function () { o.click(); }; })(pen); main.appendChild(a); }
         if (pap) {
           var c = document.createElement('button'); c.type = 'button'; c.className = pen ? 'spt-link' : 'spt-big alt'; c.textContent = pen ? 'Print it' : '\ud83d\udda8 Print it';
-          c.onclick = (function (o) { return function () { o.click(); }; })(pap);
+          c.onclick = (function (o, cc) { return function () { o.click(); reveal(cc); }; })(pap, c);
           if (pen) { pr.appendChild(document.createTextNode('Prefer paper? ')); pr.appendChild(c); pr.appendChild(document.createTextNode(' to write on by hand.')); } else { main.appendChild(c); pr.style.display = 'none'; }
         }
         P.insertBefore(card, first);
         if (gen && gen.parentNode === P) P.insertBefore(gen, card.nextSibling);
       }
-      // the Questions row only belongs to the plain No-limit test: move it below the Spot Test card, next to its link
-      if (gen && card.parentNode === P && !P.querySelector(':scope > .spt-nl')) {
+      // the plain No-limit test lives inside the card as a discreet link; its Questions row and button open only when asked for
+      if (gen && !card.querySelector('.spt-nl')) {
         var nl = document.createElement('div'); nl.className = 'spt-nl';
+        var tg = document.createElement('button'); tg.type = 'button'; tg.className = 'spt-quick'; tg.textContent = QUICK + ' \u25b8'; tg.title = 'Choose as many questions as you like, up to everything in the set';
+        var box = document.createElement('div'); box.className = 'spt-nlbox'; box.style.display = 'none';
         var qs = P.ownerDocument.querySelectorAll('.aph-label,.l,div,span,label,small'), ql = null;
         for (var w = 0; w < qs.length; w++) { if (qs[w].children.length === 0 && /^Questions$/i.test(txt(qs[w])) && qs[w].nextElementSibling) { ql = qs[w]; break; } }
-        if (ql) { var qc = ql.nextElementSibling; nl.appendChild(ql); nl.appendChild(qc); }
-        nl.appendChild(gen); P.insertBefore(nl, card.nextSibling);
+        if (ql) { var qc = ql.nextElementSibling; box.appendChild(ql); box.appendChild(qc); }
+        box.appendChild(gen);
+        tg.onclick = function () { var on = box.style.display === 'none'; box.style.display = on ? '' : 'none'; tg.textContent = QUICK + (on ? ' \u25be' : ' \u25b8'); };
+        nl.appendChild(tg); nl.appendChild(box); card.appendChild(nl);
       }
       var pills = card.querySelectorAll('.spt-big,.spt-link'), orig = [pen, pap].filter(Boolean);
       for (var q = 0; q < pills.length; q++) pills[q].disabled = !!(orig[q] && orig[q].disabled);
@@ -83,9 +102,12 @@
       var hs = document.querySelectorAll('h1,h2,h3,h4,.aph-h,span,div,b'); for (var h = 0; h < hs.length; h++) { if (hs[h].children.length === 0 && /^\W{0,4}\s*Generate Test$/.test(txt(hs[h]))) hs[h].textContent = '\ud83d\udcdd Test'; }
     }
   }
+  function reveal(from) { setTimeout(function () { try { var P = from.closest('.aph-panel-top') || from.parentNode, c = P.querySelectorAll('[id*="Output"],[id$="TestOut"],[id$="Out"]'); for (var i = 0; i < c.length; i++) if (c[i].innerHTML.trim() && c[i].offsetHeight) { c[i].scrollIntoView({ behavior: 'smooth', block: 'start' }); return; } } catch (e) {} }, 250); }
   function start() {
-    var mo = new MutationObserver(function () { mo.disconnect(); try { run(); } catch (e) { } mo.observe(document.body, { subtree: true, childList: true }); });
-    mo.observe(document.body, { subtree: true, childList: true }); try { run(); } catch (e) { }
+    var mo, timer = 0, opts = { subtree: true, childList: true, attributes: true, attributeFilter: ['style', 'class'] };
+    function go() { timer = 0; mo.disconnect(); try { run(); } catch (e) { } mo.observe(document.body, opts); }
+    mo = new MutationObserver(function () { if (!timer) timer = setTimeout(go, 60); });
+    mo.observe(document.body, opts); try { run(); } catch (e) { }
   }
   if (document.body) start(); else document.addEventListener('DOMContentLoaded', start);
 })();

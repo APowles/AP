@@ -10,7 +10,7 @@ block = '<style id="ap-spot-css">\n' + css + '\n</style>\n<script id="ap-spot">\
 files = sys.argv[1:] or sorted(glob.glob('Eton *.html') + glob.glob('AP All Languages - *.html'))
 for f in files:
     s = open(f, encoding='utf-8').read()
-    if 'Spot Test' not in s or f.startswith('Eton Tests'): continue
+    if 'Spot Test' not in s or f.startswith('Eton Tests') or 'Listening' in f: continue
     s2 = re.sub(r'<style id="ap-spot-css">.*?</style>\n<script id="ap-spot">.*?</script>\n', '', s, flags=re.S)
     i = s2.rfind('</body>')
     if i >= 0 and s2[i+7:].strip() in ('</html>', ''):
