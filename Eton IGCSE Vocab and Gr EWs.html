@@ -6,7 +6,7 @@
 <script id="ap-update">
 /* AP auto-update: if this copy is older than the published version, reload once with the new one (saved answers are kept) */
 (function () {
-  var B = '5bddf21d93'; window.AP_BUILD = B;
+  var B = '49f1701e7b'; window.AP_BUILD = B;
   function check() {
     if (!/^https?:$/.test(location.protocol) || !window.fetch) return;
     var f = decodeURIComponent(location.pathname.split('/').pop() || '');
@@ -10206,10 +10206,10 @@ function ggSpotMenu(timed) {
   window._ggSpot = { rows: rows, title: title, per: per };
   const col = ['#1a2744', '#b03a2e', '#1a6b3a'];
   const lines = (g, k) => g.map((s, i) => '<div class="gg-ln" style="color:' + col[i] + '">' + (k === 'en' ? '<span class="gg-ref">' + ggEsc((GGD[ggChOf(s)] || {}).label || '') + '</span><br>' + s.en : ggAns(s)) + '</div>').join('');
-  const head = '<tr><th style="width:28px">#</th><th>English</th><th>' + GGL().lang + '</th><th style="width:36px">/ 2</th></tr>';
+  const head = '<tr><th style="width:28px">#</th><th>English</th><th>' + GGL().lang + '</th><th style="width:56px">0 / 1 / 2</th></tr>';
   const sR = rows.map((g, i) => '<tr><td class="n">' + (i + 1) + '</td><td>' + lines(g, 'en') + '</td><td class="blank" style="height:' + (26 * per + 20) + 'px">&nbsp;</td><td></td></tr>').join('');
   const tR = rows.map((g, i) => '<tr><td class="n">' + (i + 1) + '</td><td>' + lines(g, 'en') + '</td><td class="a">' + lines(g, 'fr') + '</td><td></td></tr>').join('');
-  out.innerHTML = '<div class="gg-tpanel"><div class="gg-ph"><span>🖨 Paper Spot Test — ' + ggEsc(title) + ' — /10</span><button class="gg-mini" onclick="document.getElementById(\'ggTestOut\').innerHTML=\'\'">✕ Close</button></div>'
+  out.innerHTML = '<div class="gg-tpanel"><div class="gg-ph"><span>🖨 Paper Spot Test — ' + ggEsc(title) + '</span><button class="gg-mini" onclick="document.getElementById(\'ggTestOut\').innerHTML=\'\'">✕ Close</button></div>'
     + '<div class="gg-lab">Level</div><div class="gg-chips">' + ggLvlRow('ggRefreshAct();ggSpotMenu()') + '</div>'
     + '<div class="gg-lab">Item type</div><div class="gg-chips">' + ggTypeRow('ggRefreshAct();ggSpotMenu()') + '</div>'
     + '<div class="gg-lab">Eton Spot Test · items per box</div><div class="gg-chips">' + [1, 2, 3].map(n => '<button class="gg-chip' + (want === n ? ' on' : '') + '" onclick="ggS.spotPer=' + n + ';ggSpotMenu()">' + n + '</button>').join('') + '</div>'
@@ -10221,10 +10221,14 @@ function ggPrintSpot(mode) {
   const S = window._ggSpot; if (!S) return;
   const col = ['#1a2744', '#b03a2e', '#1a6b3a'];
   const lines = (g, k) => g.map((s, i) => '<div class="ln" style="color:' + col[i] + '">' + (k === 'en' ? '<span class="ref">' + ggEsc((GGD[ggChOf(s)] || {}).label || '') + '</span><br>' + s.en : ggAns(s)) + '</div>').join('');
-  const head = '<thead><tr><th>#</th><th>English</th><th>' + GGL().lang + '</th><th>/ 2</th></tr></thead>';
-  const top = t => aphPrintHead({ kicker: 'Eton IGCSE &middot; Vocab &amp; Gr EWs', title: t + ' &mdash; <em>' + ggEsc(S.title) + '</em>', meta: GGL().name + ' &middot; 5 boxes × ' + S.per + ' &middot; /10', total: 10 });
-  const st = top('Eton Spot Test') + '<table class="spot">' + head + '<tbody>' + S.rows.map((g, i) => '<tr><td class="n">' + (i + 1) + '<div class="ref">(2)</div></td><td style="width:45%">' + lines(g, 'en') + '</td><td class="blank" style="height:' + (30 * S.per + 24) + 'px"></td><td style="width:40px"></td></tr>').join('') + '</tbody></table>' + aphPrintFoot('Eton IGCSE Vocab &amp; Gr EWs &middot; ' + GGL().name + ' &middot; Eton Spot Test &middot; Student sheet');
-  const te = top('Answer key — Eton Spot Test') + '<table class="spot">' + head + '<tbody>' + S.rows.map((g, i) => '<tr><td class="n">' + (i + 1) + '<div class="ref">(2)</div></td><td style="width:45%">' + lines(g, 'en') + '</td><td><b>' + lines(g, 'fr') + '</b></td><td style="width:40px"></td></tr>').join('') + '</tbody></table>' + aphPrintFoot('Eton IGCSE Vocab &amp; Gr EWs &middot; ' + GGL().name + ' &middot; Eton Spot Test &middot; Teacher sheet');
+  const head = '<thead><tr><th>#</th><th>English</th><th>' + GGL().lang + '</th><th>0 / 1 / 2</th></tr></thead>';
+  const tot = S.rows.reduce((n, g) => n + g.length, 0);
+  const one = (s, i, ci, k) => '<div class="ln" style="color:' + col[ci] + '">' + (k === 'en' ? '<span class="ref">' + ggEsc((GGD[ggChOf(s)] || {}).label || '') + '</span><br>' + s.en : ggAns(s)) + '</div>';
+  const rowsHtml = ans => S.rows.map((g, i) => g.map((s, ci) => '<tr>' + (ci === 0 ? '<td class="n" rowspan="' + g.length + '">' + (i + 1) + '</td>' : '') + '<td style="width:45%;' + (ci === g.length - 1 ? 'border-bottom:3px solid #1a2744' : '') + '">' + one(s, i, ci, 'en') + '</td><td class="blank" style="height:40px;' + (ci === g.length - 1 ? 'border-bottom:3px solid #1a2744' : '') + '">' + (ans ? '<b>' + one(s, i, ci, 'fr') + '</b>' : '') + '</td><td style="width:60px;' + (ci === g.length - 1 ? 'border-bottom:3px solid #1a2744' : '') + '"></td></tr>').join('')).join('');
+  const top = t => aphPrintHead({ kicker: 'Eton IGCSE &middot; Vocab &amp; Gr EWs', title: t + ' &mdash; <em>' + ggEsc(S.title) + '</em>', meta: GGL().name + ' &middot; ' + tot + ' questions', total: 2 * tot });
+  const note = '<div class="note">Each question is marked on its own: 2 marks for perfection &middot; 1 mark for 75% or more correct &middot; 0 otherwise</div>';
+  const st = top('Eton Spot Test') + note + '<table class="spot">' + head + '<tbody>' + rowsHtml(false) + '</tbody></table>' + aphPrintFoot('Eton IGCSE Vocab &amp; Gr EWs &middot; ' + GGL().name + ' &middot; Eton Spot Test &middot; Student sheet');
+  const te = top('Answer key — Eton Spot Test') + note + '<table class="spot">' + head + '<tbody>' + rowsHtml(true) + '</tbody></table>' + aphPrintFoot('Eton IGCSE Vocab &amp; Gr EWs &middot; ' + GGL().name + ' &middot; Eton Spot Test &middot; Teacher sheet');
   ggPrintWin(GGL().name + ' Spot Test — ' + S.title, mode === 'student' ? st : mode === 'teacher' ? te : st + '<div class="pb">' + te + '</div>');
 }
 function ggPrintRecap(k, big) {
@@ -12136,7 +12140,7 @@ if (window.__voc) window.__voc.lvlOf = function (i, lang) { return vocLvlOf(ALL_
   /* Answers are never on show: the "Answer Sheet" of a generated test sits behind a Show answers button. */
   function hideAnswers() {
     var all = document.querySelectorAll('div,h3,h4,span,p'), heads = [];
-    for (var i = 0; i < all.length; i++) if (all[i].children.length === 0 && /^(Answer Sheet|Teacher Sheet \(answer key\))$/i.test(txt(all[i])) && !all[i].closest('.spt-ans') && !all[i].closest('#opSpotAns')) heads.push(all[i]);
+    for (var i = 0; i < all.length; i++) if (all[i].children.length === 0 && /^(Answer Sheet|Answer key|Teacher Sheet \(answer key\))$/i.test(txt(all[i])) && !all[i].closest('.spt-ans') && !all[i].closest('#opSpotAns')) heads.push(all[i]);
     heads.forEach(function (h) {
       var box = h.nextElementSibling; if (!box || !h.parentNode) return;
       var w = document.createElement('div'); w.className = 'spt-ans'; w.style.display = 'none';
@@ -12216,7 +12220,8 @@ if (window.__voc) window.__voc.lvlOf = function (i, lang) { return vocLvlOf(ALL_
         for (var w = 0; w < qs.length; w++) { if (qs[w].children.length === 0 && /^Questions$/i.test(txt(qs[w])) && qs[w].nextElementSibling) { ql = qs[w]; break; } }
         if (ql) { var qc = ql.nextElementSibling; box.appendChild(ql); box.appendChild(qc); }
         box.appendChild(gen);
-        tg.onclick = function () { var on = box.style.display === 'none'; box.style.display = on ? '' : 'none'; tg.textContent = QUICK + (on ? ' \u25be' : ' \u25b8'); };
+        if (!ql) { tg.textContent = QUICK; tg.onclick = function () { gen.click(); reveal(tg); }; }   // no question chips here: its own options panel opens directly, no extra button
+        else tg.onclick = function () { var on = box.style.display === 'none'; box.style.display = on ? '' : 'none'; tg.textContent = QUICK + (on ? ' \u25be' : ' \u25b8'); };
         nl.appendChild(tg); nl.appendChild(box); card.appendChild(nl);
       }
       var pills = card.querySelectorAll('.spt-big,.spt-link'), orig = [pen, pap].filter(Boolean);
@@ -12231,7 +12236,7 @@ if (window.__voc) window.__voc.lvlOf = function (i, lang) { return vocLvlOf(ALL_
       var hs = document.querySelectorAll('h1,h2,h3,h4,.aph-h,span,div,b'); for (var h = 0; h < hs.length; h++) { if (hs[h].children.length === 0 && /^\W{0,4}\s*Generate Test$/.test(txt(hs[h]))) hs[h].textContent = '\ud83d\udcdd Test'; }
     }
   }
-  function reveal(from) { setTimeout(function () { try { var P = from.closest('.aph-panel-top') || from.parentNode, c = P.querySelectorAll('[id*="Output"],[id$="TestOut"],[id$="Out"]'); for (var i = 0; i < c.length; i++) if (c[i].innerHTML.trim() && c[i].offsetHeight) { c[i].scrollIntoView({ behavior: 'smooth', block: 'start' }); return; } } catch (e) {} }, 250); }
+  function reveal(from) { setTimeout(function () { try { var c = document.querySelectorAll('[id*="Output"],[id$="TestOut"],[id$="Out"]'); for (var i = 0; i < c.length; i++) if (c[i].innerHTML.trim() && c[i].offsetHeight && !c[i].closest('.spt-card')) { c[i].scrollIntoView({ behavior: 'smooth', block: 'start' }); return; } } catch (e) {} }, 250); }
   function start() {
     var mo, timer = 0, opts = { subtree: true, childList: true, attributes: true, attributeFilter: ['style', 'class'] };
     function go() { timer = 0; mo.disconnect(); try { run(); } catch (e) { } mo.observe(document.body, opts); }

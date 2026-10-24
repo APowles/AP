@@ -4,7 +4,7 @@
 <script id="ap-update">
 /* AP auto-update: if this copy is older than the published version, reload once with the new one (saved answers are kept) */
 (function () {
-  var B = 'a4ba7b7128'; window.AP_BUILD = B;
+  var B = 'e03749fb30'; window.AP_BUILD = B;
   function check() {
     if (!/^https?:$/.test(location.protocol) || !window.fetch) return;
     var f = decodeURIComponent(location.pathname.split('/').pop() || '');
@@ -7939,7 +7939,7 @@ function pbLeisureGo() {
   /* Answers are never on show: the "Answer Sheet" of a generated test sits behind a Show answers button. */
   function hideAnswers() {
     var all = document.querySelectorAll('div,h3,h4,span,p'), heads = [];
-    for (var i = 0; i < all.length; i++) if (all[i].children.length === 0 && /^(Answer Sheet|Teacher Sheet \(answer key\))$/i.test(txt(all[i])) && !all[i].closest('.spt-ans') && !all[i].closest('#opSpotAns')) heads.push(all[i]);
+    for (var i = 0; i < all.length; i++) if (all[i].children.length === 0 && /^(Answer Sheet|Answer key|Teacher Sheet \(answer key\))$/i.test(txt(all[i])) && !all[i].closest('.spt-ans') && !all[i].closest('#opSpotAns')) heads.push(all[i]);
     heads.forEach(function (h) {
       var box = h.nextElementSibling; if (!box || !h.parentNode) return;
       var w = document.createElement('div'); w.className = 'spt-ans'; w.style.display = 'none';
@@ -8019,7 +8019,8 @@ function pbLeisureGo() {
         for (var w = 0; w < qs.length; w++) { if (qs[w].children.length === 0 && /^Questions$/i.test(txt(qs[w])) && qs[w].nextElementSibling) { ql = qs[w]; break; } }
         if (ql) { var qc = ql.nextElementSibling; box.appendChild(ql); box.appendChild(qc); }
         box.appendChild(gen);
-        tg.onclick = function () { var on = box.style.display === 'none'; box.style.display = on ? '' : 'none'; tg.textContent = QUICK + (on ? ' \u25be' : ' \u25b8'); };
+        if (!ql) { tg.textContent = QUICK; tg.onclick = function () { gen.click(); reveal(tg); }; }   // no question chips here: its own options panel opens directly, no extra button
+        else tg.onclick = function () { var on = box.style.display === 'none'; box.style.display = on ? '' : 'none'; tg.textContent = QUICK + (on ? ' \u25be' : ' \u25b8'); };
         nl.appendChild(tg); nl.appendChild(box); card.appendChild(nl);
       }
       var pills = card.querySelectorAll('.spt-big,.spt-link'), orig = [pen, pap].filter(Boolean);
@@ -8034,7 +8035,7 @@ function pbLeisureGo() {
       var hs = document.querySelectorAll('h1,h2,h3,h4,.aph-h,span,div,b'); for (var h = 0; h < hs.length; h++) { if (hs[h].children.length === 0 && /^\W{0,4}\s*Generate Test$/.test(txt(hs[h]))) hs[h].textContent = '\ud83d\udcdd Test'; }
     }
   }
-  function reveal(from) { setTimeout(function () { try { var P = from.closest('.aph-panel-top') || from.parentNode, c = P.querySelectorAll('[id*="Output"],[id$="TestOut"],[id$="Out"]'); for (var i = 0; i < c.length; i++) if (c[i].innerHTML.trim() && c[i].offsetHeight) { c[i].scrollIntoView({ behavior: 'smooth', block: 'start' }); return; } } catch (e) {} }, 250); }
+  function reveal(from) { setTimeout(function () { try { var c = document.querySelectorAll('[id*="Output"],[id$="TestOut"],[id$="Out"]'); for (var i = 0; i < c.length; i++) if (c[i].innerHTML.trim() && c[i].offsetHeight && !c[i].closest('.spt-card')) { c[i].scrollIntoView({ behavior: 'smooth', block: 'start' }); return; } } catch (e) {} }, 250); }
   function start() {
     var mo, timer = 0, opts = { subtree: true, childList: true, attributes: true, attributeFilter: ['style', 'class'] };
     function go() { timer = 0; mo.disconnect(); try { run(); } catch (e) { } mo.observe(document.body, opts); }
