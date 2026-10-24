@@ -128,7 +128,7 @@
   function ov(inner) { closeOv(); var o = document.createElement('div'); o.className = 'ms-ov'; o.id = 'ms-ov'; o.innerHTML = '<div class="ms-sheet">' + inner + '</div>'; document.body.appendChild(o); document.documentElement.style.overflow = 'hidden'; return o.firstChild; }
   function closeOv() { var o = document.getElementById('ms-ov'); if (o) o.remove(); document.documentElement.style.overflow = ''; if (keyH) { window.removeEventListener('keydown', keyH, true); keyH = null; } if (mt) { clearInterval(mt); mt = null; } try { speechSynthesis.cancel(); } catch (e) { } }
   window.apMsClose = function () { closeOv(); if (document.querySelector('#app .intro-card')) window.renderIntro(); };
-  function head(t, sub) { return '<div class="ms-head"><h2>' + t + '</h2><button class="ms-x" onclick="apMsClose()" aria-label="Close">✕</button></div>' + (sub ? '<div class="ms-note" style="margin:0 0 8px">' + sub + '</div>' : ''); }
+  function head(t, sub) { return '<div class="ms-head"><h2>' + t + '</h2><button class="ms-x" style="width:auto;padding:0 16px;font-weight:700;font-size:1rem" onclick="apMsClose()" aria-label="Back">← Back</button></div>' + (sub ? '<div class="ms-note" style="margin:0 0 8px">' + sub + '</div>' : ''); }
   function keys(fn) { keyH = function (e) { if (e.key === 'Escape') { apMsClose(); return; } if (fn(e)) { e.preventDefault(); e.stopImmediatePropagation(); } else if (/^Arrow(Left|Right|Down)$/.test(e.key)) e.stopImmediatePropagation(); }; window.addEventListener('keydown', keyH, true); }
   function txt(p, l, o) { return plain(resolveDisplay(p, l, o)).replace(/\s*\([^)]*\)/g, '').trim(); }
   function show(p, l, o) { return plain(resolveDisplay(p, l, o)); }
@@ -280,6 +280,16 @@
       keys(function () { return false; });
     }, 500);
   }
+  // ---- Back (AP BACK): one stage back from screens the generic mechanism cannot restore
+  window.aphBackHook = function () {
+    try {
+      if (document.getElementById('ms-ov')) { window.apMsClose(); return true; }
+      var a = document.getElementById('app');
+      if (a && a.querySelector('.adj-paused')) { renderCard(); return true; }
+      if (a && a.querySelector('.er-item') && deck && idx < deck.length) { renderCard(); return true; }
+    } catch (e) { }
+    return false;
+  };
   window.apMySetFilterGet = function () { return S.f; };
   if (document.querySelector('#app .intro-card')) window.renderIntro();
 })();
