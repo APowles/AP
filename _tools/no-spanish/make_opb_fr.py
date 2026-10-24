@@ -51,3 +51,6 @@ lit("(l === 'it' || l === 'es' ? l : 'fr')", "'fr'", 'icon language', 1)
 lit("['fr', 'es', 'it']", "['fr']", 'voice-check default', 0)
 open(dst, 'w', encoding='utf-8').write(t)
 for n, c in log: print('%4d  %s' % (c, n))
+
+# NOTE: after this script, also drop the unused Italian/Spanish tile icons:
+#   re.sub(r',\s*"(?:spell|match)_(?:it|es)":\s*"data:image/webp;base64,[A-Za-z0-9+/=]+"', '', html)  then restamp.
