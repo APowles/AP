@@ -6,7 +6,7 @@
 <script id="ap-update">
 /* AP auto-update: if this copy is older than the published version, reload once with the new one (saved answers are kept) */
 (function () {
-  var B = '2217be33e8'; window.AP_BUILD = B;
+  var B = '53004cadfb'; window.AP_BUILD = B;
   function check() {
     if (!/^https?:$/.test(location.protocol) || !window.fetch) return;
     var f = decodeURIComponent(location.pathname.split('/').pop() || '');
@@ -10207,8 +10207,13 @@ function ggSpotMenu(timed) {
   const col = ['#1a2744', '#b03a2e', '#1a6b3a'];
   const lines = (g, k) => g.map((s, i) => '<div class="gg-ln" style="color:' + col[i] + '">' + (k === 'en' ? '<span class="gg-ref">' + ggEsc((GGD[ggChOf(s)] || {}).label || '') + '</span><br>' + s.en : ggAns(s)) + '</div>').join('');
   const head = '<tr><th style="width:28px">#</th><th>English</th><th>' + GGL().lang + '</th><th style="width:56px">0 / 1 / 2</th></tr>';
-  const sR = rows.map((g, i) => '<tr><td class="n">' + (i + 1) + '</td><td>' + lines(g, 'en') + '</td><td class="blank" style="height:' + (26 * per + 20) + 'px">&nbsp;</td><td></td></tr>').join('');
-  const tR = rows.map((g, i) => '<tr><td class="n">' + (i + 1) + '</td><td>' + lines(g, 'en') + '</td><td class="a">' + lines(g, 'fr') + '</td><td></td></tr>').join('');
+  const rowH = (g, i, ans) => g.map((s, ci) => { const last = ci === g.length - 1, bd = last ? ' style="border-bottom:3px solid #1a2744"' : '';
+    return '<tr>' + (ci === 0 ? '<td class="n" rowspan="' + g.length + '">' + (i + 1) + '</td>' : '')
+      + '<td' + bd + '>' + lines([s], 'en').replace(/color:#[0-9a-f]{6}/, 'color:' + col[ci]) + '</td>'
+      + (ans ? '<td class="a"' + bd + '><b style="color:' + col[ci] + '">' + ggAns(s) + '</b></td>' : '<td class="blank"' + bd.replace('style="', 'style="height:44px;') + (bd ? '' : ' style="height:44px"') + '>&nbsp;</td>')
+      + '<td' + bd + '></td></tr>'; }).join('');
+  const sR = rows.map((g, i) => rowH(g, i, false)).join('');
+  const tR = rows.map((g, i) => rowH(g, i, true)).join('');
   out.innerHTML = '<div class="gg-tpanel"><div class="gg-ph"><span>🖨 Paper Spot Test — ' + ggEsc(title) + '</span><button class="gg-mini" onclick="document.getElementById(\'ggTestOut\').innerHTML=\'\'">✕ Close</button></div>'
     + '<div class="gg-lab">Level</div><div class="gg-chips">' + ggLvlRow('ggRefreshAct();ggSpotMenu()') + '</div>'
     + '<div class="gg-lab">Item type</div><div class="gg-chips">' + ggTypeRow('ggRefreshAct();ggSpotMenu()') + '</div>'
