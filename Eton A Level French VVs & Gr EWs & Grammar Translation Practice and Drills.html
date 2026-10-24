@@ -4,7 +4,7 @@
 <script id="ap-update">
 /* AP auto-update: if this copy is older than the published version, reload once with the new one (saved answers are kept) */
 (function () {
-  var B = '2ef2f01e90'; window.AP_BUILD = B;
+  var B = 'fe8ba76ed9'; window.AP_BUILD = B;
   function check() {
     if (!/^https?:$/.test(location.protocol) || !window.fetch) return;
     var f = decodeURIComponent(location.pathname.split('/').pop() || '');
@@ -50190,6 +50190,19 @@ function mlfLeisureStart(deck) {
 .ms-td{font-size:.875rem;line-height:1.35;opacity:.85}
 .ms-tile[disabled]{opacity:.42;cursor:not-allowed}
 .ms-viewrow{display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin:2px 0 6px}
+.ms-tile{flex-direction:row!important;align-items:center;gap:12px!important}
+.ms-ic{flex:none;width:46px;height:46px;border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:1.5rem;line-height:1}
+.ms-tx{display:flex;flex-direction:column;gap:3px;min-width:0}
+.ms-tile.ms-drill{background:#fff6d8;border-color:#c9a84c;border-width:2px;color:#1a2744}.ms-drill .ms-ic{background:#1a2744;color:#ffd76a}
+.ms-tile.ms-speed{background:linear-gradient(135deg,#1a2744,#24366a);border-color:#1a2744;color:#fff}.ms-speed .ms-tt{color:#ffd76a}.ms-speed .ms-td{color:#c9d2ea;opacity:1}.ms-speed .ms-ic{background:transparent;font-size:1.8rem}
+.ms-tile.ms-spell{background:#e6f5ec;border-color:#1f8a4c}.ms-spell .ms-ic{background:#1f8a4c;color:#fff}
+.ms-tile.ms-match{background:#e6eefc;border-color:#3b6fd4}.ms-match .ms-ic{background:#3b6fd4;color:#fff}
+.ms-tile.ms-leis{background:#fdf0dc;border-color:#c77d00}.ms-leis .ms-ic{background:#c77d00;color:#fff}
+.ms-tile.ms-test{background:#eceff6;border-color:#6b7690}.ms-test .ms-ic{background:#1a2744;color:#fff}
+.ms-tile.pri{background:inherit}
+.ms-step{display:flex;align-items:center;gap:12px;margin:22px -4px 12px;padding:10px 14px;border-radius:12px;background:linear-gradient(135deg,#1a2744,#24366a);color:#fff;font-family:'Playfair Display',serif;font-size:1.25rem;font-weight:700}
+.ms-step:first-of-type{margin-top:8px}
+.ms-num{flex:none;width:34px;height:34px;border-radius:50%;background:#c9a84c;color:#1a2744;display:flex;align-items:center;justify-content:center;font-family:'DM Sans',sans-serif;font-weight:800;font-size:1.0625rem}
 </style>
 <script id="ap-myset">
 (function () {
@@ -50250,12 +50263,12 @@ function mlfLeisureStart(deck) {
   })();
   var setOpen = false;
   var TILES = [
-    ['▶', 'Drill', 'Cards one at a time. You mark yourself ✗ ~ ✓.', 'introStartDrill()'],
-    ['⚡', 'Speed Challenge', 'Race the clock, solo or in teams.', 'openVVChallenge()'],
-    ['✍', 'Spell', 'Hear the French and write it. Accents count.', 'apSpell()'],
-    ['🧩', 'Match', 'Pair ten English and French cards against the clock.', 'apMatch()'],
-    ['☕', 'Leisure Mode', 'Hands-free. Each card is read, you answer in your head, then the answer is read. No marking. For a walk or an evening.', 'introStartLeisure()'],
-    ['📝', 'Test', 'Make a test to print or do on screen. The answers stay hidden.', 'showVVTestPanel()']
+    ['ms-drill', '▶', 'Drill', 'Cards one at a time. You mark yourself ✗ ~ ✓.', 'introStartDrill()'],
+    ['ms-speed', '⚡', 'Speed Challenge', 'Race the clock, solo or in teams.', 'openVVChallenge()'],
+    ['ms-spell', '✍', 'Spell', 'Hear the French and write it. Accents count.', 'apSpell()'],
+    ['ms-match', '🧩', 'Match', 'Pair ten English and French cards against the clock.', 'apMatch()'],
+    ['ms-leis', '☕', 'Leisure Mode', 'Hands-free. Each card is read, you answer in your head, then the answer is read. No marking. For a walk or an evening.', 'introStartLeisure()'],
+    ['ms-test', '📝', 'Test', 'Make a test to print or do on screen. The answers stay hidden.', 'showVVTestPanel()']
   ];
   function paintGroups(card) {
     card.querySelectorAll('.vv-grp').forEach(function (g, gi) {
@@ -50295,6 +50308,8 @@ function mlfLeisureStart(deck) {
       B[cur].push(e);
     });
     if (!B.stack || !B.what.length) return;
+    var vsOn = (chosen && !my) ? vvGroupOf(currentVV) === 'VS' : activeG === 'VS';
+    B.what.forEach(function (e) { if (e.classList.contains('vv-tier') && !e.classList.contains('vv-combo') && !vsOn) e.style.display = 'none'; });
     B.what.forEach(function (e) { if (e.innerHTML && e.innerHTML.indexOf('under Direction') >= 0) e.innerHTML = e.innerHTML.replace('under Direction', 'under Settings (Direction)'); });
     paintGroupsWrap(B, my, chosen);
     // settings (collapsed)
@@ -50306,16 +50321,16 @@ function mlfLeisureStart(deck) {
     setDet.insertAdjacentHTML('beforeend', '<div class="aph-note" style="margin:6px 0 4px;line-height:1.45"><b>Direction</b> is which language you see and which you answer in. <b>Mix both ways</b>: Off = every card goes the way round chosen above. 50–50 = half the cards go English → French and half French → English, each card showing its own direction. 70–30 = seven in ten English → French, three in ten French → English.</div>');
     var view = B.stack.querySelector('[onclick^="openVVBrowse"]');
     var extra = [].slice.call(B.stack.children).filter(function (e) { return e.classList.contains('aph-tools') && !e.querySelector('#autotimeBtn') && !e.querySelector('[onclick^="openVVBrowse"]'); });
-    var tilesHtml = TILES.map(function (t, i) { return '<button class="ms-tile' + (i === 0 ? ' pri' : '') + '"' + (usable ? '' : ' disabled') + ' onclick="' + t[3] + '"><span class="ms-tt">' + t[0] + ' ' + t[1] + '</span><span class="ms-td">' + t[2] + '</span></button>'; }).join('');
+    var tilesHtml = TILES.map(function (t) { return '<button class="ms-tile ' + t[0] + '"' + (usable ? '' : ' disabled') + ' onclick="' + t[4] + '"><span class="ms-ic">' + t[1] + '</span><span class="ms-tx"><span class="ms-tt">' + t[2] + '</span><span class="ms-td">' + t[3] + '</span></span></button>'; }).join('');
     // rebuild the card in order
     while (card.firstChild) card.removeChild(card.firstChild);
     B.head.forEach(function (e) { card.appendChild(e); });
-    card.insertAdjacentHTML('beforeend', '<div class="aph-label">1 · What do you want to practise?</div>');
+    card.insertAdjacentHTML('beforeend', '<div class="ms-step"><span class="ms-num">1</span>What do you want to practise?</div>');
     B.what.forEach(function (e) { card.appendChild(e); });
     card.insertAdjacentHTML('beforeend', myBox(n, dc, my));
     var pool = chosen ? getPool().length : 0;
     card.insertAdjacentHTML('beforeend', '<div class="ms-now">' + (!chosen ? 'Choose a set above to unlock the ways to practise it.' : (my && !pool ? 'Your personalised set has no cards for this filter yet.' : 'Practising: <b>' + vvSetLabel(currentVV).replace('Personalised set', 'my personalised set') + '</b> · ' + pool + ' cards')) + '</div>');
-    card.insertAdjacentHTML('beforeend', '<div class="aph-label">2 · How do you want to practise it?</div>');
+    card.insertAdjacentHTML('beforeend', '<div class="ms-step"><span class="ms-num">2</span>How do you want to practise it?</div>');
     card.appendChild(setDet);
     card.insertAdjacentHTML('beforeend', '<div class="aph-tools ms-tiles">' + tilesHtml + '</div>');
     var vr = document.createElement('div'); vr.className = 'ms-viewrow'; vr.insertAdjacentHTML('beforeend', '<span class="aph-note" style="margin:0">Just want to read or print the list?</span>'); if (view) vr.appendChild(view); card.appendChild(vr);
