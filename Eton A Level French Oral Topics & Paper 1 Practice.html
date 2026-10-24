@@ -4,7 +4,7 @@
 <script id="ap-update">
 /* AP auto-update: if this copy is older than the published version, reload once with the new one (saved answers are kept) */
 (function () {
-  var B = 'c79acc0242'; window.AP_BUILD = B;
+  var B = '4bac6eb4de'; window.AP_BUILD = B;
   function check() {
     if (!/^https?:$/.test(location.protocol) || !window.fetch) return;
     var f = decodeURIComponent(location.pathname.split('/').pop() || '');
@@ -16088,22 +16088,22 @@ function showKTRStudio(){
     got.sort(function (a, b) { return a.i - b.i; });   // easy to hard
     var vs = got.map(function (g) { return view(g.b, SET.dir); }), rows = [];
     for (var i = 0; i < 5; i++) rows.push(vs.slice(i * fit.per, i * fit.per + fit.per).map(function (o) { return { term: o.qh + (o.clue ? '<div style="font-size:.9em;color:#56607a;font-style:italic;margin-top:4px">' + o.clue + '</div>' : ''), _modeLabel: o.tag, _answer: o.ah.replace(/<span class="why">(.*?)<\/span>/g, ' <span style="color:#56607a;font-size:.9em">($1)</span>') }; }));
-    W.view = 'test'; W.test = { vs: vs, rows: rows, per: fit.per, show: false, note: fit.note || '' }; pageTest();
+    W.view = 'test'; if (W.test && W.test.sn) { try { APPEN.reset(W.test.vs.map(function (x, i) { return 'odt:' + W.test.sn + ':' + i; })); } catch (e) { } }
+    W.test = { vs: vs, rows: rows, per: fit.per, show: false, note: fit.note || '', sn: Date.now().toString(36) }; pageTest();
   }
   function pageTest() {
     var t = W.test, k = 0; unkey();
     lockKeys(function (e) { if (e.key === 'Escape') { back(); return true; } return false; });
     var h = '<div class="od-page od-narrow">' + top('Test ' + codeBadge(), '5 × ' + t.per + ' = ' + (5 * t.per) + ' items · ' + selActs().map(function (a) { return a.name; }).join(', '), 'Back');
-    h += '<div class="od-note">Do each item on paper or type in the box. Read the tag on each item to see what to do. Check your answers at the end with <b>Show answers</b>.</div>';
+    h += '<div class="od-note">Write each answer with your Apple Pencil (or tap <b>Type</b>, or just use paper). Read the tag on each item to see what to do. Then tap <b>Show answers</b> to compare: your writing stays put and the pen turns red so you can correct it.</div>';
     if (t.note) h += '<div class="od-none">' + esc(t.note) + '</div>';
     h += '<div class="od-bar"><button type="button" class="ms-b sm pri" data-a="tshow">' + (t.show ? 'Hide answers' : 'Show answers') + '</button><button type="button" class="ms-b sm" data-a="tprint" data-t="0">🖨 Print the test</button><button type="button" class="ms-b sm" data-a="tprint" data-t="1">🖨 Print with answers</button><button type="button" class="ms-b sm" data-a="test2">🔀 New test</button></div>';
     t.vs.forEach(function (o, i) {
-      h += '<div class="od-testrow"><span class="n">' + (i + 1) + '</span>' + tagHtml(o) + '<div class="od-q" style="font-size:1.1875rem;margin-top:8px">' + o.qh + '</div>' + (o.clue ? '<div class="od-clue">' + o.clue + '</div>' : '') + '<textarea rows="2" aria-label="Your answer" placeholder="Your answer (optional: you can write it on paper)"></textarea>' + (t.show ? '<div class="od-ans">' + o.ah + '</div>' : '') + '</div>';
+      h += '<div class="od-testrow"><span class="n">' + (i + 1) + '</span>' + tagHtml(o) + '<div class="od-q" style="font-size:1.1875rem;margin-top:8px">' + o.qh + '</div>' + (o.clue ? '<div class="od-clue">' + o.clue + '</div>' : '') + APPEN.html({ key: 'odt:' + t.sn + ':' + i, lines: (o.act === 'T' || o.act === 'E' || o.act === 'O') ? 3 : 2, label: 'Item ' + (i + 1), typed: '<textarea class="appen-ta" rows="2" spellcheck="false" autocomplete="off" placeholder="Type your answer here"></textarea>' }) + (t.show ? '<div class="od-ans">' + o.ah + '</div>' : '') + '</div>';
     });
     h += '<div class="ms-cen"><button type="button" class="ms-b" data-a="back">← Back</button></div></div>';
-    var keepVals = [].map.call(($('od-ov') || { querySelectorAll: function () { return []; } }).querySelectorAll('.od-testrow textarea'), function (x) { return x.value; });
     paint(h, true);
-    [].forEach.call($('od-ov').querySelectorAll('.od-testrow textarea'), function (x, i) { if (keepVals[i]) x.value = keepVals[i]; });
+    try { APPEN.mount($('od-ov')); if (t.show) APPEN.lockIn($('od-ov')); } catch (e) { }
   }
   function printTest(teacher) {
     var t = W.test; if (typeof openAPSpotTestPDF !== 'function') { alert('Printing is not available here.'); return; }
