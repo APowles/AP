@@ -6,7 +6,7 @@
 <script id="ap-update">
 /* AP auto-update: if this copy is older than the published version, reload once with the new one (saved answers are kept) */
 (function () {
-  var B = 'd7439149a0'; window.AP_BUILD = B;
+  var B = 'cc23a648f1'; window.AP_BUILD = B;
   function check() {
     if (!/^https?:$/.test(location.protocol) || !window.fetch) return;
     var f = decodeURIComponent(location.pathname.split('/').pop() || '');
@@ -3161,7 +3161,7 @@ var APTT = (function () {
     d = document.createElement('div'); d.id = 'aptt-mk'; d.className = 'aptt-mkov';
     d.innerHTML = '<div class="aptt-mkbox" role="dialog" aria-modal="true"><div class="aptt-mkh">🔑 Make a test link</div>'
       + '<div class="aptt-mks">' + S.m.title + (S.m.level && plain(S.m.title).indexOf(S.m.level) < 0 ? ' · ' + esc(S.m.level) : '') + ' · ' + S.items.length + ' ' + noun(S.items.length) + '</div>'
-      + '<label>Name (for your list)</label><input id="aptt-mk-n" type="text" value="' + esc('Eton Timed Spot Test: ' + plain(S.m.title) + (S.m.level && plain(S.m.title).indexOf(S.m.level) < 0 ? ' · ' + S.m.level : '')) + '">'
+      + '<label>Name (for your list)</label><input id="aptt-mk-n" type="text" value="' + esc(plain(S.m.app || 'Eton') + ' · Spot Test: ' + plain(S.m.title) + (S.m.level && plain(S.m.title).indexOf(S.m.level) < 0 ? ' · ' + S.m.level : '')) + '">'
       + '<label>Time limit</label><select id="aptt-mk-s">' + opts + '</select>'
       + '<label>Questions</label><div class="aptt-mkq"><label><input type="radio" name="aptt-mk-q" value="same"' + (RUN ? '' : ' checked') + '> Same questions for everyone <small>(you can go through the answers on the board)</small></label>'
       + '<label' + (RUN ? '' : ' class="off"') + '><input type="radio" name="aptt-mk-q" value="draw"' + (RUN ? ' checked' : ' disabled') + '> Each boy gets his own draw <small>(' + VERSIONS + ' different versions from these settings, questions in a random order)</small></label></div>'
@@ -12048,6 +12048,8 @@ if (window.__voc) window.__voc.lvlOf = function (i, lang) { return vocLvlOf(ALL_
 
 .spt-nl{width:100%;flex:1 1 100%;grid-column:1/-1;margin:12px 0 2px}
 .spt-nl .spt-quick{display:block!important;margin-top:8px}
+
+.spt-showans{margin:14px 0 6px}
 </style>
 <script id="ap-spot">
 /* AP SPOT add-on: one "Spot Test" card (Apple Pencil on the iPad / Print it) in place of the separate Paper and Submitted buttons;
@@ -12055,7 +12057,21 @@ if (window.__voc) window.__voc.lvlOf = function (i, lang) { return vocLvlOf(ALL_
 (function () {
   var QUICK = 'No-limit test (up to the whole set)';
   function txt(b) { return (b.textContent || '').replace(/\s+/g, ' ').trim(); }
+
+  /* Answers are never on show: the "Answer Sheet" of a generated test sits behind a Show answers button. */
+  function hideAnswers() {
+    var all = document.querySelectorAll('div,h3,h4,span,p'), heads = [];
+    for (var i = 0; i < all.length; i++) if (all[i].children.length === 0 && /^Answer Sheet$/i.test(txt(all[i])) && !all[i].closest('.spt-ans')) heads.push(all[i]);
+    heads.forEach(function (h) {
+      var box = h.nextElementSibling; if (!box || !h.parentNode) return;
+      var w = document.createElement('div'); w.className = 'spt-ans'; w.style.display = 'none';
+      var b = document.createElement('button'); b.type = 'button'; b.className = 'spt-showans aph-btn'; b.textContent = 'Show answers';
+      b.onclick = function () { var on = w.style.display === 'none'; w.style.display = on ? '' : 'none'; b.textContent = on ? 'Hide answers' : 'Show answers'; };
+      h.parentNode.insertBefore(b, h); h.parentNode.insertBefore(w, h); w.appendChild(h); w.appendChild(box);
+    });
+  }
   function run() {
+    hideAnswers();
     var bs = document.querySelectorAll('button'), seen = [];
     for (var i = 0; i < bs.length; i++) {
       var b = bs[i], P = b.parentNode;
