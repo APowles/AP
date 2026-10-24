@@ -4,7 +4,7 @@
 <script id="ap-update">
 /* AP auto-update: if this copy is older than the published version, reload once with the new one (saved answers are kept) */
 (function () {
-  var B = '331d2120a0'; window.AP_BUILD = B;
+  var B = '81b7de9620'; window.AP_BUILD = B;
   function check() {
     if (!/^https?:$/.test(location.protocol) || !window.fetch) return;
     var f = decodeURIComponent(location.pathname.split('/').pop() || '');
@@ -51617,6 +51617,9 @@ function mlfLeisureStart(deck) {
 .spt-pr{margin-top:10px;font-size:.88rem;color:#4a5570}
 .spt-link{background:none;border:0;padding:6px 2px;min-height:32px;font:800 .9rem 'DM Sans',system-ui,sans-serif;color:#5b3f9e;text-decoration:underline;cursor:pointer}
 .spt-link[disabled]{opacity:.4}
+
+.spt-nl{width:100%;flex:1 1 100%;grid-column:1/-1;margin:12px 0 2px}
+.spt-nl .spt-quick{display:block!important;margin-top:8px}
 </style>
 <script id="ap-spot">
 /* AP SPOT add-on: one "Spot Test" card (Apple Pencil on the iPad / Print it) in place of the separate Paper and Submitted buttons;
@@ -51657,6 +51660,14 @@ function mlfLeisureStart(deck) {
         }
         P.insertBefore(card, first);
         if (gen && gen.parentNode === P) P.insertBefore(gen, card.nextSibling);
+      }
+      // the Questions row only belongs to the plain No-limit test: move it below the Spot Test card, next to its link
+      if (gen && card.parentNode === P && !P.querySelector(':scope > .spt-nl')) {
+        var nl = document.createElement('div'); nl.className = 'spt-nl';
+        var qs = P.ownerDocument.querySelectorAll('.aph-label,.l,div,span,label,small'), ql = null;
+        for (var w = 0; w < qs.length; w++) { if (qs[w].children.length === 0 && /^Questions$/i.test(txt(qs[w])) && qs[w].nextElementSibling) { ql = qs[w]; break; } }
+        if (ql) { var qc = ql.nextElementSibling; nl.appendChild(ql); nl.appendChild(qc); }
+        nl.appendChild(gen); P.insertBefore(nl, card.nextSibling);
       }
       var pills = card.querySelectorAll('.spt-big,.spt-link'), orig = [pen, pap].filter(Boolean);
       for (var q = 0; q < pills.length; q++) pills[q].disabled = !!(orig[q] && orig[q].disabled);

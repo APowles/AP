@@ -37,6 +37,14 @@
         P.insertBefore(card, first);
         if (gen && gen.parentNode === P) P.insertBefore(gen, card.nextSibling);
       }
+      // the Questions row only belongs to the plain No-limit test: move it below the Spot Test card, next to its link
+      if (gen && card.parentNode === P && !P.querySelector(':scope > .spt-nl')) {
+        var nl = document.createElement('div'); nl.className = 'spt-nl';
+        var qs = P.ownerDocument.querySelectorAll('.aph-label,.l,div,span,label,small'), ql = null;
+        for (var w = 0; w < qs.length; w++) { if (qs[w].children.length === 0 && /^Questions$/i.test(txt(qs[w])) && qs[w].nextElementSibling) { ql = qs[w]; break; } }
+        if (ql) { var qc = ql.nextElementSibling; nl.appendChild(ql); nl.appendChild(qc); }
+        nl.appendChild(gen); P.insertBefore(nl, card.nextSibling);
+      }
       var pills = card.querySelectorAll('.spt-big,.spt-link'), orig = [pen, pap].filter(Boolean);
       for (var q = 0; q < pills.length; q++) pills[q].disabled = !!(orig[q] && orig[q].disabled);
       if (pen) pen.classList.add('spt-hide'); if (pap) pap.classList.add('spt-hide');
