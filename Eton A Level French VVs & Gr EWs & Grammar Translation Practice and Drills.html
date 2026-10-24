@@ -4,7 +4,7 @@
 <script id="ap-update">
 /* AP auto-update: if this copy is older than the published version, reload once with the new one (saved answers are kept) */
 (function () {
-  var B = '1bae61910c'; window.AP_BUILD = B;
+  var B = '5bf59cf39d'; window.AP_BUILD = B;
   function check() {
     if (!/^https?:$/.test(location.protocol) || !window.fetch) return;
     var f = decodeURIComponent(location.pathname.split('/').pop() || '');
@@ -5203,7 +5203,8 @@ function _buildSpotPrintHTML(opts) {
   function pageHTML(badge, body, sub) {
     return '<section class="sheet">'
       +   aphPrintHead({ kicker: 'Eton A Level &middot; VVs, Gr EWs &amp; Translation', title: 'Eton Spot Test &mdash; <em>' + String(brand).replace(/^(?:AP|Eton) A Level &nbsp;·&nbsp; /, '') + '</em>',
-            meta: (sub || subtitle) + ' &nbsp;·&nbsp; ' + badge, total: 10, print: false })
+            meta: (sub || subtitle) + ' &nbsp;·&nbsp; ' + badge, total: opts.total || 10, print: false })
+      +   '<div class="note">Each question is marked on its own: 2 marks for perfection &middot; 1 mark for 75% or more correct &middot; 0 otherwise</div>'
       +   '<table>' + cols + headerRow + '<tbody>' + body
       /* Elastic spacer row: takes whatever vertical space the data rows
          haven't used, so the table always fills the page. Number of <td>s
@@ -5233,7 +5234,8 @@ function _buildSpotPrintHTML(opts) {
     +   '.aph-pband,.aph-pstrip,.aph-pfoot{flex-shrink:0;}'
     +   'table{width:100%;border-collapse:collapse;table-layout:fixed;flex:1;}'
     +   'thead th{background:#f0f3f8;font-size:0.66rem;font-weight:700;text-transform:uppercase;letter-spacing:0.07em;color:#8899bb;padding:7px 10px;border:1.5px solid #ccc;text-align:left;}'
-    +   'thead th.th-score{text-align:center;}'
+    +   'thead th.th-score{text-align:center;white-space:nowrap;padding:7px 2px;}'
+    +   '.note{font-size:0.66rem;color:#999;font-style:italic;margin-bottom:6px;padding:0 2px;flex-shrink:0;}'
     +   'td{border:1.5px solid #ccc;padding:8px 10px;vertical-align:top;}'
     +   'td.num{text-align:center;border-right:2px solid #1a2744;background:#f8f9fc;vertical-align:middle;}'
     +   '.row-num{font-size:1.1rem;font-weight:700;color:#1a2744;line-height:1;}'
@@ -5242,7 +5244,8 @@ function _buildSpotPrintHTML(opts) {
        spread evenly down the tall row cell rather than bunching at the top.
        Fixes the "lots of empty white space" symptom. */
     +   'td.q-item,td.a-item{font-size:0.8rem;line-height:1.45;padding:0;}'
-    +   'td.q-item > .lines, td.a-item > .lines{display:flex;flex-direction:column;justify-content:space-around;height:100%;padding:8px 10px;box-sizing:border-box;}'
+    +   'td.q-item > .lines, td.a-item > .lines{display:flex;flex-direction:column;justify-content:space-around;height:100%;padding:4px 8px;box-sizing:border-box;}'
+    +   (opts.n >= 15 ? 'td.q-item,td.a-item{font-size:0.72rem;line-height:1.3;}td.q-item > .lines, td.a-item > .lines{padding:2px 8px;}.ln{padding:2px 0;}' : '') + (opts.n >= 20 ? 'td.q-item > .lines, td.a-item > .lines{padding:0 8px;}.ln{padding:1px 0;}' : '')
     +   'td.a-item-blank{background:#fffef5;}'
     +   'td.score-col{border-left:2px solid #1a2744;text-align:center;}'
     +   '.ln{padding:4px 0;}'
@@ -5256,7 +5259,7 @@ function _buildSpotPrintHTML(opts) {
          data rows are short. */
     +   'tbody tr.spacer{height:100%;}'
     +   'tbody tr.spacer td{border:none;padding:0;min-height:0;}'
-    +   'tbody tr:not(.spacer) td{min-height:calc((297mm - 1.8cm - 60px - 32px - 30px - 76px) / 5.4);}'
+    +   'tbody tr:not(.spacer) td{min-height:calc((297mm - 1.8cm - 60px - 32px - 30px - 110px) / ' + ((opts.n || 5) + 1) + ');}'
     +   '.pbtn{position:fixed;top:10px;right:10px;background:#c9a84c;color:#1a2744;border:none;padding:6px 14px;border-radius:5px;font-size:0.8rem;font-weight:700;cursor:pointer;z-index:99;font-family:inherit;}'
     + '</style></head>'
     + '<body>'
@@ -5285,6 +5288,42 @@ function apSpotNoteHTML(note) {
   return note ? '<div class="ap-spot-note" style="font-size:0.7rem;color:#b05000;font-weight:600;margin-bottom:6px;">⚠️ ' + note + '</div>' : '';
 }
 function apSpotAnsH(per) { return [0, 36, 48, 72, 96][per] || 96; }   // preview answer space per box
+
+// Spot Test, every QUESTION marked on its own: one table row per ITEM (its own question, its own answer line, its own 0 / 1 / 2 cell);
+// only the box number spans the items of its box. qHtml/aHtml give the inner HTML of one item; ans=false leaves the answer cell blank.
+var AP_SPOT_COL = ['#1a2744', '#b03a2e', '#1a6b3a', '#6a3d9a'];
+function apSpotPrevRows(rows, qHtml, aHtml, ans, ansBg) {
+  const NS = 'padding:6px 8px;border:1px solid #ddd;text-align:center;font-weight:700;font-size:0.82rem;color:#1a2744;vertical-align:middle;width:28px;';
+  const QS = 'padding:6px 8px;border:1px solid #ddd;vertical-align:middle;width:42%;font-size:0.78rem;line-height:1.5;';
+  const SS = 'padding:6px 8px;border:1px solid #ddd;text-align:center;width:56px;';
+  let h = '';
+  rows.forEach(function (g, i) {
+    g.forEach(function (p, ci) {
+      const bd = ci === g.length - 1 ? 'border-bottom:3px solid #1a2744;' : 'border-bottom:1px dotted #ccc;', col = AP_SPOT_COL[ci % AP_SPOT_COL.length];
+      h += '<tr>' + (ci === 0 ? '<td style="' + NS + '" rowspan="' + g.length + '">' + (i + 1) + '</td>' : '')
+        + '<td style="' + QS + bd + 'color:' + col + ';">' + qHtml(p) + '</td>'
+        + (ans ? '<td style="' + QS + bd + (ansBg ? 'background:' + ansBg + ';' : '') + 'color:' + col + ';">' + aHtml(p) + '</td>'
+               : '<td style="' + QS + bd + 'background:#f9f9f9;"><div style="height:' + apSpotAnsH(1) + 'px;"></div></td>')
+        + '<td style="' + SS + bd + '"></td></tr>';
+    });
+  });
+  return h;
+}
+// the printed sheet's rows (used with _buildSpotPrintHTML): one row per item, a score cell per item, a heavier line under the last item of each box
+function apSpotPrintRows(rows, qHtml, aHtml) {
+  let sRows = '', tRows = '';
+  rows.forEach(function (g, i) {
+    g.forEach(function (p, ci) {
+      const bd = ci === g.length - 1 ? 'border-bottom:3px solid #1a2744;' : 'border-bottom:1px dotted #ccc;', col = AP_SPOT_COL[ci % AP_SPOT_COL.length];
+      const num = ci === 0 ? '<td class="num" rowspan="' + g.length + '"><div class="row-num">' + (i + 1) + '</div></td>' : '';
+      const q = '<td class="q-item" style="' + bd + '"><div class="lines"><div class="ln" style="color:' + col + ';">' + qHtml(p) + '</div></div></td>';
+      const sc = '<td class="score-col" style="' + bd + '"></td>';
+      sRows += '<tr>' + num + q + '<td class="a-item-blank" style="' + bd + '">&nbsp;</td>' + sc + '</tr>';
+      tRows += '<tr>' + num + q + '<td class="a-item" style="' + bd + '"><div class="lines"><div class="ln" style="color:' + col + ';">' + aHtml(p) + '</div></div></td>' + sc + '</tr>';
+    });
+  });
+  return { sRows: sRows, tRows: tRows };
+}
 
 function _openSpotPrintWindow(html) {
   const w = window.open('', '_blank');
@@ -5350,28 +5389,14 @@ function generateSDSpotTest(timed) {
     }).join('');
   }
 
-  let studentRows = '', teacherRows = '';
-  rows.forEach((group, i) => {
-    const trStyle = 'border-bottom:3px solid #1a2744;';
-    studentRows += '<tr style="'+trStyle+'">'
-      + '<td style="'+tdNumStyle+'">' + (i+1) + '<div style="font-size:0.58rem;color:#aaa;font-weight:400;">(2)</div></td>'
-      + '<td style="'+tdQStyle+'">' + buildLines(group, 'q') + '</td>'
-      + '<td style="'+tdAStyle+'background:#f9f9f9;"><div style="height:'+apSpotAnsH(itemsPerRow)+'px;"></div></td>'
-      + '<td style="'+tdScoreStyle+'"></td>'
-      + '</tr>';
-    teacherRows += '<tr style="'+trStyle+'">'
-      + '<td style="'+tdNumStyle+'">' + (i+1) + '<div style="font-size:0.58rem;color:#aaa;font-weight:400;">(2)</div></td>'
-      + '<td style="'+tdQStyle+'">' + buildLines(group, 'q') + '</td>'
-      + '<td style="'+tdAStyle+'">' + buildLines(group, 'a') + '</td>'
-      + '<td style="'+tdScoreStyle+'"></td>'
-      + '</tr>';
-  });
+  const sdQ = function (p) { return sdMk(p) + (sdQA(p, sdTF(p, isToFr)).q || '').trim(); }, sdA = function (p) { return (sdQA(p, sdTF(p, isToFr)).a || '').trim(); };
+  const studentRows = apSpotPrevRows(rows, sdQ, sdA, false), teacherRows = apSpotPrevRows(rows, sdQ, sdA, true);
 
   const tableHeader = '<tr>'
     + '<th style="'+thStyle+'width:28px;">#</th>'
     + '<th style="'+thStyle+'">' + (spotMix ? '🇬🇧 ↔ 🇫🇷 Question' : isToFr ? '🇬🇧 English' : '🇫🇷 French') + '</th>'
     + '<th style="'+thStyle+'">' + (spotMix ? '🇬🇧 ↔ 🇫🇷 Answer' : isToFr ? '🇫🇷 French' : '🇬🇧 English') + '</th>'
-    + '<th style="'+thStyle+'width:36px;">/ 2</th>'
+    + '<th style="'+thStyle+'width:56px;text-align:center;white-space:nowrap;">0 / 1 / 2</th>'
     + '</tr>';
 
   const previewStudent = '<table style="width:100%;border-collapse:collapse;margin-bottom:8px;">' + tableHeader + studentRows + '</table>';
@@ -5383,7 +5408,7 @@ function generateSDSpotTest(timed) {
   // JSON output contains double quotes. Route through a global instead.
   window._sdSpotData = { rows, opts: {isToFr, setLabel, dirLabel, itemsPerRow, mix: spotMix} };
   document.getElementById('sdTestOutput').innerHTML =
-    '<div data-sd-spot="' + itemsPerRow + '" style="font-size:0.75rem;font-weight:700;color:var(--navy);margin-bottom:6px;">🖨 Paper Spot Test — ' + setLabel + dirP(dirLabel) + ' — /' + 10 + '</div>'  + apSpotNoteHTML(fit.note) + '<div style="font-size:0.7rem;color:var(--text3);margin-bottom:8px;">Student sheet (blank) · Teacher sheet (answers) · 5 rows × ' + itemsPerRow + ' = ' + totalNeeded + ' sentences</div>'
+    '<div data-sd-spot="' + itemsPerRow + '" style="font-size:0.75rem;font-weight:700;color:var(--navy);margin-bottom:6px;">🖨 Paper Spot Test — ' + setLabel + dirP(dirLabel) + ' — '+totalNeeded+' questions</div>'  + apSpotNoteHTML(fit.note) + '<div style="font-size:0.7rem;color:var(--text3);margin-bottom:8px;">Student sheet (blank) · Teacher sheet (answers) · 5 rows × ' + itemsPerRow + ' = ' + totalNeeded + ' sentences</div>'
     + previewStudent
     + '<div class="aph-label">Answer key</div>'
     + previewTeacher
@@ -5399,7 +5424,7 @@ function printSDSpotTest() {
   if (!data) { alert('No spot test ready — please generate one first.'); return; }
   const { rows, opts } = data;
   const { isToFr, setLabel, dirLabel, itemsPerRow, mix } = opts;
-  const spotTotal = 10;   // an AP Spot Test is always out of 10
+  const spotTot = rows.reduce(function (n, g) { return n + g.length; }, 0);   // every question is marked out of 2
   const itemColours = ['#1a2744','#b03a2e','#1a6b3a'];
 
   function lines(group, side) {
@@ -5410,24 +5435,16 @@ function printSDSpotTest() {
     }).join('');
   }
 
-  let sRows = '', tRows = '';
-  rows.forEach((group, i) => {
-    const numCell    = '<td class="num"><div class="row-num">'+(i+1)+'</div><div class="marks">(2)</div></td>';
-    const qCell      = '<td class="q-item"><div class="lines">'+lines(group, 'q')+'</div></td>';
-    const blank      = '<td class="a-item-blank">&nbsp;</td>';
-    const ansCell    = '<td class="a-item"><div class="lines">'+lines(group, 'a')+'</div></td>';
-    const score      = '<td class="score-col"></td>';
-    sRows += '<tr>' + numCell + qCell + blank   + score + '</tr>';
-    tRows += '<tr>' + numCell + qCell + ansCell + score + '</tr>';
-  });
+  const spR = apSpotPrintRows(rows, function (p) { return sdMk(p) + (sdQA(p, sdTF(p, isToFr)).q || '').trim(); }, function (p) { return (sdQA(p, sdTF(p, isToFr)).a || '').trim(); });
+  const sRows = spR.sRows, tRows = spR.tRows;
 
   const html = _buildSpotPrintHTML({
     title:      'Eton Spot Test — ' + setLabel + dirP(dirLabel),
-    subtitle:   setLabel + ' &nbsp;·&nbsp; ' + dirLabel + ' &nbsp;·&nbsp; 5 rows × ' + (itemsPerRow||2) + ' &nbsp;·&nbsp; /' + spotTotal,
+    subtitle:   setLabel + ' &nbsp;·&nbsp; ' + dirLabel + ' &nbsp;·&nbsp; ' + spotTot + ' questions',
     brand:      'Eton A Level &nbsp;·&nbsp; VVs Sentence Drill',
-    sRows, tRows,
-    colHeaders: ['', (mix?'🇬🇧 ↔ 🇫🇷 Question':isToFr?'🇬🇧 English':'🇫🇷 French'), (mix?'🇬🇧 ↔ 🇫🇷 Answer':isToFr?'🇫🇷 French':'🇬🇧 English'), '/ 2'],
-    colWidths:  ['34px', '45%', 'auto', '48px'],
+    sRows, tRows, total: 2 * spotTot, n: spotTot,
+    colHeaders: ['', (mix?'🇬🇧 ↔ 🇫🇷 Question':isToFr?'🇬🇧 English':'🇫🇷 French'), (mix?'🇬🇧 ↔ 🇫🇷 Answer':isToFr?'🇫🇷 French':'🇬🇧 English'), '0 / 1 / 2'],
+    colWidths:  ['34px', '47%', 'auto', '62px'],
     mode:       'both'
   });
   _openSpotPrintWindow(html);
@@ -5662,29 +5679,15 @@ function generateVVSpotTest(timed) {
     }).join('');
   }
 
-  let studentRows = '', teacherRows = '';
-  rows.forEach(function(group, i) {
-    const trBorder = 'border-bottom:3px solid #1a2744;';
-    studentRows += '<tr style="'+trBorder+'">'
-      + '<td style="'+tdNumStyle+'">' + (i+1) + '<div style="font-size:0.58rem;color:#aaa;font-weight:400;">(2)</div></td>'
-      + '<td style="'+tdQStyle+'">' + buildItemLines(group, qIdx, true) + '</td>'
-      + '<td style="'+tdAStyle+'background:#f9f9f9;"><div style="height:'+apSpotAnsH(per)+'px;"></div></td>'
-      + '<td style="'+tdScoreStyle+'"></td>'
-      + '</tr>';
-    teacherRows += '<tr style="'+trBorder+'">'
-      + '<td style="'+tdNumStyle+'">' + (i+1) + '<div style="font-size:0.58rem;color:#aaa;font-weight:400;">(2)</div></td>'
-      + '<td style="'+tdQStyle+'">' + buildItemLines(group, qIdx, true) + '</td>'
-      + '<td style="'+tdAStyle+'">' + buildItemLines(group, aIdx, true) + '</td>'
-      + '<td style="'+tdScoreStyle+'"></td>'
-      + '</tr>';
-  });
+  const vvQ = function (p) { return spotTag(p) + cleanVVHtml(p[spotDirs.get(p).qi]); }, vvA = function (p) { return cleanVVHtml(p[spotDirs.get(p).ai]); };
+  const studentRows = apSpotPrevRows(rows, vvQ, vvA, false), teacherRows = apSpotPrevRows(rows, vvQ, vvA, true, '#fffef5');
 
   const tableOpen = '<table style="width:100%;border-collapse:collapse;margin-bottom:6px;">'
     + '<thead><tr>'
     + '<th style="'+thStyle+'width:28px;"></th>'
     + '<th style="'+thStyle+'width:42%;">'+hQFlag+' <strong>Questions</strong></th>'
     + '<th style="'+thStyle+'width:42%;color:#b05000;">'+hAFlag+' Write <strong>answers</strong> here</th>'
-    + '<th style="'+thStyle+'width:36px;text-align:center;">0/1/2</th>'
+    + '<th style="'+thStyle+'width:56px;text-align:center;white-space:nowrap;">0 / 1 / 2</th>'
     + '</tr></thead><tbody>';
 
   document.getElementById('vvTestOutput').innerHTML =
@@ -5698,7 +5701,7 @@ function generateVVSpotTest(timed) {
     + '<div style="font-size:0.68rem;font-weight:700;color:#8899bb;text-transform:uppercase;letter-spacing:0.08em;margin-bottom:6px;">Student Sheet (preview)</div>'
     + '<div style="background:#fff;border:1px solid #e2e6f0;border-radius:10px;padding:12px 16px;margin-bottom:16px;">'
     + tableOpen + studentRows + '</tbody></table>'
-    + '<div style="font-size:0.6rem;color:#aaa;font-style:italic;">2 marks for perfection &nbsp;·&nbsp; 1 mark for 75%+ correct</div>'
+    + '<div style="font-size:0.6rem;color:#aaa;font-style:italic;">Each question is marked on its own: 2 marks for perfection &middot; 1 mark for 75% or more correct &middot; 0 otherwise</div>'
     + '</div>'
     + '<div style="font-size:0.68rem;font-weight:700;color:#8899bb;text-transform:uppercase;letter-spacing:0.08em;margin-bottom:6px;">Teacher Sheet (answer key)</div>'
     + '<div style="background:#fff;border:1px solid #e2e6f0;border-radius:10px;padding:12px 16px;">'
@@ -5732,11 +5735,9 @@ function openVVSpotTestPDF(type) {
       const borderBottom = isLast ? 'border-bottom:3px solid #1a2744;' : 'border-bottom:1px dotted #ccc;';
       // num cell only on first sub-row
       const numCell = isFirst
-        ? '<td class="num" rowspan="' + group.length + '"><div class="row-num">' + (i+1) + '</div><div class="marks">(2)</div></td>'
+        ? '<td class="num" rowspan="' + group.length + '"><div class="row-num">' + (i+1) + '</div></td>'
         : '';
-      const scoreCell = isFirst
-        ? '<td class="score-col" rowspan="' + group.length + '"></td>'
-        : '';
+      const scoreCell = '<td class="score-col" style="' + borderBottom + '"></td>';
       tableRows += '<tr>'
         + numCell
         + '<td class="q-item" style="color:' + colour + ';' + borderBottom + '">' + qLines[ci] + '</td>'
@@ -5782,7 +5783,7 @@ function openVVSpotTestPDF(type) {
 
     'td.q-item{width:42%;padding:14px 14px;font-size:0.82rem;line-height:1.45;vertical-align:middle;border-left:none;border-right:1.5px solid #ccc;border-top:none;}',
     'td.a-item{padding:14px 14px;font-size:0.82rem;line-height:1.45;vertical-align:middle;' + (isTeacher ? 'background:#fffef5;' : '') + 'border-left:none;border-right:none;border-top:none;}',
-    'td.score-col{width:52px;text-align:center;border-left:2px solid #1a2744;}',
+    'td.score-col{width:66px;text-align:center;border-left:2px solid #1a2744;}',
 
     /* remove write-lines/wl — no longer needed */
     '.item,.write-lines,.wl{display:none;}',
@@ -5795,17 +5796,17 @@ function openVVSpotTestPDF(type) {
        - The bottom spacer row absorbs any leftover vertical space. */
     'tbody tr.spacer{height:100%;}',
     'tbody tr.spacer td{border:none;padding:0;min-height:0;}',
-    'tbody tr:not(.spacer) td.q-item,tbody tr:not(.spacer) td.a-item{min-height:calc((297mm - 4cm - 60px - 40px - 32px - 36px) / ' + (5 * per + 1) + ');}',
+    'tbody tr:not(.spacer) td.q-item,tbody tr:not(.spacer) td.a-item{min-height:calc((297mm - 4cm - 60px - 40px - 32px - 36px) / ' + (rows.reduce(function (n, g) { return n + g.length; }, 0) + 1) + ');}',
     '</style></head>',
 
     '<body>',
     aphPrintHead({ kicker: 'Eton A Level &middot; VVs, Gr EWs &amp; Translation', title: 'Eton Spot Test &mdash; <em>' + label + '</em>',
-      meta: 'VVs &nbsp;·&nbsp; 5 questions &nbsp;·&nbsp; ' + per + (per === 1 ? ' item' : ' items') + ' each &nbsp;·&nbsp; /10 &nbsp;·&nbsp; ' + sheetTitle, total: 10 }),
+      meta: 'VVs &nbsp;·&nbsp; ' + rows.reduce(function (n, g) { return n + g.length; }, 0) + ' questions &nbsp;·&nbsp; ' + sheetTitle, total: 2 * rows.reduce(function (n, g) { return n + g.length; }, 0) }),
 
-    '<div class="note">Each question is out of 2 marks &nbsp;·&nbsp; 2 marks for perfection &nbsp;·&nbsp; 1 mark for 75% or more correct</div>',
+    '<div class="note">Each question is marked on its own: 2 marks for perfection &middot; 1 mark for 75% or more correct &middot; 0 otherwise</div>',
 
     '<table>',
-    '<colgroup><col style="width:32px"><col style="width:42%"><col><col style="width:52px"></colgroup>',
+    '<colgroup><col style="width:32px"><col style="width:42%"><col><col style="width:66px"></colgroup>',
     '<thead><tr>',
     '<th style="border-right:2px solid #1a2744;"></th>',
     '<th>' + qFlag + ' &nbsp;<strong>Questions</strong></th>',
@@ -40469,18 +40470,14 @@ function grOptionsSpotTest(setId, timed) {
   function buildLines(group, key) {
     return group.map((s, i) => '<div style="line-height:1.7;color:'+itemColours[i]+';border-bottom:1px dashed #e0e0e0;padding:2px 0;">'+(key==='en'?s.en:s.fr.replace(/<[^>]+>/g,''))+'</div>').join('');
   }
-  let studentRows = '', teacherRows = '';
-  rows.forEach((group, i) => {
-    const trStyle = 'border-bottom:3px solid #1a2744;';
-    studentRows += '<tr style="'+trStyle+'"><td style="'+tdNumStyle+'">'+(i+1)+'<div style="font-size:0.58rem;color:#aaa;font-weight:400;">(2)</div></td><td style="'+tdQStyle+'">'+buildLines(group,'en')+'</td><td style="'+tdAStyle+'background:#f9f9f9;"><div style="height:'+apSpotAnsH(itemsPerRow)+'px;"></div></td><td style="'+tdScoreStyle+'"></td></tr>';
-    teacherRows += '<tr style="'+trStyle+'"><td style="'+tdNumStyle+'">'+(i+1)+'<div style="font-size:0.58rem;color:#aaa;font-weight:400;">(2)</div></td><td style="'+tdQStyle+'">'+buildLines(group,'en')+'</td><td style="'+tdAStyle+'">'+buildLines(group,'fr')+'</td><td style="'+tdScoreStyle+'"></td></tr>';
-  });
-  const tableHeader = '<tr><th style="'+thStyle+'width:28px;">#</th><th style="'+thStyle+'">'+grColHead(rows)+'</th><th style="'+thStyle+'">French</th><th style="'+thStyle+'width:36px;">/ 2</th></tr>';
+  const gQ = function (s) { return s.en; }, gA = function (s) { return s.fr.replace(/<[^>]+>/g,''); };
+  const studentRows = apSpotPrevRows(rows, gQ, gA, false), teacherRows = apSpotPrevRows(rows, gQ, gA, true);
+  const tableHeader = '<tr><th style="'+thStyle+'width:28px;">#</th><th style="'+thStyle+'">'+grColHead(rows)+'</th><th style="'+thStyle+'">French</th><th style="'+thStyle+'width:56px;text-align:center;white-space:nowrap;">0 / 1 / 2</th></tr>';
   window._grOptionsSpotData = { rows, opts: { setTitle: set.title + apLvTag('gr'), itemsPerRow } };
   out.innerHTML =
     '<div class="vv-outcard">'
     + '<div class="aph-panel-head">'
-    + '<h3 class="vv-out-title">&#128424; Paper Spot Test — '+set.title+apLvTag('gr')+' — /'+10+'</h3>'
+    + '<h3 class="vv-out-title">&#128424; Paper Spot Test — '+set.title+apLvTag('gr')+' — '+totalNeeded+' questions</h3>'
     + '<button class="aph-btn aph-btn-sm" onclick="document.getElementById(\'grOptionsTestOutput\').innerHTML=\'\'">✕ Close</button>'
     + '</div>'
     + '<div class="aph-label">Items per box</div>'
@@ -41270,14 +41267,10 @@ function generateGrammarSpotTestInline(timed) {
     }).join('');
   }
 
-  let studentRows = '', teacherRows = '';
-  rows.forEach((group, i) => {
-    const trStyle = 'border-bottom:3px solid #1a2744;';
-    studentRows += '<tr style="'+trStyle+'"><td style="'+tdNumStyle+'">'+(i+1)+'<div style="font-size:0.58rem;color:#aaa;font-weight:400;">(2)</div></td><td style="'+tdQStyle+'">'+buildLines(group,'en')+'</td><td style="'+tdAStyle+'background:#f9f9f9;"><div style="height:'+apSpotAnsH(itemsPerRow)+'px;"></div></td><td style="'+tdScoreStyle+'"></td></tr>';
-    teacherRows += '<tr style="'+trStyle+'"><td style="'+tdNumStyle+'">'+(i+1)+'<div style="font-size:0.58rem;color:#aaa;font-weight:400;">(2)</div></td><td style="'+tdQStyle+'">'+buildLines(group,'en')+'</td><td style="'+tdAStyle+'">'+buildLines(group,'fr')+'</td><td style="'+tdScoreStyle+'"></td></tr>';
-  });
+  const gQ = function (s) { return grQ(s,false); }, gA = function (s) { return grTestAns(s); };
+  const studentRows = apSpotPrevRows(rows, gQ, gA, false), teacherRows = apSpotPrevRows(rows, gQ, gA, true);
 
-  const tableHeader = '<tr><th style="'+thStyle+'width:28px;">#</th><th style="'+thStyle+'">'+grColHead(rows)+'</th><th style="'+thStyle+'">French</th><th style="'+thStyle+'width:36px;">/ 2</th></tr>';
+  const tableHeader = '<tr><th style="'+thStyle+'width:28px;">#</th><th style="'+thStyle+'">'+grColHead(rows)+'</th><th style="'+thStyle+'">French</th><th style="'+thStyle+'width:56px;text-align:center;white-space:nowrap;">0 / 1 / 2</th></tr>';
   const previewStudent = '<table style="width:100%;border-collapse:collapse;margin-bottom:8px;">'+tableHeader+studentRows+'</table>';
   const previewTeacher = '<table style="width:100%;border-collapse:collapse;">'+tableHeader+teacherRows+'</table>';
 
@@ -41287,7 +41280,7 @@ function generateGrammarSpotTestInline(timed) {
   window._grSpotTestData = { rows: rows, opts: { setTitle: set.title + apLvTag('gr'), itemsPerRow: itemsPerRow } };
 
   document.getElementById('grTestOutput').innerHTML =
-    '<h3 data-gr-spot="'+itemsPerRow+'" class="vv-out-title">&#128424; Paper Spot Test — '+set.title+apLvTag('gr')+' — /'+10+'</h3>'
+    '<h3 data-gr-spot="'+itemsPerRow+'" class="vv-out-title">&#128424; Paper Spot Test — '+set.title+apLvTag('gr')+' — '+totalNeeded+' questions</h3>'
     + apSpotNoteHTML(fit.note)
     + '<div style="font-size:0.7rem;color:var(--text3);margin-bottom:8px;">Student sheet (blank) · Answer key · 5 rows × '+itemsPerRow+' = '+totalNeeded+' sentences</div>'
     + previewStudent
@@ -41310,7 +41303,7 @@ function printGrammarTest(items, setTitle) {
 
 function printGrammarSpotTest(rows, opts) {
   const { setTitle, itemsPerRow } = opts;
-  const spotTotal = 10;   // an AP Spot Test is always out of 10
+  const spotTot = rows.reduce(function (n, g) { return n + g.length; }, 0);   // every question is marked out of 2
   const itemColours = ['#1a2744','#b03a2e','#1a6b3a'];
 
   function lines(group, key) {
@@ -41320,24 +41313,16 @@ function printGrammarSpotTest(rows, opts) {
     }).join('');
   }
 
-  let sRows = '', tRows = '';
-  rows.forEach((group, i) => {
-    const numCell  = '<td class="num"><div class="row-num">'+(i+1)+'</div><div class="marks">(2)</div></td>';
-    const enCell   = '<td class="q-item"><div class="lines">'+lines(group,'en')+'</div></td>';
-    const blank    = '<td class="a-item-blank">&nbsp;</td>';
-    const frCell   = '<td class="a-item"><div class="lines">'+lines(group,'fr')+'</div></td>';
-    const score    = '<td class="score-col"></td>';
-    sRows += '<tr>' + numCell + enCell + blank  + score + '</tr>';
-    tRows += '<tr>' + numCell + enCell + frCell + score + '</tr>';
-  });
+  const spR = apSpotPrintRows(rows, function (s) { return grQ(s,false); }, function (s) { return grTestAns(s); });
+  const sRows = spR.sRows, tRows = spR.tRows;
 
   const html = _buildSpotPrintHTML({
     title:      'Eton Spot Test — ' + setTitle,
-    subtitle:   setTitle + ' &nbsp;·&nbsp; 5 rows × ' + (itemsPerRow||2) + ' &nbsp;·&nbsp; /' + spotTotal,
+    subtitle:   setTitle + ' &nbsp;·&nbsp; ' + spotTot + ' questions',
     brand:      'Eton A Level &nbsp;·&nbsp; Grammar Drills',
-    sRows, tRows,
-    colHeaders: ['', grHasBold(rows) ? 'English: translate only the bold words' : 'English', 'French', '/ 2'],
-    colWidths:  ['34px', '45%', 'auto', '48px'],
+    sRows, tRows, total: 2 * spotTot, n: spotTot,
+    colHeaders: ['', grHasBold(rows) ? 'English: translate only the bold words' : 'English', 'French', '0 / 1 / 2'],
+    colWidths:  ['34px', '47%', 'auto', '62px'],
     mode:       'both'
   });
   _openSpotPrintWindow(html);
@@ -47169,20 +47154,16 @@ function generateGrEwsSpotTestMenu(timed) {
       return '<div style="line-height:1.7;color:'+itemColours[i]+';border-bottom:1px dashed #e0e0e0;padding:2px 0;">'+refTag+text+'</div>';
     }).join('');
   }
-  let studentRows = '', teacherRows = '';
-  rows.forEach((group, i) => {
-    const trStyle = 'border-bottom:3px solid #1a2744;';
-    studentRows += '<tr style="'+trStyle+'"><td style="'+tdNumStyle+'">'+(i+1)+'<div style="font-size:0.58rem;color:#aaa;font-weight:400;">(2)</div></td><td style="'+tdQStyle+'">'+buildLines(group,'en')+'</td><td style="'+tdAStyle+'background:#f9f9f9;"><div style="height:'+apSpotAnsH(itemsPerRow)+'px;"></div></td><td style="'+tdScoreStyle+'"></td></tr>';
-    teacherRows += '<tr style="'+trStyle+'"><td style="'+tdNumStyle+'">'+(i+1)+'<div style="font-size:0.58rem;color:#aaa;font-weight:400;">(2)</div></td><td style="'+tdQStyle+'">'+buildLines(group,'en')+'</td><td style="'+tdAStyle+'">'+buildLines(group,'fr')+'</td><td style="'+tdScoreStyle+'"></td></tr>';
-  });
-  const tableHeader = '<tr><th style="'+thStyle+'width:28px;">#</th><th style="'+thStyle+'">English</th><th style="'+thStyle+'">French</th><th style="'+thStyle+'width:36px;">/ 2</th></tr>';
+  const geQ = function (s) { return (s.grRef ? '<div style="font-size:0.55rem;color:#aaa;font-weight:600;letter-spacing:0.04em;line-height:1;margin-bottom:1px;">'+s.grRef+'</div>' : '') + s.en; }, geA = function (s) { return s.fr.replace(/<[^>]+>/g,''); };
+  const studentRows = apSpotPrevRows(rows, geQ, geA, false), teacherRows = apSpotPrevRows(rows, geQ, geA, true);
+  const tableHeader = '<tr><th style="'+thStyle+'width:28px;">#</th><th style="'+thStyle+'">English</th><th style="'+thStyle+'">French</th><th style="'+thStyle+'width:56px;text-align:center;white-space:nowrap;">0 / 1 / 2</th></tr>';
   window._grEwsSpotData = { rows, opts: { setTitle: title, itemsPerRow } };
   const out = document.getElementById('grEwsMenuTestOutput');
   if (!out) return;
   out.innerHTML =
     '<div class="vv-outcard">'
     + '<div class="aph-panel-head" style="margin-bottom:6px;">'
-    + '<span class="vv-out-title">&#128424; Paper Spot Test — '+title+' — /'+10+'</span>'
+    + '<span class="vv-out-title">&#128424; Paper Spot Test — '+title+' — '+totalNeeded+' questions</span>'
     + '<button onclick="document.getElementById(\'grEwsMenuTestOutput\').innerHTML=\'\'" class="aph-btn aph-btn-sm">✕ Close</button>'
     + '</div>'
     + '<div class="aph-row" style="margin-bottom:12px;">'
@@ -47746,14 +47727,10 @@ function generateGrEwsSpotTestInline(timed) {
     }).join('');
   }
 
-  let studentRows = '', teacherRows = '';
-  rows.forEach((group, i) => {
-    const trStyle = 'border-bottom:3px solid #1a2744;';
-    studentRows += '<tr style="'+trStyle+'"><td style="'+tdNumStyle+'">'+(i+1)+'<div style="font-size:0.58rem;color:#aaa;font-weight:400;">(2)</div></td><td style="'+tdQStyle+'">'+buildLines(group,'en')+'</td><td style="'+tdAStyle+'background:#f9f9f9;"><div style="height:'+apSpotAnsH(itemsPerRow)+'px;"></div></td><td style="'+tdScoreStyle+'"></td></tr>';
-    teacherRows += '<tr style="'+trStyle+'"><td style="'+tdNumStyle+'">'+(i+1)+'<div style="font-size:0.58rem;color:#aaa;font-weight:400;">(2)</div></td><td style="'+tdQStyle+'">'+buildLines(group,'en')+'</td><td style="'+tdAStyle+'">'+buildLines(group,'fr')+'</td><td style="'+tdScoreStyle+'"></td></tr>';
-  });
+  const geQ = function (s) { return (s.grRef ? '<div style="font-size:0.55rem;color:#aaa;font-weight:600;letter-spacing:0.04em;line-height:1;margin-bottom:1px;">'+s.grRef+'</div>' : '') + s.en; }, geA = function (s) { return s.fr.replace(/<[^>]+>/g,''); };
+  const studentRows = apSpotPrevRows(rows, geQ, geA, false), teacherRows = apSpotPrevRows(rows, geQ, geA, true);
 
-  const tableHeader = '<tr><th style="'+thStyle+'width:28px;">#</th><th style="'+thStyle+'">English</th><th style="'+thStyle+'">French</th><th style="'+thStyle+'width:36px;">/ 2</th></tr>';
+  const tableHeader = '<tr><th style="'+thStyle+'width:28px;">#</th><th style="'+thStyle+'">English</th><th style="'+thStyle+'">French</th><th style="'+thStyle+'width:56px;text-align:center;white-space:nowrap;">0 / 1 / 2</th></tr>';
   const previewStudent = '<table style="width:100%;border-collapse:collapse;margin-bottom:8px;">'+tableHeader+studentRows+'</table>';
   const previewTeacher = '<table style="width:100%;border-collapse:collapse;">'+tableHeader+teacherRows+'</table>';
 
@@ -47761,7 +47738,7 @@ function generateGrEwsSpotTestInline(timed) {
   const out = document.getElementById('grEwsTestOutput');
   if (!out) return;
   out.innerHTML =
-    '<div data-grews-spot="'+itemsPerRow+'" class="vv-out-title">&#128424; Paper Spot Test — '+data.title+apLvTag('grews')+' — /'+10+'</div>'
+    '<div data-grews-spot="'+itemsPerRow+'" class="vv-out-title">&#128424; Paper Spot Test — '+data.title+apLvTag('grews')+' — '+totalNeeded+' questions</div>'
     + apSpotNoteHTML(fit.note)
     + '<div style="font-size:0.7rem;color:var(--text3);margin-bottom:8px;">Student sheet · Answer key · 5 rows × '+itemsPerRow+' = '+totalNeeded+' items</div>'
     + previewStudent
@@ -47777,7 +47754,7 @@ function generateGrEwsSpotTestInline(timed) {
 function grEwsPrintSpotTest(rows, opts, mode) {
   mode = mode || 'both';
   const { setTitle, itemsPerRow } = opts;
-  const spotTotal = 10;   // an AP Spot Test is always out of 10
+  const spotTot = rows.reduce(function (n, g) { return n + g.length; }, 0);   // every question is marked out of 2
   const itemColours = ['#1a2744','#b03a2e','#1a6b3a'];
 
   function lines(group, key) {
@@ -47791,24 +47768,16 @@ function grEwsPrintSpotTest(rows, opts, mode) {
     }).join('');
   }
 
-  let sRows = '', tRows = '';
-  rows.forEach((group, i) => {
-    const numCell = '<td class="num"><div class="row-num">'+(i+1)+'</div><div class="marks">(2)</div></td>';
-    const enCell  = '<td class="q-item"><div class="lines">'+lines(group,'en')+'</div></td>';
-    const blank   = '<td class="a-item-blank">&nbsp;</td>';
-    const frCell  = '<td class="a-item"><div class="lines">'+lines(group,'fr')+'</div></td>';
-    const score   = '<td class="score-col"></td>';
-    sRows += '<tr>' + numCell + enCell + blank  + score + '</tr>';
-    tRows += '<tr>' + numCell + enCell + frCell + score + '</tr>';
-  });
+  const spR = apSpotPrintRows(rows, function (s) { return (s.grRef ? '<div style="font-size:6pt;color:#aaa;font-weight:600;letter-spacing:0.04em;line-height:1;margin-bottom:1px;">'+s.grRef+'</div>' : '') + s.en; }, function (s) { return s.fr.replace(/<[^>]+>/g,''); });
+  const sRows = spR.sRows, tRows = spR.tRows;
 
   const html = _buildSpotPrintHTML({
     title:      'Gr EWs Spot Test — ' + setTitle,
-    subtitle:   setTitle + ' &nbsp;·&nbsp; 5 rows × ' + (itemsPerRow||2) + ' &nbsp;·&nbsp; /' + spotTotal,
+    subtitle:   setTitle + ' &nbsp;·&nbsp; ' + spotTot + ' questions',
     brand:      'Eton A Level &nbsp;·&nbsp; Grammar EWs',
-    sRows, tRows,
-    colHeaders: ['', 'English', 'French', '/ 2'],
-    colWidths:  ['34px', '45%', 'auto', '48px'],
+    sRows, tRows, total: 2 * spotTot, n: spotTot,
+    colHeaders: ['', 'English', 'French', '0 / 1 / 2'],
+    colWidths:  ['34px', '47%', 'auto', '62px'],
     mode
   });
   _openSpotPrintWindow(html);
@@ -48318,25 +48287,15 @@ function generateMlfSpotTest(timed) {
     }).join('');
   }
 
-  let studentRows = '', teacherRows = '';
-  rows.forEach((group, i) => {
-    const trStyle = 'border-bottom:3px solid #1a2744;';
-    studentRows += '<tr style="'+trStyle+'"><td style="'+tdNumStyle+'">'+(i+1)+'<div style="font-size:0.58rem;color:#aaa;font-weight:400;">(2)</div></td>'
-      + '<td style="'+tdQStyle+'">'+buildLines(group, mlfState.fromLang, false)+'</td>'
-      + '<td style="'+tdAStyle+'background:#f9f9f9;"><div style="height:'+apSpotAnsH(per)+'px;"></div></td>'
-      + '<td style="'+tdScoreStyle+'"></td></tr>';
-    teacherRows += '<tr style="'+trStyle+'"><td style="'+tdNumStyle+'">'+(i+1)+'<div style="font-size:0.58rem;color:#aaa;font-weight:400;">(2)</div></td>'
-      + '<td style="'+tdQStyle+'">'+buildLines(group, mlfState.fromLang, false)+'</td>'
-      + '<td style="'+tdAStyle+'">'+buildLines(group, mlfState.toLang, false)+'</td>'
-      + '<td style="'+tdScoreStyle+'"></td></tr>';
-  });
+  const mlQ = function (it) { return (it[mlfState.fromLang]||{}).display||''; }, mlA = function (it) { return (it[mlfState.toLang]||{}).display||''; };
+  const studentRows = apSpotPrevRows(rows, mlQ, mlA, false), teacherRows = apSpotPrevRows(rows, mlQ, mlA, true);
 
   const tableOpen = '<table style="width:100%;border-collapse:collapse;margin-bottom:6px;">'
     + '<thead><tr>'
     + '<th style="'+thStyle+'width:28px;"></th>'
     + '<th style="'+thStyle+'width:42%;">'+fromLabel+'</th>'
     + '<th style="'+thStyle+'width:42%;color:#b05000;">'+toLabel+' — answer after dictation</th>'
-    + '<th style="'+thStyle+'width:36px;text-align:center;">0/1/2</th>'
+    + '<th style="'+thStyle+'width:56px;text-align:center;white-space:nowrap;">0 / 1 / 2</th>'
     + '</tr></thead><tbody>';
 
   const out = document.getElementById('mlfTestOutput');
@@ -48357,7 +48316,7 @@ function generateMlfSpotTest(timed) {
     + '<div style="font-size:0.68rem;font-weight:700;color:#8899bb;text-transform:uppercase;letter-spacing:0.08em;margin-bottom:6px;">Student Sheet (preview)</div>'
     + '<div style="background:#fff;border:1px solid #e2e6f0;border-radius:10px;padding:12px 16px;margin-bottom:16px;">'
     + tableOpen + studentRows + '</tbody></table>'
-    + '<div style="font-size:0.6rem;color:#aaa;font-style:italic;">2 marks for perfection &nbsp;·&nbsp; 1 mark for 75%+ correct</div></div>'
+    + '<div style="font-size:0.6rem;color:#aaa;font-style:italic;">Each question is marked on its own: 2 marks for perfection &middot; 1 mark for 75% or more correct &middot; 0 otherwise</div></div>'
     + '<div style="font-size:0.68rem;font-weight:700;color:#8899bb;text-transform:uppercase;letter-spacing:0.08em;margin-bottom:6px;">Teacher Sheet (answer key)</div>'
     + '<div style="background:#fff;border:1px solid #e2e6f0;border-radius:10px;padding:12px 16px;">'
     + tableOpen + teacherRows + '</tbody></table></div>';
@@ -48374,31 +48333,35 @@ function printMlfSpotTest(type) {
   const isTeacher = type === 'teacher';
   const itemCols = ['#1a2744','#b03a2e','#1a6b3a'];
   const per = (rows[0] || []).length || 3;
-  const spotTotal = 10;   // an AP Spot Test is always out of 10
+  const spotTot = rows.reduce(function (n, g) { return n + g.length; }, 0);   // every question is marked out of 2
 
-  function buildPrintLines(group, lang, blank) {
+  function buildPrintLines(group, lang, blank, off) {
     return group.map((item, i) => {
       const text = blank ? '&nbsp;' : ((item[lang]||{}).display||'');
-      return '<div style="color:'+itemCols[i]+';padding:2px 0;line-height:1.6;font-size:10pt;">'+text+'</div>';
+      return '<div style="color:'+itemCols[i + (off || 0)]+';padding:2px 0;line-height:1.6;font-size:10pt;">'+text+'</div>';
     }).join('');
   }
 
   let tRows = '';
   rows.forEach((group, i) => {
-    tRows += '<tr><td style="border:1px solid #ccc;text-align:center;font-weight:700;width:30px;vertical-align:middle;">'+(i+1)+'<div style="font-size:7pt;color:#aaa;font-weight:400">(2)</div></td>'
-      + '<td style="border:1px solid #ccc;padding:6px;width:45%;">'+buildPrintLines(group, fromLang, false)+'</td>'
-      + '<td style="border:1px solid #ccc;padding:6px;width:45%;'+(isTeacher?'':'background:#fffef5;min-height:50px;')+'">'+buildPrintLines(group, toLang, !isTeacher)+'</td>'
-      + '<td style="border:1px solid #ccc;text-align:center;width:32px;"></td></tr>';
+    group.forEach((item, ci) => {
+      const bd = ci === group.length - 1 ? 'border-bottom:3px solid #1a2744;' : 'border-bottom:1px dotted #ccc;';
+      tRows += '<tr>' + (ci === 0 ? '<td rowspan="'+group.length+'" style="border:1px solid #ccc;text-align:center;font-weight:700;width:30px;vertical-align:middle;">'+(i+1)+'</td>' : '')
+        + '<td style="border:1px solid #ccc;padding:4px 6px;width:45%;vertical-align:middle;'+bd+'">'+buildPrintLines([item], fromLang, false, ci)+'</td>'
+        + '<td style="border:1px solid #ccc;padding:4px 6px;width:45%;vertical-align:middle;'+(isTeacher?'':'background:#fffef5;')+bd+'">'+buildPrintLines([item], toLang, !isTeacher, ci)+'</td>'
+        + '<td style="border:1px solid #ccc;text-align:center;width:62px;'+bd+'"></td></tr>';
+    });
   });
 
   const th = t => '<th style="background:#1a2744;color:#ffd76a;padding:5px 8px;font-size:8.5pt;text-align:left;border:1px solid #1a2744;">'+t+'</th>';
-  const header = '<tr>'+th('#')+th(fromLabel)+th(toLabel)+th('/2')+'</tr>';
+  const header = '<tr>'+th('#')+th(fromLabel)+th(toLabel)+'<th style="background:#1a2744;color:#ffd76a;padding:5px 4px;font-size:8.5pt;text-align:center;border:1px solid #1a2744;white-space:nowrap;width:62px;">0 / 1 / 2</th>'+'</tr>';
   const title = 'Eton Spot Test — Metalanguage Formulae — ' + fromLabel + ' → ' + toLabel + (window._mlfSpotLvTag || '');
   const html = `<!DOCTYPE html><html><head><meta charset="UTF-8"><title>${title}</title>
 <style>${aphCSS()}</style>
 <style>body{font-family:var(--aph-body);background:#fff;color:#1a2744;margin:1.2cm 1.5cm;font-size:10.5pt;}table{width:100%;border-collapse:collapse;margin-bottom:20px;}</style>
 </head><body>
-${aphPrintHead({ kicker: 'Eton A Level &middot; VVs, Gr EWs &amp; Translation', title: 'Eton Spot Test &mdash; <em>Metalanguage Formulae</em>', meta: fromLabel + ' → ' + toLabel + (window._mlfSpotLvTag || '') + ' &nbsp;&middot;&nbsp; /' + spotTotal + ' &nbsp;&middot;&nbsp; ' + (isTeacher ? 'Teacher sheet' : 'Student sheet'), total: spotTotal, print: false })}
+${aphPrintHead({ kicker: 'Eton A Level &middot; VVs, Gr EWs &amp; Translation', title: 'Eton Spot Test &mdash; <em>Metalanguage Formulae</em>', meta: fromLabel + ' → ' + toLabel + (window._mlfSpotLvTag || '') + ' &nbsp;&middot;&nbsp; ' + spotTot + ' questions &nbsp;&middot;&nbsp; ' + (isTeacher ? 'Teacher sheet' : 'Student sheet'), total: 2 * spotTot, print: false })}
+<div style="font-size:8pt;color:#999;font-style:italic;margin-bottom:6px;">Each question is marked on its own: 2 marks for perfection &middot; 1 mark for 75% or more correct &middot; 0 otherwise</div>
 <table>${header}${tRows}</table>
 ${aphPrintFoot('Eton A Level VVs, Gr EWs &amp; Translation &middot; Eton Spot Test &middot; ' + (isTeacher ? 'Teacher sheet' : 'Student sheet'))}
 <script>window.onload=function(){window.print();}<\/script>
