@@ -43,6 +43,19 @@
     [0, 4, 7, 12, 16, 19, 24].forEach(function (n, i) { later(i * 70, function () { var f = 520 * Math.pow(2, n / 12); tone('square', f, f, 0.09, 0.04); }); });
     later(500, function () { var f = 520 * Math.pow(2, 31 / 12); tone('square', f, f, 0.35, 0.05); });
   }
+  // if the browser is still blocking sound a moment after Match opens, say so and offer a one-tap fix
+  function checkSound(sheet) {
+    setTimeout(function () {
+      try {
+        if (!snd() || !sheet.isConnected || sheet.querySelector('.mfx-unmute')) return;
+        var c = ctx; if (c && c.state === 'running') return;
+        var b = document.createElement('button'); b.type = 'button'; b.className = 'mfx-unmute';
+        b.textContent = '\uD83D\uDD07 Sound is blocked: tap here to turn it on';
+        b.onclick = function () { unlock(); var cc = ac(); var go = function () { pop(0); pop(3); if (b.parentNode) b.parentNode.removeChild(b); }; try { var pr = cc && cc.resume(); if (pr && pr.then) pr.then(go, go); else go(); } catch (e) { go(); } };
+        sheet.appendChild(b);
+      } catch (e) { }
+    }, 900);
+  }
   function pop(n) { var f = 520 * Math.pow(2, PENTA[Math.min(n || 0, 5)] / 12); tone('sine', f, f * 1.7, 0.11, 0.07); }
   function dull() { tone('triangle', 190, 120, 0.14, 0.05); }
   function cheer() { tone('sine', 660, 990, 0.14, 0.06); setTimeout(function () { tone('sine', 880, 1320, 0.18, 0.06); }, 120); }
@@ -133,7 +146,7 @@
       var v = document.createElement('div'); v.className = 'mfx-intro'; v.setAttribute('aria-hidden', 'true'); v.style.backgroundImage = 'url(' + src + ')';
       v.innerHTML = '<b>&#129513; Match!</b><small>Race the clock</small>';
       for (var q = 0; q < 26; q++) { var d = document.createElement('i'), an = Math.random() * 6.283, r = 90 + Math.random() * 260; d.style.setProperty('--dx', Math.round(Math.cos(an) * r) + 'px'); d.style.setProperty('--dy', Math.round(Math.sin(an) * r) + 'px'); d.style.animationDelay = (Math.random() * 0.5).toFixed(2) + 's'; v.appendChild(d); }
-      sheet.appendChild(v); splashSound(); setTimeout(function () { try { if (v.parentNode) v.parentNode.removeChild(v); } catch (e) { } }, 2500);
+      sheet.appendChild(v); splashSound(); checkSound(sheet); setTimeout(function () { try { if (v.parentNode) v.parentNode.removeChild(v); } catch (e) { } }, 2500);
     }
   }
   function finish() {

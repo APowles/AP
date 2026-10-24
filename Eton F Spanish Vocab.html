@@ -6,7 +6,7 @@
 <script id="ap-update">
 /* AP auto-update: if this copy is older than the published version, reload once with the new one (saved answers are kept) */
 (function () {
-  var B = 'faf3590d1f'; window.AP_BUILD = B;
+  var B = 'dfc23a09f8'; window.AP_BUILD = B;
   function check() {
     if (!/^https?:$/.test(location.protocol) || !window.fetch) return;
     var f = decodeURIComponent(location.pathname.split('/').pop() || '');
@@ -8519,6 +8519,55 @@ if (window.__spv) window.__spv.speedTest = function (kind, secs, rev, lv, mix) {
   if (document.querySelector('#app .intro-card')) renderIntro();
 })();
 </script>
+<style id="ap-steps-css">
+/* FIRST / NEXT badges and numbered questions inside FIRST */
+.ms-step .ms-num.ms-big{width:auto;min-width:34px;border-radius:999px;padding:0 14px;font-size:.9rem;letter-spacing:.1em}
+.ms-q{display:inline-flex;align-items:center;justify-content:center;width:24px;height:24px;border-radius:50%;background:#1a2744;color:#ffd76a;font:800 .8125rem/1 'DM Sans',system-ui,sans-serif;margin-right:8px;vertical-align:middle;letter-spacing:0}
+.aph-label.ms-qh{font-size:.9375rem;color:#1a2744;letter-spacing:.06em}
+.ms-now.ms-need{background:#fff4d6;border:1.5px solid #e6c15a;color:#7a5a00;border-radius:10px;padding:9px 12px;font-weight:700}
+/* bolder FIRST / NEXT bars */
+.ms-step{padding:18px 20px!important;font-size:1.45rem!important;border-radius:16px!important;box-shadow:0 5px 0 #c9a84c}
+.ms-step .ms-num.ms-big{font-size:1.35rem!important;padding:8px 22px!important;letter-spacing:.14em;background:#ffd76a!important;box-shadow:0 3px 0 #a8862e}
+</style>
+<script id="ap-steps">
+/* AP STEPS add-on: the two big steps read FIRST and NEXT; the essential questions inside FIRST are numbered 1, 2, 3...
+   and a "still to choose" message stands out. Works on the rendered page, so it needs no change to each app's own code. */
+(function () {
+  var QRE = /^(Which |Kind of question)/i;
+  function run() {
+    var steps = document.querySelectorAll('.ms-step');
+    for (var i = 0; i < steps.length; i++) {
+      var st = steps[i], num = st.querySelector('.ms-num'); if (!num) continue;
+      var t = (st.textContent || '').replace(num.textContent, '').trim();
+      var want = /^What do you want to practise/i.test(t) ? 'FIRST' : /^How do you want to practise/i.test(t) ? 'NEXT' : null;
+      if (want) {
+        if (num.textContent !== want) num.textContent = want;
+        if (!num.classList.contains('ms-big')) num.classList.add('ms-big');
+      }
+      if (want === 'FIRST') {
+        var labels = [], now = null, n = st.nextElementSibling;
+        while (n && !n.classList.contains('ms-step')) {
+          if (n.classList.contains('aph-label') && QRE.test((n.textContent || '').replace(/^\d+\s*/, ''))) labels.push(n);
+          if (n.classList.contains('ms-now')) now = n;
+          n = n.nextElementSibling;
+        }
+        if (labels.length > 1) labels.forEach(function (l, k) {
+          var q = l.querySelector('.ms-q');
+          if (!q) { q = document.createElement('span'); q.className = 'ms-q'; l.insertBefore(q, l.firstChild); }
+          if (q.textContent !== String(k + 1)) q.textContent = String(k + 1);
+          if (!l.classList.contains('ms-qh')) l.classList.add('ms-qh');
+        });
+        if (now) { var need = /^(Choose|Now choose|Nothing|No cards|Tick|Pick)/i.test((now.textContent || '').trim()); if (need !== now.classList.contains('ms-need')) now.classList.toggle('ms-need', need); }
+      }
+    }
+  }
+  function start() {
+    var mo = new MutationObserver(function () { mo.disconnect(); try { run(); } catch (e) { } mo.observe(document.body, { subtree: true, childList: true }); });
+    mo.observe(document.body, { subtree: true, childList: true }); try { run(); } catch (e) { }
+  }
+  if (document.body) start(); else document.addEventListener('DOMContentLoaded', start);
+})();
+</script>
 <style id="ap-matchfx-css">
 /* AP MATCHFX v1: look and feel for the Match game (no change to how it plays) */
 .ms-ov .ms-t{box-shadow:0 3px 0 #b9c1d6,0 6px 10px rgba(26,39,68,.10);transition:transform .12s,box-shadow .12s,background .2s,border-color .2s;-webkit-tap-highlight-color:transparent}
@@ -8602,6 +8651,7 @@ if (window.__spv) window.__spv.speedTest = function (kind, secs, rev, lv, mix) {
 @keyframes mfxPop{0%{transform:scale(.3);opacity:0}22%{transform:scale(1.18);opacity:1}34%{transform:scale(1)}100%{transform:scale(1.06)}}
 @keyframes mfxSub{0%,20%{opacity:0;transform:translateY(12px)}40%,100%{opacity:1;transform:none}}
 @keyframes mfxBurst{0%{opacity:1;transform:translate(0,0) scale(.4)}100%{opacity:0;transform:translate(var(--dx),var(--dy)) scale(1.2)}}
+.ms-ov .ms-sheet .mfx-unmute{position:absolute;left:12px;right:12px;bottom:52px;z-index:40;border:2px solid #c0392b;background:#fff4d6;color:#7a1b12;border-radius:12px;padding:12px 14px;font:800 1rem/1.2 'DM Sans',system-ui,sans-serif;cursor:pointer}
 </style>
 <script id="ap-matchfx">
 /* AP MATCHFX v1: reacts to the classes the Match game already sets (sel / done / bad); changes no game logic */
@@ -8648,6 +8698,19 @@ if (window.__spv) window.__spv.speedTest = function (kind, secs, rev, lv, mix) {
     if (!snd()) return;
     [0, 4, 7, 12, 16, 19, 24].forEach(function (n, i) { later(i * 70, function () { var f = 520 * Math.pow(2, n / 12); tone('square', f, f, 0.09, 0.04); }); });
     later(500, function () { var f = 520 * Math.pow(2, 31 / 12); tone('square', f, f, 0.35, 0.05); });
+  }
+  // if the browser is still blocking sound a moment after Match opens, say so and offer a one-tap fix
+  function checkSound(sheet) {
+    setTimeout(function () {
+      try {
+        if (!snd() || !sheet.isConnected || sheet.querySelector('.mfx-unmute')) return;
+        var c = ctx; if (c && c.state === 'running') return;
+        var b = document.createElement('button'); b.type = 'button'; b.className = 'mfx-unmute';
+        b.textContent = '\uD83D\uDD07 Sound is blocked: tap here to turn it on';
+        b.onclick = function () { unlock(); var cc = ac(); var go = function () { pop(0); pop(3); if (b.parentNode) b.parentNode.removeChild(b); }; try { var pr = cc && cc.resume(); if (pr && pr.then) pr.then(go, go); else go(); } catch (e) { go(); } };
+        sheet.appendChild(b);
+      } catch (e) { }
+    }, 900);
   }
   function pop(n) { var f = 520 * Math.pow(2, PENTA[Math.min(n || 0, 5)] / 12); tone('sine', f, f * 1.7, 0.11, 0.07); }
   function dull() { tone('triangle', 190, 120, 0.14, 0.05); }
@@ -8739,7 +8802,7 @@ if (window.__spv) window.__spv.speedTest = function (kind, secs, rev, lv, mix) {
       var v = document.createElement('div'); v.className = 'mfx-intro'; v.setAttribute('aria-hidden', 'true'); v.style.backgroundImage = 'url(' + src + ')';
       v.innerHTML = '<b>&#129513; Match!</b><small>Race the clock</small>';
       for (var q = 0; q < 26; q++) { var d = document.createElement('i'), an = Math.random() * 6.283, r = 90 + Math.random() * 260; d.style.setProperty('--dx', Math.round(Math.cos(an) * r) + 'px'); d.style.setProperty('--dy', Math.round(Math.sin(an) * r) + 'px'); d.style.animationDelay = (Math.random() * 0.5).toFixed(2) + 's'; v.appendChild(d); }
-      sheet.appendChild(v); splashSound(); setTimeout(function () { try { if (v.parentNode) v.parentNode.removeChild(v); } catch (e) { } }, 2500);
+      sheet.appendChild(v); splashSound(); checkSound(sheet); setTimeout(function () { try { if (v.parentNode) v.parentNode.removeChild(v); } catch (e) { } }, 2500);
     }
   }
   function finish() {
@@ -8785,55 +8848,6 @@ if (window.__spv) window.__spv.speedTest = function (kind, secs, rev, lv, mix) {
   function start() { var OPT = { subtree: true, childList: true, attributes: true, attributeFilter: ['class'] }, mo = new MutationObserver(function () { mo.disconnect(); try { onMut(); } catch (e) { } mo.observe(document.body, OPT); });   // our own changes never re-trigger us
     mo.observe(document.body, OPT);
     document.addEventListener('pointerdown', function (e) { if (e.target.closest && e.target.closest('.ms-ov .ms-t')) ac(); }, true); }
-  if (document.body) start(); else document.addEventListener('DOMContentLoaded', start);
-})();
-</script>
-<style id="ap-steps-css">
-/* FIRST / NEXT badges and numbered questions inside FIRST */
-.ms-step .ms-num.ms-big{width:auto;min-width:34px;border-radius:999px;padding:0 14px;font-size:.9rem;letter-spacing:.1em}
-.ms-q{display:inline-flex;align-items:center;justify-content:center;width:24px;height:24px;border-radius:50%;background:#1a2744;color:#ffd76a;font:800 .8125rem/1 'DM Sans',system-ui,sans-serif;margin-right:8px;vertical-align:middle;letter-spacing:0}
-.aph-label.ms-qh{font-size:.9375rem;color:#1a2744;letter-spacing:.06em}
-.ms-now.ms-need{background:#fff4d6;border:1.5px solid #e6c15a;color:#7a5a00;border-radius:10px;padding:9px 12px;font-weight:700}
-/* bolder FIRST / NEXT bars */
-.ms-step{padding:18px 20px!important;font-size:1.45rem!important;border-radius:16px!important;box-shadow:0 5px 0 #c9a84c}
-.ms-step .ms-num.ms-big{font-size:1.35rem!important;padding:8px 22px!important;letter-spacing:.14em;background:#ffd76a!important;box-shadow:0 3px 0 #a8862e}
-</style>
-<script id="ap-steps">
-/* AP STEPS add-on: the two big steps read FIRST and NEXT; the essential questions inside FIRST are numbered 1, 2, 3...
-   and a "still to choose" message stands out. Works on the rendered page, so it needs no change to each app's own code. */
-(function () {
-  var QRE = /^(Which |Kind of question)/i;
-  function run() {
-    var steps = document.querySelectorAll('.ms-step');
-    for (var i = 0; i < steps.length; i++) {
-      var st = steps[i], num = st.querySelector('.ms-num'); if (!num) continue;
-      var t = (st.textContent || '').replace(num.textContent, '').trim();
-      var want = /^What do you want to practise/i.test(t) ? 'FIRST' : /^How do you want to practise/i.test(t) ? 'NEXT' : null;
-      if (want) {
-        if (num.textContent !== want) num.textContent = want;
-        if (!num.classList.contains('ms-big')) num.classList.add('ms-big');
-      }
-      if (want === 'FIRST') {
-        var labels = [], now = null, n = st.nextElementSibling;
-        while (n && !n.classList.contains('ms-step')) {
-          if (n.classList.contains('aph-label') && QRE.test((n.textContent || '').replace(/^\d+\s*/, ''))) labels.push(n);
-          if (n.classList.contains('ms-now')) now = n;
-          n = n.nextElementSibling;
-        }
-        if (labels.length > 1) labels.forEach(function (l, k) {
-          var q = l.querySelector('.ms-q');
-          if (!q) { q = document.createElement('span'); q.className = 'ms-q'; l.insertBefore(q, l.firstChild); }
-          if (q.textContent !== String(k + 1)) q.textContent = String(k + 1);
-          if (!l.classList.contains('ms-qh')) l.classList.add('ms-qh');
-        });
-        if (now) { var need = /^(Choose|Now choose|Nothing|No cards|Tick|Pick)/i.test((now.textContent || '').trim()); if (need !== now.classList.contains('ms-need')) now.classList.toggle('ms-need', need); }
-      }
-    }
-  }
-  function start() {
-    var mo = new MutationObserver(function () { mo.disconnect(); try { run(); } catch (e) { } mo.observe(document.body, { subtree: true, childList: true }); });
-    mo.observe(document.body, { subtree: true, childList: true }); try { run(); } catch (e) { }
-  }
   if (document.body) start(); else document.addEventListener('DOMContentLoaded', start);
 })();
 </script>
