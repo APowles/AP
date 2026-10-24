@@ -4,7 +4,7 @@
 <script id="ap-update">
 /* AP auto-update: if this copy is older than the published version, reload once with the new one (saved answers are kept) */
 (function () {
-  var B = '663f7f274b'; window.AP_BUILD = B;
+  var B = '5d4c5e98ae'; window.AP_BUILD = B;
   function check() {
     if (!/^https?:$/.test(location.protocol) || !window.fetch) return;
     var f = decodeURIComponent(location.pathname.split('/').pop() || '');
@@ -50221,6 +50221,23 @@ function mlfLeisureStart(deck) {
 .ms-step{display:flex;align-items:center;gap:12px;margin:22px -4px 12px;padding:10px 14px;border-radius:12px;background:linear-gradient(135deg,#1a2744,#24366a);color:#fff;font-family:'Playfair Display',serif;font-size:1.25rem;font-weight:700}
 .ms-step:first-of-type{margin-top:8px}
 .ms-num{flex:none;width:34px;height:34px;border-radius:50%;background:#c9a84c;color:#1a2744;display:flex;align-items:center;justify-content:center;font-family:'DM Sans',sans-serif;font-weight:800;font-size:1.0625rem}
+
+/* tile design: bold gradients, big badge, pressed feel */
+.ms-tile{position:relative;border:0!important;border-radius:16px!important;padding:14px 38px 14px 14px!important;min-height:104px!important;box-shadow:0 4px 0 rgba(0,0,0,.2),0 6px 14px rgba(26,39,68,.14)!important;transition:transform .08s,box-shadow .08s;color:#fff!important}
+.ms-tile:active:not([disabled]){transform:translateY(3px);box-shadow:0 1px 0 rgba(0,0,0,.2)!important}
+.ms-tile:after{content:'›';position:absolute;right:14px;top:50%;transform:translateY(-52%);font-size:2rem;font-weight:700;opacity:.7;line-height:1}
+.ms-ic{width:58px!important;height:58px!important;border-radius:16px!important;font-size:2rem!important;background:rgba(255,255,255,.22)!important;color:#fff!important;box-shadow:inset 0 0 0 2px rgba(255,255,255,.28)}
+.ms-tt{font-family:'Playfair Display',serif!important;font-size:1.25rem!important;font-weight:700!important;color:#fff!important}
+.ms-td{color:#fff!important;opacity:.93!important;font-size:.875rem!important}
+.ms-tile.ms-drill{background:linear-gradient(135deg,#f2c94c,#e0a81f)!important}
+.ms-drill .ms-tt,.ms-drill .ms-td{color:#1a2744!important}.ms-drill .ms-ic{background:#1a2744!important;color:#ffd76a!important;box-shadow:none}
+.ms-tile.ms-speed{background:linear-gradient(135deg,#1a2744,#2a3d75)!important;box-shadow:0 4px 0 #b3122a,0 6px 14px rgba(26,39,68,.25)!important}
+.ms-speed .ms-tt{color:#ffd76a!important}.ms-speed .ms-ic{background:linear-gradient(135deg,#e8112d,#b3122a)!important;box-shadow:0 0 14px rgba(232,17,45,.55)!important}
+.ms-tile.ms-spell{background:linear-gradient(135deg,#1f8a4c,#2fae66)!important}
+.ms-tile.ms-match{background:linear-gradient(135deg,#2f5fc4,#5b8def)!important}
+.ms-tile.ms-leis{background:linear-gradient(135deg,#b86500,#e0961c)!important}
+.ms-tile.ms-test{background:linear-gradient(135deg,#5b3f9e,#8161d1)!important}
+.ms-tile[disabled]{filter:grayscale(.75);opacity:.4!important;box-shadow:none!important}
 </style>
 <script id="ap-myset">
 (function () {
@@ -50253,7 +50270,6 @@ function mlfLeisureStart(deck) {
     if (!card) return; var en = card.en != null ? card.en : card[0], fr = card.fr != null ? card.fr : card[1]; if (en == null || fr == null) return;
     var id = hid(en, fr);
     if (res === 'bad') { S.c[id] = { l: 3 }; S.due[id] = { b: 0, d: today() + 1 }; }
-    else if (res === 'near') { var o = S.c[id]; S.c[id] = { l: Math.max(o ? o.l || 1 : 1, 2) }; if (!o || !S.due[id]) S.due[id] = { b: 0, d: today() + 1 }; }
     else if (res === 'ok' && S.c[id] && dueNow(id)) { var b = (S.due[id].b || 0) + 1; S.due[id] = b >= 3 ? { b: 3, d: null } : { b: b, d: today() + [1, 3, 7][b] }; }
     save(); rebuild();
   }
@@ -50304,7 +50320,7 @@ function mlfLeisureStart(deck) {
       + '<button class="ms-b sm" onclick="apMySetHelp()">? How does this work?</button></div>'
       + (n || on ? '<div class="ms-brow">' + '<button class="ms-b sm" onclick="apMySetEdit()">✎ Edit</button><button class="ms-b sm" onclick="apMySetLink()">🔗 Save my personalised set</button></div>' : '')
       + (on ? '<div class="ms-brow">' + fl.map(function (x) { return '<button class="ms-b sm' + (S.f === x[0] ? ' on' : '') + '" onclick="apMySetFilter(\'' + x[0] + '\')">' + x[1] + '</button>'; }).join('') + '</div>' : '')
-      + (note || !n ? '<div class="ms-note">' + (note ? '<b>' + note + '</b> ' : '') + (!n ? 'Empty so far. Cards you mark ✗ or ~ in any drill join it automatically.' : '') + '</div>' : '') + '</div>';
+      + (note || !n ? '<div class="ms-note">' + (note ? '<b>' + note + '</b> ' : '') + (!n ? 'Empty so far. Cards you mark ✗ Major error in any drill join it automatically.' : '') + '</div>' : '') + '</div>';
   }
   var ri = window.renderIntro;
   window.renderIntro = function () {
@@ -50363,9 +50379,9 @@ function mlfLeisureStart(deck) {
   window.apMySetHelp = function () {
     ov(head('★ How your personalised set works') + '<div style="font-size:1.0625rem;line-height:1.55">'
       + '<p><b>What is it?</b> Your own list of the words you find hardest. You do not have to build it: the app does it for you.</p>'
-      + '<p><b>How do words get in?</b> Do any drill. Every card you mark <b>✗ Major error</b> or <b>~ Nearly</b> is added to your personalised set automatically.</p>'
+      + '<p><b>How do words get in?</b> Do any drill. Every card you mark <b>✗ Major error</b> is added to your personalised set automatically. <b>~ Nearly</b> just brings the card back a few cards later: if it still beats you, mark it ✗.</p>'
       + '<p><b>How do I use it?</b> Under <b>1 · What do you want to practise?</b> tap <b>★ My personalised set</b>. Then under <b>2 · How do you want to practise it?</b> choose Drill, Speed Challenge, Spell, Match, Leisure Mode or Test, exactly as normal but only on your tricky words.</p>'
-      + '<p><b>Hard, Tricky, Easier.</b> ✗ makes a card Hard and ~ makes it Tricky. Press <b>✎ Edit</b> to change a level, take a card out, or add cards yourself. Then you can practise just the Hard ones.</p>'
+      + '<p><b>Hard, Tricky, Easier.</b> Every ✗ card goes in as Hard. Press <b>✎ Edit</b> to change a level, take a card out, or add cards yourself. Then you can practise just the Hard ones.</p>'
       + '<p><b>Due today.</b> A word you missed comes back after 1 day, then 3 days, then 7. Get it right each time and it stops coming back.</p>'
       + '<p><b>Keep it safe.</b> Press <b>🔗 Save my personalised set</b>, copy the link and paste it into OneNote. Tap that link on any device and your set is back. It is also kept on this iPad, but the link is the safe copy.</p></div>'
       + '<div class="ms-cen"><button class="ms-b pri" onclick="apMsClose()">Got it</button></div>');
@@ -50478,7 +50494,7 @@ function mlfLeisureStart(deck) {
     var i = document.getElementById('ms-in'); if (i) i.blur();
   };
   window.apSpMark = function (r) {
-    var c = sp.d[sp.i]; mark(c, r); sp[r === 'ok' ? 'ok' : r]++; if (r !== 'ok') sp.miss.push(c); sp.i++; spCard();
+    var c = sp.d[sp.i]; mark(c, r); sp[r === 'ok' ? 'ok' : r]++; if (r === 'bad') sp.miss.push(c); sp.i++; spCard();
   };
   function spEnd() {
     var n = sp.d.length;
