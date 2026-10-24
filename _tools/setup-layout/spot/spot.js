@@ -7,7 +7,7 @@
   /* Answers are never on show: the "Answer Sheet" of a generated test sits behind a Show answers button. */
   function hideAnswers() {
     var all = document.querySelectorAll('div,h3,h4,span,p'), heads = [];
-    for (var i = 0; i < all.length; i++) if (all[i].children.length === 0 && /^Answer Sheet$/i.test(txt(all[i])) && !all[i].closest('.spt-ans')) heads.push(all[i]);
+    for (var i = 0; i < all.length; i++) if (all[i].children.length === 0 && /^(Answer Sheet|Teacher Sheet \(answer key\))$/i.test(txt(all[i])) && !all[i].closest('.spt-ans') && !all[i].closest('#opSpotAns')) heads.push(all[i]);
     heads.forEach(function (h) {
       var box = h.nextElementSibling; if (!box || !h.parentNode) return;
       var w = document.createElement('div'); w.className = 'spt-ans'; w.style.display = 'none';
