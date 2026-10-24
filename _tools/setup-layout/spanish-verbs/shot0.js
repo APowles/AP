@@ -1,0 +1,11 @@
+const {chromium}=require('playwright');
+(async()=>{const b=await chromium.launch();const p=await b.newPage({viewport:{width:1024,height:1366}});
+p.on('pageerror',e=>console.log('ERR',e.message));
+await p.goto('file:///home/claude/ap/Eton%20Spanish%20Verbs.html');await p.waitForTimeout(2500);
+await p.screenshot({path:'shots/o_start.png'});
+console.log(await p.evaluate(()=>[apHome,typeof vgHome, document.querySelector('.gh-card')?1:0]));
+await p.evaluate(()=>hmOpen('core'));await p.waitForTimeout(400);
+await p.screenshot({path:'shots/o_core.png',fullPage:true});
+await p.evaluate(()=>{hmLand();hmOpen('all')});await p.waitForTimeout(400);
+await p.screenshot({path:'shots/o_all.png',fullPage:true});
+await b.close()})();

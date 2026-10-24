@@ -1,0 +1,21 @@
+const {chromium}=require('playwright');
+(async()=>{const b=await chromium.launch();const ctx=await b.newContext({viewport:{width:1024,height:1366}});const p=await ctx.newPage();
+p.on('pageerror',e=>console.log('ERR',e.message));
+p.on('dialog',d=>{console.log('DIALOG',d.message());d.dismiss()});
+const W=ms=>p.waitForTimeout(ms);
+await p.goto('file:///home/claude/ap/Eton%20Spanish%20Verbs.html');await W(2500);
+await p.evaluate(()=>{goHome();hmOpen('core');msGrp('E1');msTense('PRESENT');msKind('sentences');_selectedCount=3});await W(300);
+await p.click('.ms-drill');await W(300);
+await p.evaluate(()=>{for(let i=0;i<3;i++){sentReveal();sentMark('got')}});await W(300);
+console.log('end?',await p.evaluate(()=>!!document.querySelector('.aph-results')));
+await p.click('.btn-same-set');await W(400);
+console.log('same set again (sentences):',await p.evaluate(()=>document.querySelector('#drill').innerText.slice(0,120)));
+await p.evaluate(()=>aphBack());await W(300);
+console.log('back',await p.evaluate(()=>!!document.querySelector('.ms-card')));
+// verbs list toggle & infinitives tile states
+await p.click('text=See the verbs in these groups');await W(200);
+await p.screenshot({path:'shots/b_vlist.png',fullPage:true});
+await p.evaluate(()=>msKind('inf'));await W(200);
+console.log('inf tiles',await p.evaluate(()=>[...document.querySelectorAll('.ms-tile')].map(b=>b.querySelector('.ms-tt').textContent+(b.disabled?'(off)':'')).join()), await p.evaluate(()=>document.querySelector('.ms-now').textContent));
+await p.click('.ms-spell');await W(300);await p.screenshot({path:'shots/b_spellinf.png'});
+await b.close()})();

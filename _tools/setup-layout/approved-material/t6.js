@@ -1,0 +1,21 @@
+const { chromium } = require('playwright');
+const url = 'file:///home/claude/ap/Eton%20IGCSE%20Approved%20Material%20Practice%20Sentences.html';
+(async () => {
+  const b = await chromium.launch(); const ctx = await b.newContext({ viewport: { width: 1024, height: 1366 } }); const p = await ctx.newPage();
+  await ctx.route(/^https?:/, r => r.abort());
+  const errs = []; p.on('pageerror', e => errs.push('PAGEERR ' + e.message)); p.on('dialog', d => { errs.push('DIALOG ' + d.message()); d.dismiss(); });
+  await p.addInitScript(() => { try { speechSynthesis.speak = () => {}; } catch (e) { } });
+  await p.goto(url); await p.waitForTimeout(500);
+  await p.evaluate(() => amOpenMode('ps'));
+  await p.click('.ms-opts summary'); await p.waitForTimeout(200);
+  await p.click('.ms-opts .aph-swap'); await p.waitForTimeout(200);
+  console.log('open after swap:', await p.$eval('.ms-opts', e => e.open), await p.textContent('.ms-opts summary small'));
+  await p.click('.ms-opts #mix-row .aph-chip:has-text("70")'); await p.waitForTimeout(200);
+  await p.click('.ms-opts .aph-chip:has-text("20")'); await p.waitForTimeout(100);
+  await p.click('.ms-opts .aph-step:has-text("+")'); await p.click('.ms-opts .aph-step:has-text("+")');
+  await p.click('.ms-opts #autotimeBtn'); await p.waitForTimeout(100);
+  console.log(await p.textContent('.ms-opts summary small'));
+  await p.screenshot({ path: 'shots/eton_settings_open.png' });
+  console.log('errs', errs);
+  await b.close();
+})();

@@ -1,0 +1,14 @@
+const {chromium}=require('playwright');
+(async()=>{const b=await chromium.launch();const p=await b.newPage({viewport:{width:1024,height:1366}});
+p.on('pageerror',e=>console.log('ERR',e.message));
+p.on('dialog',d=>{console.log('DIALOG',d.message());d.dismiss()});
+await p.goto('file:///home/claude/ap/Eton%20Italian%20Verbs.html');await p.waitForTimeout(2500);
+const W=ms=>p.waitForTimeout(ms);
+await p.screenshot({path:'shots/a_land.png'});
+await p.evaluate(()=>hmOpen('core'));await W(300);
+await p.screenshot({path:'shots/a_core0.png',fullPage:true});
+console.log('tiles', await p.evaluate(()=>[...document.querySelectorAll('.ms-tile')].map(b=>b.querySelector('.ms-tt').textContent+(b.disabled?'(off)':''))));
+await p.evaluate(()=>{msGrpSet('ALL');msTense('PRESENT');msTense('PP')});await W(300);
+await p.screenshot({path:'shots/a_core1.png',fullPage:true});
+console.log('tiles', await p.evaluate(()=>[...document.querySelectorAll('.ms-tile')].map(b=>b.querySelector('.ms-tt').textContent+(b.disabled?'(off)':''))), await p.evaluate(()=>document.querySelector('.ms-now').textContent));
+await b.close()})();

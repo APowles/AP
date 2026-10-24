@@ -1,0 +1,10 @@
+const {chromium}=require('playwright');
+(async()=>{const b=await chromium.launch();const p=await b.newPage({viewport:{width:1024,height:1366}});
+p.on('pageerror',e=>console.log('ERR',e.message));p.on('dialog',d=>{console.log('DIALOG',d.message());d.dismiss()});
+await p.goto('file:///home/claude/ap/Eton%20F%20Spanish%20Vocab.html');await p.waitForTimeout(2500);
+await p.screenshot({path:'shots/n0.png'});
+console.log('disabled tiles',await p.evaluate(()=>[...document.querySelectorAll('.ms-tile')].map(t=>t.disabled)));
+await p.selectOption('#intro-sel-unit','1A');await p.waitForTimeout(300);
+await p.screenshot({path:'shots/n1.png'});
+console.log('disabled tiles',await p.evaluate(()=>[...document.querySelectorAll('.ms-tile')].map(t=>t.disabled)), await p.evaluate(()=>document.querySelector('.ms-now').textContent));
+await b.close()})();

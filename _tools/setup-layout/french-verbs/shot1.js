@@ -1,0 +1,13 @@
+const {chromium}=require('playwright');
+(async()=>{const b=await chromium.launch();const p=await b.newPage({viewport:{width:1024,height:1366}});
+p.on('pageerror',e=>console.log('ERR',e.message));
+await p.goto('file:///home/claude/ap/Eton%20French%20Verbs.html');await p.waitForTimeout(2000);
+await p.evaluate(()=>hmOpen('quizlet'));await p.waitForTimeout(500);
+await p.screenshot({path:'shots/orig_core.png',fullPage:true});
+await p.evaluate(()=>{hmLand();hmOpen('all')});await p.waitForTimeout(500);
+await p.screenshot({path:'shots/orig_all.png',fullPage:true});
+await b.close();
+const b2=await chromium.launch();const q=await b2.newPage({viewport:{width:1024,height:1366}});
+await q.goto('file:///home/claude/ap/Eton%20A%20Level%20Oral%20Phrase%20Bank.html');await q.waitForTimeout(2500);
+await q.screenshot({path:'shots/pb.png',fullPage:true});
+await b2.close()})();

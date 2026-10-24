@@ -1,0 +1,12 @@
+const {chromium}=require('playwright');
+(async()=>{const b=await chromium.launch();const p=await b.newPage({viewport:{width:1024,height:1366}});
+p.on('pageerror',e=>console.log('ERR',e.message));
+p.on('dialog',d=>{console.log('DIALOG',d.message());d.dismiss()});
+await p.goto('file:///home/claude/ap/Eton%20Italian%20Verbs.html');await p.waitForTimeout(2500);
+await p.evaluate(()=>{verbMode='igcse';mode='single';selectedTenses=new Set(['PRESENT','FUTURE']);_selectedCount=10;startQuickDrill(10)});await p.waitForTimeout(400);
+console.log('drill from link',await p.evaluate(()=>[deck.length,!!document.querySelector('.aph-qcard')]));
+await p.evaluate(()=>goHome());await p.waitForTimeout(300);
+console.log(await p.evaluate(()=>document.querySelector('.ms-now').textContent));
+console.log('tiles live',await p.evaluate(()=>document.querySelectorAll('.ms-tile:not([disabled])').length));
+await p.screenshot({path:'shots/d_link.png'});
+await b.close()})();

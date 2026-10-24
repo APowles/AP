@@ -1,0 +1,13 @@
+const {chromium}=require('playwright');
+(async()=>{const b=await chromium.launch();const p=await b.newPage({viewport:{width:1024,height:1366}});
+p.on('pageerror',e=>console.log('PAGEERR',e.message));p.on('console',m=>{if(m.type()==='error')console.log('CONSOLE',m.text())});
+await p.goto('file:///home/claude/ap/Eton%20French%20Verbs.html');await p.waitForTimeout(2500);
+await p.evaluate(()=>hmOpen('quizlet'));await p.waitForTimeout(500);
+await p.screenshot({path:'shots/c0.png',fullPage:true});
+await p.evaluate(()=>{msGrp('E1');});await p.waitForTimeout(200);
+await p.screenshot({path:'shots/c1.png',fullPage:true});
+await p.evaluate(()=>{msTense('PRESENT');});await p.waitForTimeout(200);
+await p.screenshot({path:'shots/c2.png',fullPage:true});
+await p.evaluate(()=>{hmLand();hmOpen('all')});await p.waitForTimeout(300);
+await p.screenshot({path:'shots/a0.png',fullPage:true});
+await b.close()})();

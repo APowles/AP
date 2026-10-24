@@ -1,0 +1,22 @@
+const { chromium } = require('playwright');
+const url = 'file:///home/claude/ap/AP%20All%20Languages%20-%20IGCSE%20Approved%20Material%20Practice%20Sentences.html';
+(async () => {
+  const b = await chromium.launch(); const ctx = await b.newContext({ viewport: { width: 1024, height: 1366 } }); const p = await ctx.newPage();
+  await ctx.route(/^https?:/, r => r.abort());
+  const errs = []; p.on('pageerror', e => errs.push('PAGEERR ' + e.message)); p.on('dialog', d => { errs.push('DIALOG ' + d.message()); d.dismiss(); });
+  await p.addInitScript(() => { try { speechSynthesis.speak = () => {}; } catch (e) { } });
+  await p.goto(url); await p.waitForTimeout(500);
+  await p.evaluate(() => amOpenMode('am'));
+  console.log('langs', await p.evaluate(() => amSetLangs()));
+  await p.evaluate(() => { fromLang = 'en'; toLang = 'es'; amMultiTopics = [DATA()[0].subsection_en]; currentSection = '__MULTI__'; currentSubsection = 'all'; renderIntro(); });
+  console.log(await p.textContent('.ms-opts summary small'), await p.textContent('.ms-now'));
+  console.log('spell icon is es?', await p.$eval('.ms-spell img', e => e.src.length), await p.evaluate(() => document.querySelector('.ms-spell img').src === document.querySelector('.ms-spell img').src));
+  await p.click('.ms-spell'); await p.waitForTimeout(200);
+  console.log('spell lang attr', await p.getAttribute('#ms-in', 'lang')); await p.screenshot({ path: 'shots/ap_es_spell.png' });
+  await p.keyboard.press('Escape');
+  await p.click('.ms-drill'); await p.waitForTimeout(200); console.log('prompt', (await p.textContent('.aph-prompt')).slice(0, 60));
+  await p.keyboard.press('ArrowRight'); await p.waitForTimeout(200); console.log('answer', (await p.textContent('#cardAnswerText')).slice(0, 60));
+  await p.keyboard.press('ArrowLeft'); await p.waitForTimeout(200);
+  console.log('errs', errs);
+  await b.close();
+})();

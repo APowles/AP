@@ -1,0 +1,14 @@
+const {chromium}=require('playwright');
+(async()=>{const b=await chromium.launch();const ctx=await b.newContext({viewport:{width:1024,height:1366}});const p=await ctx.newPage();
+p.on('pageerror',e=>console.log('ERR',e.message));
+const W=ms=>p.waitForTimeout(ms);
+await p.goto('file:///home/claude/ap/Eton%20Spanish%20Verbs.html');await W(2500);
+await p.click('.gh-gram');await W(300);
+await p.evaluate(()=>aphBack());await W(300);
+console.log('gram back -> hub',await p.evaluate(()=>!!document.querySelector('.gh-hub')));
+await p.click('.gh-verbs');await W(300);
+await p.evaluate(()=>hmOpen('core'));await W(200);
+await p.evaluate(()=>goHub());await W(200);
+await p.click('.gh-gram');await W(300);await p.evaluate(()=>aphBack());await W(300);
+console.log('hub again',await p.evaluate(()=>!!document.querySelector('.gh-hub')));
+await b.close()})();
