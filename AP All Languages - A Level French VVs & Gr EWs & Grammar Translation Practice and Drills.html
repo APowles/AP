@@ -4,7 +4,7 @@
 <script id="ap-update">
 /* AP auto-update: if this copy is older than the published version, reload once with the new one (saved answers are kept) */
 (function () {
-  var B = '272c50194d'; window.AP_BUILD = B;
+  var B = 'cf85fcd09b'; window.AP_BUILD = B;
   function check() {
     if (!/^https?:$/.test(location.protocol) || !window.fetch) return;
     var f = decodeURIComponent(location.pathname.split('/').pop() || '');
@@ -50154,8 +50154,8 @@ function mlfLeisureStart(deck) {
 })();
 </script>
 <style id="ap-myset-css">
-.ms-panel{margin:14px 0 4px;padding:12px 14px;border:1.5px solid #c9a84c;border-radius:12px;background:#fffdf5}
-.ms-ttl{font-family:'Playfair Display',serif;font-size:1.125rem;font-weight:700;color:#1a2744;display:flex;gap:8px;align-items:baseline;flex-wrap:wrap}
+.ms-panel{margin:18px 0 4px;padding:4px 14px 10px;border:1px solid #d9deea;border-radius:12px;background:#fafbfd}.ms-panel[open]{border-color:#c9a84c;background:#fffdf5}
+.ms-panel>summary{cursor:pointer;list-style:none;min-height:44px;display:flex;align-items:center;font-family:'DM Sans',sans-serif;font-weight:700;color:#1a2744;gap:8px}.ms-panel>summary::-webkit-details-marker{display:none}.ms-panel>summary:after{content:'▾';margin-left:auto;color:#6b7690}.ms-panel[open]>summary:after{content:'▴'}.ms-ttl{font-family:'Playfair Display',serif;font-size:1.125rem;font-weight:700;color:#1a2744;display:flex;gap:8px;align-items:baseline;flex-wrap:wrap}
 .ms-ttl small{font-family:'DM Sans',sans-serif;font-size:.875rem;font-weight:600;color:#6b7690}
 .ms-row{display:flex;flex-wrap:wrap;gap:8px;margin-top:10px}
 .ms-note{font-size:.875rem;color:#4a5570;margin-top:8px;line-height:1.4}
@@ -50190,7 +50190,7 @@ function mlfLeisureStart(deck) {
 (function () {
   'use strict';
   var KEY = 'apvv_myset_v1', BEST = 'apvv_match_best', MY = 'Personalised set';
-  var S = { c: {}, due: {}, f: 'all' }, note = '';
+  var S = { c: {}, due: {}, f: 'all' }, note = '', msOpen = false;
   try { var raw = JSON.parse(localStorage.getItem(KEY) || 'null'); if (raw && raw.c) S = { c: raw.c, due: raw.due || {}, f: raw.f || 'all' }; } catch (e) { }
   function save() { try { localStorage.setItem(KEY, JSON.stringify(S)); } catch (e) { } }
   function today() { var d = new Date(); return Math.floor((d.getTime() - d.getTimezoneOffset() * 60000) / 864e5); }
@@ -50242,13 +50242,13 @@ function mlfLeisureStart(deck) {
     var card = c.querySelector('.intro-card'); if (!card || card.querySelector('.ms-panel')) return;
     var on = currentVV === MY, n = ids().length, dc = dueCount();
     var fl = [['all', 'All'], ['3', 'Hard only'], ['23', 'Tricky + hard'], ['due', 'Due today (' + dc + ')']];
-    var p = document.createElement('div'); p.className = 'ms-panel';
-    p.innerHTML = '<div class="ms-ttl">★ Personalised set <small>' + n + ' card' + (n === 1 ? '' : 's') + (dc ? ' · ' + dc + ' due today' : '') + '</small></div>'
-      + '<div class="ms-row"><button class="ms-b sm' + (on ? ' on' : ' pri') + '" onclick="apMySetUse()">' + (on ? '✓ Practising my personalised set' : '▶ Practise my personalised set') + '</button>'
+    var p = document.createElement('details'); p.className = 'ms-panel'; p.open = msOpen || on; p.addEventListener('toggle', function () { msOpen = p.open; });
+    p.innerHTML = '<summary>★ Personalised set <small style="font-weight:600;color:#6b7690">' + n + ' card' + (n === 1 ? '' : 's') + (dc ? ' · ' + dc + ' due today' : '') + ' · optional</small></summary>'
+      + '<div class="ms-row"><button class="ms-b sm' + (on ? ' on' : ' pri') + '"' + (n || on ? '' : ' disabled style="opacity:.5"') + ' onclick="apMySetUse()">' + (on ? '✓ Practising my personalised set' : '▶ Practise my personalised set') + '</button>'
       + '<button class="ms-b sm" onclick="apMySetEdit()">✎ Edit</button><button class="ms-b sm" onclick="apMySetLink()">🔗 Save my personalised set</button></div>'
       + (on ? '<div class="ms-row">' + fl.map(function (x) { return '<button class="ms-b sm' + (S.f === x[0] ? ' on' : '') + '" onclick="apMySetFilter(\'' + x[0] + '\')">' + x[1] + '</button>'; }).join('') + '</div>' : '')
-      + '<div class="ms-note">' + (note ? '<b>' + note + '</b> ' : '') + (n ? 'Cards you mark ✗ or ~ join automatically. Drill, Speed, Generate test, Spell and Match all work on it.' : 'Empty so far. Cards you mark ✗ or ~ in a drill join automatically, and you can add cards by hand with Edit.') + '</div>';
-    var ban = card.querySelector('.aph-banner'); if (ban) ban.insertAdjacentElement('afterend', p); else card.insertBefore(p, card.children[1] || null);
+      + '<div class="ms-note">' + (note ? '<b>' + note + '</b> ' : '') + (n ? 'Cards you mark ✗ or ~ join automatically. Drill, Speed, Generate test, Spell and Match all work on it.' : 'Empty so far. Practise any set as usual: cards you mark ✗ or ~ in a drill join automatically, and you can add cards by hand with Edit.') + '</div>';
+    var kk = card.querySelector('.aph-keys'); if (kk) card.insertBefore(p, kk); else card.appendChild(p);
     var tools = card.querySelector('.aph-tools');
     if (tools) tools.insertAdjacentHTML('afterend', '<div class="aph-tools" style="grid-template-columns:repeat(2,minmax(0,1fr));margin-top:8px"><button class="aph-btn" onclick="apSpell()">✍ Spell</button><button class="aph-btn" onclick="apMatch()">🧩 Match</button></div>');
   };
@@ -50317,7 +50317,8 @@ function mlfLeisureStart(deck) {
 
   // ---- Spell
   var sp = null;
-  function pickPool() { var pool = getPool(); if (!pool.length) { showMessage(currentVV === MY ? 'Personalised set is empty for this filter.' : 'No phrases available.'); return null; } var n = (typeof _selectedCount === 'number' && _selectedCount > 0) ? Math.min(_selectedCount, pool.length) : pool.length; return { pool: pool, n: n }; }
+  function syncSel() { var sel = document.getElementById('intro-vv-select'); if (sel && VV_DATA[sel.value]) currentVV = sel.value; }
+  function pickPool() { syncSel(); var pool = getPool(); if (!pool.length) { showMessage(currentVV === MY ? 'Your personalised set has no cards for this filter. Choose a set under What to practise.' : 'No phrases available.'); return null; } var n = (typeof _selectedCount === 'number' && _selectedCount > 0) ? Math.min(_selectedCount, pool.length) : pool.length; return { pool: pool, n: n }; }
   window.apSpell = function () {
     var p = pickPool(); if (!p) return;
     sp = { d: shuffle(p.pool).slice(0, p.n), i: 0, ok: 0, near: 0, bad: 0, miss: [], rev: false, label: vvSetLabel(currentVV) };
@@ -50371,9 +50372,9 @@ function mlfLeisureStart(deck) {
   // ---- Match
   var mt = null, mm = null;
   window.apMatch = function () {
-    var pool = getPool(), seen = {}, u = [];
+    syncSel(); var pool = getPool(), seen = {}, u = [];
     pool.forEach(function (c) { var k = plain(c.en).toLowerCase(), f = plain(c.fr).toLowerCase(); if (seen[k] || seen[f]) return; seen[k] = seen[f] = 1; u.push(c); });
-    if (u.length < 3) { showMessage('Match needs at least 3 different cards in the set.'); return; }
+    if (u.length < 3) { showMessage(currentVV === MY ? 'Your personalised set has too few cards for Match. Choose a set under What to practise.' : 'Match needs at least 3 different cards in the set.'); return; }
     var d = shuffle(u).slice(0, 10);
     mm = { d: d, en: shuffle(d.map(function (_, i) { return i; })), fr: shuffle(d.map(function (_, i) { return i; })), sel: null, done: 0, pen: 0, t0: 0, label: vvSetLabel(currentVV) };
     var rows = d.length;
