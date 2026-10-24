@@ -4,7 +4,7 @@
 <script id="ap-update">
 /* AP auto-update: if this copy is older than the published version, reload once with the new one (saved answers are kept) */
 (function () {
-  var B = '033c169d3b'; window.AP_BUILD = B;
+  var B = 'cc634f9b01'; window.AP_BUILD = B;
   function check() {
     if (!/^https?:$/.test(location.protocol) || !window.fetch) return;
     var f = decodeURIComponent(location.pathname.split('/').pop() || '');
@@ -50197,6 +50197,17 @@ function mlfLeisureStart(deck) {
 .ms-opts>summary{cursor:pointer;list-style:none;min-height:44px;display:flex;align-items:center;gap:8px;font-weight:700;color:#1a2744;font-size:.9375rem}
 .ms-opts>summary::-webkit-details-marker{display:none}.ms-opts>summary:after{content:'▾';margin-left:auto;color:#6b7690}.ms-opts[open]>summary:after{content:'▴'}
 .ms-opts>summary small{font-weight:600;color:#6b7690}
+.ms-mybox{margin:0 0 8px;padding:8px 10px;border:1.5px solid #e3e0d6;border-radius:12px;background:transparent}
+.ms-mybox.on{border-color:#c9a84c;background:#fffaf0}
+.ms-brow{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin:2px 0 6px}
+.ms-now{font-size:.9375rem;color:#4a5570;margin:2px 0 8px;min-height:1.3em}
+.ms-tiles{display:grid!important;grid-template-columns:repeat(2,minmax(0,1fr))!important;gap:10px!important;margin:8px 0 10px!important}
+.ms-tile{font:inherit;text-align:left;display:flex;flex-direction:column;gap:4px;min-height:96px;padding:12px 14px;border:1.5px solid #c9d0e0;border-radius:12px;background:#fff;color:#1a2744;cursor:pointer;touch-action:manipulation}
+.ms-tile.pri{background:#1a2744;color:#fff;border-color:#1a2744}
+.ms-tt{font-weight:800;font-size:1.0625rem}.ms-tile.pri .ms-tt{color:#ffd76a}
+.ms-td{font-size:.875rem;line-height:1.35;opacity:.85}
+.ms-tile[disabled]{opacity:.42;cursor:not-allowed}
+.ms-viewrow{display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin:2px 0 6px}
 </style>
 <script id="ap-myset">
 (function () {
@@ -50241,71 +50252,104 @@ function mlfLeisureStart(deck) {
   window.markError = function () { try { if (isDrilling) mark(deck[currentIndex], 'bad'); } catch (e) { } return mE.apply(this, arguments); };
   window.markNearly = function () { try { if (isDrilling) mark(deck[currentIndex], 'near'); } catch (e) { } return mN.apply(this, arguments); };
   window.markCorrect = function () { try { if (isDrilling) mark(deck[currentIndex], 'ok'); } catch (e) { } return mC.apply(this, arguments); };
-  var gvo = window.getVVOptions;
-  window.getVVOptions = function (only, selKey) {
-    var s = gvo.apply(this, arguments);
-    if (only !== 'VV') return s;
-    return '<option value="' + MY + '"' + (MY === (selKey || currentVV) ? ' selected' : '') + '>★ Personalised set (' + ids().length + ')</option>' + s;
-  };
+  // (the Personalised set is its own choice under "What do you want to practise?"; it is no longer added to the dropdowns)
 
-  // ---- the set picker starts on "Choose a set…": nothing is preselected until a boy picks one (not when a link has chosen content)
+  // ---- the picker starts on "Choose a set…": nothing is preselected until a boy picks one (not when a link has chosen content)
   var fresh = !/^#(vv|myset|recap|sd|mlf)/.test(location.hash || ''), DEF = currentVV;
   function unchosen() { return fresh && currentVV === DEF; }
   var activeG = null;
   (function () {
     var oP = window.vvPickSet, oG = window.vvSwitchGroup, oT = window.vvSetTier;
+    function toNone(g) { fresh = true; currentVV = DEF; activeG = g; window.renderIntro(); }
     window.vvPickSet = function () { fresh = false; return oP.apply(this, arguments); };
     // before a set has been picked, tapping a group or a structure tier only opens that group: it never picks a set for him
-    window.vvSwitchGroup = function (g) { if (unchosen()) { activeG = g; return window.renderIntro(); } fresh = false; return oG.apply(this, arguments); };
-    window.vvSetTier = function (t) { if (unchosen()) { vsTier = t; activeG = 'VS'; return window.renderIntro(); } fresh = false; return oT.apply(this, arguments); };
+    window.vvSwitchGroup = function (g) { if (unchosen() || currentVV === MY) return toNone(g); fresh = false; return oG.apply(this, arguments); };
+    window.vvSetTier = function (t) { if (unchosen() || currentVV === MY) { vsTier = t; return toNone('VS'); } fresh = false; return oT.apply(this, arguments); };
   })();
-  var optOpen = false;
-  function restructure(card) {
-    var labels = [].slice.call(card.children).filter(function (e) { return e.classList.contains('aph-label'); });
-    var d = labels.filter(function (e) { return /^Direction/i.test(e.textContent.trim()); })[0], w = labels.filter(function (e) { return /^What to practise/i.test(e.textContent.trim()); })[0];
-    var stack = card.querySelector('.aph-stack'); if (!d || !w || !stack) return;
-    var nodes = [], n = d; while (n && n !== w) { nodes.push(n); n = n.nextElementSibling; }
-    var det = document.createElement('details'); det.className = 'ms-opts'; det.open = optOpen; det.addEventListener('toggle', function () { optOpen = det.open; });
-    det.innerHTML = '<summary>Options <small>' + (fromLang === 'en' ? 'English → French' : 'French → English') + (vvMix ? ' · mixed ' + mixTag(vvMix) : ' · every card the same way round') + '</small></summary>';
-    nodes.forEach(function (e) { det.appendChild(e); });
-    det.insertAdjacentHTML('beforeend', '<div class="aph-note" style="margin:6px 0 4px;line-height:1.45"><b>Direction</b> is which language you see and which you answer in. <b>Mix both ways</b>: Off = every card goes the way round chosen above. 50–50 = half the cards go English → French and half French → English, each card showing its own direction. 70–30 = seven in ten English → French, three in ten French → English.</div>');
-    card.insertBefore(det, stack);
-  }
-  function greyButtons(card) {
-    card.querySelectorAll('.aph-btn').forEach(function (b) {
-      var oc = b.getAttribute('onclick') || '';
-      if (/introStartDrill|introStartLeisure|showVVTestPanel|apSpell|apMatch/.test(oc)) { b.disabled = true; if (/introStartDrill/.test(oc)) b.innerHTML = 'Choose a set to start'; }
+  var setOpen = false;
+  var TILES = [
+    ['▶', 'Drill', 'Cards one at a time. You mark yourself ✗ ~ ✓.', 'introStartDrill()'],
+    ['⚡', 'Speed Challenge', 'Race the clock, solo or in teams.', 'openVVChallenge()'],
+    ['✍', 'Spell', 'Hear the French and write it. Accents count.', 'apSpell()'],
+    ['🧩', 'Match', 'Pair ten English and French cards against the clock.', 'apMatch()'],
+    ['☕', 'Leisure Mode', 'Hands-free. Each card is read, you answer in your head, then the answer is read. No marking. For a walk or an evening.', 'introStartLeisure()'],
+    ['📝', 'Test', 'Make a test to print or do on screen. The answers stay hidden.', 'showVVTestPanel()']
+  ];
+  function paintGroups(card) {
+    card.querySelectorAll('.vv-grp').forEach(function (g, gi) {
+      g.classList.remove('on'); g.style.borderColor = '#e3e0d6'; g.style.background = 'transparent'; var b = g.querySelector('.aph-chip'); if (b) b.classList.remove('on');
+      var s = g.querySelector('select'); if (s) { s.removeAttribute('id'); s.insertAdjacentHTML('afterbegin', '<option value="" disabled>Choose a set…</option>'); s.selectedIndex = 0; }
+      var c = g.querySelector('.intro-phrase-count'); if (c) c.style.display = 'none';
+      if (!unchosenOrMy.my && activeG && ['TC', 'TV', 'VS', 'VV'][gi] === activeG) g.classList.add('on');
     });
   }
-  function paintUnchosen(card) {
-    card.querySelectorAll('.vv-grp').forEach(function (g, gi) { g.classList.remove('on'); var b = g.querySelector('.aph-chip'); if (b) b.classList.remove('on'); var s = g.querySelector('select'); if (s) { s.removeAttribute('id'); s.insertAdjacentHTML('afterbegin', '<option value="" disabled>Choose a set…</option>'); s.selectedIndex = 0; } var c = g.querySelector('.intro-phrase-count'); if (c) c.style.display = 'none'; if (activeG && ['TC', 'TV', 'VS', 'VV'][gi] === activeG) g.classList.add('on'); });
+  var unchosenOrMy = { my: false };
+  function myBox(n, dc, on) {
+    var fl = [['all', 'All'], ['3', 'Hard only'], ['23', 'Tricky + hard'], ['due', 'Due today (' + dc + ')']];
+    return '<div class="ms-mybox' + (on ? ' on' : '') + '"><div class="ms-brow"><button class="aph-chip' + (on ? ' on' : '') + '"' + (n || on ? '' : ' disabled style="opacity:.5"') + ' onclick="apMySetUse()" style="min-width:190px">★ My personalised set</button>'
+      + '<span class="aph-note" style="min-width:auto">' + n + ' card' + (n === 1 ? '' : 's') + (dc ? ' · ' + dc + ' due today' : '') + '</span>'
+      + '<button class="ms-b sm" onclick="apMySetHelp()">? How does this work?</button></div>'
+      + (n || on ? '<div class="ms-brow">' + '<button class="ms-b sm" onclick="apMySetEdit()">✎ Edit</button><button class="ms-b sm" onclick="apMySetLink()">🔗 Save my personalised set</button></div>' : '')
+      + (on ? '<div class="ms-brow">' + fl.map(function (x) { return '<button class="ms-b sm' + (S.f === x[0] ? ' on' : '') + '" onclick="apMySetFilter(\'' + x[0] + '\')">' + x[1] + '</button>'; }).join('') + '</div>' : '')
+      + (note || !n ? '<div class="ms-note">' + (note ? '<b>' + note + '</b> ' : '') + (!n ? 'Empty so far. Cards you mark ✗ or ~ in any drill join it automatically.' : '') + '</div>' : '') + '</div>';
   }
   var ri = window.renderIntro;
   window.renderIntro = function () {
     rebuild(); ri.apply(this, arguments);
     var c = document.getElementById('drillContainer'); if (!c) return;
-    var card = c.querySelector('.intro-card'); if (!card || card.querySelector('.ms-panel')) return;
-    if (unchosen()) paintUnchosen(card);
-    var on = currentVV === MY, n = ids().length, dc = dueCount();
-    var fl = [['all', 'All'], ['3', 'Hard only'], ['23', 'Tricky + hard'], ['due', 'Due today (' + dc + ')']];
-    var p = document.createElement('details'); p.className = 'ms-panel'; p.open = msOpen || on; p.addEventListener('toggle', function () { msOpen = p.open; });
-    p.innerHTML = '<summary>★ Personalised set <small style="font-weight:600;color:#6b7690">' + n + ' card' + (n === 1 ? '' : 's') + (dc ? ' · ' + dc + ' due today' : '') + ' · optional</small></summary>'
-      + '<div class="ms-row"><button class="ms-b sm' + (on ? ' on' : ' pri') + '"' + (n || on ? '' : ' disabled style="opacity:.5"') + ' onclick="apMySetUse()">' + (on ? '✓ Practising my personalised set' : '▶ Practise my personalised set') + '</button>'
-      + '<button class="ms-b sm" onclick="apMySetEdit()">✎ Edit</button><button class="ms-b sm" onclick="apMySetLink()">🔗 Save my personalised set</button><button class="ms-b sm" onclick="apMySetHelp()">? How does this work?</button></div>'
-      + (on ? '<div class="ms-row">' + fl.map(function (x) { return '<button class="ms-b sm' + (S.f === x[0] ? ' on' : '') + '" onclick="apMySetFilter(\'' + x[0] + '\')">' + x[1] + '</button>'; }).join('') + '</div>' : '')
-      + '<div class="ms-note">' + (note ? '<b>' + note + '</b> ' : '') + (n ? 'Cards you mark ✗ or ~ join automatically. Drill, Speed, Generate test, Spell and Match all work on it.' : 'Empty so far. Practise any set as usual: cards you mark ✗ or ~ in a drill join automatically, and you can add cards by hand with Edit.') + '</div>';
-    var kk = card.querySelector('.aph-keys'); if (kk) card.insertBefore(p, kk); else card.appendChild(p);
-    var tools = card.querySelector('.aph-tools');
-    if (tools) tools.insertAdjacentHTML('afterend', '<div class="aph-tools" style="grid-template-columns:repeat(2,minmax(0,1fr));margin-top:8px"><button class="aph-btn" onclick="apSpell()">✍ Spell</button><button class="aph-btn" onclick="apMatch()">🧩 Match</button></div>');
-    if (unchosen()) greyButtons(card);
-    restructure(card);
+    var card = c.querySelector('.intro-card'); if (!card || card.getAttribute('data-ms')) return; card.setAttribute('data-ms', '1');
+    var my = currentVV === MY, chosen = !unchosen(), n = ids().length, dc = dueCount();
+    unchosenOrMy.my = my;
+    var usable = chosen && (!my || getPool().length > 0);
+    // sort the original pieces into buckets
+    var B = { head: [], banner: [], dir: [], what: [], cards: [], timer: [], stack: null, keys: null, other: [] }, cur = 'head';
+    [].slice.call(card.children).forEach(function (e) {
+      var t = e.classList.contains('aph-label') ? e.textContent.trim() : '';
+      if (e.tagName === 'H2') { B.head.push(e); return; }
+      if (e.classList.contains('aph-banner')) { B.banner.push(e); return; }
+      if (e.classList.contains('aph-stack')) { B.stack = e; cur = 'other'; return; }
+      if (e.classList.contains('aph-keys')) { B.keys = e; cur = 'other'; return; }
+      if (/^(Direction|Mix both ways)/i.test(t)) cur = 'dir'; else if (/^What to practise/i.test(t)) { cur = 'what'; return; } else if (/^Cards per session/i.test(t)) cur = 'cards'; else if (/^Timer per card/i.test(t)) cur = 'timer';
+      B[cur].push(e);
+    });
+    if (!B.stack || !B.what.length) return;
+    B.what.forEach(function (e) { if (e.innerHTML && e.innerHTML.indexOf('under Direction') >= 0) e.innerHTML = e.innerHTML.replace('under Direction', 'under Settings (Direction)'); });
+    paintGroupsWrap(B, my, chosen);
+    // settings (collapsed)
+    var setDet = document.createElement('details'); setDet.className = 'ms-opts'; setDet.open = setOpen; setDet.addEventListener('toggle', function () { setOpen = setDet.open; });
+    setDet.innerHTML = '<summary>Settings <small>' + (_selectedCount === -1 ? 'All cards' : _selectedCount + ' cards') + ' · ' + timerSeconds + 's a card · ' + (fromLang === 'en' ? 'English → French' : 'French → English') + (vvMix ? ' · mixed ' + mixTag(vvMix) : '') + (isAutotime ? ' · Autotime on' : '') + '</small></summary>';
+    B.cards.concat(B.timer).forEach(function (e) { setDet.appendChild(e); });
+    var auto = B.stack.querySelector('#autotimeBtn'); if (auto) { var ar = document.createElement('div'); ar.className = 'aph-row'; ar.appendChild(auto); var an = document.createElement('div'); an.className = 'aph-note'; an.style.margin = '0 0 4px'; an.textContent = 'Autotime: Leisure Mode moves on by itself, with no timer bar.'; setDet.appendChild(ar); setDet.appendChild(an); }
+    B.dir.forEach(function (e) { setDet.appendChild(e); });
+    setDet.insertAdjacentHTML('beforeend', '<div class="aph-note" style="margin:6px 0 4px;line-height:1.45"><b>Direction</b> is which language you see and which you answer in. <b>Mix both ways</b>: Off = every card goes the way round chosen above. 50–50 = half the cards go English → French and half French → English, each card showing its own direction. 70–30 = seven in ten English → French, three in ten French → English.</div>');
+    var view = B.stack.querySelector('[onclick^="openVVBrowse"]');
+    var extra = [].slice.call(B.stack.children).filter(function (e) { return e.classList.contains('aph-tools') && !e.querySelector('#autotimeBtn') && !e.querySelector('[onclick^="openVVBrowse"]'); });
+    var tilesHtml = TILES.map(function (t, i) { return '<button class="ms-tile' + (i === 0 ? ' pri' : '') + '"' + (usable ? '' : ' disabled') + ' onclick="' + t[3] + '"><span class="ms-tt">' + t[0] + ' ' + t[1] + '</span><span class="ms-td">' + t[2] + '</span></button>'; }).join('');
+    // rebuild the card in order
+    while (card.firstChild) card.removeChild(card.firstChild);
+    B.head.forEach(function (e) { card.appendChild(e); });
+    card.insertAdjacentHTML('beforeend', '<div class="aph-label">1 · What do you want to practise?</div>');
+    B.what.forEach(function (e) { card.appendChild(e); });
+    card.insertAdjacentHTML('beforeend', myBox(n, dc, my));
+    var pool = chosen ? getPool().length : 0;
+    card.insertAdjacentHTML('beforeend', '<div class="ms-now">' + (!chosen ? 'Choose a set above to unlock the ways to practise it.' : (my && !pool ? 'Your personalised set has no cards for this filter yet.' : 'Practising: <b>' + vvSetLabel(currentVV).replace('Personalised set', 'my personalised set') + '</b> · ' + pool + ' cards')) + '</div>');
+    card.insertAdjacentHTML('beforeend', '<div class="aph-label">2 · How do you want to practise it?</div>');
+    card.appendChild(setDet);
+    card.insertAdjacentHTML('beforeend', '<div class="aph-tools ms-tiles">' + tilesHtml + '</div>');
+    var vr = document.createElement('div'); vr.className = 'ms-viewrow'; vr.insertAdjacentHTML('beforeend', '<span class="aph-note" style="margin:0">Just want to read or print the list?</span>'); if (view) vr.appendChild(view); card.appendChild(vr);
+    extra.forEach(function (e) { card.appendChild(e); });
+    if (B.keys) card.appendChild(B.keys);
   };
+  function paintGroupsWrap(B, my, chosen) {
+    if (chosen && !my) return;
+    var tmp = document.createElement('div'); B.what.forEach(function (e) { tmp.appendChild(e); }); paintGroups(tmp); B.what.forEach(function (e) { if (e.classList.contains('vv-glow-box')) e.classList.remove('on'); });
+  }
 
   window.apMySetHelp = function () {
     ov(head('★ How your personalised set works') + '<div style="font-size:1.0625rem;line-height:1.55">'
       + '<p><b>What is it?</b> Your own list of the words you find hardest. You do not have to build it: the app does it for you.</p>'
       + '<p><b>How do words get in?</b> Do any drill. Every card you mark <b>✗ Major error</b> or <b>~ Nearly</b> is added to your personalised set automatically.</p>'
-      + '<p><b>How do I use it?</b> Open the ★ Personalised set bar and press <b>▶ Practise my personalised set</b>. Then use Start Drill, Speed, Generate Test, Spell or Match exactly as normal, but only on your tricky words.</p>'
+      + '<p><b>How do I use it?</b> Under <b>1 · What do you want to practise?</b> tap <b>★ My personalised set</b>. Then under <b>2 · How do you want to practise it?</b> choose Drill, Speed Challenge, Spell, Match, Leisure Mode or Test, exactly as normal but only on your tricky words.</p>'
       + '<p><b>Hard, Tricky, Easier.</b> ✗ makes a card Hard and ~ makes it Tricky. Press <b>✎ Edit</b> to change a level, take a card out, or add cards yourself. Then you can practise just the Hard ones.</p>'
       + '<p><b>Due today.</b> A word you missed comes back after 1 day, then 3 days, then 7. Get it right each time and it stops coming back.</p>'
       + '<p><b>Keep it safe.</b> Press <b>🔗 Save my personalised set</b>, copy the link and paste it into OneNote. Tap that link on any device and your set is back. It is also kept on this iPad, but the link is the safe copy.</p></div>'
