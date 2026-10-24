@@ -4,7 +4,7 @@
 <script id="ap-update">
 /* AP auto-update: if this copy is older than the published version, reload once with the new one (saved answers are kept) */
 (function () {
-  var B = '98a553de7a'; window.AP_BUILD = B;
+  var B = 'c5d5037b97'; window.AP_BUILD = B;
   function check() {
     if (!/^https?:$/.test(location.protocol) || !window.fetch) return;
     var f = decodeURIComponent(location.pathname.split('/').pop() || '');
@@ -10414,6 +10414,18 @@ var APAM_TPL = "<!doctype html>\n<html lang=\"en\"><head><meta charset=\"utf-8\"
       h.parentNode.insertBefore(b, h); h.parentNode.insertBefore(w, h); w.appendChild(h); w.appendChild(box);
     });
   }
+
+  /* Back (the header button) closes an open test / print panel first: exactly one stage back, not Home. */
+  function closePanel() {
+    var ps = document.querySelectorAll('.aph-panel-top');
+    for (var i = 0; i < ps.length; i++) {
+      var p = ps[i]; if (p.offsetParent === null || getComputedStyle(p).display === 'none') continue;
+      var bs = p.querySelectorAll('button');
+      for (var k = 0; k < bs.length; k++) if (/(\u2715|Close|Back)/.test(txt(bs[k])) && !bs[k].closest('.spt-card')) { bs[k].click(); return true; }
+    }
+    return false;
+  }
+  if (!window.__sptBack) { window.__sptBack = 1; var prevBack = window.aphBackHook; window.aphBackHook = function () { try { if (closePanel()) return true; } catch (e) { } return typeof prevBack === 'function' ? prevBack.apply(this, arguments) : false; }; }
   function run() {
     hideAnswers();
     var bs = document.querySelectorAll('button'), seen = [];
@@ -10438,7 +10450,7 @@ var APAM_TPL = "<!doctype html>\n<html lang=\"en\"><head><meta charset=\"utf-8\"
       var first = pen || pap; if (pap && pen && pap.compareDocumentPosition(pen) & 4) first = pap;
       if (!card) {
         card = document.createElement('div'); card.className = 'spt-card';
-        card.innerHTML = '<div class="spt-h">\ud83d\udcdd Spot Test</div><div class="spt-s">15 short questions in boxes (or 10 or 5 if you prefer, and fewer if the set is small). You mark it yourself.</div><div class="spt-main"></div><div class="spt-pr"></div>';
+        card.innerHTML = '<div class="spt-h">\ud83d\udcdd Spot Test</div><div class="spt-s">15 short questions in boxes (or 10 or 5 if you prefer). You may get fewer if the set is small, or if the answers are long: a timed test never runs past 4\u00bd minutes. You mark it yourself.</div><div class="spt-main"></div><div class="spt-pr"></div>';
         var main = card.querySelector('.spt-main'), pr = card.querySelector('.spt-pr');
         if (pen) { var a = document.createElement('button'); a.type = 'button'; a.className = 'spt-big'; a.innerHTML = '\u270d Do it with Apple Pencil <small>hand in as a PDF if required</small>'; a.onclick = (function (o) { return function () { o.click(); }; })(pen); main.appendChild(a); }
         if (pap) {
