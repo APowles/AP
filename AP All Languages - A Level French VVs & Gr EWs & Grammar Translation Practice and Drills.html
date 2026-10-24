@@ -4,7 +4,7 @@
 <script id="ap-update">
 /* AP auto-update: if this copy is older than the published version, reload once with the new one (saved answers are kept) */
 (function () {
-  var B = 'f3fef4e781'; window.AP_BUILD = B;
+  var B = 'a483014259'; window.AP_BUILD = B;
   function check() {
     if (!/^https?:$/.test(location.protocol) || !window.fetch) return;
     var f = decodeURIComponent(location.pathname.split('/').pop() || '');
@@ -51375,16 +51375,37 @@ function mlfLeisureStart(deck) {
   var SK = 'ap_match_snd', ctx = null;
   function snd() { try { return localStorage.getItem(SK) !== 'off'; } catch (e) { return true; } }
   function setSnd(v) { try { localStorage.setItem(SK, v ? 'on' : 'off'); } catch (e) { } }
-  function ac() { try { if (!ctx) { var C = window.AudioContext || window.webkitAudioContext; if (C) ctx = new C(); } if (ctx && ctx.state === 'suspended') ctx.resume(); } catch (e) { } return ctx; }
+  // one shared audio context for the whole page (Safari allows only a few; some apps already make one)
+  function ac() {
+    try {
+      if (!ctx) { var C = window.AudioContext || window.webkitAudioContext; ctx = window.__apCtx || window.__amCtx || (C ? new C() : null); if (ctx) window.__apCtx = ctx; }
+      if (ctx && ctx.state !== 'running') { var p = ctx.resume(); if (p && p.catch) p.catch(function () { }); }
+    } catch (e) { ctx = null; }
+    return ctx;
+  }
+  // iPad / Safari: sound is only allowed after a tap, and the silent switch mutes Web Audio unless an ordinary audio clip has played first
+  var SIL = null;
+  function unlock() {
+    try { if (navigator.audioSession) navigator.audioSession.type = 'playback'; } catch (e) { }
+    try {
+      if (!SIL) { SIL = new Audio('data:audio/wav;base64,UklGRiQAAABXQVZFZm10IBAAAAABAAEARKwAAIhYAQACABAAZGF0YQAAAAA='); SIL.setAttribute('playsinline', ''); }
+      SIL.currentTime = 0; var pr = SIL.play(); if (pr && pr.catch) pr.catch(function () { });
+    } catch (e) { }
+    ac();
+  }
   function tone(type, f0, f1, dur, vol) {
     if (!snd()) return; var c = ac(); if (!c) return;
-    try { var o = c.createOscillator(), g = c.createGain(), t = c.currentTime; o.type = type; o.frequency.setValueAtTime(f0, t); o.frequency.exponentialRampToValueAtTime(f1, t + dur);
-      g.gain.setValueAtTime(0.0001, t); g.gain.exponentialRampToValueAtTime(vol, t + 0.01); g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
-      o.connect(g); g.connect(c.destination); o.start(t); o.stop(t + dur + 0.02); } catch (e) { }
+    function go() {
+      try { var o = c.createOscillator(), g = c.createGain(), t = c.currentTime; o.type = type; o.frequency.setValueAtTime(f0, t); o.frequency.exponentialRampToValueAtTime(f1, t + dur);
+        g.gain.setValueAtTime(0.0001, t); g.gain.exponentialRampToValueAtTime(vol, t + 0.01); g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+        o.connect(g); g.connect(c.destination); o.start(t); o.stop(t + dur + 0.02); } catch (e) { }
+    }
+    if (c.state === 'running') go();
+    else { var done = false, once = function () { if (!done) { done = true; go(); } }; try { var p = c.resume(); if (p && p.then) p.then(once, once); } catch (e) { } setTimeout(once, 250); }
   }
   var PENTA = [0, 2, 4, 7, 9, 12];
   // wake the audio on any tap, so the opening splash can be heard (iPad only allows sound after a tap)
-  try { document.addEventListener('pointerdown', function () { ac(); }, true); } catch (e) { }
+  try { document.addEventListener('pointerdown', unlock, true); document.addEventListener('touchend', unlock, true); } catch (e) { }
   function later(ms, fn) { setTimeout(function () { try { fn(); } catch (e) { } }, ms); }
   // the opening splash: a fast rising arcade power-up
   function splashSound() {
