@@ -4,7 +4,7 @@
 <script id="ap-update">
 /* AP auto-update: if this copy is older than the published version, reload once with the new one (saved answers are kept) */
 (function () {
-  var B = 'e82c85ba77'; window.AP_BUILD = B;
+  var B = '45d36528d7'; window.AP_BUILD = B;
   function check() {
     if (!/^https?:$/.test(location.protocol) || !window.fetch) return;
     var f = decodeURIComponent(location.pathname.split('/').pop() || '');
@@ -50167,6 +50167,14 @@ function mlfLeisureStart(deck) {
 .ms-lv{border:1.5px solid #c9d0e0;background:#fff;border-radius:999px;padding:6px 12px;font:inherit;font-size:.8125rem;font-weight:700;min-height:40px;cursor:pointer}
 .ms-lv.l3{border-color:#c0392b;color:#c0392b}.ms-lv.l2{border-color:#c77d00;color:#c77d00}.ms-lv.l1{border-color:#1f8a4c;color:#1f8a4c}
 .ms-ta{width:100%;box-sizing:border-box;font:inherit;font-size:.875rem;padding:10px;border:1.5px solid #c9d0e0;border-radius:10px;min-height:110px}
+/* calmer set picker: four matching boxes, quiet counts, the chosen group outlined in gold */
+.vv-glow-box{border:1.5px solid #e3e0d6!important;box-shadow:none!important;background:transparent!important;border-radius:12px!important;padding:8px 10px!important;margin-bottom:8px!important}
+.vv-glow-box:has(.vv-grp.on){border-color:#c9a84c!important;background:#fffaf0!important}
+.vv-grp.vv-glow-green{border:1.5px solid #e3e0d6!important;box-shadow:none!important;background:transparent!important}
+.vv-grp.vv-glow-green.on{border-color:#c9a84c!important;background:#fffaf0!important}
+.vv-grp .intro-phrase-count{font-size:.875rem!important;font-weight:600!important;color:#6b7690!important;background:none!important;border:0!important;padding:0!important;margin-left:4px}
+.vv-glow-box .vv-usual{font-size:.8125rem!important;font-weight:600!important;color:#8a6d1f!important;margin:0 0 6px 2px!important}
+.aph-btn[disabled],.aph-btn-primary[disabled]{opacity:.45;cursor:not-allowed}
 </style>
 <script id="ap-myset">
 (function () {
@@ -50217,24 +50225,52 @@ function mlfLeisureStart(deck) {
     if (only !== 'VV') return s;
     return '<option value="' + MY + '"' + (MY === (selKey || currentVV) ? ' selected' : '') + '>★ Personalised set (' + ids().length + ')</option>' + s;
   };
+
+  // ---- the set picker starts on "Choose a set…": nothing is preselected until a boy picks one (not when a link has chosen content)
+  var fresh = !/^#(vv|myset|recap|sd|mlf)/.test(location.hash || ''), DEF = currentVV;
+  function unchosen() { return fresh && currentVV === DEF; }
+  ['vvPickSet', 'vvSwitchGroup', 'vvSetTier'].forEach(function (n) { var o = window[n]; if (typeof o !== 'function') return; window[n] = function () { fresh = false; return o.apply(this, arguments); }; });
+  function greyButtons(card) {
+    card.querySelectorAll('.aph-btn').forEach(function (b) {
+      var oc = b.getAttribute('onclick') || '';
+      if (/introStartDrill|introStartLeisure|showVVTestPanel|apSpell|apMatch/.test(oc)) { b.disabled = true; if (/introStartDrill/.test(oc)) b.innerHTML = 'Choose a set to start'; }
+    });
+  }
+  function paintUnchosen(card) {
+    card.querySelectorAll('.vv-grp').forEach(function (g) { g.classList.remove('on'); var b = g.querySelector('.aph-chip'); if (b) b.classList.remove('on'); var s = g.querySelector('select'); if (s) { s.removeAttribute('id'); s.insertAdjacentHTML('afterbegin', '<option value="" disabled>Choose a set…</option>'); s.selectedIndex = 0; } var c = g.querySelector('.intro-phrase-count'); if (c) c.style.display = 'none'; });
+  }
   var ri = window.renderIntro;
   window.renderIntro = function () {
     rebuild(); ri.apply(this, arguments);
     var c = document.getElementById('drillContainer'); if (!c) return;
     var card = c.querySelector('.intro-card'); if (!card || card.querySelector('.ms-panel')) return;
+    if (unchosen()) paintUnchosen(card);
     var on = currentVV === MY, n = ids().length, dc = dueCount();
     var fl = [['all', 'All'], ['3', 'Hard only'], ['23', 'Tricky + hard'], ['due', 'Due today (' + dc + ')']];
     var p = document.createElement('details'); p.className = 'ms-panel'; p.open = msOpen || on; p.addEventListener('toggle', function () { msOpen = p.open; });
     p.innerHTML = '<summary>★ Personalised set <small style="font-weight:600;color:#6b7690">' + n + ' card' + (n === 1 ? '' : 's') + (dc ? ' · ' + dc + ' due today' : '') + ' · optional</small></summary>'
       + '<div class="ms-row"><button class="ms-b sm' + (on ? ' on' : ' pri') + '"' + (n || on ? '' : ' disabled style="opacity:.5"') + ' onclick="apMySetUse()">' + (on ? '✓ Practising my personalised set' : '▶ Practise my personalised set') + '</button>'
-      + '<button class="ms-b sm" onclick="apMySetEdit()">✎ Edit</button><button class="ms-b sm" onclick="apMySetLink()">🔗 Save my personalised set</button></div>'
+      + '<button class="ms-b sm" onclick="apMySetEdit()">✎ Edit</button><button class="ms-b sm" onclick="apMySetLink()">🔗 Save my personalised set</button><button class="ms-b sm" onclick="apMySetHelp()">? How does this work?</button></div>'
       + (on ? '<div class="ms-row">' + fl.map(function (x) { return '<button class="ms-b sm' + (S.f === x[0] ? ' on' : '') + '" onclick="apMySetFilter(\'' + x[0] + '\')">' + x[1] + '</button>'; }).join('') + '</div>' : '')
       + '<div class="ms-note">' + (note ? '<b>' + note + '</b> ' : '') + (n ? 'Cards you mark ✗ or ~ join automatically. Drill, Speed, Generate test, Spell and Match all work on it.' : 'Empty so far. Practise any set as usual: cards you mark ✗ or ~ in a drill join automatically, and you can add cards by hand with Edit.') + '</div>';
     var kk = card.querySelector('.aph-keys'); if (kk) card.insertBefore(p, kk); else card.appendChild(p);
     var tools = card.querySelector('.aph-tools');
     if (tools) tools.insertAdjacentHTML('afterend', '<div class="aph-tools" style="grid-template-columns:repeat(2,minmax(0,1fr));margin-top:8px"><button class="aph-btn" onclick="apSpell()">✍ Spell</button><button class="aph-btn" onclick="apMatch()">🧩 Match</button></div>');
+    if (unchosen()) greyButtons(card);
   };
-  window.apMySetUse = function () { currentVV = MY; if (typeof vvKeepRecognitionFrToEn === 'function') vvKeepRecognitionFrToEn(); window.renderIntro(); };
+
+  window.apMySetHelp = function () {
+    ov(head('★ How your personalised set works') + '<div style="font-size:1.0625rem;line-height:1.55">'
+      + '<p><b>What is it?</b> Your own list of the words you find hardest. You do not have to build it: the app does it for you.</p>'
+      + '<p><b>How do words get in?</b> Do any drill. Every card you mark <b>✗ Major error</b> or <b>~ Nearly</b> is added to your personalised set automatically.</p>'
+      + '<p><b>How do I use it?</b> Open the ★ Personalised set bar and press <b>▶ Practise my personalised set</b>. Then use Start Drill, Speed, Generate Test, Spell or Match exactly as normal, but only on your tricky words.</p>'
+      + '<p><b>Hard, Tricky, Easier.</b> ✗ makes a card Hard and ~ makes it Tricky. Press <b>✎ Edit</b> to change a level, take a card out, or add cards yourself. Then you can practise just the Hard ones.</p>'
+      + '<p><b>Due today.</b> A word you missed comes back after 1 day, then 3 days, then 7. Get it right each time and it stops coming back.</p>'
+      + '<p><b>Keep it safe.</b> Press <b>🔗 Save my personalised set</b>, copy the link and paste it into OneNote. Tap that link on any device and your set is back. It is also kept on this iPad, but the link is the safe copy.</p></div>'
+      + '<div class="ms-cen"><button class="ms-b pri" onclick="apMsClose()">Got it</button></div>');
+    keys(function () { return false; });
+  };
+  window.apMySetUse = function () { fresh = false; currentVV = MY; if (typeof vvKeepRecognitionFrToEn === 'function') vvKeepRecognitionFrToEn(); window.renderIntro(); };
   window.apMySetFilter = setFilter;
 
   // ---- overlays
@@ -50300,7 +50336,7 @@ function mlfLeisureStart(deck) {
   // ---- Spell
   var sp = null;
   function syncSel() { var sel = document.getElementById('intro-vv-select'); if (sel && VV_DATA[sel.value]) currentVV = sel.value; }
-  function pickPool() { syncSel(); var pool = getPool(); if (!pool.length) { showMessage(currentVV === MY ? 'Your personalised set has no cards for this filter. Choose a set under What to practise.' : 'No phrases available.'); return null; } var n = (typeof _selectedCount === 'number' && _selectedCount > 0) ? Math.min(_selectedCount, pool.length) : pool.length; return { pool: pool, n: n }; }
+  function pickPool() { syncSel(); if (unchosen()) { showMessage('Choose a set under What to practise first.'); return null; } var pool = getPool(); if (!pool.length) { showMessage(currentVV === MY ? 'Your personalised set has no cards for this filter. Choose a set under What to practise.' : 'No phrases available.'); return null; } var n = (typeof _selectedCount === 'number' && _selectedCount > 0) ? Math.min(_selectedCount, pool.length) : pool.length; return { pool: pool, n: n }; }
   window.apSpell = function () {
     var p = pickPool(); if (!p) return;
     sp = { d: shuffle(p.pool).slice(0, p.n), i: 0, ok: 0, near: 0, bad: 0, miss: [], rev: false, label: vvSetLabel(currentVV) };
@@ -50354,7 +50390,7 @@ function mlfLeisureStart(deck) {
   // ---- Match
   var mt = null, mm = null;
   window.apMatch = function () {
-    syncSel(); var pool = getPool(), seen = {}, u = [];
+    syncSel(); if (unchosen()) { showMessage('Choose a set under What to practise first.'); return; } var pool = getPool(), seen = {}, u = [];
     pool.forEach(function (c) { var k = plain(c.en).toLowerCase(), f = plain(c.fr).toLowerCase(); if (seen[k] || seen[f]) return; seen[k] = seen[f] = 1; u.push(c); });
     if (u.length < 3) { showMessage(currentVV === MY ? 'Your personalised set has too few cards for Match. Choose a set under What to practise.' : 'Match needs at least 3 different cards in the set.'); return; }
     var d = shuffle(u).slice(0, 10);
