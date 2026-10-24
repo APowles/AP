@@ -4,7 +4,7 @@
 <script id="ap-update">
 /* AP auto-update: if this copy is older than the published version, reload once with the new one (saved answers are kept) */
 (function () {
-  var B = '0e6c6e2329'; window.AP_BUILD = B;
+  var B = '03ae8d6ebe'; window.AP_BUILD = B;
   function check() {
     if (!/^https?:$/.test(location.protocol) || !window.fetch) return;
     var f = decodeURIComponent(location.pathname.split('/').pop() || '');
@@ -51531,6 +51531,52 @@ function mlfLeisureStart(deck) {
   function start() { var OPT = { subtree: true, childList: true, attributes: true, attributeFilter: ['class'] }, mo = new MutationObserver(function () { mo.disconnect(); try { onMut(); } catch (e) { } mo.observe(document.body, OPT); });   // our own changes never re-trigger us
     mo.observe(document.body, OPT);
     document.addEventListener('pointerdown', function (e) { if (e.target.closest && e.target.closest('.ms-ov .ms-t')) ac(); }, true); }
+  if (document.body) start(); else document.addEventListener('DOMContentLoaded', start);
+})();
+</script>
+<style id="ap-steps-css">
+/* FIRST / NEXT badges and numbered questions inside FIRST */
+.ms-step .ms-num.ms-big{width:auto;min-width:34px;border-radius:999px;padding:0 14px;font-size:.9rem;letter-spacing:.1em}
+.ms-q{display:inline-flex;align-items:center;justify-content:center;width:24px;height:24px;border-radius:50%;background:#1a2744;color:#ffd76a;font:800 .8125rem/1 'DM Sans',system-ui,sans-serif;margin-right:8px;vertical-align:middle;letter-spacing:0}
+.aph-label.ms-qh{font-size:.9375rem;color:#1a2744;letter-spacing:.06em}
+.ms-now.ms-need{background:#fff4d6;border:1.5px solid #e6c15a;color:#7a5a00;border-radius:10px;padding:9px 12px;font-weight:700}
+</style>
+<script id="ap-steps">
+/* AP STEPS add-on: the two big steps read FIRST and NEXT; the essential questions inside FIRST are numbered 1, 2, 3...
+   and a "still to choose" message stands out. Works on the rendered page, so it needs no change to each app's own code. */
+(function () {
+  var QRE = /^(Which |Kind of question)/i;
+  function run() {
+    var steps = document.querySelectorAll('.ms-step');
+    for (var i = 0; i < steps.length; i++) {
+      var st = steps[i], num = st.querySelector('.ms-num'); if (!num) continue;
+      var t = (st.textContent || '').replace(num.textContent, '').trim();
+      var want = /^What do you want to practise/i.test(t) ? 'FIRST' : /^How do you want to practise/i.test(t) ? 'NEXT' : null;
+      if (want) {
+        if (num.textContent !== want) num.textContent = want;
+        if (!num.classList.contains('ms-big')) num.classList.add('ms-big');
+      }
+      if (want === 'FIRST') {
+        var labels = [], now = null, n = st.nextElementSibling;
+        while (n && !n.classList.contains('ms-step')) {
+          if (n.classList.contains('aph-label') && QRE.test((n.textContent || '').replace(/^\d+\s*/, ''))) labels.push(n);
+          if (n.classList.contains('ms-now')) now = n;
+          n = n.nextElementSibling;
+        }
+        if (labels.length > 1) labels.forEach(function (l, k) {
+          var q = l.querySelector('.ms-q');
+          if (!q) { q = document.createElement('span'); q.className = 'ms-q'; l.insertBefore(q, l.firstChild); }
+          if (q.textContent !== String(k + 1)) q.textContent = String(k + 1);
+          if (!l.classList.contains('ms-qh')) l.classList.add('ms-qh');
+        });
+        if (now) { var need = /^(Choose|Now choose|Nothing|No cards|Tick|Pick)/i.test((now.textContent || '').trim()); if (need !== now.classList.contains('ms-need')) now.classList.toggle('ms-need', need); }
+      }
+    }
+  }
+  function start() {
+    var mo = new MutationObserver(function () { mo.disconnect(); try { run(); } catch (e) { } mo.observe(document.body, { subtree: true, childList: true }); });
+    mo.observe(document.body, { subtree: true, childList: true }); try { run(); } catch (e) { }
+  }
   if (document.body) start(); else document.addEventListener('DOMContentLoaded', start);
 })();
 </script>
