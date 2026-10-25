@@ -12650,7 +12650,7 @@ body.aporal-set [id$="_exambar"] button[onclick^="resetDeclaration"]{display:non
     var n = e && e.name || '';
     if (n === 'NotAllowedError' || n === 'SecurityError') return 'The microphone is blocked. Allow it for this page: tap <b>Settings</b> on the iPad, find your browser (<b>Safari</b> or <b>Prisma</b>), tap <b>Microphone</b> and choose <b>Allow</b>. Then reload this page.';
     if (n === 'NotFoundError') return 'No microphone was found on this device.';
-    return 'The microphone could not be started (' + esc(n || 'unknown error') + ').';
+    return 'The microphone could not be started (' + esc(n || 'unknown error') + (e && e.message ? ': ' + esc(String(e.message).slice(0, 120)) : '') + (window.__apMicStage ? ' @' + window.__apMicStage : '') + ').';
   }
 
   // ── overlay box ──
@@ -12710,9 +12710,10 @@ body.aporal-set [id$="_exambar"] button[onclick^="resetDeclaration"]{display:non
       if (btn) { btn.disabled = false; btn.textContent = '🎧 Record 4 seconds again'; }
     };
     if (btn) { btn.disabled = true; btn.textContent = '● Recording… say a few words'; }
-    out.textContent = ''; rec.start(); setTimeout(function () { try { rec.stop(); } catch (e) { } }, 4000);
+    window.__apMicStage = 'echo'; out.textContent = ''; rec.start(); setTimeout(function () { try { rec.stop(); } catch (e) { } }, 4000);
   }
-  function padTest() {   // iPad: no live bar (it can silence or starve the recording there); the test is record 4 seconds, play back, and listen
+  function padTest() {
+    window.__apMicStage = 'pad';   // iPad: no live bar (it can silence or starve the recording there); the test is record 4 seconds, play back, and listen
     stopTest();
     var msg = $('aporal-tmsg'); var fill = $('aporal-tfill'); if (fill) fill.style.width = '0';
     gum().then(function (stream) {
@@ -12743,6 +12744,7 @@ body.aporal-set [id$="_exambar"] button[onclick^="resetDeclaration"]{display:non
   }
   function testMic() { if (NOMETER) { PLAIN = plainDefault(); padTest(); return; } primeCtx(); stopTest(); PLAIN = plainDefault(); runTest(null, 0); }
   function runTest(ctx, tries) {
+    window.__apMicStage = 'test';
     var msg = $('aporal-tmsg'), fill = $('aporal-tfill');
     gum().then(function (stream) {
       if (!$('aporal-ov')) { stopStream(stream); return; }
