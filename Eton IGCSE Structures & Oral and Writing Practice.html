@@ -10886,7 +10886,7 @@ var APTT = (function () {
   function fresh(key, sel, m, items) {
     return { v: 1, key: key, sel: sel, m: m, items: items, mode: '', t0: 0, at: 0, locked: false, lockAt: 0, endAt: 0, auto: false, na: [], shown: false, m0: 0, markDone: false, unm: [], marks: [], tAns: 0, tMark: 0, att: 0, done: false, lt0: 0 };
   }
-  function norm(it) { return { prompt: String(it.prompt == null ? '' : it.prompt), answer: String(it.answer == null ? '' : it.answer), kind: it.kind === 'sentence' ? 'sentence' : 'word', label: it.label ? String(it.label) : '', html: !!it.html }; }
+  function norm(it) { return { prompt: String(it.prompt == null ? '' : it.prompt), answer: String(it.answer == null ? '' : it.answer), kind: it.kind === 'sentence' ? 'sentence' : 'word', label: it.label ? String(it.label) : '', html: !!it.html, rd: Math.max(0, Math.min(90, +it.rd || 0)) }; }
   function show(it, f) { return it.html ? it[f] : esc(it[f]); }
   // marked out of 4 (Perfect … Nothing right): sentences, and any answer longer than two words (phrases, AP Structures…);
   // out of 2 (Right / Nearly / Wrong): single words (with their article) and verb forms
@@ -10901,7 +10901,7 @@ var APTT = (function () {
   // until the next one would take it past 270 s (4½ min), but never fewer than 5 items; limit() is the cost of the items it keeps,
   // rounded up to 30 s, at least 2 min. Short answers (verbs, vocab) therefore keep all their items; long answers get fewer.
   var BUDGET = 270, MINITEMS = 5;
-  function cost(it) { return Math.max(12, 6 + 2.5 * nWords(String(it.answer == null ? '' : it.answer).replace(/\([^)]*\)/g, ' '))); }   // bracketed extras (optional notes) are not written, so they cost nothing
+  function cost(it) { return Math.max(12, 6 + (it.rd || 0) + 2.5 * nWords(String(it.answer == null ? '' : it.answer).replace(/\([^)]*\)/g, ' '))); }   // bracketed extras (optional notes) are not written, so they cost nothing
   function fit(items) { var t = 0, k = 0; for (var i = 0; i < items.length; i++) { var c = cost(items[i]); if (k >= MINITEMS && t + c > BUDGET) break; t += c; k++; } return k; }
   function limit() { if (S.m.tov) return S.m.tov; if (S.m.set && S.m.set.secs) return S.m.set.secs; var t = 0; S.items.forEach(function (it) { t += cost(it); }); return Math.max(120, Math.ceil(t / 30) * 30); }
   function tsecs(a) { var t = 0; a.forEach(function (it) { t += cost(it); }); return Math.max(120, Math.ceil(t / 30) * 30); }
@@ -15131,7 +15131,7 @@ function closeKTRChallenge() {
     { k: 'B', name: 'Bold bits', lv: 2, src: 'dmB', desc: 'Just the bold Top Structure in a demo sentence: say what it means, or say it.' },
     { k: 'G', name: 'Gaps', lv: 2, g: 'Build sentences', src: 'dmG', desc: 'A short phrase is missing from a sentence of the demo. Fill it in.' },
     { k: 'O', name: 'Word order', lv: 2, src: 'dmO', desc: 'Put the jumbled chunks of a demo sentence back in order.' },
-    { k: 'E', name: 'Spot the mistake', lv: 3, src: 'dmE', desc: 'One slip in a sentence from the demo: a wrong or missing word, or a spelling or grammar error. No clue: find it and correct it.' },
+    { k: 'E', name: 'Spot the mistake', lv: 3, src: 'dmE', desc: 'One slip in a sentence from the demo: a wrong or missing word, or a spelling or grammar error. No clue. Write ONLY the corrected word or words, not the whole sentence.' },
     { k: 'T', name: 'Translate', lv: 4, g: 'Translate', src: 'dmT', desc: 'Short sentences from the demo, with help on hand.' }
   ];
   var DIRS = function () { return { en: 'English → ' + LN(), fr: LN() + ' → English', mix: 'Mixed' }; };
@@ -15326,6 +15326,14 @@ function closeKTRChallenge() {
 
   // ---------- one item, ready to show: {tag, tagc, qh, clue, ah, say, spk, spl, act} ----------
   var TAGC = { K: ['#0f6b6b', '#fff'], B: ['#8a5a00', '#fff'], P: ['#1a2744', '#fff'], G: ['#6b3fa0', '#fff'], O: ['#1a6b3a', '#fff'], E: ['#b03a2e', '#fff'], T: ['#1a2744', '#fff'] };
+  // the part the boy writes for Spot the mistake: only the corrected word(s) (or, for an extra word, "delete: …")
+  function errFix(wrong, right) {
+    var a = String(wrong).split(/\s+/), b = String(right).split(/\s+/), i = 0, j = 0;
+    while (i < a.length && i < b.length && a[i] === b[i]) i++;
+    while (j < a.length - i && j < b.length - i && a[a.length - 1 - j] === b[b.length - 1 - j]) j++;
+    var mr = b.slice(i, b.length - j).join(' '), mw = a.slice(i, a.length - j).join(' ');
+    return mr || ('delete: ' + mw);
+  }
   function errMark(wrong, right) {   // the corrected words underlined in the right sentence
     var a = String(wrong).split(/\s+/), b = String(right).split(/\s+/), i = 0, j = 0;
     while (i < a.length && i < b.length && a[i] === b[i]) i++;
@@ -15360,8 +15368,9 @@ function closeKTRChallenge() {
       o.tag = 'Put the chunks in order'; o.jum = b.ch && b.ch.length > 2 ? jumbleChunks(b.ch, b.pr) : jumble(b.fr, b.pr); o.hint = 'It starts: ' + esc(b.fr.split(/\s+/).slice(0, 3).join(' ')) + ' …';
       o.qh = '<span style="font-weight:700">' + o.jum.map(function (x) { return '<span class="od-chunk">' + esc(x) + '</span>'; }).join(' ') + '</span>'; o.clue = (b.en ? esc(b.en) : '') + (b.ch && b.ch.length > 2 ? '<br><small>The capital letter marks the start.</small>' : ''); o.ah = esc(b.fr); o.say = b.fr; o.plainA = b.fr;
     } else {
-      o.tag = 'Find and correct the mistake'; o.qh = esc(b.wrong);
-      o.ah = errMark(b.wrong, b.right) + (b.why ? '<span class="why">' + esc(b.why) + '</span>' : ''); o.say = b.right; o.plainA = b.right;
+      var fx = errFix(b.wrong, b.right);
+      o.tag = 'Find the mistake: write only the correction'; o.qh = esc(b.wrong);
+      o.ah = '<b>' + esc(fx) + '</b><span class="why">In full: ' + errMark(b.wrong, b.right) + (b.why ? ' · ' + esc(b.why) : '') + '</span>'; o.say = b.right; o.plainA = fx; o.fix = fx;
     }
     return o;
   }
@@ -15595,7 +15604,7 @@ function closeKTRChallenge() {
     B.O.forEach(function (b) { var j = jumble(b.fr, b.pr); out.dmO.push({ en: '\u0003' + j.join('  /  ') + '\u0004' + (b.en && SET.help ? '\u0005' + b.en + '\u0006' : ''), fr: b.fr, say: b.fr, task: 'order', lvl: function () { return null; } }); });
     B.E.forEach(function (b) {
       var m = errMark(b.wrong, b.right).replace(/<u[^>]*>/g, '\u0007').replace(/<\/u>/g, '\u0008').replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&amp;/g, '&').replace(/&quot;/g, '"');
-      out.dmE.push({ en: b.wrong, fr: m + (b.why ? ' (' + b.why + ')' : ''), say: b.right, task: 'err', lvl: function () { return null; } });
+      out.dmE.push({ en: b.wrong, fr: '\u0003' + errFix(b.wrong, b.right) + '\u0004 · ' + m + (b.why ? ' (' + b.why + ')' : ''), say: b.right, task: 'err', lvl: function () { return null; } });
     });
     B.T.forEach(function (b) { out.dmT.push({ en: b.en, fr: b.fr, say: b.fr, task: '', lvl: function () { return null; } }); });
     return out;
@@ -15614,7 +15623,7 @@ function closeKTRChallenge() {
       var T = APKTR_TPL, R = function (a, b) { if (T.indexOf(a) >= 0) T = T.replace(a, function () { return b; }); };
       R(".replace(/\\u0005/g, '<br><i style=\"opacity:.75;font-size:.9em\">').replace(/\\u0006/g, '</i>')", ".replace(/\\u0005/g, '<details style=\"margin-top:6px\" onclick=\"event.stopPropagation()\"><summary style=\"cursor:pointer;font-weight:700\">&#128161; Give me a clue</summary><i style=\"font-size:.9em\">').replace(/\\u0006/g, '</i></details>')");
       R("var S = { lang: 'fr',", "var S = { lang: ((window.parent.__ktr && window.parent.__ktr.lang) || 'fr'),");
-      R("function oTask(o) { return ", "function oTask(o) { if (o.task === 'gap') return 'Fill the gap'; if (o.src === 'dmP') return 'Translate the structure'; if (o.src === 'dmK') return 'Translate the word or phrase'; if (o.src === 'dmB') return 'Say the bold part'; return ");
+      R("function oTask(o) { return ", "function oTask(o) { if (o.task === 'gap') return 'Fill the gap'; if (o.src === 'dmP') return 'Translate the structure'; if (o.src === 'dmK') return 'Translate the word or phrase'; if (o.src === 'dmB') return 'Say the bold part'; if (o.src === 'dmE') return 'Find the mistake: say only the correction'; return ");
       R("fixed: tk === 'know' ||", "fixed: tk === 'gap' || tk === 'know' ||");
       R("return d ? 'KTR ' + k + ' · ' + d.label : 'KTR ' + k; }", "return d ? (d.demo ? d.label : 'KTR ' + k + ' · ' + d.label) : 'KTR ' + k; }");
       R("if (_oc) OC = _oc;", "if (_oc && !(API && API.demo)) OC = _oc;");
@@ -15647,7 +15656,7 @@ function closeKTRChallenge() {
     openKTRChallenge([key], true, rev, ks.map(function (a) { return a.src; }));
     window.__ktr.demo = { key: key, label: 'Demo ' + (c.code || c.id), items: items, srcList: list, cfg: { n: SET.tiles, tt: SET.tt } };
   }
-  var SRC_SUB = { dmK: 'The demo\'s own key words and phrases', dmB: 'Say just the bold part of a demo sentence', dmP: 'The Top Structures, English → target language', dmG: 'Fill the gap in a demo sentence', dmO: 'Put the jumbled words in order', dmE: 'Find and correct the mistake', dmT: 'Single sentences, English → target language' };
+  var SRC_SUB = { dmK: 'The demo\'s own key words and phrases', dmB: 'Say just the bold part of a demo sentence', dmP: 'The Top Structures, English → target language', dmG: 'Fill the gap in a demo sentence', dmO: 'Put the jumbled words in order', dmE: 'Find the mistake; say only the correction', dmT: 'Single sentences, English → target language' };
 
   // ---------- Test: a short test on screen (Apple Pencil pads, answers behind a button), printed with a sheet of its own ----------
   function testViews() {
@@ -15670,8 +15679,11 @@ function closeKTRChallenge() {
     var vs = testViews(); if (!vs || !window.APTT || !APTT.open) { if (!quiet) alert('The timed test is not available here.'); return false; }
     var c = W.ctx, names = selActs().map(function (a) { return a.name; }).join(', ');
     var items = vs.map(function (o) {
-      var long = o.act === 'O' || o.act === 'E' || o.act === 'T' || (o.plainA || '').split(/\s+/).length > 4;
-      return { prompt: '<b>' + esc(o.tag) + '</b><br>' + o.qh + (SET.help && (o.clue || o.hint) ? '<details style="margin-top:6px"><summary style="cursor:pointer;font-weight:700">💡 Give me a clue</summary>' + clueTxt(o) + '</details>' : ''), answer: o.ah, kind: long ? 'sentence' : 'word', label: o.tag, html: true };
+      var long = o.act === 'O' || o.act === 'T' || (o.plainA || '').split(/\s+/).length > 4;
+      var plain = function (h) { var d = document.createElement('div'); d.innerHTML = h; return (d.textContent || '').replace(/[()]/g, ' ').replace(/\s+/g, ' ').trim(); };
+      var ans = (o.act === 'K' || o.act === 'B' || o.act === 'G' || o.act === 'E') ? '<b>' + esc(String(o.plainA).replace(/[()]/g, ' ')) + '</b> <span class="why">(In full: ' + esc(plain(o.ah)) + ')</span>' : o.ah;
+      var rdw = String(o.qh).replace(/<[^>]+>/g, ' ').split(/\s+/).filter(Boolean).length, rd = o.act === 'E' ? Math.round(0.8 * rdw) : (o.act === 'G' || o.act === 'B') ? Math.round(0.5 * rdw) : 0;
+      return { prompt: '<b>' + esc(o.tag) + '</b><br>' + o.qh + (SET.help && (o.clue || o.hint) ? '<details style="margin-top:6px"><summary style="cursor:pointer;font-weight:700">💡 Give me a clue</summary>' + clueTxt(o) + '</details>' : ''), answer: ans, rd: rd, kind: long ? 'sentence' : 'word', label: o.tag, html: true };
     });
     var run = function () { startTimed(true); };
     APTT.lastRun = run;
@@ -15727,7 +15739,7 @@ function closeKTRChallenge() {
     h += '<div class="od-note">Write each answer with your Apple Pencil (or tap <b>Type</b>, or just use paper). Read the tag on each item to see what to do. Then tap <b>Show answers</b> to compare: your writing stays put and the pen turns red so you can correct it.</div>';
     h += '<div class="od-bar"><button type="button" class="ms-b sm pri" data-a="tshow">' + (t.show ? 'Hide answers' : 'Show answers') + '</button><button type="button" class="ms-b sm" data-a="timed">⏱ Timed test, handed in</button><button type="button" class="ms-b sm" data-a="tprint" data-t="0">🖨 Print the test</button><button type="button" class="ms-b sm" data-a="tprint" data-t="1">🖨 Print with answers</button><button type="button" class="ms-b sm" data-a="test2">🔀 New test</button></div>';
     t.vs.forEach(function (o, i) {
-      h += '<div class="od-testrow"><span class="n">' + (i + 1) + '</span>' + tagHtml(o) + '<div class="od-q" style="font-size:1.1875rem;margin-top:8px">' + o.qh + '</div>' + clueBtn(o, i, t.clues && t.clues[i]) + APPEN.html({ key: 'odt:' + t.sn + ':' + i, lines: (o.act === 'T' || o.act === 'E' || o.act === 'O') ? 3 : (o.act === 'K' || o.act === 'B' || o.act === 'P') ? 1 : 2, label: 'Item ' + (i + 1), typed: '<textarea class="appen-ta" rows="2" spellcheck="false" autocomplete="off" placeholder="Type your answer here"></textarea>' }) + (t.show ? '<div class="od-ans">' + o.ah + '</div>' : '') + '</div>';
+      h += '<div class="od-testrow"><span class="n">' + (i + 1) + '</span>' + tagHtml(o) + '<div class="od-q" style="font-size:1.1875rem;margin-top:8px">' + o.qh + '</div>' + clueBtn(o, i, t.clues && t.clues[i]) + APPEN.html({ key: 'odt:' + t.sn + ':' + i, lines: (o.act === 'T' || o.act === 'O') ? 3 : (o.act === 'K' || o.act === 'B' || o.act === 'P' || o.act === 'E') ? 1 : 2, label: 'Item ' + (i + 1), typed: '<textarea class="appen-ta" rows="2" spellcheck="false" autocomplete="off" placeholder="Type your answer here"></textarea>' }) + (t.show ? '<div class="od-ans">' + o.ah + '</div>' : '') + '</div>';
     });
     h += '<div class="ms-cen"><button type="button" class="ms-b" data-a="back">← Back</button></div></div>';
     paint(h, true);
@@ -15742,7 +15754,7 @@ function closeKTRChallenge() {
     P: 'Write the structure in the other language. Capital words (NOUN, VERB, INF, ADJ…) are the bits you change when you use it.',
     G: 'Write the missing words in the gap. The English sentence tells you what they mean.',
     O: 'Write the sentence with the chunks in the right order.',
-    E: 'There is one mistake in each sentence: a grammar slip, a wrong word, a missing word or a spelling slip. Underline it and write the sentence correctly.',
+    E: 'There is one mistake in each sentence: a grammar slip, a wrong word, a missing word or a spelling slip. Write ONLY the corrected word or words (not the whole sentence). If a word is extra, write delete and that word.',
     T: 'One short sentence at a time. Write your translation; the clues help with the key part.'
   };
   function printSheet() {
@@ -15761,7 +15773,7 @@ function closeKTRChallenge() {
     var body = '', keyH2 = '', n = 0, nk = 0;
     sets.forEach(function (s) {
       var rows = s.vs.map(function (o) {
-        n++; var lines = (o.act === 'T' || o.act === 'O' || o.act === 'E') ? 2 : 1;
+        n++; var lines = (o.act === 'T' || o.act === 'O') ? 2 : 1;
         return '<div class="it"><span class="n">' + n + '</span>' + (isTest ? '<span class="tg">' + esc(o.tag).toUpperCase() + '</span>' : '') + o.qh + new Array(lines + 1).join('<div class="ln"></div>') + '</div>';
       }).join('');
       var cl = '', cn = n - s.vs.length;
