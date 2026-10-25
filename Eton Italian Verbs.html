@@ -6,7 +6,7 @@
 <script id="ap-update">
 /* AP auto-update: if this copy is older than the published version, reload once with the new one (saved answers are kept) */
 (function () {
-  var B = '8d69193089'; window.AP_BUILD = B;
+  var B = '94417daf38'; window.AP_BUILD = B;
   function check() {
     if (!/^https?:$/.test(location.protocol) || !window.fetch) return;
     var f = decodeURIComponent(location.pathname.split('/').pop() || '');
@@ -2223,7 +2223,7 @@ var APTT = (function () {
   function open(o, re) {
     if (!o || !o.items || !o.items.length || typeof APPEN === 'undefined' || typeof APMP === 'undefined') return;
     var items = o.items.map(norm);
-    var m = { id: String(o.id || ''), app: o.app || '', kicker: o.kicker || '', title: o.title || '', meta: o.meta || '', detail: o.detail || '', lang: o.lang || '', code: o.langCode || LCODE[o.lang] || '', total: 20, level: o.level || '', set: o.set || null };
+    var m = { id: String(o.id || ''), app: o.app || '', kicker: o.kicker || '', title: o.title || '', meta: o.meta || '', detail: o.detail || '', lang: o.lang || '', code: o.langCode || LCODE[o.lang] || '', total: o.scoreOutOf || 20, head: o.head || '', level: o.level || '', set: o.set || null };
     m.srcId = String((o.set && o.set.src) || m.id || '');
     var src = m.srcId.split('|')[0], VERB = { conj: 1, it: 1, spot: 1 };
     items.forEach(function (it) { it.big = it.kind === 'sentence' || (!VERB[src] && nWords(it.answer) > 2); });
@@ -2320,10 +2320,10 @@ var APTT = (function () {
       + '<div class="aptt-wrap"><div id="aptt-top"><div class="aptt-kick">Eton Spot Test · ' + S.m.title + '</div>'
       + (S.m.level ? '<div class="aptt-level aptt-lv-' + ({ Easy: 'E', Medium: 'M', Hard: 'H', Mixed: 'X' }[String(S.m.level).split(' · ')[0]] || 'X') + '">LEVEL: ' + S.m.level.toUpperCase().replace(' · ', ' · IMPORTANCE: ') + '</div>' : '')
       + '<div class="aptt-att" id="aptt-att"' + (S.att > 1 ? '' : ' hidden') + '>⚠ ATTEMPT ' + (S.att || '') + ' ON THIS TEST</div>'
-      + '<h2 class="aph-h">' + (L ? 'Translate into ' + esc(L) : 'Write your answers') + '</h2>'
+      + '<h2 class="aph-h">' + (S.m.head ? esc(S.m.head) : L ? 'Translate into ' + esc(L) : 'Write your answers') + '</h2>'
       + (S.m.meta ? '<div class="aptt-meta">' + S.m.meta + '</div>' : '')
       + (S.m.detail ? '<div class="aptt-detail">' + S.m.detail + '</div>' : '')
-      + '<p class="aptt-instr">' + (L ? 'Translate' : 'Answer') + ' all ' + N + ' ' + noun(N) + (L ? ' into ' + esc(L) : '') + ' with your Apple Pencil (black ink). Then <b>lock in</b>, open the answers, <b>correct in red</b> and <b>mark yourself</b>. Score out of ' + (S.m.total || 10) + '.</p>'
+      + '<p class="aptt-instr">' + (S.m.head ? 'Answer' : L ? 'Translate' : 'Answer') + ' all ' + N + ' ' + noun(N) + (L && !S.m.head ? ' into ' + esc(L) : (S.m.head ? ' (each one says what to do)' : '')) + ' with your Apple Pencil (black ink). Then <b>lock in</b>, open the answers, <b>correct in red</b> and <b>mark yourself</b>. Score out of ' + (S.m.total || 10) + '.</p>'
       + '<div class="aptt-score" id="aptt-score1"' + (S.shown ? '' : ' hidden') + '></div>'
       + '<div class="aptt-legend" id="aptt-legend"' + (S.shown ? '' : ' hidden') + '>' + legend() + '</div></div>'
       + (S.m.set ? '<div class="aptt-mode aptt-setmode" id="aptt-mode"><div class="aptt-set">✅ TEST SET BY YOUR TEACHER' + (S.m.set.code ? ': <b>' + esc(S.m.set.code) + '</b>' : '') + '<span>' + esc(S.m.set.name || plain(S.m.title)) + ' · ⏱ ' + mins + ' minutes</span></div><div class="aptt-mode-b">'
@@ -4989,6 +4989,10 @@ function renderErrorReview(){
       q=(item.pre||'')+' ____ '+(item.suf||'');
       a=item.answer;
       sub=(TENSE_LABEL[item.tense]||item.tense||'')+(item.inf?' · '+item.inf:'');
+    } else if(item.xq){
+      q=item.q;
+      a=item.a;
+      sub=item.name;
     } else if(item.isInf){
       q=item.en;
       a=item.inf;
@@ -5156,7 +5160,8 @@ function addReplayBtn(fn){
 function mark(result){
   if(timerInterval)clearInterval(timerInterval);
   if(!revealed){
-    if(mode==='full')revealFull();
+    if(deck[idx]&&deck[idx].xq)revealXq();
+    else if(mode==='full')revealFull();
     else if(mode==='single')revealSingle();
     else revealInf();
     return;
@@ -5184,7 +5189,10 @@ function showEnd(){
     _copyLines.push(`Major Errors — Italian Conjugation (${majorErrorDeck.length} items)`,'');
     majorErrorDeck.forEach(function(item){
       let line='',display='';
-      if(item.isInfinitive){
+      if(item.xq){
+        line=item.q+' → '+item.a;
+        display=`<div class="aph-revisit-item"><span class="err-en">${item.q}</span><span class="err-tr">${item.a}</span></div>`;
+      } else if(item.isInfinitive){
         line=item.en+' → '+item.inf;
         display=`<div class="aph-revisit-item"><span class="err-en">${item.en}</span><span class="err-tr">${item.inf}</span></div>`;
       } else if(item.pre!==undefined){
@@ -6076,6 +6084,7 @@ function copyErrorList(){
   const lines=majorErrorDeck.map((item,i)=>{
     let q,a;
     if(item.pre!==undefined&&item.answer!==undefined){q=(item.pre||'')+' ____ '+(item.suf||'');a=item.answer;}
+    else if(item.xq){q=item.q;a=item.a;}
     else if(item.isInf){q=item.en;a=item.inf;}
     else if(item.verb){const pi=item.personIdx||0;q=conjEn(item.verb.en,pi,item.verb.tense);a=(item.verb.tense==='PRES_SUBJ'||item.verb.tense==='IMP_SUBJ'?'che ':'')+item.verb.forms[pi];}
     else{q=item.en;a=(item.forms||[]).join(', ');}
@@ -6136,6 +6145,9 @@ function generateItalianSpotTest(timed) {
     });
   }
   expanded = expanded.filter(function(x){ return apLvOK(x); });
+  var _xq = (mode === 'exer' && typeof hmCoreQ === 'function' && hmCoreQ());
+  if (_xq) { expanded = []; XQ_DEF.forEach(function (d) { if (!xqOn.has(d[0])) return; xqSpecs(d[0], true).forEach(function (s) { expanded.push(s.isInf ? { inf: s.c, xqs: s } : { verb: s.v, personIdx: s.pi, xqs: s }); }); }); }
+  var _xqN = _xq ? XQ_DEF.filter(function (d) { return xqOn.has(d[0]); }).map(function (d) { return d[1]; }).join(' + ') : '';
   if (expanded.length < 5) { alert(apTestLevel!=='X' ? 'Not enough '+apLvName()+' verbs (need at least 5): only '+expanded.length+' in this selection.' : 'Not enough verbs (need at least 5).'); return; }
   var per = Math.min((timed && itSpotPer >= 3) ? 4 : itSpotPer, Math.floor(expanded.length/5));
   var perNote = per < itSpotPer ? 'Only '+expanded.length+' '+(apTestLevel!=='X'?apLvName()+' ':'')+'items in this selection — using '+per+' per box' : '';
@@ -6143,6 +6155,7 @@ function generateItalianSpotTest(timed) {
   // Use conjEn to generate a clean English question label for whatever tense is selected
   var TNAME_SPOT={PRESENT:'Present',FUTURE:'Future',PP:'Perfect',IMPERFECT:'Imperfect',PR:'Past Historic',COND:'Conditional',PRES_SUBJ:'Present Subjunctive',IMP_SUBJ:'Imperfect Subjunctive',PLUPERFECT:'Pluperfect',FUT_ANT:'Future Perfect',COND_PASSE:'Conditional Perfect'};
   var rows = []; for(var i=0;i<5;i++) rows.push(items.slice(i*per,i*per+per).map(function(item){
+    if(item.xqs){ xqFill(item.xqs); return {q: item.xqs.q, a: item.xqs.a}; }
     if(item.inf){
       var c = item.inf, usage = c.usage_en && !c.usage_en.startsWith('that ') ? ' '+c.usage_en : '';
       return {q: c.en + usage + (testOpts.tense ? ' [Infinitive]' : ''), a: c.inf};
@@ -6165,13 +6178,14 @@ function generateItalianSpotTest(timed) {
   }));
   if (timed) {
     var _vd = APTT.verbDetail(items, TNAME_SPOT, { set: ((VERB_SETS.find(function(s){return s.k===verbMode;})||{}).l||'').replace(/^[^A-Za-z]+/,''), reg: ({regular:'Regular verbs only',irregular:'Irregular verbs only',piacere:'piacere only'}[regFilter]||''), person: _personFilter==='ALL' ? '' : 'Person: '+PERSONS[+_personFilter] });
+    if (_xq) { _vd.short = _xqN; _vd.detail = '<b>Exercises:</b> ' + String(_xqN).replace(/&/g, '&amp;').replace(/</g, '&lt;') + ' &middot; ' + _vd.detail; }
     var _ts = [...selectedTenses].sort().join(','), _lbl = 'Italian Verbs: ' + _vd.short + apLvSuffix();
-    apttSpot({ id: 'it|' + verbMode + '|' + _ts + '|' + regFilter + '|p' + _personFilter + '|' + (testOpts.tense?'t':'') + (testOpts.person?'p':'') + (testOpts.inf?'i':'') + '|' + apTestLevel + '|' + (5 * per), title: _lbl,
+    apttSpot({ id: (_xq ? 'xq' + Array.from(xqOn).sort().join('') + '|' : '') + 'it|' + verbMode + '|' + _ts + '|' + regFilter + '|p' + _personFilter + '|' + (testOpts.tense?'t':'') + (testOpts.person?'p':'') + (testOpts.inf?'i':'') + '|' + apTestLevel + '|' + (5 * per), title: _lbl,
       meta: '&#127468;&#127463; &#x2192; &#127470;&#127481; &nbsp;·&nbsp; 5 × ' + per + ' = ' + (5 * per) + ' items', detail: _vd.detail, lang: 'Italian', kind: 'word', rows: rows,
       q: function (p) { return p.q; }, a: function (p) { return p.a; } });
     return;
   }
-  _stRows=rows; _stLabel='Italian Verbs'+apLvSuffix(); _stQFlag='&#127468;&#127463;'; _stAFlag='&#127470;&#127481;';
+  _stRows=rows; _stLabel='Italian Verbs'+(_xq ? ': ' + _xqN : '')+apLvSuffix(); _stQFlag='&#127468;&#127463;'; _stAFlag='&#127470;&#127481;';
   var ic=['#1a2744','#b03a2e','#1a6b3a'];
   var thS='padding:5px 8px;font-size:0.75rem;font-weight:700;text-transform:uppercase;letter-spacing:0.07em;color:#8899bb;background:#f0f3f8;border:1px solid #ddd;text-align:left;';
   var tdN='padding:6px 8px;border:1px solid #ddd;text-align:center;font-weight:700;font-size:0.82rem;color:#1a2744;vertical-align:middle;width:32px;';
@@ -7114,6 +7128,20 @@ if (window.__cj) window.__cj.speedTest = function (kind, g) {
 .hm-vlist b{display:block;color:var(--navy)}.hm-vlist span{color:var(--text2)}.hm-vlist i{color:#7a869f}
 .hm-exgrid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
 .hm-exgrid .hm-h{grid-column:1/-1;margin:0}
+.hm-seg2{margin-left:auto;display:inline-flex;border:2px solid var(--navy);border-radius:12px;overflow:hidden}
+.hm-seg2 button{padding:10px 18px;font:600 1rem var(--aph-body);border:0;background:#fff;color:var(--navy);cursor:pointer;min-height:44px}
+.hm-seg2 button.on{background:var(--navy);color:#fff}
+.hm-rule{margin:0 0 8px}.hm-rule button{padding:8px 14px;font-size:.9375rem}
+.hm-extier{font-weight:600;color:#8a6d00;font-size:.9rem}
+.hm-ex.off{opacity:.45;cursor:default}
+.hm-rulenote{font-size:.9rem;color:#4a5a7a;background:#fff8e6;border:1.5px solid #e6c15a;border-radius:10px;padding:8px 12px;margin:8px 0 10px;line-height:1.45}
+.hm-paperbtn{display:block;width:100%;text-align:left;background:#1a2744;color:#fff;border:0;border-radius:14px;padding:14px 18px;margin:0 0 12px;cursor:pointer;box-shadow:0 4px 0 #c9a84c}
+.hm-paperbtn-t{display:block;font:700 1.15rem var(--aph-display,serif);color:#ffd76a}.hm-paperbtn-s{display:block;font:500 .9rem var(--aph-body);color:#dbe3f5;margin-top:3px}
+.hm-trgrid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;margin:6px 0}
+.hm-trbtn{min-height:56px;border-radius:12px;border:2px solid var(--navy);background:#fff;color:var(--navy);font:700 1.05rem var(--aph-body);cursor:pointer}
+.hm-trbtn.on{background:var(--gold2);color:var(--navy);border-color:var(--gold)}
+.hm-lock{margin:6px 0;padding:10px 14px;border-radius:10px;background:#f3f5fb;color:var(--navy);font-size:1rem}
+.tr-penbtn{margin:10px 0 12px}.tr-penbtn small{display:block;font-weight:500;font-size:.8rem;opacity:.85}
 .hm-ctls{margin:10px 0;align-items:center}
 .hm-tiles{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;margin-top:10px}
 .hm-tile{display:flex;flex-direction:column;gap:2px;text-align:left;padding:12px 16px;min-height:64px;border-radius:12px;border:2px solid var(--navy);background:#fff;color:var(--navy);cursor:pointer;font-family:var(--aph-body)}
@@ -7297,8 +7325,8 @@ function hmCoreHtml(left, tenseHtml, more2, cardCount) {
         <button class="hm-tile" onclick="hmPaperSpot()"><b>&#128424; Paper Spot Test</b><small>a quick paper quiz</small></button>
         <button class="hm-tile" onclick="hmSubmittedSpot()"><b>&#9997; Submitted Spot Test</b><small>boys answer and submit</small></button>
         <button class="hm-tile" onclick="openConjChallenge()"><b>&#9889; Eton Speed Challenge</b><small>race the clock</small></button>
-        <button class="hm-tile hm-tile-g" onclick="hmPracticePaper('F')"><b>&#128221; Practice F Paper</b><small>40 questions in the Trials layout</small></button>
-        <button class="hm-tile hm-tile-g" onclick="hmPracticePaper('E')"><b>&#128221; Practice E Paper</b><small>20 verb questions in the Trials layout</small></button>
+        <button class="hm-tile hm-tile-g" onclick="hmTrialsPaper('ftrials')"><b>&#128221; Practice Trials paper &middot; F Block</b><small>40 questions, the real layout</small></button>
+        <button class="hm-tile hm-tile-g" onclick="hmTrialsPaper('etrials')"><b>&#128221; Practice Trials paper &middot; E Block</b><small>20 verb questions, the real layout</small></button>
         <button class="hm-tile" onclick="showVerbList()"><b>&#128214; View &amp; Print</b><small>the verb tables</small></button>
       </div></div>
     <div class="hm-keys">${vbKeysLegend()}</div>
@@ -7364,8 +7392,19 @@ function hmPlan(kind, sec) {
   };
   return plans[kind][sec];
 }
+// the paper's question wording, shared with the Exercises (so a Drill or Test question reads exactly as it does on the paper)
+var HMQ = {
+  ok: function (f) { return f && f !== '—' && f !== '---'; },
+  en: function (x) { return x.inf ? String(x.v.en).toLowerCase() : HMC.en(x.v, x.pi).replace(/he \(she\)/g, 'he/she').replace(/they \(f\)/g, 'they'); },
+  fr: function (x, pi) { pi = pi === undefined ? x.pi : pi; return x.inf ? x.v.inf : hmCap(x.v.forms[pi]); },
+  p0: function (x) { var p = HMC.verbs().filter(function (y) { return y.inf === x.v.inf && y.tense === 'PRESENT'; })[0]; return p ? hmCap(p.forms.filter(HMQ.ok)[0] || x.v.inf).toLowerCase() : x.v.inf; },
+  sub: function (pi) { var o = HMC.persons[pi + 1][1].replace(/\)/g, '').split(/ \(|\//).filter(Boolean); return o[Math.floor(Math.random() * o.length)]; },
+  change: function (x, pj) { return { q: hmCap(HMQ.fr(x)) + ' - (' + HMQ.sub(pj) + ')', a: HMQ.fr(x, pj) }; },
+  given: function (x) { return { q: (x.inf ? String(x.v.en).toLowerCase() : HMQ.en(x)) + '   [' + (x.inf ? HMQ.p0(x) : x.v.inf) + ']', a: x.inf ? x.v.inf : HMQ.fr(x), inf: x.inf }; },
+  no: function (x) { return { q: HMQ.en(x), a: HMQ.fr(x), inf: x.inf }; }
+};
 function hmBuildPaper(kind) {
-  var isF = kind === 'F', pool = {}, ok = function (f) { return f && f !== '—' && f !== '---'; };
+  var isF = kind === 'F', pool = {}, ok = HMQ.ok;
   HMC.verbs().forEach(function (v) {
     if (v.group || !v.forms || vqOf(v) === null || vqOf(v) === undefined) return;
     if (isF && v.tense === HMC.past && HMC.fOnly && !HMC.fOnly(v)) return;
@@ -7386,13 +7425,10 @@ function hmBuildPaper(kind) {
     }); return out;
   }
   function place(S, spots) { var inf = S.filter(function (x) { return x.inf; }), fm = S.filter(function (x) { return !x.inf; }), o = []; for (var i = 0; i < S.length; i++) o.push(spots.indexOf(i) >= 0 && inf.length ? inf.shift() : (fm.shift() || inf.shift())); return o.filter(Boolean); }
-  var en = function (x) { return x.inf ? String(x.v.en).toLowerCase() : HMC.en(x.v, x.pi).replace(/he \(she\)/g, 'he/she').replace(/they \(f\)/g, 'they'); };
-  var fr = function (x, pi) { pi = pi === undefined ? x.pi : pi; return x.inf ? x.v.inf : hmCap(x.v.forms[pi]); };
-  var p0 = function (x) { var p = HMC.verbs().filter(function (y) { return y.inf === x.v.inf && y.tense === 'PRESENT'; })[0]; return p ? hmCap(p.forms.filter(ok)[0] || x.v.inf).toLowerCase() : x.v.inf; };
-  var sub = function (pi) { var o = HMC.persons[pi + 1][1].replace(/\)/g, '').split(/ \(|\//).filter(Boolean); return o[Math.floor(Math.random() * o.length)]; };
-  function qChange(x) { var pj = deal(x.pi); while (!ok(x.v.forms[pj])) pj = deal(x.pi); return { q: hmCap(fr(x)) + ' - (' + sub(pj) + ')', a: fr(x, pj) }; }
-  function qGiven(x) { return { q: (x.inf ? String(x.v.en).toLowerCase() : en(x)) + '   [' + (x.inf ? p0(x) : x.v.inf) + ']', a: x.inf ? x.v.inf : fr(x), inf: x.inf }; }
-  function qNo(x) { return { q: en(x), a: fr(x), inf: x.inf }; }
+  var en = HMQ.en, fr = HMQ.fr;
+  function qChange(x) { var pj = deal(x.pi); while (!ok(x.v.forms[pj])) pj = deal(x.pi); return HMQ.change(x, pj); }
+  function qGiven(x) { return HMQ.given(x); }
+  function qNo(x) { return HMQ.no(x); }
   var Q = { mode: kind, A: [], B: [], C: [], D: [] }, seen = {};
   if (isF) {
     var A = item('A', 'U'), B = item('B', 'E', null, true), C = item('C', 'I'); [A, B, C].forEach(function (S) { S.forEach(function (x) { seen[x.v.inf] = 1; }); });
@@ -7405,8 +7441,9 @@ function hmBuildPaper(kind) {
   }
   return Q;
 }
-function hmPracticePaper(kind) {
-  var Q = hmBuildPaper(kind), isF = kind === 'F', L = HMC.lang, k = 0, off = 0;
+function hmPracticePaper(kind, opt) {   // opt: { Q: a paper already built, answers: open with the answers shown, set: the Trials set key }
+  opt = opt || {};
+  var Q = opt.Q || hmBuildPaper(kind), isF = kind === 'F', L = HMC.lang, k = 0, off = 0, setNm = opt.set && window.TR_NAME && TR_NAME[opt.set] ? TR_NAME[opt.set] : '';
   var infNote = function (S, base) { var n = []; S.forEach(function (x, i) { if (x.inf) n.push(base + i + 1); }); return 'The infinitive of the verb is given in [square brackets].' + (n.length ? '  For Q' + n.join(' and Q') + ' the answer is an infinitive, so a present-tense form is given instead.' : ''); };
   var secs = isF ? [['A', 'Translate into English', 'Translate each ' + L + ' verb form into English.', Q.A, 'Useful'], ['B', 'Change the person', 'Rewrite each verb with the new subject shown in brackets.', Q.B, 'Essential'], ['C', 'Translate into ' + L, infNote(Q.C, Q.A.length + Q.B.length), Q.C, 'Important'], ['D', 'Translate into ' + L, '', Q.D, 'Essential']]
     : [['Verbs A', 'Change the person', 'Rewrite each verb with the new subject shown in brackets.', Q.A, 'Useful'], ['Verbs B', 'Translate into ' + L, infNote(Q.B, Q.A.length), Q.B, 'Important'], ['Verbs C', 'Translate into ' + L, '', Q.C, 'Essential']];
@@ -7417,9 +7454,9 @@ function hmPracticePaper(kind) {
     var h = '<h3 style="margin:18px 0 2px;font-size:1.05rem">' + s[0] + '.&nbsp; ' + s[1] + '&nbsp; (Q' + (k + 1) + '–' + (k + s[3].length) + ') <span class="ans" style="font-weight:400;font-size:.8rem;color:#8899bb">' + s[4] + ' verbs</span></h3>' + (s[2] ? '<div style="font-size:.85rem;margin-bottom:6px">' + s[2] + '</div>' : '');
     return h + s[3].map(function (x) { k++; return '<div style="margin:0 0 16px;break-inside:avoid"><b>' + k + '.</b>&nbsp; ' + x.q + '<span class="ans" style="display:none"> &nbsp;→&nbsp; <b style="color:#1a2744">' + x.a + '</b></span><div class="ln" style="border-bottom:1px solid #999;height:20px;margin-top:4px"></div></div>'; }).join('');
   }).join('');
-  var html = '<!DOCTYPE html><html><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>' + HMC.title + ' practice paper</title><style>' + aphCSS() + '</style><style>body{font-family:var(--aph-body);margin:0;padding:28px 36px;color:#1a2744;background:#fff;line-height:1.4}.bar{display:flex;gap:10px;margin:0 0 16px}.bar button{padding:10px 16px;font:600 1rem sans-serif;border:2px solid #1a2744;border-radius:10px;background:#fff;color:#1a2744;cursor:pointer;min-height:44px}@media print{.bar{display:none}@page{margin:1.5cm 1.8cm;size:A4}}body.sa .ans{display:inline!important}body.sa .ln{display:none}body.sa h3 .ans{display:inline!important}</style></head><body>'
-    + '<div class="bar"><button onclick="window.close();setTimeout(function(){if(!window.closed)history.back()},250)">← Back</button><button id="sb" onclick="var s=document.body.classList.toggle(\'sa\');this.textContent=s?\'🙈 Hide answers\':\'👁 Show answers\'">👁 Show answers</button><button onclick="document.body.classList.remove(\'sa\');document.getElementById(\'sb\').textContent=\'👁 Show answers\';window.print()">🖨 Print paper</button><button onclick="document.body.classList.add(\'sa\');document.getElementById(\'sb\').textContent=\'🙈 Hide answers\';window.print()">🖨 Print answers</button></div>'
-    + '<div style="display:flex;justify-content:space-between;font-weight:700;letter-spacing:.06em;text-transform:uppercase;font-size:.75rem;color:#8899bb"><span>Eton College · Modern Languages</span><span>PRACTICE PAPER</span></div>'
+  var html = '<!DOCTYPE html><html><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>' + (setNm ? setNm + ' — Part I' : HMC.title + ' practice paper') + (opt.answers ? ' (answers)' : '') + '</title><style>' + aphCSS() + '</style><style>body{font-family:var(--aph-body);margin:0;padding:28px 36px;color:#1a2744;background:#fff;line-height:1.4}.bar{display:flex;gap:10px;margin:0 0 16px}.bar button{padding:10px 16px;font:600 1rem sans-serif;border:2px solid #1a2744;border-radius:10px;background:#fff;color:#1a2744;cursor:pointer;min-height:44px}@media print{.bar{display:none}@page{margin:1.5cm 1.8cm;size:A4}}body.sa .ans{display:inline!important}body.sa .ln{display:none}body.sa h3 .ans{display:inline!important}</style></head><body' + (opt.answers ? ' class="sa"' : '') + '>'
+    + '<div class="bar"><button onclick="window.close();setTimeout(function(){if(!window.closed)history.back()},250)">← Back</button><button id="sb" onclick="var s=document.body.classList.toggle(\'sa\');this.textContent=s?\'🙈 Hide answers\':\'👁 Show answers\'">' + (opt.answers ? '🙈 Hide answers' : '👁 Show answers') + '</button><button onclick="document.body.classList.remove(\'sa\');document.getElementById(\'sb\').textContent=\'👁 Show answers\';window.print()">🖨 Print paper</button><button onclick="document.body.classList.add(\'sa\');document.getElementById(\'sb\').textContent=\'🙈 Hide answers\';window.print()">🖨 Print answers</button></div>'
+    + '<div style="display:flex;justify-content:space-between;font-weight:700;letter-spacing:.06em;text-transform:uppercase;font-size:.75rem;color:#8899bb"><span>Eton College · Modern Languages</span><span>PRACTICE PAPER</span></div>' + (setNm ? '<div style="font-weight:700;letter-spacing:.06em;text-transform:uppercase;font-size:.8rem;margin-top:6px">' + setNm + ' · ' + (isF ? 'F' : 'E') + ' ' + L + '</div>' : '')
     + '<div style="display:flex;gap:28px;margin:10px 0 4px;font-size:.9rem"><span>Name: ______________________</span><span>Div: ________</span><span>Date: ____________</span><span style="margin-left:auto">Score: ______ / ' + total + '</span></div>'
     + '<h2 style="margin:8px 0 2px">' + HMC.title.toUpperCase() + ' — ' + (isF ? 'PART I' : 'PART I — VERBS') + '</h2><div style="font-size:.9rem;margin-bottom:6px"><b>' + sub + '</b></div>' + body + '</body></html>';
   var w = window.open('', '_blank'); if (!w) { alert('Please allow pop-ups for this page, then try again.'); return; }
@@ -7433,6 +7470,287 @@ renderIntro = function () {
 };
 var _hmSQD0 = startQuickDrill; startQuickDrill = function (c) { apHome = 'setup'; return _hmSQD0(c); };
 renderIntro();
+</script>
+<script id="xq-script">
+// ═════════ 100 CORE VERBS: Trials sets, the four Exercises (the kinds of question on the Trials paper) and the practice Trials paper on screen ═════════
+// ───── Trials sets: every Core verb, but only some tenses ─────
+// F Michaelmas Trials: Infinitives, Present and Perfect (avere verbs only). E Block Michaelmas Trials: Infinitives, Present, Perfect (all verbs), Imperfect and Future.
+var FT_DEF = { ftrials: { t: { INFINITIVE: 1, PRESENT: 1, PP: 1 }, avere: !!HMC.fOnly, kind: 'F' }, etrials: { t: { INFINITIVE: 1, PRESENT: 1, PP: 1, IMPERFECT: 1, FUTURE: 1 }, avere: false, kind: 'E' } };
+FT_DEF.fsummer = FT_DEF.etrials; FT_DEF.esummer = FT_DEF.etrials;   // F Block Summer Trials and E Block Summer Trials: the same tenses as E Block Michaelmas Trials
+var TR_NAME = { ftrials: 'F Michaelmas Trials', etrials: 'E Block Michaelmas Trials', fsummer: 'F Block Summer Trials', esummer: 'E Block Summer Trials' };
+function hmIsTrial(m) { return !!TR_NAME[m]; }
+function hmCoreQ() { return verbMode === 'igcse' || hmIsTrial(verbMode); }
+var FT_AVERE = {};   // the Core verbs whose perfect tense takes avere (the F paper's perfect-tense verbs)
+VERBS.forEach(function (v) { if (v.tense === 'PP' && !v.group && HMC.fOnly && HMC.fOnly(v)) FT_AVERE[v.inf] = 1; });
+function ftSet(x, k) {
+  var d = FT_DEF[k]; if (!d) return true;
+  if (!x || x.group === 'structures' || x.group === 'specialist' || vqOf(x) === null) return false;
+  var t = x.tense === 'SET' ? 'INFINITIVE' : x.tense; if (!d.t[t]) return false;
+  return !(d.avere && t === 'PP') || !!FT_AVERE[x.inf];
+}
+var _ftInVerbSet0 = inVerbSet; inVerbSet = function (v) { return FT_DEF[verbMode] ? ftSet(v, verbMode) && vqKeep(v) : _ftInVerbSet0(v); };
+var _ftInSentSet0 = inSentSet; inSentSet = function (s, vs) { return FT_DEF[vs] ? ftSet(s, vs) && vqKeep(s) : _ftInSentSet0(s, vs); };
+var _ftSVM0 = setVerbMode;
+setVerbMode = function (m) {
+  if (FT_DEF[m]) { var keep = Array.from(selectedTenses).filter(function (t) { return FT_DEF[m].t[t]; }); selectedTenses.clear(); (keep.length ? keep : ['PRESENT']).forEach(function (t) { selectedTenses.add(t); }); }
+  if (mode === 'exer' && m !== 'igcse' && !TR_NAME[m]) mode = 'single';
+  return _ftSVM0(m);
+};
+if (window.__cj && window.__cj.inSet) { var _ftCjInSet0 = window.__cj.inSet; window.__cj.inSet = function (v, s) { if (FT_DEF[s]) return ftSet(v, s) && vqKeep(v); return _ftCjInSet0(v, s); }; }
+function hmPickTrial(k) { vqTier = 'ALL'; vqSel = new Set(['E1', 'E2', 'I', 'U']); selectedTenses = new Set(Object.keys(FT_DEF[k].t)); if (mode !== 'exer') mode = 'exer'; setVerbMode(k); renderIntro(); }
+var _ftSelText0 = hmSelText;
+hmSelText = function () {
+  var tk = hmIsTrial(verbMode), d = FT_DEF[verbMode];
+  var ts = HMC.tenses.map(function (t) { return t[0]; }).filter(function (k) { return selectedTenses.has(k); }).map(function (k) { return (HMC.tn[k] || k) + (k === 'PP' && tk && d && d.avere ? ' (avere verbs only)' : ''); });
+  if (!tk) return _ftSelText0();
+  return TR_NAME[verbMode] + ': all 100 verbs · ' + (mode === HMC.infMode ? 'Infinitives' : (ts.join(', ') || 'choose a tense'));
+};
+
+// ───── The practice Trials paper on screen (print it, or do it with Apple Pencil) ─────
+function trVM() { return window._trMode || verbMode; }
+function trKind(m) { return (FT_DEF[m] || FT_DEF.etrials).kind; }
+function trSections(Q) {
+  var L = HMC.lang, infNote = function (S, base) { var n = []; S.forEach(function (x, i) { if (x.inf) n.push(base + i + 1); }); return 'The infinitive of the verb is given in [square brackets].' + (n.length ? '  For Q' + n.join(' and Q') + ' the answer is an infinitive, so a present-tense form is given instead.' : ''); };
+  if (Q.mode === 'E') return [['Verbs A', 'Change the person', 'Rewrite each verb with the new subject shown in brackets.', 'A', 'Useful'], ['Verbs B', 'Translate into ' + L, infNote(Q.B, Q.A.length), 'B', 'Important'], ['Verbs C', 'Translate into ' + L, '', 'C', 'Essential']];
+  return [['A', 'Translate into English', 'Translate each ' + L + ' verb form into English.', 'A', 'Useful'], ['B', 'Change the person', 'Rewrite each verb with the new subject shown in brackets.', 'B', 'Essential'], ['C', 'Translate into ' + L, infNote(Q.C, Q.A.length + Q.B.length), 'C', 'Important'], ['D', 'Translate into ' + L, '', 'D', 'Essential']];
+}
+function generateTrialsPartI() {
+  var vm = trVM(), Q = hmBuildPaper(trKind(vm)); window._trials = Q;
+  var out = document.getElementById('testOut'); if (!out) return;
+  out.style.display = 'block'; out.removeAttribute('data-spot');
+  var n = Q.A.length + Q.B.length + Q.C.length + Q.D.length;
+  out.innerHTML = '<div class="vb-out-btns"><button class="aph-btn aph-btn-sm" onclick="openTrialsPDF(\'questions\')">🖨 Print / PDF · Paper</button><button class="aph-btn aph-btn-sm" onclick="openTrialsPDF(\'answers\')">🖨 Print / PDF · Answers</button><button class="aph-btn aph-btn-sm" onclick="generateTrialsPartI()">🔀 New practice Trials paper</button><button class="aph-btn aph-btn-sm" onclick="hmShowAnswers(this)">👁 Show answers</button></div>'
+    + '<button class="aph-btn aph-btn-primary aph-btn-block tr-penbtn" onclick="hmTrialsPaperPen()">&#9997; Do it with Apple Pencil <small>timed or untimed &middot; mark it yourself &middot; hand in as a PDF if required</small></button>'
+    + '<div class="vb-out-label">' + (TR_NAME[vm] || '100 Core Verbs') + ' · ' + (Q.mode === 'E' ? 'Verbs' : 'Part I') + ' · ' + n + ' questions (practice paper, new questions each time)</div><div class="vb-out-box">' + (function () { var k = 0; return trSections(Q).map(function (S) { return '<div style="margin:6px 0 2px"><b>' + S[0] + '. ' + S[1] + '</b> <span class="vb-light">(' + S[4] + ' verbs)</span></div>' + Q[S[3]].map(function (x) { k++; return '<div class="vb-out-row"><span class="q">' + k + '. ' + x.q + '</span><span class="vb-ans" style="display:none"> <span class="ar">→</span> <strong>' + x.a + '</strong></span></div>'; }).join(''); }).join(''); })() + '</div>';
+}
+function openTrialsPDF(kind) {
+  var Q = window._trials; if (!Q) { generateTrialsPartI(); Q = window._trials; } if (!Q) return;
+  var vm = trVM(); hmPracticePaper(Q.mode, { Q: Q, answers: kind === 'answers', set: TR_NAME[vm] ? vm : null });
+}
+function hmTrialsPaperPen() {
+  if (!window.APTT || !APTT.open) { alert('The Apple Pencil test is not available on this page.'); return; }
+  var vm = trVM(), Q = window._trials || hmBuildPaper(trKind(vm)); window._trials = Q; var S = trSections(Q), items = [];
+  S.forEach(function (sec) { var list = Q[sec[3]] || []; list.forEach(function (x) { items.push({ prompt: x.q, answer: x.a, kind: 'word', label: sec[1], html: true }); }); });
+  if (!items.length) { alert('Choose a Trials set first.'); return; }
+  var n = items.length, nm = TR_NAME[vm] || '100 Core Verbs';
+  APTT.open({ id: 'conj|' + nm + ' · Practice Trials paper|' + vm + '|' + n, app: APTT_APP, kicker: APTT_KICK, title: nm + ' · Practice Trials paper', meta: S.length + ' × ' + Math.ceil(n / S.length) + ' = ' + n + ' items', detail: 'Exactly like the real paper: ' + S.map(function (sec) { return sec[0] + ' ' + sec[1] + ' (' + sec[4] + ' verbs)'; }).join(' · '), lang: HMC.lang, items: items, total: n, scoreOutOf: n, head: 'Practice Trials paper', level: '' });
+}
+function hmTrialsPaper(m) { window._trMode = m; showTestPanel(); generateTrialsPartI(); var o = document.getElementById('testOut'); if (o && o.scrollIntoView) o.scrollIntoView({ block: 'start' }); window._trMode = m; }
+function hmShowAnswers(b) { var o = document.getElementById('testOut'); if (!o) return; var show = b.getAttribute('data-on') !== '1'; o.querySelectorAll('.vb-ans').forEach(function (e) { e.style.display = show ? '' : 'none'; }); b.setAttribute('data-on', show ? '1' : '0'); b.textContent = show ? '🙈 Hide answers' : '👁 Show answers'; }
+
+// ───── Exercises A–D (the four kinds of question on the Trials paper), for Drill and Test ─────
+var XQ_DEF = [
+  ['A', 'To English', 'An Italian verb form: give the English.', 'Give the English'],
+  ['B', 'Change person', 'An Italian verb form and a new subject in brackets: rewrite the verb.', 'Rewrite the verb with the new subject'],
+  ['C', 'Infinitive given', 'English to Italian, with the infinitive in [brackets].', 'Translate into Italian (infinitive in [brackets])'],
+  ['D', 'No help', 'English to Italian, with no clues.', 'Translate into Italian']
+];
+var HM_EX = { A: 'Tu conti', B: 'Vengo (noi)', C: 'We drink [bere]', D: 'We give' };
+var HM_EXSUB = { A: 'Italian verb in, English out', B: 'Same verb, new subject', C: 'English to Italian, with a clue', D: 'English to Italian, no clues' };
+var xqOn = new Set(['A', 'B', 'C', 'D']);
+function xqNm(t) { return XQ_DEF.filter(function (x) { return x[0] === t; })[0][1]; }
+function xqToggle(t) { if (mode !== 'exer') { mode = 'exer'; xqRefresh(); return; } if (xqOn.has(t)) { if (xqOn.size > 1) xqOn.delete(t); } else xqOn.add(t); xqRefresh(); }
+function xqRefresh() { if (document.getElementById('ttab-conj')) renderTestPanel(); else renderIntro(); }
+function xqChipsHtml() {
+  return '<div class="aph-label">Exercise <span class="vb-light">tap to choose any mix</span></div><div class="aph-row">'
+    + XQ_DEF.map(function (x) { return vbChip(xqOn.has(x[0]), "xqToggle('" + x[0] + "')", x[1]); }).join('') + '</div>'
+    + '<div class="vb-info">' + XQ_DEF.filter(function (x) { return xqOn.has(x[0]); }).map(function (x) { return '<b>' + x[1] + ':</b> ' + x[2]; }).join('<br>') + '</div>';
+}
+/* The Trials papers' rule: which verb group each exercise uses (F Block paper: A Useful, B Essential, C Important, D Essential; E Block and Summer papers: no A, B Useful, C Important, D Essential) */
+var XQ_RULE = { ftrials: { A: 'U', B: 'E', C: 'I', D: 'E' }, etrials: { B: 'U', C: 'I', D: 'E' } }; XQ_RULE.fsummer = XQ_RULE.etrials; XQ_RULE.esummer = XQ_RULE.etrials;
+var xqTrialRule = 'paper';   // 'paper' = as in Trials (the rule above) · 'any' = any verb, any exercise (harder)
+function xqRuleOn() { return hmIsTrial(verbMode) && xqTrialRule === 'paper' && !!XQ_RULE[verbMode]; }
+function xqRuleTier(t) { var r = XQ_RULE[verbMode]; return r ? (r[t] || null) : null; }
+function xqRuleOK(t, x) { if (!xqRuleOn()) return true; var want = xqRuleTier(t); if (!want) return false; var g = vqOf(x); return g === want; }
+function xqRuleText(which) {   // which: 'F', 'E' or nothing (both)
+  var F = '<b>F Block Trials</b> (40 questions): <b>Essential</b> verbs → into Italian with no help, and change the person · <b>Important</b> → into Italian with the infinitive given · <b>Useful</b> → into English only.';
+  var E = '<b>E Block and Summer Trials</b> (a shorter paper, 20 verb questions): <b>Essential</b> → into Italian with no help · <b>Important</b> → into Italian with the infinitive given · <b>Useful</b> → change the person (nothing into English).';
+  if (which === 'F') return F; if (which === 'E') return E; return F + '<br>' + E;
+}
+function xqSetRule(r) { xqTrialRule = r; try { localStorage.setItem('apiv_xqrule', r); } catch (e) { } xqRefresh(); }
+try { var _xr = localStorage.getItem('apiv_xqrule'); if (_xr === 'any' || _xr === 'paper') xqTrialRule = _xr; } catch (e) { }
+function xqOK(v, p) { return HMQ.ok(v.forms[p]); }
+function xqPersons(v) { var pf = _personFilter, all = [0, 1, 2, 3, 4, 5].filter(function (p) { return xqOK(v, p); }); return pf === 'ALL' ? all : all.filter(function (p) { return p === parseInt(pf, 10); }); }
+function xqReg(x) { if (regFilter === 'all') return true; if (regFilter === 'piacere') return x.inf === 'piacere'; return classifyNote(x.note) === regFilter; }
+function xqVerbs(useLv) {
+  var ts = new Set(Array.from(selectedTenses).filter(function (t) { return t !== 'INFINITIVE'; }));
+  return liveVerbs.filter(function (v) { return v.tense !== 'SET' && v.group !== 'structures' && inVerbSet(v) && ts.has(v.tense) && xqReg(v) && (!useLv || apLvOK(v)); });
+}
+function xqInfs(useLv) {
+  if (!selectedTenses.has('INFINITIVE')) return [];
+  return getLiveInfCards().filter(function (c) { return xqReg(c) && (!useLv || apLvOK(c)); });
+}
+// every possible question for one exercise type (cheap objects; the wording is made later by xqFill)
+function xqSpecs(t, useLv) {
+  var out = [];
+  xqVerbs(useLv).forEach(function (v) {
+    if (!xqRuleOK(t, v)) return;
+    if (t === 'B' && v.forms.filter(function (f, p) { return xqOK(v, p); }).length < 2) return;
+    xqPersons(v).forEach(function (p) { out.push({ xq: true, t: t, v: v, pi: p }); });
+  });
+  if (t !== 'B') xqInfs(useLv).forEach(function (c) { if (xqRuleOK(t, c)) out.push({ xq: true, t: t, c: c, isInf: true }); });
+  return out;
+}
+// "All forms": every person of every chosen verb in every chosen tense, once each, with a random ticked exercise given to each form
+function xqAllForms(useLv) {
+  var types = XQ_DEF.map(function (x) { return x[0]; }).filter(function (t) { return xqOn.has(t); }), out = [];
+  var pick = function (ok, x) { var a = types.filter(function (t) { return ok(t) && (!x || xqRuleOK(t, x)); }); return a.length ? a[Math.floor(Math.random() * a.length)] : null; };
+  xqVerbs(useLv).forEach(function (v) {
+    var multi = v.forms.filter(function (f, p) { return xqOK(v, p); }).length >= 2;
+    xqPersons(v).forEach(function (p) { var t = pick(function (t) { return t !== 'B' || multi; }, v); if (t) out.push({ xq: true, t: t, v: v, pi: p }); });
+  });
+  xqInfs(useLv).forEach(function (c) { var t = pick(function (t) { return t !== 'B'; }, c); if (t) out.push({ xq: true, t: t, c: c, isInf: true }); });
+  return out;
+}
+function xqPool() { var n = 0; if (_selectedCount === -1) return { length: xqAllForms(false).length }; xqOn.forEach(function (t) { n += xqSpecs(t).length; }); return { length: n }; }
+function xqTenseNames() { return HMC.tenses.map(function (t) { return t[0]; }).concat(['PLUPERFECT', 'FUT_ANT', 'COND_PASSE']).filter(function (k) { return selectedTenses.has(k); }).map(function (k) { return HMC.tn[k] || k; }).join(', '); }
+function xqScope() { var g = vqTierText(); return (hmIsTrial(verbMode) ? TR_NAME[verbMode] : '100 Core Verbs') + (g ? ' · ' + g : '') + ' · ' + xqTenseNames(); }
+function xqFr(v, p) { var f = hmCap(v.forms[p]); if (v.tense === 'PRES_SUBJ' || v.tense === 'IMP_SUBJ') f = 'che ' + f; return f; }
+function xqFill(s) {
+  var t = s.t, ask = XQ_DEF.filter(function (x) { return x[0] === t; })[0][3], v = s.v;
+  s.name = xqNm(t); s.ask = ask;
+  if (s.isInf) {
+    var c = s.c, x = { inf: true, v: c }; s.tense = 'INFINITIVE';
+    if (t === 'A') { s.q = c.inf; s.a = HMQ.en(x); s.sayQ = c.inf; s.qLang = 'it'; s.aLang = 'en'; return s; }
+    var qi = t === 'C' ? HMQ.given(x) : HMQ.no(x); s.q = qi.q; s.a = qi.a; s.sayQ = HMQ.en(x); s.qLang = 'en'; s.aLang = 'it';
+    return s;
+  }
+  var pi = s.pi, x = { inf: false, v: v, pi: pi }; s.tense = v.tense;
+  if (t === 'A') { s.q = xqFr(v, pi); s.a = hmCap(HMQ.en(x)); s.sayQ = s.q; s.qLang = 'it'; s.aLang = 'en'; }
+  else if (t === 'B') {
+    var pj = [0, 1, 2, 3, 4, 5].filter(function (p) { return p !== pi && xqOK(v, p); }); pj = pj[Math.floor(Math.random() * pj.length)];
+    var qc = HMQ.change(x, pj); s.q = qc.q; s.a = qc.a; s.sayQ = xqFr(v, pi); s.qLang = 'it'; s.aLang = 'it';
+  }
+  else if (t === 'C') { var qg = HMQ.given(x); s.q = hmCap(qg.q); s.a = xqFr(v, pi); s.sayQ = hmCap(HMQ.en(x)); s.qLang = 'en'; s.aLang = 'it'; }
+  else { s.q = hmCap(HMQ.en(x)); s.a = xqFr(v, pi); s.sayQ = s.q; s.qLang = 'en'; s.aLang = 'it'; }
+  return s;
+}
+function xqDeck(count) {
+  if (count === -1) return shuffle(xqAllForms(false)).map(xqFill);
+  var lists = [], types = XQ_DEF.map(function (x) { return x[0]; }).filter(function (t) { return xqOn.has(t); });
+  types.forEach(function (t) { lists.push(shuffle(xqSpecs(t))); });
+  var mixed = [], more = true;
+  for (var i = 0; more; i++) { more = false; lists.forEach(function (L) { if (i < L.length) { mixed.push(L[i]); more = true; } }); }
+  var total = mixed.length, n = count === -1 ? total : Math.min(count, total);
+  return shuffle(mixed.slice(0, n)).map(xqFill);
+}
+function startXqDrill(count) {
+  if (selectedTenses.size === 0) { alert('Please select at least one tense.'); return; }
+  deck = xqDeck(count);
+  if (!deck.length) { alert('No cards for this selection.'); return; }
+  idx = 0; got = 0; nearly = 0; errors = 0; total = 0; majorErrorDeck = []; reviewDeck = []; revealed = false; showCard();
+}
+function showXqCard(item, progress) {
+  document.getElementById('drill').innerHTML = vbBar(true) + vbProgress(progress) + `
+    <div class="aph-drill"><div class="aph-drill-main">
+    <div class="card aph-qcard vb-card">
+      <span class="vb-badge badge-${item.tense}">${TENSE_LABEL[item.tense] || (item.tense === 'INFINITIVE' ? 'Infinitive' : item.tense)}</span>
+      <div class="aph-qmeta">Card ${idx + 1} of ${deck.length} · ${item.name}</div>
+      <div class="aph-prompt card-question">${item.q}</div>
+      <div class="card-sub">${item.ask}</div>
+      <div id="answerArea"></div>
+      ${vbTimer()}
+    </div>
+    <button class="aph-btn aph-btn-primary aph-btn-block vb-reveal" id="revealBtn" onclick="revealXq()">Show Answer</button>
+    <div id="feedbackRow" style="display:none">${vbMarkRow()}</div>
+    </div>${vbSideKeys()}</div>`;
+  setTimeout(function () { (item.qLang === 'it' ? speakIt : speakEn)(item.sayQ); }, 300);
+  startCardTimer(function () { if (!revealed) revealXq(); });
+}
+function revealXq() {
+  revealed = true;
+  var item = deck[idx];
+  document.getElementById('answerArea').innerHTML = '<div class="big-answer">' + item.a + '</div>';
+  document.getElementById('revealBtn').style.display = 'none';
+  document.getElementById('feedbackRow').style.display = 'flex';
+  var say = function () { (item.aLang === 'it' ? speakIt : speakEn)(item.a); };
+  setTimeout(say, 200); addReplayBtn(say);
+}
+var _xqShowCard0 = showCard;
+showCard = function () { if (idx < deck.length && deck[idx] && deck[idx].xq && mode !== 'sentences') { revealed = false; document.getElementById('drill').classList.remove('wide'); showXqCard(deck[idx], idx / deck.length * 100); return; } return _xqShowCard0.apply(this, arguments); };
+var _xqSQD0 = startQuickDrill;
+startQuickDrill = function (count) { if (mode === 'exer' && hmCoreQ()) { isLeisureMode = false; sessionEditCount = 0; startXqDrill(count); return; } return _xqSQD0.apply(this, arguments); };
+// ── Test: a paper from the chosen exercises ──
+function xqInstr(t) { return t === 'A' ? 'Translate each Italian verb form into English.' : t === 'B' ? 'Rewrite each verb with the new subject shown in brackets.' : t === 'C' ? 'The infinitive of the verb is given in [square brackets].' : 'Translate into Italian.'; }
+function xqPaper() {
+  if (testCount === -1) {
+    var by = {}, secs = [];
+    shuffle(xqAllForms(true)).forEach(function (s) { (by[s.t] = by[s.t] || []).push(xqFill(s)); });
+    XQ_DEF.forEach(function (x) { if (by[x[0]]) secs.push({ k: x[0], name: x[1], instr: xqInstr(x[0]), items: by[x[0]] }); });
+    return secs;
+  }
+  var n = testCount === 0 ? (parseInt(document.getElementById('tcInput').value, 10) || 10) : testCount;
+  var types = XQ_DEF.map(function (x) { return x[0]; }).filter(function (t) { return xqOn.has(t); }), per = Math.floor(n / types.length), extra = n - per * types.length;
+  var used = {}, shownInf = {}, sections = [];
+  types.forEach(function (t, i) {
+    var want = per + (i < extra ? 1 : 0), L = shuffle(xqSpecs(t, true)), items = [];
+    var take = function (avoid) { for (var k = 0; k < L.length && items.length < want; k++) { var s = L[k], key = s.isInf ? s.c.inf : s.v.inf; if (s._u || used[key] || (avoid && shownInf[key])) continue; s._u = 1; used[key] = 1; items.push(xqFill(s)); } };
+    take(t === 'D'); if (items.length < want) take(false);
+    for (var k = 0; items.length < want && k < L.length; k++) if (!L[k]._u) { L[k]._u = 1; items.push(xqFill(L[k])); }
+    if (t !== 'D') items.forEach(function (s) { shownInf[s.isInf ? s.c.inf : s.v.inf] = 1; });
+    var x = XQ_DEF.filter(function (d) { return d[0] === t; })[0];
+    sections.push({ k: t, name: x[1], instr: xqInstr(t), items: items });
+  });
+  return sections.filter(function (s) { return s.items.length; });
+}
+function generateXqTest() {
+  var P = xqPaper(), out = document.getElementById('testOut'); if (!out) return;
+  window._xqPaper = P; out.style.display = 'block'; out.removeAttribute('data-spot');
+  var n = 0; P.forEach(function (s) { n += s.items.length; });
+  if (!n) { out.innerHTML = '<div class="vb-out-label">No questions for this selection.</div>'; return; }
+  var k = 0;
+  out.innerHTML = '<div class="vb-out-btns"><button class="aph-btn aph-btn-sm" onclick="openXqPDF(\'questions\')">🖨 Print / PDF · Paper</button><button class="aph-btn aph-btn-sm" onclick="openXqPDF(\'answers\')">🖨 Print / PDF · Answers</button><button class="aph-btn aph-btn-sm" onclick="generateXqTest()">🔀 New paper</button><button class="aph-btn aph-btn-sm" onclick="hmShowAnswers(this)">👁 Show answers</button></div>'
+    + '<div class="vb-out-label">' + xqScope() + ' · ' + n + ' questions' + (testCount === -1 ? ' (every person of every verb)' : '') + '</div><div class="vb-out-box">'
+    + P.map(function (S) { return '<div style="margin:6px 0 2px"><b>' + S.k + '. ' + S.name + '</b></div>' + S.items.map(function (x) { k++; return '<div class="vb-out-row"><span class="q">' + k + '. ' + x.q + '</span><span class="vb-ans" style="display:none"> <span class="ar">→</span> <strong>' + x.a + '</strong></span></div>'; }).join(''); }).join('') + '</div>';
+}
+function openXqPDF(kind) {
+  var P = window._xqPaper; if (!P) { generateXqTest(); P = window._xqPaper; } if (!P) return;
+  var isA = kind === 'answers', k = 0;
+  var body = P.map(function (S) {
+    var h = '<h3 style="margin:18px 0 2px;font-size:1.05rem">' + S.k + '.&nbsp; ' + S.name + '&nbsp; (Q' + (k + 1) + '–' + (k + S.items.length) + ')</h3><div style="font-size:.85rem;margin-bottom:6px">' + S.instr + '</div>';
+    return h + S.items.map(function (x) { k++; return '<div style="margin:0 0 ' + (isA ? '6' : '16') + 'px;break-inside:avoid"><b>' + k + '.</b>&nbsp; ' + x.q + (isA ? ' &nbsp;→&nbsp; <b style="color:#1a2744">' + x.a + '</b>' : '<div style="border-bottom:1px solid #999;height:20px;margin-top:4px"></div>') + '</div>'; }).join('');
+  }).join('');
+  var html = '<!DOCTYPE html><html><head><meta charset="UTF-8"><title>Italian verb exercises' + (isA ? ' (answers)' : '') + '</title><style>' + aphCSS() + '</style><style>body{font-family:var(--aph-body);margin:0;padding:28px 36px;color:#1a2744;background:#fff;line-height:1.4}@media print{@page{margin:1.5cm 1.8cm;size:A4}.no-print{display:none!important}}</style></head><body>'
+    + '<div class="no-print" style="margin:0 0 14px"><button onclick="window.close();setTimeout(function(){if(!window.closed)history.back()},250)" style="padding:10px 16px;font:600 1rem sans-serif;border:2px solid #1a2744;border-radius:10px;background:#fff;color:#1a2744;cursor:pointer;min-height:44px">← Back</button></div>'
+    + '<div style="font-weight:700;letter-spacing:.06em;text-transform:uppercase;font-size:.75rem;color:#8899bb">' + xqScope() + '</div><h2 style="margin:4px 0 8px">Verb exercises' + (isA ? ' — ANSWERS' : '') + '</h2>'
+    + (isA ? '<div style="font-size:.78rem;color:#555;margin-bottom:6px">Perfect tense: accept the past simple or the "have" form in English. Accept she/he for lui (lei).</div>' : '') + body + '</body></html>';
+  var w = window.open('', '_blank'); if (!w) { alert('Please allow pop-ups for this page, then try again.'); return; }
+  w.document.open(); w.document.write(html); w.document.close(); w.focus(); setTimeout(function () { w.print(); }, 800);
+}
+var _xqGT0 = generateTest;
+generateTest = function () {
+  if (mode === 'exer' && hmCoreQ()) { generateXqTest(); return; }
+  if (testCount === -1) setTestCount(10);
+  return _xqGT0.apply(this, arguments);
+};
+// Generate Test panel for the Exercises: only what is needed (the verb set, regularity and display options are hidden; the exercises are offered)
+var _xqRTP0 = renderTestPanel;
+renderTestPanel = function () {
+  var r = _xqRTP0.apply(this, arguments);
+  try {
+    if (!hmCoreQ() || mode !== 'exer') return r;
+    var box = document.getElementById('itTabConj'); if (!box) return r;
+    var kids = Array.prototype.slice.call(box.children), hide = function (e) { if (e) e.style.display = 'none'; };
+    kids.forEach(function (e, i) {
+      var t = (e.innerText || '').trim().toUpperCase();
+      if (e.classList.contains('aph-label') && /^(VERB SET|REGULARITY|SHOW IN QUESTION)/.test(t)) { hide(e); hide(kids[i + 1]); }
+      if (e.classList.contains('aph-label') && /^IMPORTANCE/.test(t)) {
+        if (hmIsTrial(verbMode)) { hide(e); hide(kids[i + 1]); }
+        else { e.innerHTML = 'Which verbs <span class="vb-light">tick any groups</span>'; var row = kids[i + 1]; if (row) row.innerHTML = [['E1', 'Essential 1 (20)'], ['E2', 'Essential 2 (20)'], ['I', 'Important (30)'], ['U', 'Useful (30)']].map(function (g) { return vbChip(vqSel.has(g[0]), "vqSelToggle('" + g[0] + "')", g[1]); }).join(''); }
+      }
+      if (e.classList.contains('vq-note') || e.classList.contains('ap-lv-row')) hide(e);
+    });
+    var tl = kids.filter(function (e) { return e.classList.contains('aph-label') && /^TENSES/.test((e.innerText || '').trim().toUpperCase()); })[0];
+    if (tl) tl.insertAdjacentHTML('beforebegin', xqChipsHtml());
+    ['10', '20', '25', 'C'].forEach(function (x) { var b = document.getElementById('tc' + x); if (b) b.classList.toggle('active-reg', (testCount === 0 && x === 'C') || String(testCount) === x); });
+    var t10 = document.getElementById('tc10'); if (t10 && !document.getElementById('tcAll')) t10.parentNode.insertBefore((function () { var b = document.createElement('button'); b.className = 'aph-chip' + (testCount === -1 ? ' active-reg' : ''); b.id = 'tcAll'; b.textContent = 'All forms'; b.onclick = function () { testCount = -1; renderTestPanel(); }; return b; })(), document.getElementById('tcC'));
+    var sum = document.createElement('div'); sum.className = 'hm-note'; sum.style.cssText = 'margin:0 0 6px;font-weight:700';
+    sum.textContent = hmSelText(); box.insertBefore(sum, box.firstChild);
+  } catch (e) { }
+  return r;
+};
+var _xqSTC0 = setTestCount; setTestCount = function (n) { var r = _xqSTC0.apply(this, arguments); var b = document.getElementById('tcAll'); if (b) b.classList.toggle('active-reg', n === -1); return r; };
+var _xqPool0 = HMC.pool; HMC.pool = function () { if (mode === 'exer' && hmCoreQ()) { var out = []; xqOn.forEach(function (t) { out = out.concat(xqSpecs(t)); }); return out; } return _xqPool0.apply(this, arguments); };
 </script>
 
 <script>
@@ -7589,6 +7907,10 @@ if (window.__cj && window.__cj.inSet) { var _vqInSet0 = window.__cj.inSet; windo
 .ms-tiers{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px}
 .ms-tiers.ms-t3{grid-template-columns:repeat(3,minmax(0,1fr))}
 .ms-kinds{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px}
+.ms-kinds.ms-k5{grid-template-columns:repeat(5,minmax(0,1fr))}
+.ms-segrow{display:flex;flex-wrap:wrap;align-items:center;gap:10px 14px;margin:6px 0 4px}
+.ms-segrow .hm-seg2{margin-left:0}
+.ms-card .hm-exgrid{margin:10px 0 2px}
 .ms-pick{font:inherit;text-align:center;display:flex;flex-direction:column;justify-content:center;align-items:center;gap:2px;min-height:64px;padding:8px 10px;border:2px solid #c9d0e0;border-radius:12px;background:#fff;color:#1a2744;cursor:pointer;touch-action:manipulation}
 .ms-pick b{font-size:1rem}.ms-pick small{font-size:.8125rem;color:#4a5570;line-height:1.25}.ms-pick i{font-style:normal;font-weight:600;color:#6b7690}
 .ms-pick.on{background:#1a2744;border-color:#1a2744;color:#ffd76a}.ms-pick.on small,.ms-pick.on i{color:#d6dcf0}
@@ -7621,10 +7943,15 @@ if (window.__cj && window.__cj.inSet) { var _vqInSet0 = window.__cj.inSet; windo
   var msMy = false, tenseBak = null;
   var GRP = [['E1', 'Essential 1', 'the first 20 verbs', 20], ['E2', 'Essential 2', 'the second 20 verbs', 20], ['I', 'Important', 'the next 30 verbs', 30], ['U', 'Useful', 'the last 30 verbs', 30]];
   var SETS = [['allv', 'All Verbs', 'the 100 Core Verbs and the rest'], ['structures', 'Specialist Verb Structures', 'set phrases such as approfittare di X'], ['both', 'Both', 'all verbs and the structures']];
-  var KINDS = [['single', 'Single form', 'One English form, give the Italian', 's'], ['full', 'Full (6 forms)', 'See the English, say all six persons', 'f'], ['infinitives', 'Infinitives', 'What is the Italian infinitive?', 'i'], ['sentences', 'Sentences', 'Gap-fill sentences', 'z']];
+  var KIND_ALL = [['single', 'Single form', 'One English form, give the Italian', 's'], ['full', 'Full (6 forms)', 'See the English, say all six persons', 'f'], ['infinitives', 'Infinitives', 'What is the Italian infinitive?', 'i'], ['sentences', 'Sentences', 'Gap-fill sentences', 'z']];
+  var KIND_CORE = [['exer', 'Trials-style exercises', 'The four kinds of question on the Trials paper', 's'], ['full', 'Full (6 forms)', 'See the English, say all six persons', 'f'], ['infinitives', 'Infinitives', 'What is the Italian infinitive?', 'i'], ['sentences', 'Sentences', 'Gap-fill sentences', 'z']];
+  var KIND_MY = KIND_ALL;
+  var KINDS = KIND_CORE.concat(KIND_ALL);
+  function kindsFor(my, core) { var k = my ? KIND_MY : core ? KIND_CORE.slice() : KIND_ALL; if (!my && core && mode === 'single') k = k.concat([KIND_ALL[0]]); return k; }
+  function isCoreVM() { return verbMode === 'igcse' || !!(window.TR_NAME && TR_NAME[verbMode]); }
   var TNAME = { PRESENT: 'Present', FUTURE: 'Future', PP: 'Perfect', IMPERFECT: 'Imperfect', COND: 'Conditional', PRES_SUBJ: 'Pres. Subj.', IMP_SUBJ: 'Imp. Subj.', PR: 'Past Hist.', PLUPERFECT: 'Pluperfect', FUT_ANT: 'Future Perf.', COND_PASSE: 'Cond. Perf.', INFINITIVE: 'Infinitives', SET: 'Set structure' };
   function msIsMy() { return msMy && apHome === 'setup'; }
-  function verbsChosen() { return msMy || (msDoor === 'core' ? msCore.size > 0 : msDoor === 'all' ? msSetPick : false); }
+  function verbsChosen() { return msMy || (msDoor === 'core' ? (hmIsTrial(verbMode) || msCore.size > 0) : msDoor === 'all' ? msSetPick : false); }
   function tensesOK() { return mode === 'infinitives' || selectedTenses.size > 0; }
   function kindKey(m) { for (var i = 0; i < KINDS.length; i++) if (KINDS[i][0] === m) return KINDS[i][3]; return 's'; }
 
@@ -7639,6 +7966,7 @@ if (window.__cj && window.__cj.inSet) { var _vqInSet0 = window.__cj.inSet; windo
   }
   function keyOf(it) {
     if (!it) return null;
+    if (it.xq) { if (it.isInf && it.c) return 'i~' + gk(it.c) + '~' + it.c.inf; if (it.v && it.pi != null) return 's~' + gk(it.v) + '~' + it.v.inf + '~' + it.v.tense + '~' + vh(it.v) + '~' + it.pi; return null; }
     if (it.isInfinitive) return 'i~' + gk(it) + '~' + it.inf;
     if (it.verb && it.personIdx != null) return 's~' + gk(it.verb) + '~' + it.verb.inf + '~' + it.verb.tense + '~' + vh(it.verb) + '~' + it.personIdx;
     if (it.pre != null && it.answer != null) return 'z~' + gk(it) + '~' + it.inf + '~' + it.tense + '~' + it.pi + '~' + it.answer;
@@ -7668,10 +7996,24 @@ if (window.__cj && window.__cj.inSet) { var _vqInSet0 = window.__cj.inSet; windo
   function passF(k) { var l = S.c[k].l || 2; return S.f === 'all' ? true : S.f === 'due' ? dueNow(k) : S.f === '3' ? l === 3 : l >= 2; }
   function myPool(kind) { return ids().filter(function (k) { return k[0] === kind && passF(k); }).map(resolve).filter(Boolean); }
   function kindCount(kind) { return ids().filter(function (k) { return k[0] === kind; }).length; }
+  // the cards a drill would use (for the Exercises: every chosen form, as plain cards for Spell and Match)
+  function exerCards() {
+    var out = [];
+    xqVerbs(false).forEach(function (v) { xqPersons(v).forEach(function (p) { out.push({ verb: v, personIdx: p }); }); });
+    xqInfs(false).forEach(function (c) { out.push(c); });
+    return out;
+  }
   function curPool() {
     if (msIsMy()) return myPool(kindKey(mode));
     if (!verbsChosen() || !tensesOK()) return [];
+    if (mode === 'exer') return exerCards();
     return HMC.pool();
+  }
+  function countPool() {
+    if (msIsMy()) return myPool(kindKey(mode)).length;
+    if (!verbsChosen() || !tensesOK()) return 0;
+    if (mode === 'exer') return xqPool().length;
+    return curPool().length;
   }
 
   // ---- marking in any drill feeds the personalised set
@@ -7701,7 +8043,7 @@ if (window.__cj && window.__cj.inSet) { var _vqInSet0 = window.__cj.inSet; windo
   try { var lzp = LZ_APP.pool; LZ_APP.pool = function () { return msIsMy() ? myPool(kindKey(mode)) : lzp.apply(this, arguments); }; } catch (e) { }
   var sq0 = window.startQuickDrill;
   window.startQuickDrill = function (c) {
-    if (!msIsMy() && (!verbsChosen() || apHome !== 'setup' || (msDoor === 'core') !== (verbMode === 'igcse'))) derive();
+    if (!msIsMy() && (!verbsChosen() || apHome !== 'setup' || (msDoor === 'core') !== isCoreVM())) derive();
     if (msIsMy()) {
       var p = sh(myPool(kindKey(mode)));
       if (!p.length) { alert('Nothing in your personalised set for this kind of question yet.'); return; }
@@ -7713,19 +8055,24 @@ if (window.__cj && window.__cj.inSet) { var _vqInSet0 = window.__cj.inSet; windo
   // a drill opened from a teacher's link: work out what step 1 would have shown
   function derive() {
     msMy = false; tenseBak = null;
-    if (verbMode === 'igcse') { msDoor = 'core'; msCore = new Set(vqSel); } else { msDoor = 'all'; msSetPick = true; }
+    if (isCoreVM()) { msDoor = 'core'; msCore = new Set(vqSel); msSetPick = false; } else { msDoor = 'all'; msSetPick = true; }
   }
-  function enterMy() { if (!msMy) { tenseBak = Array.from(selectedTenses); if (!selectedTenses.size) selectedTenses = new Set(['PRESENT']); } msMy = true; }
-  function leaveMy() { if (msMy) { msMy = false; if (tenseBak) selectedTenses = new Set(tenseBak); tenseBak = null; } }
+  function enterMy() { if (!msMy) { tenseBak = Array.from(selectedTenses); if (!selectedTenses.size) selectedTenses = new Set(['PRESENT']); } msMy = true; if (mode === 'exer') mode = 'single'; }
+  function leaveMy() { if (msMy) { msMy = false; if (tenseBak) selectedTenses = new Set(tenseBak); tenseBak = null; if (msDoor === 'core' && mode === 'single') mode = 'exer'; } }
 
   // ---- door opening: nothing is preselected
   window.hmOpen = function (door) {
-    apHome = 'setup'; msDoor = door; msMy = false; tenseBak = null; msCore = new Set(); msSetPick = false; note = '';
-    selectedTenses = new Set(); mode = 'single';
+    apHome = 'setup'; msDoor = door; msMy = false; tenseBak = null; msCore = new Set(); msSetPick = false; note = ''; hmVList = false;
+    selectedTenses = new Set(); mode = door === 'core' ? 'exer' : 'single';
     verbMode = door === 'core' ? 'igcse' : 'allv';
     try { vqSync('ALL'); } catch (e) { }
     renderIntro();
   };
+  window.msOwn = function () {
+    leaveMy(); msCore = new Set(); selectedTenses = new Set(); vqTier = 'ALL'; vqSel = new Set(['E1', 'E2', 'I', 'U']);
+    if (hmIsTrial(verbMode)) { verbMode = 'igcse'; } renderIntro();
+  };
+  window.msTrial = function (k) { leaveMy(); hmPickTrial(k); };
   window.msGrp = function (g) {
     leaveMy();
     var n = new Set(msCore); if (n.has(g)) n.delete(g); else n.add(g); msCore = n; applyCore();
@@ -7743,6 +8090,8 @@ if (window.__cj && window.__cj.inSet) { var _vqInSet0 = window.__cj.inSet; windo
   window.msTimer = function (d) { adjustTimer(d); msSum(); };
   window.msDrill = function () { startQuickDrill(_selectedCount); };
   window.msTest = function () {
+    if (!verbsChosen()) derive();
+    if (mode === 'exer') testCount = _selectedCount === -1 ? -1 : (_selectedCount > 0 ? _selectedCount : 50);
     if (mode === 'infinitives') selectedTenses = new Set(selectedTenses).add('INFINITIVE');
     window._itSentTab = (mode === 'sentences');
     if (mode === 'sentences') {   // the sentence test starts from what step 1 chose
@@ -7789,15 +8138,15 @@ if (window.__cj && window.__cj.inSet) { var _vqInSet0 = window.__cj.inSet; windo
     var kn = KINDS.filter(function (k) { return k[0] === mode; })[0]; parts.push(kn ? kn[1] : mode);
     if (msMy) parts.push('my personalised set');
     else {
-      if (msDoor === 'core') parts.push(msCore.size === 4 ? 'all 100 Core Verbs' : GRP.filter(function (g) { return msCore.has(g[0]); }).map(function (g) { return g[1]; }).join(' + '));
+      if (msDoor === 'core') parts.push(hmIsTrial(verbMode) ? TR_NAME[verbMode] + (mode === 'exer' ? (xqRuleOn() ? ' · as in Trials' : ' · any verb, any exercise') : '') : (msCore.size === 4 ? 'all 100 Core Verbs' : GRP.filter(function (g) { return msCore.has(g[0]); }).map(function (g) { return g[1]; }).join(' + ')));
       else parts.push(SETS.filter(function (s) { return s[0] === verbMode; }).map(function (s) { return s[1]; })[0] || '');
-      if (mode !== 'infinitives') parts.push(HMC.tenses.map(function (t) { return t[0]; }).filter(function (k) { return selectedTenses.has(k); }).map(function (k) { return HMC.tn[k] || k; }).join(', '));
+      if (mode !== 'infinitives') parts.push(HMC.tenses.map(function (t) { return t[0]; }).filter(function (k) { return selectedTenses.has(k); }).map(function (k) { return (HMC.tn[k] || k) + (k === 'PP' && hmIsTrial(verbMode) && FT_DEF[verbMode] && FT_DEF[verbMode].avere ? ' (avere verbs only)' : ''); }).join(', '));
     }
     return parts.filter(Boolean).join(' · ');
   }
   function sumText() {
     var reg = { regular: 'Regular only', irregular: 'Irregular only', piacere: 'Piacere type only' }[regFilter];
-    return (_selectedCount === -1 ? 'All cards' : _selectedCount + ' cards') + ' · ' + timerSecs + 's a card' + (reg && !msIsMy() && mode !== 'infinitives' ? ' · ' + reg : '') + (mode === 'single' && _personFilter !== 'ALL' && !msIsMy() ? ' · ' + HMC.persons.filter(function (p) { return p[0] === _personFilter; })[0][1] : '') + (isAutotime ? ' · Autotime on' : '');
+    return (_selectedCount === -1 ? 'All cards' : _selectedCount + ' cards') + ' · ' + timerSecs + 's a card' + (reg && !msIsMy() && mode !== 'infinitives' ? ' · ' + reg : '') + ((mode === 'single' || mode === 'exer') && _personFilter !== 'ALL' && !msIsMy() ? ' · ' + HMC.persons.filter(function (p) { return p[0] === _personFilter; })[0][1] : '') + (isAutotime ? ' · Autotime on' : '');
   }
 
   function myBox(on) {
@@ -7811,45 +8160,69 @@ if (window.__cj && window.__cj.inSet) { var _vqInSet0 = window.__cj.inSet; windo
   }
 
   function renderSetup() {
-    var my = msIsMy(), core = msDoor === 'core';
-    var pool = curPool(), n = pool.length, usable = verbsChosen() && tensesOK() && n > 0;
+    var my = msIsMy(), core = msDoor === 'core', tk = core && hmIsTrial(verbMode);
+    var n = countPool(), usable = verbsChosen() && tensesOK() && n > 0;
     var cards = _selectedCount === -1 ? n : Math.min(_selectedCount, n);
     // ----- step 1
     var h = '<div class="hm-top"><div class="hm-tl"><button class="hm-back" onclick="hmLand()" aria-label="Back to the start screen">&#8249; ' + HMC.title + '</button><h2 class="hm-title hm-t2">' + (my ? 'My personalised set' : core ? '100 Core Verbs' : 'All Verbs') + '</h2></div></div>';
     h += '<div class="ms-step"><span class="ms-num">1</span>What do you want to practise?</div>';
+    var tenseRow = function () {
+      var ts = HMC.tenses.map(function (t, i) { return { k: t[0], l: (core && i < HMC.steps ? (i + 1) + '. ' : '') + t[1] }; });
+      return '<div class="aph-row">' + chip(ts.every(function (t) { return t.k === 'PR' ? !selectedTenses.has('PR') : selectedTenses.has(t.k); }), 'selectAllTenses()', 'All') + ts.map(function (t) { return chip(selectedTenses.has(t.k), "msTense('" + t.k + "')", t.l); }).join('') + '</div>';
+    };
     if (!my) {
-      h += '<div class="aph-label">Which verbs <span class="vb-light">' + (core ? 'tick any groups' : 'choose one') + '</span></div>';
       if (core) {
-        var nSel = GRP.filter(function (g) { return msCore.has(g[0]); }).reduce(function (a, g) { return a + g[3]; }, 0);
-        h += '<div class="ms-tiers">' + GRP.map(function (g) { var on = msCore.has(g[0]); return '<button class="ms-pick' + (on ? ' on' : '') + '" onclick="msGrp(\'' + g[0] + '\')"><b>' + (on ? '&#10003; ' : '') + g[1] + '</b><small>' + g[2] + '</small></button>'; }).join('') + '</div>'
-          + '<div class="hm-row"><button class="hm-link" onclick="msGrpSet(\'ALL\')">All 100</button><button class="hm-link" onclick="msGrpSet(\'E\')">Essential 1 + 2 (40)</button><button class="hm-link" onclick="hmToggle(\'vlist\')">' + (hmVList ? 'Hide the verbs &#9652;' : 'See the verbs in these groups &#9662;') + '</button><span class="aph-note">' + (nSel ? nSel + ' verbs chosen' : 'none chosen yet') + '</span></div>' + (hmVList && msCore.size ? hmVerbList() : '');
+        var seg = '<div class="hm-seg hm-seg2"><button class="' + (!tk ? 'on' : '') + '" onclick="' + (tk ? 'msOwn()' : '') + '">Choose my own</button><button class="' + (tk ? 'on' : '') + '" onclick="' + (tk ? '' : "msTrial('ftrials')") + '">Use a Trials set</button></div>';
+        h += '<div class="ms-segrow"><span class="aph-note" style="margin:0">' + (tk ? 'A Trials set chooses the verbs and tenses for you.' : 'Choose the verbs and tenses yourself, or use a Trials set:') + '</span>' + seg + '</div>';
+        if (!tk) {
+          var nSel = GRP.filter(function (g) { return msCore.has(g[0]); }).reduce(function (a, g) { return a + g[3]; }, 0);
+          h += '<div class="aph-label">Which verbs <span class="vb-light">tick any groups</span></div><div class="ms-tiers">' + GRP.map(function (g) { var on = msCore.has(g[0]); return '<button class="ms-pick' + (on ? ' on' : '') + '" onclick="msGrp(\'' + g[0] + '\')"><b>' + (on ? '&#10003; ' : '') + g[1] + '</b><small>' + g[2] + '</small></button>'; }).join('') + '</div>'
+            + '<div class="hm-row"><button class="hm-link" onclick="msGrpSet(\'ALL\')">All 100</button><button class="hm-link" onclick="msGrpSet(\'E\')">Essential 1 + 2 (40)</button><button class="hm-link" onclick="hmToggle(\'vlist\')">' + (hmVList ? 'Hide the verbs &#9652;' : 'See the verbs in these groups &#9662;') + '</button><span class="aph-note">' + (nSel ? nSel + ' verbs chosen' : 'none chosen yet') + '</span></div><div class="hm-rulenote">' + xqRuleText() + '</div>' + (hmVList && msCore.size ? hmVerbList() : '');
+          h += '<div class="aph-label">Which tenses <span class="vb-light">in the order we learn them</span></div>';
+          if (mode === 'infinitives') h += '<div class="hm-note">Infinitives only: you see the English and give the ' + HMC.lang + ' infinitive, so tenses are not needed.</div>';
+          else h += tenseRow();
+        } else {
+          h += '<div class="aph-label">Which Trials set</div><div class="hm-trgrid">' + Object.keys(TR_NAME).map(function (k) { return '<button class="hm-trbtn' + (verbMode === k ? ' on' : '') + '" onclick="msTrial(\'' + k + '\')">' + (verbMode === k ? '&#10003; ' : '') + TR_NAME[k] + '</button>'; }).join('') + '</div>'
+            + '<div class="hm-lock">&#128274; <b>' + TR_NAME[verbMode] + '</b> covers all 100 verbs in these tenses: ' + HMC.tenses.map(function (t) { return t[0]; }).filter(function (k) { return selectedTenses.has(k); }).map(function (k) { return (HMC.tn[k] || k) + (k === 'PP' && FT_DEF[verbMode] && FT_DEF[verbMode].avere ? ' (avere verbs only)' : ''); }).join(', ') + '.</div><div class="hm-rulenote">' + xqRuleText(verbMode === 'ftrials' ? 'F' : 'E') + '</div>'
+            + '<div class="hm-row"><button class="hm-link" onclick="hmToggle(\'vlist\')">' + (hmVList ? 'Hide the verbs &#9652;' : 'See the verbs &#9662;') + '</button></div>' + (hmVList ? hmVerbList() : '');
+        }
       } else {
-        h += '<div class="ms-tiers ms-t3">' + SETS.map(function (s) { var on = msSetPick && verbMode === s[0]; return '<button class="ms-pick' + (on ? ' on' : '') + '" onclick="msPickSet(\'' + s[0] + '\')"><b>' + (on ? '&#10003; ' : '') + s[1] + '</b><small>' + s[2] + '</small></button>'; }).join('') + '</div>';
+        h += '<div class="aph-label">Which verbs <span class="vb-light">choose one</span></div><div class="ms-tiers ms-t3">' + SETS.map(function (s) { var on = msSetPick && verbMode === s[0]; return '<button class="ms-pick' + (on ? ' on' : '') + '" onclick="msPickSet(\'' + s[0] + '\')"><b>' + (on ? '&#10003; ' : '') + s[1] + '</b><small>' + s[2] + '</small></button>'; }).join('') + '</div>';
       }
     }
-    h += '<div class="aph-label">Kind of question</div><div class="ms-kinds">' + KINDS.map(function (k) {
+    var kinds = kindsFor(my, core);
+    h += '<div class="aph-label">Kind of question</div><div class="ms-kinds' + (kinds.length > 4 ? ' ms-k5' : '') + '">' + kinds.map(function (k) {
       var on = mode === k[0], c = my ? ' <i>(' + kindCount(k[3]) + ')</i>' : '';
       return '<button class="ms-pick' + (on ? ' on' : '') + '" onclick="msKind(\'' + k[0] + '\')"><b>' + (on ? '&#10003; ' : '') + k[1] + c + '</b><small>' + k[2] + '</small></button>';
     }).join('') + '</div>';
-    if (!my) {
-      h += '<div class="aph-label">Which tenses <span class="vb-light">' + (core ? 'in the order we learn them' : 'tap to choose') + '</span></div>';
+    if (!my && core && mode === 'exer') {
+      var ruleOn = xqRuleOn(), rule = tk ? XQ_RULE[verbMode] : null;
+      h += '<div class="aph-label">Which exercises <span class="vb-light">tick any mix</span></div>';
+      if (tk) h += '<div class="hm-seg hm-seg2 hm-rule"><button class="' + (ruleOn ? 'on' : '') + '" onclick="xqSetRule(\'paper\')">As in Trials</button><button class="' + (!ruleOn ? 'on' : '') + '" onclick="xqSetRule(\'any\')">Any verb, any exercise (harder)</button></div>'
+        + '<div class="hm-note">' + (ruleOn ? 'Each exercise uses the verbs it tests in the real paper (shown on each box).' : 'Every exercise you tick is asked on all 100 verbs, whatever their group.') + '</div>';
+      h += '<div class="hm-exgrid">' + XQ_DEF.map(function (x) {
+        var want = ruleOn ? (rule[x[0]] || null) : null, off = ruleOn && !want, on = xqOn.has(x[0]) && !off;
+        var tag = ruleOn ? (want ? ' <span class="hm-extier">\u00b7 ' + VQ_NAME[want] + ' verbs (' + (want === 'E' ? 40 : 30) + ')</span>' : ' <span class="hm-extier">\u00b7 not on the ' + (verbMode === 'ftrials' ? 'F' : 'E') + ' Block paper</span>') : '';
+        return '<button class="hm-ex' + (on ? ' on' : '') + (off ? ' off' : '') + '"' + (off ? ' disabled' : '') + ' onclick="xqToggle(\'' + x[0] + '\')"><span class="hm-tick">' + (on ? '&#10003;' : '') + '</span><span class="hm-exn"><b>' + x[1] + tag + '</b><small>' + HM_EXSUB[x[0]] + '</small></span><span class="hm-exe">' + HM_EX[x[0]] + '</span></button>';
+      }).join('') + '</div>';
+    }
+    if (!my && !core) {
+      h += '<div class="aph-label">Which tenses <span class="vb-light">tap to choose</span></div>';
       if (mode === 'infinitives') h += '<div class="hm-note">Infinitives only: you see the English and give the ' + HMC.lang + ' infinitive, so tenses are not needed.</div>';
-      else {
-        var ts = HMC.tenses.map(function (t, i) { return { k: t[0], l: (core && i < HMC.steps ? (i + 1) + '. ' : '') + t[1] }; });
-        h += '<div class="aph-row">' + chip(ts.every(function (t) { return t.k === 'PR' ? !selectedTenses.has('PR') : selectedTenses.has(t.k); }), 'selectAllTenses()', 'All') + ts.map(function (t) { return chip(selectedTenses.has(t.k), "msTense('" + t.k + "')", t.l); }).join('') + '</div>';
-      }
+      else h += tenseRow();
     }
     h += '<div class="ms-or">' + (my ? 'You are practising your own tricky cards.' : 'Or practise your own tricky cards:') + '</div>' + myBox(my);
     if (my) h += '<div class="ms-brow"><button class="ms-b sm" onclick="msBackToSets()">&#8249; Choose verbs and tenses instead</button></div>';
     var lab = selText();
     var msg;
-    if (!verbsChosen()) msg = 'Choose the verbs above to unlock the ways to practise them.';
+    if (!verbsChosen()) msg = core ? 'Choose the verbs above (or a Trials set) to unlock the ways to practise them.' : 'Choose a verb set above to unlock the ways to practise it.';
     else if (!tensesOK()) msg = 'Now choose at least one tense above to unlock the ways to practise.';
     else if (!n) msg = my ? 'Nothing in your personalised set for this kind of question yet.' : 'No cards match this selection. Change the verbs or tenses above.';
-    else msg = 'Practising: <b>' + esc(lab) + '</b> · ' + n + ' card' + (n === 1 ? '' : 's');
+    else msg = 'Practising: <b>' + esc(lab) + '</b> · ' + n + (my ? ' card' : ' question') + (n === 1 ? '' : 's');
     h += '<div class="ms-now">' + msg + '</div>';
     // ----- step 2
     h += '<div class="ms-step"><span class="ms-num">2</span>How do you want to practise it?</div>';
+    if (tk) h += '<button class="hm-paperbtn" onclick="hmTrialsPaper(\'' + verbMode + '\')"><span class="hm-paperbtn-t">&#128221; Practice Trials paper</span><span class="hm-paperbtn-s">' + (verbMode === 'ftrials' ? '40 questions' : '20 verb questions') + ', exactly like the real ' + (verbMode === 'ftrials' ? 'F Block' : 'E Block') + ' paper &middot; new questions each time &middot; print it or do it with Apple Pencil</span></button>';
     var counts = [10, 20, 30, 50, -1].map(function (c) { return chip(_selectedCount === c, 'setSelectedCount(' + c + ')', c === -1 ? 'All' : c); }).join('');
     var reg = HMC.regs.map(function (r) { return chip(regFilter === r[0], "introSetReg('" + r[0] + "')", r[1]); }).join('');
     var pers = HMC.persons.map(function (p) { return chip(_personFilter === p[0], "setPersonFilter('" + p[0] + "')", p[1]); }).join('');
@@ -7859,7 +8232,7 @@ if (window.__cj && window.__cj.inSet) { var _vqInSet0 = window.__cj.inSet; windo
       + '<div class="aph-label">Autotime</div><div class="aph-row"><button class="aph-btn' + (isAutotime ? ' on' : '') + '" onclick="toggleAutotime();renderIntro()">⏱ Autotime: ' + (isAutotime ? 'On' : 'Off') + '</button></div><div class="aph-note" style="margin:4px 0 0">Autotime: Leisure Mode moves on by itself, with no timer bar.</div>'
       + '<div class="aph-label">Hint</div><div class="aph-row"><button class="aph-btn' + (showInfHint ? ' on' : '') + '" onclick="showInfHint=!showInfHint;renderIntro()">💡 Hint (the infinitive): ' + (showInfHint ? 'On' : 'Off') + '</button></div>'
       + (my || mode === 'infinitives' || mode === 'sentences' ? '' : '<div class="aph-label">Regularity</div><div class="aph-row">' + reg + '</div>')
-      + (my || mode !== 'single' ? '' : '<div class="aph-label">Person</div><div class="aph-row">' + pers + '</div>')
+      + (my || (mode !== 'single' && mode !== 'exer') ? '' : '<div class="aph-label">Person</div><div class="aph-row">' + pers + '</div>')
       + (!my && !core ? vqRowHtml() : '')
       + (editModeUnlocked ? '<div class="aph-label">Teacher</div><div class="aph-row"><button class="aph-btn" onclick="' + HMC.printContent + '">&#128424; Print Content</button></div>' : '')
       + '</details>';
@@ -7869,13 +8242,14 @@ if (window.__cj && window.__cj.inSet) { var _vqInSet0 = window.__cj.inSet; windo
       if (my && x[1] === 'test') { off = true; d = 'Tests are built from verb sets and tenses, so not from a personalised set.'; }
       if (mode === 'sentences' && x[1] === 'speed') { off = true; d = 'Speed Challenge plays verb forms and infinitives, so it is not used for Sentences.'; }
       if (mode === 'sentences' && x[1] === 'match_it') { off = true; d = 'Match pairs English with Italian, so it is not used for Sentences.'; }
+      if (mode === 'exer' && x[1] === 'leis') { off = true; d = 'Leisure Mode is for Full, Single form, Infinitives and Sentences, not the Exercises.'; }
       return '<button class="ms-tile ' + x[0] + '"' + (off ? ' disabled' : '') + ' onclick="' + x[4] + '"><img class="ms-img" alt="" src="' + ICONS[x[1]] + '"><span class="ms-tx"><span class="ms-tt">' + x[2] + '</span><span class="ms-td">' + d + '</span></span></button>';
     }).join('') + '</div>';
     var dis = (usable && !my) ? '' : ' disabled';
     h += '<div class="ms-viewrow"><span class="aph-note" style="margin:0">More ways to be tested, or to read and print the verbs:</span>'
       + '<button class="aph-btn aph-btn-sm"' + dis + ' onclick="hmPaperSpot()">&#128424; Paper Spot Test</button>'
       + '<button class="aph-btn aph-btn-sm"' + dis + ' onclick="hmSubmittedSpot()">&#9997; Submitted Spot Test</button>'
-      + (core ? '<button class="aph-btn aph-btn-sm"' + dis + ' onclick="hmPracticePaper(\'F\')">&#128221; Practice F Paper</button><button class="aph-btn aph-btn-sm"' + dis + ' onclick="hmPracticePaper(\'E\')">&#128221; Practice E Paper</button>' : '')
+      + (core && !my && !tk ? '<button class="aph-btn aph-btn-sm" onclick="hmTrialsPaper(\'ftrials\')">&#128221; Practice Trials paper &middot; F Block (40)</button><button class="aph-btn aph-btn-sm" onclick="hmTrialsPaper(\'etrials\')">&#128221; Practice Trials paper &middot; E Block (20)</button>' : '')
       + '<button class="aph-btn aph-btn-sm"' + dis + ' onclick="showVerbList()">&#128214; View &amp; Print</button></div>';
     h += '<div class="hm-keys">' + vbKeysLegend() + '</div>';
     return '<div class="ms-card intro-card hm-wrap">' + h + '</div>';
