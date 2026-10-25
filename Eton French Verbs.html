@@ -6,7 +6,7 @@
 <script id="ap-update">
 /* AP auto-update: if this copy is older than the published version, reload once with the new one (saved answers are kept) */
 (function () {
-  var B = '410f2cbf3f'; window.AP_BUILD = B;
+  var B = '97ea8e5b68'; window.AP_BUILD = B;
   function check() {
     if (!/^https?:$/.test(location.protocol) || !window.fetch) return;
     var f = decodeURIComponent(location.pathname.split('/').pop() || '');
@@ -2017,7 +2017,7 @@ var APTT = (function () {
   function open(o, re) {
     if (!o || !o.items || !o.items.length || typeof APPEN === 'undefined' || typeof APMP === 'undefined') return;
     var items = o.items.map(norm);
-    var m = { id: String(o.id || ''), app: o.app || '', kicker: o.kicker || '', title: o.title || '', meta: o.meta || '', detail: o.detail || '', lang: o.lang || '', code: o.langCode || LCODE[o.lang] || '', total: 20, level: o.level || '', set: o.set || null };
+    var m = { id: String(o.id || ''), app: o.app || '', kicker: o.kicker || '', title: o.title || '', meta: o.meta || '', detail: o.detail || '', lang: o.lang || '', code: o.langCode || LCODE[o.lang] || '', total: o.scoreOutOf || 20, head: o.head || '', level: o.level || '', set: o.set || null };
     m.srcId = String((o.set && o.set.src) || m.id || '');
     var src = m.srcId.split('|')[0], VERB = { conj: 1, it: 1, spot: 1 };
     items.forEach(function (it) { it.big = it.kind === 'sentence' || (!VERB[src] && nWords(it.answer) > 2); });
@@ -2114,10 +2114,10 @@ var APTT = (function () {
       + '<div class="aptt-wrap"><div id="aptt-top"><div class="aptt-kick">Eton Spot Test · ' + S.m.title + '</div>'
       + (S.m.level ? '<div class="aptt-level aptt-lv-' + ({ Easy: 'E', Medium: 'M', Hard: 'H', Mixed: 'X' }[String(S.m.level).split(' · ')[0]] || 'X') + '">LEVEL: ' + S.m.level.toUpperCase().replace(' · ', ' · IMPORTANCE: ') + '</div>' : '')
       + '<div class="aptt-att" id="aptt-att"' + (S.att > 1 ? '' : ' hidden') + '>⚠ ATTEMPT ' + (S.att || '') + ' ON THIS TEST</div>'
-      + '<h2 class="aph-h">' + (L ? 'Translate into ' + esc(L) : 'Write your answers') + '</h2>'
+      + '<h2 class="aph-h">' + (S.m.head ? esc(S.m.head) : L ? 'Translate into ' + esc(L) : 'Write your answers') + '</h2>'
       + (S.m.meta ? '<div class="aptt-meta">' + S.m.meta + '</div>' : '')
       + (S.m.detail ? '<div class="aptt-detail">' + S.m.detail + '</div>' : '')
-      + '<p class="aptt-instr">' + (L ? 'Translate' : 'Answer') + ' all ' + N + ' ' + noun(N) + (L ? ' into ' + esc(L) : '') + ' with your Apple Pencil (black ink). Then <b>lock in</b>, open the answers, <b>correct in red</b> and <b>mark yourself</b>. Score out of ' + (S.m.total || 10) + '.</p>'
+      + '<p class="aptt-instr">' + (S.m.head ? 'Answer' : L ? 'Translate' : 'Answer') + ' all ' + N + ' ' + noun(N) + (L && !S.m.head ? ' into ' + esc(L) : (S.m.head ? ' (each one says what to do)' : '')) + ' with your Apple Pencil (black ink). Then <b>lock in</b>, open the answers, <b>correct in red</b> and <b>mark yourself</b>. Score out of ' + (S.m.total || 10) + '.</p>'
       + '<div class="aptt-score" id="aptt-score1"' + (S.shown ? '' : ' hidden') + '></div>'
       + '<div class="aptt-legend" id="aptt-legend"' + (S.shown ? '' : ' hidden') + '>' + legend() + '</div></div>'
       + (S.m.set ? '<div class="aptt-mode aptt-setmode" id="aptt-mode"><div class="aptt-set">✅ TEST SET BY YOUR TEACHER' + (S.m.set.code ? ': <b>' + esc(S.m.set.code) + '</b>' : '') + '<span>' + esc(S.m.set.name || plain(S.m.title)) + ' · ⏱ ' + mins + ' minutes</span></div><div class="aptt-mode-b">'
@@ -7231,6 +7231,7 @@ function generateTrialsPartI() {
   out.style.display = 'block'; out.removeAttribute('data-spot');
   var n = Q.A.length + Q.B.length + Q.C.length + Q.D.length, vm = trVM();
   out.innerHTML = '<div class="vb-out-btns"><button class="aph-btn aph-btn-sm" onclick="openTrialsPDF(\'questions\')">🖨 Print / PDF · Paper</button><button class="aph-btn aph-btn-sm" onclick="openTrialsPDF(\'answers\')">🖨 Print / PDF · Answers</button><button class="aph-btn aph-btn-sm" onclick="generateTrialsPartI()">🔀 New practice Trials paper</button><button class="aph-btn aph-btn-sm" onclick="hmShowAnswers(this)">👁 Show answers</button></div>'
+    + '<button class="aph-btn aph-btn-primary aph-btn-block tr-penbtn" onclick="hmTrialsPaperPen()">&#9997; Do it with Apple Pencil <small>timed or untimed &middot; mark it yourself &middot; hand in as a PDF if required</small></button>'
     + '<div class="vb-out-label">' + TR_NAME[vm] + ' · ' + (Q.mode === 'E' ? 'Verbs' : 'Part I') + ' · ' + n + ' questions (practice paper, new questions each time)</div><div class="vb-out-box">' + (function () { var k = 0; return trSections(Q).map(function (S) { return '<div style="margin:6px 0 2px"><b>' + S[0] + '. ' + S[1] + '</b> <span class="vb-light">(' + S[4] + ' verbs)</span></div>' + Q[S[3]].map(function (x) { k++; return '<div class="vb-out-row"><span class="q">' + k + '. ' + x.q + '</span><span class="vb-ans" style="display:none"> <span class="ar">→</span> <strong>' + x.a + '</strong></span></div>'; }).join(''); }).join(''); })() + '</div>';
 }
 function openTrialsPDF(kind) {
@@ -7425,7 +7426,11 @@ var xqTrialRule = 'paper';   // 'paper' = as in Trials (the rule above) · 'any'
 function xqRuleOn() { return hmIsTrial(verbMode) && xqTrialRule === 'paper' && !!XQ_RULE[verbMode]; }
 function xqRuleTier(t) { var r = XQ_RULE[verbMode]; return r ? (r[t] || null) : null; }
 function xqRuleOK(t, x) { if (!xqRuleOn()) return true; var want = xqRuleTier(t); if (!want) return false; var g = vqOf(x); return g === want; }
-function xqRuleText() { return 'In Trials: <b>Essential</b> verbs \u2192 into French with no help, and change the person \u00b7 <b>Important</b> \u2192 into French with the infinitive given \u00b7 <b>Useful</b> \u2192 into English only.'; }
+function xqRuleText(which) {   // which: 'F', 'E' or nothing (both)
+  var F = '<b>F Block Trials</b> (40 questions): <b>Essential</b> verbs \u2192 into French with no help, and change the person \u00b7 <b>Important</b> \u2192 into French with the infinitive given \u00b7 <b>Useful</b> \u2192 into English only.';
+  var E = '<b>E Block and Summer Trials</b> (a shorter paper, 20 verb questions): <b>Essential</b> \u2192 into French with no help \u00b7 <b>Important</b> \u2192 into French with the infinitive given \u00b7 <b>Useful</b> \u2192 change the person (nothing into English).';
+  if (which === 'F') return F; if (which === 'E') return E; return F + '<br>' + E;
+}
 function xqSetRule(r) { xqTrialRule = r; try { localStorage.setItem('apfv_xqrule', r); } catch (e) { } xqRefresh(); }
 try { var _xr = localStorage.getItem('apfv_xqrule'); if (_xr === 'any' || _xr === 'paper') xqTrialRule = _xr; } catch (e) { }
 function hmSetName(m) { return HM_SETS[m] || TR_NAME[m] || m; }
@@ -7445,6 +7450,15 @@ function hmLand() { apHome = 'landing'; renderIntro(); }
 function hmEx(t) { if (mode !== 'exer') { mode = 'exer'; renderIntro(); } else xqToggle(t); }
 function hmMode(m) { mode = m; renderIntro(); }
 function hmTrial(v) { if (v) setVerbMode(v); }
+/* The practice Trials paper on the iPad: the same 40 / 20 questions in the shared Apple Pencil test engine (APTT): timed or untimed, mark it yourself */
+function hmTrialsPaperPen() {
+  if (!window.APTT || !APTT.open) { alert('The Apple Pencil test is not available on this page.'); return; }
+  var Q = window._trials || trBuild(); window._trials = Q; var vm = trVM(), S = trSections(Q), items = [];
+  S.forEach(function (sec) { var list = Q[sec[3]] || []; list.forEach(function (x) { items.push({ prompt: x.q, answer: x.a, kind: 'word', label: sec[1], html: true }); }); });
+  if (!items.length) { alert('Choose a Trials set first.'); return; }
+  var n = items.length;
+  APTT.open({ id: 'conj|' + TR_NAME[vm] + ' · Practice Trials paper|' + vm + '|' + n, app: APTT_APP, kicker: APTT_KICK, title: TR_NAME[vm] + ' · Practice Trials paper', meta: S.length + ' × ' + Math.ceil(n / S.length) + ' = ' + n + ' items', detail: 'Exactly like the real paper: ' + S.map(function (sec) { return sec[0] + ' ' + sec[1] + ' (' + sec[4] + ' verbs)'; }).join(' · '), lang: 'French', items: items, total: n, scoreOutOf: n, head: 'Practice Trials paper', level: '' });
+}
 function hmTrialsPaper(m) { window._trMode = m; showTestPanel(); generateTrialsPartI(); var o = document.getElementById('testOut'); if (o && o.scrollIntoView) o.scrollIntoView({ block: 'start' }); window._trMode = m; }
 function hmToggle(k) { if (k === 'more') hmMore = !hmMore; else if (k === 'tier') hmTierOpen = !hmTierOpen; else if (k === 'tenses') hmTenseMore = !hmTenseMore; else if (k === 'vlist') hmVList = !hmVList; renderIntro(); }
 function hmLanding() {
@@ -7680,6 +7694,7 @@ var _hmSQD0 = startQuickDrill; startQuickDrill = function (c) { apHome = 'setup'
 .hm-ex.off{opacity:.45;cursor:default}
 .hm-rulenote{font-size:.9rem;color:#4a5a7a;background:#fff8e6;border:1.5px solid #e6c15a;border-radius:10px;padding:8px 12px;margin:8px 0 10px;line-height:1.45}
 .hm-paperbtn{display:block;width:100%;text-align:left;background:#1a2744;color:#fff;border:0;border-radius:14px;padding:14px 18px;margin:0 0 12px;cursor:pointer;box-shadow:0 4px 0 #c9a84c}
+.tr-penbtn{margin:10px 0 12px}.tr-penbtn small{display:block;font-weight:500;font-size:.8rem;opacity:.85}
 .hm-paperbtn-t{display:block;font:700 1.15rem var(--aph-display,serif);color:#ffd76a}.hm-paperbtn-s{display:block;font:500 .9rem var(--aph-body);color:#dbe3f5;margin-top:3px}
 .hm-tier small{display:block;font-weight:400}
 .hm-core .hm-tiers{display:grid;grid-template-columns:repeat(4,minmax(0,1fr))}
@@ -8699,7 +8714,7 @@ if (window.__cj) window.__cj.speedTest = function (kind, g) {
           }
         } else {
           h += '<div class="aph-label">Which Trials set</div><div class="hm-trgrid">' + Object.keys(TR_NAME).map(function (k) { return '<button class="hm-trbtn' + (verbMode === k ? ' on' : '') + '" onclick="msTrial(\'' + k + '\')">' + (verbMode === k ? '&#10003; ' : '') + TR_NAME[k] + '</button>'; }).join('') + '</div>'
-            + '<div class="hm-lock">&#128274; <b>' + TR_NAME[verbMode] + '</b> covers all 100 verbs in these tenses: ' + TORD.filter(function (k) { return selectedTenses.has(k); }).map(function (k) { return TNAME[k] + (k === 'PASSE_COMPOSE' && FT_DEF[verbMode] && FT_DEF[verbMode].avoir ? ' (avoir verbs only)' : ''); }).join(', ') + '.</div><div class="hm-rulenote">' + xqRuleText() + '</div>'
+            + '<div class="hm-lock">&#128274; <b>' + TR_NAME[verbMode] + '</b> covers all 100 verbs in these tenses: ' + TORD.filter(function (k) { return selectedTenses.has(k); }).map(function (k) { return TNAME[k] + (k === 'PASSE_COMPOSE' && FT_DEF[verbMode] && FT_DEF[verbMode].avoir ? ' (avoir verbs only)' : ''); }).join(', ') + '.</div><div class="hm-rulenote">' + xqRuleText(verbMode === 'ftrials' ? 'F' : 'E') + '</div>'
             + '<div class="hm-row"><button class="hm-link" onclick="hmToggle(\'vlist\')">' + (hmVList ? 'Hide the verbs &#9652;' : 'See the verbs &#9662;') + '</button></div>' + (hmVList ? hmVerbList() : '');
         }
       } else {
