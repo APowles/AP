@@ -7605,7 +7605,7 @@ function renderCard(){
 // shared drill bar (drill card + Adjust): app name, score, ⚙ Adjust, ▶ Errors — the one ⌂ Home is in the header
 function vgDrillBar(adjusting){
   return `<div class="aph-dbar drill-bar">
-      <span class="aph-dbar-title">IGCSE Vocab</span>
+      <span class="aph-dbar-title">IGCSE Vocab</span>${apVoiceBtn()}
       <span class="aph-dbar-score"><span class="ok">&#10003; ${score}</span><span class="bad">&#10007; ${majorErrors.length}</span></span>
       ${adjusting
         ? `<button class="aph-dbar-btn on">&#9881; Adjust</button><button class="aph-dbar-btn" ${majorErrors.length===0?'disabled':''}>&#9654; Errors</button>`
@@ -7955,6 +7955,16 @@ function _spkGetVoice(langCode) {
   return AP_VOICE.pick(langCode, { names: names });
 }
 
+// voice speed (the button in the drill banner): 100% = the normal pace, stepping down for slower speech; remembered on this device
+var _apVF = (function () { try { var v = +localStorage.getItem('ap_voice_f'); return v >= 0.4 && v <= 1 ? v : 1; } catch (e) { return 1; } })();
+function apVoiceF() { return _apVF; }
+function apVoiceLabel() { return '&#128266; ' + Math.round(_apVF * 100) + '%'; }
+function apVoiceStep() {
+  var L = [1, 0.85, 0.7, 0.55]; var i = L.indexOf(_apVF); _apVF = L[(i + 1) % L.length];
+  try { localStorage.setItem('ap_voice_f', _apVF); } catch (e) { }
+  document.querySelectorAll('.ap-vspeed').forEach(function (b) { b.innerHTML = apVoiceLabel(); });
+}
+function apVoiceBtn() { return '<button class="aph-dbar-btn ap-vspeed" title="Speed of the voice: tap to slow it down (100%, 85%, 70%, 55%)" onclick="apVoiceStep()">' + apVoiceLabel() + '</button>'; }
 function speak(text, langCode, onEndCallback) {
   if (!_spkSynth) return;
   _spkSynth.cancel();
@@ -7971,7 +7981,7 @@ function speak(text, langCode, onEndCallback) {
     const u = new SpeechSynthesisUtterance(part.replace(/^,\s*/,''));
     const effectiveLang = isGender ? 'en-GB' : langCode;
     u.lang = /^es/i.test(effectiveLang) ? 'es-ES' : effectiveLang;
-    u.rate = u.lang === 'es-ES' ? 0.75 : 0.92;
+    u.rate = (u.lang === 'es-ES' ? 0.75 : 0.92) * apVoiceF();
     const v = _spkGetVoice(effectiveLang);
     if (v) u.voice = v;
     u.onend = () => speakParts(rest);
@@ -8712,7 +8722,7 @@ function renderErrorReview() {
   const n = majorErrors.length;
   document.getElementById('app').innerHTML = `
     <div class="aph-dbar">
-      <span class="aph-dbar-title">IGCSE Vocab</span>
+      <span class="aph-dbar-title">IGCSE Vocab</span>${apVoiceBtn()}
       <span class="aph-dbar-score"><span class="bad">&#10007; ${n}</span></span>
     </div>
     <div class="aph-results">
@@ -10016,6 +10026,7 @@ function ggActHtml() {
     + '<button class="aph-banner"' + dis + ' onclick="openGgChallenge()"><span class="aph-banner-icon">⚡</span><span class="aph-banner-text"><b>Eton Speed Challenge</b><small>Race against the clock, solo or in teams</small></span><span class="aph-banner-play">&#9654; Play</span></button>'
     + ggRecapEntry() + pdf
     + lvlPanel + typePanel
+    + '<div class="gg-panel"><div class="gg-ph"><span>Timer per card</span></div><div class="aph-row"><button class="aph-step" onclick="ggAdjustTimer(-5)">&#8722;</button><span class="aph-step-val" id="gg-timer-display">' + ggTimerSecs + 's</span><button class="aph-step" onclick="ggAdjustTimer(5)">+</button></div><div class="gg-hint">When the time runs out the answer is shown. Then mark yourself as usual.</div></div>'
     + '<button class="aph-btn aph-btn-primary aph-btn-block gg-start"' + dis + ' onclick="ggStart()">&#9654; Start Drill'
       + (has ? ' · ' + ggEsc(label) + (ggLvlOn() ? ' · ' + GG_LVL_NAME[ggS.lvl] : '') + ' · ' + pool.length + ' card' + (pool.length === 1 ? '' : 's') : '') + '</button>'
     + '<div class="aph-tools gg-tools"><button class="aph-btn"' + dis + ' onclick="ggTestMenu()">&#128221; Generate Test <small>(print / PDF)</small></button><button class="aph-btn"' + dis + ' onclick="ggSpotMenu()">&#128424; Paper Spot Test <small>(print / PDF)</small></button><button class="aph-btn aptt-btn"' + dis + ' onclick="apttLevel(\'gg\',function(){ggSpotMenu(true)})">✍ Submitted Spot Test</button></div>'
@@ -10036,7 +10047,19 @@ function ggStart(items, label) {
 }
 // a 'transform' card can ask the boy to translate an ENGLISH sentence: read that in the English voice, not the target-language one
 function ggIsEnglish(t, instr) { if (/translat/i.test(String(instr || ''))) return true; return (String(t).toLowerCase().match(/\b(the|was|were|will|she|they|you|my|his|her|with|and|for|of|did|had|made)\b/g) || []).length >= 2; }
+var ggTimerSecs = (function () { try { var v = +localStorage.getItem('apgg_timer'); return v >= 10 && v <= 90 ? v : 25; } catch (e) { return 25; } })(), ggCountdown = null, ggTimeLeft = 0;
+function ggAdjustTimer(d) { ggTimerSecs = Math.min(90, Math.max(10, ggTimerSecs + d)); try { localStorage.setItem('apgg_timer', ggTimerSecs); } catch (e) {} var e = document.getElementById('gg-timer-display'); if (e) e.textContent = ggTimerSecs + 's'; try { ggRefreshAct(); } catch (e2) {} }
+function ggStopTimer() { if (ggCountdown) { clearInterval(ggCountdown); ggCountdown = null; } }
+function ggStartTimer() {
+  ggStopTimer(); ggTimeLeft = ggTimerSecs;
+  ggCountdown = setInterval(function () {
+    var D = ggS.drill; if (!D || D.revealed || !document.getElementById('ggBar')) { ggStopTimer(); return; }
+    ggTimeLeft--; var b = document.getElementById('ggBar'); if (b) b.style.width = Math.round(ggTimeLeft / ggTimerSecs * 100) + '%';
+    if (ggTimeLeft <= 0) { ggStopTimer(); ggReveal(true); }
+  }, 1000);
+}
 function ggCard() {
+  ggStopTimer();
   const D = ggS.drill, el = document.getElementById('ggApp'); if (!D || !el) return;
   if (D.idx >= D.items.length) { ggSummary(); return; }
   const it = D.items[D.idx], ch = GGD[ggChOf(it)] || {}, total = D.items.length, pct = Math.round(D.idx / total * 100);
@@ -10045,7 +10068,7 @@ function ggCard() {
   else if (it.type === 'transform') { const m = it.en.match(/<i>([\s\S]*?)<\/i>/), q = m ? ggPlain(m[1]) : ''; setTimeout(() => speak(m ? q : GGL().sayT, m && ggIsEnglish(q, ggPlain(it.en.split('<i>')[0])) ? 'en-GB' : GGL().code), 300); }
   else setTimeout(() => speak(GGL().sayQ, GGL().code), 300);
   // navy drill bar (app name, ✓ ~ ✗ score, ▶ Errors); the one ⌂ Home (back to the chapters) is in the header
-  el.innerHTML = '<div class="aph-dbar"><span class="aph-dbar-title">' + GGL().name + '</span>'
+  el.innerHTML = '<div class="aph-dbar"><span class="aph-dbar-title">' + GGL().name + '</span>' + apVoiceBtn()
     + '<span class="aph-dbar-score"><span class="ok">✓ ' + D.ok + '</span><span class="ne">~ ' + D.nearly + '</span><span class="bad">✗ ' + D.errors.length + '</span></span>'
     + '<button class="aph-dbar-btn" onclick="ggErrorReview()"' + (D.errors.length ? '' : ' disabled') + '>&#9654; Errors</button></div>'
     + '<div class="aph-progress"><div style="width:' + pct + '%"></div></div>'
@@ -10053,18 +10076,19 @@ function ggCard() {
     + ggRecapBar(ggChOf(it), 'ggCardRecap')
     + '<div class="gg-q aph-qcard"><div class="gg-q-tag">' + ggEsc(ch.label || '') + ' · ' + ggEsc(it.point || '') + ' · ' + GG_TYPE_LABEL[it.type] + ' · ' + ({ E: '🟢 Easy', M: '🟠 Medium', H: '🔴 Hard' })[ggLvlOf(it)] + '</div>'
     + '<div class="aph-qmeta">Card ' + (D.idx + 1) + ' of ' + total + ' · ' + ggEsc(D.label) + '</div>'
-    + '<div class="gg-q-en">' + it.en + '</div><div id="ggAns"></div></div>'
+    + '<div class="gg-q-en">' + it.en + '</div><div class="rf-bar-track"><div class="rf-bar-fill" id="ggBar" style="width:100%"></div></div><div id="ggAns"></div></div>'
     + '<div id="ggBtns" class="gg-btns"><button class="aph-btn aph-btn-primary aph-btn-block" onclick="ggReveal()">Show Answer</button></div>'
     + '<div class="aph-keys"><span><span class="aph-key bad">&#8592;</span>major error</span><span><span class="aph-key near">&#8595;</span>nearly</span><span><span class="aph-key ok">&#8594;</span>show / got it</span><span>Space: show</span></div>'
     + (D.errors.length ? '<button class="aph-btn aph-btn-block gg-errbtn2" onclick="ggErrorReview()">&#9654; Error review (' + D.errors.length + ')</button>' : '')
     + '</div>';
+  ggStartTimer();
 }
-function ggReveal() {
+function ggReveal(timedOut) {
   const D = ggS.drill; if (!D || D.revealed) return;
-  D.revealed = true;
+  D.revealed = true; ggStopTimer();
   const it = D.items[D.idx], ch = GGD[ggChOf(it)] || {};
   const edit = (typeof editModeUnlocked !== 'undefined' && editModeUnlocked) ? '<button class="gg-mini" onclick="ggEditCard()">✎ Edit</button>' : '';
-  document.getElementById('ggAns').innerHTML = '<div class="gg-a"><div class="gg-a-fr">' + it.fr + '</div>' + (it.note ? '<div class="gg-a-note">' + it.note + '</div>' : '') + '</div>'
+  document.getElementById('ggAns').innerHTML = '<div class="gg-a">' + (timedOut === true ? '<div class="vg-timeup">Time\'s up!</div>' : '') + '<div class="gg-a-fr">' + it.fr + '</div>' + (it.note ? '<div class="gg-a-note">' + it.note + '</div>' : '') + '</div>'
     + '<div class="gg-a-foot"><span>📘 ' + ggEsc(ch.title || '') + '</span>' + edit + '</div>';
   if (it.type === 'rule') setTimeout(() => speak(GGL().sayA, GGL().code), 300);
   else setTimeout(() => speak(ggPlain(it.fr), GGL().code), 300);
@@ -10090,6 +10114,7 @@ function ggErrList(errs) {
     + '<div class="gg-err-en">' + p.en + '</div><div class="gg-err-fr">' + p.fr + '</div>' + (p.note ? '<div class="gg-a-note">' + p.note + '</div>' : '') + '</div>').join('');
 }
 function ggErrorReview() {
+  ggStopTimer();
   const D = ggS.drill; if (!D || !D.errors.length) return;
   try { speechSynthesis.cancel(); } catch (e) {}
   D.idx = D.items.length + 1; D.revealed = false;   // stop the keys acting on a card
@@ -10112,6 +10137,7 @@ function ggCopyErrors() {
   if (navigator.clipboard) navigator.clipboard.writeText(text).then(flash).catch(() => { fb(); flash(); }); else { fb(); flash(); }
 }
 function ggSummary() {
+  ggStopTimer();
   const D = ggS.drill, el = document.getElementById('ggApp');
   const total = D.items.length, score = D.ok + Math.round(D.nearly * 0.5), pct = total ? Math.round(score / total * 100) : 0;
   D.revealed = false;
@@ -11477,10 +11503,11 @@ if (window.__voc) window.__voc.lvlOf = function (i, lang) { return vocLvlOf(ALL_
     var s = $('ggSel'); if (s) s.classList.toggle('ms-my', !!ggS.my);
   };
   var gTestOpen = false;
-  function gNarrowSum() { return 'Level: ' + (ggS.lvl === 'all' ? 'Mixed' : GG_LVL_NAME[ggS.lvl]) + ' · Items: ' + (GG_TYPES.filter(function (t) { return t[0] === ggS.type; })[0] || ['', 'All'])[1].replace(/^[^A-Za-z]+/, ''); }
+  function gNarrowSum() { return 'Level: ' + (ggS.lvl === 'all' ? 'Mixed' : GG_LVL_NAME[ggS.lvl]) + ' · Items: ' + (GG_TYPES.filter(function (t) { return t[0] === ggS.type; })[0] || ['', 'All'])[1].replace(/^[^A-Za-z]+/, '') + ' · Timer: ' + ggTimerSecs + 's a card'; }
   function gNarrowInner() {
     return '<div class="aph-label">Level</div><div class="gg-chips">' + ggLvlRow('ggRefreshAct()') + '</div><div class="gg-hint">Easy = one form or a short sentence · Medium = a short sentence or one verb in full · Hard = a trickier grammar point · Mixed = everything.</div>'
-      + '<div class="aph-label">Item type</div><div class="gg-chips">' + ggTypeRow('ggRefreshAct()') + '</div>';
+      + '<div class="aph-label">Item type</div><div class="gg-chips">' + ggTypeRow('ggRefreshAct()') + '</div>'
+      + '<div class="aph-label">Timer per card (Drill)</div><div class="aph-row"><button class="aph-step" onclick="ggAdjustTimer(-5)">&#8722;</button><span class="aph-step-val" id="gg-timer-display">' + ggTimerSecs + 's</span><button class="aph-step" onclick="ggAdjustTimer(5)">+</button></div><div class="gg-hint">When time runs out the answer is shown; then mark yourself as usual.</div>';
   }
   function gMyHtml() { return myBox(G, inSet(G).length, dueCount(G), !!ggS.my); }
   ggActHtml = function () {
@@ -11522,7 +11549,7 @@ if (window.__voc) window.__voc.lvlOf = function (i, lang) { return vocLvlOf(ALL_
       + step(1, 'What do you want to practise?')
       + ggPicker().replace('<div class="gg-pick-h">① Choose your chapters</div>', '')
       + '<div id="ggMy">' + gMyHtml() + '</div>'
-      + '<details class="ms-opts" id="ggNarrow"><summary><span class="ms-gear">🎯</span><span class="ms-st">Narrow the items</span><small id="ggNarrowSum">' + esc(gNarrowSum()) + '</small><span class="ms-chg"></span></summary><div id="ggNarrowIn">' + gNarrowInner() + '</div></details>'
+      + '<details class="ms-opts" id="ggNarrow"><summary><span class="ms-gear">🎯</span><span class="ms-st">Narrow the items and set the timer</span><small id="ggNarrowSum">' + esc(gNarrowSum()) + '</small><span class="ms-chg"></span></summary><div id="ggNarrowIn">' + gNarrowInner() + '</div></details>'
       + step(2, 'How do you want to practise it?')
       + '<div id="ggAct">' + ggActHtml() + '</div>' + edit
       + '</div>'
