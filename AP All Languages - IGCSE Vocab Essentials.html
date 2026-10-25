@@ -4,7 +4,7 @@
 <script id="ap-update">
 /* AP auto-update: if this copy is older than the published version, reload once with the new one (saved answers are kept) */
 (function () {
-  var B = '868771dbf4'; window.AP_BUILD = B;
+  var B = '859dec70ae'; window.AP_BUILD = B;
   function check() {
     if (!/^https?:$/.test(location.protocol) || !window.fetch) return;
     var f = decodeURIComponent(location.pathname.split('/').pop() || '');
@@ -10110,6 +10110,9 @@ window.__voc.speedTest = function (kind, lang, secs, rev, mode, lv, mx) {
 
 /* ---- IGCSE Vocab Essentials additions ---- */
 .ms-hide{display:none!important}
+.gg-chbtn{display:flex;align-items:center;justify-content:center;gap:10px;width:100%;min-height:54px;margin:8px 0 10px;border:0;border-radius:12px;background:#1a2744;color:#ffd76a;font:800 1.0625rem var(--aph-body);cursor:pointer;box-shadow:0 3px 0 #0e1730}
+.gg-chbtn small{font-weight:500;color:#c8d3ea;font-size:.8125rem}
+.gg-chbtn.has{background:#fff;color:#1a2744;border:2px solid #1a2744;box-shadow:none}.gg-chbtn.has small{color:#4a5a7a}
 .ve-setup .ms-typerow{margin:0 0 4px}
 .ve-setup .ms-sub{font-size:.8125rem;font-weight:700;letter-spacing:.09em;text-transform:uppercase;color:#6b7690;margin:12px 0 6px}
 .ms-mybox .ms-brow .aph-note{margin:0}
@@ -10229,8 +10232,10 @@ window.__voc.speedTest = function (kind, lang, secs, rev, mode, lv, mx) {
     if (banner) card.appendChild(banner);
     card.appendChild(s1);
     if (G.modes) { G.modes.classList.add('ms-typerow'); card.appendChild(G.modes); }
-    if (G.head) card.appendChild(G.head);
-    if (G.lists) card.appendChild(G.lists);
+    // one picker only: the big Choose lists button opens the full-screen list chooser; the old Area / group / list menus stay in the page (hidden) for the code that reads them
+    if (G.head) { G.head.classList.add('ms-hide'); card.appendChild(G.head); }
+    if (G.lists) { G.lists.classList.add('ms-hide'); card.appendChild(G.lists); }
+    var chb = document.createElement('button'); chb.id = 'veChBtn'; chb.type = 'button'; chb.className = 'gg-chbtn'; chb.onclick = function () { document.getElementById('igcseTopicModal').style.display = 'block'; }; card.appendChild(chb);
     var my = document.createElement('div'); my.id = 'ms-my'; card.appendChild(my);
     var now = document.createElement('div'); now.className = 'ms-now'; now.id = 'ms-now'; card.appendChild(now);
     card.appendChild(s2); card.appendChild(det);
@@ -10258,8 +10263,9 @@ window.__voc.speedTest = function (kind, lang, secs, rev, mode, lv, mx) {
     var pool = SEL ? window.getSelectedPhrases().length : 0, ok = !!SEL && pool > 0, my = SEL === 'my';
     var pc = $('phrase-count'); if (pc) pc.style.display = SEL ? '' : 'none';
     var typ = vocabMode === 'vocab' ? 'vocab items' : 'practice sentences';
+    var chb = $('veChBtn'); if (chb) { chb.className = 'gg-chbtn' + (SEL && !my ? ' has' : ''); chb.innerHTML = SEL && !my ? '\ud83d\udcda Change lists <small>' + esc(secLabel()) + '</small>' : '\ud83d\udcda Choose lists <small>tick as many as you like</small>'; }
     var now = $('ms-now');
-    if (now) now.innerHTML = !SEL ? 'Choose a list above to unlock the ways to practise it.' : (!pool ? (my ? (S.f === 'all' ? 'Nothing in this part of your set yet (' + typ + ').' : 'No cards match this filter yet.') : 'This selection has no ' + typ + '.') : 'Practising: <b>' + esc(secLabel()) + '</b> · ' + pool + ' ' + typ);
+    if (now) now.innerHTML = !SEL ? 'Press Choose lists to unlock the ways to practise.' : (!pool ? (my ? (S.f === 'all' ? 'Nothing in this part of your set yet (' + typ + ').' : 'No cards match this filter yet.') : 'This selection has no ' + typ + '.') : 'Practising: <b>' + esc(secLabel()) + '</b> · ' + pool + ' ' + typ);
     var mb = $('ms-my'); if (mb) mb.innerHTML = myBox();
     var f = getLangFrom(), t = getLangTo();
     var sm = $('ms-sum'); if (sm) sm.textContent = (_veCount === -1 ? 'All cards' : _veCount + ' cards') + ' · ' + timerSecs + 's a card · ' + (mixMode ? 'Mix English ↔ ' + LANG_NAMES[mixTarget()] + ' ' + mixShare() : LANG_NAMES[f] + ' → ' + LANG_NAMES[t]) + (isAutotime ? ' · Autotime on' : '');

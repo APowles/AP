@@ -6,7 +6,7 @@
 <script id="ap-update">
 /* AP auto-update: if this copy is older than the published version, reload once with the new one (saved answers are kept) */
 (function () {
-  var B = '729d020a07'; window.AP_BUILD = B;
+  var B = 'e96841ec95'; window.AP_BUILD = B;
   function check() {
     if (!/^https?:$/.test(location.protocol) || !window.fetch) return;
     var f = decodeURIComponent(location.pathname.split('/').pop() || '');
@@ -2118,7 +2118,7 @@ var APTT = (function () {
   function open(o, re) {
     if (!o || !o.items || !o.items.length || typeof APPEN === 'undefined' || typeof APMP === 'undefined') return;
     var items = o.items.map(norm);
-    var m = { id: String(o.id || ''), app: o.app || '', kicker: o.kicker || '', title: o.title || '', meta: o.meta || '', detail: o.detail || '', lang: o.lang || '', code: o.langCode || LCODE[o.lang] || '', total: 20, level: o.level || '', set: o.set || null };
+    var m = { id: String(o.id || ''), app: o.app || '', kicker: o.kicker || '', title: o.title || '', meta: o.meta || '', detail: o.detail || '', lang: o.lang || '', code: o.langCode || LCODE[o.lang] || '', total: o.scoreOutOf || 20, head: o.head || '', level: o.level || '', set: o.set || null };
     m.srcId = String((o.set && o.set.src) || m.id || '');
     var src = m.srcId.split('|')[0], VERB = { conj: 1, it: 1, spot: 1, gr: 1 };
     items.forEach(function (it) { it.big = it.kind === 'sentence' || (!VERB[src] && nWords(it.answer) > 2); });
@@ -2215,10 +2215,10 @@ var APTT = (function () {
       + '<div class="aptt-wrap"><div id="aptt-top"><div class="aptt-kick">Eton Spot Test · ' + S.m.title + '</div>'
       + (S.m.level ? '<div class="aptt-level aptt-lv-' + ({ Easy: 'E', Medium: 'M', Hard: 'H', Mixed: 'X' }[String(S.m.level).split(' · ')[0]] || 'X') + '">LEVEL: ' + S.m.level.toUpperCase().replace(' · ', ' · IMPORTANCE: ') + '</div>' : '')
       + '<div class="aptt-att" id="aptt-att"' + (S.att > 1 ? '' : ' hidden') + '>⚠ ATTEMPT ' + (S.att || '') + ' ON THIS TEST</div>'
-      + '<h2 class="aph-h">' + (L ? 'Translate into ' + esc(L) : 'Write your answers') + '</h2>'
+      + '<h2 class="aph-h">' + (S.m.head ? esc(S.m.head) : (L ? 'Translate into ' + esc(L) : 'Write your answers')) + '</h2>'
       + (S.m.meta ? '<div class="aptt-meta">' + S.m.meta + '</div>' : '')
       + (S.m.detail ? '<div class="aptt-detail">' + S.m.detail + '</div>' : '')
-      + '<p class="aptt-instr">' + (L ? 'Translate' : 'Answer') + ' all ' + N + ' ' + noun(N) + (L ? ' into ' + esc(L) : '') + ' with your Apple Pencil (black ink). Then <b>lock in</b>, open the answers, <b>correct in red</b> and <b>mark yourself</b>. Score out of ' + (S.m.total || 10) + '.</p>'
+      + '<p class="aptt-instr">' + (S.m.head ? 'Answer' : L ? 'Translate' : 'Answer') + ' all ' + N + ' ' + noun(N) + (L && !S.m.head ? ' into ' + esc(L) : (S.m.head ? ' (each one says what to do)' : '')) + ' with your Apple Pencil (black ink). Then <b>lock in</b>, open the answers, <b>correct in red</b> and <b>mark yourself</b>. Score out of ' + (S.m.total || 10) + '.</p>'
       + '<div class="aptt-score" id="aptt-score1"' + (S.shown ? '' : ' hidden') + '></div>'
       + '<div class="aptt-legend" id="aptt-legend"' + (S.shown ? '' : ' hidden') + '>' + legend() + '</div></div>'
       + (S.m.set ? '<div class="aptt-mode aptt-setmode" id="aptt-mode"><div class="aptt-set">✅ TEST SET BY YOUR TEACHER' + (S.m.set.code ? ': <b>' + esc(S.m.set.code) + '</b>' : '') + '<span>' + esc(S.m.set.name || plain(S.m.title)) + ' · ⏱ ' + mins + ' minutes</span></div><div class="aptt-mode-b">'
@@ -4533,12 +4533,16 @@ function generateSDSpotTest(timed){
   });
   if(selectedTenses.has('INFINITIVE')) spInfItems().forEach(function(c){ if(!_spotExclude.has(c.inf)) expanded.push({inf:c}); });
   expanded=expanded.filter(function(x){ return apLvOK(x); });
+  var _xq = mode==='exer' && typeof hmCoreQ==='function' && hmCoreQ() && typeof xqSpotItems==='function';
+  var _xqN = _xq ? xqNames() : '';
+  if(_xq) expanded = xqSpotItems();
   if(expanded.length<5){alert(apTestLevel!=='X' ? 'Not enough '+apLvName()+' verbs for the current selection (need at least 5): only '+expanded.length+'.' : 'Not enough verbs for the current selection (need at least 5).');return;}
   var per=Math.min((timed && spSpotPer>=3)?4:spSpotPer,Math.floor(expanded.length/5));
   var perNote=per<spSpotPer?'Only '+expanded.length+' '+(apTestLevel!=='X'?apLvName()+' ':'')+'items in this selection — using '+per+' per box':'';
   var shuffled=[...expanded].sort(function(){return Math.random()-0.5;});
   var items=shuffled.slice(0,5*per);
   var rows=[];for(var i=0;i<5;i++)rows.push(items.slice(i*per,i*per+per).map(function(item){
+    if(item.xqs){ xqFill(item.xqs); return {q:item.xqs.q, a:item.xqs.a}; }
     if(item.inf){ var c=item.inf; return {q: c.en+(c.usage_en?' '+c.usage_en:'')+(spTestOpts.tense?' [Infinitive]':''), a: c.inf}; }
     var v = item.verb, pi = item.personIdx;
     var ans = v.forms[pi];
@@ -4548,14 +4552,16 @@ function generateSDSpotTest(timed){
     var tStr = spTestOpts.tense ? ' [' + (TNAME_ES[v.tense]||v.tense) + ']' : '';
     return {q: conjEnSpanish(v.en, v.tense, pi) + tStr + pStr + iStr, a: ans};
   }));
-  var label='Spanish Verbs'+apLvSuffix();
+  var label='Spanish Verbs'+(_xq ? ': '+_xqN : '')+apLvSuffix();
   var qFlag='&#127468;&#127463;',aFlag='&#127466;&#127480;';
+  if(_xq){ qFlag=''; aFlag=''; }
   if(timed){
     var tns=[].concat(Array.from(selectedTenses)).sort().join(',');
     var tnames=Array.from(selectedTenses).map(function(t){return TNAME_ES[t]||t;}).join(', ');
     var _vd=APTT.verbDetail(items, TNAME_ES, { reg: ({regular:'Regular verbs only',irregular:'Irregular verbs only'}[regFilter]||'') });
-    apttSpot({ id: 'spot|'+tns+'|'+regFilter+'|'+verbSetFilter+'|'+(spTestOpts.tense?'t':'')+(spTestOpts.person?'p':'')+(spTestOpts.inf?'i':'')+'|'+apTestLevel+'|'+(5*per), title: 'Spanish Verbs: '+_vd.short+apLvSuffix(), detail: _vd.detail,
-      meta: qFlag+' → '+aFlag+' &nbsp;·&nbsp; '+tnames+' &nbsp;·&nbsp; 5 × '+per+' = '+(5*per)+' items', lang: 'Spanish', kind: 'word', rows: rows,
+    if(_xq){ _vd.short=_xqN; _vd.detail='<b>Exercises:</b> '+String(_xqN).replace(/&/g,'&amp;').replace(/</g,'&lt;')+' &middot; '+_vd.detail; }
+    apttSpot({ id: (_xq ? 'xq'+Array.from(xqOn).sort().join('')+'|' : '')+'spot|'+tns+'|'+regFilter+'|'+verbSetFilter+'|'+(spTestOpts.tense?'t':'')+(spTestOpts.person?'p':'')+(spTestOpts.inf?'i':'')+'|'+apTestLevel+'|'+(5*per), title: 'Spanish Verbs: '+_vd.short+apLvSuffix(), detail: _vd.detail,
+      meta: (_xq ? _xqN : qFlag+' → '+aFlag)+' &nbsp;·&nbsp; '+tnames+' &nbsp;·&nbsp; 5 × '+per+' = '+(5*per)+' items', lang: 'Spanish', kind: 'word', rows: rows,
       q: function(p){ return p.q; }, a: function(p){ return p.a; } });
     return;
   }
@@ -4588,7 +4594,7 @@ function generateSDSpotTest(timed){
     +'<button class="aph-btn aph-btn-sm" onclick="openSDSpotTestPDF(\'student\')">&#128424; Print / PDF · Student sheet</button>'
     +'<button class="aph-btn aph-btn-sm" onclick="openSDSpotTestPDF(\'teacher\')">&#128424; Print / PDF · Teacher sheet</button>'
     +'</div>'
-    +'<div data-spotper="'+per+'" style="font-size:0.75rem;color:#888;text-transform:uppercase;letter-spacing:0.06em;margin-bottom:8px;">'+qfExpr+' → '+afExpr+' &nbsp;·&nbsp; '+label+' &nbsp;·&nbsp; 5 × '+per+' = '+(5*per)+' items</div>'
+    +'<div data-spotper="'+per+'" style="font-size:0.75rem;color:#888;text-transform:uppercase;letter-spacing:0.06em;margin-bottom:8px;">'+(_xq ? '' : qfExpr+' → '+afExpr+' &nbsp;·&nbsp; ')+label+' &nbsp;·&nbsp; 5 × '+per+' = '+(5*per)+' items</div>'
     +(perNote?'<div style="font-size:0.875rem;color:#b05000;font-weight:600;margin-bottom:8px;">'+perNote+'</div>':'')
     +'<div class="vb-out-label">Student Sheet (preview)</div>'
     +'<div class="vb-out-box">'+to+sr+'</tbody></table></div>'
@@ -7010,8 +7016,8 @@ function hmCoreHtml(left, tenseHtml, more2, cardCount) {
         <button class="hm-tile" onclick="hmPaperSpot()"><b>&#128424; Paper Spot Test</b><small>a quick paper quiz</small></button>
         <button class="hm-tile" onclick="hmSubmittedSpot()"><b>&#9997; Submitted Spot Test</b><small>boys answer and submit</small></button>
         <button class="hm-tile" onclick="openConjChallenge()"><b>&#9889; Eton Speed Challenge</b><small>race the clock</small></button>
-        <button class="hm-tile hm-tile-g" onclick="hmPracticePaper('F')"><b>&#128221; Practice F Paper</b><small>40 questions in the Trials layout</small></button>
-        <button class="hm-tile hm-tile-g" onclick="hmPracticePaper('E')"><b>&#128221; Practice E Paper</b><small>20 verb questions in the Trials layout</small></button>
+        <button class="hm-tile hm-tile-g" onclick="hmTrialsPaper('ftrials')"><b>&#128221; Practice Trials paper &middot; F Block</b><small>40 questions in the Trials layout</small></button>
+        <button class="hm-tile hm-tile-g" onclick="hmTrialsPaper('etrials')"><b>&#128221; Practice Trials paper &middot; E Block</b><small>20 verb questions in the Trials layout</small></button>
         <button class="hm-tile" onclick="showVerbList()"><b>&#128214; View &amp; Print</b><small>the verb tables</small></button>
       </div></div>
     <div class="hm-keys">${vbKeysLegend()}</div>
@@ -7069,6 +7075,17 @@ HMC.past = 'PRETERITE'; HMC.en = function (v, pi) { return conjEnSpanish(v.en, v
 // ───── Practice Trials paper (F-style: 40 questions A–D; E-style: 20 verb questions A–C), new questions every time ─────
 HMC.verbs = function () { return typeof liveVerbs !== 'undefined' ? liveVerbs : VERBS; };
 function hmCap(x) { return x.charAt(0).toUpperCase() + x.slice(1); }
+// the wording of the four kinds of question, shared by the practice paper and the Exercises (Drill, tests, Spot Tests), so they are identical
+var hmQ = {
+  ok: function (f) { return f && f !== '—' && f !== '---'; },
+  en: function (x) { return x.inf ? String(x.v.en).toLowerCase() : HMC.en(x.v, x.pi).replace(/he \(she\)/g, 'he/she').replace(/they \(f\)/g, 'they'); },
+  fr: function (x, pi) { pi = pi === undefined ? x.pi : pi; if (x.inf) return x.v.inf; var subj = x.v.tense === 'PRESENT_SUBJ' || x.v.tense === 'IMP_SUBJ'; return hmCap((subj ? 'que ' : '') + x.v.forms[pi]); },
+  p0: function (x) { var p = HMC.verbs().filter(function (y) { return y.inf === x.v.inf && y.tense === 'PRESENT'; })[0]; return p ? hmCap(p.forms.filter(hmQ.ok)[0] || x.v.inf).toLowerCase() : x.v.inf; },
+  sub: function (pi) { var o = HMC.persons[pi + 1][1].replace(/\)/g, '').split(/ \(|\//).filter(Boolean); return o[Math.floor(Math.random() * o.length)]; },
+  qChange: function (x, pj) { if (pj === undefined) { var c = [0, 1, 2, 3, 4, 5].filter(function (p) { return p !== x.pi && hmQ.ok(x.v.forms[p]); }); pj = c[Math.floor(Math.random() * c.length)]; } return { q: hmQ.fr(x) + ' - (' + hmQ.sub(pj) + ')', a: hmQ.fr(x, pj) }; },
+  qGiven: function (x) { return { q: (x.inf ? String(x.v.en).toLowerCase() : hmQ.en(x)) + '   [' + (x.inf ? hmQ.p0(x) : x.v.inf) + ']', a: x.inf ? x.v.inf : hmQ.fr(x), inf: x.inf }; },
+  qNo: function (x) { return { q: hmQ.en(x), a: hmQ.fr(x), inf: x.inf }; }
+};
 function hmPlan(kind, sec) {
   var P = HMC.past, f = kind === 'F', R = function (n, t) { var a = []; for (var i = 0; i < n; i++) a.push(t); return a; };
   var plans = {
@@ -7099,13 +7116,8 @@ function hmBuildPaper(kind) {
     }); return out;
   }
   function place(S, spots) { var inf = S.filter(function (x) { return x.inf; }), fm = S.filter(function (x) { return !x.inf; }), o = []; for (var i = 0; i < S.length; i++) o.push(spots.indexOf(i) >= 0 && inf.length ? inf.shift() : (fm.shift() || inf.shift())); return o.filter(Boolean); }
-  var en = function (x) { return x.inf ? String(x.v.en).toLowerCase() : HMC.en(x.v, x.pi).replace(/he \(she\)/g, 'he/she').replace(/they \(f\)/g, 'they'); };
-  var fr = function (x, pi) { pi = pi === undefined ? x.pi : pi; return x.inf ? x.v.inf : hmCap(x.v.forms[pi]); };
-  var p0 = function (x) { var p = HMC.verbs().filter(function (y) { return y.inf === x.v.inf && y.tense === 'PRESENT'; })[0]; return p ? hmCap(p.forms.filter(ok)[0] || x.v.inf).toLowerCase() : x.v.inf; };
-  var sub = function (pi) { var o = HMC.persons[pi + 1][1].replace(/\)/g, '').split(/ \(|\//).filter(Boolean); return o[Math.floor(Math.random() * o.length)]; };
-  function qChange(x) { var pj = deal(x.pi); while (!ok(x.v.forms[pj])) pj = deal(x.pi); return { q: hmCap(fr(x)) + ' - (' + sub(pj) + ')', a: fr(x, pj) }; }
-  function qGiven(x) { return { q: (x.inf ? String(x.v.en).toLowerCase() : en(x)) + '   [' + (x.inf ? p0(x) : x.v.inf) + ']', a: x.inf ? x.v.inf : fr(x), inf: x.inf }; }
-  function qNo(x) { return { q: en(x), a: fr(x), inf: x.inf }; }
+  var en = hmQ.en, fr = hmQ.fr, qGiven = hmQ.qGiven, qNo = hmQ.qNo;
+  function qChange(x) { var pj = deal(x.pi); while (!ok(x.v.forms[pj])) pj = deal(x.pi); return hmQ.qChange(x, pj); }
   var Q = { mode: kind, A: [], B: [], C: [], D: [] }, seen = {};
   if (isF) {
     var A = item('A', 'U'), B = item('B', 'E', null, true), C = item('C', 'I'); [A, B, C].forEach(function (S) { S.forEach(function (x) { seen[x.v.inf] = 1; }); });
@@ -7118,11 +7130,19 @@ function hmBuildPaper(kind) {
   }
   return Q;
 }
-function hmPracticePaper(kind) {
-  var Q = hmBuildPaper(kind), isF = kind === 'F', L = HMC.lang, k = 0, off = 0;
+function hmPaperSecs(Q) {   // [letter, title, instruction, questions, verb group, key]
+  var isF = Q.mode === 'F', L = HMC.lang;
   var infNote = function (S, base) { var n = []; S.forEach(function (x, i) { if (x.inf) n.push(base + i + 1); }); return 'The infinitive of the verb is given in [square brackets].' + (n.length ? '  For Q' + n.join(' and Q') + ' the answer is an infinitive, so a present-tense form is given instead.' : ''); };
-  var secs = isF ? [['A', 'Translate into English', 'Translate each ' + L + ' verb form into English.', Q.A, 'Useful'], ['B', 'Change the person', 'Rewrite each verb with the new subject shown in brackets.', Q.B, 'Essential'], ['C', 'Translate into ' + L, infNote(Q.C, Q.A.length + Q.B.length), Q.C, 'Important'], ['D', 'Translate into ' + L, '', Q.D, 'Essential']]
-    : [['Verbs A', 'Change the person', 'Rewrite each verb with the new subject shown in brackets.', Q.A, 'Useful'], ['Verbs B', 'Translate into ' + L, infNote(Q.B, Q.A.length), Q.B, 'Important'], ['Verbs C', 'Translate into ' + L, '', Q.C, 'Essential']];
+  return isF ? [['A', 'Translate into English', 'Translate each ' + L + ' verb form into English.', Q.A, 'Useful', 'A'], ['B', 'Change the person', 'Rewrite each verb with the new subject shown in brackets.', Q.B, 'Essential', 'B'], ['C', 'Translate into ' + L, infNote(Q.C, Q.A.length + Q.B.length), Q.C, 'Important', 'C'], ['D', 'Translate into ' + L, '', Q.D, 'Essential', 'D']]
+    : [['Verbs A', 'Change the person', 'Rewrite each verb with the new subject shown in brackets.', Q.A, 'Useful', 'A'], ['Verbs B', 'Translate into ' + L, infNote(Q.B, Q.A.length), Q.B, 'Important', 'B'], ['Verbs C', 'Translate into ' + L, '', Q.C, 'Essential', 'C']];
+}
+function hmPracticePaper(kind, set) { hmOpenPaper(hmPaperHtml(hmBuildPaper(kind), set, false)); }
+function hmOpenPaper(html) {
+  var w = window.open('', '_blank'); if (!w) { alert('Please allow pop-ups for this page, then try again.'); return; }
+  w.document.open(); w.document.write(html); w.document.close(); w.focus();
+}
+function hmPaperHtml(Q, set, showAns) {
+  var isF = Q.mode === 'F', k = 0, secs = hmPaperSecs(Q), setName = (typeof TR_NAME !== 'undefined' && TR_NAME[set]) ? TR_NAME[set] : '';
   var total = 0; secs.forEach(function (s) { total += s[3].length; });
   var past = HMC.pastLabel + (isF && HMC.fOnly ? ' (avere only)' : '');
   var sub = isF ? '100 CORE VERBS: Infinitives, Present Tense and ' + past + ' Tense' : '100 CORE VERBS: Infinitives, Present, ' + HMC.pastLabel + ', Imperfect and Future Tenses';
@@ -7130,13 +7150,13 @@ function hmPracticePaper(kind) {
     var h = '<h3 style="margin:18px 0 2px;font-size:1.05rem">' + s[0] + '.&nbsp; ' + s[1] + '&nbsp; (Q' + (k + 1) + '–' + (k + s[3].length) + ') <span class="ans" style="font-weight:400;font-size:.8rem;color:#8899bb">' + s[4] + ' verbs</span></h3>' + (s[2] ? '<div style="font-size:.85rem;margin-bottom:6px">' + s[2] + '</div>' : '');
     return h + s[3].map(function (x) { k++; return '<div style="margin:0 0 16px;break-inside:avoid"><b>' + k + '.</b>&nbsp; ' + x.q + '<span class="ans" style="display:none"> &nbsp;→&nbsp; <b style="color:#1a2744">' + x.a + '</b></span><div class="ln" style="border-bottom:1px solid #999;height:20px;margin-top:4px"></div></div>'; }).join('');
   }).join('');
-  var html = '<!DOCTYPE html><html><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>' + HMC.title + ' practice paper</title><style>' + aphCSS() + '</style><style>body{font-family:var(--aph-body);margin:0;padding:28px 36px;color:#1a2744;background:#fff;line-height:1.4}.bar{display:flex;gap:10px;margin:0 0 16px}.bar button{padding:10px 16px;font:600 1rem sans-serif;border:2px solid #1a2744;border-radius:10px;background:#fff;color:#1a2744;cursor:pointer;min-height:44px}@media print{.bar{display:none}@page{margin:1.5cm 1.8cm;size:A4}}body.sa .ans{display:inline!important}body.sa .ln{display:none}body.sa h3 .ans{display:inline!important}</style></head><body>'
-    + '<div class="bar"><button onclick="window.close();setTimeout(function(){if(!window.closed)history.back()},250)">← Back</button><button id="sb" onclick="var s=document.body.classList.toggle(\'sa\');this.textContent=s?\'🙈 Hide answers\':\'👁 Show answers\'">👁 Show answers</button><button onclick="document.body.classList.remove(\'sa\');document.getElementById(\'sb\').textContent=\'👁 Show answers\';window.print()">🖨 Print paper</button><button onclick="document.body.classList.add(\'sa\');document.getElementById(\'sb\').textContent=\'🙈 Hide answers\';window.print()">🖨 Print answers</button></div>'
+  var html = '<!DOCTYPE html><html><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>' + (setName || HMC.title) + ' practice paper' + (showAns ? ' (answers)' : '') + '</title><style>' + aphCSS() + '</style><style>body{font-family:var(--aph-body);margin:0;padding:28px 36px;color:#1a2744;background:#fff;line-height:1.4}.bar{display:flex;gap:10px;margin:0 0 16px}.bar button{padding:10px 16px;font:600 1rem sans-serif;border:2px solid #1a2744;border-radius:10px;background:#fff;color:#1a2744;cursor:pointer;min-height:44px}@media print{.bar{display:none}@page{margin:1.5cm 1.8cm;size:A4}}body.sa .ans{display:inline!important}body.sa .ln{display:none}body.sa h3 .ans{display:inline!important}</style></head><body' + (showAns ? ' class="sa"' : '') + '>'
+    + '<div class="bar"><button onclick="window.close();setTimeout(function(){if(!window.closed)history.back()},250)">← Back</button><button id="sb" onclick="var s=document.body.classList.toggle(\'sa\');this.textContent=s?\'🙈 Hide answers\':\'👁 Show answers\'">' + (showAns ? '🙈 Hide answers' : '👁 Show answers') + '</button><button onclick="document.body.classList.remove(\'sa\');document.getElementById(\'sb\').textContent=\'👁 Show answers\';window.print()">🖨 Print paper</button><button onclick="document.body.classList.add(\'sa\');document.getElementById(\'sb\').textContent=\'🙈 Hide answers\';window.print()">🖨 Print answers</button></div>'
     + '<div style="display:flex;justify-content:space-between;font-weight:700;letter-spacing:.06em;text-transform:uppercase;font-size:.75rem;color:#8899bb"><span>Eton College · Modern Languages</span><span>PRACTICE PAPER</span></div>'
+    + (setName ? '<div style="font-weight:700;letter-spacing:.06em;text-transform:uppercase;font-size:.8rem;margin-top:6px">' + setName + ' · ' + (isF ? 'F' : 'E') + ' ' + HMC.lang + '</div>' : '')
     + '<div style="display:flex;gap:28px;margin:10px 0 4px;font-size:.9rem"><span>Name: ______________________</span><span>Div: ________</span><span>Date: ____________</span><span style="margin-left:auto">Score: ______ / ' + total + '</span></div>'
-    + '<h2 style="margin:8px 0 2px">' + HMC.title.toUpperCase() + ' — ' + (isF ? 'PART I' : 'PART I — VERBS') + '</h2><div style="font-size:.9rem;margin-bottom:6px"><b>' + sub + '</b></div>' + body + '</body></html>';
-  var w = window.open('', '_blank'); if (!w) { alert('Please allow pop-ups for this page, then try again.'); return; }
-  w.document.open(); w.document.write(html); w.document.close(); w.focus();
+    + '<h2 style="margin:8px 0 2px">' + HMC.title.toUpperCase() + ' — ' + (isF ? 'PART I' : 'PART I — VERBS') + (showAns ? ' — ANSWERS' : '') + '</h2><div style="font-size:.9rem;margin-bottom:6px"><b>' + sub + '</b></div>' + body + '</body></html>';
+  return html;
 }
 renderIntro = function () {
   if (apHome === 'landing') { document.getElementById('drill').classList.remove('wide'); document.getElementById('drill').innerHTML = hmLanding(); return; }
@@ -7145,6 +7165,248 @@ renderIntro = function () {
   document.getElementById('drill').innerHTML = hmSetup(pool, cardCount);
 };
 var _hmSQD0 = startQuickDrill; startQuickDrill = function (c) { apHome = 'setup'; return _hmSQD0(c); };
+</script>
+<script id="hm-trials">
+// ═════════ Trials sets, the four Core Exercises (A–D) and the practice Trials paper on screen: the same as in the French verbs app ═════════
+// F Michaelmas Trials: Infinitives, Present and the past tense. E Block Michaelmas Trials: those plus Imperfect and Future. The Summer Trials: the same as E Block Michaelmas.
+var FT_DEF = { ftrials: { t: { INFINITIVE: 1, PRESENT: 1 } }, etrials: { t: { INFINITIVE: 1, PRESENT: 1, IMPERFECT: 1, FUTURE: 1 } } };
+FT_DEF.ftrials.t[HMC.past] = 1; FT_DEF.etrials.t[HMC.past] = 1;
+FT_DEF.fsummer = FT_DEF.etrials; FT_DEF.esummer = FT_DEF.etrials;
+var TR_NAME = { ftrials: 'F Michaelmas Trials', etrials: 'E Block Michaelmas Trials', fsummer: 'F Block Summer Trials', esummer: 'E Block Summer Trials' };
+var TR_KIND = { ftrials: 'F', etrials: 'E', fsummer: 'E', esummer: 'E' };
+var trSet = null;   // the Trials set chosen in FIRST, or null = Choose my own
+function hmIsTrial(m) { return !!TR_NAME[m]; }
+function hmTrialOn() { return hmIsTrial(trSet) && hmIsCore(); }
+function hmCoreQ() { return hmIsCore(); }
+function hmSetName() { return hmTrialOn() ? TR_NAME[trSet] : '100 Core Verbs'; }
+function hmPickTrial(k) {
+  if (!TR_NAME[k]) return;
+  trSet = k; verbSetFilter = HMC.core; vqSync('ALL');
+  selectedTenses = new Set(Object.keys(FT_DEF[k].t));
+  if (mode !== 'exer') mode = 'exer';
+  renderIntro(); try { apLvSync(); } catch (e) { }
+}
+function hmTrialTenses(k) { return HMC.tenses.map(function (t) { return t[0]; }).filter(function (x) { return FT_DEF[k] && FT_DEF[k].t[x]; }).map(function (x) { return HMC.tn[x] || x; }); }
+
+// ───── Exercises A–D (the four kinds of question on the Trials paper), for Drill, Test and the Spot Tests ─────
+var XQ_DEF = [
+  ['A', 'To English', 'A Spanish verb form: give the English.', 'Give the English'],
+  ['B', 'Change person', 'A Spanish verb form and a new subject in brackets: rewrite the verb.', 'Rewrite the verb with the new subject'],
+  ['C', 'Infinitive given', 'English to Spanish, with the infinitive in [brackets].', 'Translate into Spanish (infinitive in [brackets])'],
+  ['D', 'No help', 'English to Spanish, with no clues.', 'Translate into Spanish']
+];
+var HM_EX = { A: 'Cuentas', B: 'Vengo (nosotros)', C: 'We drink [beber]', D: 'We give' };
+var HM_EXSUB = { A: 'Spanish verb in, English out', B: 'Same verb, new subject', C: 'English to Spanish, with a clue', D: 'English to Spanish, no clues' };
+/* The Trials papers' rule: which verb group each exercise uses (F Block paper: A Useful, B Essential, C Important, D Essential; E Block and Summer papers: no A, B Useful, C Important, D Essential) */
+var XQ_RULE = { ftrials: { A: 'U', B: 'E', C: 'I', D: 'E' }, etrials: { B: 'U', C: 'I', D: 'E' } }; XQ_RULE.fsummer = XQ_RULE.etrials; XQ_RULE.esummer = XQ_RULE.etrials;
+var xqOn = new Set(['A', 'B', 'C', 'D']);
+var xqTrialRule = 'paper';   // 'paper' = as in Trials (the rule above) · 'any' = any verb, any exercise (harder)
+function xqRuleOn() { return hmTrialOn() && xqTrialRule === 'paper' && !!XQ_RULE[trSet]; }
+function xqRuleTier(t) { var r = XQ_RULE[trSet]; return r ? (r[t] || null) : null; }
+function xqRuleOK(t, x) { if (!xqRuleOn()) return true; var want = xqRuleTier(t); if (!want) return false; return vqOf(x) === want; }
+function xqRuleText(which) {   // which: 'F', 'E' or nothing (both)
+  var F = '<b>F Block Trials</b> (40 questions): <b>Essential</b> verbs → into Spanish with no help, and change the person · <b>Important</b> → into Spanish with the infinitive given · <b>Useful</b> → into English only.';
+  var E = '<b>E Block and Summer Trials</b> (a shorter paper, 20 verb questions): <b>Essential</b> → into Spanish with no help · <b>Important</b> → into Spanish with the infinitive given · <b>Useful</b> → change the person (nothing into English).';
+  if (which === 'F') return F; if (which === 'E') return E; return F + '<br>' + E;
+}
+function xqSetRule(r) { xqTrialRule = r; try { localStorage.setItem('apsv_xqrule', r); } catch (e) { } xqRefresh(); }
+try { var _xr = localStorage.getItem('apsv_xqrule'); if (_xr === 'any' || _xr === 'paper') xqTrialRule = _xr; } catch (e) { }
+function xqNm(t) { return XQ_DEF.filter(function (x) { return x[0] === t; })[0][1]; }
+function xqToggle(t) { if (mode !== 'exer') { mode = 'exer'; xqRefresh(); return; } if (xqOn.has(t)) { if (xqOn.size > 1) xqOn.delete(t); } else xqOn.add(t); xqRefresh(); }
+function xqRefresh() { renderIntro(); }
+function xqOK(v, p) { return !!hmQ.ok(v.forms[p]); }
+function xqPersons(v) { var pf = _personFilter, all = [0, 1, 2, 3, 4, 5].filter(function (p) { return xqOK(v, p); }); return pf === 'ALL' ? all : all.filter(function (p) { return p === parseInt(pf, 10); }); }
+function xqVerbs(useLv) {
+  var ts = new Set(Array.from(selectedTenses).filter(function (t) { return t !== 'INFINITIVE'; }));
+  return VERBS.filter(function (v) { return v.tense !== 'SET' && v.tense !== 'INFINITIVE' && v.group !== 'structures' && v.forms && ts.has(v.tense) && vsOK(v) && (regFilter === 'all' || classifyNote(v.note) === regFilter) && (!useLv || apLvOK(v)); });
+}
+function xqInfs(useLv) {
+  if (!selectedTenses.has('INFINITIVE')) return [];
+  return spInfDrillCards().filter(function (c) { return c.group !== 'structures' && (!useLv || apLvOK(c)); });
+}
+// every possible question for one exercise type (cheap objects; the wording is made later by xqFill)
+function xqSpecs(t, useLv) {
+  var out = [];
+  xqVerbs(useLv).forEach(function (v) {
+    if (!xqRuleOK(t, v)) return;
+    if (t === 'B' && v.forms.filter(function (f, p) { return xqOK(v, p); }).length < 2) return;
+    xqPersons(v).forEach(function (p) { out.push({ xq: true, t: t, v: v, pi: p }); });
+  });
+  if (t !== 'B') xqInfs(useLv).forEach(function (c) { if (xqRuleOK(t, c)) out.push({ xq: true, t: t, c: c, isInf: true }); });
+  return out;
+}
+// "All": every person of every chosen verb in every chosen tense, once each, with a random ticked exercise given to each form
+function xqAllForms(useLv) {
+  var types = XQ_DEF.map(function (x) { return x[0]; }).filter(function (t) { return xqOn.has(t); }), out = [];
+  var pick = function (ok, x) { var a = types.filter(function (t) { return ok(t) && (!x || xqRuleOK(t, x)); }); return a.length ? a[Math.floor(Math.random() * a.length)] : null; };
+  xqVerbs(useLv).forEach(function (v) {
+    var multi = v.forms.filter(function (f, p) { return xqOK(v, p); }).length >= 2;
+    xqPersons(v).forEach(function (p) { var t = pick(function (t) { return t !== 'B' || multi; }, v); if (t) out.push({ xq: true, t: t, v: v, pi: p }); });
+  });
+  xqInfs(useLv).forEach(function (c) { var t = pick(function (t) { return t !== 'B'; }, c); if (t) out.push({ xq: true, t: t, c: c, isInf: true }); });
+  return out;
+}
+function xqPool() { var n = 0; if (_selectedCount === -1) return { length: xqAllForms(false).length }; xqOn.forEach(function (t) { n += xqSpecs(t).length; }); return { length: n }; }
+function xqTenseNames() { return HMC.tenses.map(function (t) { return t[0]; }).filter(function (k) { return selectedTenses.has(k); }).map(function (k) { return HMC.tn[k] || k; }).join(', '); }
+function xqNames() { return XQ_DEF.filter(function (x) { return xqOn.has(x[0]); }).map(function (x) { return x[1]; }).join(' + '); }
+function xqScope() { var g = vqTierText(); return hmSetName() + (hmTrialOn() && mode === 'exer' ? (xqRuleOn() ? ' · as in Trials' : ' · any verb, any exercise') : '') + (g ? ' · ' + g : '') + ' · ' + xqTenseNames(); }
+// the wording of one question, exactly as on the practice paper (hmQ)
+function xqFill(s) {
+  var t = s.t, d = XQ_DEF.filter(function (x) { return x[0] === t; })[0], q;
+  s.name = d[1]; s.ask = d[3];
+  if (s.isInf) {
+    var c = s.c, x = { v: { inf: c.inf, en: c.en }, inf: true }; s.tense = 'INFINITIVE';
+    if (t === 'A') { s.q = c.inf; s.a = hmQ.en(x); s.sayQ = c.inf; s.qLang = 'es'; s.aLang = 'en'; }
+    else { q = t === 'C' ? hmQ.qGiven(x) : hmQ.qNo(x); s.q = q.q; s.a = q.a; s.sayQ = hmQ.en(x); s.qLang = 'en'; s.aLang = 'es'; }
+  } else {
+    var v = s.v, y = { v: v, pi: s.pi, inf: false }; s.tense = v.tense;
+    if (t === 'A') { s.q = hmQ.fr(y); s.a = hmQ.en(y); s.sayQ = s.q; s.qLang = 'es'; s.aLang = 'en'; }
+    else if (t === 'B') { q = hmQ.qChange(y); s.q = q.q; s.a = q.a; s.sayQ = hmQ.fr(y); s.qLang = 'es'; s.aLang = 'es'; }
+    else { q = t === 'C' ? hmQ.qGiven(y) : hmQ.qNo(y); s.q = q.q; s.a = q.a; s.sayQ = hmQ.en(y); s.qLang = 'en'; s.aLang = 'es'; }
+  }
+  s.en = s.q; s.inf = s.a;   // what the end-of-drill list shows
+  return s;
+}
+function xqDeck(count) {
+  if (count === -1) return shuffle(xqAllForms(false)).map(xqFill);
+  var lists = [], types = XQ_DEF.map(function (x) { return x[0]; }).filter(function (t) { return xqOn.has(t); });
+  types.forEach(function (t) { lists.push(shuffle(xqSpecs(t))); });
+  var mixed = [], more = true;
+  for (var i = 0; more; i++) { more = false; lists.forEach(function (L) { if (i < L.length) { mixed.push(L[i]); more = true; } }); }
+  var n = Math.min(count, mixed.length);
+  return shuffle(mixed.slice(0, n)).map(xqFill);
+}
+function startXqDrill(count) {
+  if (selectedTenses.size === 0) { alert('Please select at least one tense.'); return; }
+  sessionEditCount = 0; isLeisureMode = false;
+  deck = xqDeck(count);
+  if (!deck.length) { alert('No cards for this selection.'); return; }
+  idx = 0; got = 0; nearly = 0; errors = 0; total = 0; majorErrorDeck = []; revealed = false; showCard();
+}
+function showXqCard(item, progress) {
+  document.getElementById('drill').innerHTML = vbBar(true) + vbProgress(progress) + `
+    <div class="aph-drill"><div class="aph-drill-main">
+    <div class="card aph-qcard vb-card">
+      <span class="vb-badge badge-${item.tense}">${SENT_TENSE_LABELS[item.tense] || (item.tense === 'INFINITIVE' ? 'Infinitive' : item.tense)}</span>
+      <div class="aph-qmeta">Card ${idx + 1} of ${deck.length} · ${item.name}</div>
+      <div class="aph-prompt card-question">${item.q}</div>
+      <div class="card-sub">${item.ask}</div>
+      <div id="answerArea"></div>
+      ${vbTimer()}
+    </div>
+    <button class="aph-btn aph-btn-primary aph-btn-block vb-reveal" id="revealBtn" onclick="revealXq()">Show Answer</button>
+    <div id="feedbackRow" style="display:none">${vbMarkRow()}</div>
+    </div>${vbSideKeys()}</div>`;
+  setTimeout(function () { (item.qLang === 'es' ? speak : speakEn)(item.sayQ); }, 300);
+  startCardTimer(function () { if (!revealed) revealXq(); });
+}
+function revealXq() {
+  revealed = true;
+  var item = deck[idx];
+  document.getElementById('answerArea').innerHTML = '<div class="big-answer">' + item.a + '</div>';
+  document.getElementById('revealBtn').style.display = 'none';
+  document.getElementById('feedbackRow').style.display = 'flex';
+  var say = function () { (item.aLang === 'es' ? speak : speakEn)(item.a); };
+  setTimeout(say, 200); vbReplay('🔊 Replay', say);
+}
+// the drill engine: an Exercises card is shown, revealed and marked by the functions above
+var _xqShowCard0 = showCard;
+showCard = function () {
+  if (idx < deck.length && deck[idx] && deck[idx].xq) { revealed = false; document.getElementById('drill').classList.remove('wide'); showXqCard(deck[idx], idx / deck.length * 100); return; }
+  return _xqShowCard0.apply(this, arguments);
+};
+var _xqMark0 = mark;
+mark = function (r) { if (!revealed && deck[idx] && deck[idx].xq) { if (timerInterval) clearInterval(timerInterval); revealXq(); return; } return _xqMark0.apply(this, arguments); };
+var _xqSQD0 = startQuickDrill;
+startQuickDrill = function (count) { if (mode === 'exer' && hmCoreQ()) { apHome = 'setup'; startXqDrill(count); return; } return _xqSQD0.apply(this, arguments); };
+var _xqSD0 = startDrill;
+startDrill = function () { if (mode === 'exer' && hmCoreQ()) return startXqDrill(_selectedCount); return _xqSD0.apply(this, arguments); };
+
+// ── Test: a paper from the chosen exercises (Test tile and Generate Test), shown like the ordinary test with its answers behind Show answers ──
+function xqInstr(t) { return t === 'A' ? 'Translate each Spanish verb form into English.' : t === 'B' ? 'Rewrite each verb with the new subject shown in brackets.' : t === 'C' ? 'The infinitive of the verb is given in [square brackets].' : 'Translate into Spanish.'; }
+function xqPaper(n) {
+  var types = XQ_DEF.map(function (x) { return x[0]; }).filter(function (t) { return xqOn.has(t); }), per = Math.floor(n / types.length), extra = n - per * types.length;
+  var used = {}, shownInf = {}, sections = [];
+  types.forEach(function (t, i) {
+    var want = per + (i < extra ? 1 : 0), L = shuffle(xqSpecs(t, true)), items = [];
+    var take = function (avoid) { for (var k = 0; k < L.length && items.length < want; k++) { var s = L[k], key = s.isInf ? s.c.inf : s.v.inf; if (s._u || used[key] || (avoid && shownInf[key])) continue; s._u = 1; used[key] = 1; items.push(xqFill(s)); } };
+    take(t === 'D'); if (items.length < want) take(false);
+    for (var k = 0; items.length < want && k < L.length; k++) if (!L[k]._u) { L[k]._u = 1; items.push(xqFill(L[k])); }
+    if (t !== 'D') items.forEach(function (s) { shownInf[s.isInf ? s.c.inf : s.v.inf] = 1; });
+    sections.push({ k: t, name: xqNm(t), instr: xqInstr(t), items: items });
+  });
+  return sections.filter(function (s) { return s.items.length; });
+}
+function generateXqTest() {
+  var count = spTestCount === 'custom' ? (parseInt(document.getElementById('tcCustomInput').value, 10) || 10) : spTestCount;
+  var P = xqPaper(count), out = document.getElementById('spTestOutput'); if (!out) return;
+  var n = 0; P.forEach(function (s) { n += s.items.length; });
+  if (!n) { alert(apTestLevel !== 'X' ? 'No ' + apLvName() + ' verbs in this selection.' : 'No verbs available.'); return; }
+  var sep = '────────────────────────────────────────────────────────';
+  var scope = xqScope(), sheet = '', answers = '', k = 0;
+  plainSheet = 'Spanish Verb Exercises · ' + scope + '\n' + sep + '\n'; plainAnswers = 'Spanish Verb Exercises · ' + scope + ' — Answer Sheet\n' + sep + '\n';
+  spanishTestItems = []; spanishTestLabel = scope;
+  P.forEach(function (S) {
+    sheet += '<div style="margin:6px 0 2px"><b>' + S.k + '. ' + S.name + '</b> <span class="vb-light">' + S.instr + '</span></div>';
+    answers += '<div style="margin:6px 0 2px"><b>' + S.k + '. ' + S.name + '</b></div>';
+    plainSheet += '\n' + S.k + '. ' + S.name + ' — ' + S.instr + '\n'; plainAnswers += '\n' + S.k + '. ' + S.name + '\n';
+    S.items.forEach(function (x) {
+      k++; var num = (k < 10 ? ' ' + k : '' + k);
+      spanishTestItems.push({ q: x.q + ' <span style="color:#8899bb;font-size:.85em">(' + S.name + ')</span>', a: x.a });
+      sheet += '<div class="vb-out-row"><span class="n">' + k + '.</span><span class="q">' + x.q + '</span><span class="ln">&nbsp;</span></div>';
+      answers += '<div class="vb-out-row"><span class="n">' + k + '.</span><span class="qa">' + x.q + '</span> <span class="ar">→</span> <strong>' + x.a + '</strong></div>';
+      plainSheet += '\n' + num + '.  ' + x.q + '\n\n      ____________________________________\n'; plainAnswers += '\n' + num + '.  ' + x.q + '  →  ' + x.a + '\n';
+    });
+  });
+  out.removeAttribute('data-sent');
+  out.innerHTML = '<div class="vb-out-btns">'
+    + '<button class="aph-btn aph-btn-sm" onclick="copySpTest(\'sheet\')">Copy test sheet</button>'
+    + '<button class="aph-btn aph-btn-sm" onclick="copySpTest(\'answers\')">Copy answer sheet</button>'
+    + '<button class="aph-btn aph-btn-sm" onclick="openSpanishTestPDF(\'questions\')">&#128424; Print / PDF · Questions</button>'
+    + '<button class="aph-btn aph-btn-sm" onclick="openSpanishTestPDF(\'answers\')">&#128424; Print / PDF · Answers</button>'
+    + '<button class="aph-btn aph-btn-sm" onclick="generateSpanishTest()">🔀 New paper</button>'
+    + '</div>'
+    + '<div style="font-size:0.75rem;color:#888;text-transform:uppercase;letter-spacing:0.06em;margin-bottom:10px;">' + scope + ' &nbsp;&middot;&nbsp; ' + n + ' questions' + apLvSuffix() + '</div>'
+    + apLvNoteHtml(n, count)
+    + '<div class="vb-out-label">Test Sheet</div><div class="vb-out-box">' + sheet + '</div>'
+    + '<div class="vb-out-label">Answer Sheet</div><div class="vb-out-box">' + answers + '</div>';
+  out.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+}
+var _xqGST0 = generateSpanishTest;
+generateSpanishTest = function () { if (mode === 'exer' && hmCoreQ()) return generateXqTest(); return _xqGST0.apply(this, arguments); };
+// the Spot Tests (paper and Apple Pencil) draw their items from the ticked exercises
+function xqSpotItems() { var out = []; XQ_DEF.forEach(function (d) { if (!xqOn.has(d[0])) return; xqSpecs(d[0], true).forEach(function (s) { out.push(s.isInf ? { inf: s.c, xqs: s } : { verb: s.v, personIdx: s.pi, xqs: s }); }); }); return out; }
+
+// ───── The practice Trials paper on screen (Print / PDF, a new paper, Show answers, Do it with Apple Pencil) ─────
+function hmTrialsPaper(m) {
+  window._trMode = TR_NAME[m] ? m : 'ftrials';
+  var tp = document.getElementById('testPanel'); tp.style.display = 'block'; renderSpTestTenses(); spSwitchTab('conj');
+  generateTrialsPaper();
+  var o = document.getElementById('spTestOutput'); if (o && o.scrollIntoView) o.scrollIntoView({ block: 'start' });
+}
+function generateTrialsPaper() {
+  var vm = window._trMode || 'ftrials', Q = hmBuildPaper(TR_KIND[vm] || 'F'); window._trials = Q;
+  var out = document.getElementById('spTestOutput'); if (!out) return;
+  out.removeAttribute('data-sent');
+  var S = hmPaperSecs(Q), n = 0; S.forEach(function (s) { n += s[3].length; });
+  out.innerHTML = '<div class="vb-out-btns"><button class="aph-btn aph-btn-sm" onclick="openTrialsPDF(\'questions\')">🖨 Print / PDF · Paper</button><button class="aph-btn aph-btn-sm" onclick="openTrialsPDF(\'answers\')">🖨 Print / PDF · Answers</button><button class="aph-btn aph-btn-sm" onclick="generateTrialsPaper()">🔀 New practice Trials paper</button><button class="aph-btn aph-btn-sm" onclick="hmShowAnswers(this)">👁 Show answers</button></div>'
+    + '<button class="aph-btn aph-btn-primary aph-btn-block tr-penbtn" onclick="hmTrialsPaperPen()">&#9997; Do it with Apple Pencil <small>timed or untimed &middot; mark it yourself &middot; hand in as a PDF if required</small></button>'
+    + '<div class="vb-out-label">' + TR_NAME[vm] + ' · ' + (Q.mode === 'E' ? 'Verbs' : 'Part I') + ' · ' + n + ' questions (practice paper, new questions each time)</div><div class="vb-out-box">' + (function () { var k = 0; return S.map(function (sec) { return '<div style="margin:6px 0 2px"><b>' + sec[0] + '. ' + sec[1] + '</b> <span class="vb-light">(' + sec[4] + ' verbs)</span></div>' + sec[3].map(function (x) { k++; return '<div class="vb-out-row"><span class="q">' + k + '. ' + x.q + '</span><span class="vb-ans" style="display:none"> <span class="ar">→</span> <strong>' + x.a + '</strong></span></div>'; }).join(''); }).join(''); })() + '</div>';
+}
+function hmShowAnswers(b) { var o = document.getElementById('spTestOutput'); if (!o) return; var show = b.getAttribute('data-on') !== '1'; o.querySelectorAll('.vb-ans').forEach(function (e) { e.style.display = show ? '' : 'none'; }); b.setAttribute('data-on', show ? '1' : '0'); b.textContent = show ? '🙈 Hide answers' : '👁 Show answers'; }
+function openTrialsPDF(kind) {
+  var Q = window._trials; if (!Q) { generateTrialsPaper(); Q = window._trials; } if (!Q) return;
+  hmOpenPaper(hmPaperHtml(Q, window._trMode || 'ftrials', kind === 'answers'));
+}
+function hmTrialsPaperPen() {
+  if (!window.APTT || !APTT.open) { alert('The Apple Pencil test is not available on this page.'); return; }
+  var vm = window._trMode || 'ftrials', Q = window._trials; if (!Q) { Q = hmBuildPaper(TR_KIND[vm] || 'F'); window._trials = Q; }
+  var S = hmPaperSecs(Q), items = [];
+  S.forEach(function (sec) { (sec[3] || []).forEach(function (x) { items.push({ prompt: x.q, answer: x.a, kind: 'word', label: sec[1], html: true }); }); });
+  if (!items.length) { alert('Choose a Trials set first.'); return; }
+  var n = items.length;
+  APTT.open({ id: 'conj|' + TR_NAME[vm] + ' · Practice Trials paper|' + vm + '|' + n, app: APTT_APP, kicker: APTT_KICK, title: TR_NAME[vm] + ' · Practice Trials paper', meta: S.length + ' × ' + Math.ceil(n / S.length) + ' = ' + n + ' items', detail: 'Exactly like the real paper: ' + S.map(function (sec) { return sec[0] + ' ' + sec[1] + ' (' + sec[4] + ' verbs)'; }).join(' · '), lang: 'Spanish', items: items, total: n, scoreOutOf: n, head: 'Practice Trials paper', level: '' });
+}
 </script>
 
 <script>
@@ -7311,6 +7573,27 @@ if (window.__cj && window.__cj.inSet) { var _vqInSet0 = window.__cj.inSet; windo
 .ms-card .ms-viewrow .aph-btn[disabled]{opacity:.45}
 .ms-card .ms-tile.ms-drill{--tc:#e0a81f}
 .ms-card .hm-row{align-items:center;gap:8px 14px}
+/* Trials sets and the four Core Exercises, as in the French verbs app */
+.hm-seg2{margin-left:auto;display:inline-flex;border:2px solid var(--navy);border-radius:12px;overflow:hidden}
+.hm-seg2 button{padding:10px 18px;font:600 1rem var(--aph-body);border:0;background:#fff;color:var(--navy);cursor:pointer;min-height:44px}
+.hm-seg2 button.on{background:var(--navy);color:#fff}
+.hm-rule{margin:0 0 8px}.hm-rule button{padding:8px 14px;font-size:.9375rem}
+.hm-extier{font-weight:600;color:#8a6d00;font-size:.9rem}
+.hm-ex.off{opacity:.45;cursor:default}
+.hm-rulenote{font-size:.9rem;color:#4a5a7a;background:#fff8e6;border:1.5px solid #e6c15a;border-radius:10px;padding:8px 12px;margin:8px 0 10px;line-height:1.45}
+.hm-paperbtn{display:block;width:100%;text-align:left;background:#1a2744;color:#fff;border:0;border-radius:14px;padding:14px 18px;margin:0 0 12px;cursor:pointer;box-shadow:0 4px 0 #c9a84c}
+.hm-paperbtn-t{display:block;font:700 1.15rem var(--aph-display,serif);color:#ffd76a}.hm-paperbtn-s{display:block;font:500 .9rem var(--aph-body);color:#dbe3f5;margin-top:3px}
+.hm-trgrid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;margin:6px 0}
+.hm-trbtn{min-height:56px;border-radius:12px;border:2px solid var(--navy);background:#fff;color:var(--navy);font:700 1.05rem var(--aph-body);cursor:pointer}
+.hm-trbtn.on{background:var(--gold2);color:var(--navy);border-color:var(--gold)}
+.hm-lock{margin:6px 0;padding:10px 14px;border-radius:10px;background:#f3f5fb;color:var(--navy);font-size:1rem}
+.ms-segrow{display:flex;flex-wrap:wrap;align-items:center;gap:10px 14px;margin:6px 0 4px}
+.ms-segrow .hm-seg2{margin-left:0}
+.ms-card .hm-exgrid{margin:10px 0 2px}
+.ms-card .hm-trgrid{margin:8px 0}
+.ms-card .hm-lock{margin:6px 0}
+.ms-kinds.ms-k5{grid-template-columns:repeat(5,minmax(0,1fr))}
+.tr-penbtn{margin:10px 0 12px}.tr-penbtn small{display:block;font-weight:500;font-size:.8rem;opacity:.85}
 </style><script id="ap-setup">
 (function () {
   'use strict';
@@ -7334,9 +7617,11 @@ if (window.__cj && window.__cj.inSet) { var _vqInSet0 = window.__cj.inSet; windo
   var GRP = [['E1', 'Essential 1', 'the first 20 verbs', 20], ['E2', 'Essential 2', 'the second 20 verbs', 20], ['I', 'Important', 'the next 30 verbs', 30], ['U', 'Useful', 'the last 30 verbs', 30]];
   var SETS = [['all', 'All Verbs', 'the 100 Core Verbs and the rest'], ['Top Structures', 'Specialist Verb Structures', 'set phrases such as aprovechar X'], ['Both', 'Both', 'all verbs and the structures']];
   var KINDS = [['single', 'Single form', 'One English form, give the Spanish', 's'], ['full', 'Full (6 forms)', 'See the English, say all six persons', 'f'], ['inf', 'Infinitives', 'What is the Spanish infinitive?', 'i'], ['sentences', 'Sentences', 'Gap-fill sentences', 'z']];
+  var KIND_CORE = [['exer', 'Trials-style exercises', 'The four kinds of question on the Trials paper', 's']].concat(KINDS);   // 100 Core Verbs: the four Trials exercises come first
+  function kindsFor(my, core) { return !my && core ? KIND_CORE : KINDS; }
   var TNAME = { PRESENT: 'Present', PRETERITE: 'Preterite', IMPERFECT: 'Imperfect', PERFECT: 'Perfect', FUTURE: 'Future', COND: 'Conditional', PRESENT_SUBJ: 'Pres. Subj.', IMP_SUBJ: 'Imp. Subj.', INFINITIVE: 'Infinitives', SET: 'Set structure' };
   function msIsMy() { return msMy && apHome === 'setup'; }
-  function verbsChosen() { return msMy || (msDoor === 'core' ? msCore.size > 0 : msDoor === 'all' ? msSetPick : false); }
+  function verbsChosen() { return msMy || (msDoor === 'core' ? (hmTrialOn() || msCore.size > 0) : msDoor === 'all' ? msSetPick : false); }
   function tensesOK() { return mode === 'inf' || selectedTenses.size > 0; }
   function kindKey(m) { for (var i = 0; i < KINDS.length; i++) if (KINDS[i][0] === m) return KINDS[i][3]; return 's'; }
 
@@ -7351,6 +7636,7 @@ if (window.__cj && window.__cj.inSet) { var _vqInSet0 = window.__cj.inSet; windo
   }
   function keyOf(it) {
     if (!it) return null;
+    if (it.xq) { if (it.isInf && it.c) return 'i~V~' + it.c.inf; if (it.v && it.pi != null) return 's~' + gk(it.v) + '~' + it.v.inf + '~' + it.v.tense + '~' + vh(it.v) + '~' + it.pi; return null; }
     if (it.isInfinitive) return 'i~' + gk(it) + '~' + it.inf;
     if (it.verb && it.personIdx != null) return 's~' + gk(it.verb) + '~' + it.verb.inf + '~' + it.verb.tense + '~' + vh(it.verb) + '~' + it.personIdx;
     if (it.pre != null && it.answer != null) return 'z~' + gk(it) + '~' + it.inf + '~' + it.tense + '~' + it.pi + '~' + it.answer;
@@ -7380,10 +7666,23 @@ if (window.__cj && window.__cj.inSet) { var _vqInSet0 = window.__cj.inSet; windo
   function passF(k) { var l = S.c[k].l || 2; return S.f === 'all' ? true : S.f === 'due' ? dueNow(k) : S.f === '3' ? l === 3 : l >= 2; }
   function myPool(kind) { return ids().filter(function (k) { return k[0] === kind && passF(k); }).map(resolve).filter(Boolean); }
   function kindCount(kind) { return ids().filter(function (k) { return k[0] === kind; }).length; }
+  function exerCards() {
+    var out = [];
+    xqVerbs(false).forEach(function (v) { xqPersons(v).forEach(function (p) { out.push({ verb: v, personIdx: p }); }); });
+    xqInfs(false).forEach(function (c) { out.push(c); });
+    return out;
+  }
   function curPool() {
     if (msIsMy()) return myPool(kindKey(mode));
     if (!verbsChosen() || !tensesOK()) return [];
+    if (mode === 'exer' && msDoor === 'core') return exerCards();
     return HMC.pool();
+  }
+  function countPool() {
+    if (msIsMy()) return myPool(kindKey(mode)).length;
+    if (!verbsChosen() || !tensesOK()) return 0;
+    if (mode === 'exer' && msDoor === 'core') return xqPool().length;
+    return curPool().length;
   }
 
   // ---- marking in any drill feeds the personalised set
@@ -7430,12 +7729,12 @@ if (window.__cj && window.__cj.inSet) { var _vqInSet0 = window.__cj.inSet; windo
     msMy = false; tenseBak = null;
     if (verbSetFilter === 'Eton F Verbs') { msDoor = 'core'; msCore = new Set(vqSel); } else { msDoor = 'all'; msSetPick = true; }
   }
-  function enterMy() { if (!msMy) { tenseBak = Array.from(selectedTenses); if (!selectedTenses.size) selectedTenses = new Set(['PRESENT']); } msMy = true; }
+  function enterMy() { if (!msMy) { tenseBak = Array.from(selectedTenses); if (!selectedTenses.size) selectedTenses = new Set(['PRESENT']); } msMy = true; if (mode === 'exer') mode = 'single'; }
   function leaveMy() { if (msMy) { msMy = false; if (tenseBak) selectedTenses = new Set(tenseBak); tenseBak = null; } }
 
   // ---- door opening: nothing is preselected
   window.hmOpen = function (door) {
-    apHome = 'setup'; msDoor = door; msMy = false; tenseBak = null; msCore = new Set(); msSetPick = false; note = '';
+    apHome = 'setup'; msDoor = door; msMy = false; tenseBak = null; msCore = new Set(); msSetPick = false; note = ''; trSet = null; hmVList = false;
     selectedTenses = new Set(); mode = 'single';
     verbSetFilter = door === 'core' ? 'Eton F Verbs' : 'all';
     try { vqSync('ALL'); } catch (e) { }
@@ -7451,6 +7750,11 @@ if (window.__cj && window.__cj.inSet) { var _vqInSet0 = window.__cj.inSet; windo
     vqRefresh();
   }
   window.msPickSet = function (k) { leaveMy(); msSetPick = true; setVerbSetFilter(k); };
+  window.msOwn = function () {
+    leaveMy(); trSet = null; msCore = new Set(); selectedTenses = new Set(); hmVList = false;
+    try { vqSync('ALL'); } catch (e) { } renderIntro();
+  };
+  window.msTrial = function (k) { leaveMy(); hmPickTrial(k); };
   window.msKind = function (m) { hmMode(m); };
   window.msTense = function (t) { introToggleTense(t); };
   window.msTg = function (d) { setOpen = d.open; };
@@ -7495,10 +7799,10 @@ if (window.__cj && window.__cj.inSet) { var _vqInSet0 = window.__cj.inSet; windo
 
   function selText() {
     var parts = [];
-    var kn = KINDS.filter(function (k) { return k[0] === mode; })[0]; parts.push(kn ? kn[1] : mode);
+    var kn = KIND_CORE.filter(function (k) { return k[0] === mode; })[0]; parts.push(kn ? kn[1] : mode);
     if (msMy) parts.push('my personalised set');
     else {
-      if (msDoor === 'core') parts.push(msCore.size === 4 ? 'all 100 Core Verbs' : GRP.filter(function (g) { return msCore.has(g[0]); }).map(function (g) { return g[1]; }).join(' + '));
+      if (msDoor === 'core') parts.push(hmTrialOn() ? TR_NAME[trSet] + (mode === 'exer' ? (xqRuleOn() ? ' · as in Trials' : ' · any verb, any exercise') : '') : (msCore.size === 4 ? 'all 100 Core Verbs' : GRP.filter(function (g) { return msCore.has(g[0]); }).map(function (g) { return g[1]; }).join(' + ')));
       else parts.push(SETS.filter(function (s) { return s[0] === verbSetFilter; }).map(function (s) { return s[1]; })[0] || '');
       if (mode !== 'inf') parts.push(HMC.tenses.map(function (t) { return t[0]; }).filter(function (k) { return selectedTenses.has(k); }).map(function (k) { return HMC.tn[k] || k; }).join(', '));
     }
@@ -7506,7 +7810,7 @@ if (window.__cj && window.__cj.inSet) { var _vqInSet0 = window.__cj.inSet; windo
   }
   function sumText() {
     var reg = { regular: 'Regular only', radical: 'Radical only', irregular: 'Irregular only' }[regFilter];
-    return (_selectedCount === -1 ? 'All cards' : _selectedCount + ' cards') + ' · ' + timerSecs + 's a card' + (reg && !msIsMy() && mode !== 'inf' ? ' · ' + reg : '') + (mode === 'single' && _personFilter !== 'ALL' && !msIsMy() ? ' · ' + HMC.persons.filter(function (p) { return p[0] === _personFilter; })[0][1] : '') + (isAutotime ? ' · Autotime on' : '');
+    return (_selectedCount === -1 ? 'All cards' : _selectedCount + ' cards') + ' · ' + timerSecs + 's a card' + (reg && !msIsMy() && mode !== 'inf' ? ' · ' + reg : '') + ((mode === 'single' || mode === 'exer') && _personFilter !== 'ALL' && !msIsMy() ? ' · ' + HMC.persons.filter(function (p) { return p[0] === _personFilter; })[0][1] : '') + (isAutotime ? ' · Autotime on' : '');
   }
 
   function myBox(on) {
@@ -7520,45 +7824,69 @@ if (window.__cj && window.__cj.inSet) { var _vqInSet0 = window.__cj.inSet; windo
   }
 
   function renderSetup() {
-    var my = msIsMy(), core = msDoor === 'core';
-    var pool = curPool(), n = pool.length, usable = verbsChosen() && tensesOK() && n > 0;
-    var cards = _selectedCount === -1 ? n : Math.min(_selectedCount, n);
+    var my = msIsMy(), core = msDoor === 'core', tk = core && !my && hmTrialOn();
+    var n = countPool(), usable = verbsChosen() && tensesOK() && n > 0;
     // ----- step 1
     var h = '<div class="hm-top"><div class="hm-tl"><button class="hm-back" onclick="hmLand()" aria-label="Back to the start screen">&#8249; ' + HMC.title + '</button><h2 class="hm-title hm-t2">' + (my ? 'My personalised set' : core ? '100 Core Verbs' : 'All Verbs') + '</h2></div></div>';
     h += '<div class="ms-step"><span class="ms-num">1</span>What do you want to practise?</div>';
     if (!my) {
-      h += '<div class="aph-label">Which verbs <span class="vb-light">' + (core ? 'tick any groups' : 'choose one') + '</span></div>';
       if (core) {
-        var nSel = GRP.filter(function (g) { return msCore.has(g[0]); }).reduce(function (a, g) { return a + g[3]; }, 0);
-        h += '<div class="ms-tiers">' + GRP.map(function (g) { var on = msCore.has(g[0]); return '<button class="ms-pick' + (on ? ' on' : '') + '" onclick="msGrp(\'' + g[0] + '\')"><b>' + (on ? '&#10003; ' : '') + g[1] + '</b><small>' + g[2] + '</small></button>'; }).join('') + '</div>'
-          + '<div class="hm-row"><button class="hm-link" onclick="msGrpSet(\'ALL\')">All 100</button><button class="hm-link" onclick="msGrpSet(\'E\')">Essential 1 + 2 (40)</button><button class="hm-link" onclick="hmToggle(\'vlist\')">' + (hmVList ? 'Hide the verbs &#9652;' : 'See the verbs in these groups &#9662;') + '</button><span class="aph-note">' + (nSel ? nSel + ' verbs chosen' : 'none chosen yet') + '</span></div>' + (hmVList && msCore.size ? hmVerbList() : '');
+        var seg = '<div class="hm-seg hm-seg2"><button class="' + (!tk ? 'on' : '') + '" onclick="' + (tk ? 'msOwn()' : '') + '">Choose my own</button><button class="' + (tk ? 'on' : '') + '" onclick="' + (tk ? '' : "msTrial('ftrials')") + '">Use a Trials set</button></div>';
+        h += '<div class="ms-segrow"><span class="aph-note" style="margin:0">' + (tk ? 'A Trials set chooses the verbs and tenses for you.' : 'Choose the verbs and tenses yourself, or use a Trials set:') + '</span>' + seg + '</div>';
+        if (!tk) {
+          var nSel = GRP.filter(function (g) { return msCore.has(g[0]); }).reduce(function (a, g) { return a + g[3]; }, 0);
+          h += '<div class="aph-label">Which verbs <span class="vb-light">tick any groups</span></div><div class="ms-tiers">' + GRP.map(function (g) { var on = msCore.has(g[0]); return '<button class="ms-pick' + (on ? ' on' : '') + '" onclick="msGrp(\'' + g[0] + '\')"><b>' + (on ? '&#10003; ' : '') + g[1] + '</b><small>' + g[2] + '</small></button>'; }).join('') + '</div>'
+            + '<div class="hm-row"><button class="hm-link" onclick="msGrpSet(\'ALL\')">All 100</button><button class="hm-link" onclick="msGrpSet(\'E\')">Essential 1 + 2 (40)</button><button class="hm-link" onclick="hmToggle(\'vlist\')">' + (hmVList ? 'Hide the verbs &#9652;' : 'See the verbs in these groups &#9662;') + '</button><span class="aph-note">' + (nSel ? nSel + ' verbs chosen' : 'none chosen yet') + '</span></div><div class="hm-rulenote">' + xqRuleText() + '</div>' + (hmVList && msCore.size ? hmVerbList() : '');
+          h += '<div class="aph-label">Which tenses <span class="vb-light">in the order we learn them</span></div>';
+          if (mode === 'inf') h += '<div class="hm-note">Infinitives only: you see the English and give the ' + HMC.lang + ' infinitive, so tenses are not needed.</div>';
+          else {
+            var ts = HMC.tenses.map(function (t, i) { return { k: t[0], l: (i < HMC.steps ? (i + 1) + '. ' : '') + t[1] }; });
+            h += '<div class="aph-row">' + chip(ts.every(function (t) { return selectedTenses.has(t.k); }), 'selectAllTenses()', 'All') + ts.map(function (t) { return chip(selectedTenses.has(t.k), "msTense('" + t.k + "')", t.l); }).join('') + '</div>';
+          }
+        } else {
+          h += '<div class="aph-label">Which Trials set</div><div class="hm-trgrid">' + Object.keys(TR_NAME).map(function (k) { return '<button class="hm-trbtn' + (trSet === k ? ' on' : '') + '" onclick="msTrial(\'' + k + '\')">' + (trSet === k ? '&#10003; ' : '') + TR_NAME[k] + '</button>'; }).join('') + '</div>'
+            + '<div class="hm-lock">&#128274; <b>' + TR_NAME[trSet] + '</b> covers all 100 verbs in these tenses: ' + hmTrialTenses(trSet).join(', ') + '.</div><div class="hm-rulenote">' + xqRuleText(TR_KIND[trSet]) + '</div>'
+            + '<div class="hm-row"><button class="hm-link" onclick="hmToggle(\'vlist\')">' + (hmVList ? 'Hide the verbs &#9652;' : 'See the verbs &#9662;') + '</button></div>' + (hmVList ? hmVerbList() : '');
+        }
       } else {
-        h += '<div class="ms-tiers ms-t3">' + SETS.map(function (s) { var on = msSetPick && verbSetFilter === s[0]; return '<button class="ms-pick' + (on ? ' on' : '') + '" onclick="msPickSet(\'' + s[0] + '\')"><b>' + (on ? '&#10003; ' : '') + s[1] + '</b><small>' + s[2] + '</small></button>'; }).join('') + '</div>';
+        h += '<div class="aph-label">Which verbs <span class="vb-light">choose one</span></div><div class="ms-tiers ms-t3">' + SETS.map(function (s) { var on = msSetPick && verbSetFilter === s[0]; return '<button class="ms-pick' + (on ? ' on' : '') + '" onclick="msPickSet(\'' + s[0] + '\')"><b>' + (on ? '&#10003; ' : '') + s[1] + '</b><small>' + s[2] + '</small></button>'; }).join('') + '</div>';
       }
     }
-    h += '<div class="aph-label">Kind of question</div><div class="ms-kinds">' + KINDS.map(function (k) {
+    var kinds = kindsFor(my, core);
+    h += '<div class="aph-label">Kind of question</div><div class="ms-kinds' + (kinds.length === 5 ? ' ms-k5' : '') + '">' + kinds.map(function (k) {
       var on = mode === k[0], c = my ? ' <i>(' + kindCount(k[3]) + ')</i>' : '';
       return '<button class="ms-pick' + (on ? ' on' : '') + '" onclick="msKind(\'' + k[0] + '\')"><b>' + (on ? '&#10003; ' : '') + k[1] + c + '</b><small>' + k[2] + '</small></button>';
     }).join('') + '</div>';
-    if (!my) {
-      h += '<div class="aph-label">Which tenses <span class="vb-light">' + (core ? 'in the order we learn them' : 'tap to choose') + '</span></div>';
+    if (!my && core && mode === 'exer') {
+      var ruleOn = xqRuleOn(), rule = tk ? XQ_RULE[trSet] : null;
+      h += '<div class="aph-label">Which exercises <span class="vb-light">tick any mix</span></div>';
+      if (tk) h += '<div class="hm-seg hm-seg2 hm-rule"><button class="' + (ruleOn ? 'on' : '') + '" onclick="xqSetRule(\'paper\')">As in Trials</button><button class="' + (!ruleOn ? 'on' : '') + '" onclick="xqSetRule(\'any\')">Any verb, any exercise (harder)</button></div>'
+        + '<div class="hm-note">' + (ruleOn ? 'Each exercise uses the verbs it tests in the real paper (shown on each box).' : 'Every exercise you tick is asked on all 100 verbs, whatever their group.') + '</div>';
+      h += '<div class="hm-exgrid">' + XQ_DEF.map(function (x) {
+        var want = ruleOn ? (rule[x[0]] || null) : null, off = ruleOn && !want, on = xqOn.has(x[0]) && !off;
+        var tag = ruleOn ? (want ? ' <span class="hm-extier">· ' + VQ_NAME[want] + ' verbs (' + (want === 'E' ? 40 : 30) + ')</span>' : ' <span class="hm-extier">· not on the ' + (TR_KIND[trSet] === 'F' ? 'F' : 'E') + ' Block paper</span>') : '';
+        return '<button class="hm-ex' + (on ? ' on' : '') + (off ? ' off' : '') + '"' + (off ? ' disabled' : '') + ' onclick="xqToggle(\'' + x[0] + '\')"><span class="hm-tick">' + (on ? '&#10003;' : '') + '</span><span class="hm-exn"><b>' + x[1] + tag + '</b><small>' + HM_EXSUB[x[0]] + '</small></span><span class="hm-exe">' + HM_EX[x[0]] + '</span></button>';
+      }).join('') + '</div>';
+    }
+    if (!my && !core) {
+      h += '<div class="aph-label">Which tenses <span class="vb-light">tap to choose</span></div>';
       if (mode === 'inf') h += '<div class="hm-note">Infinitives only: you see the English and give the ' + HMC.lang + ' infinitive, so tenses are not needed.</div>';
       else {
-        var ts = HMC.tenses.map(function (t, i) { return { k: t[0], l: (core && i < HMC.steps ? (i + 1) + '. ' : '') + t[1] }; });
-        h += '<div class="aph-row">' + chip(ts.every(function (t) { return selectedTenses.has(t.k); }), 'selectAllTenses()', 'All') + ts.map(function (t) { return chip(selectedTenses.has(t.k), "msTense('" + t.k + "')", t.l); }).join('') + '</div>';
+        var ta = HMC.tenses.map(function (t) { return { k: t[0], l: t[1] }; });
+        h += '<div class="aph-row">' + chip(ta.every(function (t) { return selectedTenses.has(t.k); }), 'selectAllTenses()', 'All') + ta.map(function (t) { return chip(selectedTenses.has(t.k), "msTense('" + t.k + "')", t.l); }).join('') + '</div>';
       }
     }
     h += '<div class="ms-or">' + (my ? 'You are practising your own tricky cards.' : 'Or practise your own tricky cards:') + '</div>' + myBox(my);
     if (my) h += '<div class="ms-brow"><button class="ms-b sm" onclick="msBackToSets()">&#8249; Choose verbs and tenses instead</button></div>';
-    var lab = selText();
     var msg;
-    if (!verbsChosen()) msg = 'Choose the verbs above to unlock the ways to practise them.';
+    if (!verbsChosen()) msg = core ? 'Choose the verbs above (or a Trials set) to unlock the ways to practise them.' : 'Choose a verb set above to unlock the ways to practise it.';
     else if (!tensesOK()) msg = 'Now choose at least one tense above to unlock the ways to practise.';
     else if (!n) msg = my ? 'Nothing in your personalised set for this kind of question yet.' : 'No cards match this selection. Change the verbs or tenses above.';
-    else msg = 'Practising: <b>' + esc(lab) + '</b> · ' + n + ' card' + (n === 1 ? '' : 's');
+    else msg = 'Practising: <b>' + esc(selText()) + '</b> · ' + n + (my ? ' card' : ' question') + (n === 1 ? '' : 's');
     h += '<div class="ms-now">' + msg + '</div>';
     // ----- step 2
     h += '<div class="ms-step"><span class="ms-num">2</span>How do you want to practise it?</div>';
+    if (tk) h += '<button class="hm-paperbtn" onclick="hmTrialsPaper(\'' + trSet + '\')"><span class="hm-paperbtn-t">&#128221; Practice Trials paper</span><span class="hm-paperbtn-s">' + (TR_KIND[trSet] === 'F' ? '40 questions' : '20 verb questions') + ', exactly like the real ' + (TR_KIND[trSet] === 'F' ? 'F Block' : 'E Block') + ' paper &middot; new questions each time &middot; print it or do it with Apple Pencil</span></button>';
     var counts = [10, 20, 30, 50, -1].map(function (c) { return chip(_selectedCount === c, 'setSelectedCount(' + c + ')', c === -1 ? 'All' : c); }).join('');
     var reg = HMC.regs.map(function (r) { return chip(regFilter === r[0], "introSetReg('" + r[0] + "')", r[1]); }).join('');
     var pers = HMC.persons.map(function (p) { return chip(_personFilter === p[0], "setPersonFilter('" + p[0] + "')", p[1]); }).join('');
@@ -7568,7 +7896,7 @@ if (window.__cj && window.__cj.inSet) { var _vqInSet0 = window.__cj.inSet; windo
       + '<div class="aph-label">Autotime</div><div class="aph-row"><button class="aph-btn' + (isAutotime ? ' on' : '') + '" onclick="toggleAutotime()">⏱ Autotime: ' + (isAutotime ? 'On' : 'Off') + '</button></div><div class="aph-note" style="margin:4px 0 0">Autotime: Leisure Mode moves on by itself, with no timer bar.</div>'
       + '<div class="aph-label">Hint</div><div class="aph-row"><button class="aph-btn' + (showInfHint ? ' on' : '') + '" onclick="showInfHint=!showInfHint;renderIntro()">💡 Hint (the infinitive): ' + (showInfHint ? 'On' : 'Off') + '</button></div>'
       + (my || mode === 'inf' || mode === 'sentences' ? '' : '<div class="aph-label">Regularity</div><div class="aph-row">' + reg + '</div>')
-      + (my || mode !== 'single' ? '' : '<div class="aph-label">Person</div><div class="aph-row">' + pers + '</div>')
+      + (my || (mode !== 'single' && mode !== 'exer') ? '' : '<div class="aph-label">Person</div><div class="aph-row">' + pers + '</div>')
       + (!my && !core ? vqRowHtml() : '')
       + (editModeUnlocked ? '<div class="aph-label">Teacher</div><div class="aph-row"><button class="aph-btn" onclick="' + HMC.printContent + '">&#128424; Print Content</button></div>' : '')
       + '</details>';
@@ -7578,13 +7906,14 @@ if (window.__cj && window.__cj.inSet) { var _vqInSet0 = window.__cj.inSet; windo
       if (my && x[1] === 'test') { off = true; d = 'Tests are built from verb sets and tenses, so not from a personalised set.'; }
       if (mode === 'sentences' && x[1] === 'speed') { off = true; d = 'Speed Challenge plays verb forms and infinitives, so it is not used for Sentences.'; }
       if (mode === 'sentences' && x[1] === 'match_es') { off = true; d = 'Match pairs English with Spanish, so it is not used for Sentences.'; }
+      if (mode === 'exer' && x[1] === 'leis') { off = true; d = 'Leisure Mode is for Full, Single form, Infinitives and Sentences, not the Trials-style exercises.'; }
       return '<button class="ms-tile ' + x[0] + '"' + (off ? ' disabled' : '') + ' onclick="' + x[4] + '"><img class="ms-img" alt="" src="' + ICONS[x[1]] + '"><span class="ms-tx"><span class="ms-tt">' + x[2] + '</span><span class="ms-td">' + d + '</span></span></button>';
     }).join('') + '</div>';
     var dis = (usable && !my) ? '' : ' disabled';
     h += '<div class="ms-viewrow"><span class="aph-note" style="margin:0">More ways to be tested, or to read and print the verbs:</span>'
       + '<button class="aph-btn aph-btn-sm"' + dis + ' onclick="hmPaperSpot()">&#128424; Paper Spot Test</button>'
       + '<button class="aph-btn aph-btn-sm"' + dis + ' onclick="hmSubmittedSpot()">&#9997; Submitted Spot Test</button>'
-      + (core ? '<button class="aph-btn aph-btn-sm"' + dis + ' onclick="hmPracticePaper(\'F\')">&#128221; Practice F Paper</button><button class="aph-btn aph-btn-sm"' + dis + ' onclick="hmPracticePaper(\'E\')">&#128221; Practice E Paper</button>' : '')
+      + (core && !my && !tk ? '<button class="aph-btn aph-btn-sm" onclick="hmTrialsPaper(\'ftrials\')">&#128221; Practice Trials paper &middot; F Block (40)</button><button class="aph-btn aph-btn-sm" onclick="hmTrialsPaper(\'etrials\')">&#128221; Practice Trials paper &middot; E Block (20)</button>' : '')
       + '<button class="aph-btn aph-btn-sm"' + dis + ' onclick="showVerbList()">&#128214; View &amp; Print</button></div>';
     h += '<div class="hm-keys">' + vbKeysLegend() + '</div>';
     return '<div class="ms-card intro-card hm-wrap">' + h + '</div>';
@@ -7799,55 +8128,7 @@ if (window.__cj && window.__cj.inSet) { var _vqInSet0 = window.__cj.inSet; windo
   window.apMySetFilterGet = function () { return S.f; };
 })();
 </script>
-<style id="ap-steps-css">
-/* FIRST / NEXT badges and numbered questions inside FIRST */
-.ms-step .ms-num.ms-big{width:auto;min-width:34px;border-radius:999px;padding:0 14px;font-size:.9rem;letter-spacing:.1em}
-.ms-q{display:inline-flex;align-items:center;justify-content:center;width:24px;height:24px;border-radius:50%;background:#1a2744;color:#ffd76a;font:800 .8125rem/1 'DM Sans',system-ui,sans-serif;margin-right:8px;vertical-align:middle;letter-spacing:0}
-.aph-label.ms-qh{font-size:.9375rem;color:#1a2744;letter-spacing:.06em}
-.ms-now.ms-need{background:#fff4d6;border:1.5px solid #e6c15a;color:#7a5a00;border-radius:10px;padding:9px 12px;font-weight:700}
-/* bolder FIRST / NEXT bars */
-.ms-step{padding:18px 20px!important;font-size:1.45rem!important;border-radius:16px!important;box-shadow:0 5px 0 #c9a84c}
-.ms-step .ms-num.ms-big{font-size:1.35rem!important;padding:8px 22px!important;letter-spacing:.14em;background:#ffd76a!important;box-shadow:0 3px 0 #a8862e}
-</style>
-<script id="ap-steps">
-/* AP STEPS add-on: the two big steps read FIRST and NEXT; the essential questions inside FIRST are numbered 1, 2, 3...
-   and a "still to choose" message stands out. Works on the rendered page, so it needs no change to each app's own code. */
-(function () {
-  var QRE = /^(Which |Kind of question)/i;
-  function run() {
-    var steps = document.querySelectorAll('.ms-step');
-    for (var i = 0; i < steps.length; i++) {
-      var st = steps[i], num = st.querySelector('.ms-num'); if (!num) continue;
-      var t = (st.textContent || '').replace(num.textContent, '').trim();
-      var want = /^What do you want to practise/i.test(t) ? 'FIRST' : /^How do you want to practise/i.test(t) ? 'NEXT' : null;
-      if (want) {
-        if (num.textContent !== want) num.textContent = want;
-        if (!num.classList.contains('ms-big')) num.classList.add('ms-big');
-      }
-      if (want === 'FIRST') {
-        var labels = [], now = null, n = st.nextElementSibling;
-        while (n && !n.classList.contains('ms-step')) {
-          if (n.classList.contains('aph-label') && QRE.test((n.textContent || '').replace(/^\d+\s*/, ''))) labels.push(n);
-          if (n.classList.contains('ms-now')) now = n;
-          n = n.nextElementSibling;
-        }
-        if (labels.length > 1) labels.forEach(function (l, k) {
-          var q = l.querySelector('.ms-q');
-          if (!q) { q = document.createElement('span'); q.className = 'ms-q'; l.insertBefore(q, l.firstChild); }
-          if (q.textContent !== String(k + 1)) q.textContent = String(k + 1);
-          if (!l.classList.contains('ms-qh')) l.classList.add('ms-qh');
-        });
-        if (now) { var need = /^(Choose|Now choose|Nothing|No cards|Tick|Pick)/i.test((now.textContent || '').trim()); if (need !== now.classList.contains('ms-need')) now.classList.toggle('ms-need', need); }
-      }
-    }
-  }
-  function start() {
-    var mo = new MutationObserver(function () { mo.disconnect(); try { run(); } catch (e) { } mo.observe(document.body, { subtree: true, childList: true }); });
-    mo.observe(document.body, { subtree: true, childList: true }); try { run(); } catch (e) { }
-  }
-  if (document.body) start(); else document.addEventListener('DOMContentLoaded', start);
-})();
-</script>
+<script>window.AP_STEP_GATE = true;   /* this set-up screen is busy: the numbered questions in FIRST unlock one at a time */</script>
 <style id="ap-matchfx-css">
 /* AP MATCHFX v1: look and feel for the Match game (no change to how it plays) */
 .ms-ov .ms-t{box-shadow:0 3px 0 #b9c1d6,0 6px 10px rgba(26,39,68,.10);transition:transform .12s,box-shadow .12s,background .2s,border-color .2s;-webkit-tap-highlight-color:transparent}
@@ -8318,5 +8599,94 @@ if (window.__cj && window.__cj.inSet) { var _vqInSet0 = window.__cj.inSet; windo
   }
   bind();
   try { new MutationObserver(function () { bind(); }).observe(document.body, { childList: true, subtree: true }); } catch (e) { }
+})();
+</script>
+<style id="ap-steps-css">
+/* FIRST / NEXT badges and numbered questions inside FIRST */
+.ms-step .ms-num.ms-big{width:auto;min-width:34px;border-radius:999px;padding:0 14px;font-size:.9rem;letter-spacing:.1em}
+.ms-q{display:inline-flex;align-items:center;justify-content:center;width:24px;height:24px;border-radius:50%;background:#1a2744;color:#ffd76a;font:800 .8125rem/1 'DM Sans',system-ui,sans-serif;margin-right:8px;vertical-align:middle;letter-spacing:0}
+.aph-label.ms-qh{font-size:.9375rem;color:#1a2744;letter-spacing:.06em}
+.ms-now.ms-need{background:#fff4d6;border:1.5px solid #e6c15a;color:#7a5a00;border-radius:10px;padding:9px 12px;font-weight:700}
+/* bolder FIRST / NEXT bars */
+.ms-step{padding:18px 20px!important;font-size:1.45rem!important;border-radius:16px!important;box-shadow:0 5px 0 #c9a84c}
+.ms-step .ms-num.ms-big{font-size:1.35rem!important;padding:8px 22px!important;letter-spacing:.14em;background:#ffd76a!important;box-shadow:0 3px 0 #a8862e}
+
+/* step-by-step gate (busy set-up screens only) */
+.ms-qlock{opacity:.38;pointer-events:none;filter:grayscale(.6)}
+.aph-label.ms-qlock{opacity:.55}
+.ms-qhint{margin-left:10px;font:600 .8rem var(--aph-body,system-ui,sans-serif);color:#b03a2e;letter-spacing:0;text-transform:none}
+</style>
+<script id="ap-steps">
+/* AP STEPS add-on: the two big steps read FIRST and NEXT; the essential questions inside FIRST are numbered 1, 2, 3...
+   and a "still to choose" message stands out. Works on the rendered page, so it needs no change to each app's own code. */
+(function () {
+  var QRE = /^(Which |Kind of question)/i;
+  function run() {
+    var steps = document.querySelectorAll('.ms-step');
+    for (var i = 0; i < steps.length; i++) {
+      var st = steps[i], num = st.querySelector('.ms-num'); if (!num) continue;
+      var t = (st.textContent || '').replace(num.textContent, '').trim();
+      var want = /^What do you want to practise/i.test(t) ? 'FIRST' : /^How do you want to practise/i.test(t) ? 'NEXT' : null;
+      if (want) {
+        if (num.textContent !== want) num.textContent = want;
+        if (!num.classList.contains('ms-big')) num.classList.add('ms-big');
+      }
+      if (want === 'FIRST') {
+        var labels = [], now = null, n = st.nextElementSibling;
+        while (n && !n.classList.contains('ms-step')) {
+          if (n.classList.contains('aph-label') && QRE.test((n.textContent || '').replace(/^\d+\s*/, ''))) labels.push(n);
+          if (n.classList.contains('ms-now')) now = n;
+          n = n.nextElementSibling;
+        }
+        if (labels.length > 1) labels.forEach(function (l, k) {
+          var q = l.querySelector('.ms-q');
+          if (!q) { q = document.createElement('span'); q.className = 'ms-q'; l.insertBefore(q, l.firstChild); }
+          if (q.textContent !== String(k + 1)) q.textContent = String(k + 1);
+          if (!l.classList.contains('ms-qh')) l.classList.add('ms-qh');
+        });
+        if (now) { var need = /^(Choose|Now choose|Nothing|No cards|Tick|Pick)/i.test((now.textContent || '').trim()); if (need !== now.classList.contains('ms-need')) now.classList.toggle('ms-need', need); }
+        if (window.AP_STEP_GATE && labels.length > 1) gate(labels, st);
+      }
+    }
+  }
+  /* Step-by-step (only on busy set-up screens that opt in with window.AP_STEP_GATE = true): the numbered questions inside FIRST
+     unlock one at a time. A question is answered when one of its choices is on (a ticked button or box); every later question is
+     greyed out until then, with a short line saying what to do first. Nothing is hidden, so the boy still sees what is coming. */
+  function answered(block) {
+    for (var i = 0; i < block.length; i++) {
+      var el = block[i];
+      if (el.querySelector('.on, [aria-pressed="true"], input:checked')) return true;
+      if (el.classList && el.classList.contains('on')) return true;
+    }
+    return false;
+  }
+  function labelName(l) {
+    var t = '';
+    for (var c = l.firstChild; c; c = c.nextSibling) { if (c.nodeType === 3) t += c.textContent; else if (c.nodeType === 1 && !/ms-q\b|ms-qhint|vb-light|vb-count/.test(c.className || '')) t += c.textContent; }
+    return t.replace(/^\d+\s*/, '').trim();
+  }
+  function gate(labels, st) {
+    var blocks = [], names = [];
+    for (var k = 0; k < labels.length; k++) {
+      var b = [], n = labels[k].nextElementSibling, stop = labels[k + 1] || null;
+      while (n && n !== stop && !n.classList.contains('ms-step') && !(n.classList.contains('ms-now')) && !/^Or practise your own/i.test((n.textContent || '').trim())) { b.push(n); n = n.nextElementSibling; }
+      blocks.push(b); names.push(labelName(labels[k]));
+    }
+    var done = true;
+    for (var k = 0; k < labels.length; k++) {
+      var lock = !done, l = labels[k];
+      l.classList.toggle('ms-qlock', lock);
+      blocks[k].forEach(function (el) { el.classList.toggle('ms-qlock', lock); });
+      var hint = l.querySelector('.ms-qhint');
+      if (lock) { if (!hint) { hint = document.createElement('span'); hint.className = 'ms-qhint'; l.appendChild(hint); } var t = (k ? 'Answer ' + k + ' (' + names[k - 1].toLowerCase() + ') first' : ''); if (hint.textContent !== t) hint.textContent = t; }
+      else if (hint) hint.remove();
+      if (done && !answered(blocks[k])) done = false;
+    }
+  }
+  function start() {
+    var mo = new MutationObserver(function () { mo.disconnect(); try { run(); } catch (e) { } mo.observe(document.body, { subtree: true, childList: true }); });
+    mo.observe(document.body, { subtree: true, childList: true }); try { run(); } catch (e) { }
+  }
+  if (document.body) start(); else document.addEventListener('DOMContentLoaded', start);
 })();
 </script>
