@@ -12715,7 +12715,7 @@ body.aporal-set [id$="_exambar"] button[onclick^="resetDeclaration"]{display:non
   function padTest() {   // iPad: no live bar (it can silence or starve the recording there); the test is record 4 seconds, play back, and listen
     stopTest();
     var msg = $('aporal-tmsg'); var fill = $('aporal-tfill'); if (fill) fill.style.width = '0';
-    navigator.mediaDevices.getUserMedia(micCons()).then(function (stream) {
+    gum().then(function (stream) {
       if (!$('aporal-ov')) { stopStream(stream); return; }
       T = { stream: stream, m: { off: true } };
       if (msg) {
@@ -12729,13 +12729,22 @@ body.aporal-set [id$="_exambar"] button[onclick^="resetDeclaration"]{display:non
   function plainDefault() { var v = lsGet('aporalPlain'); return v === '1' || (v !== '0' && isPad()); }
   var PLAIN = plainDefault();   // iPads record very faintly when the microphone is opened with echo cancellation switched off, so there it is opened with the plain default settings (remembered per device)
   function micCons() { return { audio: PLAIN ? true : AUDIO }; }
+  // open the microphone; if the browser refuses the custom settings or is momentarily busy (InvalidStateError and the like), wait a moment and try again with the plain defaults
+  function gum() {
+    var md = navigator.mediaDevices;
+    return md.getUserMedia(micCons()).catch(function (e) {
+      var nm = e && e.name || '';
+      if (nm === 'NotAllowedError' || nm === 'SecurityError' || nm === 'NotFoundError') throw e;
+      return new Promise(function (res) { setTimeout(res, 400); }).then(function () { return md.getUserMedia({ audio: true }); });
+    });
+  }
   function diag(stream, m) {
     try { var t = stream.getAudioTracks()[0], st = (t && t.getSettings) ? t.getSettings() : {}; return 'mic: ' + ((t && t.label) || 'unnamed') + ' · ' + (t ? t.readyState : '?') + (t && t.muted ? ' · MUTED' : '') + ' · sound ' + (m && m.ctx ? m.ctx.state + ' ' + m.ctx.sampleRate + ' Hz' : 'none') + ' · ' + (PLAIN ? 'plain' : 'custom') + ' settings'; } catch (e) { return ''; }
   }
   function testMic() { if (NOMETER) { PLAIN = plainDefault(); padTest(); return; } primeCtx(); stopTest(); PLAIN = plainDefault(); runTest(null, 0); }
   function runTest(ctx, tries) {
     var msg = $('aporal-tmsg'), fill = $('aporal-tfill');
-    navigator.mediaDevices.getUserMedia(micCons()).then(function (stream) {
+    gum().then(function (stream) {
       if (!$('aporal-ov')) { stopStream(stream); return; }
       T = { stream: stream };
       T.m = meterOn(stream, function (v) {
@@ -12744,7 +12753,7 @@ body.aporal-set [id$="_exambar"] button[onclick^="resetDeclaration"]{display:non
       }, false, ctx);
       if (msg) { msg.className = 'aporal-tmsg'; msg.textContent = 'Listening… say a few words.'; }
       setTimeout(function () { watch(tries); }, 3500);
-    }).catch(function (e) { var er = $('aporal-err'); if (er) { er.style.display = ''; er.innerHTML = micError(e); } });
+    }).catch(function (e) { if (e && e.name === 'InvalidStateError' && !tries) { padTest(); return; } var er = $('aporal-err'); if (er) { er.style.display = ''; er.innerHTML = micError(e); } });
   }
   function watch(tries) {   // nothing arrived: try the other microphone settings once, then offer the record-and-play-back check
     var msg = $('aporal-tmsg'); if (!T || !T.m || !msg || !$('aporal-ov')) return;
@@ -12801,7 +12810,7 @@ body.aporal-set [id$="_exambar"] button[onclick^="resetDeclaration"]{display:non
       startExamSim(uid, choice);
     };
     if (reuse) { go(reuse); return; }
-    navigator.mediaDevices.getUserMedia(micCons()).then(go).catch(function (e) { var er = $('aporal-err'); if (er) { er.style.display = ''; er.innerHTML = micError(e); } });
+    gum().then(go).catch(function (e) { var er = $('aporal-err'); if (er) { er.style.display = ''; er.innerHTML = micError(e); } });
   }
   function warnLeave(e) { if (R && R.on) { e.preventDefault(); e.returnValue = ''; return ''; } }
   function elapsed() { return R ? (Date.now() - R.t0 - R.paused - (R.pAt ? Date.now() - R.pAt : 0)) / 1000 : 0; }   // recorded time: the time the recording was paused is not counted
