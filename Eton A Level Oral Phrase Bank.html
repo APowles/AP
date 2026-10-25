@@ -4,7 +4,7 @@
 <script id="ap-update">
 /* AP auto-update: if this copy is older than the published version, reload once with the new one (saved answers are kept) */
 (function () {
-  var B = 'cb5c3bc6e6'; window.AP_BUILD = B;
+  var B = '340536510a'; window.AP_BUILD = B;
   function check() {
     if (!/^https?:$/.test(location.protocol) || !window.fetch) return;
     var f = decodeURIComponent(location.pathname.split('/').pop() || '');
@@ -186,6 +186,7 @@
   // Speech-only pronunciation fixes (the text on screen is untouched). Same length as the original where possible, so
   // word highlighting (karaoke) stays in step. Add more pairs here as Andrew spots them.
   var FIXES = { fr: [
+    [/\bjean(s?)\b/g, 'djine$1'],   // « un jean », « une veste en jean »: said « djine », never like the name Jean (capital J is left alone)
     [/\b([Tt])ransports en commun\b/g, '$1ransport zan commun'],
     // verb sentir/ressentir/pressentir/consentir, je/tu form: final s is silent (je me sens = « je me sent »); the noun « le sens » is untouched
     [/\b(je|tu|ne|me|te|m['’]y|t['’]y|m['’]en|t['’]en|j['’]y|j['’]en)(\s+)((?:res|pres|con)?sen)s\b/gi, '$1$2$3t']
@@ -7393,7 +7394,7 @@ function pbLeisureGo() {
     card.insertAdjacentHTML('beforeend', myBox(n, dc, my));
     var pool = chosen ? pbPool(_catVal).length : 0;
     var lab = sel && chosen ? sel.options[sel.selectedIndex].text.replace(/ \(\d+( phrases)?\)$/, '') : '';
-    card.insertAdjacentHTML('beforeend', '<div class="ms-now">' + (!chosen ? 'Choose a category above to unlock the ways to practise it.' : (!pool ? 'This selection has no phrases yet.' : 'Practising: <b>' + esc(my ? 'my personalised set' : lab) + '</b> · ' + pool + ' phrases')) + '</div>');
+    card.insertAdjacentHTML('beforeend', '<div class="ms-now">' + (!chosen ? 'Press 📚 Choose a category first to unlock the ways to practise it.' : (!pool ? 'This selection has no phrases yet.' : 'Practising: <b>' + esc(my ? 'my personalised set' : lab) + '</b> · ' + pool + ' phrases')) + '</div>');
     card.insertAdjacentHTML('beforeend', '<div class="ms-step"><span class="ms-num">2</span>How do you want to practise it?</div>');
     card.appendChild(setDet);
     card.insertAdjacentHTML('beforeend', '<div class="aph-tools ms-tiles">' + tilesHtml + '</div>');
@@ -7607,7 +7608,7 @@ function pbLeisureGo() {
           if (q.textContent !== String(k + 1)) q.textContent = String(k + 1);
           if (!l.classList.contains('ms-qh')) l.classList.add('ms-qh');
         });
-        if (now) { var need = /^(Choose|Now choose|Nothing|No cards|Tick|Pick)/i.test((now.textContent || '').trim()); if (need !== now.classList.contains('ms-need')) now.classList.toggle('ms-need', need); }
+        if (now) { var need = /^(Choose|Now choose|Press|Nothing|No cards|Tick|Pick)/i.test((now.textContent || '').trim()); if (need !== now.classList.contains('ms-need')) now.classList.toggle('ms-need', need); }
       }
     }
   }
@@ -8088,5 +8089,104 @@ function pbLeisureGo() {
   }
   bind();
   try { new MutationObserver(function () { bind(); }).observe(document.body, { childList: true, subtree: true }); } catch (e) { }
+})();
+</script>
+<style id="ap-catpick-css">
+/* AP CATPICK add-on: the Category drop-down is hidden and a big "Choose a category" button opens a full-screen chooser */
+.ms-hide{display:none!important}
+#app .intro-card .gg-chbtn{display:flex;align-items:center;justify-content:center;gap:10px;width:100%;min-height:54px;margin:2px 0 6px;border:0;border-radius:12px;background:#1a2744;color:#ffd76a;font:800 1.0625rem var(--aph-body);cursor:pointer;box-shadow:0 3px 0 #0e1730;padding:8px 14px;text-align:center}
+#app .intro-card .gg-chbtn small{font-weight:500;color:#c8d3ea;font-size:.8125rem}
+#app .intro-card .gg-chbtn.has{background:#fff;color:#1a2744;border:2px solid #1a2744;box-shadow:none}
+#app .intro-card .gg-chbtn.has small{color:#4a5a7a;font-weight:600}
+#apcp-modal{display:none;position:fixed;inset:0;background:rgba(10,18,40,.72);z-index:11000;overflow-y:auto;padding:20px 16px 0;box-sizing:border-box;font-family:var(--aph-body)}
+#apcp-modal .gg-ovbox{background:#fff;max-width:760px;margin:0 auto 20px;border-radius:16px;box-shadow:0 30px 80px rgba(0,0,0,.4);padding:22px 24px 18px}
+#apcp-modal .gg-ovhead{display:flex;justify-content:space-between;align-items:flex-start;gap:12px;margin-bottom:12px}
+#apcp-modal .gg-ovkick{font-size:.75rem;font-weight:800;letter-spacing:.12em;text-transform:uppercase;color:#b8922a}
+#apcp-modal .gg-ovtitle{font-family:var(--aph-display);font-size:1.3rem;font-weight:700;color:#1a2744}
+#apcp-modal .gg-ovsub{font-size:.8125rem;color:#4a5a7a;margin-top:2px}
+#apcp-modal .gg-ovx{background:#fff;border:1.5px solid #e2e6f0;border-radius:8px;padding:7px 12px;min-height:36px;color:#1a2744;cursor:pointer;font:600 .9375rem var(--aph-body);white-space:nowrap}
+#apcp-modal .apcp-gh{font-size:.75rem;font-weight:800;letter-spacing:.1em;text-transform:uppercase;color:#4a5a7a;margin:16px 0 6px;padding-bottom:4px;border-bottom:1.5px solid #f0e6c8}
+#apcp-modal .apcp-row{display:flex;align-items:center;justify-content:space-between;gap:12px;width:100%;min-height:50px;margin:0 0 6px;padding:10px 14px;border:1.5px solid #e2e6f0;border-radius:12px;background:#fff;color:#1a2744;font:600 1rem var(--aph-body);cursor:pointer;text-align:left;box-sizing:border-box}
+#apcp-modal .apcp-row:hover{border-color:#1a2744}
+#apcp-modal .apcp-row.on{background:#fffaf0;border:2px solid #c9a84c;box-shadow:0 2px 0 #c9a84c}
+#apcp-modal .apcp-row.all{font-weight:800}
+#apcp-modal .apcp-n{flex:0 0 auto;font-size:.8125rem;font-weight:600;color:#56607a;background:#f4f6fb;border-radius:999px;padding:3px 10px;white-space:nowrap}
+#apcp-modal .apcp-row.on .apcp-n{background:#ffd76a;color:#1a2744}
+#apcp-modal .apcp-tick{display:inline-block;width:1.2em;color:#b8922a;font-weight:900}
+</style>
+<script id="ap-catpick">
+/* AP CATPICK add-on: one picker, full screen. The Category <select> stays in the page (hidden) and is still what the
+   rest of the app reads; the chooser just sets its value and fires 'change'. Single choice: tap a row to choose and return.
+   ★ My personalised set keeps its own box below the button. */
+(function () {
+  'use strict';
+  if (window.__apCatPick) return; window.__apCatPick = 1;
+  var MYV = 'myset';
+  function $(i) { return document.getElementById(i); }
+  function esc(s) { return String(s).replace(/[&<>"]/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]; }); }
+  function sel() { return document.querySelector('#app .intro-card #cat-select'); }
+  function clean(t) { return String(t || '').replace(/\s*\(\d+( phrases)?\)\s*$/, '').trim(); }
+  function label(s) { var o = s && s.selectedIndex >= 0 ? s.options[s.selectedIndex] : null; return o && o.value ? clean(o.textContent) : ''; }
+  function count(v) { try { return pbPool(v).length; } catch (e) { return 0; } }
+  function btn() {
+    var s = sel(); if (!s) return;
+    var b = $('apCatBtn');
+    if (!b) {
+      b = document.createElement('button'); b.id = 'apCatBtn'; b.type = 'button'; b.onclick = window.apCatOpen;
+      var row = s.parentNode; if (row && row.classList.contains('aph-row')) row.parentNode.insertBefore(b, row); else s.parentNode.insertBefore(b, s);
+    }
+    s.classList.add('ms-hide');
+    var pc = document.querySelector('#app .intro-card .intro-phrase-count'); if (pc) pc.classList.add('ms-hide');
+    var v = s.value, has = !!v && v !== MYV;
+    b.className = 'gg-chbtn' + (has ? ' has' : '');
+    b.innerHTML = has ? '📚 Change category <small>· ' + esc(label(s)) + '</small>' : '📚 Choose a category <small>tap one to choose it</small>';
+  }
+  function modal() {
+    var m = $('apcp-modal'); if (m) return m;
+    m = document.createElement('div'); m.id = 'apcp-modal';
+    m.innerHTML = '<div class="gg-ovbox"><div class="gg-ovhead"><div><div class="gg-ovkick">' + esc(document.title || 'A Level Oral Phrase Bank') + '</div><div class="gg-ovtitle">📚 Choose a category</div>'
+      + '<div class="gg-ovsub">One category at a time: tap a row to choose it and go straight back.</div></div>'
+      + '<button class="gg-ovx" onclick="apCatClose()">✕ Close</button></div><div id="apcp-body"></div></div>';
+    m.addEventListener('click', function (e) { if (e.target === m) window.apCatClose(); });
+    document.body.appendChild(m); return m;
+  }
+  function fill() {
+    var s = sel(), body = $('apcp-body'); if (!s || !body) return;
+    var h = '', cur = s.value;
+    function row(o, extra) {
+      var n = count(o.value);
+      return '<button type="button" class="apcp-row' + (o.value === cur ? ' on' : '') + (extra || '') + '" onclick="apCatPick(' + JSON.stringify(o.value).replace(/"/g, '&quot;') + ')"><span><span class="apcp-tick">' + (o.value === cur ? '✓' : '') + '</span>' + esc(clean(o.textContent)) + '</span><span class="apcp-n">' + n + ' phrase' + (n === 1 ? '' : 's') + '</span></button>';
+    }
+    for (var i = 0; i < s.children.length; i++) {
+      var c = s.children[i];
+      if (c.tagName === 'OPTGROUP') {
+        h += '<div class="apcp-gh">' + esc(c.label.replace(/^[\s—–-]+|[\s—–-]+$/g, '')) + '</div>';
+        for (var j = 0; j < c.children.length; j++) h += row(c.children[j]);
+      } else if (c.tagName === 'OPTION' && c.value && c.value !== MYV) h += row(c, c.value === 'all' ? ' all' : '');
+    }
+    body.innerHTML = h;
+  }
+  window.apCatOpen = function () {
+    var m = modal(); fill();
+    m.style.display = 'block'; m.scrollTop = 0; document.documentElement.style.overflow = 'hidden';
+    setTimeout(function () { try { var r = m.querySelector('.apcp-row.on'); if (r) r.scrollIntoView({ block: 'center' }); } catch (e) { } }, 50);
+  };
+  window.apCatClose = function () {
+    var m = $('apcp-modal'); if (!m || m.style.display !== 'block') return false;
+    m.style.display = 'none'; document.documentElement.style.overflow = '';
+    return true;
+  };
+  window.apCatPick = function (v) {
+    var s = sel();
+    if (s) { s.value = v; s.dispatchEvent(new Event('change', { bubbles: true })); }
+    window.apCatClose(); btn();
+    try { var a = document.querySelector('#app .intro-card .ms-now'); if (a) a.scrollIntoView({ behavior: 'smooth', block: 'nearest' }); } catch (e) { }
+  };
+  var ri = window.renderIntro;
+  window.renderIntro = function () { var r = ri.apply(this, arguments); try { btn(); } catch (e) { } return r; };
+  try { btn(); } catch (e) { }
+  var hook0 = window.aphBackHook;
+  window.aphBackHook = function () { if (window.apCatClose()) return true; return typeof hook0 === 'function' ? hook0.apply(this, arguments) : false; };
+  try { new MutationObserver(function () { if (sel() && !$('apCatBtn')) { try { btn(); } catch (e) { } } }).observe(document.body, { childList: true, subtree: true }); } catch (e) { }
 })();
 </script>

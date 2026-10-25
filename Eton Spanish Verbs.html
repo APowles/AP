@@ -6,7 +6,7 @@
 <script id="ap-update">
 /* AP auto-update: if this copy is older than the published version, reload once with the new one (saved answers are kept) */
 (function () {
-  var B = 'e96841ec95'; window.AP_BUILD = B;
+  var B = '9fcffd08cd'; window.AP_BUILD = B;
   function check() {
     if (!/^https?:$/.test(location.protocol) || !window.fetch) return;
     var f = decodeURIComponent(location.pathname.split('/').pop() || '');
@@ -188,6 +188,7 @@
   // Speech-only pronunciation fixes (the text on screen is untouched). Same length as the original where possible, so
   // word highlighting (karaoke) stays in step. Add more pairs here as Andrew spots them.
   var FIXES = { fr: [
+    [/\bjean(s?)\b/g, 'djine$1'],   // « un jean », « une veste en jean »: said « djine », never like the name Jean (capital J is left alone)
     [/\b([Tt])ransports en commun\b/g, '$1ransport zan commun'],
     // verb sentir/ressentir/pressentir/consentir, je/tu form: final s is silent (je me sens = « je me sent »); the noun « le sens » is untouched
     [/\b(je|tu|ne|me|te|m['’]y|t['’]y|m['’]en|t['’]en|j['’]y|j['’]en)(\s+)((?:res|pres|con)?sen)s\b/gi, '$1$2$3t']
@@ -7209,6 +7210,17 @@ function xqRuleText(which) {   // which: 'F', 'E' or nothing (both)
   var E = '<b>E Block and Summer Trials</b> (a shorter paper, 20 verb questions): <b>Essential</b> → into Spanish with no help · <b>Important</b> → into Spanish with the infinitive given · <b>Useful</b> → change the person (nothing into English).';
   if (which === 'F') return F; if (which === 'E') return E; return F + '<br>' + E;
 }
+function xqRuleTable() {   // the two papers' rules at a glance
+  var L = 'Spanish';
+  return '<table class="hm-ruletab"><thead><tr><th></th><th>Essential</th><th>Important</th><th>Useful</th></tr></thead><tbody>'
+    + '<tr><th>F Block paper<small>40 questions</small></th><td>into ' + L + ', no help<br>+ change the person</td><td>into ' + L + ', infinitive given</td><td>into English only</td></tr>'
+    + '<tr><th>E Block &amp; Summer<small>20 verb questions</small></th><td>into ' + L + ', no help</td><td>into ' + L + ', infinitive given</td><td>change the person<br><small>nothing into English</small></td></tr></tbody></table>';
+}
+var xqRuleOpen = false; try { xqRuleOpen = localStorage.getItem('apsv_ruleopen') === '1'; } catch (e) { }
+function xqRuleToggle(d) { xqRuleOpen = !!d.open; try { localStorage.setItem('apsv_ruleopen', xqRuleOpen ? '1' : '0'); } catch (e) { } }
+function xqRuleFold() {
+  return '<details class="hm-rulefold"' + (xqRuleOpen ? ' open' : '') + ' ontoggle="xqRuleToggle(this)"><summary>\u2139 What each group means in Trials</summary>' + xqRuleTable() + '</details>';
+}
 function xqSetRule(r) { xqTrialRule = r; try { localStorage.setItem('apsv_xqrule', r); } catch (e) { } xqRefresh(); }
 try { var _xr = localStorage.getItem('apsv_xqrule'); if (_xr === 'any' || _xr === 'paper') xqTrialRule = _xr; } catch (e) { }
 function xqNm(t) { return XQ_DEF.filter(function (x) { return x[0] === t; })[0][1]; }
@@ -7580,6 +7592,8 @@ if (window.__cj && window.__cj.inSet) { var _vqInSet0 = window.__cj.inSet; windo
 .hm-rule{margin:0 0 8px}.hm-rule button{padding:8px 14px;font-size:.9375rem}
 .hm-extier{font-weight:600;color:#8a6d00;font-size:.9rem}
 .hm-ex.off{opacity:.45;cursor:default}
+.hm-rulefold{margin:6px 0 10px}.hm-rulefold summary{cursor:pointer;font:600 .9rem var(--aph-body);color:#4a5a7a;list-style:none;padding:4px 0}.hm-rulefold summary::-webkit-details-marker{display:none}.hm-rulefold summary::after{content:' \25B8';color:#8899bb}.hm-rulefold[open] summary::after{content:' \25BE'}
+.hm-ruletab{width:100%;border-collapse:collapse;font-size:.85rem;background:#fff8e6;border:1.5px solid #e6c15a;border-radius:10px;overflow:hidden;margin-top:4px}.hm-ruletab th,.hm-ruletab td{padding:7px 10px;text-align:left;vertical-align:top;border-top:1px solid #f0e2b8}.hm-ruletab thead th{font-size:.75rem;letter-spacing:.06em;text-transform:uppercase;color:#8a6d00;border-top:0}.hm-ruletab tbody th{font-weight:700;color:#1a2744;white-space:nowrap}.hm-ruletab tbody th small{display:block;font-weight:500;color:#8899bb;font-size:.72rem}.hm-ruletab td{color:#2f3b57}.hm-ruletab td small{color:#8899bb}
 .hm-rulenote{font-size:.9rem;color:#4a5a7a;background:#fff8e6;border:1.5px solid #e6c15a;border-radius:10px;padding:8px 12px;margin:8px 0 10px;line-height:1.45}
 .hm-paperbtn{display:block;width:100%;text-align:left;background:#1a2744;color:#fff;border:0;border-radius:14px;padding:14px 18px;margin:0 0 12px;cursor:pointer;box-shadow:0 4px 0 #c9a84c}
 .hm-paperbtn-t{display:block;font:700 1.15rem var(--aph-display,serif);color:#ffd76a}.hm-paperbtn-s{display:block;font:500 .9rem var(--aph-body);color:#dbe3f5;margin-top:3px}
@@ -7836,7 +7850,7 @@ if (window.__cj && window.__cj.inSet) { var _vqInSet0 = window.__cj.inSet; windo
         if (!tk) {
           var nSel = GRP.filter(function (g) { return msCore.has(g[0]); }).reduce(function (a, g) { return a + g[3]; }, 0);
           h += '<div class="aph-label">Which verbs <span class="vb-light">tick any groups</span></div><div class="ms-tiers">' + GRP.map(function (g) { var on = msCore.has(g[0]); return '<button class="ms-pick' + (on ? ' on' : '') + '" onclick="msGrp(\'' + g[0] + '\')"><b>' + (on ? '&#10003; ' : '') + g[1] + '</b><small>' + g[2] + '</small></button>'; }).join('') + '</div>'
-            + '<div class="hm-row"><button class="hm-link" onclick="msGrpSet(\'ALL\')">All 100</button><button class="hm-link" onclick="msGrpSet(\'E\')">Essential 1 + 2 (40)</button><button class="hm-link" onclick="hmToggle(\'vlist\')">' + (hmVList ? 'Hide the verbs &#9652;' : 'See the verbs in these groups &#9662;') + '</button><span class="aph-note">' + (nSel ? nSel + ' verbs chosen' : 'none chosen yet') + '</span></div><div class="hm-rulenote">' + xqRuleText() + '</div>' + (hmVList && msCore.size ? hmVerbList() : '');
+            + '<div class="hm-row"><button class="hm-link" onclick="msGrpSet(\'ALL\')">All 100</button><button class="hm-link" onclick="msGrpSet(\'E\')">Essential 1 + 2 (40)</button><button class="hm-link" onclick="hmToggle(\'vlist\')">' + (hmVList ? 'Hide the verbs &#9652;' : 'See the verbs in these groups &#9662;') + '</button><span class="aph-note">' + (nSel ? nSel + ' verbs chosen' : 'none chosen yet') + '</span></div>' + xqRuleFold() + (hmVList && msCore.size ? hmVerbList() : '');
           h += '<div class="aph-label">Which tenses <span class="vb-light">in the order we learn them</span></div>';
           if (mode === 'inf') h += '<div class="hm-note">Infinitives only: you see the English and give the ' + HMC.lang + ' infinitive, so tenses are not needed.</div>';
           else {
