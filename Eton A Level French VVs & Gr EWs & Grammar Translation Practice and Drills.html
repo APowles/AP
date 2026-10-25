@@ -4,7 +4,7 @@
 <script id="ap-update">
 /* AP auto-update: if this copy is older than the published version, reload once with the new one (saved answers are kept) */
 (function () {
-  var B = 'da6a482245'; window.AP_BUILD = B;
+  var B = '5878c1faf5'; window.AP_BUILD = B;
   function check() {
     if (!/^https?:$/.test(location.protocol) || !window.fetch) return;
     var f = decodeURIComponent(location.pathname.split('/').pop() || '');
@@ -4039,7 +4039,12 @@ function vvGroupRows() {
   const act = vvGroupOf(currentVV);
   if (act === 'VS') vsTier = vsTierOfKey(currentVV) || vsTier;   // the chips follow the set on screen
   if (act === 'TC') vcSync(currentVV);
-  return [['TC', 'Topic Vocab + chosen structures'], ['TV', 'Topic Vocab Only'], ['VS', 'Verb Structures Only'], ['VV', 'Vocab and Verbs together']].map(g => {
+  const GROUPS4 = [['TC', 'Topic Vocab + chosen structures', 'Topic Vocab + Structures'], ['TV', 'Topic Vocab Only', 'Topic Vocab Only'], ['VS', 'Verb Structures Only', 'Verb Structures Only'], ['VV', 'Vocab and Verbs together', 'Vocab + Verbs']];
+  const strip = '<div class="vv-tile-strip">' + GROUPS4.map(g => {
+    const on = act === g[0];
+    return `<button type="button" class="vv-pick-tile${on ? ' on' : ''}" onclick="vvSwitchGroup('${g[0]}')">${g[2]}${g[0] === 'TC' ? '<span class="vpt-badge">★ Usual choice</span>' : ''}</button>`;
+  }).join('') + '</div>';
+  return strip + GROUPS4.map(g => {
     const on = act === g[0];
     let key = currentVV;
     if (!on) { const m = /^[A-Z]+(\d+(?:[a-z]|_Entire))$/.exec(currentVV), pre = g[0] === 'VS' ? vsPrefix() : g[0] === 'TC' ? vcPrefix() : g[0]; key = (m && VV_DATA[pre + m[1]]) ? pre + m[1] : (g[0] === 'TV' ? 'TV1a' : g[0] === 'VS' ? vsPrefix() + '1a' : g[0] === 'TC' ? vcPrefix() + '1a' : 'VV1a'); }
@@ -50195,6 +50200,15 @@ function mlfLeisureStart(deck) {
 .vv-grp.vv-glow-green.on{border-color:#c9a84c!important;background:#fffaf0!important}
 .vv-grp .intro-phrase-count{font-size:.875rem!important;font-weight:600!important;color:#6b7690!important;background:none!important;border:0!important;padding:0!important;margin-left:4px}
 .vv-glow-box .vv-usual{font-size:.8125rem!important;font-weight:600!important;color:#8a6d1f!important;margin:0 0 6px 2px!important}
+/* compact 4-way toggle: one row of glossy tiles picks the group; the old chip+select row only shows for the chosen one */
+.vv-tile-strip{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px;margin:0 0 10px}
+.vv-pick-tile{font:inherit;text-align:center;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;min-height:60px;padding:10px 6px;border:0;border-radius:12px;background:linear-gradient(135deg,#eef1f8,#dde3f0);color:#1a2744;font-weight:700;font-size:.8125rem;line-height:1.25;box-shadow:0 3px 0 rgba(26,39,68,.15),0 4px 10px rgba(26,39,68,.10);cursor:pointer;touch-action:manipulation;transition:transform .08s,box-shadow .08s}
+.vv-pick-tile:active{transform:translateY(2px);box-shadow:0 1px 0 rgba(26,39,68,.15)}
+.vv-pick-tile.on{background:linear-gradient(135deg,#1a2744,#2a3d75);color:#ffd76a;box-shadow:0 3px 0 #0e1730,0 4px 10px rgba(26,39,68,.25)}
+.vv-pick-tile .vpt-badge{display:block;font-size:.625rem;font-weight:800;letter-spacing:.02em;color:#8a6d1f}
+.vv-pick-tile.on .vpt-badge{color:#ffd76a}
+.vv-grp .aph-chip{display:none!important}
+.vv-grp:not(.on){display:none!important}
 .aph-btn[disabled],.aph-btn-primary[disabled]{opacity:.45;cursor:not-allowed}
 .ms-opts{margin:14px 0 4px;border:1px solid #e3e0d6;border-radius:12px;padding:2px 12px 10px;background:#fff}
 .ms-opts>summary{cursor:pointer;list-style:none;min-height:44px;display:flex;align-items:center;gap:8px;font-weight:700;color:#1a2744;font-size:.9375rem}
@@ -50343,6 +50357,10 @@ function mlfLeisureStart(deck) {
       var c = g.querySelector('.intro-phrase-count'); if (c) c.style.display = 'none';
       if (!unchosenOrMy.my && activeG && ['TC', 'TV', 'VS', 'VV'][gi] === activeG) g.classList.add('on');
     });
+    // the compact tile strip follows the same on/off state as the vv-grp rows above
+    card.querySelectorAll('.vv-pick-tile').forEach(function (t, ti) {
+      t.classList.toggle('on', !unchosenOrMy.my && activeG === ['TC', 'TV', 'VS', 'VV'][ti]);
+    });
   }
   var unchosenOrMy = { my: false };
   function myBox(n, dc, on) {
@@ -50375,7 +50393,11 @@ function mlfLeisureStart(deck) {
     });
     if (!B.stack || !B.what.length) return;
     var vsOn = (chosen && !my) ? vvGroupOf(currentVV) === 'VS' : activeG === 'VS';
+    var tcOn = (chosen && !my) ? vvGroupOf(currentVV) === 'TC' : activeG === 'TC';
+    // the VS tier chips and the TC 'add structures' combo only make sense once that group is the one chosen
+    // (the combo row sits nested inside .vv-glow-box, not as a direct child of the card, so it needs its own lookup)
     B.what.forEach(function (e) { if (e.classList.contains('vv-tier') && !e.classList.contains('vv-combo') && !vsOn) e.style.display = 'none'; });
+    var comboEl = card.querySelector('.vv-combo'); if (comboEl) comboEl.style.display = tcOn ? '' : 'none';
     B.what.forEach(function (e) { if (e.innerHTML && e.innerHTML.indexOf('under Direction') >= 0) e.innerHTML = e.innerHTML.replace('under Direction', 'under Settings (Direction)'); });
     paintGroupsWrap(B, my, chosen);
     // settings (collapsed)
