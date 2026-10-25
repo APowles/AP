@@ -13960,7 +13960,8 @@ body.aporal-on .st-oral-side>#igcse-exam-wrap{order:-1;margin:0 0 12px!important
     return md.getUserMedia(micCons()).catch(function (e) {
       var nm = e && e.name || '';
       if (nm === 'NotAllowedError' || nm === 'SecurityError' || nm === 'NotFoundError') throw e;
-      return new Promise(function (res) { setTimeout(res, 400); }).then(function () { return md.getUserMedia({ audio: true }); });
+      if (nm === 'InvalidStateError') { try { if (navigator.audioSession) navigator.audioSession.type = 'play-and-record'; } catch (e2) { } }   // the page sets 'playback' for the demo voices; Safari will not capture sound in that mode, so switch it only when opening the microphone has failed
+      return new Promise(function (res) { setTimeout(res, 400); }).then(function () { return md.getUserMedia(micCons()); }).catch(function () { return md.getUserMedia({ audio: true }); });
     });
   }
   function diag(stream, m) {
