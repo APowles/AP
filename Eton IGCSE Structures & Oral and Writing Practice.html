@@ -13629,8 +13629,9 @@ body.aporal-on .st-oral-side>#igcse-exam-wrap{order:-1;margin:0 0 12px!important
     get prefix() { return 'DR' + (LET[L] || 'F'); },
     get cat() { return 'IGCSE ' + (LNAME[L] || 'French') + ' ▸ Drills'; },
     ready: function () { return typeof CARDS !== 'undefined' && CARDS.length && typeof startQuickPractice === 'function' && typeof launchStructures === 'function' && typeof launchOral === 'function' && typeof launchCards === 'function' && typeof _stSections === 'function' && typeof IGCSE_CARDS !== 'undefined' && $('app') && $('landing-app'); },
-    visible: function () { return !!screen(); },
+    visible: function () { return !!screen() || !!(window.IGOD && IGOD.linkInfo && IGOD.linkInfo()); },
     capture: function () {
+      if (window.IGOD && IGOD.linkInfo) { var li = IGOD.linkInfo(); if (li) { if (li.cfg) L = li.lang; return li; } }
       var s = screen();
       if (s === 's') {
         var f = fromLang, t = toLang, sec = currentSection || 'all';
@@ -13652,6 +13653,7 @@ body.aporal-on .st-oral-side>#igcse-exam-wrap{order:-1;margin:0 0 12px!important
     },
     apply: function (c) {
       if (!c) return false;
+      if (c.k === 'l') return !!(window.IGOD && IGOD.applyLink && IGOD.applyLink(c));
       if (c.k === 's') {
         if (!LN[c.f] || !LN[c.t] || c.f === c.t || OKC.indexOf(c.n) < 0 || !okTimer(c.tm) || !secOK(c.s)) return false;
         if (!CARDS.some(function (x) { return sectionMatches(x.section, c.s); })) return false;
@@ -14734,6 +14736,10 @@ body.aporal-on .st-oral-side>#igcse-exam-wrap{order:-1;margin:0 0 12px!important
 .od-mt.bad{border-color:#c0392b;background:#fdecea}
 .od-mt.ok{border-color:#2e7d52;background:#eaf5ef;color:#1f6b45;opacity:.75;box-shadow:none}
 
+.od-crest{width:42px;height:42px;border-radius:50%;object-fit:cover;cursor:pointer;border:2px solid #c9a84c;flex:none;margin-left:auto;background:#fff}
+.od-hero .od-crest{position:absolute;top:12px;right:14px;margin:0}
+.od-tmrow{margin:12px 0 4px}.od-tmrow .aph-btn{width:100%;text-align:left;white-space:normal;margin-bottom:4px}
+
 /* ---- card page: new look (Eton file first) ---- */
 body:has(.st-oral){background:linear-gradient(180deg,#f3efe4 0,#faf8f3 300px) fixed}
 .st-oral .breadcrumb{margin:18px 0 14px}
@@ -15109,7 +15115,7 @@ function closeKTRChallenge() {
 <script id="igod">
 /* ===== LEARN FROM THIS DEMO (IGCSE Top Structures & Oral) =====
    A graded ladder under the two whole-answer translation tools: listen first, then choose what to practise
-   (Phrases, Gaps, Word order, Spot the mistake, Translate) and how (Drill, Speed Challenge, Test, Print a sheet, Read it again, Have a go).
+   (Top Structures, Gaps, Word order, Spot the mistake, Translate) and how (Drill, Speed Challenge, Test, Print a sheet, Read it again, Have a go).
    Data: everything comes from the card itself (demo, demoEn, demoHL, demoStructures + the Top Structures list), except Spot the mistake,
    whose error sentences live in <script id="igod-data"> as {fr:{<card id>:[{q,s,w,r,t,y}]},it:{…}}  (q = answer, s = sentence, w = wrong, r = right, t = type, y = why).
    Engines reused: the AP Speed Challenge game (the same game as the other apps, fed with the demo's items), APPEN (Apple Pencil pads),
@@ -15121,7 +15127,7 @@ function closeKTRChallenge() {
   var SKEY = 'igod_set_v1';
   var ACTS = [
     { k: 'K', name: 'Key words', lv: 1, g: 'Words and structures', src: 'dmK', desc: 'The useful words and phrases this demo uses, one at a time.' },
-    { k: 'P', name: 'Phrases', lv: 1, src: 'dmP', desc: 'The Top Structures this answer uses, English ↔ target language.' },
+    { k: 'P', name: 'Top Structures', lv: 1, src: 'dmP', desc: 'The Top Structures this answer uses, English ↔ target language.' },
     { k: 'B', name: 'Bold bits', lv: 2, src: 'dmB', desc: 'Just the bold Top Structure in a demo sentence: say what it means, or say it.' },
     { k: 'G', name: 'Gaps', lv: 2, g: 'Build sentences', src: 'dmG', desc: 'A short phrase is missing from a sentence of the demo. Fill it in.' },
     { k: 'O', name: 'Word order', lv: 2, src: 'dmO', desc: 'Put the jumbled chunks of a demo sentence back in order.' },
@@ -15371,7 +15377,7 @@ function closeKTRChallenge() {
   }
 
   // ---------- the overlay ----------
-  function lockKeys(fn) { unkey(); keyH = function (e) { if ($('apktr-overlay') || !$('od-ov')) return; if (fn(e)) { e.preventDefault(); e.stopImmediatePropagation(); } else if (/^Arrow(Left|Right|Down|Up)$/.test(e.key)) e.stopImmediatePropagation(); }; window.addEventListener('keydown', keyH, true); }
+  function lockKeys(fn) { unkey(); keyH = function (e) { if ($('apktr-overlay') || $('aptt-ov') || $('ms-ov') || $('apdl-mk') || $('aptt-mk') || $('od-tm') || !$('od-ov')) return; if (fn(e)) { e.preventDefault(); e.stopImmediatePropagation(); } else if (/^Arrow(Left|Right|Down|Up)$/.test(e.key)) e.stopImmediatePropagation(); }; window.addEventListener('keydown', keyH, true); }
   function unkey() { if (keyH) { window.removeEventListener('keydown', keyH, true); keyH = null; } }
   function openOv() {
     closeOv(true);
@@ -15390,8 +15396,12 @@ function closeKTRChallenge() {
     var y = keep ? o.scrollTop : 0;
     o.innerHTML = html; o.scrollTop = y;
   }
+  function crest() {
+    var a = document.querySelector('.aph-header .aph-avatar, .aph-header .header-photo'); if (!a || !a.src) return '';
+    return '<img class="od-crest" data-a="crest" src="' + a.src + '" alt="School crest: teacher options" title="">';
+  }
   function top(title, sub, backTxt, extra) {
-    return '<div class="od-top"><button type="button" class="od-back" data-a="back">← ' + (backTxt || 'Back') + '</button><h2 class="od-title">' + title + (sub ? '<small>' + sub + '</small>' : '') + '</h2>' + (extra || '') + '</div>';
+    return '<div class="od-top"><button type="button" class="od-back" data-a="back">← ' + (backTxt || 'Back') + '</button><h2 class="od-title">' + title + (sub ? '<small>' + sub + '</small>' : '') + '</h2>' + (extra || '') + crest() + '</div>';
   }
   function codeBadge() { return W.ctx.code ? '<span class="od-code">' + esc(W.ctx.code) + '</span>' : ''; }
   function step(n, t) { return '<div class="ms-step"><span class="ms-num">' + n + '</span>' + t + '</div>'; }
@@ -15399,7 +15409,7 @@ function closeKTRChallenge() {
   // ---------- page 1: the set-up ----------
   function pageSetup() {
     var c = W.ctx, card = c.card, na = selActs().length, tot = selTotal(), has = c.nActs > 0, D = DIRS();
-    var h = '<div class="od-page"><div class="od-hero"><button type="button" class="od-hback" data-a="back">← Back to the card</button><div class="od-hk">Learn from this demo' + codeBadge() + '</div><h2 class="od-ht">' + esc(c.theme) + '</h2>'
+    var h = '<div class="od-page"><div class="od-hero">' + crest() + '<button type="button" class="od-hback" data-a="back">← Back to the card</button><div class="od-hk">Learn from this demo' + codeBadge() + '</div><h2 class="od-ht">' + esc(c.theme) + '</h2>'
       + '<details class="od-hq" open><summary>The ' + c.q.length + ' questions</summary><ol>' + c.q.map(function (q) { return '<li>' + esc(q) + '</li>'; }).join('') + '</ol></details>'
       + '<div class="od-hl"><span>🎧 <b>Start by listening.</b> Follow the Top Structures, then come back and make them yours.</span><button type="button" data-a="listen">▶ Demo Mode</button></div></div>';
     if (has) {
@@ -15419,7 +15429,7 @@ function closeKTRChallenge() {
         + optRow('Items in each activity', 'per', [[4, '4'], [6, '6'], [8, '8'], [0, 'All']])
         + optRow('Clues and hints', 'help', [[1, 'On'], [0, 'Off']])
         + optRow('Items in a test', 'test', [[10, '10'], [15, '15'], [20, '20']])
-        + optRow('Direction (Phrases, Translate)', 'dir', [['en', D.en], ['fr', D.fr], ['mix', D.mix]])
+        + optRow('Direction (Top Structures, Translate)', 'dir', [['en', D.en], ['fr', D.fr], ['mix', D.mix]])
         + optRow('Speed Challenge: tiles', 'tiles', [[9, '9'], [12, '12'], [16, '16']])
         + optRow('Timer: seconds a turn (Speed Challenge)', 'tt', [[10, '10'], [20, '20'], [30, '30'], [45, '45']])
         + '</details>';
@@ -15428,7 +15438,7 @@ function closeKTRChallenge() {
     h += '<div class="ms-now">' + (!has ? '' : !na ? 'Choose at least one activity above to unlock the ways to practise it, or leave them all unticked to read the demo again or have a go.' : 'Practising: <b>' + selActs().map(function (a) { return a.name; }).join(', ') + '</b> · ' + tot + ' items') + '</div>';
     var T = [
       ['ms-drill', 'drill', 'Drill', 'Items one at a time. You mark yourself ✗ ~ ✓.', 'drill', !ok],
-      ['ms-match', '🧩', 'Match', hasPair ? 'Pair up English and ' + LN() + ': Key words, Phrases, Bold bits.' : 'Needs Key words, Phrases or Bold bits ticked above.', 'match', !(ok && hasPair)],
+      ['ms-match', '🧩', 'Match', hasPair ? 'Pair up English and ' + LN() + ': Key words, Top Structures, Bold bits.' : 'Needs Key words, Top Structures or Bold bits ticked above.', 'match', !(ok && hasPair)],
       ['ms-speed', 'speed', 'Speed Challenge', 'Race the clock, solo or in teams.', 'speed', !ok],
       ['ms-test', 'test', 'Test', 'A short test to write with Apple Pencil or print. Answers stay hidden.', 'test', !ok],
       ['ms-print', '🖨', 'Print a sheet', 'The same activities as a sheet to write on.', 'print', !ok],
@@ -15581,8 +15591,8 @@ function closeKTRChallenge() {
     B.K.forEach(function (b) { out.dmK.push({ en: b.en, fr: b.fr, say: b.fr, task: '', lvl: function () { return null; } }); });
     B.B.forEach(function (b) { out.dmB.push({ en: '\u0003' + b.pre + ' [ ' + b.gloss + ' ] ' + b.post + '\u0004', fr: b.cut, say: b.full, task: 'gap', lvl: function () { return null; } }); });
     B.P.forEach(function (b) { out.dmP.push({ en: b.en, fr: b.fr, say: b.fr, task: '', lvl: function () { return null; } }); });
-    B.G.forEach(function (b) { out.dmG.push({ en: '\u0003' + b.pre + ' _____ ' + b.post + '\u0004' + (b.hint ? '\u0005(' + b.hint + ')\u0006' : ''), fr: b.cut, say: b.full, task: 'gap', lvl: function () { return null; } }); });
-    B.O.forEach(function (b) { var j = jumble(b.fr, b.pr); out.dmO.push({ en: '\u0003' + j.join('  /  ') + '\u0004' + (b.en ? '\u0005(' + b.en + ')\u0006' : ''), fr: b.fr, say: b.fr, task: 'order', lvl: function () { return null; } }); });
+    B.G.forEach(function (b) { out.dmG.push({ en: '\u0003' + b.pre + ' _____ ' + b.post + '\u0004' + (b.hint && SET.help ? '\u0005' + b.hint + '\u0006' : ''), fr: b.cut, say: b.full, task: 'gap', lvl: function () { return null; } }); });
+    B.O.forEach(function (b) { var j = jumble(b.fr, b.pr); out.dmO.push({ en: '\u0003' + j.join('  /  ') + '\u0004' + (b.en && SET.help ? '\u0005' + b.en + '\u0006' : ''), fr: b.fr, say: b.fr, task: 'order', lvl: function () { return null; } }); });
     B.E.forEach(function (b) {
       var m = errMark(b.wrong, b.right).replace(/<u[^>]*>/g, '\u0007').replace(/<\/u>/g, '\u0008').replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&amp;/g, '&').replace(/&quot;/g, '"');
       out.dmE.push({ en: b.wrong, fr: m + (b.why ? ' (' + b.why + ')' : ''), say: b.right, task: 'err', lvl: function () { return null; } });
@@ -15602,6 +15612,7 @@ function closeKTRChallenge() {
     // the Speed Challenge page itself: small changes so the demo's questions read properly and nothing about the demo is remembered for the ordinary game
     if (typeof APKTR_TPL === 'string') {
       var T = APKTR_TPL, R = function (a, b) { if (T.indexOf(a) >= 0) T = T.replace(a, function () { return b; }); };
+      R(".replace(/\\u0005/g, '<br><i style=\"opacity:.75;font-size:.9em\">').replace(/\\u0006/g, '</i>')", ".replace(/\\u0005/g, '<details style=\"margin-top:6px\" onclick=\"event.stopPropagation()\"><summary style=\"cursor:pointer;font-weight:700\">&#128161; Give me a clue</summary><i style=\"font-size:.9em\">').replace(/\\u0006/g, '</i></details>')");
       R("var S = { lang: 'fr',", "var S = { lang: ((window.parent.__ktr && window.parent.__ktr.lang) || 'fr'),");
       R("function oTask(o) { return ", "function oTask(o) { if (o.task === 'gap') return 'Fill the gap'; if (o.src === 'dmP') return 'Translate the structure'; if (o.src === 'dmK') return 'Translate the word or phrase'; if (o.src === 'dmB') return 'Say the bold part'; return ");
       R("fixed: tk === 'know' ||", "fixed: tk === 'gap' || tk === 'know' ||");
@@ -15639,25 +15650,84 @@ function closeKTRChallenge() {
   var SRC_SUB = { dmK: 'The demo\'s own key words and phrases', dmB: 'Say just the bold part of a demo sentence', dmP: 'The Top Structures, English → target language', dmG: 'Fill the gap in a demo sentence', dmO: 'Put the jumbled words in order', dmE: 'Find and correct the mistake', dmT: 'Single sentences, English → target language' };
 
   // ---------- Test: a short test on screen (Apple Pencil pads, answers behind a button), printed with a sheet of its own ----------
-  function goTest() {
-    var ks = selActs(); if (!ks.length) return;
+  function testViews() {
+    var ks = selActs(); if (!ks.length) return null;
     var pools = ks.map(function (a) { return drawAct(W.ctx, a.k, 0); }), avail = pools.reduce(function (n, p) { return n + p.length; }, 0);
-    if (avail < 5) { alert('A test needs at least 5 items. Tick more activities.'); return; }
+    if (avail < 5) { alert('A test needs at least 5 items. Tick more activities.'); return null; }
     var want = Math.min(SET.test, avail), got = [], r = 0;
     while (got.length < want && pools.some(function (p) { return p.length > r; })) { pools.forEach(function (p, i) { if (got.length < want && p[r]) got.push({ b: p[r], i: i }); }); r++; }
     got.sort(function (a, b) { return a.i - b.i; });   // easy to hard
-    var vs = got.map(function (g) { return view(g.b, SET.dir); });
+    return got.map(function (g) { return view(g.b, SET.dir); });
+  }
+  function goTest() {
+    var vs = testViews(); if (!vs) return;
     if (W.test && W.test.sn) { try { APPEN.reset(W.test.vs.map(function (x, i) { return 'odt:' + W.test.sn + ':' + i; })); } catch (e) { } }
     W.view = 'test'; W.test = { vs: vs, show: false, sn: Date.now().toString(36) }; pageTest();
+  }
+
+  // ---------- timed and submitted: the app's own Spot Test (Apple Pencil on the iPad, handed in), made from the ticked activities ----------
+  function startTimed(quiet) {
+    var vs = testViews(); if (!vs || !window.APTT || !APTT.open) { if (!quiet) alert('The timed test is not available here.'); return false; }
+    var c = W.ctx, names = selActs().map(function (a) { return a.name; }).join(', ');
+    var items = vs.map(function (o) {
+      var long = o.act === 'O' || o.act === 'E' || o.act === 'T' || (o.plainA || '').split(/\s+/).length > 4;
+      return { prompt: '<b>' + esc(o.tag) + '</b><br>' + o.qh + (SET.help && (o.clue || o.hint) ? '<details style="margin-top:6px"><summary style="cursor:pointer;font-weight:700">💡 Give me a clue</summary>' + clueTxt(o) + '</details>' : ''), answer: o.ah, kind: long ? 'sentence' : 'word', label: o.tag, html: true };
+    });
+    var run = function () { startTimed(true); };
+    APTT.lastRun = run;
+    APTT.open({ id: 'iglearn|' + (c.code || c.id) + '|' + selActs().map(function (a) { return a.k; }).join(''), app: 'Eton IGCSE Top Structures and Oral Practice', kicker: 'Eton IGCSE Top Structures and Oral Practice',
+      title: 'Learn from this demo · ' + esc(c.code || c.id), meta: '', detail: names, lang: '', items: items, total: items.length, level: '' });
+    return true;
+  }
+  function tkey() { try { return !!localStorage.getItem('apTeacherKey'); } catch (e) { return false; } }
+  function crestMsg(img, t) {
+    var m = document.getElementById('od-cmsg'); if (m) m.remove();
+    m = document.createElement('div'); m.id = 'od-cmsg'; m.textContent = t; var r = img.getBoundingClientRect();
+    m.style.cssText = 'position:fixed;z-index:15500;right:12px;top:' + (r.bottom + 6) + 'px;background:#1a2744;color:#ffd76a;font:700 .8rem/1.2 DM Sans,system-ui,sans-serif;padding:7px 11px;border-radius:8px;box-shadow:0 4px 14px rgba(0,0,0,.25);max-width:80vw';
+    document.body.appendChild(m); setTimeout(function () { if (m.parentNode) m.remove(); }, 2600);
+  }
+  function crestTap(img) {
+    if (!tkey()) { crestMsg(img, 'Not available'); return; }
+    var ks = W && W.ctx ? selActs() : [];
+    var d = $('od-tm'); if (d) d.remove();
+    d = document.createElement('div'); d.id = 'od-tm'; d.className = 'aptt-mkov';
+    var nm = ks.map(function (a) { return a.name; }).join(', ');
+    d.innerHTML = '<div class="aptt-mkbox" role="dialog" aria-modal="true"><div class="aptt-mkh">🔑 Set this for the boys</div>'
+      + '<div class="aptt-mks">Learn from this demo · ' + esc(W.ctx.code || W.ctx.id) + (nm ? ' · ' + esc(nm) : '') + '</div>'
+      + (ks.length ? '' : '<div class="aptt-mkhint" style="margin:6px 0">Tick the activities you want (under FIRST) and then tap the crest again.</div>')
+      + '<div class="od-tmrow"><button type="button" class="aph-btn aph-btn-primary" id="od-tm-t"' + (ks.length ? '' : ' disabled') + '>⏱ A timed test, handed in (Apple Pencil on the iPad)</button><div class="aptt-mkhint">A draw from the ticked activities. You choose the time, whether every boy gets the same questions, and make the link or code.</div></div>'
+      + '<div class="od-tmrow"><button type="button" class="aph-btn" id="od-tm-l"' + (ks.length ? '' : ' disabled') + '>🔗 A link to practise this (no timer)</button><div class="aptt-mkhint">The boys go straight to this demo with these activities ticked and choose how to practise.</div></div>'
+      + '<div class="aptt-mkact"><button type="button" class="aph-btn" id="od-tm-x">Close</button></div></div>';
+    document.body.appendChild(d);
+    $('od-tm-x').onclick = function () { d.remove(); };
+    $('od-tm-t').onclick = function () { d.remove(); if (startTimed(false)) setTimeout(function () { try { if (APTT.maker) APTT.maker(); } catch (e) { } }, 500); };
+    $('od-tm-l').onclick = function () { d.remove(); try { APDL.make(); } catch (e) { alert('The link maker is not available here.'); } };
+  }
+  // for the drill-link maker (link to this set-up) and for opening such a link
+  function linkInfo() {
+    if (!W || !W.ctx || !$('od-ov')) return null;
+    var ks = selActs(); if (!ks.length) return { why: 'Tick the activities you want first (under FIRST), then make the link.' };
+    return { cfg: { k: 'l', c: W.ctx.code || W.ctx.id, a: ks.map(function (a) { return a.k; }).join('') }, lang: W.ctx.lang || lang(), title: 'Learn from this demo: ' + (W.ctx.code || W.ctx.id) + ' · ' + ks.map(function (a) { return a.name; }).join(', ') };
+  }
+  function applyLink(c) {
+    if (!c || c.k !== 'l' || !/^[A-Za-z]{2}\d{3,4}$/.test(String(c.c || '')) || !/^[KPBGOET]{1,7}$/.test(String(c.a || ''))) return false;
+    if (!goCode(String(c.c).toUpperCase(), String(c.a))) return false;
+    return true;
+  }
+  // a clue is never on show: it appears only when the boy taps the button (Drill, Test, timed test); on paper it sits in its own box that is off unless ticked
+  function clueTxt(o) { return (o.clue ? hintBox(o.clue) : '') + (o.hint ? hintBox(o.hint) : ''); }
+  function clueBtn(o, i, shown) {
+    if (!SET.help || !(o.clue || o.hint)) return '';
+    return shown ? '<div id="od-tc' + i + '">' + clueTxt(o) + '</div>' : '<div id="od-tc' + i + '"><button type="button" class="ms-b sm" data-a="tclue" data-i="' + i + '" style="margin:6px 0">💡 Give me a clue</button></div>';
   }
   function pageTest() {
     var t = W.test; unkey();
     lockKeys(function (e) { if (e.key === 'Escape') { back(); return true; } return false; });
     var h = '<div class="od-page od-narrow">' + top('Test ' + codeBadge(), t.vs.length + ' items · ' + selActs().map(function (a) { return a.name; }).join(', '), 'Back');
     h += '<div class="od-note">Write each answer with your Apple Pencil (or tap <b>Type</b>, or just use paper). Read the tag on each item to see what to do. Then tap <b>Show answers</b> to compare: your writing stays put and the pen turns red so you can correct it.</div>';
-    h += '<div class="od-bar"><button type="button" class="ms-b sm pri" data-a="tshow">' + (t.show ? 'Hide answers' : 'Show answers') + '</button><button type="button" class="ms-b sm" data-a="tprint" data-t="0">🖨 Print the test</button><button type="button" class="ms-b sm" data-a="tprint" data-t="1">🖨 Print with answers</button><button type="button" class="ms-b sm" data-a="test2">🔀 New test</button></div>';
+    h += '<div class="od-bar"><button type="button" class="ms-b sm pri" data-a="tshow">' + (t.show ? 'Hide answers' : 'Show answers') + '</button><button type="button" class="ms-b sm" data-a="timed">⏱ Timed test, handed in</button><button type="button" class="ms-b sm" data-a="tprint" data-t="0">🖨 Print the test</button><button type="button" class="ms-b sm" data-a="tprint" data-t="1">🖨 Print with answers</button><button type="button" class="ms-b sm" data-a="test2">🔀 New test</button></div>';
     t.vs.forEach(function (o, i) {
-      h += '<div class="od-testrow"><span class="n">' + (i + 1) + '</span>' + tagHtml(o) + '<div class="od-q" style="font-size:1.1875rem;margin-top:8px">' + o.qh + '</div>' + (o.clue ? '<div class="od-clue">' + o.clue + '</div>' : '') + (o.hint && SET.help ? hintBox(o.hint) : '') + APPEN.html({ key: 'odt:' + t.sn + ':' + i, lines: (o.act === 'T' || o.act === 'E' || o.act === 'O') ? 3 : (o.act === 'K' || o.act === 'B' || o.act === 'P') ? 1 : 2, label: 'Item ' + (i + 1), typed: '<textarea class="appen-ta" rows="2" spellcheck="false" autocomplete="off" placeholder="Type your answer here"></textarea>' }) + (t.show ? '<div class="od-ans">' + o.ah + '</div>' : '') + '</div>';
+      h += '<div class="od-testrow"><span class="n">' + (i + 1) + '</span>' + tagHtml(o) + '<div class="od-q" style="font-size:1.1875rem;margin-top:8px">' + o.qh + '</div>' + clueBtn(o, i, t.clues && t.clues[i]) + APPEN.html({ key: 'odt:' + t.sn + ':' + i, lines: (o.act === 'T' || o.act === 'E' || o.act === 'O') ? 3 : (o.act === 'K' || o.act === 'B' || o.act === 'P') ? 1 : 2, label: 'Item ' + (i + 1), typed: '<textarea class="appen-ta" rows="2" spellcheck="false" autocomplete="off" placeholder="Type your answer here"></textarea>' }) + (t.show ? '<div class="od-ans">' + o.ah + '</div>' : '') + '</div>';
     });
     h += '<div class="ms-cen"><button type="button" class="ms-b" data-a="back">← Back</button></div></div>';
     paint(h, true);
@@ -15687,20 +15757,23 @@ function closeKTRChallenge() {
       + '.decl{border:1.5px solid #1a2744;border-radius:2mm;padding:2mm 3mm;font-weight:700;margin:2mm 0}.decl ol{margin:1mm 0 0 5mm;padding:0;font-weight:600}.intro{font-size:9pt;color:#3d4866;background:#f7f3e8;border-left:3px solid #c9a84c;padding:2mm 3mm;margin:0 0 3mm}'
       + '.act{border:1.5px solid #c9a84c;border-radius:3mm;margin:0 0 4mm;break-inside:avoid;overflow:hidden}.ah{background:#1a2744;color:#fff;padding:2mm 3.5mm;display:flex;justify-content:space-between;align-items:baseline}.ah b{font-size:10.5pt}.ah span{font-size:7.5pt;letter-spacing:.06em;text-transform:uppercase;color:#e6d8ad}'
       + '.ab{padding:2mm 3.5mm 2.5mm}.how{font-size:8.5pt;color:#56607a;margin:0 0 1.5mm}.it{margin:1.8mm 0}.it .n{display:inline-block;width:5mm;font-weight:700;color:#a8862e}.ln{height:7.5mm;border-bottom:1px solid #b9c0cf}.sm{font-size:8pt;color:#8a93a8;font-style:italic}.tg{display:inline-block;font-size:6.5pt;font-weight:700;letter-spacing:.06em;background:#1a2744;color:#fff;border-radius:1mm;padding:.4mm 1.6mm;margin-right:2mm;vertical-align:1px}'
-      + '.key{display:none}body.showkey .key{display:block}.pb{break-before:page}h1{font:700 19pt Georgia,serif;margin:3mm 0 1mm}h1 em{color:#a8862e;font-style:normal}.sub{color:#56607a;font-size:9pt}';
+      + '.key{display:none}body.showkey .key{display:block}.cl{display:none;margin-top:2mm;border-top:1px dashed #b9c0cf;padding-top:1.5mm;font-size:8pt;color:#56607a}body.showcl .cl{display:block}.pb{break-before:page}h1{font:700 19pt Georgia,serif;margin:3mm 0 1mm}h1 em{color:#a8862e;font-style:normal}.sub{color:#56607a;font-size:9pt}';
     var body = '', keyH2 = '', n = 0, nk = 0;
     sets.forEach(function (s) {
       var rows = s.vs.map(function (o) {
         n++; var lines = (o.act === 'T' || o.act === 'O' || o.act === 'E') ? 2 : 1;
-        return '<div class="it"><span class="n">' + n + '</span>' + (isTest ? '<span class="tg">' + esc(o.tag).toUpperCase() + '</span>' : '') + o.qh + (o.clue ? '<div class="sm">' + o.clue + '</div>' : '') + (o.hint && SET.help ? '<div class="sm">Clue: ' + o.hint.replace(/<[^>]+>/g, '') + '</div>' : '') + new Array(lines + 1).join('<div class="ln"></div>') + '</div>';
+        return '<div class="it"><span class="n">' + n + '</span>' + (isTest ? '<span class="tg">' + esc(o.tag).toUpperCase() + '</span>' : '') + o.qh + new Array(lines + 1).join('<div class="ln"></div>') + '</div>';
       }).join('');
+      var cl = '', cn = n - s.vs.length;
+      if (SET.help) s.vs.forEach(function (o) { cn++; if (o.clue || o.hint) cl += '<div class="sm"><b>' + cn + '.</b> ' + [o.clue, o.hint].filter(Boolean).join(' · ').replace(/<br>/g, ' ').replace(/<[^>]+>/g, '') + '</div>'; });
+      if (cl) rows += '<div class="cl"><b>Clues</b> (only if you are stuck)' + cl + '</div>';
       var keys = s.vs.map(function (o) { nk++; return '<div class="it"><span class="n">' + nk + '</span>' + o.ah.replace(/<span class="why">(.*?)<\/span>/g, ' <span class="sm">($1)</span>') + '</div>'; }).join('');
       if (s.a) { body += '<div class="act"><div class="ah"><b>' + s.a.name + '</b><span>Level ' + dots(s.a.lv) + '</span></div><div class="ab"><p class="how">' + HOW[s.a.k] + '</p>' + rows + '</div></div>'; keyH2 += '<div class="act"><div class="ah"><b>' + s.a.name + '</b></div><div class="ab">' + keys + '</div></div>'; }
       else { body += '<div class="act"><div class="ab">' + rows + '</div></div>'; keyH2 += '<div class="act"><div class="ab">' + keys + '</div></div>'; }
     });
     var code = esc(c.code || c.id), head = (typeof aphPrintHead === 'function') ? aphPrintHead({ kicker: 'Eton IGCSE &middot; Oral &middot; ' + title, title: title + ' &mdash; <em>' + code + '</em>', meta: esc(c.theme), print: false }) : '<h1>' + title + ' &middot; <em>' + code + '</em></h1><div class="sub">' + esc(c.theme) + '</div>';
     var html = '<!doctype html><html><head><meta charset="utf-8"><title>' + code + ' · ' + title + '</title><style>' + (typeof aphCSS === 'function' ? aphCSS() : '') + '</style><style>' + css + '</style></head><body class="' + (withKey ? 'showkey' : '') + '">'
-      + '<div class="toolbar"><button onclick="window.print()">&#128424; Print / PDF</button>' + (isTest ? '' : '<label><input type="checkbox" onchange="document.body.classList.toggle(\'showkey\',this.checked)"> Include the answer pages</label><span>Answers stay hidden unless you tick the box.</span>') + '</div><div class="sheet">'
+      + '<div class="toolbar"><button onclick="window.print()">&#128424; Print / PDF</button>' + (SET.help ? '<label><input type="checkbox" onchange="document.body.classList.toggle(\'showcl\',this.checked)"> Show the clues</label>' : '') + (isTest ? '' : '<label><input type="checkbox" onchange="document.body.classList.toggle(\'showkey\',this.checked)"> Include the answer pages</label><span>Answers stay hidden unless you tick the box.</span>') + '</div><div class="sheet">'
       + head + '<div class="decl">' + esc(c.theme) + '<ol>' + c.q.map(function (q) { return '<li>' + esc(q) + '</li>'; }).join('') + '</ol></div><div class="intro">You have listened to the demo and followed its Top Structures. Now make them yours: do the activities in order, from easy to hard. The answers are in ' + L + '.</div>' + body
       + '<div class="key"><div class="pb"></div><h1>Answers &mdash; <em>' + code + '</em></h1><p class="sub">Check your work, then correct anything wrong in a different colour.</p>' + keyH2 + '</div></div></body></html>';
     // The sheet opens over this page (same tab), so it is obvious something has happened and easy to close.
@@ -15800,6 +15873,9 @@ function closeKTRChallenge() {
       case 'match': goMatch(); break;
       case 'test': goTest(); break;
       case 'test2': goTest(); break;
+      case 'crest': crestTap(t); break;
+      case 'timed': startTimed(false); break;
+      case 'tclue': var ti = +t.getAttribute('data-i'), to = W.test && W.test.vs[ti], tb = $('od-tc' + ti); if (to && tb) { W.test.clues = W.test.clues || {}; W.test.clues[ti] = 1; tb.innerHTML = clueTxt(to); } break;
       case 'tshow': W.test.show = !W.test.show; pageTest(); break;
       case 'tprint': printTest(t.getAttribute('data-t') === '1'); break;
       case 'print': printSheet(); break;
@@ -15835,16 +15911,23 @@ function closeKTRChallenge() {
     var o = $('od-ov'); if (o) o.scrollTop = 0;
   }
   window.apDemoLearn = open;
-  window.IGOD = { open: open, state: function () { return W; }, set: SET, ctxFor: ctxFor };
+  window.IGOD = { linkInfo: linkInfo, applyLink: applyLink, startTimed: startTimed, open: open, state: function () { return W; }, set: SET, ctxFor: ctxFor };
 
   // a link #learn=FR001 opens the card and this page (the same way an #oral= link opens a card)
   function fromHash() {
     var m = /^#learn=([A-Za-z]{2}\d{3,4})/.exec(location.hash || ''); if (!m) return;
-    var code = m[1].toUpperCase(), card = null, lg = 'fr';
+    if (!goCode(m[1].toUpperCase(), '')) alert('Sorry, this link does not match a demo.');
+  }
+  function goCode(code, acts) {
+    var card = null, lg = 'fr';
     [['fr', cardSet('fr')], ['it', cardSet('it')], ['es', cardSet('es')]].forEach(function (s) { if (!card) { var x = s[1].find(function (y) { return y.code === code; }); if (x) { card = x; lg = s[0]; } } });
-    if (!card) { alert('Sorry, this link does not match a demo.'); return; }
-    try { launchOral(); setLang(lg); showCard(card, 'code'); } catch (e) { return; }
-    setTimeout(open, 250);
+    if (!card) return false;
+    try { launchOral(); setLang(lg); showCard(card, 'code'); } catch (e) { return false; }
+    setTimeout(function () {
+      open();
+      if (acts && W && W.ctx) { ACTS.forEach(function (a) { if (acts.indexOf(a.k) >= 0 && W.ctx.avail[a.k] > 0) W.sel[a.k] = true; }); showSetup(true); try { var st = $('od-ov').querySelectorAll('.ms-step'); if (st[1]) $('od-ov').scrollTop = st[1].offsetTop - 12; } catch (e) { } }
+    }, 250);
+    return true;
   }
   if (document.readyState === 'complete') setTimeout(fromHash, 600); else window.addEventListener('load', function () { setTimeout(fromHash, 600); });
   window.addEventListener('hashchange', function () { if (/^#learn=/.test(location.hash)) fromHash(); });
