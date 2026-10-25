@@ -8,6 +8,5 @@ for f in sorted(glob.glob('Eton *.html')+glob.glob('AP All Languages - *.html'))
     s = open(f,encoding='utf-8').read()
     if 'function adjustTimer' not in s or 'aph-dbar-score' not in s: continue
     s2 = re.sub(r'<script id="ap-timerbar">.*?</script>\n','',s,flags=re.S)
-    j = s2.rfind('</html>'); i = s2.rfind('</body>'); k = i if i >= 0 and (j < 0 or i < j) else j
-    if k < 0: print('SKIP',f); continue
-    open(f,'w',encoding='utf-8').write(s2[:k]+block+s2[k:]); print('injected',f)
+    s2 = s2.rstrip('\n') + '\n' + block   # appended at the very end of the file: '</body>' can also occur inside a script string, so never insert there
+    open(f,'w',encoding='utf-8').write(s2); print('injected',f)

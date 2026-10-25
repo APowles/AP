@@ -757,10 +757,10 @@ function aphBack() {
 function vbScore(){ return '<span class="aph-dbar-score"><span class="ok">&#10003; '+got+'</span><span class="near">~ '+nearly+'</span><span class="bad">&#10007; '+errors+'</span></span>'; }
 function vbBar(hint){
   return '<div class="drill-bar aph-dbar"><span class="aph-dbar-title">'+VB_NAME+'</span>'+vbScore()
-    +(hint?'<button id="hintToggleBtn" class="aph-dbar-btn'+(showInfHint?' on':'')+'" onclick="toggleInfHint()">&#128161; Hint: '+(showInfHint?'On':'Off')+'</button>':'')
+    +(hint?'<button id="hintToggleBtn" class="aph-dbar-btn'+(showInfHint?' on':'')+'" onclick="toggleInfHint()">&#128161; Infinitive: '+(showInfHint?'On':'Off')+'</button>':'')
     +'<button class="aph-dbar-btn" '+(majorErrorDeck.length?'onclick="goToErrorReview()"':'disabled')+'>&#9654; Errors</button></div>';
 }
-function vbSyncHint(){ var b=document.getElementById('hintToggleBtn'); if(b){ b.innerHTML='&#128161; Hint: '+(showInfHint?'On':'Off'); b.classList.toggle('on',!!showInfHint); } }
+function vbSyncHint(){ var b=document.getElementById('hintToggleBtn'); if(b){ b.innerHTML='&#128161; Infinitive: '+(showInfHint?'On':'Off'); b.classList.toggle('on',!!showInfHint); } }
 function vbProgress(p){ return '<div class="aph-progress"><div class="progress-fill" style="width:'+p+'%"></div></div>'; }
 function vbTimer(){ return '<div class="vb-timer"><div id="timerBar" style="width:100%"></div></div>'; }
 // marking row under the card, matching the arrow keys: ← major error · ↓ nearly · → got it
@@ -5258,7 +5258,7 @@ function showFullCard(verb,progress){
       ${editModeUnlocked?`<button id="cardCornerEditBtn" onclick="startCardEdit()" style="position:absolute;top:10px;right:10px;background:none;border:none;font-size:1rem;cursor:pointer;opacity:0.35;padding:2px 6px;border-radius:6px;" title="Edit this card" onmouseover="this.style.opacity='1'" onmouseout="this.style.opacity='0.35'">✏️</button>`:''}
       <div class="aph-qmeta">Card ${idx+1} of ${deck.length} · Full (6 forms)</div>
       <div class="aph-prompt card-question">${verb.en}${verb.usage_en&&!verb.usage_en.startsWith('that ')?' <span class="vb-usage">'+verb.usage_en+'</span>':''}</div>
-      ${showInfHint?`<div id="inf-hint" class="infinitive-hint">${verb.inf}${verb.usage_fr?' <span class="vb-uf">'+verb.usage_fr+'</span>':''}</div>`:''}
+      <div id="inf-hint" class="infinitive-hint" style="display:${showInfHint?'':'none'}">${verb.inf}${verb.usage_fr?' <span class="vb-uf">'+verb.usage_fr+'</span>':''}</div>
       <table class="conj-table" id="conjTable">
         ${PERSONS.map((p,i)=>`<tr><td class="person">${p}</td><td class="form hidden" id="form-${i}">—</td></tr>`).join('')}
       </table>
@@ -5295,7 +5295,7 @@ function showSingleCard(item,progress){
       ${editModeUnlocked?`<button id="cardCornerEditBtn" onclick="startCardEdit()" style="position:absolute;top:10px;right:10px;background:none;border:none;font-size:1rem;cursor:pointer;opacity:0.35;padding:2px 6px;border-radius:6px;" title="Edit this card" onmouseover="this.style.opacity='1'" onmouseout="this.style.opacity='0.35'">✏️</button>`:''}
       <div class="aph-qmeta">Card ${idx+1} of ${deck.length} · Single form</div>
       <div class="aph-prompt card-question">${displayEn}${verb.usage_en&&!verb.usage_en.startsWith('that ')?' <span class="vb-usage">'+verb.usage_en+'</span>':''}</div>
-      ${showInfHint?`<div id="inf-hint" class="infinitive-hint">${verb.inf}${verb.usage_fr?' <span class="vb-uf">'+verb.usage_fr+'</span>':''}</div>`:''}
+      <div id="inf-hint" class="infinitive-hint" style="display:${showInfHint?'':'none'}">${verb.inf}${verb.usage_fr?' <span class="vb-uf">'+verb.usage_fr+'</span>':''}</div>
       <div id="answerArea"></div>
       ${verb.note?`<div class="note-box" id="noteBox" style="display:none">💡 ${verb.note}</div>`:''}
       ${vbTimer()}
@@ -5640,7 +5640,7 @@ function lzSentCard(item){
 
 function toggleAutotime(){isAutotime=!isAutotime;_syncAutotimeBtn();}
 function _syncAutotimeBtn(){const b=document.getElementById('autotimeBtn');if(b){b.textContent=isAutotime?'Autotime: On':'Autotime: Off';b.style.background=isAutotime?'#c9a84c':'white';b.style.border=isAutotime?'1px solid #c9a84c':'1px solid #ccc';b.style.color=isAutotime?'#1a2744':'';}}
-function toggleInfHint(){showInfHint=!showInfHint;_syncInfHintBtn();vbSyncHint();}
+function toggleInfHint(){showInfHint=!showInfHint;_syncInfHintBtn();vbSyncHint();var h=document.getElementById('inf-hint');if(h)h.style.display=showInfHint?'':'none';}
 function _syncInfHintBtn(){const b=document.getElementById('infHintBtn');if(b){b.textContent=showInfHint?'Show Infinitive Hint: On':'Show Infinitive Hint: Off';b.style.background=showInfHint?'#c9a84c':'none';b.style.border=showInfHint?'1px solid #c9a84c':'1px solid #555';b.style.color=showInfHint?'#1a2744':'#999';}}
 // Timer
 function startCardTimer(onTimeout){
@@ -7926,7 +7926,7 @@ showSingleCard = function (item, progress) {
       <span class="vb-badge badge-${verb.tense}">${tl}</span>
       <div class="aph-qmeta">Card ${idx + 1} of ${deck.length} · Single form · French → English</div>
       <div class="aph-prompt card-question">${fr}${vdUse(verb.usage_en)}</div>
-      ${showInfHint ? `<div id="inf-hint" class="infinitive-hint">${verb.inf}${verb.usage_fr ? ' <span class="vb-uf">' + verb.usage_fr + '</span>' : ''}</div>` : ''}
+      <div id="inf-hint" class="infinitive-hint" style="display:${showInfHint?'':'none'}">${verb.inf}${verb.usage_fr ? ' <span class="vb-uf">' + verb.usage_fr + '</span>' : ''}</div>
       <div id="answerArea"></div>
       ${verb.note ? `<div class="note-box" id="noteBox" style="display:none">💡 ${verb.note}</div>` : ''}
       ${vbTimer()}
@@ -8078,71 +8078,6 @@ printItVerbList = function () {
   var w = window.open('', '_blank'); if (!w) { alert('Please allow pop-ups for this page, then try again.'); return; }
   w.document.write(html); w.document.close();
 };
-</script>
-<script id="ap-voicespeed">
-/* AP VOICE SPEED: a 🔊 button in the navy drill banner slows every spoken voice (100%, 85%, 70%, 55%). Remembered on this device. */
-(function () {
-  if (window.__apVoiceSpeed) return; window.__apVoiceSpeed = 1;
-  var LV = [1, 0.85, 0.7, 0.55], F = 1;
-  try { var v = +localStorage.getItem('ap_voice_f'); if (v >= 0.4 && v <= 1) F = v; } catch (e) { }
-  try {   // every utterance's rate is scaled when it is set (and when it is made), so no page code has to know about this
-    var UP = window.SpeechSynthesisUtterance.prototype, d = Object.getOwnPropertyDescriptor(UP, 'rate');
-    if (d && d.set && d.get) {
-      Object.defineProperty(UP, 'rate', { configurable: true, enumerable: true, get: d.get, set: function (v) { d.set.call(this, Math.max(0.1, Math.min(10, (+v || 1) * F))); } });
-      var Orig = window.SpeechSynthesisUtterance;
-      window.SpeechSynthesisUtterance = function (t) { var u = t === undefined ? new Orig() : new Orig(t); u.rate = 1; return u; };
-      window.SpeechSynthesisUtterance.prototype = UP;
-    }
-  } catch (e) { }
-  function lab() { return '🔊 ' + Math.round(F * 100) + '%'; }
-  function step() {
-    F = LV[(Math.max(0, LV.indexOf(F)) + 1) % LV.length];
-    try { localStorage.setItem('ap_voice_f', F); } catch (e) { }
-    [].forEach.call(document.querySelectorAll('.ap-vspeed'), function (b) { b.textContent = lab(); });
-  }
-  function add() {
-    [].forEach.call(document.querySelectorAll('.aph-dbar'), function (bar) {
-      if (bar.querySelector('.ap-vspeed')) return;
-      var b = document.createElement('button'); b.type = 'button'; b.className = 'aph-dbar-btn ap-vspeed'; b.textContent = lab();
-      b.title = 'Speed of the voice: tap to slow it down (100%, 85%, 70%, 55%)'; b.onclick = step;
-      var t = bar.querySelector('.aph-dbar-title'); if (t && t.nextSibling) bar.insertBefore(b, t.nextSibling); else bar.appendChild(b);
-    });
-  }
-  var q = 0; function sched() { if (q) return; q = setTimeout(function () { q = 0; add(); }, 60); }
-  function go() { add(); try { new MutationObserver(sched).observe(document.body, { childList: true, subtree: true }); } catch (e) { } }
-  if (document.body) go(); else document.addEventListener('DOMContentLoaded', go);
-})();
-</script>
-<script id="ap-timerbar">
-/* AP TIMER BAR: a  − ⏱ 12s +  stepper in the navy drill banner, so the time per card can be changed during the drill (it applies from the next card). */
-(function () {
-  if (window.__apTimerBar) return; window.__apTimerBar = 1;
-  function cur(bar) {
-    try {
-      if (bar.closest && bar.closest('#ggApp') && typeof ggTimerSecs !== 'undefined' && typeof ggAdjustTimer === 'function') return { v: ggTimerSecs, adj: function (d) { ggAdjustTimer(5 * d); }, get: function () { return ggTimerSecs; } };
-    } catch (e) { }
-    try { if (typeof timerSecs !== 'undefined' && typeof adjustTimer === 'function') return { v: timerSecs, adj: function (d) { adjustTimer(2 * d); }, get: function () { return timerSecs; } }; } catch (e) { }
-    try { if (typeof timerSeconds !== 'undefined' && typeof adjustTimer === 'function') return { v: timerSeconds, adj: function (d) { adjustTimer(d); }, get: function () { return timerSeconds; } }; } catch (e) { }
-    return null;
-  }
-  function refresh() { [].forEach.call(document.querySelectorAll('.ap-tbar'), function (g) { var c = cur(g); var v = g.querySelector('.ap-tv'); if (c && v) v.textContent = '⏱ ' + c.get() + 's'; }); }
-  function add() {
-    [].forEach.call(document.querySelectorAll('.aph-dbar'), function (bar) {
-      if (bar.querySelector('.ap-tbar') || !bar.querySelector('.aph-dbar-score')) return;
-      var c = cur(bar); if (!c) return;
-      var g = document.createElement('span'); g.className = 'ap-tbar'; g.title = 'Time per card (applies from the next card)';
-      g.innerHTML = '<button type="button" class="aph-dbar-btn ap-tm" aria-label="Less time">−</button><span class="ap-tv">⏱ ' + c.get() + 's</span><button type="button" class="aph-dbar-btn ap-tp" aria-label="More time">+</button>';
-      g.querySelector('.ap-tm').onclick = function () { c.adj(-1); refresh(); };
-      g.querySelector('.ap-tp').onclick = function () { c.adj(1); refresh(); };
-      var t = bar.querySelector('.ap-vspeed') || bar.querySelector('.aph-dbar-title');
-      if (t && t.nextSibling) bar.insertBefore(g, t.nextSibling); else bar.appendChild(g);
-    });
-  }
-  var st = document.createElement('style'); st.textContent = '.ap-tbar{display:inline-flex;align-items:center;gap:4px;color:#dfe5f3;font:600 .9375rem/1 inherit}.ap-tbar .aph-dbar-btn{padding:6px 10px}.ap-tv{min-width:52px;text-align:center}'; document.head.appendChild(st);
-  var q = 0; function sched() { if (q) return; q = setTimeout(function () { q = 0; add(); }, 80); }
-  function go() { add(); try { new MutationObserver(sched).observe(document.body, { childList: true, subtree: true }); } catch (e) { } }
-  if (document.body) go(); else document.addEventListener('DOMContentLoaded', go);
-})();
 </script>
 </body>
 </html>
@@ -9851,5 +9786,70 @@ if (window.__cj) window.__cj.speedTest = function (kind, g) {
   function scan() { Array.prototype.forEach.call(document.querySelectorAll('.aptt-mkov'), prep); }
   new MutationObserver(scan).observe(document.documentElement, { childList: true, subtree: true });
   scan();
+})();
+</script>
+<script id="ap-voicespeed">
+/* AP VOICE SPEED: a 🔊 button in the navy drill banner slows every spoken voice (100%, 85%, 70%, 55%). Remembered on this device. */
+(function () {
+  if (window.__apVoiceSpeed) return; window.__apVoiceSpeed = 1;
+  var LV = [1, 0.85, 0.7, 0.55], F = 1;
+  try { var v = +localStorage.getItem('ap_voice_f'); if (v >= 0.4 && v <= 1) F = v; } catch (e) { }
+  try {   // every utterance's rate is scaled when it is set (and when it is made), so no page code has to know about this
+    var UP = window.SpeechSynthesisUtterance.prototype, d = Object.getOwnPropertyDescriptor(UP, 'rate');
+    if (d && d.set && d.get) {
+      Object.defineProperty(UP, 'rate', { configurable: true, enumerable: true, get: d.get, set: function (v) { d.set.call(this, Math.max(0.1, Math.min(10, (+v || 1) * F))); } });
+      var Orig = window.SpeechSynthesisUtterance;
+      window.SpeechSynthesisUtterance = function (t) { var u = t === undefined ? new Orig() : new Orig(t); u.rate = 1; return u; };
+      window.SpeechSynthesisUtterance.prototype = UP;
+    }
+  } catch (e) { }
+  function lab() { return '🔊 ' + Math.round(F * 100) + '%'; }
+  function step() {
+    F = LV[(Math.max(0, LV.indexOf(F)) + 1) % LV.length];
+    try { localStorage.setItem('ap_voice_f', F); } catch (e) { }
+    [].forEach.call(document.querySelectorAll('.ap-vspeed'), function (b) { b.textContent = lab(); });
+  }
+  function add() {
+    [].forEach.call(document.querySelectorAll('.aph-dbar'), function (bar) {
+      if (bar.querySelector('.ap-vspeed')) return;
+      var b = document.createElement('button'); b.type = 'button'; b.className = 'aph-dbar-btn ap-vspeed'; b.textContent = lab();
+      b.title = 'Speed of the voice: tap to slow it down (100%, 85%, 70%, 55%)'; b.onclick = step;
+      var t = bar.querySelector('.aph-dbar-title'); if (t && t.nextSibling) bar.insertBefore(b, t.nextSibling); else bar.appendChild(b);
+    });
+  }
+  var q = 0; function sched() { if (q) return; q = setTimeout(function () { q = 0; add(); }, 60); }
+  function go() { add(); try { new MutationObserver(sched).observe(document.body, { childList: true, subtree: true }); } catch (e) { } }
+  if (document.body) go(); else document.addEventListener('DOMContentLoaded', go);
+})();
+</script>
+<script id="ap-timerbar">
+/* AP TIMER BAR: a  − ⏱ 12s +  stepper in the navy drill banner, so the time per card can be changed during the drill (it applies from the next card). */
+(function () {
+  if (window.__apTimerBar) return; window.__apTimerBar = 1;
+  function cur(bar) {
+    try {
+      if (bar.closest && bar.closest('#ggApp') && typeof ggTimerSecs !== 'undefined' && typeof ggAdjustTimer === 'function') return { v: ggTimerSecs, adj: function (d) { ggAdjustTimer(5 * d); }, get: function () { return ggTimerSecs; } };
+    } catch (e) { }
+    try { if (typeof timerSecs !== 'undefined' && typeof adjustTimer === 'function') return { v: timerSecs, adj: function (d) { adjustTimer(2 * d); }, get: function () { return timerSecs; } }; } catch (e) { }
+    try { if (typeof timerSeconds !== 'undefined' && typeof adjustTimer === 'function') return { v: timerSeconds, adj: function (d) { adjustTimer(d); }, get: function () { return timerSeconds; } }; } catch (e) { }
+    return null;
+  }
+  function refresh() { [].forEach.call(document.querySelectorAll('.ap-tbar'), function (g) { var c = cur(g); var v = g.querySelector('.ap-tv'); if (c && v) v.textContent = '⏱ ' + c.get() + 's'; }); }
+  function add() {
+    [].forEach.call(document.querySelectorAll('.aph-dbar'), function (bar) {
+      if (bar.querySelector('.ap-tbar') || !bar.querySelector('.aph-dbar-score')) return;
+      var c = cur(bar); if (!c) return;
+      var g = document.createElement('span'); g.className = 'ap-tbar'; g.title = 'Time per card (applies from the next card)';
+      g.innerHTML = '<button type="button" class="aph-dbar-btn ap-tm" aria-label="Less time">−</button><span class="ap-tv">⏱ ' + c.get() + 's</span><button type="button" class="aph-dbar-btn ap-tp" aria-label="More time">+</button>';
+      g.querySelector('.ap-tm').onclick = function () { c.adj(-1); refresh(); };
+      g.querySelector('.ap-tp').onclick = function () { c.adj(1); refresh(); };
+      var t = bar.querySelector('.ap-vspeed') || bar.querySelector('.aph-dbar-title');
+      if (t && t.nextSibling) bar.insertBefore(g, t.nextSibling); else bar.appendChild(g);
+    });
+  }
+  var st = document.createElement('style'); st.textContent = '.ap-tbar{display:inline-flex;align-items:center;gap:4px;color:#dfe5f3;font:600 .9375rem/1 inherit}.ap-tbar .aph-dbar-btn{padding:6px 10px}.ap-tv{min-width:52px;text-align:center}'; document.head.appendChild(st);
+  var q = 0; function sched() { if (q) return; q = setTimeout(function () { q = 0; add(); }, 80); }
+  function go() { add(); try { new MutationObserver(sched).observe(document.body, { childList: true, subtree: true }); } catch (e) { } }
+  if (document.body) go(); else document.addEventListener('DOMContentLoaded', go);
 })();
 </script>
