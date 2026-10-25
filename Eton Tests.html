@@ -2688,11 +2688,13 @@ var APT_GUIDES = [
   ['Colleagues: scheme of work (F to B, live)', 'guides/scheme-of-work.html'],
   ['Olly: master the IPA, and sharpen your French and Italian (private)', 'guides/olly.html']
 ];
-function aptGuideUrl(i) { return String(document.baseURI || location.href).replace(/[#?].*$/, '').replace(/[^\/]*$/, '') + APT_GUIDES[i][1]; }
+var APT_SITE = 'https://apowles.github.io/AP/';
+function aptBase() { var b = String(document.baseURI || location.href).replace(/[#?].*$/, '').replace(/[^\/]*$/, ''); return /^https?:/.test(b) ? b : APT_SITE; }   // a saved copy on this Mac (file://) always links to the live site, never to other saved copies
+function aptGuideUrl(i) { return aptBase() + APT_GUIDES[i][1]; }
 function aptGuidesHtml() {
   return '<p>Always the latest version. Paste the link into OneNote or Teams.</p>' + APT_GUIDES.map(function (g, i) {
     return '<div class="apt-acts" style="align-items:center"><span style="flex:1;min-width:180px;font-weight:600">' + g[0] + '</span>'
-      + '<a class="aph-btn" href="' + g[1] + '" target="_blank" rel="noopener" style="text-decoration:none">Open</a>'
+      + '<a class="aph-btn" href="' + aptGuideUrl(i) + '" target="_blank" rel="noopener" style="text-decoration:none">Open</a>'
       + '<button class="aph-btn aph-btn-primary" type="button" onclick="APTT.copyLink(APT_GUIDES[' + i + '][0], aptGuideUrl(' + i + '), this)">📋 Copy link</button></div>';
   }).join('');
 }
@@ -2701,16 +2703,16 @@ var APT_FILES = [
   ['AP only: all languages (French, Italian, Spanish together)', [['Gen Essential Phrases (yours alone)','Eton Gen Essential Phrases.html'],['A Level French VVs &amp; Gr EWs &amp; Grammar Translation Practice and Drills','AP All Languages - A Level French VVs & Gr EWs & Grammar Translation Practice and Drills.html'],['A Level Oral Phrase Bank','AP All Languages - A Level Oral Phrase Bank.html'],['IGCSE Approved Material Practice Sentences','AP All Languages - IGCSE Approved Material Practice Sentences.html'],['IGCSE Top Structures and Oral Practice','AP All Languages - IGCSE Structures & Oral and Writing Practice.html'],['IGCSE Vocab Essentials','AP All Languages - IGCSE Vocab Essentials.html'],['IGCSE Vocab and Gr EWs','AP All Languages - IGCSE Vocab and Gr EWs.html']]],
   ['Private: for Olly (not in any colleague or pupil guide)', [['IPA Studio (French and Italian)','Eton IPA Studio.html']]],
 ];
-function aptFileUrl(f) { return String(document.baseURI || location.href).replace(/[#?].*$/, '').replace(/[^\/]*$/, '') + encodeURIComponent(f); }
+function aptFileUrl(f) { return aptBase() + encodeURIComponent(f); }
 function aptFilesHtml() {
   var n = 0;
-  return '<p>Every app, always the latest version. Paste the link into OneNote or Teams. The Eton versions come first; the AP only ones are in red.</p>' + APT_FILES.map(function (grp, gi) {
+  return (/^https?:/.test(location.protocol) ? '' : '<p style="color:#c0392b;font-weight:800">⚠ This AP Tests page is a copy saved on this Mac, not the live site. Open and Copy link below still go to the live apps. For tests and codes, open the live page: ' + APT_SITE + 'Eton%20Tests.html</p>') + '<p>Every app, always the latest version. Paste the link into OneNote or Teams. The Eton versions come first; the AP only ones are in red.</p>' + APT_FILES.map(function (grp, gi) {
     var ap = gi > 0;
     return ''
       + '<div class="apt-course" style="margin-top:12px' + (ap ? ';color:#c0392b' : '') + '">' + (ap ? '' : '') + grp[0] + '</div>' + grp[1].map(function (g) {
       var i = n++; APT_FLAT[i] = g;
       return '<div class="apt-acts" style="align-items:center"><span style="flex:1;min-width:180px;font-weight:600' + (ap ? ';color:#c0392b' : '') + '">' + g[0] + '</span>'
-        + '<a class="aph-btn" href="' + encodeURIComponent(g[1]) + '" target="_blank" rel="noopener" style="text-decoration:none">Open</a>'
+        + '<a class="aph-btn" href="' + aptFileUrl(g[1]) + '" target="_blank" rel="noopener" style="text-decoration:none">Open</a>'
         + '<button class="aph-btn aph-btn-primary" type="button" onclick="APTT.copyLink(APT_FLAT[' + i + '][0], aptFileUrl(APT_FLAT[' + i + '][1]), this)">📋 Copy link</button></div>';
     }).join('');
   }).join('');
