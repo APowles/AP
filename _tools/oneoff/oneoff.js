@@ -44,6 +44,20 @@
       gate();
     });
     if (out) new MutationObserver(function () {
+      var g0 = out.querySelector('.aptt-mkgh.ok');   // the code has been added to tests.txt: watch the live site until boys can really type it
+      if (g0 && !g0.dataset.w && /^https?:/.test(location.href)) {
+        g0.dataset.w = '1'; var cd = (code.value || '').replace(/\s+/g, '').toUpperCase(), lv = document.createElement('div');
+        lv.className = 'ao-live'; lv.textContent = '⏳ Checking when ' + cd + ' goes live…'; g0.parentNode.insertBefore(lv, g0.nextSibling);
+        var base = String(location.href).replace(/[#?].*$/, '').replace(/[^\/]*$/, ''), rx = new RegExp('^\\s*' + cd + '\\s*\\|', 'mi'), t0 = Date.now();
+        (function poll() {
+          if (!document.body.contains(lv)) return;
+          fetch(base + 'tests.txt?t=' + Date.now(), { cache: 'no-store' }).then(function (r) { return r.ok ? r.text() : ''; }).then(function (t) {
+            if (rx.test(t)) { lv.className = 'ao-live ok'; lv.textContent = '🟢 LIVE NOW: boys can type ' + cd + ' on the AP Tests page.'; return; }
+            if (Date.now() - t0 > 600000) { lv.className = 'ao-live slow'; lv.textContent = '🟠 ' + cd + ' is not showing yet (over 10 minutes). Check GitHub, or use the link meanwhile.'; return; }
+            lv.textContent = '⏳ Not live yet… checking again (' + Math.round((Date.now() - t0) / 1000) + 's)'; setTimeout(poll, 5000);
+          }).catch(function () { setTimeout(poll, 8000); });
+        })();
+      }
       if (mode !== 'one') return;
       var ok = out.querySelector('.aptt-mkok'); if (ok && !/one-off/i.test(ok.textContent)) ok.innerHTML = '✅ Link made. <b>One-off:</b> copy it and use it now. It is not in your Test Library.';
       var gh = out.querySelector('.aptt-mkgh.ok'); if (gh && !/one-off/i.test(gh.textContent)) { var c = (code.value || '').toUpperCase(); gh.innerHTML = '✅ Code <b>' + c + '</b> added. Boys can type it on the AP Tests page in about a minute.<br><span style="font-weight:600">One-off: it is not in your Test Library and the code stops working after 7 days. Nothing else to do.</span>'; }
