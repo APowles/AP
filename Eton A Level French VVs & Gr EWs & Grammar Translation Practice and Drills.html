@@ -4,7 +4,7 @@
 <script id="ap-update">
 /* AP auto-update: if this copy is older than the published version, reload once with the new one (saved answers are kept) */
 (function () {
-  var B = '391c2b1e3c'; window.AP_BUILD = B;
+  var B = '62023d81bc'; window.AP_BUILD = B;
   function check() {
     if (!/^https?:$/.test(location.protocol) || !window.fetch) return;
     var f = decodeURIComponent(location.pathname.split('/').pop() || '');
@@ -5977,6 +5977,7 @@ function openVVStudyPDF(){
 // print as Content List, Study Sheet, or blank-column tests.
 // ══════════════════════════════════════════════════════════════
 let vvbSel = [];          // selected set keys, in display order
+let vvbPickerOpen = true; // "1 · Choose sets": false shows a collapsed summary instead of the full grid
 let vvbUnticked = {};     // 'set|idx' -> true when the pupil has unticked an item
 let vvbShow = 'both';     // 'both' | 'en' | 'fr'  (on-screen cover-up)
 let vvbRevealed = {};     // 'set|idx' -> true when a covered cell has been tapped
@@ -6026,6 +6027,8 @@ function openVVBrowse(){
     vvbSel = m ? vvbAllSets().filter(k => new RegExp('^'+m[1]+'[a-z]$').test(k))
                : (VV_DATA[currentVV] ? [currentVV] : []);
   }
+  // a set is already chosen (from the drill dropdown, or left over from last time) - show a collapsed summary, not the full 36+-set grid
+  vvbPickerOpen = !vvbSel.length;
   let modal = document.getElementById('vvbModal');
   if (!modal) {
     modal = document.createElement('div');
@@ -6094,7 +6097,19 @@ function closeVVBrowse(){
   document.body.style.overflow = '';
 }
 
+// what the collapsed "1 · Choose sets" summary says
+function vvbPickerSummary(){
+  const labels = vvbSel.map(vvbLabel);
+  return labels.length <= 3 ? labels.join(' + ') : labels.length + ' sets selected';
+}
+function vvbPickerExpand(){ vvbPickerOpen = true; vvbRenderPicker(); }
+function vvbPickerCollapse(){ if (vvbSel.length) { vvbPickerOpen = false; vvbRenderPicker(); } }
 function vvbRenderPicker(){
+  // already have a set chosen: show a collapsed summary (one picker, same pattern as "Choose a set" above), not the full 36+-set grid
+  if (!vvbPickerOpen && vvbSel.length) {
+    document.getElementById('vvbPicker').innerHTML = `<button type="button" class="gg-chbtn has" onclick="vvbPickerExpand()">&#128214; Showing: ${vvbEsc(vvbPickerSummary())} <small>tap to change sets</small></button>`;
+    return;
+  }
   const chip = (k, txt) => `<button class="vvb-chip${vvbSel.includes(k)?' on':''}" onclick="vvbToggleSet('${k}')">${txt}</button>`;
   const trials = vvbAllSets().filter(k => k.includes('Trial'));
   const head = (txt, prefix) => {
@@ -6127,7 +6142,7 @@ function vvbRenderPicker(){
   h += head('Combined: topic vocabulary + verb structures (VV)', 'VV');
   if (trials.length) h += `<div class="vvb-prow"><span class="vvb-pn">Trials</span>${trials.map(k => chip(k, vvbLabel(k).replace(' Trials',''))).join('')}</div>`;
   h += grid('VV');
-  if (vvbSel.length) h += `<button class="vvb-clear" onclick="vvbSel=[];vvbRenderPicker();vvbRender()">Clear sets</button>`;
+  if (vvbSel.length) h += `<button class="vvb-pbtn navy" style="margin-top:10px" onclick="vvbPickerCollapse()">&#10003; Done — ${vvbEsc(vvbPickerSummary())}</button><button class="vvb-clear" onclick="vvbSel=[];vvbRenderPicker();vvbRender()">Clear sets</button>`;
   document.getElementById('vvbPicker').innerHTML = h;
 }
 function vvbToggleSet(k){
