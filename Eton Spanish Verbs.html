@@ -1612,6 +1612,7 @@ html.aptt-open,html.aptt-open body{overflow:hidden}
 .aptt-bar{position:sticky;top:0;z-index:3;display:flex;align-items:center;gap:10px;background:var(--navy);border-bottom:3px solid var(--gold);padding:8px 16px}
 .aptt-bar-t{flex:1;min-width:0;font:700 .9375rem/1.2 var(--aph-body);color:var(--gold2);text-align:right;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 #aptt-top,.aptt-item,#aptt-after{scroll-margin-top:64px}
+.aptt-fm{margin:14px 0;text-align:center}.aptt-fm[hidden]{display:none}.aptt-fm small{display:block;margin-top:6px;color:#555;font-size:.95rem}.aptt-fm-b{font:800 1.05rem/1.2 var(--aph-body);padding:12px 20px;border-radius:12px;border:2px solid var(--navy);background:#fff;color:var(--navy);cursor:pointer;margin:4px}.aptt-fm-b.go{background:var(--navy);color:#fff}.aptt-fm-q{background:#fff8e6;border:2px solid var(--gold);border-radius:12px;padding:14px}.aptt-fm-q>b{display:block;font-size:1.15rem;color:var(--navy);margin-bottom:4px}.aptt-fm-q>span{display:block;margin-bottom:8px}
 .aptt-wrap{max-width:820px;margin:0 auto;padding:18px 16px 64px;box-sizing:border-box}
 .aptt-kick{font-size:.8125rem;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--text2);margin:0 0 4px;overflow-wrap:anywhere}
 .aptt-wrap .aph-h{margin:0 0 6px}
@@ -2239,7 +2240,7 @@ var APTT = (function () {
       + '<button type="button" class="aptt-chk" id="aptt-chk" disabled onclick="APTT.show()">✔ Show answers &amp; mark</button></div>'
       + '<div class="aptt-lock-n" id="aptt-lockn"></div>'
       + '<div class="aptt-after" id="aptt-after"' + (S.shown ? '' : ' hidden') + '>'
-      + '<div class="aptt-score" id="aptt-score2"></div><div class="aptt-cm" id="aptt-cm" hidden></div>'
+      + '<div class="aptt-score" id="aptt-score2"></div><div class="aptt-cm" id="aptt-cm" hidden></div><div class="aptt-fm" id="aptt-fm" hidden></div>'
       + '<div class="aptt-learn" id="aptt-learn"><div class="aptt-learn-top"><div class="aptt-learn-h"><span class="aptt-wb-t">Eton Whiteboard Notes</span><span class="aptt-wb-s">What I learned</span></div>' + (aphAv() ? '<img class="aptt-learn-av" src="' + aphAv() + '" alt="Eton">' : '') + '</div><div class="aptt-learn-q"><b>This is your chance to write something about what you’ve learned.</b> Pick <u>your own words</u>, just as if you were up at my whiteboard in Birley Schools: what caught you out, the correct version, and the trick you’ll use to remember it. <b>In Birley Schools</b>, you’ll get a couple of minutes; <b>in your House</b>, take as long as you need. You can add more later in OneNote.<br><b class="aptt-aim">Aim for 10 things! (5 is the minimum)</b> They can be tiny: a piece of vocabulary, a rule, a trick. Number them 1 to 10.</div>'
       + (demo() ? '' : '<div class="aptt-learn-why">' + LEARN_WHY + '</div>')
       + '<div class="aptt-learn-must" id="aptt-learn-must"></div>'
@@ -2382,7 +2383,7 @@ var APTT = (function () {
       c.hidden = false; c.className = 'aptt-clock done';
       c.innerHTML = (S.mode === 'free' ? '🏠 Untimed · ' + (S.m.lang ? 'translated' : 'answered') + ' in ' : S.auto ? '⏱ Locked automatically at ' : '⏱ Timed · ' + (S.m.lang ? 'translated' : 'answered') + ' in ') + mmss(S.lockAt || 0);
       if (S.mode === 'timed' && S.shown) {
-        if (S.markDone) c.innerHTML = '✔ Marking time over';
+        if (S.markDone) c.innerHTML = S.early ? '✔ Marking finished' : '✔ Marking time over';
         else {
           var ml = markLimit() - Math.max(0, Math.round((pzNow() - (S.m0 || Date.now()) - (S.pzM || 0)) / 1000));
           c.className = 'aptt-clock' + (ml <= 15 ? ' red pulse' : ml <= 45 ? ' amber' : ''); c.innerHTML = '✔ Marking: ' + mmss(ml);
@@ -2402,12 +2403,12 @@ var APTT = (function () {
     if (b) { b.hidden = false; b.className = 'aptt-tban live'; b.innerHTML = '⏱ <b>Time\'s up!</b> You have <b>' + Math.max(0, Math.ceil(g)) + ' seconds</b> to finish. Your answers will lock in automatically at 0:00.' + (E.length ? ' ' + list(E) + (E.length > 1 ? ' are' : ' is') + ' still empty: have a quick go!' : ''); }
     if (g <= 0 && !PEN) autoLock();
   }
-  function markEnd() {   // timed: marking time is over; anything not marked scores 0
+  function markEnd(early) {   // timed: marking time is over (or he stopped it early); anything not marked scores 0
     if (!S || S.markDone) return;
-    S.markDone = true;
+    S.markDone = true; S.early = early === true;
     S.items.forEach(function (it, i) { var m = S.marks[i]; if (m == null || m === '') { S.marks[i] = 0; S.unm = (S.unm || []).concat([i + 1]); } });
     save(); markEndUI(); score();
-    var b = $('aptt-tban'); if (b) { b.hidden = false; b.className = 'aptt-tban done'; b.innerHTML = '✔ <b>Marking time is over.</b> Your score is what you managed to mark. Now go through your mistakes and write your notes in the <b>Eton Whiteboard Notes: What I learned</b> box: <b>in class</b>, a couple of minutes, then save and upload when your teacher says; <b>in your House</b>, as long as you need.'; }
+    var b = $('aptt-tban'); if (b) { b.hidden = false; b.className = 'aptt-tban done'; b.innerHTML = '✔ <b>' + (S.early ? 'You finished marking.' : 'Marking time is over.') + '</b> Your score is what you managed to mark. Now go through your mistakes and write your notes in the <b>Eton Whiteboard Notes: What I learned</b> box: <b>in class</b>, a couple of minutes, then save and upload when your teacher says; <b>in your House</b>, as long as you need.'; }
   }
   function markEndUI() {
     document.querySelectorAll('#aptt-ov .aptt-mb').forEach(function (b) { b.disabled = true; });
@@ -2523,8 +2524,24 @@ var APTT = (function () {
       + (o.set ? ' &middot; ' + esc(o.set) : '') + (o.reg ? ' &middot; ' + esc(o.reg) : '') + (o.person ? ' &middot; ' + esc(o.person) : '');
     return { tenses: T, verbs: V, short: T.length <= 3 ? T.join(', ') : T.length + ' tenses', detail: d };
   }
+  var FMASK = false;
+  function fmUI() {
+    var x = $('aptt-fm'); if (!x || !S) return;
+    var live = !!(S.shown && S.mode === 'timed' && !S.markDone);
+    x.hidden = !live; if (!live) { FMASK = false; x.innerHTML = ''; return; }
+    var un = (S.left || []).length;
+    if (FMASK) x.innerHTML = '<div class="aptt-fm-q" role="alertdialog" aria-label="Are you sure?"><b>Are you sure you have finished marking?</b><span>' + (un ? 'You have <b>' + un + '</b> still not marked: ' + (un > 1 ? 'they' : 'it') + ' will score 0. ' : 'Every answer is marked. ') + 'You will not be able to change any marks afterwards.</span><div><button type="button" class="aptt-fm-b no" onclick="APTT.fm(0)">Not yet: keep marking</button><button type="button" class="aptt-fm-b go" onclick="APTT.fm(2)">Yes, I have finished</button></div></div>';
+    else x.innerHTML = '<button type="button" class="aptt-fm-b" onclick="APTT.fm(1)">&#10004; I\'ve finished marking: stop the marking timer</button><small>Marking time left? Stop it here and go on to <b>What I learned</b>.</small>';
+  }
+  function fmClick(a) {
+    if (!S || !S.shown || S.markDone || S.mode !== 'timed') return;
+    if (a === 1) { FMASK = true; fmUI(); try { $('aptt-fm').scrollIntoView({ block: 'center', behavior: 'smooth' }); } catch (e) { } return; }
+    if (a === 0) { FMASK = false; fmUI(); return; }
+    FMASK = false; markEnd(true);
+    try { $('aptt-learn').scrollIntoView({ block: 'start', behavior: 'smooth' }); } catch (e) { }
+  }
   function score() {
-    todo();
+    todo(); fmUI();
     var r = sum(), h = '<span>Your score</span><b>' + r1(r.score) + ' / ' + (S.m.total || 10) + '</b><small>' + r.raw + ' / ' + r.rmax + ' marks · ' + (r.rmax ? Math.round(r.raw / r.rmax * 100) : 0) + '% · ' + r.n + ' of ' + S.items.length + ' marked by you</small>';
     ['aptt-score1', 'aptt-score2'].forEach(function (id) { var x = $(id); if (x) x.innerHTML = h; });
     var cmx = $('aptt-cm'); if (cmx) { var cc = S.shown && (r.left === 0 || S.markDone) ? cmFor() : null; cmx.hidden = !cc; cmx.innerHTML = cc ? '<span>Your teacher says:</span>' + cmSVG(cc) : ''; }
@@ -2687,7 +2704,7 @@ var APTT = (function () {
     return verify(t, g).then(function (ok) { if (!ok) throw new Error('unsigned'); return unzip(t); }).then(function (j) { var o = JSON.parse(j); o.tok = token; return o; });
   }
   function listGet() { try { return JSON.parse(lsGet('apTestLinks') || '[]') || []; } catch (e) { return []; } }
-  function listAdd(e) { var l = listGet(); l.unshift(e); lsSet('apTestLinks', JSON.stringify(l)); }
+  function listAdd(e) { if (e && /^⚡ One-off/.test(e.cat || '')) return; var l = listGet(); l.unshift(e); lsSet('apTestLinks', JSON.stringify(l)); }
   function linkFor(token) {
     var base = String(document.baseURI || location.href).replace(/[#?].*$/, '').replace(/[^\/]*$/, '');
     return base + 'Eton%20Tests.html#t=' + token;
@@ -3047,7 +3064,7 @@ var APTT = (function () {
   }
   // pen-up anywhere ends a stroke (the automatic lock waits for it)
   try { ['pointerup', 'pointercancel'].forEach(function (t) { document.addEventListener(t, function () { PEN = false; }, true); }); } catch (e) { }
-  return { askSpanish: askSpanish, open: open, setTime: setTime, all: toAll, auto: toAuto, close: close, mode: mode, lock: lock, show: showAns, mark: mark, next: next, nag: toggleNag, another: another, verbDetail: verbDetail, pdf: pdf, teacher: teacher, maker: maker, openSet: openSet, cmSVG: cmSVG, cmBand: cmBand, cmPick: function (s20, seed) { if (!CM) cmLoad(); return cmPick(s20, seed); }, cmReload: function () { CM = null; cmLoad(); }, inProgress: inProgress, resume: resume, copyLink: copyLink, copyHTML: copyHTML, checkGit: checkGit, ghRemove: ghRemove, ghReplace: ghReplace, pack: pack, minsTxt: minsTxt, bigOf: function (answer, kind, srcId) { return kind === 'sentence' || (!{ conj: 1, it: 1, spot: 1 }[String(srcId || '').split('|')[0]] && nWords(answer) > 2); }, catOf: catOf, CATS: CATS, unpack: unpack, checkKey: checkKey, list: listGet, linkFor: linkFor, copy: copyText, ghAdd: ghAdd, holdAdd: holdAdd, holdLoad: holdLoad, libGet: libGet, libPut: libPut, listAdd: listAdd, folders: folders, gkey: gkey, nextCodeFor: nextCodeFor, lastRun: null, capturing: null, LABEL: LBL, state: function () { return S; } };
+  return { fm: fmClick, askSpanish: askSpanish, open: open, setTime: setTime, all: toAll, auto: toAuto, close: close, mode: mode, lock: lock, show: showAns, mark: mark, next: next, nag: toggleNag, another: another, verbDetail: verbDetail, pdf: pdf, teacher: teacher, maker: maker, openSet: openSet, cmSVG: cmSVG, cmBand: cmBand, cmPick: function (s20, seed) { if (!CM) cmLoad(); return cmPick(s20, seed); }, cmReload: function () { CM = null; cmLoad(); }, inProgress: inProgress, resume: resume, copyLink: copyLink, copyHTML: copyHTML, checkGit: checkGit, ghRemove: ghRemove, ghReplace: ghReplace, pack: pack, minsTxt: minsTxt, bigOf: function (answer, kind, srcId) { return kind === 'sentence' || (!{ conj: 1, it: 1, spot: 1 }[String(srcId || '').split('|')[0]] && nWords(answer) > 2); }, catOf: catOf, CATS: CATS, unpack: unpack, checkKey: checkKey, list: listGet, linkFor: linkFor, copy: copyText, ghAdd: ghAdd, holdAdd: holdAdd, holdLoad: holdLoad, libGet: libGet, libPut: libPut, listAdd: listAdd, folders: folders, gkey: gkey, nextCodeFor: nextCodeFor, lastRun: null, capturing: null, LABEL: LBL, state: function () { return S; } };
 })();
 /* ===== END AP TIMED TEST ===== */
 </script>
@@ -8426,150 +8443,6 @@ if (window.__cj && window.__cj.inSet) { var _vqInSet0 = window.__cj.inSet; windo
   if (document.body) start(); else document.addEventListener('DOMContentLoaded', start);
 })();
 </script>
-<style id="ap-spot-css">
-.spt-hide{display:none!important}
-.spt-card{box-sizing:border-box;width:100%;flex:1 1 100%;grid-column:1/-1;margin:10px 0 4px;padding:12px 16px 14px;border:2px solid #5b3f9e;border-radius:16px;background:#f3eefb;box-shadow:0 4px 0 #5b3f9e;color:#1a2744;font-family:'DM Sans',system-ui,sans-serif;text-align:left}
-.spt-h{font-weight:800;font-size:1.1rem}
-.spt-s{font-size:.9rem;color:#4a5570;margin:2px 0 8px}
-.spt-row{display:flex;flex-wrap:wrap;gap:10px}
-.spt-pill{font:800 .95rem/1.1 'DM Sans',system-ui,sans-serif;min-height:44px;padding:10px 18px;border-radius:999px;cursor:pointer;touch-action:manipulation;color:#1a2744;background:#fff;border:2px solid #5b3f9e}
-.spt-pill.pen{background:#ffe94d;border:3px solid #d0021b;box-shadow:0 0 0 2px rgba(208,2,27,.2)}
-.spt-pill[disabled]{opacity:.4;cursor:not-allowed}
-.spt-cap{font-size:.8rem;color:#4a5570;margin-top:8px;line-height:1.35}
-.spt-quick{display:inline-block!important;width:auto!important;flex:0 0 auto;background:none!important;border:0!important;box-shadow:none!important;color:#6b7690!important;text-decoration:underline;font:600 .82rem 'DM Sans',system-ui,sans-serif!important;padding:6px 4px!important;min-height:32px;cursor:pointer}
-
-.spt-main{display:flex;flex-direction:column;gap:8px}
-.spt-big{width:100%;min-height:54px;border-radius:14px;cursor:pointer;touch-action:manipulation;font:800 1.05rem 'DM Sans',system-ui,sans-serif;color:#1a2744;background:#ffe94d;border:3px solid #d0021b;box-shadow:0 0 0 2px rgba(208,2,27,.2);display:flex;align-items:center;justify-content:center;gap:8px;flex-wrap:wrap;padding:8px 14px}
-.spt-big small{font-weight:600;font-size:.8rem;color:#4a5570}
-.spt-big.alt{background:#fff;border:2px solid #5b3f9e;box-shadow:none}
-.spt-big[disabled]{opacity:.4;cursor:not-allowed}
-.spt-pr{margin-top:10px;font-size:.88rem;color:#4a5570}
-.spt-link{background:none;border:0;padding:6px 2px;min-height:32px;font:800 .9rem 'DM Sans',system-ui,sans-serif;color:#5b3f9e;text-decoration:underline;cursor:pointer}
-.spt-link[disabled]{opacity:.4}
-
-
-.spt-showans{margin:14px 0 6px}
-
-.spt-nl{margin-top:10px;padding-top:6px;border-top:1px dotted #b9acdc}
-.spt-nlbox{margin-top:6px}
-.spt-make{margin:8px 0 2px!important;min-height:44px;border-radius:999px!important;font-weight:800!important}
-</style>
-<script id="ap-spot">
-/* AP SPOT add-on: one "Spot Test" card (Apple Pencil on the iPad / Print it) in place of the separate Paper and Submitted buttons;
-   the plain Generate Test becomes a small "Quick plain test" link. Works on the rendered page; the original buttons stay (hidden) and do the work. */
-(function () {
-  var QUICK = 'No-limit test (up to the whole set)';
-  function txt(b) { return (b.textContent || '').replace(/\s+/g, ' ').trim(); }
-
-  /* Answers are never on show: the "Answer Sheet" of a generated test sits behind a Show answers button. */
-  function hideAnswers() {
-    var all = document.querySelectorAll('div,h3,h4,span,p'), heads = [];
-    for (var i = 0; i < all.length; i++) if (all[i].children.length === 0 && /^(Answer Sheet|Answer key|Teacher Sheet \(answer key\))$/i.test(txt(all[i])) && !all[i].closest('.spt-ans') && !all[i].closest('#opSpotAns')) heads.push(all[i]);
-    heads.forEach(function (h) {
-      var box = h.nextElementSibling; if (!box || !h.parentNode) return;
-      var w = document.createElement('div'); w.className = 'spt-ans'; w.style.display = 'none';
-      var b = document.createElement('button'); b.type = 'button'; b.className = 'spt-showans aph-btn'; b.textContent = 'Show answers';
-      b.onclick = function () { var on = w.style.display === 'none'; w.style.display = on ? '' : 'none'; b.textContent = on ? 'Hide answers' : 'Show answers'; };
-      h.parentNode.insertBefore(b, h); h.parentNode.insertBefore(w, h); w.appendChild(h); w.appendChild(box);
-    });
-  }
-
-  /* Back (the header button) closes an open test / print panel first: exactly one stage back, not Home. */
-  function closePanel() {
-    var ps = document.querySelectorAll('.aph-panel-top');
-    for (var i = 0; i < ps.length; i++) {
-      var p = ps[i]; if (p.offsetParent === null || getComputedStyle(p).display === 'none') continue;
-      var bs = p.querySelectorAll('button');
-      for (var k = 0; k < bs.length; k++) if (/(\u2715|Close|Back)/.test(txt(bs[k])) && !bs[k].closest('.spt-card')) { bs[k].click(); return true; }
-    }
-    return false;
-  }
-  if (!window.__sptBack) { window.__sptBack = 1; var prevBack = window.aphBackHook; window.aphBackHook = function () { try { if (closePanel()) return true; } catch (e) { } return typeof prevBack === 'function' ? prevBack.apply(this, arguments) : false; }; }
-
-  /* While a test / print panel is open it stands alone: the set-up screen below it is hidden, so the only way on is the panel's own Back / Close. */
-  function focusPanel() {
-    var open = null, ps = document.querySelectorAll('.aph-panel-top');
-    for (var i = 0; i < ps.length; i++) if (ps[i].offsetParent !== null && getComputedStyle(ps[i]).display !== 'none') { open = ps[i]; break; }
-    var all = document.querySelectorAll('[data-spt-hid]');
-    if (!open) { for (var k = 0; k < all.length; k++) { all[k].style.display = all[k].getAttribute('data-spt-hid'); all[k].removeAttribute('data-spt-hid'); } return; }
-    for (var e = open; e && e !== document.body; e = e.parentElement) {
-      for (var n = e.nextElementSibling; n; n = n.nextElementSibling) {
-        if (/^(SCRIPT|STYLE|LINK|TEMPLATE)$/.test(n.tagName) || n.hasAttribute('data-spt-hid') || getComputedStyle(n).display === 'none' || getComputedStyle(n).position === 'fixed') continue;
-        n.setAttribute('data-spt-hid', n.style.display || ''); n.style.display = 'none';
-      }
-    }
-  }
-  function run() {
-    focusPanel();
-    hideAnswers();
-    var bs = document.querySelectorAll('button'), seen = [];
-    for (var i = 0; i < bs.length; i++) {
-      var b = bs[i], P = b.parentNode;
-      if (!P || seen.indexOf(P) >= 0 || P.closest('.spt-card')) continue;
-      if (!/^\S{0,4}\s*(Submitted|Paper) Spot Test(\s*\(.*\))?$/.test(txt(b))) continue;
-      seen.push(P);
-      var kids = P.querySelectorAll(':scope > button, :scope > .aph-btn'), pen = null, pap = null, gen = null;
-      for (var k = 0; k < kids.length; k++) {
-        var t = txt(kids[k]);
-        if (/^\S{0,4}\s*Submitted Spot Test$/.test(t)) pen = kids[k]; else if (/^\S{0,4}\s*Paper Spot Test(\s*\(.*\))?$/.test(t)) pap = kids[k]; else if (/^\S{0,4}\s*Generate Test/.test(t) || /Generate Test/.test(t) && t.length < 40) gen = kids[k];
-      }
-      if (!pen && !pap) continue;
-      if (gen && !gen.classList.contains('spt-make')) { gen.textContent = 'Make the test'; gen.classList.add('spt-make'); gen.removeAttribute('style'); gen.addEventListener('click', function () { reveal(gen); }); }
-      if (P.classList.contains('hm-acts')) {   // the verb apps' small "Same choices" row: rename only
-        if (pen) pen.textContent = '✍ Spot Test · Apple Pencil';
-        if (pap) pap.textContent = '🖨 Spot Test · Print';
-        continue;
-      }
-      var card = P.querySelector(':scope > .spt-card');
-      var first = pen || pap; if (pap && pen && pap.compareDocumentPosition(pen) & 4) first = pap;
-      if (!card) {
-        card = document.createElement('div'); card.className = 'spt-card';
-        card.innerHTML = '<div class="spt-h">\ud83d\udcdd Spot Test</div><div class="spt-s">15 short questions in boxes (or 10 or 5 if you prefer). You may get fewer if the set is small, or if the answers are long: a timed test never runs past 4\u00bd minutes. You mark it yourself.</div><div class="spt-main"></div><div class="spt-pr"></div>';
-        var main = card.querySelector('.spt-main'), pr = card.querySelector('.spt-pr');
-        if (pen) { var a = document.createElement('button'); a.type = 'button'; a.className = 'spt-big'; a.innerHTML = '\u270d Do it with Apple Pencil <small>hand in as a PDF if required</small>'; a.onclick = (function (o) { return function () { o.click(); }; })(pen); main.appendChild(a); }
-        if (pap) {
-          var c = document.createElement('button'); c.type = 'button'; c.className = pen ? 'spt-link' : 'spt-big alt'; c.textContent = pen ? 'Print it' : '\ud83d\udda8 Print it';
-          c.onclick = (function (o, cc) { return function () { o.click(); reveal(cc); }; })(pap, c);
-          if (pen) { pr.appendChild(document.createTextNode('Prefer paper? ')); pr.appendChild(c); pr.appendChild(document.createTextNode(' to write on by hand.')); } else { main.appendChild(c); pr.style.display = 'none'; }
-        }
-        P.insertBefore(card, first);
-        if (gen && gen.parentNode === P) P.insertBefore(gen, card.nextSibling);
-      }
-      // the plain No-limit test lives inside the card as a discreet link; its Questions row and button open only when asked for
-      if (gen && !card.querySelector('.spt-nl')) {
-        var nl = document.createElement('div'); nl.className = 'spt-nl';
-        var tg = document.createElement('button'); tg.type = 'button'; tg.className = 'spt-quick'; tg.textContent = QUICK + ' \u25b8'; tg.title = 'Choose as many questions as you like, up to everything in the set';
-        var box = document.createElement('div'); box.className = 'spt-nlbox'; box.style.display = 'none';
-        var qs = P.ownerDocument.querySelectorAll('.aph-label,.l,div,span,label,small'), ql = null;
-        for (var w = 0; w < qs.length; w++) { if (qs[w].children.length === 0 && /^Questions$/i.test(txt(qs[w])) && qs[w].nextElementSibling) { ql = qs[w]; break; } }
-        if (ql) { var qc = ql.nextElementSibling; box.appendChild(ql); box.appendChild(qc); }
-        box.appendChild(gen);
-        if (!ql) { tg.textContent = QUICK; tg.onclick = function () { gen.click(); reveal(tg); }; }   // no question chips here: its own options panel opens directly, no extra button
-        else tg.onclick = function () { var on = box.style.display === 'none'; box.style.display = on ? '' : 'none'; tg.textContent = QUICK + (on ? ' \u25be' : ' \u25b8'); };
-        nl.appendChild(tg); nl.appendChild(box); card.appendChild(nl);
-      }
-      var pills = card.querySelectorAll('.spt-big,.spt-link'), orig = [pen, pap].filter(Boolean);
-      for (var q = 0; q < pills.length; q++) pills[q].disabled = !!(orig[q] && orig[q].disabled);
-      if (pen) pen.classList.add('spt-hide'); if (pap) pap.classList.add('spt-hide');
-      var ls = document.querySelectorAll('.aph-label,.l,div,span,label,small');
-      for (var L = 0; L < ls.length; L++) {
-        if (ls[L].children.length || !/Items per box/i.test(txt(ls[L]))) continue;
-        var sib = ls[L].nextElementSibling, cs = sib ? sib.querySelectorAll('button') : [];
-        for (var z = 0; z < cs.length; z++) { var m = /^([123])$/.exec(txt(cs[z])); if (m) cs[z].textContent = m[1] + ' \u00b7 ' + (5 * m[1]) + ' items'; }
-      }
-      var hs = document.querySelectorAll('h1,h2,h3,h4,.aph-h,span,div,b'); for (var h = 0; h < hs.length; h++) { if (hs[h].children.length === 0 && /^\W{0,4}\s*Generate Test$/.test(txt(hs[h]))) hs[h].textContent = '\ud83d\udcdd Test'; }
-    }
-  }
-  function reveal(from) { setTimeout(function () { try { var c = document.querySelectorAll('[id*="Output"],[id$="TestOut"],[id$="Out"]'); for (var i = 0; i < c.length; i++) if (c[i].innerHTML.trim() && c[i].offsetHeight && !c[i].closest('.spt-card')) { c[i].scrollIntoView({ behavior: 'smooth', block: 'start' }); return; } } catch (e) {} }, 250); }
-  function start() {
-    var mo, timer = 0, opts = { subtree: true, childList: true, attributes: true, attributeFilter: ['style', 'class'] };
-    function go() { timer = 0; mo.disconnect(); try { run(); } catch (e) { } mo.observe(document.body, opts); }
-    mo = new MutationObserver(function () { if (!timer) timer = setTimeout(go, 60); });
-    mo.observe(document.body, opts); try { run(); } catch (e) { }
-  }
-  if (document.body) start(); else document.addEventListener('DOMContentLoaded', start);
-})();
-</script>
 <style id="ap-crest-css">
 /* AP CREST: the school crest is the teacher's door (link / code maker); the floating "Teacher: set this drill" button is gone */
 .apdl-btn{display:none!important}
@@ -8809,5 +8682,220 @@ if (window.__cj && window.__cj.inSet) { var _vqInSet0 = window.__cj.inSet; windo
   run();
   var t = 0;
   try { new MutationObserver(function (ms) { for (var i = 0; i < ms.length; i++) { var n = ms[i].target; if (n && n.closest && n.closest('.ms-tile.ms-trials, .ms-tile.ms-viewprint, .ms-tile.ms-recap')) continue; clearTimeout(t); t = setTimeout(run, 30); return; } }).observe(document.body, { childList: true, subtree: true, attributes: true, attributeFilter: ['disabled', 'class', 'style'] }); } catch (e) { }
+})();
+</script>
+<style id="ap-oneoff-css">
+.ao-box{margin:6px 0 12px;padding:12px;border:3px solid #c0392b;border-radius:12px;background:#fff8e6}
+.ao-box.ok{border-color:#1e7a46;background:#eefaf2}
+.ao-h{font:800 .85rem/1.2 var(--aph-body,inherit);letter-spacing:.06em;color:#7a1b12;margin-bottom:8px}
+.ao-box.ok .ao-h{color:#1e7a46}
+.ao-opt{display:block;margin:6px 0;padding:10px 12px;border:2px solid #b9b3a3;border-radius:10px;background:#fff;cursor:pointer;line-height:1.35}
+.ao-opt input{margin-right:8px;transform:scale(1.25)}
+.ao-opt.on{border-color:#0f1a33;background:#eef2ff}
+.ao-opt b{font-size:1.05rem}
+.ao-opt small{display:block;margin:3px 0 0 26px;color:#444}
+.ao-need{margin-top:4px;font-weight:800;color:#c0392b}
+.ao-box.ok .ao-need{display:none}
+.aptt-mkov button.ao-wait{opacity:.45;cursor:not-allowed}
+</style>
+<script id="ap-oneoff">
+/* AP ONE-OFF add-on: every "make a link / code" box must first ask: one-off (this lesson only) or keep permanently. Nothing is pre-selected and Make link stays greyed until he chooses. */
+(function () {
+  if (window.__apOneOff) return; window.__apOneOff = 1;
+  var CAT = '⚡ One-off ▸ Live tests (codes clear after 7 days)';
+  function today() { return new Date().toISOString().slice(0, 10); }
+  function prep(box) {
+    if (box.__ao) return; var m = /^(.*)-mk$/.exec(box.id || ''); if (!m) return;
+    var P = m[1], q = function (s) { return document.getElementById(P + '-mk' + s); };
+    var cat = q('-cat'), fol = q('-f'), code = q('-c'), go = q('-go'), out = q('-out'); if (!cat || !fol || !code || !go) return;
+    if (cat.style.display === 'none') return;   // no teacher key: a plain link is made, nothing is filed
+    box.__ao = 1;
+    var first = box.querySelector('.aptt-mkbox > label'); if (!first) return;
+    var orig = null, mode = '';
+    var b = document.createElement('div'); b.className = 'ao-box'; b.setAttribute('role', 'radiogroup');
+    b.innerHTML = '<div class="ao-h">FIRST: is this test for today only?</div>'
+      + '<label class="ao-opt"><input type="radio" name="ao-' + P + '" value="one"><b>⚡ One-off: for this lesson only</b><small>You get the link and a code now. It is <u>not</u> added to your Test Library, and the code stops working after 7 days. (The link itself keeps working.)</small></label>'
+      + '<label class="ao-opt"><input type="radio" name="ao-' + P + '" value="keep"><b>📚 Keep permanently in my AP Tests library</b><small>Filed under a heading and folder, as before.</small></label>'
+      + '<div class="ao-need">👆 Choose one to continue</div>';
+    first.parentNode.insertBefore(b, first);
+    var hideRow = function (el, on) { if (!el) return; el.style.display = on ? 'none' : ''; var p = el.previousElementSibling; if (p && p.tagName === 'LABEL') p.style.display = on ? 'none' : ''; };
+    var sets = Array.prototype.slice.call(box.querySelectorAll('input[name$="-mk-m"]'));
+    function gate() { go.disabled = !mode; go.classList.toggle('ao-wait', !mode); go.title = mode ? '' : 'First choose: one-off or keep permanently'; }
+    gate();
+    new MutationObserver(function () { if (!mode && !go.disabled && go.style.display !== 'none' && !/Made/.test(go.textContent)) gate(); }).observe(go, { attributes: true, attributeFilter: ['disabled'] });
+    go.addEventListener('click', function (e) { if (!mode) { e.stopImmediatePropagation(); e.preventDefault(); b.scrollIntoView({ block: 'center' }); } }, true);
+    b.addEventListener('change', function (e) {
+      if (!orig) orig = { cat: cat.value, code: code.value, typed: code.dataset.typed || '' };
+      mode = e.target.value; b.classList.add('ok'); Array.prototype.forEach.call(b.querySelectorAll('.ao-opt'), function (l) { l.classList.toggle('on', l.querySelector('input').checked); });
+      var one = mode === 'one';
+      if (one) {
+        if (![].some.call(cat.options, function (o) { return o.value === CAT; })) { var o = document.createElement('option'); o.textContent = CAT; o.value = CAT; cat.appendChild(o); }
+        cat.value = CAT; fol.value = today();
+        var one1 = sets.filter(function (r) { return r.value === '1'; })[0]; if (one1) one1.checked = true;
+        sets.forEach(function (r) { if (r.value !== '1') { r.disabled = true; r.parentNode.style.display = 'none'; } });
+        var L = (/^([A-Za-z]+)\d+$/.exec(String(orig.code).trim()) || [])[1];
+        if (L && window.APTT && APTT.nextCodeFor) { var X = 'X' + L.slice(-1).toUpperCase(); code.dataset.typed = '1'; APTT.nextCodeFor(X, function (c) { if (mode === 'one') code.value = c; }); }
+      } else {
+        cat.value = orig.cat; if (fol.value === today()) fol.value = '';
+        sets.forEach(function (r) { r.disabled = false; r.parentNode.style.display = ''; });
+        if (orig.code) code.value = orig.code; code.dataset.typed = orig.typed;
+        var L0 = (/^([A-Za-z]+)\d+$/.exec(String(orig.code).trim()) || [])[1]; if (L0 && window.APTT && APTT.nextCodeFor) APTT.nextCodeFor(L0.toUpperCase(), function (c) { if (mode === 'keep' && !code.dataset.typed) code.value = c; });
+      }
+      hideRow(cat, one); hideRow(fol, one);
+      gate();
+    });
+    if (out) new MutationObserver(function () {
+      if (mode !== 'one') return;
+      var ok = out.querySelector('.aptt-mkok'); if (ok && !/one-off/.test(ok.textContent)) ok.innerHTML = '✅ Link made. <b>One-off:</b> copy it and use it now. It is not in your Test Library.';
+      var gh = out.querySelector('.aptt-mkgh.ok'); if (gh && !/one-off/.test(gh.textContent)) { var c = (code.value || '').toUpperCase(); gh.innerHTML = '✅ Code <b>' + c + '</b> added. Boys can type it on the AP Tests page in about a minute.<br><span style="font-weight:600">One-off: it is not in your Test Library and the code stops working after 7 days. Nothing else to do.</span>'; }
+    }).observe(out, { childList: true, subtree: true });
+  }
+  function scan() { Array.prototype.forEach.call(document.querySelectorAll('.aptt-mkov'), prep); }
+  new MutationObserver(scan).observe(document.documentElement, { childList: true, subtree: true });
+  scan();
+})();
+</script>
+<style id="ap-spot-css">
+.spt-hide{display:none!important}
+.spt-card{box-sizing:border-box;width:100%;flex:1 1 100%;grid-column:1/-1;margin:10px 0 4px;padding:12px 16px 14px;border:2px solid #5b3f9e;border-radius:16px;background:#f3eefb;box-shadow:0 4px 0 #5b3f9e;color:#1a2744;font-family:'DM Sans',system-ui,sans-serif;text-align:left}
+.spt-h{font-weight:800;font-size:1.1rem}
+.spt-s{font-size:.9rem;color:#4a5570;margin:2px 0 8px}
+.spt-row{display:flex;flex-wrap:wrap;gap:10px}
+.spt-pill{font:800 .95rem/1.1 'DM Sans',system-ui,sans-serif;min-height:44px;padding:10px 18px;border-radius:999px;cursor:pointer;touch-action:manipulation;color:#1a2744;background:#fff;border:2px solid #5b3f9e}
+.spt-pill.pen{background:#ffe94d;border:3px solid #d0021b;box-shadow:0 0 0 2px rgba(208,2,27,.2)}
+.spt-pill[disabled]{opacity:.4;cursor:not-allowed}
+.spt-cap{font-size:.8rem;color:#4a5570;margin-top:8px;line-height:1.35}
+.spt-quick{display:inline-block!important;width:auto!important;flex:0 0 auto;background:none!important;border:0!important;box-shadow:none!important;color:#6b7690!important;text-decoration:underline;font:600 .82rem 'DM Sans',system-ui,sans-serif!important;padding:6px 4px!important;min-height:32px;cursor:pointer}
+
+.spt-main{display:flex;flex-direction:column;gap:8px}
+.spt-big{width:100%;min-height:54px;border-radius:14px;cursor:pointer;touch-action:manipulation;font:800 1.05rem 'DM Sans',system-ui,sans-serif;color:#1a2744;background:#ffe94d;border:3px solid #d0021b;box-shadow:0 0 0 2px rgba(208,2,27,.2);display:flex;align-items:center;justify-content:center;gap:8px;flex-wrap:wrap;padding:8px 14px}
+.spt-big small{font-weight:600;font-size:.8rem;color:#4a5570}
+.spt-big.alt{background:#fff;border:2px solid #5b3f9e;box-shadow:none}
+.spt-big[disabled]{opacity:.4;cursor:not-allowed}
+.spt-pr{margin-top:10px;font-size:.88rem;color:#4a5570}
+.spt-link{background:none;border:0;padding:6px 2px;min-height:32px;font:800 .9rem 'DM Sans',system-ui,sans-serif;color:#5b3f9e;text-decoration:underline;cursor:pointer}
+.spt-link[disabled]{opacity:.4}
+
+
+.spt-showans{margin:14px 0 6px}
+
+.spt-nl{margin-top:10px;padding-top:6px;border-top:1px dotted #b9acdc}
+.spt-nlbox{margin-top:6px}
+.spt-make{margin:8px 0 2px!important;min-height:44px;border-radius:999px!important;font-weight:800!important}
+</style>
+<script id="ap-spot">
+/* AP SPOT add-on: one "Spot Test" card (Apple Pencil on the iPad / Print it) in place of the separate Paper and Submitted buttons;
+   the plain Generate Test becomes a small "Quick plain test" link. Works on the rendered page; the original buttons stay (hidden) and do the work. */
+(function () {
+  var QUICK = 'No-limit test (up to the whole set)';
+  function txt(b) { return (b.textContent || '').replace(/\s+/g, ' ').trim(); }
+
+  /* Answers are never on show: the "Answer Sheet" of a generated test sits behind a Show answers button. */
+  function hideAnswers() {
+    var all = document.querySelectorAll('div,h3,h4,span,p'), heads = [];
+    for (var i = 0; i < all.length; i++) if (all[i].children.length === 0 && /^(Answer Sheet|Answer key|Teacher Sheet \(answer key\))$/i.test(txt(all[i])) && !all[i].closest('.spt-ans') && !all[i].closest('#opSpotAns')) heads.push(all[i]);
+    heads.forEach(function (h) {
+      var box = h.nextElementSibling; if (!box || !h.parentNode) return;
+      var w = document.createElement('div'); w.className = 'spt-ans'; w.style.display = 'none';
+      var b = document.createElement('button'); b.type = 'button'; b.className = 'spt-showans aph-btn'; b.textContent = 'Show answers';
+      b.onclick = function () { var on = w.style.display === 'none'; w.style.display = on ? '' : 'none'; b.textContent = on ? 'Hide answers' : 'Show answers'; };
+      h.parentNode.insertBefore(b, h); h.parentNode.insertBefore(w, h); w.appendChild(h); w.appendChild(box);
+    });
+  }
+
+  /* Back (the header button) closes an open test / print panel first: exactly one stage back, not Home. */
+  function closePanel() {
+    var ps = document.querySelectorAll('.aph-panel-top');
+    for (var i = 0; i < ps.length; i++) {
+      var p = ps[i]; if (p.offsetParent === null || getComputedStyle(p).display === 'none') continue;
+      var bs = p.querySelectorAll('button');
+      for (var k = 0; k < bs.length; k++) if (/(\u2715|Close|Back)/.test(txt(bs[k])) && !bs[k].closest('.spt-card')) { bs[k].click(); return true; }
+    }
+    return false;
+  }
+  if (!window.__sptBack) { window.__sptBack = 1; var prevBack = window.aphBackHook; window.aphBackHook = function () { try { if (closePanel()) return true; } catch (e) { } return typeof prevBack === 'function' ? prevBack.apply(this, arguments) : false; }; }
+
+  /* While a test / print panel is open it stands alone: the set-up screen below it is hidden, so the only way on is the panel's own Back / Close. */
+  function focusPanel() {
+    var open = null, ps = document.querySelectorAll('.aph-panel-top');
+    for (var i = 0; i < ps.length; i++) if (ps[i].offsetParent !== null && getComputedStyle(ps[i]).display !== 'none') { open = ps[i]; break; }
+    var all = document.querySelectorAll('[data-spt-hid]');
+    if (!open) { for (var k = 0; k < all.length; k++) { all[k].style.display = all[k].getAttribute('data-spt-hid'); all[k].removeAttribute('data-spt-hid'); } return; }
+    for (var e = open; e && e !== document.body; e = e.parentElement) {
+      for (var n = e.nextElementSibling; n; n = n.nextElementSibling) {
+        if (/^(SCRIPT|STYLE|LINK|TEMPLATE)$/.test(n.tagName) || n.hasAttribute('data-spt-hid') || getComputedStyle(n).display === 'none' || getComputedStyle(n).position === 'fixed') continue;
+        n.setAttribute('data-spt-hid', n.style.display || ''); n.style.display = 'none';
+      }
+    }
+  }
+  function run() {
+    focusPanel();
+    hideAnswers();
+    var bs = document.querySelectorAll('button'), seen = [];
+    for (var i = 0; i < bs.length; i++) {
+      var b = bs[i], P = b.parentNode;
+      if (!P || seen.indexOf(P) >= 0 || P.closest('.spt-card')) continue;
+      if (!/^\S{0,4}\s*(Submitted|Paper) Spot Test(\s*\(.*\)|:.*)?$/.test(txt(b))) continue;
+      seen.push(P);
+      var kids = P.querySelectorAll(':scope > button, :scope > .aph-btn'), pen = null, pap = null, gen = null;
+      for (var k = 0; k < kids.length; k++) {
+        var t = txt(kids[k]);
+        if (/^\S{0,4}\s*Submitted Spot Test(\s*\(.*\)|:.*)?$/.test(t)) pen = kids[k]; else if (/^\S{0,4}\s*Paper Spot Test(\s*\(.*\)|:.*)?$/.test(t)) pap = kids[k]; else if (/^\S{0,4}\s*Generate Test/.test(t) || /Generate Test/.test(t) && t.length < 40) gen = kids[k];
+      }
+      if (!pen && !pap) continue;
+      if (gen && !gen.classList.contains('spt-make')) { gen.textContent = 'Make the test'; gen.classList.add('spt-make'); gen.removeAttribute('style'); gen.addEventListener('click', function () { reveal(gen); }); }
+      if (P.classList.contains('hm-acts')) {   // the verb apps' small "Same choices" row: rename only
+        if (pen) pen.textContent = '✍ Spot Test · Apple Pencil';
+        if (pap) pap.textContent = '🖨 Spot Test · Print';
+        continue;
+      }
+      var card = P.querySelector(':scope > .spt-card');
+      var first = pen || pap; if (pap && pen && pap.compareDocumentPosition(pen) & 4) first = pap;
+      if (!card) {
+        card = document.createElement('div'); card.className = 'spt-card';
+        var sfx = (/Spot Test:\s*(.+)$/.exec(txt(pen || pap)) || [])[1]; card.innerHTML = '<div class="spt-h">\ud83d\udcdd Spot Test' + (sfx ? ' \u00b7 ' + sfx.replace(/</g, '&lt;') : '') + '</div><div class="spt-s">15 short questions in boxes (or 10 or 5 if you prefer). You may get fewer if the set is small, or if the answers are long: a timed test never runs past 4\u00bd minutes. You mark it yourself.</div><div class="spt-main"></div><div class="spt-pr"></div>';
+        var main = card.querySelector('.spt-main'), pr = card.querySelector('.spt-pr');
+        if (pen) { var a = document.createElement('button'); a.type = 'button'; a.className = 'spt-big'; a.innerHTML = '\u270d Do it with Apple Pencil <small>hand in as a PDF if required</small>'; a.onclick = (function (o) { return function () { o.click(); }; })(pen); main.appendChild(a); }
+        if (pap) {
+          var c = document.createElement('button'); c.type = 'button'; c.className = pen ? 'spt-link' : 'spt-big alt'; c.textContent = pen ? 'Print it' : '\ud83d\udda8 Print it';
+          c.onclick = (function (o, cc) { return function () { o.click(); reveal(cc); }; })(pap, c);
+          if (pen) { pr.appendChild(document.createTextNode('Prefer paper? ')); pr.appendChild(c); pr.appendChild(document.createTextNode(' to write on by hand.')); } else { main.appendChild(c); pr.style.display = 'none'; }
+        }
+        P.insertBefore(card, first);
+        if (gen && gen.parentNode === P) P.insertBefore(gen, card.nextSibling);
+      }
+      // the plain No-limit test lives inside the card as a discreet link; its Questions row and button open only when asked for
+      if (gen && !card.querySelector('.spt-nl')) {
+        var nl = document.createElement('div'); nl.className = 'spt-nl';
+        var tg = document.createElement('button'); tg.type = 'button'; tg.className = 'spt-quick'; tg.textContent = QUICK + ' \u25b8'; tg.title = 'Choose as many questions as you like, up to everything in the set';
+        var box = document.createElement('div'); box.className = 'spt-nlbox'; box.style.display = 'none';
+        var qs = P.ownerDocument.querySelectorAll('.aph-label,.l,div,span,label,small'), ql = null;
+        for (var w = 0; w < qs.length; w++) { if (qs[w].children.length === 0 && /^Questions$/i.test(txt(qs[w])) && qs[w].nextElementSibling) { ql = qs[w]; break; } }
+        if (ql) { var qc = ql.nextElementSibling; box.appendChild(ql); box.appendChild(qc); }
+        box.appendChild(gen);
+        if (!ql) { tg.textContent = QUICK; tg.onclick = function () { gen.click(); reveal(tg); }; }   // no question chips here: its own options panel opens directly, no extra button
+        else tg.onclick = function () { var on = box.style.display === 'none'; box.style.display = on ? '' : 'none'; tg.textContent = QUICK + (on ? ' \u25be' : ' \u25b8'); };
+        nl.appendChild(tg); nl.appendChild(box); card.appendChild(nl);
+      }
+      var pills = card.querySelectorAll('.spt-big,.spt-link'), orig = [pen, pap].filter(Boolean);
+      for (var q = 0; q < pills.length; q++) pills[q].disabled = !!(orig[q] && orig[q].disabled);
+      if (pen) pen.classList.add('spt-hide'); if (pap) pap.classList.add('spt-hide');
+      var ls = document.querySelectorAll('.aph-label,.l,div,span,label,small');
+      for (var L = 0; L < ls.length; L++) {
+        if (ls[L].children.length || !/Items per box/i.test(txt(ls[L]))) continue;
+        var sib = ls[L].nextElementSibling, cs = sib ? sib.querySelectorAll('button') : [];
+        for (var z = 0; z < cs.length; z++) { var m = /^([123])$/.exec(txt(cs[z])); if (m) cs[z].textContent = m[1] + ' \u00b7 ' + (5 * m[1]) + ' items'; }
+      }
+      var hs = document.querySelectorAll('h1,h2,h3,h4,.aph-h,span,div,b'); for (var h = 0; h < hs.length; h++) { if (hs[h].children.length === 0 && /^\W{0,4}\s*Generate Test$/.test(txt(hs[h]))) hs[h].textContent = '\ud83d\udcdd Test'; }
+    }
+  }
+  function reveal(from) { setTimeout(function () { try { var c = document.querySelectorAll('[id*="Output"],[id$="TestOut"],[id$="Out"]'); for (var i = 0; i < c.length; i++) if (c[i].innerHTML.trim() && c[i].offsetHeight && !c[i].closest('.spt-card')) { c[i].scrollIntoView({ behavior: 'smooth', block: 'start' }); return; } } catch (e) {} }, 250); }
+  function start() {
+    var mo, timer = 0, opts = { subtree: true, childList: true, attributes: true, attributeFilter: ['style', 'class'] };
+    function go() { timer = 0; mo.disconnect(); try { run(); } catch (e) { } mo.observe(document.body, opts); }
+    mo = new MutationObserver(function () { if (!timer) timer = setTimeout(go, 60); });
+    mo.observe(document.body, opts); try { run(); } catch (e) { }
+  }
+  if (document.body) start(); else document.addEventListener('DOMContentLoaded', start);
 })();
 </script>

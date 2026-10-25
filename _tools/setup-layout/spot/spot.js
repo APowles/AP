@@ -49,12 +49,12 @@
     for (var i = 0; i < bs.length; i++) {
       var b = bs[i], P = b.parentNode;
       if (!P || seen.indexOf(P) >= 0 || P.closest('.spt-card')) continue;
-      if (!/^\S{0,4}\s*(Submitted|Paper) Spot Test(\s*\(.*\))?$/.test(txt(b))) continue;
+      if (!/^\S{0,4}\s*(Submitted|Paper) Spot Test(\s*\(.*\)|:.*)?$/.test(txt(b))) continue;
       seen.push(P);
       var kids = P.querySelectorAll(':scope > button, :scope > .aph-btn'), pen = null, pap = null, gen = null;
       for (var k = 0; k < kids.length; k++) {
         var t = txt(kids[k]);
-        if (/^\S{0,4}\s*Submitted Spot Test$/.test(t)) pen = kids[k]; else if (/^\S{0,4}\s*Paper Spot Test(\s*\(.*\))?$/.test(t)) pap = kids[k]; else if (/^\S{0,4}\s*Generate Test/.test(t) || /Generate Test/.test(t) && t.length < 40) gen = kids[k];
+        if (/^\S{0,4}\s*Submitted Spot Test(\s*\(.*\)|:.*)?$/.test(t)) pen = kids[k]; else if (/^\S{0,4}\s*Paper Spot Test(\s*\(.*\)|:.*)?$/.test(t)) pap = kids[k]; else if (/^\S{0,4}\s*Generate Test/.test(t) || /Generate Test/.test(t) && t.length < 40) gen = kids[k];
       }
       if (!pen && !pap) continue;
       if (gen && !gen.classList.contains('spt-make')) { gen.textContent = 'Make the test'; gen.classList.add('spt-make'); gen.removeAttribute('style'); gen.addEventListener('click', function () { reveal(gen); }); }
@@ -67,7 +67,7 @@
       var first = pen || pap; if (pap && pen && pap.compareDocumentPosition(pen) & 4) first = pap;
       if (!card) {
         card = document.createElement('div'); card.className = 'spt-card';
-        card.innerHTML = '<div class="spt-h">\ud83d\udcdd Spot Test</div><div class="spt-s">15 short questions in boxes (or 10 or 5 if you prefer). You may get fewer if the set is small, or if the answers are long: a timed test never runs past 4\u00bd minutes. You mark it yourself.</div><div class="spt-main"></div><div class="spt-pr"></div>';
+        var sfx = (/Spot Test:\s*(.+)$/.exec(txt(pen || pap)) || [])[1]; card.innerHTML = '<div class="spt-h">\ud83d\udcdd Spot Test' + (sfx ? ' \u00b7 ' + sfx.replace(/</g, '&lt;') : '') + '</div><div class="spt-s">15 short questions in boxes (or 10 or 5 if you prefer). You may get fewer if the set is small, or if the answers are long: a timed test never runs past 4\u00bd minutes. You mark it yourself.</div><div class="spt-main"></div><div class="spt-pr"></div>';
         var main = card.querySelector('.spt-main'), pr = card.querySelector('.spt-pr');
         if (pen) { var a = document.createElement('button'); a.type = 'button'; a.className = 'spt-big'; a.innerHTML = '\u270d Do it with Apple Pencil <small>hand in as a PDF if required</small>'; a.onclick = (function (o) { return function () { o.click(); }; })(pen); main.appendChild(a); }
         if (pap) {

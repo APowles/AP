@@ -2853,6 +2853,7 @@ html.aptt-open,html.aptt-open body{overflow:hidden}
 .aptt-bar{position:sticky;top:0;z-index:3;display:flex;align-items:center;gap:10px;background:var(--navy);border-bottom:3px solid var(--gold);padding:8px 16px}
 .aptt-bar-t{flex:1;min-width:0;font:700 .9375rem/1.2 var(--aph-body);color:var(--gold2);text-align:right;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 #aptt-top,.aptt-item,#aptt-after{scroll-margin-top:64px}
+.aptt-fm{margin:14px 0;text-align:center}.aptt-fm[hidden]{display:none}.aptt-fm small{display:block;margin-top:6px;color:#555;font-size:.95rem}.aptt-fm-b{font:800 1.05rem/1.2 var(--aph-body);padding:12px 20px;border-radius:12px;border:2px solid var(--navy);background:#fff;color:var(--navy);cursor:pointer;margin:4px}.aptt-fm-b.go{background:var(--navy);color:#fff}.aptt-fm-q{background:#fff8e6;border:2px solid var(--gold);border-radius:12px;padding:14px}.aptt-fm-q>b{display:block;font-size:1.15rem;color:var(--navy);margin-bottom:4px}.aptt-fm-q>span{display:block;margin-bottom:8px}
 .aptt-wrap{max-width:820px;margin:0 auto;padding:18px 16px 64px;box-sizing:border-box}
 .aptt-kick{font-size:.8125rem;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--text2);margin:0 0 4px;overflow-wrap:anywhere}
 .aptt-wrap .aph-h{margin:0 0 6px}
@@ -3481,7 +3482,7 @@ var APTT = (function () {
       + '<button type="button" class="aptt-chk" id="aptt-chk" disabled onclick="APTT.show()">✔ Show answers &amp; mark</button></div>'
       + '<div class="aptt-lock-n" id="aptt-lockn"></div>'
       + '<div class="aptt-after" id="aptt-after"' + (S.shown ? '' : ' hidden') + '>'
-      + '<div class="aptt-score" id="aptt-score2"></div><div class="aptt-cm" id="aptt-cm" hidden></div>'
+      + '<div class="aptt-score" id="aptt-score2"></div><div class="aptt-cm" id="aptt-cm" hidden></div><div class="aptt-fm" id="aptt-fm" hidden></div>'
       + '<div class="aptt-learn" id="aptt-learn"><div class="aptt-learn-top"><div class="aptt-learn-h"><span class="aptt-wb-t">Eton Whiteboard Notes</span><span class="aptt-wb-s">What I learned</span></div>' + (aphAv() ? '<img class="aptt-learn-av" src="' + aphAv() + '" alt="Eton">' : '') + '</div><div class="aptt-learn-q"><b>This is your chance to write something about what you’ve learned.</b> Pick <u>your own words</u>, just as if you were up at my whiteboard in Birley Schools: what caught you out, the correct version, and the trick you’ll use to remember it. <b>In Birley Schools</b>, you’ll get a couple of minutes; <b>in your House</b>, take as long as you need. You can add more later in OneNote.<br><b class="aptt-aim">Aim for 10 things! (5 is the minimum)</b> They can be tiny: a piece of vocabulary, a rule, a trick. Number them 1 to 10.</div>'
       + (demo() ? '' : '<div class="aptt-learn-why">' + LEARN_WHY + '</div>')
       + '<div class="aptt-learn-must" id="aptt-learn-must"></div>'
@@ -3624,7 +3625,7 @@ var APTT = (function () {
       c.hidden = false; c.className = 'aptt-clock done';
       c.innerHTML = (S.mode === 'free' ? '🏠 Untimed · translated in ' : S.auto ? '⏱ Locked automatically at ' : '⏱ Timed · translated in ') + mmss(S.lockAt || 0);
       if (S.mode === 'timed' && S.shown) {
-        if (S.markDone) c.innerHTML = '✔ Marking time over';
+        if (S.markDone) c.innerHTML = S.early ? '✔ Marking finished' : '✔ Marking time over';
         else {
           var ml = markLimit() - Math.max(0, Math.round((pzNow() - (S.m0 || Date.now()) - (S.pzM || 0)) / 1000));
           c.className = 'aptt-clock' + (ml <= 15 ? ' red pulse' : ml <= 45 ? ' amber' : ''); c.innerHTML = '✔ Marking: ' + mmss(ml);
@@ -3644,12 +3645,12 @@ var APTT = (function () {
     if (b) { b.hidden = false; b.className = 'aptt-tban live'; b.innerHTML = '⏱ <b>Time\'s up!</b> You have <b>' + Math.max(0, Math.ceil(g)) + ' seconds</b> to finish. Your answers will lock in automatically at 0:00.' + (E.length ? ' ' + list(E) + (E.length > 1 ? ' are' : ' is') + ' still empty: have a quick go!' : ''); }
     if (g <= 0 && !PEN) autoLock();
   }
-  function markEnd() {   // timed: marking time is over; anything not marked scores 0
+  function markEnd(early) {   // timed: marking time is over (or he stopped it early); anything not marked scores 0
     if (!S || S.markDone) return;
-    S.markDone = true;
+    S.markDone = true; S.early = early === true;
     S.items.forEach(function (it, i) { var m = S.marks[i]; if (m == null || m === '') { S.marks[i] = 0; S.unm = (S.unm || []).concat([i + 1]); } });
     save(); markEndUI(); score();
-    var b = $('aptt-tban'); if (b) { b.hidden = false; b.className = 'aptt-tban done'; b.innerHTML = '✔ <b>Marking time is over.</b> Your score is what you managed to mark. Now go through your mistakes and write your notes in the <b>Eton Whiteboard Notes: What I learned</b> box: <b>in class</b>, a couple of minutes, then save and upload when your teacher says; <b>in your House</b>, as long as you need.'; }
+    var b = $('aptt-tban'); if (b) { b.hidden = false; b.className = 'aptt-tban done'; b.innerHTML = '✔ <b>' + (S.early ? 'You finished marking.' : 'Marking time is over.') + '</b> Your score is what you managed to mark. Now go through your mistakes and write your notes in the <b>Eton Whiteboard Notes: What I learned</b> box: <b>in class</b>, a couple of minutes, then save and upload when your teacher says; <b>in your House</b>, as long as you need.'; }
   }
   function markEndUI() {
     document.querySelectorAll('#aptt-ov .aptt-mb').forEach(function (b) { b.disabled = true; });
@@ -3765,8 +3766,24 @@ var APTT = (function () {
       + (o.set ? ' &middot; ' + esc(o.set) : '') + (o.reg ? ' &middot; ' + esc(o.reg) : '') + (o.person ? ' &middot; ' + esc(o.person) : '');
     return { tenses: T, verbs: V, short: T.length <= 3 ? T.join(', ') : T.length + ' tenses', detail: d };
   }
+  var FMASK = false;
+  function fmUI() {
+    var x = $('aptt-fm'); if (!x || !S) return;
+    var live = !!(S.shown && S.mode === 'timed' && !S.markDone);
+    x.hidden = !live; if (!live) { FMASK = false; x.innerHTML = ''; return; }
+    var un = (S.left || []).length;
+    if (FMASK) x.innerHTML = '<div class="aptt-fm-q" role="alertdialog" aria-label="Are you sure?"><b>Are you sure you have finished marking?</b><span>' + (un ? 'You have <b>' + un + '</b> still not marked: ' + (un > 1 ? 'they' : 'it') + ' will score 0. ' : 'Every answer is marked. ') + 'You will not be able to change any marks afterwards.</span><div><button type="button" class="aptt-fm-b no" onclick="APTT.fm(0)">Not yet: keep marking</button><button type="button" class="aptt-fm-b go" onclick="APTT.fm(2)">Yes, I have finished</button></div></div>';
+    else x.innerHTML = '<button type="button" class="aptt-fm-b" onclick="APTT.fm(1)">&#10004; I\'ve finished marking: stop the marking timer</button><small>Marking time left? Stop it here and go on to <b>What I learned</b>.</small>';
+  }
+  function fmClick(a) {
+    if (!S || !S.shown || S.markDone || S.mode !== 'timed') return;
+    if (a === 1) { FMASK = true; fmUI(); try { $('aptt-fm').scrollIntoView({ block: 'center', behavior: 'smooth' }); } catch (e) { } return; }
+    if (a === 0) { FMASK = false; fmUI(); return; }
+    FMASK = false; markEnd(true);
+    try { $('aptt-learn').scrollIntoView({ block: 'start', behavior: 'smooth' }); } catch (e) { }
+  }
   function score() {
-    todo();
+    todo(); fmUI();
     var r = sum(), h = '<span>Your score</span><b>' + r1(r.score) + ' / ' + (S.m.total || 10) + '</b><small>' + r.raw + ' / ' + r.rmax + ' marks · ' + (r.rmax ? Math.round(r.raw / r.rmax * 100) : 0) + '% · ' + r.n + ' of ' + S.items.length + ' marked by you</small>';
     ['aptt-score1', 'aptt-score2'].forEach(function (id) { var x = $(id); if (x) x.innerHTML = h; });
     var cmx = $('aptt-cm'); if (cmx) { var cc = S.shown && (r.left === 0 || S.markDone) ? cmFor() : null; cmx.hidden = !cc; cmx.innerHTML = cc ? '<span>Your teacher says:</span>' + cmSVG(cc) : ''; }
@@ -3929,7 +3946,7 @@ var APTT = (function () {
     return verify(t, g).then(function (ok) { if (!ok) throw new Error('unsigned'); return unzip(t); }).then(function (j) { var o = JSON.parse(j); o.tok = token; return o; });
   }
   function listGet() { try { return JSON.parse(lsGet('apTestLinks') || '[]') || []; } catch (e) { return []; } }
-  function listAdd(e) { var l = listGet(); l.unshift(e); lsSet('apTestLinks', JSON.stringify(l)); }
+  function listAdd(e) { if (e && /^⚡ One-off/.test(e.cat || '')) return; var l = listGet(); l.unshift(e); lsSet('apTestLinks', JSON.stringify(l)); }
   function linkFor(token) {
     var base = String(document.baseURI || location.href).replace(/[#?].*$/, '').replace(/[^\/]*$/, '');
     return base + 'Eton%20Tests.html#t=' + token;
@@ -4289,7 +4306,7 @@ var APTT = (function () {
   }
   // pen-up anywhere ends a stroke (the automatic lock waits for it)
   try { ['pointerup', 'pointercancel'].forEach(function (t) { document.addEventListener(t, function () { PEN = false; }, true); }); } catch (e) { }
-  return { askSpanish: askSpanish, open: open, setTime: setTime, all: toAll, auto: toAuto, close: close, mode: mode, lock: lock, show: showAns, mark: mark, next: next, nag: toggleNag, another: another, verbDetail: verbDetail, pdf: pdf, teacher: teacher, maker: maker, openSet: openSet, cmSVG: cmSVG, cmBand: cmBand, cmPick: function (s20, seed) { if (!CM) cmLoad(); return cmPick(s20, seed); }, cmReload: function () { CM = null; cmLoad(); }, inProgress: inProgress, resume: resume, copyLink: copyLink, copyHTML: copyHTML, checkGit: checkGit, ghRemove: ghRemove, ghReplace: ghReplace, pack: pack, minsTxt: minsTxt, bigOf: function (answer, kind, srcId) { return kind === 'sentence' || (!{ conj: 1, it: 1, spot: 1 }[String(srcId || '').split('|')[0]] && nWords(answer) > 2); }, catOf: catOf, CATS: CATS, unpack: unpack, checkKey: checkKey, list: listGet, linkFor: linkFor, copy: copyText, ghAdd: ghAdd, holdAdd: holdAdd, holdLoad: holdLoad, libGet: libGet, libPut: libPut, listAdd: listAdd, folders: folders, gkey: gkey, nextCodeFor: nextCodeFor, lastRun: null, capturing: null, LABEL: LBL, state: function () { return S; } };
+  return { fm: fmClick, askSpanish: askSpanish, open: open, setTime: setTime, all: toAll, auto: toAuto, close: close, mode: mode, lock: lock, show: showAns, mark: mark, next: next, nag: toggleNag, another: another, verbDetail: verbDetail, pdf: pdf, teacher: teacher, maker: maker, openSet: openSet, cmSVG: cmSVG, cmBand: cmBand, cmPick: function (s20, seed) { if (!CM) cmLoad(); return cmPick(s20, seed); }, cmReload: function () { CM = null; cmLoad(); }, inProgress: inProgress, resume: resume, copyLink: copyLink, copyHTML: copyHTML, checkGit: checkGit, ghRemove: ghRemove, ghReplace: ghReplace, pack: pack, minsTxt: minsTxt, bigOf: function (answer, kind, srcId) { return kind === 'sentence' || (!{ conj: 1, it: 1, spot: 1 }[String(srcId || '').split('|')[0]] && nWords(answer) > 2); }, catOf: catOf, CATS: CATS, unpack: unpack, checkKey: checkKey, list: listGet, linkFor: linkFor, copy: copyText, ghAdd: ghAdd, holdAdd: holdAdd, holdLoad: holdLoad, libGet: libGet, libPut: libPut, listAdd: listAdd, folders: folders, gkey: gkey, nextCodeFor: nextCodeFor, lastRun: null, capturing: null, LABEL: LBL, state: function () { return S; } };
 })();
 /* ===== END AP TIMED TEST ===== */
 </script>
@@ -10373,6 +10390,122 @@ var APAM_TPL = "<!doctype html>\n<html lang=\"en\"><head><meta charset=\"utf-8\"
   if (document.body) start(); else document.addEventListener('DOMContentLoaded', start);
 })();
 </script>
+<style id="ap-crest-css">
+/* AP CREST: the school crest is the teacher's door (link / code maker); the floating "Teacher: set this drill" button is gone */
+.apdl-btn{display:none!important}
+.aph-header .aph-avatar{cursor:pointer}
+.ap-crest-msg{position:absolute;right:0;top:100%;margin-top:6px;background:#1a2744;color:#ffd76a;font:700 .8rem/1.2 var(--aph-body,system-ui,sans-serif);padding:6px 10px;border-radius:8px;white-space:nowrap;box-shadow:0 4px 14px rgba(0,0,0,.25);pointer-events:none;opacity:0;transition:opacity .2s}
+.ap-crest-msg.on{opacity:1}
+.ap-crest-wrap{position:relative;display:inline-block}
+</style>
+<script id="ap-crest">
+/* AP CREST add-on: tapping the crest opens the teacher's link / code maker for whatever is set up on screen
+   (only with the teacher key on this device). Without the key it just says "Not available". The crest no longer opens any edit mode.
+   Works on the rendered page; the apps' own code is untouched. */
+(function () {
+  'use strict';
+  if (window.__apCrest) return; window.__apCrest = 1;
+  function key() { try { return !!localStorage.getItem('apTeacherKey'); } catch (e) { return false; } }
+  var msgT = 0;
+  function say(img, t) {
+    var w = img.parentNode;
+    if (!w || !w.classList || !w.classList.contains('ap-crest-wrap')) { w = document.createElement('span'); w.className = 'ap-crest-wrap'; img.parentNode.insertBefore(w, img); w.appendChild(img); }
+    var m = w.querySelector('.ap-crest-msg'); if (!m) { m = document.createElement('span'); m.className = 'ap-crest-msg'; w.appendChild(m); }
+    m.textContent = t; m.classList.add('on'); clearTimeout(msgT); msgT = setTimeout(function () { m.classList.remove('on'); }, 2600);
+  }
+  function tap(img) {
+    if (!key()) { say(img, 'Not available'); return; }
+    var b = document.getElementById('apdl-btn');                       // the drill-link maker, created by the apps' own code when a drill is set up
+    if (b) { b.click(); return; }
+    if (typeof window.toggleTeacherMode === 'function') { window.toggleTeacherMode(); return; }   // the Listening apps: teacher mode (mock papers)
+    var spd = document.querySelector('.apss-link, [data-apss-link]'), lnk = null;
+    var bs = document.querySelectorAll('button'); for (var i = 0; i < bs.length; i++) { var t = (bs[i].textContent || '').trim(); if (bs[i].offsetHeight && /Make a link|Speed session link|make a test link/i.test(t)) { lnk = bs[i]; break; } }
+    if (lnk) { lnk.click(); return; }
+    say(img, 'Set something up first (a drill, test or Speed session), then tap the crest');
+  }
+  function bind() {
+    var imgs = document.querySelectorAll('.aph-header .aph-avatar, .aph-header .header-photo');
+    for (var i = 0; i < imgs.length; i++) {
+      var img = imgs[i]; if (img.__apCrest) continue; img.__apCrest = 1;
+      img.removeAttribute('onclick'); img.onclick = null; img.title = ''; img.style.cursor = 'pointer';
+      img.addEventListener('click', function (ev) { ev.preventDefault(); ev.stopPropagation(); tap(this); }, true);
+    }
+  }
+  bind();
+  try { new MutationObserver(function () { bind(); }).observe(document.body, { childList: true, subtree: true }); } catch (e) { }
+})();
+</script>
+<style id="ap-oneoff-css">
+.ao-box{margin:6px 0 12px;padding:12px;border:3px solid #c0392b;border-radius:12px;background:#fff8e6}
+.ao-box.ok{border-color:#1e7a46;background:#eefaf2}
+.ao-h{font:800 .85rem/1.2 var(--aph-body,inherit);letter-spacing:.06em;color:#7a1b12;margin-bottom:8px}
+.ao-box.ok .ao-h{color:#1e7a46}
+.ao-opt{display:block;margin:6px 0;padding:10px 12px;border:2px solid #b9b3a3;border-radius:10px;background:#fff;cursor:pointer;line-height:1.35}
+.ao-opt input{margin-right:8px;transform:scale(1.25)}
+.ao-opt.on{border-color:#0f1a33;background:#eef2ff}
+.ao-opt b{font-size:1.05rem}
+.ao-opt small{display:block;margin:3px 0 0 26px;color:#444}
+.ao-need{margin-top:4px;font-weight:800;color:#c0392b}
+.ao-box.ok .ao-need{display:none}
+.aptt-mkov button.ao-wait{opacity:.45;cursor:not-allowed}
+</style>
+<script id="ap-oneoff">
+/* AP ONE-OFF add-on: every "make a link / code" box must first ask: one-off (this lesson only) or keep permanently. Nothing is pre-selected and Make link stays greyed until he chooses. */
+(function () {
+  if (window.__apOneOff) return; window.__apOneOff = 1;
+  var CAT = '⚡ One-off ▸ Live tests (codes clear after 7 days)';
+  function today() { return new Date().toISOString().slice(0, 10); }
+  function prep(box) {
+    if (box.__ao) return; var m = /^(.*)-mk$/.exec(box.id || ''); if (!m) return;
+    var P = m[1], q = function (s) { return document.getElementById(P + '-mk' + s); };
+    var cat = q('-cat'), fol = q('-f'), code = q('-c'), go = q('-go'), out = q('-out'); if (!cat || !fol || !code || !go) return;
+    if (cat.style.display === 'none') return;   // no teacher key: a plain link is made, nothing is filed
+    box.__ao = 1;
+    var first = box.querySelector('.aptt-mkbox > label'); if (!first) return;
+    var orig = null, mode = '';
+    var b = document.createElement('div'); b.className = 'ao-box'; b.setAttribute('role', 'radiogroup');
+    b.innerHTML = '<div class="ao-h">FIRST: is this test for today only?</div>'
+      + '<label class="ao-opt"><input type="radio" name="ao-' + P + '" value="one"><b>⚡ One-off: for this lesson only</b><small>You get the link and a code now. It is <u>not</u> added to your Test Library, and the code stops working after 7 days. (The link itself keeps working.)</small></label>'
+      + '<label class="ao-opt"><input type="radio" name="ao-' + P + '" value="keep"><b>📚 Keep permanently in my AP Tests library</b><small>Filed under a heading and folder, as before.</small></label>'
+      + '<div class="ao-need">👆 Choose one to continue</div>';
+    first.parentNode.insertBefore(b, first);
+    var hideRow = function (el, on) { if (!el) return; el.style.display = on ? 'none' : ''; var p = el.previousElementSibling; if (p && p.tagName === 'LABEL') p.style.display = on ? 'none' : ''; };
+    var sets = Array.prototype.slice.call(box.querySelectorAll('input[name$="-mk-m"]'));
+    function gate() { go.disabled = !mode; go.classList.toggle('ao-wait', !mode); go.title = mode ? '' : 'First choose: one-off or keep permanently'; }
+    gate();
+    new MutationObserver(function () { if (!mode && !go.disabled && go.style.display !== 'none' && !/Made/.test(go.textContent)) gate(); }).observe(go, { attributes: true, attributeFilter: ['disabled'] });
+    go.addEventListener('click', function (e) { if (!mode) { e.stopImmediatePropagation(); e.preventDefault(); b.scrollIntoView({ block: 'center' }); } }, true);
+    b.addEventListener('change', function (e) {
+      if (!orig) orig = { cat: cat.value, code: code.value, typed: code.dataset.typed || '' };
+      mode = e.target.value; b.classList.add('ok'); Array.prototype.forEach.call(b.querySelectorAll('.ao-opt'), function (l) { l.classList.toggle('on', l.querySelector('input').checked); });
+      var one = mode === 'one';
+      if (one) {
+        if (![].some.call(cat.options, function (o) { return o.value === CAT; })) { var o = document.createElement('option'); o.textContent = CAT; o.value = CAT; cat.appendChild(o); }
+        cat.value = CAT; fol.value = today();
+        var one1 = sets.filter(function (r) { return r.value === '1'; })[0]; if (one1) one1.checked = true;
+        sets.forEach(function (r) { if (r.value !== '1') { r.disabled = true; r.parentNode.style.display = 'none'; } });
+        var L = (/^([A-Za-z]+)\d+$/.exec(String(orig.code).trim()) || [])[1];
+        if (L && window.APTT && APTT.nextCodeFor) { var X = 'X' + L.slice(-1).toUpperCase(); code.dataset.typed = '1'; APTT.nextCodeFor(X, function (c) { if (mode === 'one') code.value = c; }); }
+      } else {
+        cat.value = orig.cat; if (fol.value === today()) fol.value = '';
+        sets.forEach(function (r) { r.disabled = false; r.parentNode.style.display = ''; });
+        if (orig.code) code.value = orig.code; code.dataset.typed = orig.typed;
+        var L0 = (/^([A-Za-z]+)\d+$/.exec(String(orig.code).trim()) || [])[1]; if (L0 && window.APTT && APTT.nextCodeFor) APTT.nextCodeFor(L0.toUpperCase(), function (c) { if (mode === 'keep' && !code.dataset.typed) code.value = c; });
+      }
+      hideRow(cat, one); hideRow(fol, one);
+      gate();
+    });
+    if (out) new MutationObserver(function () {
+      if (mode !== 'one') return;
+      var ok = out.querySelector('.aptt-mkok'); if (ok && !/one-off/.test(ok.textContent)) ok.innerHTML = '✅ Link made. <b>One-off:</b> copy it and use it now. It is not in your Test Library.';
+      var gh = out.querySelector('.aptt-mkgh.ok'); if (gh && !/one-off/.test(gh.textContent)) { var c = (code.value || '').toUpperCase(); gh.innerHTML = '✅ Code <b>' + c + '</b> added. Boys can type it on the AP Tests page in about a minute.<br><span style="font-weight:600">One-off: it is not in your Test Library and the code stops working after 7 days. Nothing else to do.</span>'; }
+    }).observe(out, { childList: true, subtree: true });
+  }
+  function scan() { Array.prototype.forEach.call(document.querySelectorAll('.aptt-mkov'), prep); }
+  new MutationObserver(scan).observe(document.documentElement, { childList: true, subtree: true });
+  scan();
+})();
+</script>
 <style id="ap-spot-css">
 .spt-hide{display:none!important}
 .spt-card{box-sizing:border-box;width:100%;flex:1 1 100%;grid-column:1/-1;margin:10px 0 4px;padding:12px 16px 14px;border:2px solid #5b3f9e;border-radius:16px;background:#f3eefb;box-shadow:0 4px 0 #5b3f9e;color:#1a2744;font-family:'DM Sans',system-ui,sans-serif;text-align:left}
@@ -10453,12 +10586,12 @@ var APAM_TPL = "<!doctype html>\n<html lang=\"en\"><head><meta charset=\"utf-8\"
     for (var i = 0; i < bs.length; i++) {
       var b = bs[i], P = b.parentNode;
       if (!P || seen.indexOf(P) >= 0 || P.closest('.spt-card')) continue;
-      if (!/^\S{0,4}\s*(Submitted|Paper) Spot Test(\s*\(.*\))?$/.test(txt(b))) continue;
+      if (!/^\S{0,4}\s*(Submitted|Paper) Spot Test(\s*\(.*\)|:.*)?$/.test(txt(b))) continue;
       seen.push(P);
       var kids = P.querySelectorAll(':scope > button, :scope > .aph-btn'), pen = null, pap = null, gen = null;
       for (var k = 0; k < kids.length; k++) {
         var t = txt(kids[k]);
-        if (/^\S{0,4}\s*Submitted Spot Test$/.test(t)) pen = kids[k]; else if (/^\S{0,4}\s*Paper Spot Test(\s*\(.*\))?$/.test(t)) pap = kids[k]; else if (/^\S{0,4}\s*Generate Test/.test(t) || /Generate Test/.test(t) && t.length < 40) gen = kids[k];
+        if (/^\S{0,4}\s*Submitted Spot Test(\s*\(.*\)|:.*)?$/.test(t)) pen = kids[k]; else if (/^\S{0,4}\s*Paper Spot Test(\s*\(.*\)|:.*)?$/.test(t)) pap = kids[k]; else if (/^\S{0,4}\s*Generate Test/.test(t) || /Generate Test/.test(t) && t.length < 40) gen = kids[k];
       }
       if (!pen && !pap) continue;
       if (gen && !gen.classList.contains('spt-make')) { gen.textContent = 'Make the test'; gen.classList.add('spt-make'); gen.removeAttribute('style'); gen.addEventListener('click', function () { reveal(gen); }); }
@@ -10471,7 +10604,7 @@ var APAM_TPL = "<!doctype html>\n<html lang=\"en\"><head><meta charset=\"utf-8\"
       var first = pen || pap; if (pap && pen && pap.compareDocumentPosition(pen) & 4) first = pap;
       if (!card) {
         card = document.createElement('div'); card.className = 'spt-card';
-        card.innerHTML = '<div class="spt-h">\ud83d\udcdd Spot Test</div><div class="spt-s">15 short questions in boxes (or 10 or 5 if you prefer). You may get fewer if the set is small, or if the answers are long: a timed test never runs past 4\u00bd minutes. You mark it yourself.</div><div class="spt-main"></div><div class="spt-pr"></div>';
+        var sfx = (/Spot Test:\s*(.+)$/.exec(txt(pen || pap)) || [])[1]; card.innerHTML = '<div class="spt-h">\ud83d\udcdd Spot Test' + (sfx ? ' \u00b7 ' + sfx.replace(/</g, '&lt;') : '') + '</div><div class="spt-s">15 short questions in boxes (or 10 or 5 if you prefer). You may get fewer if the set is small, or if the answers are long: a timed test never runs past 4\u00bd minutes. You mark it yourself.</div><div class="spt-main"></div><div class="spt-pr"></div>';
         var main = card.querySelector('.spt-main'), pr = card.querySelector('.spt-pr');
         if (pen) { var a = document.createElement('button'); a.type = 'button'; a.className = 'spt-big'; a.innerHTML = '\u270d Do it with Apple Pencil <small>hand in as a PDF if required</small>'; a.onclick = (function (o) { return function () { o.click(); }; })(pen); main.appendChild(a); }
         if (pap) {
@@ -10515,51 +10648,6 @@ var APAM_TPL = "<!doctype html>\n<html lang=\"en\"><head><meta charset=\"utf-8\"
     mo.observe(document.body, opts); try { run(); } catch (e) { }
   }
   if (document.body) start(); else document.addEventListener('DOMContentLoaded', start);
-})();
-</script>
-<style id="ap-crest-css">
-/* AP CREST: the school crest is the teacher's door (link / code maker); the floating "Teacher: set this drill" button is gone */
-.apdl-btn{display:none!important}
-.aph-header .aph-avatar{cursor:pointer}
-.ap-crest-msg{position:absolute;right:0;top:100%;margin-top:6px;background:#1a2744;color:#ffd76a;font:700 .8rem/1.2 var(--aph-body,system-ui,sans-serif);padding:6px 10px;border-radius:8px;white-space:nowrap;box-shadow:0 4px 14px rgba(0,0,0,.25);pointer-events:none;opacity:0;transition:opacity .2s}
-.ap-crest-msg.on{opacity:1}
-.ap-crest-wrap{position:relative;display:inline-block}
-</style>
-<script id="ap-crest">
-/* AP CREST add-on: tapping the crest opens the teacher's link / code maker for whatever is set up on screen
-   (only with the teacher key on this device). Without the key it just says "Not available". The crest no longer opens any edit mode.
-   Works on the rendered page; the apps' own code is untouched. */
-(function () {
-  'use strict';
-  if (window.__apCrest) return; window.__apCrest = 1;
-  function key() { try { return !!localStorage.getItem('apTeacherKey'); } catch (e) { return false; } }
-  var msgT = 0;
-  function say(img, t) {
-    var w = img.parentNode;
-    if (!w || !w.classList || !w.classList.contains('ap-crest-wrap')) { w = document.createElement('span'); w.className = 'ap-crest-wrap'; img.parentNode.insertBefore(w, img); w.appendChild(img); }
-    var m = w.querySelector('.ap-crest-msg'); if (!m) { m = document.createElement('span'); m.className = 'ap-crest-msg'; w.appendChild(m); }
-    m.textContent = t; m.classList.add('on'); clearTimeout(msgT); msgT = setTimeout(function () { m.classList.remove('on'); }, 2600);
-  }
-  function tap(img) {
-    if (!key()) { say(img, 'Not available'); return; }
-    var b = document.getElementById('apdl-btn');                       // the drill-link maker, created by the apps' own code when a drill is set up
-    if (b) { b.click(); return; }
-    if (typeof window.toggleTeacherMode === 'function') { window.toggleTeacherMode(); return; }   // the Listening apps: teacher mode (mock papers)
-    var spd = document.querySelector('.apss-link, [data-apss-link]'), lnk = null;
-    var bs = document.querySelectorAll('button'); for (var i = 0; i < bs.length; i++) { var t = (bs[i].textContent || '').trim(); if (bs[i].offsetHeight && /Make a link|Speed session link|make a test link/i.test(t)) { lnk = bs[i]; break; } }
-    if (lnk) { lnk.click(); return; }
-    say(img, 'Set something up first (a drill, test or Speed session), then tap the crest');
-  }
-  function bind() {
-    var imgs = document.querySelectorAll('.aph-header .aph-avatar, .aph-header .header-photo');
-    for (var i = 0; i < imgs.length; i++) {
-      var img = imgs[i]; if (img.__apCrest) continue; img.__apCrest = 1;
-      img.removeAttribute('onclick'); img.onclick = null; img.title = ''; img.style.cursor = 'pointer';
-      img.addEventListener('click', function (ev) { ev.preventDefault(); ev.stopPropagation(); tap(this); }, true);
-    }
-  }
-  bind();
-  try { new MutationObserver(function () { bind(); }).observe(document.body, { childList: true, subtree: true }); } catch (e) { }
 })();
 </script>
 </body></html>
