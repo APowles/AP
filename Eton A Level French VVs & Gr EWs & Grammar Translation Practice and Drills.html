@@ -4,7 +4,7 @@
 <script id="ap-update">
 /* AP auto-update: if this copy is older than the published version, reload once with the new one (saved answers are kept) */
 (function () {
-  var B = '5878c1faf5'; window.AP_BUILD = B;
+  var B = '391c2b1e3c'; window.AP_BUILD = B;
   function check() {
     if (!/^https?:$/.test(location.protocol) || !window.fetch) return;
     var f = decodeURIComponent(location.pathname.split('/').pop() || '');
@@ -4035,6 +4035,15 @@ function vvComboRow() {
     </div>`;
 }
 function vvPickSet(g, k) { currentVV = k; vvKeepRecognitionFrToEn(); renderIntro(); }
+// back to the opening defaults: Topic Vocab + Essential structures, nothing else ticked - a way to start again from scratch
+function vvClearAll() {
+  currentVV = VV_DATA['TVE1a'] ? 'TVE1a' : 'VV1a';
+  vcTiers = { E: true, I: false, R: false };
+  vsTier = 'ALL';
+  try { localStorage.removeItem('apvv_combo_lock'); } catch (e) {}
+  vvKeepRecognitionFrToEn();
+  renderIntro();
+}
 function vvGroupRows() {
   const act = vvGroupOf(currentVV);
   if (act === 'VS') vsTier = vsTierOfKey(currentVV) || vsTier;   // the chips follow the set on screen
@@ -4044,7 +4053,8 @@ function vvGroupRows() {
     const on = act === g[0];
     return `<button type="button" class="vv-pick-tile${on ? ' on' : ''}" onclick="vvSwitchGroup('${g[0]}')">${g[2]}${g[0] === 'TC' ? '<span class="vpt-badge">★ Usual choice</span>' : ''}</button>`;
   }).join('') + '</div>';
-  return strip + GROUPS4.map(g => {
+  const clearRow = '<div class="aph-row" style="justify-content:flex-end;margin:0 0 6px"><button type="button" class="vvb-clear" onclick="vvClearAll()">&#8635; Clear all selections</button></div>';
+  return clearRow + strip + GROUPS4.map(g => {
     const on = act === g[0];
     let key = currentVV;
     if (!on) { const m = /^[A-Z]+(\d+(?:[a-z]|_Entire))$/.exec(currentVV), pre = g[0] === 'VS' ? vsPrefix() : g[0] === 'TC' ? vcPrefix() : g[0]; key = (m && VV_DATA[pre + m[1]]) ? pre + m[1] : (g[0] === 'TV' ? 'TV1a' : g[0] === 'VS' ? vsPrefix() + '1a' : g[0] === 'TC' ? vcPrefix() + '1a' : 'VV1a'); }
@@ -4107,12 +4117,6 @@ function renderIntro() {
           <button onclick="openVVBrowse()" class="aph-btn">&#128214; View &amp; Print</button>
         </div>
         ${editModeUnlocked ? '<div class="aph-tools" style="grid-template-columns:repeat(2,minmax(0,1fr))"><button onclick="openVVContentPDF()" class="aph-btn">&#128424; Print Content</button><button onclick="openVVStudyPDF()" class="aph-btn">&#128424; Study Sheet</button></div>' : ''}
-      </div>
-
-      <div class="aph-keys">
-        <span><span class="aph-key bad">&#8592;</span>major error</span>
-        <span><span class="aph-key near">&#8595;</span>nearly</span>
-        <span><span class="aph-key ok">&#8594;</span>got it</span>
       </div>
     </div>
     </div>`;
@@ -50987,7 +50991,6 @@ function mlfLeisureStart(deck) {
     h += '<div class="ps-testrow" id="ge-testrow" style="display:' + (GE.testOpen && usable && !GE.my ? 'flex' : 'none') + '"><b>Test</b>'
       + '<button class="aph-btn" onclick="apGeSync();grEwsOpenTestPanel()">&#128221; Generate Test <small>(print / PDF)</small></button><button class="aph-btn" onclick="apGeSync();grEwsOpenSpotTestPanel()">&#128424; Paper Spot Test <small>(print / PDF)</small></button><button class="aph-btn aptt-btn" onclick="apGeSync();apttLevel(\'grews\',function(){grEwsOpenSpotTestPanel(true)})">✍ Submitted Spot Test</button></div>';
     h += '<div class="ps-read"><div class="aph-note">Just want to read the grammar?</div>' + rcpEntry('ews') + '</div>';
-    h += keysLegend();
     return h;
   }
   window.apGeNone = function () { };
@@ -51087,7 +51090,6 @@ function mlfLeisureStart(deck) {
       + tile(GDs, 'test', !usable || GDs.my, GDs.my ? 'Tests work on whole grammar points, so not on a personalised set.' : null, 'openMultiGrammarTestPanel()')
       + '</div>';
     h += '<div class="ps-read"><div class="aph-note">Just want to read the grammar?</div>' + rcpEntry('gd') + '</div>';
-    h += keysLegend();
     return h;
   }
   window.apGdLeisure = function () { grState.leisure = true; try { startMultiGrammarDrill(); } finally { grState.leisure = false; } };
@@ -51202,7 +51204,6 @@ function mlfLeisureStart(deck) {
     h += '<div class="ps-testrow" id="ml-testrow" style="display:' + (ML.testOpen && usable && !ML.my ? 'flex' : 'none') + '"><b>Test</b>'
       + '<button class="aph-btn" onclick="generateMlfTest()">&#128221; Generate Test <small>(print / PDF)</small></button><button class="aph-btn" onclick="generateMlfSpotTest()">&#128424; Paper Spot Test <small>(print / PDF)</small></button><button class="aph-btn aptt-btn" onclick="apttLevel(\'mlf\',function(){generateMlfSpotTest(true)})">✍ Submitted Spot Test</button></div>';
     h += '<div class="aph-tools" style="margin-top:6px"><button class="aph-btn aph-btn-sm" onclick="openMlfEdit()">✏️ Edit</button></div>';
-    h += keysLegend();
     return h;
   }
   function mlDraw() {
