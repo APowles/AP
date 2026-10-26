@@ -9127,8 +9127,8 @@ window.fcDeal=function(){
 window.fcOpen=function(k){
   const c=FC.cards[k];if(!c||FC.to)return;
   if(!c.pts){const sps=PICS[String(c.i+1)]||[],n=sps.length,adj=spreadSpots(sps),idx=shuffle(Array.from({length:n},(_,x)=>x));
-    if(n>1&&Math.random()<.5){const a=idx[0],dist=b=>Math.hypot(adj[a].x-adj[b].x,(adj[a].y-adj[b].y)*.5625),far=idx.slice(1).filter(b=>dist(b)>=22);
-      const b=far.length?far[0]:idx.slice(1).sort((p,q)=>dist(q)-dist(p))[0];c.pts=[a,b].sort((p,q)=>p-q)}
+    if(n>1&&Math.random()<.5){const a=idx[0],dist=b=>Math.hypot(adj[a].x-adj[b].x,(adj[a].y-adj[b].y)*.5625),rest=idx.slice(1),diff=rest.filter(b=>sps[b].j!==sps[a].j),pool=diff,far=pool.filter(b=>dist(b)>=22);
+      if(!pool.length)c.pts=[a];else{const b=far.length?far[0]:pool.slice().sort((p,q)=>dist(q)-dist(p))[0];c.pts=[a,b].sort((p,q)=>p-q)}}
     else c.pts=[idx[0]]}
   const el=document.getElementById('fc-'+k);if(el)el.classList.add('flip');
   try{mcSfx('land')}catch(e){}
@@ -9141,10 +9141,11 @@ function fcTick(){
 }
 window.fcClue=function(){FC.clue=!FC.clue;render()};
 window.fcEn=function(){FC.en=!FC.en;render()};
+function fcSents(c){const sps=PICS[String(c.i+1)]||[],out=[];c.pts.forEach(k=>{const sp=sps[k],t=Q[c.i].fr[sp.j]||spotTxt(c.i,sp),e=out.find(o=>o.j===sp.j);if(e)e.ns.push(k+1);else out.push({j:sp.j,t:t,ns:[k+1],ph:spotTxt(c.i,sp)})});return out}
 window.fcShow=function(){
   const c=FC.cards[FC.cur];if(!c)return;fcStop();c.done=true;FC.shown=true;render();
-  const sps=PICS[String(c.i+1)]||[],ts=c.pts.map(k=>spotTxt(c.i,sps[k])).filter(Boolean);
-  if(ts.length)say(ts[0],ts[1]?()=>say(ts[1]):undefined);
+  const ss=fcSents(c);
+  if(ss.length)say(ss[0].t,ss[1]?()=>say(ss[1].t):undefined);
 };
 window.fcNext=function(){fcStop();fcQuiet();const c=FC.cards[FC.cur];if(c)c.done=true;FC.phase='table';render();window.scrollTo(0,0)};
 function vCards(){return FC.phase==='setup'?vCardsSetup():FC.phase==='card'?vCardsCard():vCardsTable()}
@@ -9179,14 +9180,14 @@ function vCardsCard(){
   const left=Math.max(0,FC.end-Date.now()),pct=Math.round(100*left/(FC.secs*1000));
   const timer=FC.secs>0?'<div class="mc-bar"><i id="fcbar" style="width:'+(FC.over||FC.shown?0:pct)+'%"></i></div>':'';
   const clue=FC.clue?c.pts.map(k=>'<div class="fc-box fc-clue"><span class="fc-n">'+(k+1)+'</span>'+esc(spotEn(i,sps[k]))+'</div>').join(''):'';
-  const ans=FC.shown?c.pts.map(k=>{const t=spotTxt(i,sps[k]);return '<div class="fc-box fc-ans"><span class="fc-n">'+(k+1)+'</span>'+esc(t)+' '+spkBtn(t)+(FC.en?'<div class="fc-en">'+esc(spotEn(i,sps[k]))+'</div>':'')+'</div>'}).join(''):'';
+  const ans=FC.shown?fcSents(c).map(o=>'<div class="fc-box fc-ans">'+o.ns.map(n=>'<span class="fc-n">'+n+'</span>').join('')+markPh(o.t,o.ph)+' '+spkBtn(o.t)+'</div>').join(''):'';
   return '<div class="mc-wrap"><div class="row" style="width:100%;justify-content:space-between"><span class="label" style="margin:0">Card '+(FC.cur+1)+' of '+FC.cards.length+'</span><button class="btn" onclick="goBack()">← Back</button></div>'
    +'<div class="mc-q">'+esc(Q[i].q_fr)+' <span style="color:var(--ink2);font-size:.7em">'+esc(Q[i].q_en)+'</span></div>'
    +'<div class="fc-ask">'+ask+(FC.secs>0?' <span class="mc-t" id="fct" style="font-size:.8em">'+(FC.over?'⏰ 0:00':fmt(left/1000))+'</span>':'')+'</div>'+timer
    +'<div class="mc-img"><img src="'+picSrc(i)+'" alt="">'+mks+'</div>'
    +clue+ans
    +'<div class="mc-ctl"><button class="btn" onclick="fcClue()">\u{1F4A1} '+(FC.clue?'Hide the clue':'Clue')+'</button>'
-   +(FC.shown?'<button class="btn" onclick="fcEn()">'+(FC.en?'Hide English':'English')+'</button>':'<button class="btn pri" onclick="fcShow()">\u{1F441} Show</button>')
+   +(FC.shown?'':'<button class="btn pri" onclick="fcShow()">\u{1F441} Show</button>')
    +'<button class="btn'+(FC.shown?' pri':'')+'" onclick="fcNext()">Next card →</button>'
    +'<button class="btn" onclick="openTopic('+i+',\'pic\')">Practise this topic</button><button class="btn" onclick="mcFsToggle()">⛶</button></div></div>';
 }
@@ -10873,4 +10874,4 @@ var APAM_TPL = "<!doctype html>\n<html lang=\"en\"><head><meta charset=\"utf-8\"
   if (document.readyState === 'complete') start(); else window.addEventListener('load', start);
 })();
 </script>
-<script id="ap-build">window.__apBuild="6ca93d4146";</script>
+<script id="ap-build">window.__apBuild="a9ae434935";</script>
