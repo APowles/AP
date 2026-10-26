@@ -9126,7 +9126,10 @@ window.fcDeal=function(){
 };
 window.fcOpen=function(k){
   const c=FC.cards[k];if(!c||FC.to)return;
-  if(!c.pts){const n=(PICS[String(c.i+1)]||[]).length,idx=shuffle(Array.from({length:n},(_,x)=>x));c.pts=idx.slice(0,n>1&&Math.random()<.5?2:1).sort((a,b)=>a-b)}
+  if(!c.pts){const sps=PICS[String(c.i+1)]||[],n=sps.length,adj=spreadSpots(sps),idx=shuffle(Array.from({length:n},(_,x)=>x));
+    if(n>1&&Math.random()<.5){const a=idx[0],dist=b=>Math.hypot(adj[a].x-adj[b].x,(adj[a].y-adj[b].y)*.5625),far=idx.slice(1).filter(b=>dist(b)>=22);
+      const b=far.length?far[0]:idx.slice(1).sort((p,q)=>dist(q)-dist(p))[0];c.pts=[a,b].sort((p,q)=>p-q)}
+    else c.pts=[idx[0]]}
   const el=document.getElementById('fc-'+k);if(el)el.classList.add('flip');
   try{mcSfx('land')}catch(e){}
   FC.to=setTimeout(()=>{FC.to=null;FC.cur=k;FC.phase='card';FC.clue=false;FC.shown=false;FC.en=false;FC.over=false;FC.end=Date.now()+FC.secs*1000;render();window.scrollTo(0,0);if(FC.secs>0)FC.iv=setInterval(fcTick,250)},480);
@@ -10870,4 +10873,4 @@ var APAM_TPL = "<!doctype html>\n<html lang=\"en\"><head><meta charset=\"utf-8\"
   if (document.readyState === 'complete') start(); else window.addEventListener('load', start);
 })();
 </script>
-<script id="ap-build">window.__apBuild="5d6a9492df";</script>
+<script id="ap-build">window.__apBuild="6ca93d4146";</script>
