@@ -13092,7 +13092,7 @@ body.aporal-on .st-oral-side>#igcse-exam-wrap{order:-1;margin:0 0 12px!important
       + '<div class="aporal-meter"><i id="aporal-tfill"></i></div><div id="aporal-tmsg" class="aporal-tmsg">'+(NOMETER ? 'Tap, say a few words, then play them back to check.' : 'Tap, then say a few words. The bar should move.')+'</div></div>'
       + '<div id="aporal-err" class="aporal-bad" style="display:none"></div>'
       + '<div class="aporal-acts"><button type="button" class="aph-btn" id="aporal-cancel">Cancel</button><button type="button" class="aph-btn aph-btn-primary" id="aporal-go">● Start recording</button></div>'
-      + '<div style="font-size:.7rem;color:#8a93a8;margin-top:8px;text-align:right">Recorder version R5 · 26 Oct, 09:25</div>';
+      + '<div style="font-size:.7rem;color:#8a93a8;margin-top:8px;text-align:right">Recorder version R6 · 26 Oct, 09:40</div>';
     var nm = $('aporal-name'); nm.value = lsGet('apStudentName');
     $('aporal-cancel').onclick = function () { stopTest(); closeBox(); };
     $('aporal-test').onclick = testMic;
@@ -13219,7 +13219,18 @@ body.aporal-on .st-oral-side>#igcse-exam-wrap{order:-1;margin:0 0 12px!important
       beginSimulation();
     };
     if (reuse) { go(reuse); return; }
-    gum().then(go).catch(function (e) { var er = $('aporal-err'); if (er) { er.style.display = ''; er.innerHTML = micError(e); } });
+    // the iPad keeps the speaking voice at full volume only if the page has already used it before the microphone opens (otherwise the questions are silent), so warm the voice up first with a barely audible word
+    var started = false, open = function () { if (started) return; started = true; gum().then(go).catch(function (e) { var er = $('aporal-err'); if (er) { er.style.display = ''; er.innerHTML = micError(e); } }); };
+    try {
+      var ss = window.speechSynthesis;
+      if (ss && typeof SpeechSynthesisUtterance === 'function') {
+        try { ss.cancel(); } catch (e) { }
+        var wu = new SpeechSynthesisUtterance('ok'); wu.volume = 0.05; wu.rate = 1.6;
+        try { wu.lang = (typeof _ttsLang === 'function' ? _ttsLang() : 'fr-FR'); } catch (e) { }
+        wu.onend = function () { setTimeout(open, 150); }; wu.onerror = function () { open(); };
+        ss.speak(wu); setTimeout(open, 1500);
+      } else open();
+    } catch (e) { open(); }
   }
   function warnLeave(e) { if (R && R.on) { e.preventDefault(); e.returnValue = ''; return ''; } }
   function elapsed() { return R ? (Date.now() - R.t0 - R.paused - (R.pAt ? Date.now() - R.pAt : 0)) / 1000 : 0; }   // recorded time: the time the recording was paused is not counted
@@ -16203,4 +16214,4 @@ function closeKTRChallenge() {
   if (document.readyState === 'complete') start(); else window.addEventListener('load', start);
 })();
 </script>
-<script id="ap-build">window.__apBuild="412a6ae7ef";</script>
+<script id="ap-build">window.__apBuild="f742d87d70";</script>
