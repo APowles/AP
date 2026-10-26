@@ -14783,7 +14783,7 @@ function spotView(k,I){
     <div class="sp-ctl">${ctl}</div>${list}${dem}</div>`;
 }
 /* Image machine: spin through the illustrations, stop at random; the boys name the KTR and talk for the chosen time */
-const MC={ids:new Set(),secs:30,phase:'setup',seen:new Set(),cur:null,ok:[],near:[],to:null,iv:null,end:0,over:false,act:null,reset:false,due:{},fresh:false};
+const MC={ids:new Set(),secs:30,phase:'setup',seen:new Set(),cur:null,ok:[],near:[],to:null,iv:null,end:0,over:false,act:null,reset:false,due:{},fresh:false,facts:false};
 function mcStop(){if(MC.raf){cancelAnimationFrame(MC.raf);MC.raf=0}if(MC.to){clearTimeout(MC.to);MC.to=null}if(MC.iv){clearInterval(MC.iv);MC.iv=null}}
 function mcLoc(n){for(const s of SUBS){const i=s.ktrs.findIndex(k=>k.n===n);if(i>=0)return{s:s,i:i,k:s.ktrs[i]}}return null}
 function openMachine(ids){
@@ -14923,7 +14923,8 @@ function mcTick(){
   if(left<=0){clearInterval(MC.iv);MC.iv=null;MC.over=true;mcSfx('end');render()}
 }
 function mcReveal(){if(MC.iv){clearInterval(MC.iv);MC.iv=null}MC.phase='reveal';MC.act=null;render();window.scrollTo(0,0)}
-function mcAct(i){MC.act=MC.act===i?null:i;render();if(MC.act!==null)fsSay(ILLUS[MC.cur].spots[MC.act].fr)}
+function mcAct(i){MC.act=MC.act===i?null:i;render();if(MC.act!==null){const q=ILLUS[MC.cur].spots[MC.act];fsSay(MC.facts?(q.ff||q.fr):q.fr)}}
+function mcFacts(v){MC.facts=!!v;MC.act=null;render()}
 function mcPractise(st){const x=mcLoc(MC.cur);if(!x)return;mcStop();mcQuiet();mcFs(false);S.ret={kind:'wheel'};go('ktr',x.s.subtheme,x.i);S.stage=st;S.step=0;render();window.scrollTo(0,0)}
 function fcPractise(n){const x=mcLoc(n);if(!x)return;fcStop();mcQuiet();S.ret={kind:'cards',cur:FC.cur};go('ktr',x.s.subtheme,x.i);S.stage='c';S.step=0;render();window.scrollTo(0,0)}
 function goReturn(){
@@ -14980,12 +14981,13 @@ function vMachine(){
     return mcTally()+`<div class="mc-wrap${fr?' mc-tin':''}"><div><div class="fc-q">Quelle est cette KTR ? Parlez pendant ${MC.secs} secondes.</div><div class="fc-qen">Which KTR is this? Talk for ${MC.secs} seconds.</div></div><div class="mc-bar"><i id="mcbar" style="width:${MC.over?0:pct}%"></i></div>${mark}<div class="mc-ctl fc-ctl">${ctl}</div><div class="mc-img mc-talkpic" style="--ar:${ar}"><img id="mcimg" src="${I.src}" alt="${esc(I.alt_en)}"></div></div>`;
   }
   const marks=I.spots.map((sp,i)=>`<button class="spmk${MC.act===i?' act':''}" style="left:${sp.x}%;top:${sp.y}%" onclick="mcAct(${i})" aria-label="Detail ${i+1}">${i+1}</button>`).join('');
-  const list=`<div class="splist">${I.spots.map((sp,i)=>`<div class="spi${MC.act===i?' act':''}"><button class="spn" onclick="mcAct(${i})" aria-label="Hear detail ${i+1}">${i+1}</button>${LN({fr:sp.fr,en:sp.en})}</div>`).join('')}</div>`;
+  const list=`<div class="splist">${I.spots.map((sp,i)=>`<div class="spi${MC.act===i?' act':''}"><button class="spn" onclick="mcAct(${i})" aria-label="Hear detail ${i+1}">${i+1}</button>${MC.facts?LN({fr:sp.ff||sp.fr,en:sp.fe||sp.en})+(sp.pic?`<div class="fc-pic">In the picture: ${esc(sp.pic)}</div>`:''):LN({fr:sp.fr,en:sp.en})}</div>`).join('')}</div>`;
+  const modes=`<div class="sp-ctl" style="margin:10px 0 4px"><span class="label" style="margin:0">The details</span><button class="btn${MC.facts?'':' pri'}" onclick="mcFacts(false)">What the picture shows</button><button class="btn${MC.facts?' pri':''}" onclick="mcFacts(true)">Key facts to say</button></div>`;
   const dem=I.demo?`<div class="spdemo"><div class="label" style="margin-bottom:6px">Démo de 30 secondes · 30-second model</div><div class="big">${LN(I.demo)}</div></div>`:'';
   const prac=`<div class="sp-ctl mc-prac"><span class="label" style="margin:0">Practise this KTR</span>${STAGES.filter(st=>st[0]!=='r'||k.remember).map(st=>`<button class="btn" onclick="mcPractise('${st[0]}')">${esc(st[1])}</button>`).join('')}<button class="spbtn" onclick="openSpeedNow([${MC.cur}])">⚡ Speed</button></div>`;
   return mcTally()+`<div class="mc-wrap"><div class="mc-title">${esc(k.term)}</div><div class="mc-q2">How did it go? Choose one to carry on.</div><div class="mc-ch"><button class="btn g" onclick="mcMark('ok')">✓ I've got it</button><button class="btn n" onclick="mcMark('near')">≈ Nearly: this picture comes back in a couple of spins</button></div>${prac}
     <div class="mc-img" style="--ar:${ar}"><img id="mcimg" src="${I.src}" alt="${esc(I.alt_en)}">${marks}</div>
-    <div class="mc-ctl"><button class="btn" onclick="fsOpen(${MC.cur})">⛶ Full screen</button><button class="btn" onclick="mcSpin()">▶ Skip without marking</button></div>${list}${dem}</div>`;
+    <div class="mc-ctl"><button class="btn" onclick="fsOpen(${MC.cur})">⛶ Full screen</button><button class="btn" onclick="mcSpin()">▶ Skip without marking</button></div>${modes}${list}${dem}</div>`;
 }
 
 /* ===== Shuffle and deal: cards of KTR pictures. Turn one, say the sentence for its one numbered detail, tick it when it is secure ===== */
@@ -17249,4 +17251,4 @@ function showKTRStudio(){
   if (document.readyState === 'complete') start(); else window.addEventListener('load', start);
 })();
 </script>
-<script id="ap-build">window.__apBuild="a94e9bf5cc";</script>
+<script id="ap-build">window.__apBuild="3a06882b9e";</script>
