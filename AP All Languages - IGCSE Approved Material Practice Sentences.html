@@ -8179,8 +8179,8 @@ mark.k{background:var(--hl);color:inherit;border-radius:5px;padding:0 2px}
 @keyframes fc-fd{from{opacity:0}to{opacity:1}}
 /* turn the cards: opening screen as a card table */
 .fc-hero{position:relative;overflow:hidden;border-radius:18px;padding:26px 18px 22px;text-align:center;color:#f7f3e8;background:radial-gradient(ellipse at 50% 28%,#1e6b4c 0,#0f3d2e 55%,#082a1e 100%);box-shadow:inset 0 0 60px rgba(0,0,0,.45),0 6px 18px rgba(0,0,0,.25);margin-top:8px}
-.fc-fan{position:relative;width:min(300px,62vw);aspect-ratio:16/9;margin:6px auto 18px}
-.fc-fc{position:absolute;inset:0;display:block;border-radius:12px;box-shadow:0 4px 10px rgba(0,0,0,.45);transform-origin:50% 150%;transform:rotate(var(--a));animation:fc-sway 5s ease-in-out infinite;animation-delay:var(--d)}
+.fc-fan{position:relative;width:min(250px,56vw);aspect-ratio:16/9;margin:6px auto 34px}
+.fc-fc{position:absolute;inset:0;display:block;border-radius:12px;box-shadow:0 4px 10px rgba(0,0,0,.45);transform-origin:50% 118%;transform:rotate(var(--a));animation:fc-sway 5s ease-in-out infinite;animation-delay:var(--d)}
 @keyframes fc-sway{0%,100%{transform:rotate(var(--a))}50%{transform:rotate(calc(var(--a)*1.4)) translateY(-4px)}}
 .fc-hero.ent .fc-fc{animation:fc-drop .7s cubic-bezier(.2,.9,.3,1) both,fc-sway 5s ease-in-out infinite;animation-delay:var(--d),calc(var(--d) + .8s)}
 @keyframes fc-drop{from{transform:translateY(-130%) rotate(0);opacity:0}to{transform:rotate(var(--a));opacity:1}}
@@ -8190,7 +8190,22 @@ mark.k{background:var(--hl);color:inherit;border-radius:5px;padding:0 2px}
 .fc-go:disabled{opacity:.5;animation:none;cursor:not-allowed}
 @keyframes fc-glow{50%{box-shadow:0 4px 0 #8a7230,0 8px 28px rgba(243,217,138,.6)}}
 .fc-how{display:flex;flex-wrap:wrap;justify-content:center;gap:6px 22px;margin-top:18px;font-size:.92rem;color:#c3d6ca}
-.fc-set{margin-top:14px;display:grid;gap:10px}
+.fc-set{margin:16px auto 0;max-width:900px;display:grid;gap:14px;text-align:center}
+.fc-lab{font-size:.78rem;font-weight:800;letter-spacing:.12em;text-transform:uppercase;color:var(--ink2);margin-bottom:8px}
+.fc-ar{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:10px}
+.fc-at{display:flex;flex-direction:column;align-items:center;gap:2px;padding:12px 6px;border-radius:14px;border:2px solid var(--line);background:var(--surface);color:var(--ink2);cursor:pointer;font:inherit;transition:transform .15s,background .15s}
+.fc-at b{display:inline-flex;align-items:center;justify-content:center;width:34px;height:34px;border-radius:50%;background:#e8e4d8;color:#14203a;font-family:var(--head);font-size:1.15rem}
+.fc-at span{font-size:.85rem;font-weight:700;line-height:1.2;color:var(--ink)}
+.fc-at i{font-style:normal;font-size:.74rem}
+.fc-at.on{background:#f8ecc4;border-color:#c9a84c;box-shadow:0 2px 0 #c9a84c}
+.fc-at.on b{background:#c9a84c}
+.fc-at:disabled{opacity:.45;cursor:default}
+.fc-opts{display:grid;grid-template-columns:1fr 2fr;gap:14px}
+.fc-seg{display:inline-flex;border:2px solid var(--line);border-radius:999px;overflow:hidden;background:var(--surface)}
+.fc-seg button{border:0;background:transparent;font:700 .95rem var(--body);padding:8px 18px;color:var(--ink2);cursor:pointer;border-right:1px solid var(--line)}
+.fc-seg button:last-child{border-right:0}
+.fc-seg button.on{background:#14203a;color:#f3d98a}
+@media (max-width:640px){.fc-ar{grid-template-columns:repeat(3,minmax(0,1fr))}.fc-opts{grid-template-columns:1fr}}
 .fc-cnt{color:var(--ink2);font-size:.9rem}
 @media (prefers-reduced-motion:reduce){.fc-fc,.fc-go{animation:none!important}}
 .fc-grid{display:grid;gap:16px;margin-top:14px;width:100%;perspective:1400px}
@@ -9220,16 +9235,16 @@ window.fcNext=function(){fcStop();fcQuiet();const c=FC.cards[FC.cur];if(c)c.done
 function vCards(){return FC.phase==='setup'?vCardsSetup():FC.phase==='shuffle'?vCardsShuffle():FC.phase==='card'?vCardsCard():vCardsTable()}
 function vCardsSetup(){
   const chips=['A','B','C','D','E'].map(L=>{const n=Q.filter(q=>hasPic(q.i)&&areaOf(q.section)===L).length;
-    return '<button class="tg'+(FC.areas.has(L)&&n?' on':'')+(n?'':' soon')+'" data-fa="'+L+'" '+(n?'onclick="fcArea(\''+L+'\')"':'disabled')+'>'+L+' · '+esc(AREAS[L][0])+' ('+(n?n+' pictures':'soon')+')</button>'}).join('');
-  const seg=(k,items)=>items.map(v=>'<button class="tg'+(FC[k]===v[0]?' on':'')+'" data-fs="'+k+'" data-v="'+v[0]+'" onclick="fcSet(\''+k+'\','+v[0]+')">'+v[1]+'</button>').join('');
+    return '<button class="fc-at'+(FC.areas.has(L)&&n?' on':'')+'" data-fa="'+L+'" '+(n?'onclick="fcArea(\''+L+'\')"':'disabled')+'><b>'+L+'</b><span>'+esc(AREAS[L][0])+'</span><i>'+(n?n+' pictures':'soon')+'</i></button>'}).join('');
+  const seg=(k,items)=>'<div class="fc-seg">'+items.map(v=>'<button class="'+(FC[k]===v[0]?'on':'')+'" data-fs="'+k+'" data-v="'+v[0]+'" onclick="fcSet(\''+k+'\','+v[0]+')">'+v[1]+'</button>').join('')+'</div>';
   const n=fcPool().length,ent=FC.enter;FC.enter=false;
   return '<div class="row" style="justify-content:flex-end"><button class="btn" onclick="goBack()">← Back</button></div>'
-   +'<div class="fc-hero'+(ent?' ent':'')+'"><div class="fc-fan">'+[0,1,2,3,4,5,6].map(k=>'<i class="fc-bk fc-fc" style="--a:'+((k-3)*9)+'deg;--d:'+(k*70)+'ms"></i>').join('')+'</div>'
+   +'<div class="fc-hero'+(ent?' ent':'')+'"><div class="fc-fan">'+[0,1,2,3,4,5,6].map(k=>'<i class="fc-bk fc-fc" style="--a:'+((k-3)*7)+'deg;--d:'+(k*70)+'ms"></i>').join('')+'</div>'
    +'<h1 class="fc-ti">Turn the cards</h1><p class="fc-sub">Shuffle. Deal. Turn one over. Say something good.</p>'
    +'<button class="fc-go" id="fcgo" '+(n<4?'disabled':'')+' onclick="fcDeal()">Shuffle and deal</button>'
    +'<div class="fc-how"><span>1 · Turn a card over</span><span>2 · Answer the question, starting from the numbered spot</span><span>3 · Press Show to see and hear the approved sentence</span></div></div>'
-   +'<div class="fc-set"><div class="mc-opt"><span class="label" style="margin:0">Areas</span>'+chips+'</div>'
-   +'<div class="mc-opt"><span class="label" style="margin:0">Cards</span>'+seg('n',[[4,'4'],[6,'6'],[8,'8']])+'<span class="label" style="margin:0 0 0 14px">Thinking time</span>'+seg('secs',[[0,'None'],[20,'20 s'],[30,'30 s'],[45,'45 s'],[60,'60 s']])+'</div>'
+   +'<div class="fc-set"><div><div class="fc-lab">Which areas?</div><div class="fc-ar">'+chips+'</div></div>'
+   +'<div class="fc-opts"><div><div class="fc-lab">Cards</div>'+seg('n',[[4,'4'],[6,'6'],[8,'8']])+'</div><div><div class="fc-lab">Thinking time</div>'+seg('secs',[[0,'None'],[20,'20 s'],[30,'30 s'],[45,'45 s'],[60,'60 s']])+'</div></div>'
    +'<div class="fc-cnt" id="fccnt">'+n+' picture'+(n===1?'':'s')+' chosen'+(n<4?' (choose at least 4)':'')+'</div></div>';
 }
 function vCardsShuffle(){
@@ -10945,4 +10960,4 @@ var APAM_TPL = "<!doctype html>\n<html lang=\"en\"><head><meta charset=\"utf-8\"
   if (document.readyState === 'complete') start(); else window.addEventListener('load', start);
 })();
 </script>
-<script id="ap-build">window.__apBuild="942b40a7c3";</script>
+<script id="ap-build">window.__apBuild="d289014091";</script>
