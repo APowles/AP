@@ -12647,7 +12647,7 @@ body.aporal-set [id$="_exambar"] button[onclick^="resetDeclaration"]{display:non
   }
   function stopStream(s) {
     try { s && s.getTracks().forEach(function (t) { t.stop(); }); } catch (e) { }
-    if (window.__apAS) { window.__apAS = 0; try { if (navigator.audioSession) navigator.audioSession.type = 'playback'; } catch (e2) { } }   // only if the Safari retry had changed the audio mode: put it back. (Never done on the iPad's normal path.)
+    window.__apMicLive = 0; if (window.__apAS) { window.__apAS = 0; try { if (navigator.audioSession) navigator.audioSession.type = 'playback'; } catch (e2) { } }
   }
   function micError(e) {
     var n = e && e.name || '';
@@ -12736,12 +12736,13 @@ body.aporal-set [id$="_exambar"] button[onclick^="resetDeclaration"]{display:non
   // open the microphone; if the browser refuses the custom settings or is momentarily busy (InvalidStateError and the like), wait a moment and try again with the plain defaults
   function gum() {
     var md = navigator.mediaDevices;
+    window.__apMicLive = 1; try { if (navigator.audioSession) navigator.audioSession.type = 'auto'; } catch (e0) { }   // every tap sets the page to 'playback' (the Match sounds), and the iPad then refuses or muffles the microphone: use the normal mode while it is open, and stop taps changing it back
     return md.getUserMedia(micCons()).catch(function (e) {
       var nm = e && e.name || '';
       if (nm === 'NotAllowedError' || nm === 'SecurityError' || nm === 'NotFoundError') throw e;
       if (nm === 'InvalidStateError') { try { if (navigator.audioSession) { navigator.audioSession.type = 'play-and-record'; window.__apAS = 1; } } catch (e2) { } }   // the page sets 'playback' for the demo voices; Safari will not capture sound in that mode, so switch it only when opening the microphone has failed
       return new Promise(function (res) { setTimeout(res, 400); }).then(function () { return md.getUserMedia(micCons()); }).catch(function () { return md.getUserMedia({ audio: true }); });
-    });
+    }).catch(function (e) { window.__apMicLive = 0; throw e; });
   }
   function diag(stream, m) {
     try { var t = stream.getAudioTracks()[0], st = (t && t.getSettings) ? t.getSettings() : {}; return 'mic: ' + ((t && t.label) || 'unnamed') + ' · ' + (t ? t.readyState : '?') + (t && t.muted ? ' · MUTED' : '') + ' · sound ' + (m && m.ctx ? m.ctx.state + ' ' + m.ctx.sampleRate + ' Hz' : 'none') + ' · ' + (PLAIN ? 'plain' : 'custom') + ' settings'; } catch (e) { return ''; }
