@@ -8241,6 +8241,8 @@ body[data-fcr="1"]{--bk:#6a1b2c}body[data-fcr="2"]{--bk:#1b4a33}body[data-fcr="3
 @keyframes mc-dn{from{opacity:0;transform:translateY(-14px) scale(.96)}to{opacity:1;transform:none}}
 @keyframes mc-settle{from{transform:scale(1.22);filter:brightness(1.35);border-radius:40px}to{transform:none;filter:none}}
 .fc-got{border:2px solid #2e7d4f;color:#1f6b40;background:#fff}.fc-got.on{background:#2e7d4f;color:#fff}
+.fc-act{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:14px}.fc-ab{border:2px solid #cfd6e6;border-radius:14px;padding:10px 12px;background:#fff}.fc-ab.chk{border-color:#2e7d4f;background:#eef7f1}.fc-ab.new{border-color:#c9a84c;background:#fbf5e2}.fc-ab .btn{width:100%;min-height:48px;font-weight:800}.fc-ab p{margin:6px 2px 0;font-size:.85rem;color:#4a5570;line-height:1.35}.fc-ab.chk .btn.pri{background:#2e7d4f;border-color:#2e7d4f}
+.mc-q2{text-align:center;font-weight:800;font-size:1.05rem;margin:2px 0 8px}.mc-ch{display:flex;gap:12px;justify-content:center;flex-wrap:wrap;margin:0 0 10px}.mc-ch .btn{min-height:50px;font-weight:800;background:#fff;color:#1a2744}.mc-ch .btn.g{border:2px solid #2e7d4f}.mc-ch .btn.n{border:2px solid #d98a00}
 .hw-ov{position:fixed;inset:0;z-index:9999;background:rgba(11,18,36,.62);display:flex;align-items:center;justify-content:center;padding:18px}
 .hw-box{background:#fffdf7;color:#1a2744;border:3px solid #c9a84c;border-radius:20px;max-width:640px;width:100%;max-height:88vh;overflow:auto;padding:20px 24px;box-shadow:0 12px 40px rgba(0,0,0,.5)}
 .hw-box h2{margin:0 0 4px;font-family:var(--head);font-size:1.5rem}
@@ -9162,7 +9164,7 @@ window.mcMark=function(v){
   demoStop();(v==='ok'?MC.ok:MC.near).push(MC.cur);if(v==='near')MC.due[MC.cur]=3;try{speechSynthesis.cancel()}catch(e){}try{window.parent.speechSynthesis.cancel()}catch(e){}
   MC.phase=(MC.seen.size>=mcPool().length&&!Object.keys(MC.due).length)?'done':'idle';MC.cur=null;render();window.scrollTo(0,0);
 };
-function mcTally(){return '<div class="mc-tally"><span>Seen '+MC.seen.size+' / '+mcPool().length+'</span><span style="color:var(--good)">✓ OK '+MC.ok.length+'</span><span style="color:var(--near)">≈ Near '+MC.near.length+'</span></div>'}
+function mcTally(){return '<div class="mc-tally"><span>Picture '+MC.seen.size+' of '+mcPool().length+'</span><span style="color:var(--good)">✓ Got it '+MC.ok.length+'</span><span style="color:var(--near)">≈ Near '+MC.near.length+'</span></div>'}
 function vMachine(){
   if(MC.phase==='setup'){
     const chips=['A','B','C','D','E'].map(L=>{const n=Q.filter(q=>hasPic(q.i)&&areaOf(q.section)===L).length;
@@ -9192,13 +9194,14 @@ function vMachine(){
   }else if(MC.phase==='talk'){
     const left=Math.max(0,MC.end-Date.now()),pct=Math.round(100*left/(MC.secs*1000));
     const i0=MC.cur,fr=MC.fresh;MC.fresh=false;
-    ctl='<span class="mc-t" id="mct">'+(MC.over?'⏰ 0:00':fmt(left/1000))+'</span><button class="btn pri" onclick="mcReveal()">\u{1F4D6} Help me prepare this</button><button class="btn" onclick="mcSpin()">▶ Spin the wheel again</button><button class="btn" onclick="mcFsToggle()">\u26F6</button>';
-    body='<div><div class="fc-q">'+esc(Q[i0].q_fr)+'</div><div class="fc-qen">'+esc(Q[i0].q_en)+'</div></div><div class="mc-bar"><i id="mcbar" style="width:'+(MC.over?0:pct)+'%"></i></div><div class="mc-ctl fc-ctl">'+ctl+'</div><div class="mc-img mc-talkpic"><img id="mcimg" src="'+picSrc(MC.cur)+'" alt=""></div>';
+    ctl=MC.over?'<span class="mc-t" id="mct">⏰ 0:00</span><button class="btn" onclick="mcReveal()">\u{1F4D6} Show me the approved answer</button><button class="btn" onclick="mcFsToggle()">\u26F6</button>':'<span class="mc-t" id="mct">'+fmt(left/1000)+'</span><button class="btn" onclick="mcReveal()">\u{1F4D6} Help me prepare this</button><button class="btn" onclick="mcSpin()">▶ Skip: spin again</button><button class="btn" onclick="mcFsToggle()">\u26F6</button>';
+    const mark=MC.over?'<div class="mc-q2">Time is up. How did that go?</div><div class="mc-ch"><button class="btn g" onclick="mcMark(\'ok\')">✓ I managed it</button><button class="btn n" onclick="mcMark(\'near\')">≈ Nearly: bring it back soon</button></div>':'';
+    body='<div><div class="fc-q">'+esc(Q[i0].q_fr)+'</div><div class="fc-qen">'+esc(Q[i0].q_en)+'</div></div><div class="mc-bar"><i id="mcbar" style="width:'+(MC.over?0:pct)+'%"></i></div>'+mark+'<div class="mc-ctl fc-ctl">'+ctl+'</div><div class="mc-img mc-talkpic"><img id="mcimg" src="'+picSrc(MC.cur)+'" alt=""></div>';
     return mcTally()+'<div class="mc-wrap'+(fr?' mc-tin':'')+'">'+body+'</div>';
   }else{
     const i=MC.cur;S.pi=i;
-    return mcTally()+'<div class="mc-wrap"><div class="mc-q">'+esc(Q[i].q_fr)+' <span style="color:var(--ink2);font-size:.7em">'+esc(Q[i].q_en)+'</span></div>'+'<div class="row mc-prac" style="margin:4px 0 10px;justify-content:center"><span class="label" style="margin:0">Practise this topic</span>'+[['study','Study'],['words',LG.words]].concat(TYPES.map(t=>[t[0],t[1]])).map(t=>'<button class="btn" onclick="mcPractise('+i+',\''+t[0]+'\')">'+esc(t[1])+'</button>').join('')+'</div>'+stageHtml(i,true)
-      +'<div class="mc-ctl">'+demoBtnHtml(i)+'<button class="btn pri" onclick="mcMark(\'ok\')">✓ OK: I\'ve got it</button><button class="btn" onclick="mcMark(\'near\')">≈ Near: bring it back in a few spins</button><button class="btn" onclick="mcSpin()">▶ Spin the wheel again</button><button class="btn" onclick="mcFsToggle()">⛶ Full screen</button></div>'
+    return mcTally()+'<div class="mc-wrap"><div class="mc-q">'+esc(Q[i].q_fr)+' <span style="color:var(--ink2);font-size:.7em">'+esc(Q[i].q_en)+'</span></div>'+'<div class="mc-q2">How did it go? Choose one to carry on.</div><div class="mc-ch"><button class="btn g" onclick="mcMark(\'ok\')">✓ I\'ve got it</button><button class="btn n" onclick="mcMark(\'near\')">≈ Nearly: this picture comes back in a couple of spins</button></div>'+'<div class="row mc-prac" style="margin:4px 0 10px;justify-content:center"><span class="label" style="margin:0">Practise this topic</span>'+[['study','Study'],['words',LG.words]].concat(TYPES.map(t=>[t[0],t[1]])).map(t=>'<button class="btn" onclick="mcPractise('+i+',\''+t[0]+'\')">'+esc(t[1])+'</button>').join('')+'</div>'+stageHtml(i,true)
+      +'<div class="mc-ctl">'+demoBtnHtml(i)+'<button class="btn" onclick="mcFsToggle()">⛶ Full screen</button></div><div class="mc-ctl"><button class="btn" onclick="mcSpin()">▶ Skip without marking</button></div>'
       +'<div style="width:100%"><div class="label">The approved answer</div>'+sentList(i)+'</div></div>';
   }
   return mcTally()+'<div class="mc-wrap">'+body+'<div class="mc-ctl">'+ctl+'</div></div>';
@@ -9223,7 +9226,7 @@ function fcBack(){
   if(FC.phase==='table'||FC.phase==='shuffle'){FC.phase='setup';render();window.scrollTo(0,0);return true}
   return false;
 }
-window.openCards=function(){S.ret=null;document.body.removeAttribute('data-fcr');FC.round=0;amUnlock();pushNav();mcStop();FC.phase='setup';FC.enter=true;S.view='cards';render();window.scrollTo(0,0)};
+window.openCards=function(){S.ret=null;document.body.removeAttribute('data-fcr');FC.round=0;amUnlock();pushNav();mcStop();FC.phase='setup';FC.enter=true;S.view='cards';render();window.scrollTo(0,0);fcPlay('fan1')};
 function fcSetupUpd(){
   document.querySelectorAll('[data-fa]').forEach(b=>b.classList.toggle('on',FC.areas.has(b.getAttribute('data-fa'))&&!b.disabled));
   document.querySelectorAll('[data-fs]').forEach(b=>b.classList.toggle('on',FC[b.getAttribute('data-fs')]===+b.getAttribute('data-v')));
@@ -9252,7 +9255,7 @@ window.amHow=function(kind){
   const D={
    cards:['How Shuffle and deal works','Shuffle, deal, turn a card, say one good sentence, then prove you know it.',
     ['Choose the areas, how many cards and (if you want one) a thinking time, then press <b>Deal the cards</b>.','Tap a card. It turns over and shows the oral question with one glowing numbered spot on the picture.','Answer the question in the language, starting from that spot. Press <b>Clue</b> if you need a hint, or <b>Reveal</b> to hear and see the approved sentence. <b>Hide the answer</b> lets you have another go from the picture alone.','When you can give the approved sentence for that number confidently, press <b>Got it</b>: the card keeps a green tick. Changed your mind? Open it and press the button again.'],
-    'Why <b>Same cards, new order</b>? Because the aim is not to remember where a card sat on the table. The aim is to know its sentence so well that you can pick any of your cards, in any order, look only at the picture and the number, and give the agreed sentence with no Clue and no Reveal. The same cards come back with the same numbers, in a new order and with a new colour on the back, so you cannot cheat by remembering positions. Keep going round until every card has its tick, then deal a fresh hand.'],
+    'Why <b>Test myself again</b> (same cards, new order)? Because the aim is not to remember where a card sat on the table. The aim is to know its sentence so well that you can pick any of your cards, in any order, look only at the picture and the number, and give the agreed sentence with no Clue and no Reveal. The same cards come back with the same numbers, in a new order and with a new colour on the back, so you cannot cheat by remembering positions. Keep going round until every card has its tick, then deal a fresh hand.'],
    wheel:['How Spin the wheel works','One random picture, one oral question, and a talk you make up on the spot.',
     ['Choose the areas and how long you will talk, then spin the wheel (or click the wheel itself).','The picture comes up with the oral question in the language and a countdown. Say as much as you can, using the picture to help you.','Press <b>Help me prepare this</b> to see the numbers and the approved answer, hear it, and go into the Studio for that topic. A gold <b>Back to my picture</b> button always brings you back.','Mark yourself <b>OK: I\'ve got it</b> or <b>Near: bring it back in a few spins</b>.'],
     'Why does a Near picture come back? Because the best way to fix a weak answer is to try again soon. A Near picture returns after two other pictures, so you get a second go while you still remember the approved sentences. Pictures you marked OK do not come back until every picture has been seen.']};
@@ -9264,7 +9267,8 @@ window.amHow=function(kind){
 };
 function amHowKey(e){if(e.key==='Escape'){e.preventDefault();e.stopPropagation();amHowClose()}}
 window.amHowClose=function(){const o=document.getElementById('am-how');if(o)o.remove();document.removeEventListener('keydown',amHowKey,true)};
-window.fcRedeal=function(){
+window.fcNew=function(){if(FC.cards.some(c=>c.ok)&&!FC.cd){FC.cd=true;render();return}FC.cd=false;fcDeal()};
+window.fcRedeal=function(){FC.cd=false;
   amUnlock();fcStop();fcQuiet();
   FC.round++;document.body.setAttribute('data-fcr',String(FC.round%4));
   FC.cards=shuffle(FC.cards.map(c=>({i:c.i,done:false,ok:false,pts:c.pts})));FC.cur=null;FC.phase='shuffle';render();window.scrollTo(0,0);
@@ -9334,7 +9338,9 @@ function vCardsTable(){
   return '<div class="row" style="justify-content:space-between"><h1 class="h2">\u{1F0CF} Shuffle and deal</h1><span class="label" style="margin:0">Turned '+nd+' / '+cs.length+' · Got it '+cs.filter(c=>c.ok).length+' / '+cs.length+'</span><button class="btn" onclick="goBack()">← Back</button></div>'
    +'<div class="fc-grid" style="grid-template-columns:repeat('+cols+',minmax(0,1fr))">'+grid+'</div>'
    +(cs.every(c=>c.ok)?'<div class="note" style="margin-top:14px"><b>Every card is secure.</b> Brilliant: you can answer each one from the picture alone. Shuffle the same cards again to check, or deal a new hand.</div>':all?'<div class="note" style="margin-top:14px"><b>Every card has been turned.</b> Now go back and open each one again. Look only at the picture and the number, say a good sentence, then press <b>Got it</b>. Press Reveal if you need to check.</div>':'')
-   +'<div class="row" style="margin-top:14px"><button class="btn'+(all?' pri':'')+'" onclick="fcRedeal()" '+(nd?'':'disabled')+'>\u{1F501} Same cards, new order</button><button class="btn" onclick="fcDeal()">\u{1F500} Shuffle and deal again</button><button class="btn" onclick="FC.phase=\'setup\';render()">Change the areas</button><button class="btn" onclick="mcFsToggle()">⛶ Full screen</button><button class="btn" onclick="amHow(\'cards\')">❓ How this works</button></div>';
+   +'<div class="fc-act"><div class="fc-ab chk"><button class="btn pri" onclick="fcRedeal()" '+(nd?'':'disabled')+'>\u{1F501} Test myself again</button><p>Same cards, new order. Can you answer every one now, from the picture alone?</p></div>'
+   +'<div class="fc-ab new"><button class="btn" onclick="fcNew()">\u{1F500} '+(FC.cd?'Lose your ticks? Press again to deal':'Fresh hand')+'</button><p>Deal different cards and start again'+(cs.some(c=>c.ok)?'. Your ticks will be lost':'')+'.</p></div></div>'
+   +'<div class="row" style="margin-top:12px"><button class="btn" onclick="FC.phase=\'setup\';render()">Change the areas</button><button class="btn" onclick="mcFsToggle()">⛶ Full screen</button><button class="btn" onclick="amHow(\'cards\')">❓ How this works</button></div>';
 }
 function vCardsCard(){
   const fresh=FC.fresh,hold=FC.hold;FC.fresh=false;FC.hold=false;
@@ -11180,4 +11186,4 @@ var APAM_TPL = "<!doctype html>\n<html lang=\"en\"><head><meta charset=\"utf-8\"
   if (document.readyState === 'complete') start(); else window.addEventListener('load', start);
 })();
 </script>
-<script id="ap-build">window.__apBuild="6e33fa0e7d";</script>
+<script id="ap-build">window.__apBuild="34816bf275";</script>
