@@ -8166,6 +8166,22 @@ mark.k{background:var(--hl);color:inherit;border-radius:5px;padding:0 2px}
 .mc-opt select{font:inherit;border:1.5px solid var(--line);border-radius:10px;background:var(--surface);color:var(--ink);padding:6px 10px}
 .tg.soon{opacity:.45}
 /* ===== Turn the cards ===== */
+/* turn the cards: opening screen as a card table */
+.fc-hero{position:relative;overflow:hidden;border-radius:18px;padding:26px 18px 22px;text-align:center;color:#f7f3e8;background:radial-gradient(ellipse at 50% 28%,#1e6b4c 0,#0f3d2e 55%,#082a1e 100%);box-shadow:inset 0 0 60px rgba(0,0,0,.45),0 6px 18px rgba(0,0,0,.25);margin-top:8px}
+.fc-fan{position:relative;width:min(300px,62vw);aspect-ratio:16/9;margin:6px auto 18px}
+.fc-fc{position:absolute;inset:0;display:block;border-radius:12px;box-shadow:0 4px 10px rgba(0,0,0,.45);transform-origin:50% 150%;transform:rotate(var(--a));animation:fc-sway 5s ease-in-out infinite;animation-delay:var(--d)}
+@keyframes fc-sway{0%,100%{transform:rotate(var(--a))}50%{transform:rotate(calc(var(--a)*1.4)) translateY(-4px)}}
+.fc-hero.ent .fc-fc{animation:fc-drop .7s cubic-bezier(.2,.9,.3,1) both,fc-sway 5s ease-in-out infinite;animation-delay:var(--d),calc(var(--d) + .8s)}
+@keyframes fc-drop{from{transform:translateY(-130%) rotate(0);opacity:0}to{transform:rotate(var(--a));opacity:1}}
+.fc-ti{font-family:var(--head);font-size:clamp(2rem,5vw,3.2rem);line-height:1.1;color:#f3d98a;margin:0;text-shadow:0 3px 12px rgba(0,0,0,.5)}
+.fc-sub{margin:8px 0 18px;color:#d9e8de;font-size:1.1rem}
+.fc-go{font:800 1.25rem var(--head);padding:14px 34px;border-radius:999px;border:0;background:linear-gradient(#f3d98a,#c9a84c);color:#14203a;cursor:pointer;box-shadow:0 4px 0 #8a7230,0 8px 20px rgba(0,0,0,.4);animation:fc-glow 2.2s ease-in-out infinite}
+.fc-go:disabled{opacity:.5;animation:none;cursor:not-allowed}
+@keyframes fc-glow{50%{box-shadow:0 4px 0 #8a7230,0 8px 28px rgba(243,217,138,.6)}}
+.fc-how{display:flex;flex-wrap:wrap;justify-content:center;gap:6px 22px;margin-top:18px;font-size:.92rem;color:#c3d6ca}
+.fc-set{margin-top:14px;display:grid;gap:10px}
+.fc-cnt{color:var(--ink2);font-size:.9rem}
+@media (prefers-reduced-motion:reduce){.fc-fc,.fc-go{animation:none!important}}
 .fc-grid{display:grid;gap:16px;margin-top:14px;width:100%;perspective:1400px}
 .fc-card{position:relative;aspect-ratio:16/9;border:0;border-radius:14px;overflow:hidden;color:#fff;background:#14203a;background-size:cover;background-position:center;box-shadow:0 3px 10px rgba(0,0,0,.28);transition:transform .4s cubic-bezier(.2,.8,.2,1),opacity .2s;display:flex;align-items:center;justify-content:center;cursor:pointer;padding:0;box-sizing:border-box}
 .fc-card:hover{outline:3px solid var(--gold)}
@@ -8182,8 +8198,9 @@ mark.k{background:var(--hl);color:inherit;border-radius:5px;padding:0 2px}
 .fc-dk{position:absolute;inset:0;border-radius:14px;box-shadow:0 3px 10px rgba(0,0,0,.3);transform-origin:50% 135%;animation:fc-rl 2.3s ease-in-out both}
 @keyframes fc-rl{0%{transform:rotate(0)}33%{transform:rotate(var(--a))}41%{transform:rotate(var(--a))}60%{transform:translateX(var(--s)) rotate(0)}78%{transform:translateX(calc(var(--s)*-1)) rotate(0)}100%{transform:translateX(0) rotate(0)}}
 .fc-shuf{text-align:center;font-family:var(--head);font-size:1.3rem;color:var(--ink2)}
-.fc-q{font-family:var(--head);font-weight:800;font-size:clamp(1.7rem,3.6vw,2.9rem);line-height:1.2;text-align:center;color:var(--navy,#1a2744);max-width:1000px;margin:6px auto 0}
-.fc-qen{text-align:center;color:var(--ink2);font-size:clamp(1rem,1.5vw,1.3rem);margin:2px 0 6px}
+.fc-q{font-family:var(--head);font-weight:700;font-size:clamp(1.15rem,2.1vw,1.65rem);line-height:1.25;text-align:center;color:var(--navy,#1a2744);max-width:1000px;margin:2px auto 0}
+.fc-qen{text-align:center;color:var(--ink2);opacity:.55;font-size:.78rem;margin:1px 0 4px}
+.fc-pic{width:min(100%,calc((100vh - 285px)*1.78));margin-left:auto;margin-right:auto}
 .fc-in{animation:fc-in .38s ease-out}
 @keyframes fc-in{from{transform:perspective(1000px) rotateY(-85deg);opacity:.2}to{transform:none;opacity:1}}
 .fc-box{width:100%;max-width:980px;border-radius:12px;padding:12px 16px;text-align:left;font:500 clamp(1.05rem,.85rem + .6vw,1.5rem)/1.45 var(--body)}
@@ -9131,8 +9148,15 @@ function fcBack(){
   if(FC.phase==='table'||FC.phase==='shuffle'){FC.phase='setup';render();window.scrollTo(0,0);return true}
   return false;
 }
-window.openCards=function(){amUnlock();pushNav();mcStop();FC.phase='setup';S.view='cards';render();window.scrollTo(0,0)};
-window.fcArea=function(L){if(FC.areas.has(L))FC.areas.delete(L);else FC.areas.add(L);render()};
+window.openCards=function(){amUnlock();pushNav();mcStop();FC.phase='setup';FC.enter=true;S.view='cards';render();window.scrollTo(0,0)};
+function fcSetupUpd(){
+  document.querySelectorAll('[data-fa]').forEach(b=>b.classList.toggle('on',FC.areas.has(b.getAttribute('data-fa'))&&!b.disabled));
+  document.querySelectorAll('[data-fs]').forEach(b=>b.classList.toggle('on',FC[b.getAttribute('data-fs')]===+b.getAttribute('data-v')));
+  const n=fcPool().length,c=document.getElementById('fccnt'),g=document.getElementById('fcgo');
+  if(c)c.textContent=n+' picture'+(n===1?'':'s')+' chosen'+(n<4?' (choose at least 4)':'');if(g)g.disabled=n<4;
+}
+window.fcArea=function(L){if(FC.areas.has(L))FC.areas.delete(L);else FC.areas.add(L);fcSetupUpd()};
+window.fcSet=function(k,v){FC[k]=v;fcSetupUpd()};
 window.fcDeal=function(){
   amUnlock();fcStop();fcQuiet();
   const pool=fcPool();let left=pool.filter(i=>!FC.seen.has(i));if(left.length<FC.n){FC.seen=new Set();left=pool.slice()}
@@ -9171,16 +9195,17 @@ window.fcNext=function(){fcStop();fcQuiet();const c=FC.cards[FC.cur];if(c)c.done
 function vCards(){return FC.phase==='setup'?vCardsSetup():FC.phase==='shuffle'?vCardsShuffle():FC.phase==='card'?vCardsCard():vCardsTable()}
 function vCardsSetup(){
   const chips=['A','B','C','D','E'].map(L=>{const n=Q.filter(q=>hasPic(q.i)&&areaOf(q.section)===L).length;
-    return '<button class="tg'+(FC.areas.has(L)&&n?' on':'')+(n?'':' soon')+'" '+(n?'onclick="fcArea(\''+L+'\')"':'disabled')+'>'+L+' · '+esc(AREAS[L][0])+' ('+(n?n+' pictures':'soon')+')</button>'}).join('');
-  const n=fcPool().length;
-  return '<div class="row" style="justify-content:space-between"><h1 class="h2">\u{1F0CF} Turn the cards</h1><button class="btn" onclick="goBack()">← Back</button></div>'
-   +'<p class="lead">The cards are shuffled and dealt face down. Turn one over: the picture shows one numbered spot, and the question is above it. Give a full answer to the question, starting from that spot, using what you know of the approved material. Then press Show to see and hear the approved sentence.</p>'
-   +'<div class="mc-opt"><span class="label" style="margin:0">Areas</span>'+chips+'</div>'
-   +'<details class="hx-more" style="margin-top:12px"><summary>More options</summary><div class="mc-opt">'
-   +'<label class="label" style="margin:0">Cards <select onchange="FC.n=+this.value">'+[4,6,8].map(v=>'<option value="'+v+'"'+(v===FC.n?' selected':'')+'>'+v+'</option>').join('')+'</select></label>'
-   +'<label class="label" style="margin:0">Thinking time <select onchange="FC.secs=+this.value">'+[[0,'No timer'],[20,'20 s'],[30,'30 s'],[45,'45 s'],[60,'60 s']].map(v=>'<option value="'+v[0]+'"'+(v[0]===FC.secs?' selected':'')+'>'+v[1]+'</option>').join('')+'</select></label>'
-   +'</div></details>'
-   +'<div class="row" style="margin-top:16px"><span class="label" style="margin:0">'+n+' picture'+(n===1?'':'s')+' chosen'+(n<4?' (choose at least 4)':'')+'</span><button class="btn pri" '+(n<4?'disabled':'')+' onclick="fcDeal()">\u{1F0CF} Shuffle and deal</button></div>';
+    return '<button class="tg'+(FC.areas.has(L)&&n?' on':'')+(n?'':' soon')+'" data-fa="'+L+'" '+(n?'onclick="fcArea(\''+L+'\')"':'disabled')+'>'+L+' · '+esc(AREAS[L][0])+' ('+(n?n+' pictures':'soon')+')</button>'}).join('');
+  const seg=(k,items)=>items.map(v=>'<button class="tg'+(FC[k]===v[0]?' on':'')+'" data-fs="'+k+'" data-v="'+v[0]+'" onclick="fcSet(\''+k+'\','+v[0]+')">'+v[1]+'</button>').join('');
+  const n=fcPool().length,ent=FC.enter;FC.enter=false;
+  return '<div class="row" style="justify-content:flex-end"><button class="btn" onclick="goBack()">← Back</button></div>'
+   +'<div class="fc-hero'+(ent?' ent':'')+'"><div class="fc-fan">'+[0,1,2,3,4,5,6].map(k=>'<i class="fc-bk fc-fc" style="--a:'+((k-3)*9)+'deg;--d:'+(k*70)+'ms"></i>').join('')+'</div>'
+   +'<h1 class="fc-ti">Turn the cards</h1><p class="fc-sub">Shuffle. Deal. Turn one over. Say something good.</p>'
+   +'<button class="fc-go" id="fcgo" '+(n<4?'disabled':'')+' onclick="fcDeal()">Shuffle and deal</button>'
+   +'<div class="fc-how"><span>1 · Turn a card over</span><span>2 · Answer the question, starting from the numbered spot</span><span>3 · Press Show to see and hear the approved sentence</span></div></div>'
+   +'<div class="fc-set"><div class="mc-opt"><span class="label" style="margin:0">Areas</span>'+chips+'</div>'
+   +'<div class="mc-opt"><span class="label" style="margin:0">Cards</span>'+seg('n',[[4,'4'],[6,'6'],[8,'8']])+'<span class="label" style="margin:0 0 0 14px">Thinking time</span>'+seg('secs',[[0,'None'],[20,'20 s'],[30,'30 s'],[45,'45 s'],[60,'60 s']])+'</div>'
+   +'<div class="fc-cnt" id="fccnt">'+n+' picture'+(n===1?'':'s')+' chosen'+(n<4?' (choose at least 4)':'')+'</div></div>';
 }
 function vCardsShuffle(){
   return '<div class="row" style="justify-content:space-between"><h1 class="h2">\u{1F0CF} Turn the cards</h1><button class="btn" onclick="goBack()">← Back</button></div>'
@@ -9206,7 +9231,7 @@ function vCardsCard(){
   const ans=FC.shown?fcSents(c).map(o=>'<div class="fc-box fc-ans">'+o.ns.map(n=>'<span class="fc-n">'+n+'</span>').join('')+markPh(o.t,o.ph)+' '+spkBtn(o.t)+'</div>').join(''):'';
   return '<div class="mc-wrap"><div class="row" style="width:100%;justify-content:space-between"><span class="label" style="margin:0">Card '+(FC.cur+1)+' of '+FC.cards.length+(FC.secs>0?' · <span class="mc-t" id="fct">'+(FC.over?'⏰ 0:00':fmt(left/1000))+'</span>':'')+'</span><button class="btn" onclick="goBack()">← Back</button></div>'
    +'<div><div class="fc-q">'+esc(Q[i].q_fr)+'</div><div class="fc-qen">'+esc(Q[i].q_en)+'</div></div>'+timer
-   +'<div class="mc-img'+(fresh?' fc-in':'')+'"><img src="'+picSrc(i)+'" alt="">'+mks+'</div>'
+   +'<div class="mc-img fc-pic'+(fresh?' fc-in':'')+'"><img src="'+picSrc(i)+'" alt="">'+mks+'</div>'
    +clue+ans
    +'<div class="mc-ctl"><span class="label" style="margin:0 6px 0 0">Spot '+(c.pts[0]+1)+'</span><button class="btn" onclick="fcClue()">\u{1F4A1} '+(FC.clue?'Hide the clue':'Clue')+'</button>'
    +(FC.shown?'':'<button class="btn pri" onclick="fcShow()">\u{1F441} Show</button>')
@@ -10895,4 +10920,4 @@ var APAM_TPL = "<!doctype html>\n<html lang=\"en\"><head><meta charset=\"utf-8\"
   if (document.readyState === 'complete') start(); else window.addEventListener('load', start);
 })();
 </script>
-<script id="ap-build">window.__apBuild="798e9680c2";</script>
+<script id="ap-build">window.__apBuild="2910c83af6";</script>
