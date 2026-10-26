@@ -14747,8 +14747,10 @@ function vSubOld(){
 }
 
 /* KTR */
-function trailPush(){(S.trail=S.trail||[]).push({stage:S.stage,step:S.step,ovm:S.ovm,mode:S.mode});if(S.trail.length>40)S.trail.shift()}
+function trailPush(){(S.trail=S.trail||[]).push({stage:S.stage,step:S.step,ovm:S.ovm,mode:S.mode,drill:S.drill,uq:S.uq});if(S.trail.length>40)S.trail.shift()}
 function stg(x){if(S.stage!==x)trailPush();S.stage=x;S.step=0;render()}
+function dTab(x){if(S.drill!==x)trailPush();S.drill=x;render()}
+function uTab(i){if(S.uq!==i)trailPush();S.uq=i;render()}
 function cStep(i){if(S.step!==i)trailPush();S.step=i;render()}
 function vKtr(){
   const k=ktr();
@@ -15415,7 +15417,7 @@ function vSub(){
 }
 
 window.ktrBack=function(){
-  if(S.view==='ktr'&&S.trail&&S.trail.length){const t=S.trail.pop();S.stage=t.stage;S.step=t.step;S.ovm=t.ovm;S.mode=t.mode||'deck';render();window.scrollTo(0,0);return true}
+  if(S.view==='ktr'&&S.trail&&S.trail.length){const t=S.trail.pop();S.stage=t.stage;S.step=t.step;S.ovm=t.ovm;S.mode=t.mode||'deck';if(t.drill)S.drill=t.drill;if(t.uq!=null)S.uq=t.uq;render();window.scrollTo(0,0);return true}
   if(S.view==='machine'&&MC.phase!=='setup'){mcStop();mcQuiet();MC.phase='setup';render();window.scrollTo(0,0);return true}
   if(S.view==='cards'&&FC.phase!=='setup'){fcStop();fcQuiet();FC.phase=FC.phase==='card'?'table':'setup';render();window.scrollTo(0,0);return true}
   const N=window.__nav;if(!N||!N.hist.length)return false;
@@ -15552,7 +15554,7 @@ let D={};
 function initDrills(){D={recall:null,gaps:null,scramble:null,err:null}}
 function sSay(k){
   const tabs=[['recall','Rappel','Recall'],['gaps','Trous','Gaps'],['scramble','Remettre en ordre','Rebuild'],...((k.say.err&&k.say.err.length)?[['err',"Trouvez l'erreur",'Spot the error']]:[])]
-   .map(t=>`<button class="tg${S.drill===t[0]?' on':''}" onclick="S.drill='${t[0]}';render()">${t[1]} <span style="font-weight:400">· ${t[2]}</span></button>`).join('');
+   .map(t=>`<button class="tg${S.drill===t[0]?' on':''}" onclick="dTab('${t[0]}')">${t[1]} <span style="font-weight:400">· ${t[2]}</span></button>`).join('');
   return `<div class="sub-tabs">${tabs}</div><div class="drill" id="drill">${S.drill==='recall'?dRecall(k):S.drill==='gaps'?dGaps(k):S.drill==='err'?dErr(k):dScr(k)}</div>`;
 }
 function endCard(d,total,label){
@@ -15696,7 +15698,7 @@ function ovSkel(k){
 }
 function sUse(k){
   const all=useSet(k),qi=Math.min(S.uq||0,all.length-1),u=all[qi];
-  const tabs=all.length>1?`<div class="sub-tabs">${all.map((_,i)=>`<button class="tg${i===qi?' on':''}" onclick="S.uq=${i};render()">Question ${i+1}</button>`).join('')}</div>`:'';
+  const tabs=all.length>1?`<div class="sub-tabs">${all.map((_,i)=>`<button class="tg${i===qi?' on':''}" onclick="uTab(${i})">Question ${i+1}</button>`).join('')}</div>`:'';
   return `${tabs}<div class="deck" style="gap:18px">${ovSkel(k)}
    <div><div class="label">La question · the question</div><div class="big" style="margin-top:6px">${LN({fr:u.q_fr,en:u.q_en,src:'NEW'})}</div></div>
    <div><div class="label">Ce qu'il faut mobiliser · what to deploy (tick as you plan)</div>
@@ -17413,4 +17415,4 @@ function showKTRStudio(){
   if (document.readyState === 'complete') start(); else window.addEventListener('load', start);
 })();
 </script>
-<script id="ap-build">window.__apBuild="94a2abce0a";</script>
+<script id="ap-build">window.__apBuild="2b9ba8416d";</script>
