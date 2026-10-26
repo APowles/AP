@@ -8307,7 +8307,7 @@ body.hx-on .crumb{display:none}
   <button class="brand" onclick="goHome()" title="Studio home">Approved Material Studio</button>
   <span class="crumb" id="crumb"></span>
   <span class="ctl">
-    
+    <button class="btn pri" id="ret-btn" style="display:none" onclick="goReturn()">↩ Back to my picture</button>
   </span>
 </div></div>
 <div class="wrap page" id="root"></div>
@@ -8371,6 +8371,7 @@ const scopeN=()=>S.pick.length?S.pick.length+' section'+(S.pick.length===1?'':'s
 const inPick=q=>!S.pick.length||S.pick.indexOf(SECS.indexOf(q.section))>=0;
 function crumb(){
   const c=document.getElementById('crumb');
+  const rb=document.getElementById('ret-btn');if(rb){const on=S.ret&&S.view!=='machine'&&S.view!=='cards'&&S.view!=='home';rb.style.display=on?'':'none';rb.textContent=S.ret&&S.ret.kind==='cards'?'↩ Back to my card':'↩ Back to my picture'}
   c.textContent=S.view==='home'?'Approved Material · '+LG.name+'':S.view==='themes'?'Choose an area':S.view==='area'?(S.theme==='ALL'?'Combine sections':'Area '+S.theme+' · '+AREAS[S.theme][0]):S.view==='machine'?'Spin the wheel!':S.view==='cards'?'Shuffle and deal':(S.sec==='all'?(S.pick.length?'Mixed: '+scopeN():'All sections'):secName(SECS[S.sec]))+(S.view==='sec'&&S.tab!=='study'?' · '+(S.tab==='mix'?'Mixed':S.tab==='pic'?'Pictures':TNAME[S.tab]):'');
 }
 function keepScroll(f){const y=window.scrollY;f();window.scrollTo(0,y)}
@@ -9057,7 +9058,7 @@ window.splash=function(force){
 const MC={due:{},areas:new Set(['A','B','C','D','E']),secs:45,phase:'setup',seen:new Set(),cur:null,ok:[],near:[],to:null,iv:null,end:0,over:false,reset:false};
 const mcPool=()=>Q.filter(q=>hasPic(q.i)&&MC.areas.has(areaOf(q.section))).map(q=>q.i);
 function mcStop(){fcStop();if(MC.raf){cancelAnimationFrame(MC.raf);MC.raf=0}if(MC.to){clearTimeout(MC.to);MC.to=null}if(MC.iv){clearInterval(MC.iv);MC.iv=null}}
-window.openMachine=function(){amUnlock();pushNav();mcStop();MC.phase='setup';S.view='machine';mcFs(true);render();window.scrollTo(0,0)};
+window.openMachine=function(){S.ret=null;amUnlock();pushNav();mcStop();MC.phase='setup';S.view='machine';mcFs(true);render();window.scrollTo(0,0)};
 window.mcArea=function(L){if(MC.areas.has(L))MC.areas.delete(L);else MC.areas.add(L);render()};
 window.mcSecs=function(v){MC.secs=v;render()};
 window.mcBegin=function(){amUnlock();MC.due={};MC.seen=new Set();MC.ok=[];MC.near=[];MC.cur=null;MC.reset=false;MC.phase='idle';mcFs(true);render();window.scrollTo(0,0)};
@@ -9141,7 +9142,13 @@ function mcTick(){
   if(left<=0){clearInterval(MC.iv);MC.iv=null;MC.over=true;mcSfx('end');render()}
 }
 window.mcReveal=function(){if(MC.iv){clearInterval(MC.iv);MC.iv=null}MC.phase='reveal';S.pi=MC.cur;S.act=null;S.en=false;render();window.scrollTo(0,0)};
-window.mcPractise=function(i,tab){demoStop();mcStop();try{mcFs(false)}catch(e){}openTopic(i,tab)};
+window.mcPractise=function(i,tab){demoStop();mcStop();try{mcFs(false)}catch(e){}S.ret={kind:'wheel',stack:S.stack.slice()};openTopic(i,tab)};
+window.fcPractise=function(i){fcStop();fcQuiet();S.ret={kind:'cards',cur:FC.cur,stack:S.stack.slice()};openTopic(i,'pic')};
+window.goReturn=function(){
+  const r=S.ret;if(!r)return;demoStop();S.ret=null;S.stack=r.stack||[];S.ses=null;S.act=null;S.en=false;
+  if(r.kind==='wheel'){S.view='machine';MC.phase='reveal';try{mcFs(true)}catch(e){}}else{S.view='cards';FC.phase='card';FC.cur=r.cur;FC.fresh=false;FC.hold=false}
+  render();window.scrollTo(0,0);
+};
 window.mcMark=function(v){
   demoStop();(v==='ok'?MC.ok:MC.near).push(MC.cur);if(v==='near')MC.due[MC.cur]=3;try{speechSynthesis.cancel()}catch(e){}try{window.parent.speechSynthesis.cancel()}catch(e){}
   MC.phase=(MC.seen.size>=mcPool().length&&!Object.keys(MC.due).length)?'done':'idle';MC.cur=null;render();window.scrollTo(0,0);
@@ -9207,7 +9214,7 @@ function fcBack(){
   if(FC.phase==='table'||FC.phase==='shuffle'){FC.phase='setup';render();window.scrollTo(0,0);return true}
   return false;
 }
-window.openCards=function(){document.body.removeAttribute('data-fcr');FC.round=0;amUnlock();pushNav();mcStop();FC.phase='setup';FC.enter=true;S.view='cards';render();window.scrollTo(0,0)};
+window.openCards=function(){S.ret=null;document.body.removeAttribute('data-fcr');FC.round=0;amUnlock();pushNav();mcStop();FC.phase='setup';FC.enter=true;S.view='cards';render();window.scrollTo(0,0)};
 function fcSetupUpd(){
   document.querySelectorAll('[data-fa]').forEach(b=>b.classList.toggle('on',FC.areas.has(b.getAttribute('data-fa'))&&!b.disabled));
   document.querySelectorAll('[data-fs]').forEach(b=>b.classList.toggle('on',FC[b.getAttribute('data-fs')]===+b.getAttribute('data-v')));
@@ -9316,7 +9323,7 @@ function vCardsCard(){
    +'<div class="mc-ctl fc-ctl"><span class="label" style="margin:0 6px 0 0">Spot '+(c.pts[0]+1)+'</span><button class="btn" onclick="fcClue()">\u{1F4A1} '+(FC.clue?'Hide the clue':'Clue')+'</button>'
    +(FC.shown?'<button class="btn" onclick="fcHide()">\u{1F648} Hide the answer</button>':'<button class="btn pri" onclick="fcShow()">\u{1F441} Reveal</button>')
    +'<button class="btn pri" onclick="fcGot()">✓ Got it</button><button class="btn" onclick="fcNext()">Back to the cards</button>'
-   +'<button class="btn" onclick="openTopic('+i+',\'pic\')">Practise this topic</button><button class="btn" onclick="mcFsToggle()">⛶</button></div>'
+   +'<button class="btn" onclick="fcPractise('+i+')">Practise this topic</button><button class="btn" onclick="mcFsToggle()">⛶</button></div>'
    +clue+ans
    +'<div class="mc-img fc-pic'+(fresh?' fc-in':'')+(hold?' fc-hold':'')+'"><img src="'+picSrc(i)+'" alt="">'+mks+'</div>'
    +'</div>';
@@ -11147,4 +11154,4 @@ var APAM_TPL = "<!doctype html>\n<html lang=\"en\"><head><meta charset=\"utf-8\"
   if (document.readyState === 'complete') start(); else window.addEventListener('load', start);
 })();
 </script>
-<script id="ap-build">window.__apBuild="930fe7c186";</script>
+<script id="ap-build">window.__apBuild="1d5689e974";</script>
