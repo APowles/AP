@@ -13050,7 +13050,7 @@ body.aporal-on .st-oral-side>#igcse-exam-wrap{order:-1;margin:0 0 12px!important
   }
   function stopStream(s) {
     try { s && s.getTracks().forEach(function (t) { t.stop(); }); } catch (e) { }
-    window.__apMicLive = 0; window.__apAS = 0; try { if (navigator.audioSession) navigator.audioSession.type = 'playback'; } catch (e2) { }   // the microphone has stopped: back to normal playback, so the Demo and question voices are loud again
+    window.__apMicLive = 0; if (window.__apAS) { window.__apAS = 0; try { if (navigator.audioSession) navigator.audioSession.type = 'auto'; } catch (e2) { } }
   }
   function micError(e) {
     var n = e && e.name || '';
@@ -13092,7 +13092,7 @@ body.aporal-on .st-oral-side>#igcse-exam-wrap{order:-1;margin:0 0 12px!important
       + '<div class="aporal-meter"><i id="aporal-tfill"></i></div><div id="aporal-tmsg" class="aporal-tmsg">'+(NOMETER ? 'Tap, say a few words, then play them back to check.' : 'Tap, then say a few words. The bar should move.')+'</div></div>'
       + '<div id="aporal-err" class="aporal-bad" style="display:none"></div>'
       + '<div class="aporal-acts"><button type="button" class="aph-btn" id="aporal-cancel">Cancel</button><button type="button" class="aph-btn aph-btn-primary" id="aporal-go">● Start recording</button></div>'
-      + '<div style="font-size:.7rem;color:#8a93a8;margin-top:8px;text-align:right">Recorder version R4 · 26 Oct, 09:10</div>';
+      + '<div style="font-size:.7rem;color:#8a93a8;margin-top:8px;text-align:right">Recorder version R5 · 26 Oct, 09:25</div>';
     var nm = $('aporal-name'); nm.value = lsGet('apStudentName');
     $('aporal-cancel').onclick = function () { stopTest(); closeBox(); };
     $('aporal-test').onclick = testMic;
@@ -13139,7 +13139,7 @@ body.aporal-on .st-oral-side>#igcse-exam-wrap{order:-1;margin:0 0 12px!important
   // open the microphone; if the browser refuses the custom settings or is momentarily busy (InvalidStateError and the like), wait a moment and try again with the plain defaults
   function gum() {
     var md = navigator.mediaDevices;
-    window.__apMicLive = 1; try { if (navigator.audioSession) navigator.audioSession.type = 'play-and-record'; } catch (e0) { }   // every tap sets the page to 'playback' (the Match sounds), and the iPad then refuses or muffles the microphone: use play-and-record (questions audible while recording) while it is open, and stop taps changing it back
+    window.__apMicLive = 1;
     return md.getUserMedia(micCons()).catch(function (e) {
       var nm = e && e.name || '';
       if (nm === 'NotAllowedError' || nm === 'SecurityError' || nm === 'NotFoundError') throw e;
@@ -14318,7 +14318,7 @@ body.aporal-on .st-oral-side>#igcse-exam-wrap{order:-1;margin:0 0 12px!important
   // iPad / Safari: sound is only allowed after a tap, and the silent switch mutes Web Audio unless an ordinary audio clip has played first
   var SIL = null;
   function unlock() {
-    try { if (navigator.audioSession && !window.__apMicLive) navigator.audioSession.type = 'playback'; } catch (e) { }
+    try { if (navigator.audioSession && !window.__apMicLive) navigator.audioSession.type = document.getElementById('ms-ov') ? 'playback' : 'auto'; } catch (e) { }   // 'playback' only while Match is open: left on everywhere else it stops the microphone working on iPad and Safari
     try {
       if (!SIL) { SIL = new Audio('data:audio/wav;base64,UklGRiQAAABXQVZFZm10IBAAAAABAAEARKwAAIhYAQACABAAZGF0YQAAAAA='); SIL.setAttribute('playsinline', ''); }
       SIL.currentTime = 0; var pr = SIL.play(); if (pr && pr.catch) pr.catch(function () { });
@@ -14822,7 +14822,7 @@ body:has(.st-oral){background:linear-gradient(180deg,#f3efe4 0,#faf8f3 300px) fi
   // iPad / Safari: sound is only allowed after a tap, and the silent switch mutes Web Audio unless an ordinary audio clip has played first
   var SIL = null;
   function unlock() {
-    try { if (navigator.audioSession && !window.__apMicLive) navigator.audioSession.type = 'playback'; } catch (e) { }
+    try { if (navigator.audioSession && !window.__apMicLive) navigator.audioSession.type = document.getElementById('ms-ov') ? 'playback' : 'auto'; } catch (e) { }   // 'playback' only while Match is open: left on everywhere else it stops the microphone working on iPad and Safari
     try {
       if (!SIL) { SIL = new Audio('data:audio/wav;base64,UklGRiQAAABXQVZFZm10IBAAAAABAAEARKwAAIhYAQACABAAZGF0YQAAAAA='); SIL.setAttribute('playsinline', ''); }
       SIL.currentTime = 0; var pr = SIL.play(); if (pr && pr.catch) pr.catch(function () { });
@@ -16171,3 +16171,36 @@ function closeKTRChallenge() {
   if (document.body) go(); else document.addEventListener('DOMContentLoaded', go);
 })();
 </script>
+<script id="ap-newver-js">
+/* AP NEW VERSION: when a newer version of this page has been published, a slim gold strip at the very top (not floating) says so; one tap loads it. */
+(function () {
+  if (window.__apNewVer) return; window.__apNewVer = 1;
+  if (!/^https?:$/.test(location.protocol)) return;
+  var name = ''; try { name = decodeURIComponent(location.pathname.split('/').pop() || ''); } catch (e) { return; }
+  if (!name) return;
+  function show(latest) {
+    if (document.getElementById('ap-newver')) return;
+    var d = document.createElement('div'); d.id = 'ap-newver'; d.setAttribute('role', 'button'); d.tabIndex = 0;
+    d.style.cssText = 'position:relative;background:#c9a84c;color:#1a2744;font:700 .95rem/1.3 "DM Sans",system-ui,-apple-system,sans-serif;text-align:center;padding:10px 14px;cursor:pointer;border-bottom:2px solid #1a2744';
+    d.textContent = '🔄 A newer version of this page is available. Tap here to update.';
+    function go() {
+      d.textContent = 'Updating…';
+      var done = false, fin = function () { if (!done) { done = true; location.reload(); } };
+      try { fetch(location.href, { cache: 'reload' }).then(fin, fin); } catch (e) { fin(); }
+      setTimeout(fin, 8000);
+    }
+    d.onclick = go; d.onkeydown = function (e) { if (e.key === 'Enter' || e.key === ' ') go(); };
+    document.body.insertBefore(d, document.body.firstChild);
+  }
+  function check() {
+    var base = location.pathname.replace(/[^\/]*$/, '');
+    fetch(base + 'version.json?t=' + Date.now(), { cache: 'no-store' }).then(function (r) { return r.ok ? r.json() : null; }).then(function (j) {
+      if (!j || !window.__apBuild || !j[name]) return;
+      if (j[name] !== window.__apBuild) show(j[name]);
+    }).catch(function () { });
+  }
+  function start() { setTimeout(check, 2500); document.addEventListener('visibilitychange', function () { if (document.visibilityState === 'visible') setTimeout(check, 500); }); }
+  if (document.readyState === 'complete') start(); else window.addEventListener('load', start);
+})();
+</script>
+<script id="ap-build">window.__apBuild="412a6ae7ef";</script>
