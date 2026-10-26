@@ -13870,7 +13870,10 @@ body.aporal-on .st-oral-side>#igcse-exam-wrap{order:-1;margin:0 0 12px!important
     try { clearInterval(m.iv); } catch (e) { }
     try { if (m.ctx && m.ctx.state !== 'closed') { var pr = m.ctx.close(); if (pr && pr.catch) pr.catch(function () { }); } } catch (e) { }
   }
-  function stopStream(s) { try { s && s.getTracks().forEach(function (t) { t.stop(); }); } catch (e) { } }
+  function stopStream(s) {
+    try { s && s.getTracks().forEach(function (t) { t.stop(); }); } catch (e) { }
+    if (window.__apAS) { window.__apAS = 0; try { if (navigator.audioSession) navigator.audioSession.type = 'playback'; } catch (e2) { } }   // put the audio mode back (only if the microphone retry had changed it), so the Demo voices keep working after a mic test
+  }
   function micError(e) {
     var n = e && e.name || '';
     if (n === 'NotAllowedError' || n === 'SecurityError') return 'The microphone is blocked. Allow it for this page: tap <b>Settings</b> on the iPad, find your browser (<b>Safari</b> or <b>Prisma</b>), tap <b>Microphone</b> and choose <b>Allow</b>. Then reload this page.';
@@ -13960,7 +13963,7 @@ body.aporal-on .st-oral-side>#igcse-exam-wrap{order:-1;margin:0 0 12px!important
     return md.getUserMedia(micCons()).catch(function (e) {
       var nm = e && e.name || '';
       if (nm === 'NotAllowedError' || nm === 'SecurityError' || nm === 'NotFoundError') throw e;
-      if (nm === 'InvalidStateError') { try { if (navigator.audioSession) navigator.audioSession.type = 'play-and-record'; } catch (e2) { } }   // the page sets 'playback' for the demo voices; Safari will not capture sound in that mode, so switch it only when opening the microphone has failed
+      if (nm === 'InvalidStateError') { try { if (navigator.audioSession) { navigator.audioSession.type = 'play-and-record'; window.__apAS = 1; } } catch (e2) { } }   // the page sets 'playback' for the demo voices; Safari will not capture sound in that mode, so switch it only when opening the microphone has failed
       return new Promise(function (res) { setTimeout(res, 400); }).then(function () { return md.getUserMedia(micCons()); }).catch(function () { return md.getUserMedia({ audio: true }); });
     });
   }
