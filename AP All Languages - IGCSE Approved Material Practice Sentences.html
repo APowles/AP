@@ -8165,6 +8165,26 @@ mark.k{background:var(--hl);color:inherit;border-radius:5px;padding:0 2px}
 .mc-opt{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-top:10px}
 .mc-opt select{font:inherit;border:1.5px solid var(--line);border-radius:10px;background:var(--surface);color:var(--ink);padding:6px 10px}
 .tg.soon{opacity:.45}
+/* ===== Turn the cards ===== */
+.fc-grid{display:grid;gap:14px;margin-top:14px;width:100%}
+.fc-card{position:relative;aspect-ratio:16/9;border:0;border-radius:16px;overflow:hidden;color:#fff;background:linear-gradient(135deg,var(--ar,#1a2744),#14203a);background-size:cover;background-position:center;box-shadow:0 2px 8px rgba(0,0,0,.18);transition:transform .45s ease;display:flex;align-items:center;justify-content:center;cursor:pointer;padding:0}
+.fc-card:hover{outline:3px solid var(--gold)}
+.fc-card.flip{transform:rotateY(90deg)}
+.fc-card .fc-no{font-family:var(--head);font-size:clamp(2.2rem,6vw,4.2rem);opacity:.92}
+.fc-card .fc-ar{position:absolute;left:12px;bottom:10px;font-size:.78rem;letter-spacing:.12em;text-transform:uppercase;color:#f3d98a;font-weight:700}
+.fc-card.up:before{content:"";position:absolute;inset:0;background:linear-gradient(180deg,rgba(11,18,36,0) 50%,rgba(11,18,36,.88))}
+.fc-card.up .fc-no,.fc-card.up .fc-ar{display:none}
+.fc-card .fc-tt{position:absolute;left:12px;right:12px;bottom:10px;font-size:.92rem;font-weight:700;text-align:left;line-height:1.25}
+.fc-card .fc-ok{position:absolute;top:8px;right:10px;background:#2e7d52;border-radius:99px;padding:2px 10px;font-weight:800}
+.fc-card.ar-A{--ar:#6b3fa0}.fc-card.ar-B{--ar:#1f7a8c}.fc-card.ar-C{--ar:#2e7d4f}.fc-card.ar-D{--ar:#b8860b}.fc-card.ar-E{--ar:#b03a2e}
+.fc-box{width:100%;max-width:980px;border-radius:12px;padding:12px 16px;text-align:left;font:500 clamp(1.05rem,.85rem + .6vw,1.5rem)/1.45 var(--body)}
+.fc-box+.fc-box{margin-top:-4px}
+.fc-clue{background:var(--surface2);border-left:5px solid var(--gold)}
+.fc-ans{background:#eaf5ef;border-left:5px solid #2e7d52;color:#14532d}
+.fc-n{display:inline-flex;align-items:center;justify-content:center;width:1.6em;height:1.6em;border-radius:50%;background:#f3d98a;color:#14203a;font-weight:800;margin-right:.6em;font-size:.9em}
+.fc-en{font-style:italic;font-size:.85em;color:var(--ink2);margin:2px 0 0 2.4em}
+.fc-ask{font-family:var(--head);font-size:clamp(1.15rem,2.4vw,1.7rem);text-align:center}
+
 #amsp{position:fixed;inset:0;z-index:9999;background:#0b1224;overflow:hidden;opacity:1;transition:opacity .5s ease;cursor:pointer}
 #amsp.out{opacity:0;pointer-events:none}
 .sp-st{position:absolute;inset:0;will-change:transform}
@@ -8284,7 +8304,7 @@ const scopeN=()=>S.pick.length?S.pick.length+' section'+(S.pick.length===1?'':'s
 const inPick=q=>!S.pick.length||S.pick.indexOf(SECS.indexOf(q.section))>=0;
 function crumb(){
   const c=document.getElementById('crumb');
-  c.textContent=S.view==='home'?'Approved Material · '+LG.name+'':S.view==='themes'?'Choose an area':S.view==='area'?(S.theme==='ALL'?'Combine sections':'Area '+S.theme+' · '+AREAS[S.theme][0]):S.view==='machine'?'Picture machine':(S.sec==='all'?(S.pick.length?'Mixed: '+scopeN():'All sections'):secName(SECS[S.sec]))+(S.view==='sec'&&S.tab!=='study'?' · '+(S.tab==='mix'?'Mixed':S.tab==='pic'?'Pictures':TNAME[S.tab]):'');
+  c.textContent=S.view==='home'?'Approved Material · '+LG.name+'':S.view==='themes'?'Choose an area':S.view==='area'?(S.theme==='ALL'?'Combine sections':'Area '+S.theme+' · '+AREAS[S.theme][0]):S.view==='machine'?'Picture machine':S.view==='cards'?'Turn the cards':(S.sec==='all'?(S.pick.length?'Mixed: '+scopeN():'All sections'):secName(SECS[S.sec]))+(S.view==='sec'&&S.tab!=='study'?' · '+(S.tab==='mix'?'Mixed':S.tab==='pic'?'Pictures':TNAME[S.tab]):'');
 }
 window.toggleProj=function(){document.body.classList.toggle('proj');document.getElementById('tg-proj').classList.toggle('on')};
 function keepScroll(f){const y=window.scrollY;f();window.scrollTo(0,y)}
@@ -8715,7 +8735,7 @@ S.stack=[];S.theme=null;S.pi=null;S.act=null;S.en=false;
 function pushNav(){S.stack.push({view:S.view,sec:S.sec,qi:S.qi,tab:S.tab,theme:S.theme});if(S.stack.length>40)S.stack.shift()}
 window.mcFs=function(on){try{const d=document.documentElement;if(on&&!document.fullscreenElement)(d.requestFullscreen||d.webkitRequestFullscreen).call(d);else if(!on&&document.fullscreenElement)document.exitFullscreen()}catch(e){}};
 window.mcFsToggle=function(){mcFs(!document.fullscreenElement);setTimeout(render,150)};
-window.goBack=function(){demoStop();mcStop();if(S.view==='machine')mcFs(false);const p=S.stack.pop();if(!p){S.view='home';S.ses=null;render();window.scrollTo(0,0);return}Object.assign(S,p);S.ses=null;S.act=null;S.en=false;render();window.scrollTo(0,0)};
+window.goBack=function(){demoStop();mcStop();if(fcBack())return;if(S.view==='machine')mcFs(false);const p=S.stack.pop();if(!p){S.view='home';S.ses=null;render();window.scrollTo(0,0);return}Object.assign(S,p);S.ses=null;S.act=null;S.en=false;render();window.scrollTo(0,0)};
 window.openThemes=function(){pushNav();S.view='themes';render();window.scrollTo(0,0)};
 window.openArea=function(L){pushNav();S.view='area';S.theme=L;render();window.scrollTo(0,0)};
 window.openTopic=function(i,tab){pushNav();S.view='sec';S.sec=secIdx(i);S.qi=String(i);S.tab=tab||(hasPic(i)?'pic':'study');S.ses=null;S.pi=i;S.act=null;S.en=false;saveLast();render();window.scrollTo(0,0)};
@@ -8965,7 +8985,7 @@ window.splash=function(force){
 /* ===== picture machine: spin, talk, reveal, mark ===== */
 const MC={areas:new Set(['A','B','C','D','E']),secs:45,phase:'setup',seen:new Set(),cur:null,ok:[],near:[],to:null,iv:null,end:0,over:false,reset:false};
 const mcPool=()=>Q.filter(q=>hasPic(q.i)&&MC.areas.has(areaOf(q.section))).map(q=>q.i);
-function mcStop(){if(MC.raf){cancelAnimationFrame(MC.raf);MC.raf=0}if(MC.to){clearTimeout(MC.to);MC.to=null}if(MC.iv){clearInterval(MC.iv);MC.iv=null}}
+function mcStop(){fcStop();if(MC.raf){cancelAnimationFrame(MC.raf);MC.raf=0}if(MC.to){clearTimeout(MC.to);MC.to=null}if(MC.iv){clearInterval(MC.iv);MC.iv=null}}
 window.openMachine=function(){amUnlock();pushNav();mcStop();MC.phase='setup';S.view='machine';mcFs(true);render();window.scrollTo(0,0)};
 window.mcArea=function(L){if(MC.areas.has(L))MC.areas.delete(L);else MC.areas.add(L);render()};
 window.mcSecs=function(v){MC.secs=v;render()};
@@ -9083,6 +9103,91 @@ function vMachine(){
   return mcTally()+'<div class="mc-wrap">'+body+'<div class="mc-ctl">'+ctl+'</div></div>';
 }
 
+
+/* ===== turn the cards: deal face down, turn one over, comment on 1 or 2 numbered points ===== */
+const FC={areas:new Set(['A','B','C','D','E']),n:6,secs:0,phase:'setup',cards:[],cur:null,seen:new Set(),to:null,iv:null,end:0,over:false,clue:false,shown:false,en:false};
+const fcPool=()=>Q.filter(q=>hasPic(q.i)&&FC.areas.has(areaOf(q.section))).map(q=>q.i);
+function fcStop(){if(FC.iv){clearInterval(FC.iv);FC.iv=null}if(FC.to){clearTimeout(FC.to);FC.to=null}}
+function fcQuiet(){try{speechSynthesis.cancel()}catch(e){}try{window.parent.speechSynthesis.cancel()}catch(e){}}
+function fcBack(){
+  if(S.view!=='cards')return false;
+  fcStop();fcQuiet();
+  if(FC.phase==='card'){FC.phase='table';render();window.scrollTo(0,0);return true}
+  if(FC.phase==='table'){FC.phase='setup';render();window.scrollTo(0,0);return true}
+  return false;
+}
+window.openCards=function(){amUnlock();pushNav();mcStop();FC.phase='setup';S.view='cards';render();window.scrollTo(0,0)};
+window.fcArea=function(L){if(FC.areas.has(L))FC.areas.delete(L);else FC.areas.add(L);render()};
+window.fcDeal=function(){
+  amUnlock();fcStop();fcQuiet();
+  const pool=fcPool();let left=pool.filter(i=>!FC.seen.has(i));if(left.length<FC.n){FC.seen=new Set();left=pool.slice()}
+  const pick=shuffle(left).slice(0,FC.n);pick.forEach(i=>FC.seen.add(i));
+  FC.cards=pick.map(i=>({i:i,done:false,pts:null}));FC.cur=null;FC.phase='table';render();window.scrollTo(0,0);
+};
+window.fcOpen=function(k){
+  const c=FC.cards[k];if(!c||FC.to)return;
+  if(!c.pts){const n=(PICS[String(c.i+1)]||[]).length,idx=shuffle(Array.from({length:n},(_,x)=>x));c.pts=idx.slice(0,n>1&&Math.random()<.5?2:1).sort((a,b)=>a-b)}
+  const el=document.getElementById('fc-'+k);if(el)el.classList.add('flip');
+  try{mcSfx('land')}catch(e){}
+  FC.to=setTimeout(()=>{FC.to=null;FC.cur=k;FC.phase='card';FC.clue=false;FC.shown=false;FC.en=false;FC.over=false;FC.end=Date.now()+FC.secs*1000;render();window.scrollTo(0,0);if(FC.secs>0)FC.iv=setInterval(fcTick,250)},480);
+};
+function fcTick(){
+  const left=Math.max(0,FC.end-Date.now()),bar=document.getElementById('fcbar'),tt=document.getElementById('fct');
+  if(bar)bar.style.width=Math.round(100*left/(FC.secs*1000))+'%';if(tt)tt.textContent=fmt(left/1000);
+  if(left<=0){clearInterval(FC.iv);FC.iv=null;FC.over=true;try{mcSfx('end')}catch(e){}render()}
+}
+window.fcClue=function(){FC.clue=!FC.clue;render()};
+window.fcEn=function(){FC.en=!FC.en;render()};
+window.fcShow=function(){
+  const c=FC.cards[FC.cur];if(!c)return;fcStop();c.done=true;FC.shown=true;render();
+  const sps=PICS[String(c.i+1)]||[],ts=c.pts.map(k=>spotTxt(c.i,sps[k])).filter(Boolean);
+  if(ts.length)say(ts[0],ts[1]?()=>say(ts[1]):undefined);
+};
+window.fcNext=function(){fcStop();fcQuiet();const c=FC.cards[FC.cur];if(c)c.done=true;FC.phase='table';render();window.scrollTo(0,0)};
+function vCards(){return FC.phase==='setup'?vCardsSetup():FC.phase==='card'?vCardsCard():vCardsTable()}
+function vCardsSetup(){
+  const chips=['A','B','C','D','E'].map(L=>{const n=Q.filter(q=>hasPic(q.i)&&areaOf(q.section)===L).length;
+    return '<button class="tg'+(FC.areas.has(L)&&n?' on':'')+(n?'':' soon')+'" '+(n?'onclick="fcArea(\''+L+'\')"':'disabled')+'>'+L+' · '+esc(AREAS[L][0])+' ('+(n?n+' pictures':'soon')+')</button>'}).join('');
+  const n=fcPool().length;
+  return '<div class="row" style="justify-content:space-between"><h1 class="h2">\u{1F0CF} Turn the cards</h1><button class="btn" onclick="goBack()">← Back</button></div>'
+   +'<p class="lead">The cards are dealt face down. Turn one over: the picture has one or two numbered spots. Say something about them, using what you know of the approved material. Then press Show to hear the approved phrases.</p>'
+   +'<div class="mc-opt"><span class="label" style="margin:0">Areas</span>'+chips+'</div>'
+   +'<details class="hx-more" style="margin-top:12px"><summary>More options</summary><div class="mc-opt">'
+   +'<label class="label" style="margin:0">Cards <select onchange="FC.n=+this.value">'+[4,6,8].map(v=>'<option value="'+v+'"'+(v===FC.n?' selected':'')+'>'+v+'</option>').join('')+'</select></label>'
+   +'<label class="label" style="margin:0">Thinking time <select onchange="FC.secs=+this.value">'+[[0,'No timer'],[20,'20 s'],[30,'30 s'],[45,'45 s'],[60,'60 s']].map(v=>'<option value="'+v[0]+'"'+(v[0]===FC.secs?' selected':'')+'>'+v[1]+'</option>').join('')+'</select></label>'
+   +'</div></details>'
+   +'<div class="row" style="margin-top:16px"><span class="label" style="margin:0">'+n+' picture'+(n===1?'':'s')+' chosen'+(n<4?' (choose at least 4)':'')+'</span><button class="btn pri" '+(n<4?'disabled':'')+' onclick="fcDeal()">\u{1F0CF} Deal the cards</button></div>';
+}
+function vCardsTable(){
+  const cs=FC.cards,nd=cs.filter(c=>c.done).length,all=nd===cs.length,cols=cs.length<=4?2:cs.length>=8?4:3;
+  const grid=cs.map((c,k)=>{const A=areaOf(Q[c.i].section);
+    return c.done
+     ?'<button class="fc-card up ar-'+A+'" id="fc-'+k+'" style="background-image:url('+picSrc(c.i)+')" onclick="fcOpen('+k+')" aria-label="Card '+(k+1)+' (turned over)"><span class="fc-ok">✓</span><span class="fc-tt">'+esc(Q[c.i].q_en)+'</span></button>'
+     :'<button class="fc-card ar-'+A+'" id="fc-'+k+'" onclick="fcOpen('+k+')" aria-label="Turn over card '+(k+1)+'"><span class="fc-no">'+(k+1)+'</span><span class="fc-ar">Area '+A+'</span></button>'}).join('');
+  return '<div class="row" style="justify-content:space-between"><h1 class="h2">\u{1F0CF} Turn the cards</h1><span class="label" style="margin:0">Turned '+nd+' / '+cs.length+'</span><button class="btn" onclick="goBack()">← Back</button></div>'
+   +'<div class="fc-grid" style="grid-template-columns:repeat('+cols+',minmax(0,1fr))">'+grid+'</div>'
+   +(all?'<div class="note" style="margin-top:14px"><b>Every card has been turned.</b> Tap any card to look at it again, or deal a new set.</div>':'')
+   +'<div class="row" style="margin-top:14px"><button class="btn'+(all?' pri':'')+'" onclick="fcDeal()">\u{1F500} Deal new cards</button><button class="btn" onclick="FC.phase=\'setup\';render()">Change the areas</button><button class="btn" onclick="mcFsToggle()">⛶ Full screen</button></div>';
+}
+function vCardsCard(){
+  const c=FC.cards[FC.cur],i=c.i,sps=PICS[String(i+1)]||[],adj=spreadSpots(sps);
+  const mks=c.pts.map(k=>'<span class="mk pulse" style="left:'+adj[k].x.toFixed(1)+'%;top:'+adj[k].y.toFixed(1)+'%">'+(k+1)+'</span>').join('');
+  const nums=c.pts.map(k=>k+1),ask=nums.length>1?'Say something about spots '+nums[0]+' and '+nums[1]+'.':'Say something about spot '+nums[0]+'.';
+  const left=Math.max(0,FC.end-Date.now()),pct=Math.round(100*left/(FC.secs*1000));
+  const timer=FC.secs>0?'<div class="mc-bar"><i id="fcbar" style="width:'+(FC.over||FC.shown?0:pct)+'%"></i></div>':'';
+  const clue=FC.clue?c.pts.map(k=>'<div class="fc-box fc-clue"><span class="fc-n">'+(k+1)+'</span>'+esc(spotEn(i,sps[k]))+'</div>').join(''):'';
+  const ans=FC.shown?c.pts.map(k=>{const t=spotTxt(i,sps[k]);return '<div class="fc-box fc-ans"><span class="fc-n">'+(k+1)+'</span>'+esc(t)+' '+spkBtn(t)+(FC.en?'<div class="fc-en">'+esc(spotEn(i,sps[k]))+'</div>':'')+'</div>'}).join(''):'';
+  return '<div class="mc-wrap"><div class="row" style="width:100%;justify-content:space-between"><span class="label" style="margin:0">Card '+(FC.cur+1)+' of '+FC.cards.length+'</span><button class="btn" onclick="goBack()">← Back</button></div>'
+   +'<div class="mc-q">'+esc(Q[i].q_fr)+' <span style="color:var(--ink2);font-size:.7em">'+esc(Q[i].q_en)+'</span></div>'
+   +'<div class="fc-ask">'+ask+(FC.secs>0?' <span class="mc-t" id="fct" style="font-size:.8em">'+(FC.over?'⏰ 0:00':fmt(left/1000))+'</span>':'')+'</div>'+timer
+   +'<div class="mc-img"><img src="'+picSrc(i)+'" alt="">'+mks+'</div>'
+   +clue+ans
+   +'<div class="mc-ctl"><button class="btn" onclick="fcClue()">\u{1F4A1} '+(FC.clue?'Hide the clue':'Clue')+'</button>'
+   +(FC.shown?'<button class="btn" onclick="fcEn()">'+(FC.en?'Hide English':'English')+'</button>':'<button class="btn pri" onclick="fcShow()">\u{1F441} Show</button>')
+   +'<button class="btn'+(FC.shown?' pri':'')+'" onclick="fcNext()">Next card →</button>'
+   +'<button class="btn" onclick="openTopic('+i+',\'pic\')">Practise this topic</button><button class="btn" onclick="mcFsToggle()">⛶</button></div></div>';
+}
+
 /* ===== home: hero, themes, sections ===== */
 function vHome(){
   const keys=Object.keys(PICS);
@@ -9092,7 +9197,7 @@ function vHome(){
   return '<div class="hx"><div class="hx-bg"'+bgS(S.bg)+'></div><div class="hx-shade"></div><div class="hx-in">'
    +'<div class="hx-kick">'+nT+' topics · '+SECS.length+' sections · '+esc(LG.name)+'</div><h1 class="hx-title">Approved Material Studio</h1><p class="hx-tag">'+esc(TAGLINE)+'</p>'
    +'<div class="hx-cta"><button class="hx-b pri" onclick="openThemes()">Choose a topic</button>'
-   +(nPics()>=2?'<button class="hx-b" onclick="openMachine()">\u{1F5BC}\uFE0F Picture machine</button>':'')
+   +(nPics()>=2?'<button class="hx-b" onclick="openMachine()">\u{1F5BC}\uFE0F Picture machine</button>':'')+(nPics()>=4?'<button class="hx-b" onclick="openCards()">\u{1F0CF} Turn the cards</button>':'')
    +(last?'<button class="hx-b" onclick="resumeLast()">↺ Resume: '+esc(lastLabel(last))+'</button>':'')
    +'</div></div></div>'
    +'<details class="hx-more"><summary>More options</summary><div class="lead" style="margin-top:0">Tests, the Speed Challenge and mixed practice use the sections you tick.</div>'+spotRow()
@@ -9122,7 +9227,7 @@ function vArea(){
 
 function render(){
   const r=document.getElementById('root');
-  r.innerHTML=S.view==='home'?vHome():S.view==='themes'?vThemes():S.view==='area'?vArea():S.view==='machine'?vMachine():vSec();
+  r.innerHTML=S.view==='home'?vHome():S.view==='themes'?vThemes():S.view==='area'?vArea():S.view==='machine'?vMachine():S.view==='cards'?vCards():vSec();
   if(DM.on&&!document.getElementById('pic-box')&&!document.querySelector('.dem-s'))demoStop();
   document.body.classList.toggle('hx-on',S.view==='home');
   crumb();
@@ -10765,4 +10870,4 @@ var APAM_TPL = "<!doctype html>\n<html lang=\"en\"><head><meta charset=\"utf-8\"
   if (document.readyState === 'complete') start(); else window.addEventListener('load', start);
 })();
 </script>
-<script id="ap-build">window.__apBuild="172ea78f08";</script>
+<script id="ap-build">window.__apBuild="5d6a9492df";</script>
