@@ -51891,6 +51891,27 @@ function mlfLeisureStart(deck) {
   function sptFire(o, from) {
     var err = null, code = o.getAttribute && o.getAttribute('onclick');
     try { if (code) (new Function('event', code)).call(o, new Event('click')); else o.click(); } catch (e) { err = e; }
+    setTimeout(function () {   // safety net: if the level box was built but is not on top / visible, bring it to the front; if nothing opened at all, say what state the page is in
+      try {
+        var dl = document.getElementById('aptt-lvask');
+        if (dl) {
+          if (dl.parentNode !== document.documentElement) document.documentElement.appendChild(dl);
+          dl.style.cssText += ';position:fixed;inset:0;z-index:2147483647;display:flex;visibility:visible;opacity:1';
+          var cx = document.elementFromPoint(window.innerWidth / 2, window.innerHeight / 2);
+          if (!cx || !dl.contains(cx)) { dl.style.cssText += ';pointer-events:auto'; }
+          return;
+        }
+        var card = from && from.closest ? from.closest('.spt-card') : null, pn = document.getElementById('amTestPanel');
+        if (card && !err && card.offsetParent !== null && (!pn || pn.offsetParent !== null)) {
+          var m = document.getElementById('spt-err'); if (m) m.remove();
+          m = document.createElement('div'); m.id = 'spt-err';
+          m.style.cssText = 'margin:8px 0;padding:10px 12px;border-radius:10px;background:#fdecea;border:2px solid #c0392b;color:#7a1f14;font:700 .9rem DM Sans,system-ui,sans-serif';
+          var st = []; try { st.push('capturing=' + (window.APTT ? window.APTT.capturing : 'noAPTT')); st.push('apttLevel=' + typeof window.apttLevel); st.push('level=' + (typeof amLevel !== 'undefined' ? amLevel : '?')); st.push('onclick=' + (o.getAttribute('onclick') || 'none').slice(0, 60)); st.push('connected=' + o.isConnected); } catch (x2) { }
+          m.textContent = 'Nothing opened. Please reload (Cmd-R) and try again; if it still fails tell Mr Powles: ' + st.join(' · ');
+          card.insertBefore(m, card.firstChild);
+        }
+      } catch (e3) { }
+    }, 500);
     if (err) {
       try { console.error(err); } catch (x) { }
       var m = document.getElementById('spt-err'); if (m) m.remove();
@@ -52195,4 +52216,4 @@ function mlfLeisureStart(deck) {
   if (document.readyState === 'complete') start(); else window.addEventListener('load', start);
 })();
 </script>
-<script id="ap-build">window.__apBuild="eaacb625f8";</script>
+<script id="ap-build">window.__apBuild="6af6fdcae9";</script>
