@@ -7358,7 +7358,7 @@ function generateAPSpotTest(timed) {
     var thV = (document.getElementById('theme-select') || {}).value || 'all';
     apttSpot({ id: 'ktr|' + (_studioNs ? 'S' + _studioNs.join('-') : _singleKTR !== null ? 'KTR' + _singleKTR : thV) + '|' + f + '>' + t + '|' + apLv('ktr') + '|' + (numQ * ipq) + '|' + spec.src + (spec.src === 'dea' ? spec.modes.join('') : ''), title: ocEsc(String(label).replace(/\s*\(\d+ KTRs\)/, '')),
       meta: qFlag + ' → ' + aFlag + ' &nbsp;·&nbsp; 5 × ' + ipq + ' = ' + (numQ * ipq) + ' items', lang: hasKnow ? '' : (t === 'fr' ? 'French' : 'English'), langCode: hasKnow ? (t === 'fr' ? 'F' : '') : undefined, kind: spec.src === 'words' ? 'word' : 'sentence', nolevel: !useLv, rows: rows,
-      kindOf: hasKnow ? function (p) { return p._ref && (p._ref.task === 'know' || p._ref.task === 'part') ? 'word' : 'sentence'; } : null,
+      kindOf: hasKnow ? function (p) { return p._ref && (p._ref.task === 'know' || p._ref.task === 'part' || p._ref.task === 'parts') ? 'word' : 'sentence'; } : null,
       detail: hasKnow ? apTaskLegend(items) : undefined,
       q: function (p) { return p.term || ''; }, a: function (p) { return p._answer || p.def_fr || ''; }, label: function (p) { return p._modeLabel || 'Définition'; } });
     return;
@@ -10584,7 +10584,7 @@ function closeOCChallenge() {
   }
   window.__ktr = { pre: null, data: function () { return load().data; }, groups: function () { return load().groups; }, speak: function (t) { speak(cleanForSpeech(t, 'fr-FR'), 'fr-FR'); }, level: function (p) { return apKtrWordLevel(p); } };
   // the same question types as the AP Spot Test from KTR Studio, for the Speed Challenge tiles: the Studio stages, and the topic sentences
-  var SRCS = [['words', 'KTR words', 'English → French, word or phrase'], ['stU', 'Studio: Understand', 'Facts and the story, English → French'], ['stW', 'Studio: Words', 'Words and sentence frames, English → French'],
+  var SRCS = [['words', 'KTR words', 'English → French, word or phrase'], ['stV', 'Studio: Overview', 'The key phrases of the parts: write the French for the bold words'], ['stU', 'Studio: Understand', 'Facts and the story, English → French'], ['stW', 'Studio: Words', 'Words and sentence frames, English → French'],
     ['stS', 'Studio: Say it', 'Recall, Gaps and Rebuild sentences, English → French'], ['stA', 'Studio: Use it', 'Checklist ideas, frame and model sentence, English → French'], ['stK', 'Studio: Know it', 'Names, dates and figures: just answer the question'],
     ['stO', 'Studio: Word order', 'Put the jumbled words in the right order'], ['stE', 'Studio: Spot the error', 'Correct the grammar error in the sentence'], ['trtopic', 'Translation: topic sentences', 'English → French, whole sentences']];
   var icache = {};
@@ -10598,6 +10598,7 @@ function closeOCChallenge() {
     }
     if (!_studioData) { try { var src2 = document.getElementById('ktr-studio-src').textContent, a = src2.indexOf('const DATA='), b = src2.indexOf(';\nconst IMGS='); _studioData = JSON.parse(src2.slice(a + 11, b)); } catch (e) { return out; } }
     apStudioPairs(n, src).forEach(function (w) {
+      if (src === 'stV' && w.task !== 'part') return;
       var t = w.task || '', en = w.en, fr = w.fr;
       if (t === 'order') { var h = apJumble(w), bm = h.match(/<b>(.*?)<\/b>/), im = h.match(/<i[^>]*>\((.*?)\)<\/i>/); en = '\u0003' + dec(bm ? bm[1] : '') + '\u0004' + (im ? '\u0005(' + dec(im[1]) + ')\u0006' : ''); }
       else if (t === 'err') fr = dec(apErrMark(w.en, w.fr).replace(/<u[^>]*>/g, '\u0007').replace(/<\/u>/g, '\u0008'));   // the corrected word(s) underlined, as in the Spot Test
@@ -10668,7 +10669,7 @@ function apSpotModeName(o) {
   var N = { def: 'Definition', ex: 'Example', an: 'Analysis' };
   if (o.src === 'dea') return o.modes.length === 1 ? N[o.modes[0]] : 'Definition · Example · Analysis';
   if (o.src === 'mix') return 'Mixed sources';
-  if (o.src.slice(0, 2) === 'st' && o.src !== 'short') return { stU: 'Studio: Understand', stW: 'Studio: Words', stS: 'Studio: Say it', stA: 'Studio: Use it', stK: 'Studio: Know it', stO: 'Studio: Word order', stE: 'Studio: Spot the error' }[o.src];
+  if (o.src.slice(0, 2) === 'st' && o.src !== 'short') return { stV: 'Studio: Overview', stU: 'Studio: Understand', stW: 'Studio: Words', stS: 'Studio: Say it', stA: 'Studio: Use it', stK: 'Studio: Know it', stO: 'Studio: Word order', stE: 'Studio: Spot the error' }[o.src];
   return { short: 'Short versions', trlong: 'Translate: full', trshort: 'Translate: short', trtopic: 'Translate: topic sentences', words: 'KTR words' }[o.src];
 }
 function apSpotNoteUpdate() {
@@ -10721,7 +10722,7 @@ function apStudioDedupe(pool) {
 }
 // the coloured tag that says what to do: translate into French, or just answer a knowledge question
 function apTaskTag(task) {
-  var T = { know: ['#c9a84c', '#1a2744', 'JUST ANSWER THE QUESTION'], order: ['#1a6b3a', '#fff', 'PUT THE WORDS IN ORDER'], err: ['#b03a2e', '#fff', 'CORRECT THE GRAMMAR ERROR'], part: ['#1f6f8b', '#fff', 'TRANSLATE ONLY THE BOLD'] }, t = T[task === true ? 'know' : task] || ['#1a2744', '#fff', 'TRANSLATE'];
+  var T = { hook: ['#6b3a8a', '#fff', 'OVERVIEW: ANSWER IN FRENCH'], parts: ['#6b3a8a', '#fff', 'OVERVIEW: PUT THE PARTS IN ORDER'], know: ['#c9a84c', '#1a2744', 'JUST ANSWER THE QUESTION'], order: ['#1a6b3a', '#fff', 'PUT THE WORDS IN ORDER'], err: ['#b03a2e', '#fff', 'CORRECT THE GRAMMAR ERROR'], part: ['#1f6f8b', '#fff', 'TRANSLATE ONLY THE BOLD'] }, t = T[task === true ? 'know' : task] || ['#1a2744', '#fff', 'TRANSLATE'];
   return '<span style="display:inline-block;background:' + t[0] + ';color:' + t[1] + ';border-radius:4px;padding:1px 8px;font:800 .62rem DM Sans,Arial,sans-serif;letter-spacing:.06em;margin-right:6px">' + t[2] + '</span> ';
 }
 // the corrected sentence with the words that were changed UNDERLINED (word-by-word comparison with the wrong sentence)
@@ -10749,8 +10750,8 @@ function apErrMark(wrong, right) {
 // the line at the top of a mixed test: what each tag means (only the tags that are in the test)
 function apTaskLegend(items) {
   var seen = {}; items.forEach(function (p) { seen[(p._ref && p._ref.task) || 'tr'] = 1; });
-  var M = { tr: ['tr', '= translate the English into French.'], know: ['know', '= answer the question, in French (a name, a date or a figure). Do not translate it.'], order: ['order', '= write the words in the right order, as a correct sentence.'], err: ['err', '= rewrite the sentence in French with the grammar error corrected.'], part: ['part', '= translate only the bold words into French (a short phrase).'] };
-  return '<b>Read the tag on each item.</b><br>' + ['tr', 'part', 'order', 'err', 'know'].filter(function (k) { return seen[k]; }).map(function (k) { var C = { tr: '#1a2744', part: '#1f6f8b', order: '#1a6b3a', err: '#b03a2e', know: '#8a6a0a' }; return apTaskTag(k === 'tr' ? '' : k) + '<span style="color:' + C[k] + '">' + M[k][1] + '</span>'; }).join('<br>');
+  var M = { hook: ['hook', '= answer the question in French, in two or three sentences (the first two parts of the overview).'], parts: ['parts', '= put the parts in the right order (a, b, c, d...).'], tr: ['tr', '= translate the English into French.'], know: ['know', '= answer the question, in French (a name, a date or a figure). Do not translate it.'], order: ['order', '= write the words in the right order, as a correct sentence.'], err: ['err', '= rewrite the sentence in French with the grammar error corrected.'], part: ['part', '= translate only the bold words into French (a short phrase).'] };
+  return '<b>Read the tag on each item.</b><br>' + ['tr', 'hook', 'parts', 'part', 'order', 'err', 'know'].filter(function (k) { return seen[k]; }).map(function (k) { var C = { hook: '#6b3a8a', parts: '#6b3a8a', tr: '#1a2744', part: '#1f6f8b', order: '#1a6b3a', err: '#b03a2e', know: '#8a6a0a' }; return apTaskTag(k === 'tr' ? '' : k) + '<span style="color:' + C[k] + '">' + M[k][1] + '</span>'; }).join('<br>');
 }
 // a Rebuild sentence as a jumble of its words (never in the right order), with its English as the clue
 function apJumble(w) {
@@ -10773,7 +10774,7 @@ function apStudioAll() {
   if (_stCache && _stCache.d === _studioData) return _stCache;
   var by = {}, all = [];
   ((_studioData && _studioData.subs) || []).forEach(function (sub) { (sub.ktrs || []).forEach(function (k) {
-    var L = { stU: [], stW: [], stS: [], stA: [], stK: [], stO: [], stE: [] };
+    var L = { stV: [], stU: [], stW: [], stS: [], stA: [], stK: [], stO: [], stE: [] };
     var add = function (st, lab, en, fr) { if (!en || !fr) return; var o = { en: String(en).replace(/\*/g, ''), fr: String(fr).replace(/\*/g, ''), label: lab, st: st }; L[st].push(o); all.push(o); };
     var und = function (x) {   // an Understand fact is tested on one key chunk (the English sentence with the chunk in bold): a short written answer
       if (x.cl && x.cl.en && x.cl.fr) L.stU.push({ en: x.cl.en, fr: x.cl.fr, label: 'Comprendre', st: 'stU', task: 'part' });
@@ -10791,11 +10792,29 @@ function apStudioAll() {
     (k.know || []).forEach(function (x) { if (x.q && x.a) { var o = { en: x.q, fr: x.a, label: 'Savoir', st: 'stK', know: true, task: 'know' }; L.stK.push(o); all.push(o); } });
     (sy.scramble || []).forEach(function (x) { if (x.fr && x.fr.split(/\s+/).length > 2) L.stO.push({ en: x.en || '', fr: x.fr, label: 'Remettre en ordre', st: 'stO', task: 'order' }); });
     (sy.err || []).forEach(function (x) { if (x.wrong && x.right) L.stE.push({ en: x.wrong, fr: x.right, why: x.why || '', label: "Trouvez l'erreur", st: 'stE', task: 'err' }); });
-    by[k.n] = L;
+    _stvK[k.n] = k; by[k.n] = L;
   }); });
   return (_stCache = { d: _studioData, by: by, all: all });
 }
-function apStudioPairs(n, src) { var A = apStudioAll(); return ((A.by[n] || {})[src] || []); }
+var _stvK = {};
+// Vue d'ensemble · Overview: the question (hook), the parts in order, the key phrases; drawn afresh each time (1 hook answer, 1 order, 3 key phrases: so even one KTR gives the 5 items a Spot Test needs), only from the Studio's own text
+function apOverviewItems(k) {
+  var out = [], P = (k.picture || []).filter(function (x) { return x && x.fr && x.en; }), i, j, t;
+  var LAB = "Vue d'ensemble";
+  if (k.hook && k.hook.en && P.length > 1) out.push({ en: ocEsc(k.hook.en) + '<br><i style="color:#667;font-size:.9em">(Answer in French, in two or three sentences.)</i>', fr: String(P[0].fr) + ' ' + String(P[1].fr), label: LAB, st: 'stV', task: 'hook' });
+  if (P.length > 3) {
+    var idx = [], sh, tries = 0, L = 'abcdefgh';
+    for (i = 0; i < P.length && i < 8; i++) idx.push(i);
+    do { sh = idx.slice(); for (i = sh.length - 1; i > 0; i--) { j = Math.floor(Math.random() * (i + 1)); t = sh[i]; sh[i] = sh[j]; sh[j] = t; } tries++; } while (sh.join() === idx.join() && tries < 20);
+    var lines = sh.map(function (x, n) { return '<b>' + L.charAt(n) + '</b> ' + ocEsc(P[x].en); }).join('<br>'), ans = idx.map(function (x) { return L.charAt(sh.indexOf(x)); }).join(', ');
+    out.push({ en: '<b>Put the parts in the right order.</b><br>' + lines, fr: ans + '<br><i>' + idx.map(function (x) { return ocEsc(P[x].label || ''); }).join(' · ') + '</i>', label: LAB, st: 'stV', task: 'parts' });
+  }
+  var cp = P.filter(function (x) { return x.cl && x.cl.en && x.cl.fr; });
+  for (i = cp.length - 1; i > 0; i--) { j = Math.floor(Math.random() * (i + 1)); t = cp[i]; cp[i] = cp[j]; cp[j] = t; }
+  cp.slice(0, 3).forEach(function (x) { out.push({ en: x.cl.en, fr: x.cl.fr, label: LAB, st: 'stV', task: 'part' }); });
+  return out;
+}
+function apStudioPairs(n, src) { var A = apStudioAll(); if (src === 'stV') return _stvK[n] ? apOverviewItems(_stvK[n]) : []; return ((A.by[n] || {})[src] || []); }
 function apStudioLevel(x) { return apLvGrader('ktr-studio', function () { return apStudioAll().all.length; }, function () { return apStudioAll().all; }, function (q) { return q.en || ''; }, function (q) { return q.fr || ''; }, 'fr')(x); }
 // KTR Studio → ⏱ AP Spot Test: timed & submitted on these KTRs
 function ktrStudioSpot(ns, label, mk, data, paper) {   // mk (teacher): after the source and level, open 🔑 Make a test link straight away
@@ -10806,7 +10825,7 @@ function ktrStudioSpot(ns, label, mk, data, paper) {   // mk (teacher): after th
   var G = function (t) { return '<div style="font:800 .72rem DM Sans,sans-serif;letter-spacing:.06em;text-transform:uppercase;color:#8a6d1d;margin:10px 0 6px">' + t + '</div>'; };
   var b = function (v, t, sub) { return '<label style="display:flex;gap:10px;align-items:flex-start;margin:0 0 6px;padding:9px 12px;border:1.5px solid #c9a84c;border-radius:10px;background:#fff;color:#1a2744;font:700 .92rem DM Sans,system-ui,sans-serif;cursor:pointer"><input type="checkbox" data-v="' + v + '" style="margin-top:3px;width:18px;height:18px;accent-color:#1a2744"><span>' + t + '<small style="display:block;font-weight:400;color:#556;margin-top:2px">' + sub + '</small></span></label>'; };
   d.innerHTML = '<div style="background:#fff;border-radius:16px;max-width:480px;width:100%;max-height:92vh;overflow:auto;padding:20px;color:#1a2744;font-family:DM Sans,system-ui,sans-serif"><div style="font:800 1.2rem Georgia,serif;margin:0 0 4px">' + (paper ? '&#128424; Paper Spot Test' : '✍ Submitted Spot Test') + '</div><div style="color:#556;font-size:.85rem;margin:0 0 4px">' + label + '. What is the test on? <b>Tick one or any combination.</b></div>'
-    + '<div style="display:flex;justify-content:space-between;align-items:center;gap:8px;margin:10px 0 6px"><div style="font:800 .72rem DM Sans,sans-serif;letter-spacing:.06em;text-transform:uppercase;color:#8a6d1d">From the Studio</div><button type="button" data-all="1" style="padding:6px 12px;border:1.5px solid #1a2744;border-radius:8px;background:#1a2744;color:#f2d38a;font:800 .8rem DM Sans,sans-serif;cursor:pointer">☑ Select all Studio</button></div>' + b('stU', 'Understand', 'Facts and the story, English → French') + b('stW', 'Words', 'Words and sentence frames, English → French')
+    + '<div style="display:flex;justify-content:space-between;align-items:center;gap:8px;margin:10px 0 6px"><div style="font:800 .72rem DM Sans,sans-serif;letter-spacing:.06em;text-transform:uppercase;color:#8a6d1d">From the Studio</div><button type="button" data-all="1" style="padding:6px 12px;border:1.5px solid #1a2744;border-radius:8px;background:#1a2744;color:#f2d38a;font:800 .8rem DM Sans,sans-serif;cursor:pointer">☑ Select all Studio</button></div>' + b('stV', 'Vue d\'ensemble · Overview', 'The question, the parts in order, the key phrases') + b('stU', 'Understand', 'Facts and the story, English → French') + b('stW', 'Words', 'Words and sentence frames, English → French')
     + b('stS', 'Say it', 'The Recall, Gaps and Rebuild sentences, English → French') + b('stA', 'Use it', 'Checklist ideas, frame and model sentence, English → French') + b('stK', 'Know it', 'Names, dates and figures: just answer the question, no translation') + b('stO', 'Word order', 'Put the jumbled words in the right order') + b('stE', 'Spot the error', 'Correct the grammar error in a sentence')
     + G('From the KTRs') + b('words', 'KTR words', 'English → French, word or phrase') + b('trtopic', 'Translation: topic sentences', 'English → French, whole sentences')
     + b('trlong', 'Translation: full definition, example, analysis', 'English → French') + b('trshort', 'Translation: short versions', 'English → French')
@@ -17350,4 +17369,4 @@ function showKTRStudio(){
   if (document.readyState === 'complete') start(); else window.addEventListener('load', start);
 })();
 </script>
-<script id="ap-build">window.__apBuild="bab466e66d";</script>
+<script id="ap-build">window.__apBuild="2787d12b96";</script>
