@@ -8166,6 +8166,17 @@ mark.k{background:var(--hl);color:inherit;border-radius:5px;padding:0 2px}
 .mc-opt select{font:inherit;border:1.5px solid var(--line);border-radius:10px;background:var(--surface);color:var(--ink);padding:6px 10px}
 .tg.soon{opacity:.45}
 /* ===== Turn the cards ===== */
+/* turn the cards: the chosen card lifts, turns right over and grows into the big picture */
+.fc-ov{position:fixed;z-index:9999;perspective:1400px;pointer-events:none;transition:left .55s cubic-bezier(.3,.7,.2,1),top .55s cubic-bezier(.3,.7,.2,1),width .55s cubic-bezier(.3,.7,.2,1),height .55s cubic-bezier(.3,.7,.2,1),transform .6s ease}
+.fc-ov.turn{transform:scale(1.1)}
+.fc-ov.grow{transform:none}
+.fc-ovi{position:absolute;inset:0;transform-style:preserve-3d;-webkit-transform-style:preserve-3d;transition:transform .62s cubic-bezier(.4,.1,.3,1)}
+.fc-ov.turn .fc-ovi{transform:rotateY(180deg)}
+.fc-ovf{position:absolute;inset:0;box-sizing:border-box;border-radius:14px;backface-visibility:hidden;-webkit-backface-visibility:hidden;box-shadow:0 12px 30px rgba(0,0,0,.45)}
+.fc-ovp{transform:rotateY(180deg);background-size:cover;background-position:center;border:6px solid #f7f3e8}
+.fc-hold{visibility:hidden}
+.fc-fade>*:not(.fc-pic){animation:fc-fd .5s ease-out both}
+@keyframes fc-fd{from{opacity:0}to{opacity:1}}
 /* turn the cards: opening screen as a card table */
 .fc-hero{position:relative;overflow:hidden;border-radius:18px;padding:26px 18px 22px;text-align:center;color:#f7f3e8;background:radial-gradient(ellipse at 50% 28%,#1e6b4c 0,#0f3d2e 55%,#082a1e 100%);box-shadow:inset 0 0 60px rgba(0,0,0,.45),0 6px 18px rgba(0,0,0,.25);margin-top:8px}
 .fc-fan{position:relative;width:min(300px,62vw);aspect-ratio:16/9;margin:6px auto 18px}
@@ -9139,7 +9150,7 @@ const _fcU={};
 function fcPlay(k){try{if(!_fcU[k]){const b=atob(FC_SND[k]),u=new Uint8Array(b.length);for(let i=0;i<b.length;i++)u[i]=b.charCodeAt(i);_fcU[k]=URL.createObjectURL(new Blob([u],{type:'audio/mpeg'}))}const a=new Audio(_fcU[k]);a.volume=1;const pr=a.play();if(pr&&pr.catch)pr.catch(()=>{})}catch(e){}}
 const FC={areas:new Set(['A','B','C','D','E']),n:6,secs:0,phase:'setup',cards:[],cur:null,seen:new Set(),to:null,iv:null,end:0,over:false,clue:false,shown:false,fresh:false,tms:[]};
 const fcPool=()=>Q.filter(q=>hasPic(q.i)&&FC.areas.has(areaOf(q.section))).map(q=>q.i);
-function fcStop(){if(FC.iv){clearInterval(FC.iv);FC.iv=null}if(FC.to){clearTimeout(FC.to);FC.to=null}FC.tms.forEach(clearTimeout);FC.tms=[]}
+function fcStop(){const ov=document.getElementById('fc-ov');if(ov)ov.remove();if(FC.iv){clearInterval(FC.iv);FC.iv=null}if(FC.to){clearTimeout(FC.to);FC.to=null}FC.tms.forEach(clearTimeout);FC.tms=[]}
 function fcQuiet(){try{speechSynthesis.cancel()}catch(e){}try{window.parent.speechSynthesis.cancel()}catch(e){}}
 function fcBack(){
   if(S.view!=='cards')return false;
@@ -9175,10 +9186,24 @@ function fcDealAnim(){
 window.fcOpen=function(k){
   const c=FC.cards[k];if(!c||FC.to)return;
   if(!c.pts){const n=(PICS[String(c.i+1)]||[]).length;c.pts=[Math.floor(Math.random()*n)]}
-  const el=document.getElementById('fc-'+k);if(el)el.classList.add('flip');
+  const el=document.getElementById('fc-'+k);
   fcPlay(Math.random()<.5?'p2':'p4');
-  FC.to=setTimeout(()=>{FC.to=null;FC.cur=k;FC.phase='card';FC.clue=false;FC.shown=false;FC.over=false;FC.fresh=true;FC.end=Date.now()+FC.secs*1000;render();window.scrollTo(0,0);if(FC.secs>0)FC.iv=setInterval(fcTick,250)},400);
+  const reduce=window.matchMedia&&matchMedia('(prefers-reduced-motion: reduce)').matches;
+  if(!el||reduce){FC.to=setTimeout(()=>fcEnter(k,null),250);return}
+  const r=el.getBoundingClientRect(),ov=document.createElement('div');
+  ov.id='fc-ov';ov.className='fc-ov';ov.style.cssText='left:'+r.left+'px;top:'+r.top+'px;width:'+r.width+'px;height:'+r.height+'px';
+  ov.innerHTML='<div class="fc-ovi"><div class="fc-bk fc-ovf"></div><div class="fc-ovf fc-ovp" style="background-image:url('+picSrc(c.i)+')"></div></div>';
+  document.body.appendChild(ov);el.style.visibility='hidden';
+  void ov.offsetWidth;ov.classList.add('turn');
+  FC.to=setTimeout(()=>fcEnter(k,ov),640);
 };
+function fcEnter(k,ov){
+  FC.cur=k;FC.phase='card';FC.clue=false;FC.shown=false;FC.over=false;FC.fresh=!ov;FC.hold=!!ov;FC.end=Date.now()+FC.secs*1000+(ov?650:0);
+  render();window.scrollTo(0,0);
+  const pic=document.querySelector('.fc-pic'),go=()=>{FC.to=null;if(ov&&ov.parentNode)ov.remove();if(pic)pic.classList.remove('fc-hold');if(FC.secs>0)FC.iv=setInterval(fcTick,250)};
+  if(ov&&pic){const t=pic.getBoundingClientRect();ov.classList.add('grow');ov.style.left=t.left+'px';ov.style.top=t.top+'px';ov.style.width=t.width+'px';ov.style.height=t.height+'px';FC.to=setTimeout(go,600)}
+  else go();
+}
 function fcTick(){
   const left=Math.max(0,FC.end-Date.now()),bar=document.getElementById('fcbar'),tt=document.getElementById('fct');
   if(bar)bar.style.width=Math.round(100*left/(FC.secs*1000))+'%';if(tt)tt.textContent=fmt(left/1000);
@@ -9222,16 +9247,16 @@ function vCardsTable(){
    +'<div class="row" style="margin-top:14px"><button class="btn'+(all?' pri':'')+'" onclick="fcDeal()">\u{1F500} Shuffle and deal again</button><button class="btn" onclick="FC.phase=\'setup\';render()">Change the areas</button><button class="btn" onclick="mcFsToggle()">⛶ Full screen</button></div>';
 }
 function vCardsCard(){
-  const fresh=FC.fresh;FC.fresh=false;
+  const fresh=FC.fresh,hold=FC.hold;FC.fresh=false;FC.hold=false;
   const c=FC.cards[FC.cur],i=c.i,sps=PICS[String(i+1)]||[],adj=spreadSpots(sps);
   const mks=c.pts.map(k=>'<span class="mk pulse" style="left:'+adj[k].x.toFixed(1)+'%;top:'+adj[k].y.toFixed(1)+'%">'+(k+1)+'</span>').join('');
   const left=Math.max(0,FC.end-Date.now()),pct=Math.round(100*left/(FC.secs*1000));
   const timer=FC.secs>0?'<div class="mc-bar"><i id="fcbar" style="width:'+(FC.over||FC.shown?0:pct)+'%"></i></div>':'';
   const clue=FC.clue?c.pts.map(k=>'<div class="fc-box fc-clue"><span class="fc-n">'+(k+1)+'</span>'+esc(spotEn(i,sps[k]))+'</div>').join(''):'';
   const ans=FC.shown?fcSents(c).map(o=>'<div class="fc-box fc-ans">'+o.ns.map(n=>'<span class="fc-n">'+n+'</span>').join('')+markPh(o.t,o.ph)+' '+spkBtn(o.t)+'</div>').join(''):'';
-  return '<div class="mc-wrap"><div class="row" style="width:100%;justify-content:space-between"><span class="label" style="margin:0">Card '+(FC.cur+1)+' of '+FC.cards.length+(FC.secs>0?' · <span class="mc-t" id="fct">'+(FC.over?'⏰ 0:00':fmt(left/1000))+'</span>':'')+'</span><button class="btn" onclick="goBack()">← Back</button></div>'
+  return '<div class="mc-wrap'+(hold?' fc-fade':'')+'"><div class="row" style="width:100%;justify-content:space-between"><span class="label" style="margin:0">Card '+(FC.cur+1)+' of '+FC.cards.length+(FC.secs>0?' · <span class="mc-t" id="fct">'+(FC.over?'⏰ 0:00':fmt(left/1000))+'</span>':'')+'</span><button class="btn" onclick="goBack()">← Back</button></div>'
    +'<div><div class="fc-q">'+esc(Q[i].q_fr)+'</div><div class="fc-qen">'+esc(Q[i].q_en)+'</div></div>'+timer
-   +'<div class="mc-img fc-pic'+(fresh?' fc-in':'')+'"><img src="'+picSrc(i)+'" alt="">'+mks+'</div>'
+   +'<div class="mc-img fc-pic'+(fresh?' fc-in':'')+(hold?' fc-hold':'')+'"><img src="'+picSrc(i)+'" alt="">'+mks+'</div>'
    +clue+ans
    +'<div class="mc-ctl"><span class="label" style="margin:0 6px 0 0">Spot '+(c.pts[0]+1)+'</span><button class="btn" onclick="fcClue()">\u{1F4A1} '+(FC.clue?'Hide the clue':'Clue')+'</button>'
    +(FC.shown?'':'<button class="btn pri" onclick="fcShow()">\u{1F441} Show</button>')
@@ -10920,4 +10945,4 @@ var APAM_TPL = "<!doctype html>\n<html lang=\"en\"><head><meta charset=\"utf-8\"
   if (document.readyState === 'complete') start(); else window.addEventListener('load', start);
 })();
 </script>
-<script id="ap-build">window.__apBuild="2910c83af6";</script>
+<script id="ap-build">window.__apBuild="300ecf143e";</script>
