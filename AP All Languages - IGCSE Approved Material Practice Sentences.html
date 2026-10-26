@@ -8233,6 +8233,7 @@ mark.k{background:var(--hl);color:inherit;border-radius:5px;padding:0 2px}
 .mw-sub{margin:2px 0 0;color:var(--ink2);font-size:clamp(.85rem,1.6vw,1.05rem)}
 .mw-go{margin:2px auto 0}
 .fc-ctl{margin:4px 0 6px;justify-content:center}
+.mc-wrap .mc-img.mc-talkpic,:fullscreen .mc-wrap .mc-img.mc-talkpic{width:min(100%,calc((100vh - 280px)*1.78));margin-left:auto;margin-right:auto}
 .fc-x .fc-pic{width:min(100%,calc((100vh - 400px)*1.78))}
 .fc-qen{text-align:center;color:var(--ink2);opacity:.55;font-size:.78rem;margin:1px 0 4px}
 .fc-pic{width:min(100%,calc((100vh - 285px)*1.78));margin-left:auto;margin-right:auto}
@@ -8362,7 +8363,7 @@ const scopeN=()=>S.pick.length?S.pick.length+' section'+(S.pick.length===1?'':'s
 const inPick=q=>!S.pick.length||S.pick.indexOf(SECS.indexOf(q.section))>=0;
 function crumb(){
   const c=document.getElementById('crumb');
-  c.textContent=S.view==='home'?'Approved Material · '+LG.name+'':S.view==='themes'?'Choose an area':S.view==='area'?(S.theme==='ALL'?'Combine sections':'Area '+S.theme+' · '+AREAS[S.theme][0]):S.view==='machine'?'Spin the wheel!':S.view==='cards'?'Shuffle and deal!':(S.sec==='all'?(S.pick.length?'Mixed: '+scopeN():'All sections'):secName(SECS[S.sec]))+(S.view==='sec'&&S.tab!=='study'?' · '+(S.tab==='mix'?'Mixed':S.tab==='pic'?'Pictures':TNAME[S.tab]):'');
+  c.textContent=S.view==='home'?'Approved Material · '+LG.name+'':S.view==='themes'?'Choose an area':S.view==='area'?(S.theme==='ALL'?'Combine sections':'Area '+S.theme+' · '+AREAS[S.theme][0]):S.view==='machine'?'Spin the wheel!':S.view==='cards'?'Shuffle and deal':(S.sec==='all'?(S.pick.length?'Mixed: '+scopeN():'All sections'):secName(SECS[S.sec]))+(S.view==='sec'&&S.tab!=='study'?' · '+(S.tab==='mix'?'Mixed':S.tab==='pic'?'Pictures':TNAME[S.tab]):'');
 }
 function keepScroll(f){const y=window.scrollY;f();window.scrollTo(0,y)}
 window.togPick=function(k){const i=S.pick.indexOf(k);if(i>=0)S.pick.splice(i,1);else S.pick.push(k);S.pick.sort((a,b)=>a-b);keepScroll(render)};
@@ -9156,8 +9157,10 @@ function vMachine(){
     body='<div class="mc-img spin"><canvas id="mcwh" style="width:100%;height:100%;display:block"></canvas></div>';ctl='<span class="mc-t">…</span>';
   }else if(MC.phase==='talk'){
     const left=Math.max(0,MC.end-Date.now()),pct=Math.round(100*left/(MC.secs*1000));
-    body='<div class="mc-q">Which topic is this? Talk about it for '+MC.secs+' seconds.</div><div class="mc-bar"><i id="mcbar" style="width:'+(MC.over?0:pct)+'%"></i></div><div class="mc-img"><img id="mcimg" src="'+picSrc(MC.cur)+'" alt=""></div>';
+    const i0=MC.cur;
     ctl='<span class="mc-t" id="mct">'+(MC.over?'⏰ 0:00':fmt(left/1000))+'</span><button class="btn pri" onclick="mcReveal()">Reveal</button><button class="btn" onclick="mcSpin()">▶ Spin the wheel again</button><button class="btn" onclick="mcFsToggle()">\u26F6</button>';
+    body='<div><div class="fc-q">'+esc(Q[i0].q_fr)+'</div><div class="fc-qen">'+esc(Q[i0].q_en)+'</div></div><div class="mc-bar"><i id="mcbar" style="width:'+(MC.over?0:pct)+'%"></i></div><div class="mc-ctl fc-ctl">'+ctl+'</div><div class="mc-img mc-talkpic"><img id="mcimg" src="'+picSrc(MC.cur)+'" alt=""></div>';
+    return mcTally()+'<div class="mc-wrap">'+body+'</div>';
   }else{
     const i=MC.cur;S.pi=i;
     return mcTally()+'<div class="mc-wrap"><div class="mc-q">'+esc(Q[i].q_fr)+' <span style="color:var(--ink2);font-size:.7em">'+esc(Q[i].q_en)+'</span></div>'+'<div class="row mc-prac" style="margin:4px 0 10px;justify-content:center"><span class="label" style="margin:0">Practise this topic</span>'+[['study','Study'],['words',LG.words]].concat(TYPES.map(t=>[t[0],t[1]])).map(t=>'<button class="btn" onclick="mcPractise('+i+',\''+t[0]+'\')">'+esc(t[1])+'</button>').join('')+'</div>'+stageHtml(i,true)
@@ -9253,7 +9256,7 @@ function vCardsSetup(){
   const n=fcPool().length,ent=FC.enter;FC.enter=false;
   return '<div class="row" style="justify-content:flex-end"><button class="btn" onclick="goBack()">← Back</button></div>'
    +'<div class="fc-hero'+(ent?' ent':'')+'"><div class="fc-fan">'+[0,1,2,3,4,5,6].map(k=>'<i class="fc-bk fc-fc" style="--a:'+((k-3)*7)+'deg;--d:'+(k*70)+'ms"></i>').join('')+'</div>'
-   +'<h1 class="fc-ti">Shuffle and deal!</h1><p class="fc-sub">Shuffle. Deal. Turn one over. Say something good.</p>'
+   +'<h1 class="fc-ti">Shuffle and deal</h1><p class="fc-sub">Shuffle. Deal. Turn one over. Say something good.</p>'
    +'<button class="fc-go" id="fcgo" '+(n<4?'disabled':'')+' onclick="fcDeal()">Deal the cards</button>'
    +'<div class="fc-how"><span>1 · Turn a card over</span><span>2 · Answer the question, starting from the numbered spot</span><span>3 · Press Reveal to see and hear the approved sentence</span></div></div>'
    +'<div class="fc-set"><div><div class="fc-lab">Which areas?</div><div class="fc-ar">'+chips+'</div></div>'
@@ -9261,7 +9264,7 @@ function vCardsSetup(){
    +'<div class="fc-cnt" id="fccnt">'+n+' picture'+(n===1?'':'s')+' chosen'+(n<4?' (choose at least 4)':'')+'</div></div>';
 }
 function vCardsShuffle(){
-  return '<div class="row" style="justify-content:space-between"><h1 class="h2">\u{1F0CF} Shuffle and deal!</h1><button class="btn" onclick="goBack()">← Back</button></div>'
+  return '<div class="row" style="justify-content:space-between"><h1 class="h2">\u{1F0CF} Shuffle and deal</h1><button class="btn" onclick="goBack()">← Back</button></div>'
    +'<div class="fc-deck">'+[0,1,2,3,4,5,6].map(k=>'<div class="fc-dk fc-bk" style="--a:'+((k-3)*11)+'deg;--s:'+(k%2?30:-30)+'%"></div>').join('')+'</div><div class="fc-shuf">Shuffling…</div>';
 }
 function vCardsTable(){
@@ -9269,7 +9272,7 @@ function vCardsTable(){
   const grid=cs.map((c,k)=>c.done
      ?'<button class="fc-card up" id="fc-'+k+'" style="background-image:url('+picSrc(c.i)+')" onclick="fcOpen('+k+')" aria-label="Card '+(k+1)+' (turned over)"><span class="fc-ok">✓</span><span class="fc-tt">'+esc(Q[c.i].q_fr)+'</span></button>'
      :'<button class="fc-card bk" id="fc-'+k+'" onclick="fcOpen('+k+')" aria-label="Turn over card '+(k+1)+'"><span class="fc-no">'+(k+1)+'</span></button>').join('');
-  return '<div class="row" style="justify-content:space-between"><h1 class="h2">\u{1F0CF} Shuffle and deal!</h1><span class="label" style="margin:0">Turned '+nd+' / '+cs.length+'</span><button class="btn" onclick="goBack()">← Back</button></div>'
+  return '<div class="row" style="justify-content:space-between"><h1 class="h2">\u{1F0CF} Shuffle and deal</h1><span class="label" style="margin:0">Turned '+nd+' / '+cs.length+'</span><button class="btn" onclick="goBack()">← Back</button></div>'
    +'<div class="fc-grid" style="grid-template-columns:repeat('+cols+',minmax(0,1fr))">'+grid+'</div>'
    +(all?'<div class="note" style="margin-top:14px"><b>Every card has been turned.</b> Tap any card to look at it again, or deal a new set.</div>':'')
    +'<div class="row" style="margin-top:14px"><button class="btn'+(all?' pri':'')+'" onclick="fcDeal()">\u{1F500} Shuffle and deal again</button><button class="btn" onclick="FC.phase=\'setup\';render()">Change the areas</button><button class="btn" onclick="mcFsToggle()">⛶ Full screen</button></div>';
@@ -9301,7 +9304,7 @@ function vHome(){
   return '<div class="hx"><div class="hx-bg"'+bgS(S.bg)+'></div><div class="hx-shade"></div><div class="hx-in">'
    +'<div class="hx-kick">'+nT+' topics · '+SECS.length+' sections · '+esc(LG.name)+'</div><h1 class="hx-title">Approved Material Studio</h1><p class="hx-tag">'+esc(TAGLINE)+'</p>'
    +'<div class="hx-cta"><button class="hx-b pri" onclick="openThemes()">Choose a topic</button>'
-   +(nPics()>=2?'<button class="hx-b" onclick="openMachine()">\u{1F3A1} Spin the wheel!</button>':'')+(nPics()>=4?'<button class="hx-b" onclick="openCards()">\u{1F0CF} Shuffle and deal!</button>':'')
+   +(nPics()>=2?'<button class="hx-b" onclick="openMachine()">\u{1F3A1} Spin the wheel!</button>':'')+(nPics()>=4?'<button class="hx-b" onclick="openCards()">\u{1F0CF} Shuffle and deal</button>':'')
    +(last?'<button class="hx-b" onclick="resumeLast()">↺ Resume: '+esc(lastLabel(last))+'</button>':'')
    +'</div></div></div>'
    +'<details class="hx-more"><summary>More options</summary><div class="lead" style="margin-top:0">Tests, the Speed Challenge and mixed practice use the sections you tick.</div>'+spotRow()
@@ -11118,4 +11121,4 @@ var APAM_TPL = "<!doctype html>\n<html lang=\"en\"><head><meta charset=\"utf-8\"
   if (document.readyState === 'complete') start(); else window.addEventListener('load', start);
 })();
 </script>
-<script id="ap-build">window.__apBuild="ce28c8dec5";</script>
+<script id="ap-build">window.__apBuild="457bd580f4";</script>
