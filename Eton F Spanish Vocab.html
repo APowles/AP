@@ -9168,6 +9168,19 @@ if (window.__spv) window.__spv.speedTest = function (kind, secs, rev, lv, mix) {
 (function () {
   var QUICK = 'No-limit test (up to the whole set)';
   function txt(b) { return (b.textContent || '').replace(/\s+/g, ' ').trim(); }
+  /* Run the original (hidden) button's own action directly, so it never depends on clicking a hidden element; if it fails, say so on screen instead of doing nothing. */
+  function sptFire(o, from) {
+    var err = null, code = o.getAttribute && o.getAttribute('onclick');
+    try { if (code) (new Function('event', code)).call(o, new Event('click')); else o.click(); } catch (e) { err = e; }
+    if (err) {
+      try { console.error(err); } catch (x) { }
+      var m = document.getElementById('spt-err'); if (m) m.remove();
+      m = document.createElement('div'); m.id = 'spt-err';
+      m.style.cssText = 'margin:8px 0;padding:10px 12px;border-radius:10px;background:#fdecea;border:2px solid #c0392b;color:#7a1f14;font:700 .9rem DM Sans,system-ui,sans-serif';
+      m.textContent = 'The Spot Test did not open. Please reload the page (Cmd-R, or pull down on the iPad) and try again. If it still fails, tell Mr Powles this: ' + (err && err.message ? err.message : err);
+      var card = from && from.closest ? from.closest('.spt-card') : null; if (card) card.insertBefore(m, card.firstChild);
+    }
+  }
 
   /* Answers are never on show: the "Answer Sheet" of a generated test sits behind a Show answers button. */
   function hideAnswers() {
@@ -9234,10 +9247,10 @@ if (window.__spv) window.__spv.speedTest = function (kind, secs, rev, lv, mix) {
         card = document.createElement('div'); card.className = 'spt-card';
         var sfx = (/Spot Test:\s*(.+)$/.exec(txt(pen || pap)) || [])[1]; card.innerHTML = '<div class="spt-h">\ud83d\udcdd Spot Test' + (sfx ? ' \u00b7 ' + sfx.replace(/</g, '&lt;') : '') + '</div><div class="spt-s">15 short questions in boxes (or 10 or 5 if you prefer). You may get fewer if the set is small, or if the answers are long: a timed test never runs past 4\u00bd minutes. You mark it yourself.</div><div class="spt-main"></div><div class="spt-pr"></div>';
         var main = card.querySelector('.spt-main'), pr = card.querySelector('.spt-pr');
-        if (pen) { var a = document.createElement('button'); a.type = 'button'; a.className = 'spt-big'; a.innerHTML = '\u270d Do it with Apple Pencil <small>hand in as a PDF if required</small>'; a.onclick = (function (o) { return function () { o.click(); }; })(pen); main.appendChild(a); }
+        if (pen) { var a = document.createElement('button'); a.type = 'button'; a.className = 'spt-big'; a.innerHTML = '\u270d Do it with Apple Pencil <small>hand in as a PDF if required</small>'; a.onclick = (function (o) { return function () { sptFire(o, a); }; })(pen); main.appendChild(a); }
         if (pap) {
           var c = document.createElement('button'); c.type = 'button'; c.className = pen ? 'spt-link' : 'spt-big alt'; c.textContent = pen ? 'Print it' : '\ud83d\udda8 Print it';
-          c.onclick = (function (o, cc) { return function () { o.click(); reveal(cc); }; })(pap, c);
+          c.onclick = (function (o, cc) { return function () { sptFire(o, cc); reveal(cc); }; })(pap, c);
           if (pen) { pr.appendChild(document.createTextNode('Prefer paper? ')); pr.appendChild(c); pr.appendChild(document.createTextNode(' to write on by hand.')); } else { main.appendChild(c); pr.style.display = 'none'; }
         }
         P.insertBefore(card, first);
@@ -9429,4 +9442,4 @@ if (window.__spv) window.__spv.speedTest = function (kind, secs, rev, lv, mix) {
   if (document.readyState === 'complete') start(); else window.addEventListener('load', start);
 })();
 </script>
-<script id="ap-build">window.__apBuild="4523bf06d4";</script>
+<script id="ap-build">window.__apBuild="a6ba09bc29";</script>
