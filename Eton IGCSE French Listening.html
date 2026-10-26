@@ -36712,7 +36712,7 @@ window.AP_RD_PAPERS.push({
         + '<div class="pc-title">' + esc(p.title) + '</div><div class="pc-meta">' + p.qs + ' questions &middot; ' + p.marks + ' marks</div><div class="pc-btn">&#9654; Start</div>'
         + '<div class="pc-btn pc-print" onclick="event.stopPropagation();AP_READING.sheet(' + i + ')" title="Print a blank answer sheet for this paper">&#128424; Answer sheet</div>'
         + '<div class="pc-btn pc-print pc-key" onclick="event.stopPropagation();AP_READING.sheet(' + i + ',true)" title="Teacher only: answer key">&#128273; Key</div>'
-        + (canSet() ? '<div class="pc-btn pc-print" onclick="event.stopPropagation();AP_READING.setTimed(' + i + ')" title="Teacher: set this paper as a timed link / code">&#128273; Set timed</div>' : '') + '</div>';
+        + (canSet() ? '<div class="pc-btn pc-print" data-tdoor="1" style="display:none" onclick="event.stopPropagation();AP_READING.setTimed(' + i + ')" title="Teacher: set this paper as a timed link / code">&#128273; Set timed</div>' : '') + '</div>';
     }).join('');
     $('rd-home').innerHTML = '<div class="card center-card">' + tabs('r')
       + '<div class="lang-toggle" role="group" aria-label="Language"><a class="lt lt-fr on" href="Eton%20IGCSE%20French%20Listening.html" aria-current="page" onclick="return false">&#127467;&#127479; French</a><a class="lt lt-it" href="Eton%20IGCSE%20Italian%20Listening.html">&#127470;&#127481; Italian</a></div>'
@@ -36830,7 +36830,7 @@ window.AP_RD_PAPERS.push({
     }).join('') + '<span class="rd-spacer"></span>'
       + (tm ? '' : '<button type="button" class="aph-btn aph-btn-sm" onclick="AP_READING.sheet(' + PAPERS.indexOf(cur) + ')" title="Print a blank answer sheet for this paper">&#128424; Answer sheet</button>'
       + '<button type="button" class="aph-btn aph-btn-sm as-key-btn" onclick="AP_READING.sheet(' + PAPERS.indexOf(cur) + ',true)" title="Teacher only: answer key">&#128273; Key</button>'
-      + (canSet() ? '<button type="button" class="aph-btn aph-btn-sm" onclick="AP_READING.setTimed(' + PAPERS.indexOf(cur) + ')" title="Teacher: set this paper as a timed link / code">&#128273; Set timed</button>' : '')) + '</div>';
+      + (canSet() ? '<button type="button" class="aph-btn aph-btn-sm" data-tdoor="1" style="display:none" onclick="AP_READING.setTimed(' + PAPERS.indexOf(cur) + ')" title="Teacher: set this paper as a timed link / code">&#128273; Set timed</button>' : '')) + '</div>';
     h += '<div class="rd-prog"><span>' + esc(cur.rdcode) + ' &middot; ' + esc(cur.code) + ' &middot; ' + esc(sec.title) + '</span><span>Section ' + (curSec + 1) + ' / ' + n + '</span></div>'
       + '<div class="rd-track"><div class="rd-fill" style="width:' + Math.round(curSec / n * 100) + '%"></div></div>';
     h += '<div class="lang-chip chip-fr">&#127467;&#127479; Lecture &middot; Reading</div>'
@@ -37352,7 +37352,7 @@ window.AP_LC_CSS = "/* AP Listening class sheet: all selectors prefixed .lc- */\
       var has = card.querySelector('.lc-set');
       if (!canSet()) { if (has) has.remove(); return; }
       if (has) return;
-      var b = document.createElement('div'); b.className = 'pc-btn pc-print lc-set'; b.title = 'Teacher: set this paper (or some sections) as a class answer sheet link / code';
+      var b = document.createElement('div'); b.className = 'pc-btn pc-print lc-set'; b.setAttribute('data-tdoor', '1'); b.style.display = 'none'; b.title = 'Teacher: set this paper (or some sections) as a class answer sheet link / code';
       b.innerHTML = '&#128273; Set class sheet'; b.onclick = function (e) { e.stopPropagation(); setClass(i); };
       card.appendChild(b);
     });
@@ -37551,6 +37551,8 @@ window.AP_LC_CSS = "/* AP Listening class sheet: all selectors prefixed .lc- */\
   }
   function tap(img) {
     if (!key()) { say(img, 'Not available'); return; }
+    var td = (function () { var out = []; function scan(d) { try { var q = d.querySelectorAll('[data-tdoor]'); for (var i = 0; i < q.length; i++) out.push(q[i]); var fr = d.querySelectorAll('iframe'); for (var j = 0; j < fr.length; j++) { try { scan(fr[j].contentDocument); } catch (e) { } } } catch (e) { } } scan(document); return out.length === 1 ? out[0] : null; })();
+    if (td) { td.click(); return; }                                   // the one hidden 'set as a test' button for what is on screen
     var b = document.getElementById('apdl-btn');                       // the drill-link maker, created by the apps' own code when a drill is set up
     if (b) { b.click(); return; }
     if (typeof window.toggleTeacherMode === 'function') { window.toggleTeacherMode(); return; }   // the Listening apps: teacher mode (mock papers)
@@ -37604,4 +37606,4 @@ window.AP_LC_CSS = "/* AP Listening class sheet: all selectors prefixed .lc- */\
   if (document.readyState === 'complete') start(); else window.addEventListener('load', start);
 })();
 </script>
-<script id="ap-build">window.__apBuild="7adb51b00e";</script>
+<script id="ap-build">window.__apBuild="9854aed5cd";</script>

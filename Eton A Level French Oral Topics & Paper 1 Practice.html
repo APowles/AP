@@ -9616,7 +9616,7 @@ function pickDeclaration(uid, choice) {
     + '<button class="aph-btn aph-btn-primary" onclick="startExamSim(\'' + uid + '\',\'' + choice + '\')" style="flex:1;min-height:44px;padding:10px 16px;font-size:.9375rem;">&#9654; Ready &#8212; simulate exam</button>'
     + '</div>'
     + ((window.APAL && APAL.supported()) ? '<div style="display:flex;gap:8px;flex-wrap:wrap;"><button class="aph-btn aporal-recbtn" onclick="APAL.start(\'' + uid + '\',\'' + choice + '\')" style="flex:1;background:#fdecea;border-color:#b71c1c;color:#b71c1c;font-weight:700;">&#127897; Record my oral</button>'
-      + (APAL.teacher() ? '<button class="aph-btn" onclick="APAL.makeLink(\'' + uid + '\',\'' + choice + '\')" style="flex:0 0 auto;">&#128273; Teacher: set as EW (link / code)</button>' : '') + '</div>' : '')
+      + (APAL.teacher() ? '<button class="aph-btn" data-tdoor="1" onclick="APAL.makeLink(\'' + uid + '\',\'' + choice + '\')" style="display:none;">&#128273; Teacher: set as EW (link / code)</button>' : '') + '</div>' : '')
     + (hasDemo ? '<div style="display:flex;gap:8px;flex-wrap:wrap;"><button class="aph-btn" onclick="playDemoAnswer(\'' + uid + '\',\'' + choice + '\')" style="flex:1;background:#eaf5ef;border-color:#2e7d52;color:#2e7d52;font-weight:700;">&#127911; Demo Mode</button>'
       + '<button class="aph-btn" onclick="apDemoLearn(\'' + uid + '\',\'' + choice + '\')" style="flex:0 0 auto;background:#fdf3dc;border-color:#c9a84c;color:#8a5c00;font-weight:700;">&#127891; Learn from this demo</button>'
       + '</div>' : '')
@@ -12318,13 +12318,13 @@ function p1PickUpd(){
   var ids=p1PickIds(), bar=document.getElementById('p1s-bar'); if(!bar) return;
   document.querySelectorAll('input[data-pid]').forEach(function(c){ c.checked=!!p1Pick[c.getAttribute('data-pid')]; });
   if(!ids.length){ bar.hidden=true; return; }
-  bar.hidden=false; bar.innerHTML='<span><b>'+ids.length+'</b> question'+(ids.length>1?'s':'')+' ticked · '+p1sMarks(ids)+' marks · '+p1sMin(p1sTimes(ids).total)+' in all</span><button type="button" class="p1s-tbtn" onclick="p1SetMake(p1PickIds())">🔑 Set the ticked questions</button>';
+  bar.hidden=false; bar.innerHTML='<span><b>'+ids.length+'</b> question'+(ids.length>1?'s':'')+' ticked · '+p1sMarks(ids)+' marks · '+p1sMin(p1sTimes(ids).total)+' in all</span><button type="button" class="p1s-tbtn" data-tdoor="1" style="display:none" onclick="p1SetMake(p1PickIds())">🔑 Set the ticked questions</button>';
 }
 window.p1PickTog = function(el){ p1Pick[el.getAttribute('data-pid')]=el.checked; p1PickUpd(); };
 window.p1PickSec = function(sec){ p1Pick={}; if(sec) paperIds(p1Paper.st,p1Paper.v).forEach(function(id){ if(P1_TYPES[P1Q[id].type].sec===sec) p1Pick[id]=1; }); p1PickUpd(); };
 function p1SetTBtn(ids, whole){
   if(P1S || !p1sTeacher()) return '';
-  return '<button type="button" class="p1s-tbtn" onclick="p1SetMake([\''+ids.join("','")+'\'])" title="Teacher: set this as a timed test with a link / code">🔑 '+(whole?'Set the whole paper as a Timed Eton Past Paper':'Set as a Timed Eton Past Paper Question')+'</button>';
+  return '<button type="button" class="p1s-tbtn" data-tdoor="1" style="display:none" onclick="p1SetMake([\''+ids.join("','")+'\'])" title="Teacher: set this as a timed test with a link / code">🔑 '+(whole?'Set the whole paper as a Timed Eton Past Paper':'Set as a Timed Eton Past Paper Question')+'</button>';
 }
 
 /* ---- 🔑 AP: make the link / code ---- */
@@ -14585,7 +14585,7 @@ const spotHost=()=>{try{return window.parent!==window&&typeof window.parent.ktrS
 const openSpot=(ns,label,mk)=>{const P=spotHost();if(P)P.ktrStudioSpot(ns,label,mk,DATA)};
 const openPaper=(ns,label)=>{const P=spotHost();if(P)P.ktrStudioSpot(ns,label,false,DATA,'paper')};
 const isTeacher=()=>{try{return !!window.parent.localStorage.getItem('apTeacherKey')}catch(e){return false}};
-const setTestBtn=(args)=>spotHost()&&isTeacher()?`<button class="spbtn" onclick="openSpot(${args},true)">🔑 Set as a test (link / code)</button>`:'';
+const setTestBtn=(args)=>spotHost()&&isTeacher()?`<button class="spbtn" data-tdoor="1" style="display:none" onclick="openSpot(${args},true)">🔑 Set as a test (link / code)</button>`:'';
 const spdHost=()=>{try{return window.parent!==window&&typeof window.parent.openKTRChallenge==='function'?window.parent:null}catch(e){return null}};
 function openSpeed(ids){
   {const P=spdHost();if(P){P.openKTRChallenge(ids&&ids.length?ids:null,true,null,['stU','stW','stS','stA','stK','stO','stE']);return}}
@@ -17065,6 +17065,8 @@ function showKTRStudio(){
   }
   function tap(img) {
     if (!key()) { say(img, 'Not available'); return; }
+    var td = (function () { var out = []; function scan(d) { try { var q = d.querySelectorAll('[data-tdoor]'); for (var i = 0; i < q.length; i++) out.push(q[i]); var fr = d.querySelectorAll('iframe'); for (var j = 0; j < fr.length; j++) { try { scan(fr[j].contentDocument); } catch (e) { } } } catch (e) { } } scan(document); return out.length === 1 ? out[0] : null; })();
+    if (td) { td.click(); return; }                                   // the one hidden 'set as a test' button for what is on screen
     var b = document.getElementById('apdl-btn');                       // the drill-link maker, created by the apps' own code when a drill is set up
     if (b) { b.click(); return; }
     if (typeof window.toggleTeacherMode === 'function') { window.toggleTeacherMode(); return; }   // the Listening apps: teacher mode (mock papers)
@@ -17415,4 +17417,4 @@ function showKTRStudio(){
   if (document.readyState === 'complete') start(); else window.addEventListener('load', start);
 })();
 </script>
-<script id="ap-build">window.__apBuild="2b9ba8416d";</script>
+<script id="ap-build">window.__apBuild="040694d619";</script>
