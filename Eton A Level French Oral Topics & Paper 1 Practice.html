@@ -14065,7 +14065,7 @@ body{overflow-x:clip}
 .hero-panel{max-width:min(1000px,88%);padding:clamp(16px,3vw,34px);border-radius:18px;background:rgba(246,244,238,.72);background:color-mix(in srgb,var(--bg) 72%,transparent);-webkit-backdrop-filter:blur(5px);backdrop-filter:blur(5px);box-shadow:0 6px 30px rgba(14,21,38,.14);transition:opacity .4s}
 .hero.clear .hero-img{filter:none}.hero.clear .hero-wash{opacity:0}.hero.clear .hero-panel{opacity:0;pointer-events:none}
 .ill-chip{position:absolute;left:16px;bottom:12px;font-size:.72rem;font-weight:700;letter-spacing:.08em;text-transform:uppercase;padding:4px 10px;border-radius:999px;background:rgba(14,21,38,.72);color:#f3d98a}
-.hb-top{display:flex;gap:8px;flex-wrap:wrap;margin:0 0 12px}.hero.clear{min-height:clamp(300px,56vh,760px)}
+.deck>.step-label{display:none}.deck:has(.hero){margin-top:8px;padding-top:14px;gap:8px}.sp-ask{margin:0 0 4px!important;font-size:clamp(16px,1.8vw,22px)!important}.deck .hero{left:0;width:min(100%,calc((100vh - 330px)*var(--ar,1.5)));margin:0 auto;width:min(100%,calc((100vh - 300px)*var(--ar,1.5)));min-height:0;aspect-ratio:var(--ar,1.5);border-radius:14px}.deck .hero.clear{min-height:0}.deck .hero-wash{display:none}.deck .hero-panel{position:relative;z-index:2}.deck .hero.has-demo{aspect-ratio:auto;min-height:300px}.hb-top{display:flex;gap:8px;flex-wrap:wrap;margin:0 0 12px}.hero.clear{min-height:clamp(300px,56vh,760px)}
 .hero-btns{position:absolute;right:16px;bottom:12px;display:flex;gap:8px;flex-wrap:wrap;justify-content:flex-end}
 .spwrap{display:flex;flex-direction:column;gap:12px;align-items:center}
 .sp-intro{width:100%}
@@ -14838,8 +14838,9 @@ function heroHook(k){
   if(SP.ph!=='idle')return spotView(k,I);
   const dm=!!(SP.demo&&I.demo);
   const panel=dm?`<div class="hero-panel big"><div class="label" style="margin-bottom:6px">Démo de 30 secondes · 30-second model</div>${LN(I.demo)}</div>`:'';
-  const btns=`<div class="hb-top"><button class="btn pri" onclick="spStart()">🔍 Observez · Spot the details</button>${I.demo?`<button class="btn" onclick="SP.demo=!SP.demo;render()">${dm?'Retour à l’image · Back to the picture':'🎤 Démo de 30 s · 30-second model'}</button>${dm?`<button class="btn" onclick="spkDemoEn(${k.n})">🇬🇧 Démo en anglais · Hear it in English</button>`:''}`:''}<button class="btn" onclick="fsOpen(${k.n})">⛶ Plein écran · Full screen</button></div>`;
-  return `${btns}<div class="hero${dm?'':' clear'}"><img class="hero-img" src="${I.src}" alt="${esc(I.alt_en)}">
+  const btns=`<div class="hb-top"><button class="btn pri" onclick="spReveal()">🔍 Montrer les détails · Show the details</button>${I.demo?`<button class="btn" onclick="SP.demo=!SP.demo;render()">${dm?'Retour à l’image · Back to the picture':'🎤 Démo de 30 s · 30-second model'}</button>${dm?`<button class="btn" onclick="spkDemoEn(${k.n})">🇬🇧 Démo en anglais · Hear it in English</button>`:''}`:''}<button class="btn" onclick="fsOpen(${k.n})">⛶ Plein écran · Full screen</button></div>`;
+  const ask=dm?'':`<div class="sp-ask">Remarquez-vous quelque chose d’intéressant ? <span>Does anything about this picture strike you?</span></div>`;
+  return `${btns}${ask}<div class="hero${dm?' has-demo':' clear'}" style="--ar:${(I.w/I.h).toFixed(4)}"><img class="hero-img" src="${I.src}" alt="${esc(I.alt_en)}">
     <div class="hero-wash"></div>${panel}
     <span class="ill-chip">Illustration, not a photograph</span></div>`;
 }
@@ -14849,7 +14850,7 @@ function spotView(k,I){
   const intro=FL({fr:`Observez bien l’image. Combien de détails importants pouvez-vous repérer ? (${n} à trouver)`,en:`Look closely at the image. How many important details can you spot? (${n} to find)`});
   const left=Math.max(0,SP.end-Date.now()),pct=st?Math.round(100*left/(SP.dur*1000)):100;
   const fsb=`<button class="btn" onclick="fsOpen(${k.n})">⛶ Plein écran · Full screen</button>`;
-  const ctl=rv?`<button class="btn" onclick="spBack()">Retour · Back</button><button class="btn pri" onclick="spStart()">Recommencer · Again</button>${fsb}`
+  const ctl=rv?`<button class="btn" onclick="spBack()">← Retour à l’image · Back to the picture</button>${fsb}`
     :`${st?`<span class="sp-t" id="spt">${spdFmt(left/1000)}</span>`:''}
       <label class="mw">Temps · Time <select onchange="spSet('dur',+this.value)">${[30,45,60,90].map(v=>`<option value="${v}"${v===SP.dur?' selected':''}>${v} s</option>`).join('')}</select></label>
       <label class="mw"><input type="checkbox" ${SP.mem?'checked':''} onchange="spSet('mem',this.checked)"> Mode mémoire · Memory mode (image hides when time is up)</label>
@@ -14857,10 +14858,10 @@ function spotView(k,I){
       <button class="btn${st?' pri':''}" onclick="spReveal()">Révéler · Reveal</button><button class="btn" onclick="spBack()">Retour · Back</button>${fsb}`;
   const list=rv?`<div class="splist">${I.spots.map((s,i)=>`<div class="spi${SP.act===i?' act':''}"><button class="spn" onclick="spAct(${i})" aria-label="Show detail ${i+1}">${i+1}</button>${LN({fr:s.fr,en:s.en})}</div>`).join('')}</div>`:'';
   const dem=rv&&I.demo?`<div class="spdemo"><div class="label" style="margin-bottom:6px">Démo de 30 secondes · 30-second model <button class="btn" style="margin-left:8px" onclick="spkDemoEn(${k.n})">🇬🇧 Hear it in English</button></div><div class="big">${LN(I.demo)}</div></div>`:'';
-  return `<div class="spwrap"><div class="sp-intro big">${intro}</div>
+  return `<div class="spwrap">${rv?`<div class="sp-ctl">${ctl}</div>`:`<div class="sp-intro big">${intro}</div>`}
     ${st?`<div class="sp-bar"><i id="spbar" style="width:${pct}%"></i></div>`:''}
     <div class="spimg${hid?' hid':''}" style="--ar:${(I.w/I.h).toFixed(4)}"><img src="${I.src}" alt="${esc(I.alt_en)}"><div class="spmsg">Qu’est-ce que vous avez vu ?</div>${marks}</div>
-    <div class="sp-ctl">${ctl}</div>${list}${dem}</div>`;
+    ${rv?'':`<div class="sp-ctl">${ctl}</div>`}${list}${dem}</div>`;
 }
 /* Image machine: spin through the illustrations, stop at random; the boys name the KTR and talk for the chosen time */
 const MC={ids:new Set(),secs:30,phase:'setup',seen:new Set(),cur:null,ok:[],near:[],to:null,iv:null,end:0,over:false,act:null,reset:false,due:{},fresh:false,facts:false};
@@ -17385,6 +17386,7 @@ function showKTRStudio(){
   if (document.body) go(); else document.addEventListener('DOMContentLoaded', go);
 })();
 </script>
+.sp-ask{font-family:'Playfair Display',serif;font-size:clamp(20px,2.4vw,30px);font-weight:700;margin:2px 0 10px;color:var(--navy,#1a2744)}.sp-ask span{font:500 15px/1.3 inherit;opacity:.65;margin-left:6px}
 <script id="ap-newver-js">
 /* AP NEW VERSION: when a newer version of this page has been published, a slim gold strip at the very top (not floating) says so; one tap loads it. */
 (function () {
@@ -17417,4 +17419,4 @@ function showKTRStudio(){
   if (document.readyState === 'complete') start(); else window.addEventListener('load', start);
 })();
 </script>
-<script id="ap-build">window.__apBuild="040694d619";</script>
+<script id="ap-build">window.__apBuild="e02f5d1687";</script>
