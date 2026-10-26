@@ -8235,6 +8235,11 @@ mark.k{background:var(--hl);color:inherit;border-radius:5px;padding:0 2px}
 .mw-go{margin:2px auto 0}
 body[data-fcr="1"]{--bk:#6a1b2c}body[data-fcr="2"]{--bk:#1b4a33}body[data-fcr="3"]{--bk:#3d2370}
 .fc-card .fc-ok{background:#2e7d52}
+.mc-tin .fc-q,.mc-tin .fc-qen{animation:mc-dn .6s cubic-bezier(.2,.8,.2,1) .25s both}
+.mc-tin .mc-bar,.mc-tin .fc-ctl{animation:mc-dn .5s ease-out .45s both}
+.mc-tin .mc-talkpic{animation:mc-settle .8s cubic-bezier(.2,.8,.2,1) both}
+@keyframes mc-dn{from{opacity:0;transform:translateY(-14px) scale(.96)}to{opacity:1;transform:none}}
+@keyframes mc-settle{from{transform:scale(1.22);filter:brightness(1.35);border-radius:40px}to{transform:none;filter:none}}
 .fc-ctl{margin:4px 0 6px;justify-content:center}
 .mc-wrap .mc-img.mc-talkpic,:fullscreen .mc-wrap .mc-img.mc-talkpic{width:min(100%,calc((100vh - 280px)*1.78));margin-left:auto;margin-right:auto}
 .fc-x .fc-pic{width:min(100%,calc((100vh - 400px)*1.78))}
@@ -8997,10 +9002,10 @@ function _sfxUrl(k,p){const key=k+(k==='tick'?Math.round((p||0)*3):'');if(_mcW[k
   else if(k==='deal')u=_wav((d,R)=>{const n=Math.floor(.16*R);let p=0;for(let i=0;i<n;i++){const t=i/n,x=Math.random()*2-1,h=x-p*.6;p=x;d[i]+=h*Math.sin(Math.PI*Math.pow(t,.6))*.5}_flick(d,R,.15,.025,.9);_tone(d,R,.15,95,.08,'sin',.5)},.28);
   else if(k==='flip')u=_wav((d,R)=>{_flick(d,R,0,.05,.8);const n=Math.floor(.1*R);let p=0;for(let i=0;i<n;i++){const t=i/n,x=Math.random()*2-1,h=x-p*.6;p=x;d[Math.floor(.03*R)+i]+=h*Math.sin(Math.PI*t)*.35}_flick(d,R,.12,.03,.8);_tone(d,R,.12,120,.06,'sin',.35)},.25);
   else if(k==='soft')u=_wav((d,R)=>{_tone(d,R,0,784,.22,'sin',.5);_tone(d,R,0,1568,.12,'sin',.08)},.26);
-  else u=_wav((d,R)=>{[880,880,660].forEach((f,i)=>{_tone(d,R,i*.22,f,.5,'tri',.6);_tone(d,R,i*.22,f*2.4,.3,'sin',.12)})},1.1);
+  else u=_wav((d,R)=>{_tone(d,R,0,68,.45,'sin',1);_tone(d,R,0,46,.55,'sin',.85);let lp=0;for(let i=0;i<Math.floor(.05*R);i++){lp+=.12*((Math.random()*2-1)-lp);d[i]+=lp*Math.exp(-i/(R*.012))*1.2}},.6);
   return _mcW[key]=u}
 /* picture-machine sound effects (a whoosh as the reels start, a clack for every picture that flicks past, a fanfare when one lands, a bell when the talk time ends): small sounds made in the page and played as ordinary audio, which every browser allows after a tap */
-function mcSfx(k,p){if(k==='tick'){whPlay('c'+(1+Math.floor(Math.random()*4)),1.2-(p||0)*.45,.9);return}if(k==='start'){whPlay('go',1,.9);return}if(k==='land')k='soft';try{const a=new Audio(_sfxUrl(k,p));a.volume=1;const pr=a.play();if(pr&&pr.catch)pr.catch(()=>{})}catch(e){}}
+function mcSfx(k,p){if(k==='tick'){whPlay('c'+(1+Math.floor(Math.random()*4)),1.2-(p||0)*.45,.9);return}if(k==='start'){whPlay('go',1,.9);return}if(k==='stop'){whPlay('st',1,1);whPlay('c2',.62,1);setTimeout(()=>whPlay('c3',.8,.8),120);return}if(k==='land')k='soft';try{const a=new Audio(_sfxUrl(k,p));a.volume=1;const pr=a.play();if(pr&&pr.catch)pr.catch(()=>{})}catch(e){}}
 window.mcSfx=mcSfx;
 
 /* ===== opening splash: picture montage with sound ===== */
@@ -9090,12 +9095,16 @@ function wheelRun(o){
       const wd=Math.floor(th/step);if(wd!==lastW&&now-lastT>65){lastW=wd;lastT=now;o.tick&&o.tick(t)}else if(wd!==lastW)lastW=wd;
       if(t<1){MC.raf=requestAnimationFrame(spin)}
       else{
-        const tp=performance.now();
+        const tp=performance.now();o.stop&&o.stop();
         const pop=nw=>{
           if(document.getElementById(cv.id)!==cv)return;
-          const q=Math.min(1,(nw-tp-350)/650);
-          if(q<=0){frame(total,0);MC.raf=requestAnimationFrame(pop);return}
-          const e2=1-Math.pow(1-q,3);frame(total,0);
+          const el=nw-tp;
+          if(el<500){const u=el/500;frame(total+0.075*Math.sin(u*15)*Math.pow(1-u,2),0);MC.raf=requestAnimationFrame(pop);return}
+          if(el<900){
+            const u=(el-500)/400;frame(total,0);
+            ctx.save();const gr=ctx.createRadialGradient(hx,hy,hrx*.2,hx,hy,hrx*1.7);gr.addColorStop(0,'rgba(255,240,180,'+(.8*Math.sin(Math.PI*u)).toFixed(3)+')');gr.addColorStop(1,'rgba(255,240,180,0)');ctx.fillStyle=gr;ctx.fillRect(0,0,W,H);ctx.restore();
+            MC.raf=requestAnimationFrame(pop);return}
+          const q=Math.min(1,(el-900)/850),e2=1-Math.pow(1-q,3);frame(total,0);
           ctx.save();ctx.beginPath();const r=1+e2*(W*1.05);ctx.ellipse(hx,hy,hrx+r,hry+r,0,0,6.2832);ctx.clip();
           const ar=tg.naturalWidth/tg.naturalHeight,cw=Math.max(W,H*ar),ch=cw/ar;ctx.drawImage(tg,(W-cw)/2,(H-ch)/2,cw,ch);ctx.restore();
           if(q<1)MC.raf=requestAnimationFrame(pop);else{MC.raf=0;o.done&&o.done()}
@@ -9122,9 +9131,9 @@ window.mcSpin=function(){
     else{if(!pool.length){MC.seen=new Set();pool=all.slice();MC.reset=true}target=pool[Math.floor(Math.random()*pool.length)]}
   }
   MC.cur=target;MC.phase='spin';MC.over=false;S.act=null;S.en=false;mcSfx('start');render();
-  wheelRun({cv:document.getElementById('mcwh'),src:'pictures/ready.jpg',G:WHG,target:picSrc(target),tick:p=>mcSfx('tick',p),done:()=>mcLand(),fail:()=>{MC.to=setTimeout(()=>{MC.to=null;mcLand()},700)}});
+  wheelRun({cv:document.getElementById('mcwh'),src:'pictures/ready.jpg',G:WHG,target:picSrc(target),tick:p=>mcSfx('tick',p),stop:()=>mcSfx('stop'),done:()=>mcLand(),fail:()=>{MC.to=setTimeout(()=>{MC.to=null;mcLand()},700)}});
 };
-function mcLand(){mcSfx('land');MC.seen.add(MC.cur);MC.phase='talk';MC.over=false;MC.end=Date.now()+MC.secs*1000;render();MC.iv=setInterval(mcTick,250)}
+function mcLand(){MC.fresh=true;mcSfx('land');MC.seen.add(MC.cur);MC.phase='talk';MC.over=false;MC.end=Date.now()+MC.secs*1000;render();MC.iv=setInterval(mcTick,250)}
 const fmt=s=>{s=Math.ceil(s);return Math.floor(s/60)+':'+String(s%60).padStart(2,'0')};
 function mcTick(){
   const left=Math.max(0,MC.end-Date.now()),bar=document.getElementById('mcbar'),tt=document.getElementById('mct');
@@ -9166,10 +9175,10 @@ function vMachine(){
     body='<div class="mc-img spin"><canvas id="mcwh" style="width:100%;height:100%;display:block"></canvas></div>';ctl='<span class="mc-t">…</span>';
   }else if(MC.phase==='talk'){
     const left=Math.max(0,MC.end-Date.now()),pct=Math.round(100*left/(MC.secs*1000));
-    const i0=MC.cur;
+    const i0=MC.cur,fr=MC.fresh;MC.fresh=false;
     ctl='<span class="mc-t" id="mct">'+(MC.over?'⏰ 0:00':fmt(left/1000))+'</span><button class="btn pri" onclick="mcReveal()">\u{1F4D6} Help me prepare this</button><button class="btn" onclick="mcSpin()">▶ Spin the wheel again</button><button class="btn" onclick="mcFsToggle()">\u26F6</button>';
     body='<div><div class="fc-q">'+esc(Q[i0].q_fr)+'</div><div class="fc-qen">'+esc(Q[i0].q_en)+'</div></div><div class="mc-bar"><i id="mcbar" style="width:'+(MC.over?0:pct)+'%"></i></div><div class="mc-ctl fc-ctl">'+ctl+'</div><div class="mc-img mc-talkpic"><img id="mcimg" src="'+picSrc(MC.cur)+'" alt=""></div>';
-    return mcTally()+'<div class="mc-wrap">'+body+'</div>';
+    return mcTally()+'<div class="mc-wrap'+(fr?' mc-tin':'')+'">'+body+'</div>';
   }else{
     const i=MC.cur;S.pi=i;
     return mcTally()+'<div class="mc-wrap"><div class="mc-q">'+esc(Q[i].q_fr)+' <span style="color:var(--ink2);font-size:.7em">'+esc(Q[i].q_en)+'</span></div>'+'<div class="row mc-prac" style="margin:4px 0 10px;justify-content:center"><span class="label" style="margin:0">Practise this topic</span>'+[['study','Study'],['words',LG.words]].concat(TYPES.map(t=>[t[0],t[1]])).map(t=>'<button class="btn" onclick="mcPractise('+i+',\''+t[0]+'\')">'+esc(t[1])+'</button>').join('')+'</div>'+stageHtml(i,true)
@@ -11138,4 +11147,4 @@ var APAM_TPL = "<!doctype html>\n<html lang=\"en\"><head><meta charset=\"utf-8\"
   if (document.readyState === 'complete') start(); else window.addEventListener('load', start);
 })();
 </script>
-<script id="ap-build">window.__apBuild="d346064f9b";</script>
+<script id="ap-build">window.__apBuild="930fe7c186";</script>
