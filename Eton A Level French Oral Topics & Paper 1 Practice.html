@@ -228,7 +228,7 @@ button,input,select,textarea,optgroup{font-family:inherit}
 .aph-header{background:var(--navy);border-bottom:3px solid var(--gold);color:#fff}
 .aph-header-in{display:flex;align-items:center;gap:12px;padding:10px 24px}
 .aph-titles{flex:1;min-width:0}
-.aph-title{font:700 1.3rem/1.2 var(--aph-display);color:#fff;margin:0}
+.aph-title{font:700 clamp(.95rem,1.75vw,1.3rem)/1.2 var(--aph-display);color:#fff;margin:0}
 .aph-title em{font-style:normal;color:var(--gold)}
 .aph-sub{font-size:.75rem;line-height:1.35;font-weight:500;letter-spacing:.09em;text-transform:uppercase;color:#aab6d3;margin-top:3px}
 .aph-home{font:700 .9375rem/1.1 var(--aph-body);color:var(--gold);background:rgba(201,168,76,.12);border:1.5px solid rgba(201,168,76,.7);border-radius:8px;padding:8px 12px;cursor:pointer;white-space:nowrap;flex:none}
@@ -393,7 +393,9 @@ main{display:block;width:100%}
 .ot-home-h{text-align:center;margin-bottom:22px}
 .ot-home-h .aph-h{margin:0 0 6px;font-size:1.75rem}
 .ot-home-h .aph-label{margin:0}
-.ot-modes{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:18px;max-width:860px;margin:0 auto}
+.ot-modes{display:flex;flex-wrap:wrap;justify-content:center;gap:18px;margin:0 auto}
+.ot-modes>.ot-mode{flex:0 1 calc((100% - 36px)/3);min-width:0}
+.ot-mode-ic{width:96px;height:96px;display:block;margin:0 auto;filter:drop-shadow(0 3px 5px rgba(0,0,0,.3))}
 .ot-mode{display:flex;flex-direction:column;align-items:center;text-align:center;padding:26px 22px 22px}
 .ot-mode-icon{font-size:2rem;line-height:1;margin-bottom:12px}
 .ot-mode-title{font:700 1.2rem/1.25 var(--aph-body);color:var(--navy);margin:0 0 8px}
@@ -407,7 +409,7 @@ main{display:block;width:100%}
 .ot-cyc{display:flex;gap:4px;flex-wrap:wrap}
 .ot-cyc span{background:var(--gold-light);color:var(--navy);border-radius:5px;font-size:.8125rem;font-weight:700;padding:3px 7px}
 .ot-mode[onclick]{cursor:pointer}
-@media (max-width:900px){.ot-modes{grid-template-columns:minmax(0,1fr);max-width:560px;margin:0 auto}.ot-mode-wide{flex-direction:column;text-align:center}.ot-mode-wide .aph-btn{width:100%}}
+@media (max-width:900px){.ot-modes{max-width:560px}.ot-modes>.ot-mode{flex:1 1 100%}}
 
 /* KTR set-up card */
 .ot-mode-chips{display:flex;flex-wrap:wrap;gap:8px}
@@ -5534,6 +5536,23 @@ function goHome(){
   renderHome();
 }
 
+function otTile(id,c1,c2,inner){
+  return '<svg class="ot-mode-ic" viewBox="0 0 96 96" aria-hidden="true"><defs>'
+    + '<linearGradient id="otg'+id+'" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="'+c1+'"/><stop offset="1" stop-color="'+c2+'"/></linearGradient>'
+    + '<linearGradient id="otw'+id+'" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#fff" stop-opacity=".55"/><stop offset="1" stop-color="#fff" stop-opacity="0"/></linearGradient></defs>'
+    + '<rect x="2" y="2" width="92" height="92" rx="20" fill="url(#otg'+id+')" stroke="rgba(255,255,255,.55)" stroke-width="2"/>'
+    + inner
+    + '<path d="M8 28Q8 8 28 8H68Q88 8 88 28Q48 40 8 28Z" fill="url(#otw'+id+')"/></svg>';
+}
+function otCardIco(txt,y,sz){ return '<rect x="9" y="'+y+'" width="78" height="30" rx="5" fill="#fbf4e1" stroke="#c9a84c" stroke-width="1.5"/><text x="48" y="'+(y+19)+'" text-anchor="middle" font-family="Georgia,serif" font-weight="700" font-size="'+sz+'" fill="#1a2744">'+txt+'</text>'; }
+var OT_ICO = {
+  ktr: function(){ return otTile('1','#1f7a8c','#0b2f4a', otCardIco('la mondialisation',24,9.4)+'<circle cx="48" cy="70" r="10" fill="#c9a84c"/><path d="M45 65L55 70L45 75Z" fill="#1a2744"/>'); },
+  drill: function(){ return otTile('2','#6a3d9a','#2a1450', otCardIco('Définition',20,11)+'<text x="48" y="68" text-anchor="middle" font-family="Georgia,serif" font-weight="700" font-size="9" fill="#fbf4e1">exemple · analyse</text><text x="48" y="80" text-anchor="middle" font-family="Georgia,serif" font-size="9" fill="#e6d7a8">69 KTRs</text>'); },
+  oral: function(){ return otTile('3','#9b1b30','#4a0a16', otCardIco('Que pensez-vous ?',22,9.6)+'<rect x="43" y="58" width="10" height="16" rx="5" fill="#c9a84c"/><path d="M38 68Q38 79 48 79Q58 79 58 68" fill="none" stroke="#c9a84c" stroke-width="2.4"/>'); },
+  p1: function(){ return otTile('4','#2e8b57','#0d3b26', otCardIco('Écoutez et lisez',22,10)+'<path d="M34 72V66Q34 58 48 58Q62 58 62 66V72" fill="none" stroke="#fbf4e1" stroke-width="3"/><rect x="30" y="66" width="7" height="12" rx="3" fill="#c9a84c"/><rect x="59" y="66" width="7" height="12" rx="3" fill="#c9a84c"/>'); },
+  cyc: function(){ return otTile('5','#c9a84c','#6b4f12', otCardIco('Q·P·S·E·A·I·O·H·C',22,9)+'<text x="48" y="70" text-anchor="middle" font-family="Georgia,serif" font-weight="700" font-size="10" fill="#1a2744">Oral Cycle</text>'); }
+};
+
 function renderHome(){
   var html = ''
     + '<div class="ot-home">'
@@ -5541,7 +5560,7 @@ function renderHome(){
     + '<div class="ot-modes">'
 
     + '<div class="aph-card ot-mode" onclick="if(event.target.tagName!==\'BUTTON\')showKTRStudio()">'
-    + '<div class="ot-mode-icon">🎬</div>'
+    + '<div class="ot-mode-icon">' + OT_ICO.ktr() + '</div>'
     + '<h3 class="ot-mode-title">KTR Studio</h3>'
     + '<p class="ot-mode-desc">Learn all 69 Key Topic References: understand, learn the words, say it and use it, with video and timelines</p>'
     + '<div class="ot-mode-tags">69 KTRs &middot; Video &middot; Timelines</div>'
@@ -5549,7 +5568,7 @@ function renderHome(){
     + '</div>'
 
     + '<div class="aph-card ot-mode">'
-    + '<div class="ot-mode-icon">📚</div>'
+    + '<div class="ot-mode-icon">' + OT_ICO.drill() + '</div>'
     + '<h3 class="ot-mode-title">Key Topic References Drill</h3>'
     + '<p class="ot-mode-desc">Practise definitions, examples and analysis across all key topic references</p>'
     + '<div class="ot-mode-tags">Definition &middot; Example &middot; Analysis</div>'
@@ -5557,7 +5576,7 @@ function renderHome(){
     + '</div>'
 
     + '<div class="aph-card ot-mode">'
-    + '<div class="ot-mode-icon">🎙️</div>'
+    + '<div class="ot-mode-icon">' + OT_ICO.oral() + '</div>'
     + '<h3 class="ot-mode-title">Oral Exam Cards</h3>'
     + '<p class="ot-mode-desc">Edexcel A Level speaking exam cards with A Level Oral Cycle guidance</p>'
     + '<div class="ot-mode-tags">4 Themes &middot; 12 Topics &middot; Eton Cycle</div>'
@@ -5565,19 +5584,19 @@ function renderHome(){
     + '</div>'
 
     + '<div class="aph-card ot-mode" onclick="if(event.target.tagName!==\'BUTTON\')showPaper1()">'
-    + '<div class="ot-mode-icon">📝</div>'
+    + '<div class="ot-mode-icon">' + OT_ICO.p1() + '</div>'
     + '<h3 class="ot-mode-title">Paper 1 Listening &amp; Reading Practice</h3>'
     + '<p class="ot-mode-desc">Edexcel-style Paper 1 questions by type and sub-theme, with mark schemes, examiner pitfalls and full mock papers</p>'
     + '<div class="ot-mode-tags">Listening &middot; Reading &middot; Translation</div>'
     + '<button class="aph-btn aph-btn-primary aph-btn-block" onclick="showPaper1()">&#9654; Start Paper 1 Practice</button>'
     + '</div>'
 
-    + '<div class="aph-card ot-mode ot-mode-wide">'
-    + '<div class="ot-mode-icon">💬</div>'
-    + '<div style="flex:1;min-width:200px"><h3 class="ot-mode-title">A Level Oral Cycle Practice</h3>'
-    + '<p class="ot-mode-desc">Drill all cycle phrases by section or all at once</p></div>'
-    + '<div class="ot-cyc"><span>Q</span><span>P</span><span>S</span><span>E</span><span>A</span><span>I</span><span>O</span><span>H</span><span>C</span></div>'
-    + '<button class="aph-btn aph-btn-primary" onclick="showPhraseDrill()">&#9654; Drill Phrases</button>'
+    + '<div class="aph-card ot-mode">'
+    + '<div class="ot-mode-icon">' + OT_ICO.cyc() + '</div>'
+    + '<h3 class="ot-mode-title">A Level Oral Cycle Practice</h3>'
+    + '<p class="ot-mode-desc">Drill all cycle phrases by section or all at once</p>'
+    + '<div class="ot-cyc" style="justify-content:center;margin:0 0 16px"><span>Q</span><span>P</span><span>S</span><span>E</span><span>A</span><span>I</span><span>O</span><span>H</span><span>C</span></div>'
+    + '<button class="aph-btn aph-btn-primary aph-btn-block" onclick="showPhraseDrill()">&#9654; Drill Phrases</button>'
     + '</div>'
 
     + '</div></div>';
@@ -16727,4 +16746,4 @@ function showKTRStudio(){
   if (document.readyState === 'complete') start(); else window.addEventListener('load', start);
 })();
 </script>
-<script id="ap-build">window.__apBuild="7152549a6c";</script>
+<script id="ap-build">window.__apBuild="67b86a51b7";</script>
