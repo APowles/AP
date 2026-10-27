@@ -12954,7 +12954,7 @@ S.forEach((x,n)=>{if(x.k==='intro'&&x.tri){const L=S.filter(y=>(y.k==='learn'||y
 S.forEach((x,ix)=>{if((x.k==='mcq'||x.k==='listen')&&x.fc<NF&&x.way!=='ALL THREE WAYS'){let t=-1;if(x.th)t=S.findIndex(y=>y.k==='learn'&&y.h===x.th);else for(let k=ix-1;k>=0;k--)if(S[k].k==='learn'){t=k;break}if(t>=0&&S[t].fc===x.fc)x.tk=S[t]}});
 const reteach=s=>`<div class="row"><button class="hlp" id="rt">Not sure? Reteach me this bit</button></div>`;
 function goReteach(s){T.reteach++;const t=S.indexOf(s.tk),me=S.indexOf(s);if(t<0)return;ret=me;i=t;side=null;render()}
-const SEC={learn:35,mcq:25,listen:40,jot:90,end:0,done:0,intro:0,over:0};
+const LIM=CH.lim||30;const SEC={learn:35,mcq:25,listen:40,jot:90,end:0,done:0,intro:0,over:0};
 const mins=fc=>Math.max(1,Math.round(S.filter(x=>x.fc===fc&&!x.retry).reduce((t,x)=>t+(SEC[x.k]||0),0)/60));
 const totalMins=()=>Array.from({length:NF+1},(_,f)=>f).reduce((t,f)=>t+mins(f),0);
 let i=0,score=0,tot=0,last=-1,side=null;
@@ -13028,8 +13028,8 @@ function rHow(){frame(`<div class="card"><div class="eye">Before you start</div>
 <div class="hw hw4">
 <div><b>Read, then check</b><span>Each screen teaches one small idea, then asks a short question. If you slip up, tap the right answer and the question comes back later.</span></div>
 <div><b>Keep clicking</b><span>This is an interactive site, so it needs regular clicking. After a few minutes of nothing, a reminder appears. Only active time is recorded.</span></div>
-<div><b>About 30 minutes</b><span>The chapter should take under 30 minutes. If you need a break, press <b>Pause</b> in the top bar and the timer stops until you press Resume.</span></div>
-<div><b>Your progress sheet</b><span>Your teacher may ask for it. It shows your time, route choices, results and retakes. Make it, with your name, when you finish or reach 30 minutes.</span></div>
+<div><b>About ${LIM} minutes</b><span>The chapter should take under ${LIM} minutes. If you need a break, press <b>Pause</b> in the top bar and the timer stops until you press Resume.</span></div>
+<div><b>Your progress sheet</b><span>Your teacher may ask for it. It shows your time, route choices, results and retakes. Make it, with your name, when you finish or reach ${LIM} minutes.</span></div>
 </div>
 <div class="row"><button class="btn alt" id="mi">More information about using the Studio</button></div>
 <div id="mx" hidden class="call"><div class="hw">
@@ -13044,7 +13044,7 @@ ${nextBtn('Got it: show me the chapter')}</div>`);$('#go').onclick=adv;
 function rOver(){frame(`<div class="card"><div class="eye">French grammar</div><h2 style="font-size:24px">${CH.label}</h2>
 <div class="call">This chapter has <b>${NF} focus points</b>. Each one teaches you how to do something.</div>
 <ol class="fp">${FOCS.map((f,n)=>`<li class=""><span class="n">${n+1}</span><span>${f}</span></li>`).join('')}</ol>
-<div class="small" style="text-align:center">You should be able to complete this chapter in under 30 minutes (about ${totalMins()} minutes in all, including the mixed practice at the end). You will always see which focus point you are on.</div>${nextBtn('Start')}</div>`);$('#go').onclick=()=>{adv()}}
+<div class="small" style="text-align:center">You should be able to complete this chapter in under ${LIM} minutes (about ${totalMins()} minutes in all, including the mixed practice at the end). You will always see which focus point you are on.</div>${nextBtn('Start')}</div>`);$('#go').onclick=()=>{adv()}}
 function rSide(){frame(`<div class="card"><div class="eye">${FOCS[S[i].fc]}</div><h2>Study this part in the detailed recap</h2><div class="call">Open the grammar recap for this chapter, read the section on <b>${side}</b>, then come straight back. Your place is saved.</div><div class="row"><button class="btn alt" id="op">Open the grammar recap</button><button class="btn" id="bk2">← Back to where I was</button></div><div class="hint" id="oh" style="text-align:center"></div></div>`);$('#op').onclick=()=>{if(EMB)tell({t:'recap',a:RECAP_AT[side]||''});else $('#oh').textContent='In the finished file this opens the recap at the right section.'};$('#bk2').onclick=()=>{side=null;render()}}
 function rIntro(s){const fc=s.fc;const sel=new Set();frame(`<div class="card"><div class="eye">Focus point ${fc+1} of ${NF}</div><h2>${FOCS[fc]}</h2><div class="call">${s.call}</div><div class="small" style="text-align:center">In this focus point you will cover. <b>Tap any parts you want teaching:</b></div><div class="tri pick">${s.tri.map((t,q)=>`<button type="button" class="pt" data-q="${q}">${t[0]?'<b>'+t[0]+'</b>':''}<span>${t[1]}</span>${t[2]?'<small>'+t[2]+'</small>':''}<i class="tk">✓</i></button>`).join('')}</div><div class="small" style="text-align:center">${s.time?s.time+' ':''}(about ${mins(fc)} minutes for all of it)</div><div class="row" style="flex-wrap:wrap"><button class="btn" id="go">Teach me all of this</button><button class="btn gold" id="pp" disabled>Teach me just the parts I have ticked</button><button class="btn alt" id="kn">I know all of this: test me</button></div></div>`);
 const upd=()=>{document.querySelectorAll('.pt').forEach(b=>b.classList.toggle('on',sel.has(+b.dataset.q)));const p=$('#pp');p.disabled=!sel.size;p.textContent=sel.size?'Teach me just the '+(sel.size===1?'part':sel.size+' parts')+' I have ticked':'Teach me just the parts I have ticked'};
@@ -14351,7 +14351,7 @@ MCQ('<b>“Strawberries? We ate some.”</b> Which is right?',['Des fraises ? No
     if (ov) { ov.remove(); ov = null; fr = null; }
     document.documentElement.classList.remove('gs-open');
     var sh = document.getElementById('gsSheet'); if (sh) sh.remove();
-    retOn = false; var b = document.querySelector('.gs-ret'); if (b) b.remove();
+    retOn = false; Array.prototype.slice.call(document.querySelectorAll('.gs-ret')).forEach(function (b) { b.remove(); });
     if (!quiet) { try { ggHome(); window.scrollTo(0, 0); } catch (e) { } }
   }
   // ---- "Need more help?": the detailed recap, with one button back to the Course ----
@@ -14359,9 +14359,9 @@ MCQ('<b>“Strawberries? We ate some.”</b> Which is right?',['Des fraises ? No
   function retSync() {
     if (!retOn) return;
     var w = document.querySelector('#ggApp .gg-wrap'); if (!w || w.querySelector('.gs-ret')) return;
-    w.insertAdjacentHTML('afterbegin', retHtml());
+    w.insertAdjacentHTML('afterbegin', retHtml()); w.insertAdjacentHTML('beforeend', retHtml());
   }
-  window.__gsBack = function () { retOn = false; var b = document.querySelector('.gs-ret'); if (b) b.remove(); if (ov) ov.style.display = ''; };
+  window.__gsBack = function () { retOn = false; Array.prototype.slice.call(document.querySelectorAll('.gs-ret')).forEach(function (b) { b.remove(); }); if (ov) ov.style.display = ''; };
   function showRecap(anchor) {
     if (!ov) return;
     ov.style.display = 'none'; retOn = true;
@@ -14372,7 +14372,7 @@ MCQ('<b>“Strawberries? We ate some.”</b> Which is right?',['Des fraises ? No
       var nz = function (s) { return String(s || '').replace(/[\s\u00a0]+/g, ' ').trim(); }, an = nz(anchor);
       if (anchor) Array.prototype.slice.call(document.querySelectorAll('#ggApp .gg-recap-body .gr-label, #ggApp .gr-label, #ggApp .gr-block b')).some(function (n) { if (nz(n.textContent).indexOf(an) >= 0) { hit = n; return true; } });
       if (anchor && !hit) { var body = document.querySelector('#ggApp .gg-recap-body') || document.getElementById('ggApp'); if (body) Array.prototype.slice.call(body.querySelectorAll('*')).some(function (n) { if (nz(n.textContent).indexOf(an) < 0) return false; var deeper = Array.prototype.slice.call(n.children).some(function (c) { return nz(c.textContent).indexOf(an) >= 0; }); if (!deeper) { hit = n; return true; } return false; }); }
-      if (hit) hit.scrollIntoView({ block: 'start' }); else window.scrollTo(0, 0);
+      if (hit) { try { var rb = document.createElement('div'); rb.innerHTML = retHtml(); hit.parentNode.insertBefore(rb.firstChild, hit); hit = hit.previousSibling; } catch (e) { } hit.scrollIntoView({ block: 'start' }); } else window.scrollTo(0, 0);
     }, 60);
   }
   // ---- the progress sheet, shown as a page you can save as a PDF ----
@@ -14425,4 +14425,4 @@ MCQ('<b>“Strawberries? We ate some.”</b> Which is right?',['Des fraises ? No
   if (document.readyState === 'complete') start(); else window.addEventListener('load', start);
 })();
 </script>
-<script id="ap-build">window.__apBuild="3acff29c29";</script>
+<script id="ap-build">window.__apBuild="aa29b3d8ad";</script>
