@@ -12907,6 +12907,18 @@ details.small summary{cursor:pointer;margin-top:8px}details.small table{width:10
 .hw .k{display:inline-block;border:1px solid var(--line);border-radius:6px;padding:0 7px;font-weight:700;font-size:14px;background:var(--card)}
 .hw4{grid-template-columns:1fr 1fr}@media (max-width:560px){.hw4{grid-template-columns:1fr}}
 .tm{color:#3dff8a;font-weight:800;font-size:18px;font-variant-numeric:tabular-nums;padding:0 4px}
+.io{position:relative;overflow:hidden;border-radius:18px;background:#101a33;min-height:680px;display:flex;flex-direction:column;justify-content:flex-end;box-shadow:0 10px 40px rgba(0,0,0,.25)}
+.ig{position:absolute;inset:0 0 215px 0;display:grid;grid-template-columns:repeat(3,1fr);grid-template-rows:repeat(2,1fr);gap:6px;padding:6px}
+.ip{border-radius:12px;background:radial-gradient(circle at 30% 20%,#27396b,#1a2744 70%);border:1px solid rgba(201,168,76,.35);display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:10px;color:#f3d98a;opacity:0;animation:ipin .9s ease forwards;overflow:hidden;background-size:cover;background-position:center}
+.ip b{font-family:'Playfair Display',Georgia,serif;font-size:clamp(1.1rem,3.2vw,2rem);color:#c9a84c;line-height:1.1}
+.ip span{font-size:clamp(.72rem,1.6vw,.95rem);color:#faf8f3;margin-top:6px}
+@keyframes ipin{to{opacity:1}}
+.iv{position:relative;background:linear-gradient(to top,rgba(10,16,34,.97) 30%,rgba(10,16,34,.35));padding:28px 24px 26px;color:#faf8f3}
+.iv .n{font-size:.78rem;letter-spacing:.14em;text-transform:uppercase;color:#f3d98a;font-weight:700}
+.iv h1{font-family:'Playfair Display',Georgia,serif;font-size:clamp(2.2rem,6vw,3.6rem);margin:.15em 0;color:#fff}
+.iv i{font-family:'Playfair Display',Georgia,serif;font-size:clamp(1.05rem,2.4vw,1.4rem);color:#faf8f3}
+.iv .row{margin-top:18px;display:flex;gap:10px}.iv .btn{background:#c9a84c;color:#1a2744;border-color:#c9a84c;font-weight:700}.iv .btn.alt{background:transparent;color:#faf8f3;border-color:rgba(250,248,243,.6)}
+@media (prefers-reduced-motion:reduce){.ip{animation:none;opacity:1}}
 </style>
 <div class="band1"><b>Grammar <span>Studio</span></b><small>Step-by-step walkthrough</small></div>
 <div class="band2"><h1>F Mich 1</h1><div style="display:flex;gap:8px;align-items:center"><span class="pill" id="pill"></span><span class="tm" id="tm" title="Active time">0:00</span><button class="bk" id="ex" hidden>✕ Exit</button><button class="bk" id="pz">Pause</button><button class="bk" id="ps">My progress sheet</button><button class="bk" id="bk">← Back</button><button class="bk" id="sk">Skip →</button></div></div>
@@ -13013,7 +13025,15 @@ function adv(){i++;while(S[i]&&(S[i].k==='learn'||S[i].k==='listen')&&quick.has(
 $('#sk').onclick=()=>{if(exitOn){exitOn=false;render();return}if(sheetOn){sheetOn=false;render();return}ret=null;T.skips++;if(i<S.length-1){i++;side=null;render()}};
 $('#bk').onclick=()=>{if(wakeOn&&$('#wk')){$('#wk').click();return}if(pausedOn&&$('#rsm')){$('#rsm').click();return}if(i===0&&EMB&&!sheetOn&&!exitOn){tell({t:'exit'});return}if(exitOn){exitOn=false;render();return}if(sheetOn){sheetOn=false;render();return}ret=null;if(i>0){i--;while(i>0&&(S[i].k==='learn'||S[i].k==='listen')&&quick.has(S[i].fc))i--;render()}};
 const nextBtn=(t)=>`<button class="btn" id="go">${t||'Got it'}</button>`;
-function render(){const s=S[i];T.max=Math.max(T.max,i);if(s.k!=='how')T.started=true;if(s.fc!=null)T.seen[s.fc]=true;if(exitOn)return rExit();if(wakeOn)return rWake();if(pausedOn)return rPause();if(sheetOn)return rSheet();if(side){return rSide()}({how:rHow,listen:rListen,over:rOver,intro:rIntro,done:rDone,learn:rLearn,mcq:rMcq,jot:rJot,end:rEnd})[s.k](s)}
+let introOn=true;
+const INTRO_IMGS=[];/* data: URIs of the ChatGPT pictures go here */
+const INTRO_POSTERS=[["DRAPER'S VAN","MMTRDR16"],["TICKING TIME","depuis + present"],["FIXED TIME","pendant"],["PJRP","plus · jamais · rien · personne"],["ANPQ","aucun · nulle part · personne · que"],["COS","change of subject → que + subjunctive"],["PDO","the PP agrees with a direct object placed BEFORE avoir"],["Six is the magic number","1 · 2 · 3 · 4 · 5 · 6"]];
+function rIntro0(){const n=6,pool=INTRO_IMGS.length?INTRO_IMGS:INTRO_POSTERS,pick=[];const off=Math.floor(Math.random()*pool.length);for(let k=0;k<n;k++)pick.push(pool[(off+k)%pool.length]);
+const cells=pick.map((x,k)=>typeof x==='string'?`<div class="ip" style="background-image:url('${x}');animation-delay:${k*.45}s"></div>`:`<div class="ip" style="animation-delay:${k*.45}s"><b>${x[0]}</b><span>${x[1]}</span></div>`).join('');
+$('#m').innerHTML=`<div class="io"><div class="ig">${cells}</div><div class="iv"><div class="n">F Mich 1 · Present tense</div><h1>Grammar Studio</h1><i>Voyez. Comprenez. Maîtrisez.</i><div class="row"><button class="btn" id="is">Start</button><button class="btn alt" id="ik">Skip ›</button></div></div></div>`;
+$('#pill').textContent='';$('#ln').style.width='0%';$('#sk').disabled=true;window.scrollTo(0,0);
+const go=()=>{introOn=false;render()};$('#is').onclick=go;$('#ik').onclick=go}
+function render(){const s=S[i];T.max=Math.max(T.max,i);if(s.k!=='how')T.started=true;if(s.fc!=null)T.seen[s.fc]=true;if(exitOn)return rExit();if(wakeOn)return rWake();if(pausedOn)return rPause();if(sheetOn)return rSheet();if(introOn)return rIntro0();if(side){return rSide()}({how:rHow,listen:rListen,over:rOver,intro:rIntro,done:rDone,learn:rLearn,mcq:rMcq,jot:rJot,end:rEnd})[s.k](s)}
 function rHow(){frame(`<div class="card"><div class="eye">Before you start</div><h2>How the Grammar Studio works</h2>
 <div class="hw hw4">
 <div><b>Read, then check</b><span>Each screen teaches one small idea, then asks a short question. If you slip up, tap the right answer and the question comes back later.</span></div>
@@ -13320,4 +13340,4 @@ render();
   if (document.readyState === 'complete') start(); else window.addEventListener('load', start);
 })();
 </script>
-<script id="ap-build">window.__apBuild="0f87247077";</script>
+<script id="ap-build">window.__apBuild="a157da2ce4";</script>
