@@ -52687,29 +52687,32 @@ $('#rs').onclick=()=>{for(let k=S.length-1;k>=0;k--){if(S[k].retry)S.splice(k,1)
 const fmt=ms=>{const m=Math.floor(ms/60000),sc=Math.floor(ms%60000/1000);return m+' min '+String(sc).padStart(2,'0')+' s'};
 function thorough(){
  const P=T.per,sum=k=>Object.values(P).reduce((t,x)=>t+x[k],0),q=sum('q'),ok=sum('ok'),again=sum('again'),missed=q-ok;
- const reached=S.slice(0,T.max+1).filter(x=>!x.retry);
+ const qTot=S.filter(x=>(x.k==='mcq'||x.k==='listen')&&!x.retry).length;
  const fin=Array.from({length:NF+1},(_,f)=>f).filter(f=>T.fcDone[f]).length,fr=fin/(NF+1);
  const ws=Object.keys(T.wSeen).length,wu=Object.keys(T.wUsed).length;
- const jp=reached.filter(x=>x.k==='jot').length;
+ const reached=S.slice(0,T.max+1).filter(x=>!x.retry),jp=reached.filter(x=>x.k==='jot').length;
  const conf=CANF.filter((c,n)=>T.conf[n]).length;
- const est=Math.max(1,(CH.lim||30))*60000*0.6,eff=Math.min(1,T.ms/est);
  const act=T.ms+T.idle>0?T.ms/(T.ms+T.idle):0;
- const skipPen=Math.min(1,T.skips/Math.max(1,S.filter(x=>!x.retry).length)*4);
  const parts=[
-  ['Coverage',30,fr*(1-skipPen*0.5),fin+' of '+(NF+1)+' parts finished'+(T.skips?', '+T.skips+' screen'+(T.skips>1?'s':'')+' skipped':'')],
-  ['Exhibits tried',20,ws?wu/ws:null,wu+' of '+ws+' interactive exhibits used'],
-  ['Missed questions revisited',15,missed?Math.min(1,again/missed):null,missed?Math.min(again,missed)+' of '+missed+' missed questions redone':'no questions missed'],
-  ['Written tasks',10,jp?Math.min(1,T.jots/jp):null,T.jots+' of '+jp+' written tasks done'],
-  ['Self-check ticks',10,conf/CANF.length,conf+' of '+CANF.length+' “I can now confidently…” boxes ticked'],
-  ['Time and focus',15,eff*0.6+act*0.4,fmt(T.ms)+' active; '+Math.round(act*100)+'% of the session active']];
+  ['Parts covered',35,fr,fin+' of '+(NF+1)+' parts finished','Each Focus Point, and the mixed practice at the end, counts as a part. A part counts if it was taught or if the boy showed he already knew it by answering its questions.'],
+  ['Questions answered',20,qTot?Math.min(1,q/qTot):null,q+' of '+qTot+' questions answered','How many of the chapter’s questions were attempted. Skipping a teaching screen costs nothing; skipping the questions does.'],
+  ['Questions understood',20,q?Math.min(1,(ok+Math.min(again,missed))/q):null,q?(ok+Math.min(again,missed))+' of '+q+' right, first time or after going back':'no questions answered yet','A question counts if it was right first time, or if a missed one was later redone correctly.'],
+  ['Written tasks',10,jp?Math.min(1,T.jots/jp):null,T.jots+' of '+jp+' written tasks done','The “write it yourself” tasks, answered with the Apple Pencil or by hand.'],
+  ['Self-check ticks',15,conf/CANF.length,conf+' of '+CANF.length+' “I can now confidently…” boxes ticked','The boy’s own honest check at the end of the chapter.']];
  let tw=0,sc=0;parts.forEach(x=>{if(x[2]!=null){tw+=x[1];sc+=x[1]*x[2]}});
  const pct=tw?Math.round(sc/tw*100):0;
- const lab=pct>=85?'Thorough':pct>=65?'Mostly thorough':pct>=40?'Partial':'Light';
- return {pct,lab,parts}}
+ const lab=pct>=85?'Thorough':pct>=65?'Good':pct>=40?'Partly done':'Barely started';
+ const col=pct>=85?'#2e7d57':pct>=65?'#2e7d57':pct>=40?'#c77d00':'#c62828';
+ const nxt=pct>=85?'Nothing more needed: the chapter has been worked through and understood.':pct>=65?'Nearly there: finish the parts or questions marked below, then tick the self-check boxes.':pct>=40?'Go back to the parts and questions that are not complete (see the table), or take the Test me route if the material is already known.':'Very little of the chapter has been covered yet. Ask the boy to work through it, or to answer its questions if he already knows it.';
+ const info=[['Time actively working',fmt(T.ms),'Not scored. A boy who already knows the material may finish quickly, and that should not lose him marks.'],['Interactive exhibits used',wu+' of '+ws,'Not scored. The demonstrations help a boy who needs them; a boy who does not need them can leave them.'],['Screens skipped',String(T.skips),'Not scored on its own. What matters is whether the parts and questions were covered.']];
+ return {pct,lab,col,nxt,parts,info}}
 function thoroughHtml(pr){const t=thorough();
  const bar=x=>x[2]==null?'—':Math.round(x[2]*100)+'%';
- if(pr)return `<div style="border:1px solid #d9deea;border-radius:8px;padding:10px 12px;margin:10px 0;background:#faf8f3"><div style="display:flex;align-items:center;gap:16px;margin-bottom:6px"><div style="width:120px;height:120px;border-radius:50%;border:9px solid #c62828;display:flex;align-items:center;justify-content:center;font-size:2.4rem;font-weight:800;color:#c62828;background:#fff;flex:none">${t.pct}%</div><div><b style="font-size:1.3rem;color:#1a2744">${t.lab}</b><div style="font-size:.78rem;color:#667">out of 100</div></div></div><div style="font-size:.72rem;color:#667;margin:2px 0 6px">Thoroughness: how completely the work was done, not how many answers were right first time.</div><table style="border-collapse:collapse;width:100%">${t.parts.map(x=>`<tr><td style="border-bottom:1px solid #e3e6ee;padding:3px 6px;font-size:.8rem">${x[0]}</td><td style="border-bottom:1px solid #e3e6ee;padding:3px 6px;font-size:.8rem">${x[3]}</td><td style="border-bottom:1px solid #e3e6ee;padding:3px 6px;font-size:.8rem;text-align:right">${bar(x)}</td></tr>`).join('')}</table></div>`;
- return `<div class="call"><div style="display:flex;align-items:center;gap:16px;margin-bottom:6px"><div style="width:120px;height:120px;border-radius:50%;border:9px solid #c62828;display:flex;align-items:center;justify-content:center;font-size:2.4rem;font-weight:800;color:#c62828;background:#fff;flex:none">${t.pct}%</div><div><b style="font-size:22px">${t.lab}</b><div style="font-size:13px;color:#667">out of 100</div></div></div><div class="small">Thoroughness: how completely the work was done, not how many answers were right first time.</div><table>${t.parts.map(x=>`<tr><td>${x[0]}</td><td>${x[3]}</td><td style="text-align:right">${bar(x)}</td></tr>`).join('')}</table></div>`}
+ const hd='Thoroughness score: how much of the chapter was worked through, and how well it was understood';
+ const ex='Skipping what you already know does not lose marks, and speed is not scored. What counts is whether each part was covered (by learning it or by showing you knew it) and whether the questions were answered and understood.';
+ const scale='85–100 Thorough · 65–84 Good · 40–64 Partly done · under 40 Barely started';
+ if(pr)return `<div style="border:1px solid #d9deea;border-radius:8px;padding:10px 12px;margin:10px 0;background:#faf8f3"><div style="font-size:.9rem;font-weight:700;color:#1a2744;margin-bottom:6px">${hd}</div><div style="display:flex;align-items:center;gap:16px;margin-bottom:6px"><div style="width:110px;height:110px;border-radius:50%;border:9px solid ${t.col};display:flex;align-items:center;justify-content:center;font-size:2.2rem;font-weight:800;color:${t.col};background:#fff;flex:none">${t.pct}%</div><div><b style="font-size:1.3rem;color:${t.col}">${t.lab}</b><div style="font-size:.76rem;color:#667">out of 100 · ${scale}</div></div></div><div style="font-size:.78rem;color:#334;margin:4px 0">${ex}</div><div style="font-size:.8rem;font-weight:700;color:#1a2744;margin:6px 0">${t.nxt}</div><table style="border-collapse:collapse;width:100%">${t.parts.map(x=>`<tr><td style="border-bottom:1px solid #e3e6ee;padding:3px 6px;font-size:.8rem;width:34%"><b>${x[0]}</b><div style="font-size:.68rem;color:#667">${x[4]} (worth ${x[1]})</div></td><td style="border-bottom:1px solid #e3e6ee;padding:3px 6px;font-size:.8rem">${x[3]}</td><td style="border-bottom:1px solid #e3e6ee;padding:3px 6px;font-size:.8rem;text-align:right">${bar(x)}</td></tr>`).join('')}${t.info.map(x=>`<tr><td style="padding:3px 6px;font-size:.78rem;color:#556"><b>${x[0]}</b><div style="font-size:.68rem">${x[2]}</div></td><td style="padding:3px 6px;font-size:.78rem;color:#556">${x[1]}</td><td></td></tr>`).join('')}</table></div>`;
+ return `<div class="call"><div style="font-weight:700;margin-bottom:6px">${hd}</div><div style="display:flex;align-items:center;gap:16px;margin-bottom:6px"><div style="width:120px;height:120px;border-radius:50%;border:9px solid ${t.col};display:flex;align-items:center;justify-content:center;font-size:2.4rem;font-weight:800;color:${t.col};background:#fff;flex:none">${t.pct}%</div><div><b style="font-size:22px;color:${t.col}">${t.lab}</b><div style="font-size:13px;color:#667">out of 100<br>${scale}</div></div></div><div class="small">${ex}</div><div class="small" style="font-weight:700">${t.nxt}</div><table>${t.parts.map(x=>`<tr><td><b>${x[0]}</b><div class="small" style="text-align:left">${x[4]} (worth ${x[1]})</div></td><td>${x[3]}</td><td style="text-align:right">${bar(x)}</td></tr>`).join('')}${t.info.map(x=>`<tr><td><b>${x[0]}</b><div class="small" style="text-align:left">${x[2]}</div></td><td>${x[1]}</td><td></td></tr>`).join('')}</table></div>`}
 function rSheet(){
  if(!T.asked){frame(`<div class="card"><div class="eye">Progress sheet</div><h2>Make my progress sheet</h2><div class="call">This sheet shows how long you have spent on this chapter, how far you got, which routes you chose and how many questions you got right. Your teacher may ask for it as a PDF for this EW slot.</div><label class="small" for="nmi">Type your name (needed for the sheet)</label><input class="nmi" id="nmi" autocomplete="off" value="${T.name.replace(/"/g,'')}" placeholder="Your full name"><div class="row"><button class="btn alt" id="bk3">← Back to where I was</button><button class="btn" id="mk">Make my sheet</button></div><div class="hint" id="nh" style="text-align:center"></div></div>`);
   $('#bk3').onclick=()=>{sheetOn=false;render()};
@@ -56181,4 +56184,4 @@ MCQ('Complete: <b>Je l’ai vue ___ marchait dans la rue.</b>',['en','qui','que'
   if (document.readyState === 'complete') start(); else window.addEventListener('load', start);
 })();
 </script>
-<script id="ap-build">window.__apBuild="46d8c008f0";</script>
+<script id="ap-build">window.__apBuild="5a3a7b7ee9";</script>
