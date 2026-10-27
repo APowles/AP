@@ -5414,7 +5414,7 @@ function ovSecsFor(a1, a2){
 function getSelectionLabel(fallback){
   if (typeof selectedSections !== 'undefined' && selectedSections.size){
     var codes = [...selectedSections].sort(natSort);
-    if (codes.length <= 4) return codes.join(', ');
+    if (codes.length <= 4) return codes.map(function (c) { var t = (typeof SECTION_TITLES !== 'undefined' && SECTION_TITLES[c]) || ''; var e = t.split(' — ')[1]; return e ? e + ' (' + c + ')' : c; }).join(', ');
     return 'Custom selection \u2014 ' + codes.length + ' sections';
   }
   var s = document.getElementById('sel-section');
@@ -8619,7 +8619,7 @@ if (window.__spv) window.__spv.speedTest = function (kind, secs, rev, lv, mix) {
     if (whole.length && eq(cover)) return whole.length === 1 ? (UNIT_TITLES[whole[0]] || 'Unit ' + whole[0]) : (whole.every(function (u) { return /^[0-9]/.test(u); }) ? 'Units ' : 'Units / sections ') + whole.join(', ');
     var codes = Array.from(selectedSections).sort(natSort);
     if (codes.length === 1) return codes[0] + (SECTION_TITLES[codes[0]] ? ' — ' + SECTION_TITLES[codes[0]] : '');
-    if (codes.length <= 4) return codes.join(', ');
+    if (codes.length <= 4) return codes.map(function (c) { var t = (typeof SECTION_TITLES !== 'undefined' && SECTION_TITLES[c]) || ''; var e = t.split(' — ')[1]; return e ? e + ' (' + c + ')' : c; }).join(', ');
     return codes.length + ' sections';
   }
   var gsl = getSelectionLabel;
@@ -9438,6 +9438,23 @@ if (window.__spv) window.__spv.speedTest = function (kind, secs, rev, lv, mix) {
 .ms-step .ms-num.ms-big{font-size:1rem!important;padding:5px 16px!important;letter-spacing:.12em!important;box-shadow:0 2px 0 #a8862e!important}
 .gg-selbar:has(.gg-selsum.gg-none){display:none!important}
 </style>
+<script id="vl-link">
+/* Deep link: #vsec=1A.3,1B.4 opens the vocabulary home with those lists already chosen and the ways to practise showing. */
+(function () {
+  var done = '';
+  function apply() {
+    var m = /^#vsec=([0-9A-Za-z.,_]+)/.exec(location.hash || ''); if (!m || m[1] === done) return;
+    if (typeof ALL_PHRASES === 'undefined' || typeof ovDone !== 'function' || typeof selectedSections === 'undefined') return false;
+    var ok = {}; ALL_PHRASES.forEach(function (p) { ok[p.sec] = 1; });
+    var want = m[1].split(',').filter(function (x) { return ok[x]; }); if (!want.length) { done = m[1]; return; }
+    selectedSections.clear(); want.forEach(function (x) { selectedSections.add(x); });
+    try { refreshOverviewChecks(); } catch (e) { }
+    ovDone(); done = m[1]; return true;
+  }
+  var tries = 0, t = setInterval(function () { tries++; try { if (apply() !== false || tries > 80) clearInterval(t); } catch (e) { if (tries > 80) clearInterval(t); } }, 150);
+  window.addEventListener('hashchange', function () { try { apply(); } catch (e) { } });
+})();
+</script>
 <script id="ap-newver-js">
 /* AP NEW VERSION: when a newer version of this page has been published, a slim gold strip at the very top (not floating) says so; one tap loads it. */
 (function () {
@@ -9470,4 +9487,4 @@ if (window.__spv) window.__spv.speedTest = function (kind, secs, rev, lv, mix) {
   if (document.readyState === 'complete') start(); else window.addEventListener('load', start);
 })();
 </script>
-<script id="ap-build">window.__apBuild="415e65d4c4";</script>
+<script id="ap-build">window.__apBuild="45a8271be3";</script>

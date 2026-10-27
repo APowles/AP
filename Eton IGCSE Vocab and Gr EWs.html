@@ -13012,13 +13012,14 @@ const S=[{k:'how'},{k:'over'}].concat(CH.build(Fx,MCQ));
 (CH.XQ||[]).forEach(b=>{const q=MCQ(b.q,b.opts,b.a,b.why);q.fc=b.fc;q.bonus=true;if(b.th)q.th=b.th;let at=-1;S.forEach((x,n)=>{if(x.fc===b.fc&&x.k==='mcq')at=n});if(at>=0)S.splice(at+1,0,q)});
 {const seen={};for(let k=S.length-1;k>=0;k--){const x=S[k];if(x.bonus&&!seen[x.fc]){seen[x.fc]=1;x.lastGate=true}}}
 const GATE={};
+(CH.VOC||[]).forEach(b=>{const at=S.findIndex(x=>x.k==='done'&&x.fc===b.fc);if(at>=0)S.splice(at,0,{k:'vocab',fc:b.fc,secs:b.secs})});
 $('#chl').textContent=CH.label;
 const quick=new Set(),quickS=new Set();const skp=x=>x.bonus?!quick.has(x.fc):(x.k==='mcq'&&!x.retry&&quick.has(x.fc))||((x.k==='learn'||x.k==='listen')&&(quick.has(x.fc)||quickS.has(x)));let ret=null;
 S.forEach((x,n)=>{if(x.k==='intro'&&x.tri){const L=S.filter(y=>(y.k==='learn'||y.k==='listen')&&y.fc===x.fc);const pts=x.pts||x.tri.map((_,q)=>L[q]?[q]:[]);pts.forEach((a,q)=>a.forEach(ix=>{if(L[ix])(L[ix].parts=L[ix].parts||[]).push(q)}))}});
 S.forEach((x,ix)=>{if((x.k==='mcq'||x.k==='listen')&&x.fc<NF&&x.way!=='ALL THREE WAYS'){let t=-1;if(x.th)t=S.findIndex(y=>y.k==='learn'&&y.h===x.th);else for(let k=ix-1;k>=0;k--)if(S[k].k==='learn'){t=k;break}if(t>=0&&S[t].fc===x.fc)x.tk=S[t]}});
 const reteach=s=>`<div class="row"><button class="hlp" id="rt">Not sure? Reteach me this bit</button></div>`;
 function goReteach(s){T.reteach++;const t=S.indexOf(s.tk),me=S.indexOf(s);if(t<0)return;ret=me;i=t;side=null;render()}
-const LIM=CH.lim||30;const SEC={learn:35,mcq:25,listen:40,jot:90,end:0,done:0,intro:0,over:0};
+const LIM=CH.lim||30;const SEC={vocab:60,learn:35,mcq:25,listen:40,jot:90,end:0,done:0,intro:0,over:0};
 const mins=fc=>Math.max(1,Math.round(S.filter(x=>x.fc===fc&&!x.retry&&!x.bonus).reduce((t,x)=>t+(SEC[x.k]||0),0)/60));
 const totalMins=()=>Array.from({length:NF+1},(_,f)=>f).reduce((t,f)=>t+mins(f),0);
 let i=0,score=0,tot=0,last=-1,side=null;
@@ -13072,7 +13073,9 @@ function splashEnd(){if(!SPL.live)return;SPL.live=false;try{const pa=SPL.pa;if(p
  const e=SPL.el;if(e){e.classList.add('out');setTimeout(()=>{try{e.remove()}catch(x){}},600)}SPL.el=null;
  document.removeEventListener('keydown',splashKey,true);introOn=false;render()}
 function splashKey(ev){if(SPL.live){ev.preventDefault();ev.stopPropagation();splashEnd()}}
-function rIntro0(){if(!INTRO_IMGS.length)return rIntroOld();if(SPL.live)return;
+function rIntroPlain(){$('#m').innerHTML=`<div class="io" style="min-height:60vh"><div class="iv" style="position:static;background:none"><div><div class="n">${CH.label}</div><h1>Grammar Studio</h1><i>${LANGN==='Spanish'?'Mira. Entiende. Domina.':'Guarda. Capisci. Padroneggia.'}</i></div><div class="row"><button class="btn" id="is">Start</button></div></div></div>`;
+$('#pill').textContent='';$('#ln').style.width='0%';$('#sk').disabled=true;window.scrollTo(0,0);$('#is').onclick=()=>{introOn=false;render()}}
+function rIntro0(){if(LANGN!=='French')return rIntroPlain();if(!INTRO_IMGS.length)return rIntroOld();if(SPL.live)return;
  $('#m').innerHTML='';$('#pill').textContent='';$('#ln').style.width='0%';$('#sk').disabled=true;
  const N=12,pick=INTRO_IMGS.map((x,i)=>i).sort(()=>Math.random()-.5).slice(0,N);let started=false,blocked=false;
  const el=document.createElement('div');el.id='amsp';
@@ -13091,7 +13094,12 @@ function rIntro0(){if(!INTRO_IMGS.length)return rIntroOld();if(SPL.live)return;
   if(!getPA()&&c&&c.state!=='running'){try{c.resume()}catch(e){}let n=0;const poll=()=>{if(!SPL.live)return;if(c.state==='running'||++n>16)return go();setTimeout(poll,75)};poll()}else go()};
  setTimeout(run,60)}
 let waveT=0;function wave(){clearInterval(waveT);const L=[...document.querySelectorAll('.fp li.pick')];if(!L.length||matchMedia('(prefers-reduced-motion:reduce)').matches)return;let k=0;const step=()=>{const lk=!!document.querySelector('#nv.locked');L.forEach((x,n)=>x.classList.toggle('glow',!lk&&n===k%L.length));k++};step();waveT=setInterval(step,750)}
-function render(){clearInterval(waveT);const s=S[i];T.max=Math.max(T.max,i);if(s.k!=='how')T.started=true;if(s.fc!=null)T.seen[s.fc]=true;if(exitOn)return rExit();if(wakeOn)return rWake();if(pausedOn)return rPause();if(sheetOn)return rSheet();if(introOn)return rIntro0();if(side){return rSide()}({how:rHow,listen:rListen,over:rOver,intro:rIntro,done:rDone,learn:rLearn,mcq:rMcq,jot:rJot,end:rEnd})[s.k](s)}
+function render(){clearInterval(waveT);const s=S[i];T.max=Math.max(T.max,i);if(s.k!=='how')T.started=true;if(s.fc!=null)T.seen[s.fc]=true;if(exitOn)return rExit();if(wakeOn)return rWake();if(pausedOn)return rPause();if(sheetOn)return rSheet();if(introOn)return rIntro0();if(side){return rSide()}({how:rHow,listen:rListen,over:rOver,intro:rIntro,done:rDone,learn:rLearn,mcq:rMcq,jot:rJot,end:rEnd,vocab:rVocab})[s.k](s)}
+function rVocab(s){
+ const all=s.secs.map(x=>x.c).join(',');
+ frame(`<div class="card">${eye(s)}<h2>Practise the words for this part</h2><div class="call">The words for this part are in the vocabulary lists. Practise them now with Drill, Speed Challenge, Spell, Match or a Test. The lists open on a new screen, and a button at the top brings you straight back here.</div><div class="row" style="flex-direction:column;align-items:center">${s.secs.map(x=>`<button class="btn alt vbtn" data-s="${x.c}">Click here to practise: ${x.t}</button>`).join('')}${s.secs.length>1?`<button class="btn alt vbtn" data-s="${all}">Click here to practise all of these together</button>`:''}</div><div class="small" id="vh" style="text-align:center">You can also carry on without them and come back later.</div>${nextBtn('Continue')}</div>`);
+ document.querySelectorAll('.vbtn').forEach(b=>b.onclick=()=>{if(EMB)tell({t:'vocab',a:b.dataset.s});else $('#vh').textContent='In the finished file this opens the vocabulary lists.'});
+ $('#go').onclick=adv}
 function rHow(){frame(`<div class="card"><div class="eye">Before you start</div><h2>How the Grammar Studio works</h2>
 <div class="hw hw4">
 <div><b>Read, then check</b><span>Each screen teaches one small idea, then asks a short question. If you slip up, tap the right answer and the question comes back later.</span></div>
@@ -18674,4 +18682,4 @@ MCQ('<b>“Strawberries? We ate some.”</b> Which is right?',['Des fraises ? No
   if (document.readyState === 'complete') start(); else window.addEventListener('load', start);
 })();
 </script>
-<script id="ap-build">window.__apBuild="cbf3ced7e8";</script>
+<script id="ap-build">window.__apBuild="da9b4deab5";</script>
