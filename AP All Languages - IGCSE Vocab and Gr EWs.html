@@ -13030,12 +13030,13 @@ function rIntro0(){if(!INTRO_IMGS.length)return rIntroOld();if(SPL.live)return;
  const c=amCtx(),fr=document.getElementById('sp-fr'),bl=document.getElementById('sp-bl'),st=document.getElementById('sp-st');
  el.addEventListener('click',ev=>{if(blocked&&!ev.target.closest('.sp-skip')){blocked=false;const cc=amCtx();Promise.resolve(cc&&cc.resume()).then(()=>{splashEnd();setTimeout(()=>{introOn=true;render()},60)},()=>splashEnd());return}splashEnd()});
  const show=i=>{if(!SPL.live)return;const u="url('"+INTRO_IMGS[pick[i%pick.length]]+"')";fr.style.backgroundImage=u;bl.style.backgroundImage=u;st.style.transition='none';st.style.transform='scale(1)';void st.offsetWidth;st.style.transition='transform .3s linear';st.style.transform='scale(1.07)'};
- const run=()=>{if(started||!SPL.live)return;started=true;
+ const run=()=>{if(started||!SPL.live)return;started=true;const go=()=>{if(!SPL.live)return;
   if(c&&c.state==='running')amSound(c,N);
   else if(c){blocked=true;const h=document.createElement('div');h.className='sp-snd';h.textContent='\u{1F50A} Click for sound';el.appendChild(h);try{c.resume().then(()=>{if(SPL.live&&blocked&&c.state==='running'){blocked=false;h.remove();amSound(c,N)}},()=>{})}catch(e){}}
   const t0=200;pick.forEach((n,i)=>SPL.timers.push(setTimeout(()=>show(i),t0+i*340)));
   SPL.timers.push(setTimeout(()=>{if(!SPL.live)return;fr.style.filter='saturate(1.1) brightness(.55)';document.getElementById('sp-t').classList.add('on')},t0+N*340));
   SPL.timers.push(setTimeout(()=>{if(!blocked)splashEnd()},t0+N*340+2000))};
+  if(c&&c.state!=='running'){try{c.resume()}catch(e){}let n=0;const poll=()=>{if(!SPL.live)return;if(c.state==='running'||++n>16)return go();setTimeout(poll,75)};poll()}else go()};
  setTimeout(run,60)}
 function render(){const s=S[i];T.max=Math.max(T.max,i);if(s.k!=='how')T.started=true;if(s.fc!=null)T.seen[s.fc]=true;if(exitOn)return rExit();if(wakeOn)return rWake();if(pausedOn)return rPause();if(sheetOn)return rSheet();if(introOn)return rIntro0();if(side){return rSide()}({how:rHow,listen:rListen,over:rOver,intro:rIntro,done:rDone,learn:rLearn,mcq:rMcq,jot:rJot,end:rEnd})[s.k](s)}
 function rHow(){frame(`<div class="card"><div class="eye">Before you start</div><h2>How the Grammar Studio works</h2>
@@ -13065,7 +13066,7 @@ const upd=()=>{document.querySelectorAll('.pt').forEach(b=>b.classList.toggle('o
 document.querySelectorAll('.pt').forEach(b=>b.onclick=()=>{const q=+b.dataset.q;sel.has(q)?sel.delete(q):sel.add(q);upd()});
 $('#go').onclick=()=>{T.route[fc]='teach';quick.delete(fc);adv()};
 $('#kn').onclick=()=>{T.route[fc]='test';quick.add(fc);adv()};
-$('#pp').onclick=()=>{if(!sel.size)return;const q=[...sel].sort((x,y)=>x-y);T.route[fc]='parts:'+q.map(n=>n+1).join(',');quick.delete(fc);S.forEach(x=>{if((x.k==='learn'||x.k==='listen')&&x.fc===fc){(x.parts||[]).some(z=>q.includes(z))?quickS.delete(x):quickS.add(x)}});adv()}}
+$('#pp').onclick=()=>{if(!sel.size)return;const q=[...sel].sort((x,y)=>x-y);T.route[fc]='parts:'+q.map(n=>n+1).join(',');quick.delete(fc);S.forEach(x=>{if((x.k==='learn'||x.k==='listen')&&x.fc===fc){(x.parts||[]).some(z=>q.includes(z))?quickS.delete(x):quickS.add(x)}});{const a0=S.indexOf(s),b0=S.findIndex((x,n)=>n>a0&&x.k==='done'&&x.fc===fc);if(a0>=0&&b0>a0){const gs=[];S.slice(a0+1,b0).forEach(x=>{if(x.k==='learn'||x.k==='listen')gs.push([x]);else{if(!gs.length)gs.push([]);gs[gs.length-1].push(x)}});const isSel=g=>g[0]&&(g[0].parts||[]).some(z=>q.includes(z));const re=[].concat(...gs.filter(isSel),...gs.filter(g=>!isSel(g)));S.splice(a0+1,b0-a0-1,...re)}}adv()}}
 function rDone(s){const fc=s.fc;T.fcDone[fc]=true;snd('ok');frame(`<div class="card"><div class="eye">Focus ${fc+1} of ${NF} · done</div><h2>You can now ${CANF[fc]}</h2><ol class="fp">${FOCS.map((f,n)=>`<li class="${n<=fc?'done':n===fc+1?'cur':'later'}"><span class="n">${n<=fc?'✓':n+1}</span><span>${f}</span></li>`).join('')}</ol>${nextBtn(fc<NF-1?'On to focus '+(fc+2):'Put it all together')}</div>`);$('#go').onclick=adv}
 const PM6=['I','you (one person, friend)','he (she, one)','we','you (several people, or polite)','they'];
 const PR=['je','tu','il (elle, on)','nous','vous','ils (elles)'];
@@ -14439,4 +14440,4 @@ MCQ('<b>“Strawberries? We ate some.”</b> Which is right?',['Des fraises ? No
   if (document.readyState === 'complete') start(); else window.addEventListener('load', start);
 })();
 </script>
-<script id="ap-build">window.__apBuild="a83e23fced";</script>
+<script id="ap-build">window.__apBuild="2444043921";</script>
