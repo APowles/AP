@@ -12990,7 +12990,7 @@ const totalMins=()=>[0,1,2,3,4].reduce((t,f)=>t+mins(f),0);
 let i=0,score=0,tot=0,last=-1,side=null;
 const sh=a=>{a=a.slice();for(let j=a.length-1;j>0;j--){const k=Math.floor(Math.random()*(j+1));[a[j],a[k]]=[a[k],a[j]]}return a};
 function arrange(q){const n=q.opts.length,right=q.opts[q.a],o=sh(q.opts.filter((_,x)=>x!==q.a));let p;do{p=Math.random()<.08?0:1+Math.floor(Math.random()*(n-1))}while(p===last&&n>2);last=p;o.splice(p,0,right);return o}
-function frame(inner){const s=S[i];$('#pill').textContent='Step '+(i+1)+' of '+S.length;$('#ln').style.width=Math.round((i+1)/S.length*100)+'%';$('#bk').disabled=i===0;$('#sk').disabled=i===S.length-1;window.speechSynthesis&&speechSynthesis.cancel();$('#m').innerHTML=inner;window.scrollTo(0,0)}
+function frame(inner){const s=S[i];$('#pill').textContent='Step '+(i+1)+' of '+S.length;$('#ln').style.width=Math.round((i+1)/S.length*100)+'%';$('#bk').disabled=i===0&&!EMB;$('#sk').disabled=i===S.length-1;window.speechSynthesis&&speechSynthesis.cancel();$('#m').innerHTML=inner;window.scrollTo(0,0)}
 const eye=s=>s.retry?`<div class="eye">Back again · Focus ${s.fc+1} of 4 · you missed this earlier</div>`:s.fc===4?'<div class="eye">Putting it together</div>':`<div class="eye">Focus ${s.fc+1} of 4 · ${FOCS[s.fc]}${s.way?' · '+s.way:''}</div>`;
 const MISSED={};
 const T={ms:0,act:Date.now(),per:{},route:{},seen:{},fcDone:{},reteach:0,skips:0,jots:0,name:'',max:0,missedQs:[],nudged:false,asked:false};
@@ -13004,7 +13004,7 @@ function logQ(s,ok){const p=T.per[s.fc]||(T.per[s.fc]={q:0,ok:0,again:0,againOk:
 let sheetOn=false,pausedOn=false,pz0=0,wakeOn=false,exitOn=false;const EMB=window.parent!==window;const tell=m=>{try{parent.postMessage(Object.assign({gs:1},m),'*')}catch(e){}};if(EMB)$('#ex').hidden=false;T.pauses=[];T.wakes=[];
 function adv(){i++;while(S[i]&&(S[i].k==='learn'||S[i].k==='listen')&&quick.has(S[i].fc))i++;const d=S[i];if(d&&d.k==='done'&&MISSED[d.fc]&&MISSED[d.fc].length){const r=sh(MISSED[d.fc]).map(x=>Object.assign({},x,{retry:true,_m:true}));MISSED[d.fc]=[];S.splice(i,0,...r)}render()}
 $('#sk').onclick=()=>{if(exitOn){exitOn=false;render();return}if(sheetOn){sheetOn=false;render();return}ret=null;T.skips++;if(i<S.length-1){i++;side=null;render()}};
-$('#bk').onclick=()=>{if(exitOn){exitOn=false;render();return}if(sheetOn){sheetOn=false;render();return}ret=null;if(i>0){i--;while(i>0&&(S[i].k==='learn'||S[i].k==='listen')&&quick.has(S[i].fc))i--;render()}};
+$('#bk').onclick=()=>{if(wakeOn&&$('#wk')){$('#wk').click();return}if(pausedOn&&$('#rsm')){$('#rsm').click();return}if(i===0&&EMB&&!sheetOn&&!exitOn){tell({t:'exit'});return}if(exitOn){exitOn=false;render();return}if(sheetOn){sheetOn=false;render();return}ret=null;if(i>0){i--;while(i>0&&(S[i].k==='learn'||S[i].k==='listen')&&quick.has(S[i].fc))i--;render()}};
 const nextBtn=(t)=>`<button class="btn" id="go">${t||'Got it'}</button>`;
 function render(){const s=S[i];T.max=Math.max(T.max,i);if(s.k!=='how')T.started=true;if(s.fc!=null)T.seen[s.fc]=true;if(exitOn)return rExit();if(wakeOn)return rWake();if(pausedOn)return rPause();if(sheetOn)return rSheet();if(side){return rSide()}({how:rHow,listen:rListen,over:rOver,intro:rIntro,done:rDone,learn:rLearn,mcq:rMcq,jot:rJot,end:rEnd})[s.k](s)}
 function rHow(){frame(`<div class="card"><div class="eye">Before you start</div><h2>How the Grammar Studio works</h2>
@@ -13313,4 +13313,4 @@ render();
   if (document.readyState === 'complete') start(); else window.addEventListener('load', start);
 })();
 </script>
-<script id="ap-build">window.__apBuild="25dbf03279";</script>
+<script id="ap-build">window.__apBuild="c91f4ed5b0";</script>
