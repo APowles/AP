@@ -14863,13 +14863,15 @@ function kpSEnd(){const s=KPS,n=s.d.length;
    +'<div class="ms-cen" style="margin-top:14px"><button class="ms-b pri" onclick="kpSpell()">↻ Again</button><button class="ms-b" onclick="kpSClose()">Close</button></div>');
   KPSK=function(e){if(e.key==='Escape')kpSClose()};window.addEventListener('keydown',KPSK,true)}
 function kpStrip(k){
-  const t=[['#e0a81f',KP_IC.drill,'Say it','Oral drill: say it, check the model, rate each card.',"stg('d')"]];
-  if(kpSents(k).length>=3)t.push(['#1f8a4c',KP_SP,'Spell it','Accuracy: hear it, write it, every accent right.',"kpSpell()"]);
-  t.push(['#2f5fc4',KP_IC.match,'Match it','Find the pairs, beat the clock.',"kpMatch()"]);
-  if(kpHost()&&kpSents(k).length>=3)t.push(['#1f8a4c',(kpHost().BuildIt.ICON||''),'Build it','Sentence building: put the tiles in order.',"kpBuild()"]);
-  t.push(['#c4122e',KP_IC.speed,'Speed session','Race the clock on this KTR.',"openSpeedNow(["+k.n+"])"]);
-  if(spotHost())t.push(['#5b3f9e',KP_IC.test,'Spot Test','Short questions on this KTR, with Apple Pencil.',"kpSpot('pen')"]);
-  return `<div class="kp"><div class="kp-h">Practise this KTR</div><div class="kp-t">`+t.map(x=>`<button type="button" class="kp-b" style="--tc:${x[0]}" onclick="${x[4]}">${x[1]?`<img src="${x[1]}" alt="">`:`<span class="i"></span>`}<span><b>${x[2]}</b><small>${x[3]}</small></span></button>`).join('')+`</div>`+(spotHost()?`<div class="kp-pr">Prefer paper? <button type="button" class="kp-lk" onclick="kpSpot('print')">Print the Spot Test</button> to write on by hand.</div>`:'')+`</div>`}
+  const ns=kpSents(k).length,seen={},nm=(()=>{let c=0;(k.words||[]).forEach(w=>{const f=kpPlain(w.fr),e=kpPlain(w.en);if(f&&e&&!seen[f]&&!seen['e'+e]){seen[f]=seen['e'+e]=1;c++}});return c})();
+  const NS='Needs at least 3 full sentences in this KTR.';
+  const t=[['#e0a81f',KP_IC.drill,'Say it','Oral drill: say it, check the model, rate each card.',"stg('d')",0],
+   ['#1f8a4c',KP_SP,'Spell it',ns>=3?'Accuracy: hear it, write it, every accent right.':NS,"kpSpell()",ns<3],
+   ['#2f5fc4',KP_IC.match,'Match it',nm>=3?'Find the pairs, beat the clock.':'Needs at least 3 word pairs in this KTR.',"kpMatch()",nm<3],
+   ['#1f8a4c',(kpHost()?(kpHost().BuildIt.ICON||''):''),'Build it',kpHost()&&ns>=3?'Sentence building: put the tiles in order.':NS,"kpBuild()",!(kpHost()&&ns>=3)],
+   ['#c4122e',KP_IC.speed,'Speed session','Race the clock on this KTR.',"openSpeedNow(["+k.n+"])",0],
+   ['#5b3f9e',KP_IC.test,'Spot Test',spotHost()?'Short questions on this KTR, with Apple Pencil.':'Spot Test is not available here.',"kpSpot('pen')",!spotHost()]];
+  return `<div class="kp"><div class="kp-h">Practise this KTR</div><div class="kp-t">`+t.map(x=>`<button type="button" class="kp-b" style="--tc:${x[0]}"${x[5]?' disabled':''} onclick="${x[4]}">${x[1]?`<img src="${x[1]}" alt="">`:`<span class="i"></span>`}<span><b>${x[2]}</b><small>${x[3]}</small></span></button>`).join('')+`</div>`+(spotHost()?`<div class="kp-pr">Prefer paper? <button type="button" class="kp-lk" onclick="kpSpot('print')">Print the Spot Test</button> to write on by hand.</div>`:'')+`</div>`}
 function kpSpot(w){const c=document.querySelector('.spt-card');if(!c)return;
   const b=w==='print'?(c.querySelector('.spt-link')||c.querySelector('.spt-big.alt')):(c.querySelector('.spt-big:not(.alt)')||c.querySelector('.spt-big'));if(b)b.click()}
 let KPM=null,KPT=null;
@@ -15952,7 +15954,7 @@ syncTeach()
 .kp{margin:18px 0 6px}.kp-h{font:800 .72rem 'DM Sans',system-ui,sans-serif;letter-spacing:.08em;text-transform:uppercase;color:#6b7690;margin-bottom:8px}
 .kp-t{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:10px}
 .kp-b{display:flex;gap:10px;align-items:center;text-align:left;min-height:70px;padding:8px 12px 8px 8px;background:#fffdf8;border:1.5px solid #d9deea;border-bottom:4px solid var(--tc);border-radius:14px;cursor:pointer;font-family:inherit;color:#1a2744;touch-action:manipulation}
-.kp-b img{width:54px;height:54px;border-radius:12px;flex:0 0 auto;object-fit:cover}.kp-b .i{width:54px;flex:0 0 auto}.kp-b b{display:block;font-size:.98rem}.kp-b small{display:block;font-size:.76rem;color:#5a6785;line-height:1.25}
+.kp-b[disabled]{opacity:.45;cursor:default;filter:grayscale(.8)}.kp-b img{width:54px;height:54px;border-radius:12px;flex:0 0 auto;object-fit:cover}.kp-b .i{width:54px;flex:0 0 auto}.kp-b b{display:block;font-size:.98rem}.kp-b small{display:block;font-size:.76rem;color:#5a6785;line-height:1.25}
 .kp-pr{margin-top:8px;font-size:.88rem;color:#4a5570}.kp-lk{background:none;border:0;padding:6px 2px;min-height:32px;font:800 .9rem 'DM Sans',system-ui,sans-serif;color:#5b3f9e;text-decoration:underline;cursor:pointer}
 .spt-card{position:absolute!important;left:-9999px!important;width:1px!important;height:1px!important;overflow:hidden!important;margin:0!important;padding:0!important}.spt-s{display:none!important}.spt-h{font-size:1rem!important}.spt-main{flex-direction:row!important}.spt-big{min-height:44px!important;font-size:.95rem!important;width:auto!important;flex:1 1 auto}.spt-pr{margin-top:4px!important}
 .ms-note{font-size:.875rem;color:#4a5570;margin-top:8px;line-height:1.4}
@@ -18645,4 +18647,4 @@ function showKTRStudio(){
   if (document.readyState === 'complete') start(); else window.addEventListener('load', start);
 })();
 </script>
-<script id="ap-build">window.__apBuild="6448530436";</script>
+<script id="ap-build">window.__apBuild="318c4c912c";</script>
