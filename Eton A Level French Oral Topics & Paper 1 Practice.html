@@ -14797,6 +14797,42 @@ function stg(x){if(S.stage!==x)trailPush();S.stage=x;S.step=0;render()}
 function dTab(x){if(S.drill!==x)trailPush();S.drill=x;render()}
 function uTab(i){if(S.uq!==i)trailPush();S.uq=i;render()}
 function cStep(i){if(S.step!==i)trailPush();S.step=i;render()}
+function kpPlain(x){return String(x==null?'':x).replace(/\*\*/g,'').replace(/\s+/g,' ').trim()}
+function kpSents(k){const seen={},o=[];
+  (k.picture||[]).concat(k.facts||[]).forEach(b=>{const f=kpPlain(b.fr),n=f.split(' ').length;
+    if(!f||seen[f]||n<4||n>40||!/^[¿¡"«“‘']?[A-ZÀ-ÖØ-Þ]/.test(f)||/\b[XY]\b|[…\[\]]|\.\.\.|___/.test(f))return;seen[f]=1;o.push({fr:f,en:kpPlain(b.en)})});return o}
+function kpHost(){try{return window.parent!==window&&window.parent.BuildIt?window.parent:null}catch(e){return null}}
+function kpBuild(){const k=ktr(),P=kpHost();if(!P)return;
+  P.BuildIt.open({items:kpSents(k),sub:'KTR '+k.n+' · '+k.term,lang:'fr',count:6,say:function(t){try{speakLine({fr:t,en:''},'fr')}catch(e){}},onBack:function(){}})}
+function kpStrip(k){
+  const t=[['#e0a81f','🎯','Drill','Say it: recall, gaps, rebuild.',"stg('d')"],
+           ['#c4122e','⚡','Speed session','Race the clock on this KTR.',"openSpeedNow(["+k.n+"])"],
+           ['#2f5fc4','🧩','Match','Pair up the English and the French.',"kpMatch()"]];
+  if(kpHost()&&kpSents(k).length>=3)t.push(['#1f8a4c','🧱','Build it','Put this KTR’s sentences back in order.',"kpBuild()"]);
+  return `<div class="kp"><div class="kp-h">Practise this KTR</div><div class="kp-t">`+t.map(x=>`<button type="button" class="kp-b" style="--tc:${x[0]}" onclick="${x[4]}"><span class="i">${x[1]}</span><span><b>${x[2]}</b><small>${x[3]}</small></span></button>`).join('')+`</div></div>`}
+let KPM=null,KPT=null;
+function kpMClose(){if(KPT){clearInterval(KPT);KPT=null}const o=document.getElementById('kp-ov');if(o)o.remove();KPM=null}
+function kpMatch(){
+  const k=ktr(),seen={},u=[];
+  (k.words||[]).forEach(w=>{const f=kpPlain(w.fr),e=kpPlain(w.en);if(f&&e&&!seen[f]&&!seen['e'+e]){seen[f]=seen['e'+e]=1;u.push({f:f,e:e})}});
+  if(u.length<3)return;
+  const sh=a=>{a=a.slice();for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]]}return a};
+  const d=sh(u).slice(0,6);KPM={d:d,en:sh(d.map((_,i)=>i)),fr:sh(d.map((_,i)=>i)),sel:null,done:0,pen:0,t0:0,k:k};
+  kpMClose();KPM={d:d,en:sh(d.map((_,i)=>i)),fr:sh(d.map((_,i)=>i)),sel:null,done:0,pen:0,t0:0,k:k};
+  const o=document.createElement('div');o.id='kp-ov';o.className='kp-ov';
+  o.innerHTML=`<div class="kp-m" role="dialog" aria-label="Match"><div class="kp-mh"><h2>🧩 Match · KTR ${esc(k.n)}</h2><button type="button" class="kp-x" onclick="kpMClose()">✕ Close</button></div>
+   <div class="kp-tm" id="kp-tm">0.0 s</div><div class="kp-g"><div class="kp-c">${KPM.en.map(i=>`<button type="button" class="kp-p" id="kp-e${i}" onclick="kpTap('e',${i})">${esc(d[i].e)}</button>`).join('')}</div>
+   <div class="kp-c">${KPM.fr.map(i=>`<button type="button" class="kp-p" id="kp-f${i}" onclick="kpTap('f',${i})">${esc(d[i].f)}</button>`).join('')}</div></div><div class="kp-n" id="kp-n">Tap an English one, then its French. A wrong pair adds 3 seconds.</div></div>`;
+  document.body.appendChild(o);
+  KPT=setInterval(()=>{if(!KPM||!KPM.t0)return;const e=document.getElementById('kp-tm');if(e)e.textContent=((Date.now()-KPM.t0)/1000+KPM.pen).toFixed(1)+' s'},100)}
+function kpTap(side,i){
+  const m=KPM;if(!m)return;if(!m.t0)m.t0=Date.now();
+  const el=document.getElementById('kp-'+side+i);if(!el||el.classList.contains('ok'))return;
+  if(!m.sel||m.sel.side===side){if(m.sel){const p=document.getElementById('kp-'+m.sel.side+m.sel.i);p&&p.classList.remove('sel')}m.sel={side:side,i:i};el.classList.add('sel');return}
+  const a=m.sel;m.sel=null;const ae=document.getElementById('kp-'+a.side+a.i);ae&&ae.classList.remove('sel');
+  if(a.i===i){[ae,el].forEach(x=>{x.classList.add('ok');x.disabled=true});m.done++;
+    if(m.done===m.d.length){const t=((Date.now()-m.t0)/1000+m.pen).toFixed(1);clearInterval(KPT);KPT=null;const n=document.getElementById('kp-n');n.innerHTML='⭐ All matched in '+t+' s. <button type="button" class="kp-x" onclick="kpMatch()">Another round</button>'}}
+  else{m.pen+=3;[ae,el].forEach(x=>x.classList.add('bad'));setTimeout(()=>{[ae,el].forEach(x=>x&&x.classList.remove('bad'))},450)}}
 function vKtr(){
   const k=ktr();
   const tabs=STAGES.filter(s=>s[0]!=='r'||k.remember).map(s=>`<button class="stg${S.stage===s[0]?' on':''}" onclick="stg('${s[0]}')"><b>${s[1]}</b><span>${s[2]}</span>${pips1(k.n,s[0])}</button>`).join('');
@@ -14804,12 +14840,12 @@ function vKtr(){
   const i=S.k,n=cur().ktrs.length;
   return `<div class="label">${esc(cur().name)} · KTR ${i+1} of ${n}</div>
   <h1 class="h1">${esc(k.term)}</h1>
-  <div class="stages">${tabs}</div>${body}
+  <div class="stages">${tabs}</div>${body}${kpStrip(k)}
   <div class="nav" style="margin-top:22px">
     <button class="btn" ${i===0?'disabled':''} onclick="go('ktr',${S.sub},${i-1})">Previous KTR</button>
     <button class="btn" ${i===n-1?'disabled':''} onclick="go('ktr',${S.sub},${i+1})">Next KTR</button>
 <button class="btn" onclick="go('sub')">Back to ${esc(cur().name)}</button>
-    <button class="spbtn" onclick="openSpeedNow([${k.n}])">⚡ Speed session: this KTR</button>${spotHost()?`<button class="spbtn subbtn" onclick="openSpot([${k.n}],'KTR ${k.n} · ${esc(k.term).replace(/'/g,"\\'")}')">✍ Submitted Spot Test: this KTR</button><button class="spbtn" onclick="openPaper([${k.n}],'KTR ${k.n} · ${esc(k.term).replace(/'/g,"\\'")}')">🖨 Paper Spot Test: this KTR</button>`:''}${setTestBtn(`[${k.n}],'KTR ${k.n} · ${esc(k.term).replace(/'/g,"\\'")}'`)}</div>`;
+    ${spotHost()?`<button class="spbtn subbtn" onclick="openSpot([${k.n}],'KTR ${k.n} · ${esc(k.term).replace(/'/g,"\\'")}')">✍ Submitted Spot Test: this KTR</button><button class="spbtn" onclick="openPaper([${k.n}],'KTR ${k.n} · ${esc(k.term).replace(/'/g,"\\'")}')">🖨 Paper Spot Test: this KTR</button>`:''}${setTestBtn(`[${k.n}],'KTR ${k.n} · ${esc(k.term).replace(/'/g,"\\'")}'`)}</div>`;
 }
 const pips1=(n,st)=>`<i class="pip${(PR[n]||{})[st]?' on':''}"></i>`;
 
@@ -15843,6 +15879,23 @@ document.addEventListener('keydown',e=>{
 initDrills();render();
 syncTeach()
 <\/script>
+<style id="kp-css">
+.kp{margin:18px 0 6px}.kp-h{font:800 .72rem 'DM Sans',system-ui,sans-serif;letter-spacing:.08em;text-transform:uppercase;color:#6b7690;margin-bottom:8px}
+.kp-t{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:10px}
+.kp-b{display:flex;gap:10px;align-items:center;text-align:left;min-height:62px;padding:8px 12px;background:#fffdf8;border:1.5px solid #d9deea;border-bottom:4px solid var(--tc);border-radius:14px;cursor:pointer;font-family:inherit;color:#1a2744;touch-action:manipulation}
+.kp-b .i{font-size:1.6rem;flex:0 0 auto}.kp-b b{display:block;font-size:.98rem}.kp-b small{display:block;font-size:.76rem;color:#5a6785;line-height:1.25}
+.spt-card{margin:12px 0 4px!important;padding:8px 12px 10px!important}.spt-s{display:none!important}.spt-h{font-size:1rem!important}.spt-main{flex-direction:row!important}.spt-big{min-height:44px!important;font-size:.95rem!important;width:auto!important;flex:1 1 auto}.spt-pr{margin-top:4px!important}
+.kp-ov{position:fixed;inset:0;z-index:9000;background:rgba(26,39,68,.55);display:flex;align-items:center;justify-content:center;padding:16px}
+.kp-m{background:#faf8f3;border-radius:18px;max-width:860px;width:100%;max-height:92vh;overflow:auto;padding:16px 18px;box-shadow:0 10px 40px rgba(0,0,0,.35)}
+.kp-mh{display:flex;justify-content:space-between;align-items:center;gap:10px;margin-bottom:8px}.kp-mh h2{margin:0;font-size:1.2rem}
+.kp-x{border:0;background:#eef0f6;border-radius:10px;min-height:44px;padding:0 14px;font:700 .95rem inherit;font-family:inherit;color:#1a2744;cursor:pointer}
+.kp-tm{font:800 1.1rem 'DM Sans',system-ui,sans-serif;text-align:center;margin:4px 0 8px;color:#1a2744}
+.kp-g{display:grid;grid-template-columns:1fr 1fr;gap:16px}.kp-c{display:grid;gap:10px;align-content:start}
+.kp-p{min-height:52px;padding:8px 12px;border-radius:12px;border:2px solid #d9deea;background:#fff;font:600 .95rem/1.25 'DM Sans',system-ui,sans-serif;color:#1a2744;text-align:left;cursor:pointer;touch-action:manipulation}
+.kp-p.sel{border-color:#2f5fc4;background:#eaf0ff}.kp-p.ok{border-color:#1f8a4c;background:#e6f5ec;color:#4a6b57;cursor:default}.kp-p.bad{border-color:#c4122e;background:#fde8ec}
+.kp-n{text-align:center;color:#5a6785;font-size:.85rem;margin-top:10px}
+@media(max-width:620px){.kp-g{grid-template-columns:1fr}}
+</style>
 <style id="ap-spot-css">
 .spt-hide{display:none!important}
 .spt-card{box-sizing:border-box;width:100%;flex:1 1 100%;grid-column:1/-1;margin:10px 0 4px;padding:12px 16px 14px;border:2px solid #5b3f9e;border-radius:16px;background:#f3eefb;box-shadow:0 4px 0 #5b3f9e;color:#1a2744;font-family:'DM Sans',system-ui,sans-serif;text-align:left}
