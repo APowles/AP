@@ -10142,6 +10142,7 @@ var APAM_TPL = "<!doctype html>\n<html lang=\"en\"><head><meta charset=\"utf-8\"
     var tilesHtml = TILES.map(function (x) {
       var off = !usable, d = x[3];
       if (my && x[1] === 'speed') { off = true; d = speedOff; }
+      if (x[1] === 'build' && usable && !(window.amBuildItems && amBuildItems().length >= 3)) { off = true; d = 'Needs at least 3 full sentences. Try more topics.'; }
       return '<button class="ms-tile ' + x[0] + '"' + (off ? ' disabled' : '') + ' onclick="' + x[4] + '"><img class="ms-img" alt="" src="' + iconFor(x[1]) + '"><span class="ms-tx"><span class="ms-tt">' + x[2] + '</span><span class="ms-td">' + d + '</span></span></button>';
     }).join('');
     while (card.firstChild) card.removeChild(card.firstChild);
@@ -10329,16 +10330,20 @@ var APAM_TPL = "<!doctype html>\n<html lang=\"en\"><head><meta charset=\"utf-8\"
   function fillBI() { try { if (!window.BuildIt) return; [].forEach.call(document.querySelectorAll('.ms-build .ms-img'), function (i) { if (i.getAttribute('src') !== window.BuildIt.ICON) i.src = window.BuildIt.ICON; }); } catch (e) { } }
   window.addEventListener('load', fillBI);
   var ri2 = window.renderIntro; window.renderIntro = function () { var r = ri2.apply(this, arguments); fillBI(); return r; };
-  window.apBuildIt = function () {
-    if (!currentSection) { alert('Choose topics under What to practise first.'); return; }
-    if (!window.BuildIt) { alert('Build it is not available yet.'); return; }
+  window.amBuildItems = amBuildItems; function amBuildItems() {
     var L = foreign(), seen = {}, items = [];
-    getPool().forEach(function (c) {
+    try { getPool().forEach(function (c) {
       var f = plain(c[L]), e = plain(c.en), n = wc(f);
       if (!f || n < 4 || n > 40 || seen[f.toLowerCase()] || /_{2}|\.{3}|…|\[|\]|\//.test(f)) return;
       seen[f.toLowerCase()] = 1; items.push({ fr: f, en: e });
-    });
-    if (!items.length) { alert('There are no suitable sentences in this selection for Build it.'); return; }
+    }); } catch (e) { }
+    return items;
+  }
+  window.apBuildIt = function () {
+    if (!currentSection) { alert('Choose topics under What to practise first.'); return; }
+    if (!window.BuildIt) { alert('Build it is not available yet.'); return; }
+    var L = foreign(), items = amBuildItems();
+    if (items.length < 3) { alert('Build it needs at least 3 full sentences in the selection.'); return; }
     BuildIt.open({ items: items, sub: label(), lang: L, count: 6, say: function (t) { try { speak(t, L); } catch (e) { } }, onBack: function () { } });
   };
   if (document.querySelector('#drillContainer .intro-card')) window.renderIntro();

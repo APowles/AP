@@ -8500,8 +8500,8 @@ if (window.__spv) window.__spv.speedTest = function (kind, secs, rev, lv, mix) {
     var view = B.stack.querySelector('[onclick^="openStudyView"]');
     var extra = [].slice.call(B.stack.children).filter(function (e) { return e.classList.contains('aph-tools') && !e.querySelector('#autotimeBtn'); });
     var tilesHtml = TILES.map(function (x) {
-      var off = !usable || (my && x[1] === 'speed') || (x[1] === 'build' && !buildItems().length);
-      var d = x[3]; if (my && x[1] === 'speed') d = 'Works on whole sections, so not on a personalised set.';
+      var nb = x[1] === 'build' && usable ? buildItems().length : 0, off = !usable || (my && x[1] === 'speed') || (x[1] === 'build' && nb < 3);
+      var d = x[3]; if (my && x[1] === 'speed') d = 'Works on whole sections, so not on a personalised set.'; if (x[1] === 'build' && usable && nb < 3) d = 'Needs at least 3 full sentences. Try more topics, or the Chunks ones.';
       return '<button class="ms-tile ' + x[0] + '"' + (off ? ' disabled' : '') + ' onclick="' + x[4] + '"><img class="ms-img" alt="" src="' + (x[1] === 'build' ? ((window.BuildIt && BuildIt.ICON) || '') : ICONS[x[1]]) + '"><span class="ms-tx"><span class="ms-tt">' + x[2] + '</span><span class="ms-td">' + d + '</span></span></button>';
     }).join('');
     while (card.firstChild) card.removeChild(card.firstChild);
@@ -8646,6 +8646,9 @@ if (window.__spv) window.__spv.speedTest = function (kind, secs, rev, lv, mix) {
         var e = es(c), g = en(c).replace(/\s*\([^)]*\)/g, '').trim();
         if (!e || !g || e.split(/\s+/).length < 4 || e.split(/\s+/).length > 40) return;
         if (/\.\.\.|…|_|\/|\+|\bX\b|\bsb\b|\bsth\b/.test(e + ' ' + g)) return;
+        /* only full sentences: the English must have a subject or a verb, and must not stop on a preposition (this drops noun phrases and chunk openers) */
+        if (!/\b(I|we|he|she|they|you|it|there|is|are|was|were|has|have|had|can|will|would|do|does|did)\b/i.test(g) || /^to /i.test(g) || / (with|to|of|in|on|at|for|from|by|about|and|but)$/i.test(g)) return;
+        e = e.replace(/^([¿¡]?)(\S)/, function (m, a, b) { return a + b.toUpperCase(); }); if (!/[.!?]$/.test(e)) e += '.';
         if (seen[e.toLowerCase()]) return; seen[e.toLowerCase()] = 1;
         out.push({ fr: e, en: g });
       });
@@ -8654,7 +8657,7 @@ if (window.__spv) window.__spv.speedTest = function (kind, secs, rev, lv, mix) {
   }
   window.apBuildIt = function () {
     var items = buildItems();
-    if (!items.length) { alert('Choose a unit under What to practise first.'); return; }
+    if (items.length < 3) { alert('Build it needs at least 3 full sentences in the selection.'); return; }
     if (!window.BuildIt) return;
     BuildIt.open({ items: items, sub: labelNow(), lang: 'es', count: 6,
       say: function (t) { try { speak(t, 'es-ES'); } catch (x) { } },
