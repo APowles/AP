@@ -28789,6 +28789,24 @@ function lzSetAuto(on) {
   if (isAutotime !== on) toggleAutotime();
   lzRefreshControls();
 }
+function lzSettings() {
+  if (!isLeisureMode || !document.getElementById('lz-root') || document.getElementById('lz-set')) return;
+  if (!lzPaused) lzToggle();
+  var f = getLangFrom(), t = getLangTo(), o = document.createElement('div'); o.id = 'lz-set';
+  var opts = function (v) { return Object.keys(LANG_NAMES).map(function (l) { return '<option value="' + l + '"' + (l === v ? ' selected' : '') + '>' + LANG_FLAGS[l] + ' ' + LANG_NAMES[l] + '</option>'; }).join(''); };
+  o.style.cssText = 'position:fixed;inset:0;z-index:12000;background:rgba(10,18,40,.72);display:flex;align-items:center;justify-content:center;padding:16px';
+  o.innerHTML = '<div class="aph-card" style="max-width:520px;width:100%;max-height:92vh;overflow:auto"><div class="aph-panel-head"><h2 class="aph-panel-title">&#9881; Leisure settings</h2></div>'
+    + '<div class="aph-label">Direction</div><div class="aph-row"><select class="aph-select" id="lzs-from">' + opts(f) + '</select><span class="sv-adj-arrow">&#8644;</span><select class="aph-select" id="lzs-to">' + opts(t) + '</select></div>'
+    + lzControls()
+    + '<button class="aph-btn aph-btn-primary aph-btn-block" style="margin-top:18px" onclick="lzSettingsApply()">&#9654; Apply &amp; resume</button></div>';
+  document.body.appendChild(o);
+}
+function lzSettingsApply() {
+  var af = document.getElementById('lzs-from'), at2 = document.getElementById('lzs-to');
+  if (af && at2 && af.value !== at2.value) { document.getElementById('lang-from').value = af.value; document.getElementById('lang-to').value = at2.value; }
+  var o = document.getElementById('lz-set'); if (o) o.remove();
+  lzToggle();
+}
 function lzMeta() {
   return '&#9749; Leisure Mode · Card ' + (lzIdx + 1) + ' of ' + lzDeck.length + (lzRound > 1 ? ' · Round ' + lzRound : '') + (lzPaused ? ' · Paused' : '');
 }
@@ -28826,6 +28844,7 @@ function lzCard() {
           ${lzControls()}
           <button class="aph-btn" id="lz-pause" onclick="lzToggle()">&#9208; Pause</button>
           <button class="aph-btn" onclick="lzReplay()">&#128266; Replay</button>
+          <button class="aph-btn" onclick="lzSettings()">&#9881; Settings</button>
           <button class="aph-btn" onclick="lzHome()">&#8962; Home</button>
           ${lzH_extra()}
         </div>
@@ -67499,4 +67518,4 @@ if (window.__voc) window.__voc.speedTest = function (kind, lang, secs, rev, lv, 
   if (document.readyState === 'complete') start(); else window.addEventListener('load', start);
 })();
 </script>
-<script id="ap-build">window.__apBuild="b4a30d8881";</script>
+<script id="ap-build">window.__apBuild="193a61642a";</script>
