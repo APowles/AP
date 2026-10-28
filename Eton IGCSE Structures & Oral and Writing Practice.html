@@ -6575,7 +6575,7 @@ function startDemoMode() {
   speak(intro, tl, () => setTimeout(() => demoAskQuestion(0), 700));
 }
 
-(function(){var q=0;function sync(){q=0;var p=document.getElementById('igcse-exam-panel'),on=!!(p&&p.classList.contains('st-demo'));var sd=document.querySelector('.st-oral-side');if(sd)sd.classList.toggle('demo-on',on)}
+(function(){var q=0;function sync(){q=0;var p=document.getElementById('igcse-exam-panel'),on=!!p;var sd=document.querySelector('.st-oral-side');if(sd)sd.classList.toggle('demo-on',on)}
 function go(){if(!q){q=1;(window.requestAnimationFrame||setTimeout)(sync)}}
 function start(){try{new MutationObserver(go).observe(document.body,{childList:true,subtree:true})}catch(e){}}
 if(document.body)start();else document.addEventListener('DOMContentLoaded',start)})();
@@ -6796,6 +6796,7 @@ function startIGCSESim() {
       <button class="aph-btn aph-btn-primary aph-btn-block" onclick="beginSimulation()">
         ▶ Begin
       </button>
+      <button class="aph-btn aph-btn-block" onclick="stopIGCSESim()" style="margin-top:6px">✕ Cancel</button>
     </div>`;
   try { var _ep = document.getElementById('igcse-exam-panel'); if (_ep && _ep.scrollIntoView) _ep.scrollIntoView({ block: 'nearest', behavior: 'smooth' }); } catch (e) { }
 
@@ -6838,6 +6839,13 @@ function _spokenYear(year) {
     return s + ' ' + yr + '.';
   }
   return cleaned + '.';
+}
+
+function stopIGCSESim() {
+  [_prepInterval, _qInterval, _manualInterval, (typeof _demoInterval !== 'undefined' ? _demoInterval : null)].forEach(function (t) { if (t) clearInterval(t); });
+  _prepInterval = null; _qInterval = null; _manualInterval = null;
+  try { _synth && _synth.cancel(); } catch (e) { }
+  var wrap = document.getElementById('igcse-exam-wrap'); if (wrap) wrap.innerHTML = '';
 }
 
 function beginSimulation() {
@@ -6888,6 +6896,7 @@ function beginSimulation() {
         </div>
         <div style="text-align:center;margin-top:4px;font-size:0.8125rem;font-weight:700;color:#1a2744;" id="spk-rate-val">0.85×</div>
       </div>
+      <button class="aph-btn aph-btn-block" onclick="stopIGCSESim()" style="margin-top:10px;color:#c0392b;border-color:#e8b4ae">■ End the session</button>
     </div>`;
 
   const card = _currentCard;
@@ -15228,9 +15237,9 @@ function closeKTRChallenge() {
     var B = { K: [], P: [], B: [], G: [], O: [], E: [], T: [] }, pm = promptMap(), seen = {}, vb = vbOf(c);
     // Phrases: each Top Structure the demo uses, once, in the order it first appears
     (c.card.demoStructures || []).forEach(function (ids, dqi) {
-      (ids || []).forEach(function (id) {
+      (ids || []).forEach(function (id, dpos) {
         if (seen[id]) return; seen[id] = 1; var p = pm[id]; if (!p || !p.label || !p.hint) return;
-        B.P.push({ act: 'P', id: 'P' + id, q: dqi, en: String(p.label).replace(/[`]/g, ''), fr: String(p.hint).replace(/[`]/g, '') });
+        B.P.push({ act: 'P', id: 'P' + id, q: dqi, pos: dpos, nq: (ids || []).length, en: String(p.label).replace(/[`]/g, ''), fr: String(p.hint).replace(/[`]/g, '') });
       });
     });
     // Key words: the demo's own useful vocabulary
@@ -15845,8 +15854,19 @@ function closeKTRChallenge() {
   }
   function rzOpen() { if (!(W.ctx.base.P || []).length) return; if (!W.rz || W.rz.done) rzDeal(); else { W.frames = W.rz.fr; rzPage(); } }
   function rzTopic() { var z = W.rz; if (!z.pool.length) z.pool = shuffle(otherThemes(W.ctx)); if (!z.pool.length) return W.ctx.theme; var t = z.pool[z.pn % z.pool.length]; z.pn++; return t; }
+  function rzSentOf(c, qi, text) {
+    var ss = c.fr[qi] || [], t = String(text).replace(/[\u2019\u2018]/g, "'");
+    for (var b = 0; b < ss.length; b++) if (String(ss[b]).replace(/[\u2019\u2018]/g, "'").indexOf(t) >= 0) return boldRanges(ss[b], rangesIn(c, qi, ss[b]));
+    return '';
+  }
   function rzDemoSentence(f) {
-    var c = W.ctx, lits = String(f.fr).split(new RegExp(PHR.source, 'g')).map(function (x) { return x.replace(/[…().,;:!?«»"]/g, ' ').replace(/\s+/g, ' ').trim(); }).filter(function (x) { return x.replace(/[^A-Za-zÀ-ÿ]/g, '').length >= 2; });
+    var c = W.ctx;
+    // the demo's highlighted structures, in order, line up with the structures listed for that question
+    if (f.q != null && c.hl && c.hl[f.q]) {
+      var sr = c.hl[f.q].filter(function (r) { return r && r[0] === 's' && r[1]; });
+      if (sr.length === f.nq && sr[f.pos]) { var r0 = rzSentOf(c, f.q, sr[f.pos][1]); if (r0) return r0; }
+    }
+    c = W.ctx; var lits = String(f.fr).split(new RegExp(PHR.source, 'g')).map(function (x) { return x.replace(/[…().,;:!?«»"]/g, ' ').replace(/\s+/g, ' ').trim(); }).filter(function (x) { return x.replace(/[^A-Za-zÀ-ÿ]/g, '').length >= 2; });
     if (!lits.length) return '';
     var nz = function (t) { return String(t).replace(/[\u2019\u2018]/g, "'"); }, esc2 = function (x) { return nz(x).replace(/[.*+?^${}()|[\]\\]/g, '\\$&'); };
     var tries = [lits.map(esc2).join('.*?')]; if (lits.length > 1) { tries.push(esc2(lits[0]) + '.*?' + esc2(lits[lits.length - 1])); var lg = lits.slice().sort(function (x, y) { return y.length - x.length; })[0]; if (lg.split(' ').length >= 2) tries.push(esc2(lg)); }
@@ -15891,9 +15911,14 @@ function closeKTRChallenge() {
     if (z.checked[i]) rzFillCheck();
     rzWatch();
   }
+  function rzFallback(f) {
+    var c = W.ctx, qi = f.q != null ? f.q : 0, out = '';
+    (c.fr[qi] || []).forEach(function (S) { if (rangesIn(c, qi, S).some(function (r) { return r.k === 's'; })) out += '<div class="od-q" lang="' + lang() + '" style="font-size:1.0625rem;margin-bottom:6px">' + boldRanges(S, rangesIn(c, qi, S)) + '</div>'; });
+    return out ? out + '<p class="od-note" style="margin:6px 0 0">Sentences from the demo where its Top Structures are in bold. Compare them with how you used yours.</p>' : '<p class="od-note" style="margin:0">Open Demo Mode to hear this structure used in the model answer.</p>';
+  }
   function rzFillCheck() {
     var z = W.rz, f = z.fr[z.i], b = $('rz-chk'); if (!b) return; var d = rzDemoSentence(f);
-    b.innerHTML = '<div class="rz-chk"><div class="rz-cl">In the demo</div>' + (d ? '<div class="od-q" lang="' + lang() + '" style="font-size:1.0625rem">' + d + '</div><p class="od-note" style="margin:6px 0 0">The structure is in bold. Compare it with how you used it.</p>' : '<p class="od-note" style="margin:0">Find this structure in the demo transcript (it is picked out in bold there) and compare.</p>') + '</div>';
+    b.innerHTML = '<div class="rz-chk"><div class="rz-cl">In the demo</div>' + (d ? '<div class="od-q" lang="' + lang() + '" style="font-size:1.0625rem">' + d + '</div><p class="od-note" style="margin:6px 0 0">The structure is in bold. Compare it with how you used it.</p>' : rzFallback(f)) + '</div>';
   }
   function rzCheck() { var z = W.rz; z.checked[z.i] = !z.checked[z.i]; var b = $('rz-chk'); if (!b) return; b.hidden = !z.checked[z.i]; if (z.checked[z.i]) rzFillCheck(); var btn = b.previousElementSibling && b.previousElementSibling.querySelector('[data-a="rcheck"]'); if (btn) btn.textContent = z.checked[z.i] ? 'Hide the check' : '✓ Check: how the demo uses it'; }
   function rzOtherQ() { var z = W.rz, c = W.ctx; if (c.q.length < 2) return; var n = z.qi[z.i]; do { n = Math.floor(Math.random() * c.q.length); } while (n === z.qi[z.i]); z.qi[z.i] = n; var cur = $('rz-pq'); try { APPEN.reset([rzKey(z.i, 'q')]); } catch (e) { } rzPage(); }
@@ -15910,7 +15935,7 @@ function closeKTRChallenge() {
   // the dice: they tumble for a moment with a rattle, then stop on an exam topic and a kind of answer
   function rzRattle() {
     try {
-      var AC = window.AudioContext || window.webkitAudioContext; if (!AC) return; var ac = W.rzAC || (W.rzAC = new AC()); if (ac.state === 'suspended') ac.resume();
+      var AC = window.AudioContext || window.webkitAudioContext; if (!AC) return; var ac = new AC(); if (ac.state === 'suspended') ac.resume(); setTimeout(function () { try { ac.close(); } catch (e) { } }, 2500);
       for (var n = 0; n < 9; n++) {
         var t0 = ac.currentTime + n * 0.11 + Math.random() * 0.03, len = 0.04, buf = ac.createBuffer(1, Math.floor(ac.sampleRate * len), ac.sampleRate), d = buf.getChannelData(0);
         for (var k = 0; k < d.length; k++) d[k] = (Math.random() * 2 - 1) * (1 - k / d.length);
@@ -16441,4 +16466,4 @@ function closeKTRChallenge() {
   if (document.readyState === 'complete') start(); else window.addEventListener('load', start);
 })();
 </script>
-<script id="ap-build">window.__apBuild="6de91f49b5";</script>
+<script id="ap-build">window.__apBuild="51a074ca7c";</script>
