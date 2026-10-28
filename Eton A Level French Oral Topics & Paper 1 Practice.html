@@ -186,6 +186,7 @@
   // Speech-only pronunciation fixes (the text on screen is untouched). Same length as the original where possible, so
   // word highlighting (karaoke) stays in step. Add more pairs here as Andrew spots them.
   var FIXES = { fr: [
+    [/\b([Aa])lzheimer\b/g, '$1lzailmeur'],   // « maladie d'Alzheimer »: said « alz-ail-meur » (the French way, with the glide), never the German-sounding « alts-haï-mer »
     [/\bjean(s?)\b/g, 'djine$1'],   // « un jean », « une veste en jean »: said « djine », never like the name Jean (capital J is left alone)
     [/\b([Tt])ransports en commun\b/g, '$1ransport zan commun'],
     // verb sentir/ressentir/pressentir/consentir, je/tu form: final s is silent (je me sens = « je me sent »); the noun « le sens » is untouched
@@ -11610,8 +11611,8 @@ window.p1ToggleTrans = function(bi){
 };
 
 /* ---------- AUDIO (speech synthesis, one voice per speaker) ---------- */
-var P1A = {p:{}, cur:null, tok:0, rate:0.7, vM:'', vF:'', voices:[]};
-try { P1A.vM = localStorage.getItem('p1VoiceM')||''; P1A.vF = localStorage.getItem('p1VoiceF')||''; P1A.rate = parseFloat(localStorage.getItem('p1Rate'))||0.7; var _pp=parseFloat(localStorage.getItem('p1Pause')); if(_pp>=0&&_pp<=2.5) P1A.pause=_pp; } catch(e){}
+var P1A = {p:{}, cur:null, tok:0, rate:0.8, vM:'', vF:'', voices:[]};
+try { P1A.vM = localStorage.getItem('p1VoiceM')||''; P1A.vF = localStorage.getItem('p1VoiceF')||''; P1A.rate = parseFloat(localStorage.getItem('p1Rate'))||0.8; var _pp=parseFloat(localStorage.getItem('p1Pause')); if(_pp>=0&&_pp<=2.5) P1A.pause=_pp; } catch(e){}
 if(typeof P1A.pause!=='number') P1A.pause=0.8;
 var F_RE=/(am[eé]lie|audrey|aur[eé]lie|marie|julie|c[eé]line|chantal|denise|[eé]lo[iï]se|hortense|virginie|l[eé]a\b|sylvie|brigitte|sophie|female|femme|jos[eé]phine|charlotte|coralie|vivienne|alice|claire|manon|[eé]lise|jacqueline|ariane|camille|google fran[cç]ais|yvette|jeanne|v[eé]ronique|isabelle|nathalie)/i;
 var M_RE=/(thomas|nicolas|daniel|paul\b|henri|jacques|claude|r[eé]mi|r[eé]my|guillaume|yves|\bmale\b|homme|mathieu|jean\b|antoine|alain|fabrice|g[eé]rard|louis|pierre|olivier|vincent|denis\b|maxime|fr[eé]d[eé]ric|bernard|julien|lucien|alexandre|eddy|reed|grandpa|rocko)/i;
@@ -11734,7 +11735,7 @@ window.p1Restart = function(pid){
   P1A.tok++; try{speechSynthesis.cancel();}catch(e){}
   p.idx=0; p1PUpd(pid); if(was){ setTimeout(function(){ p.playing=true; speakSeg(pid); },80); }
 };
-window.p1Rate = function(r){ P1A.rate=parseFloat(r)||0.7; try{localStorage.setItem('p1Rate',P1A.rate);}catch(e){} document.querySelectorAll('.p1-player select[title=Speed]').forEach(function(s){ s.value=String(P1A.rate); }); };
+window.p1Rate = function(r){ P1A.rate=parseFloat(r)||0.8; try{localStorage.setItem('p1Rate',P1A.rate);}catch(e){} document.querySelectorAll('.p1-player select[title=Speed]').forEach(function(s){ s.value=String(P1A.rate); }); };
 window.p1PacePanel = function(pid){
   var el=document.getElementById(pid+'_pp'); if(!el) return;
   if(el.innerHTML){ el.innerHTML=''; return; }
@@ -11746,7 +11747,7 @@ window.p1PacePanel = function(pid){
   function save(){ try{ localStorage.setItem('p1Rate',P1A.rate); localStorage.setItem('p1Pause',P1A.pause); }catch(e){} }
   r.oninput=function(){ P1A.rate=parseFloat(r.value); show(); save(); };
   q.oninput=function(){ P1A.pause=parseFloat(q.value); show(); save(); };
-  el.querySelector('.rst').onclick=function(){ P1A.rate=0.7; P1A.pause=0.8; show(); save(); };
+  el.querySelector('.rst').onclick=function(){ P1A.rate=0.8; P1A.pause=0.8; show(); save(); };
   el.querySelector('.try').onclick=function(){ var p=P1A.p[pid]; var vf=voiceFor((p&&p.segs[0]&&p.segs[0].sp)||'F'); P1A.tok++; try{speechSynthesis.cancel();}catch(e){} if(p&&p.playing){ p.playing=false; p1PUpd(pid); }
     var parts=['Bonjour à tous.','Bienvenue à notre cours de français.','Cet après-midi, nous allons visiter une petite ville célèbre pour ses tours.']; var my=++P1A.tok;
     (function go(k){ if(my!==P1A.tok||k>=parts.length) return; var u=new SpeechSynthesisUtterance(parts[k]); if(vf.voice){u.voice=vf.voice;u.lang=vf.voice.lang;} else u.lang='fr-FR'; u.pitch=vf.pitch; u.rate=P1A.rate; u.onend=function(){ setTimeout(function(){ go(k+1); }, Math.round(P1A.pause*1000)); }; speechSynthesis.speak(u); })(0); };
@@ -17448,4 +17449,4 @@ function showKTRStudio(){
   if (document.readyState === 'complete') start(); else window.addEventListener('load', start);
 })();
 </script>
-<script id="ap-build">window.__apBuild="07e59b840c";</script>
+<script id="ap-build">window.__apBuild="9e4680a53d";</script>
