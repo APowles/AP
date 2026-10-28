@@ -7152,8 +7152,10 @@ var hmQ = {
 };
 function hmPlan(kind, sec) {
   var P = HMC.past, f = kind === 'F', R = function (n, t) { var a = []; for (var i = 0; i < n; i++) a.push(t); return a; };
+  /* the 'later tense' slots: F Michaelmas Trials = Present only; F Block Summer Trials = Preterite and Future in turn */
+  var X = function (n) { var a = []; for (var i = 0; i < n; i++) a.push(window._trMode === 'fsummer' ? (i % 2 ? 'FUTURE' : P) : 'PRESENT'); return a; };
   var plans = {
-    F: { A: R(7, 'PRESENT').concat(R(3, P)), B: R(7, 'PRESENT').concat(R(3, P)), C: R(6, 'PRESENT').concat(R(2, P), ['INF', 'INF']), D: R(4, 'PRESENT').concat(R(2, P), R(4, 'INF')) },
+    F: { A: R(7, 'PRESENT').concat(X(3)), B: R(7, 'PRESENT').concat(X(3)), C: R(6, 'PRESENT').concat(X(2), ['INF', 'INF']), D: R(4, 'PRESENT').concat(X(2), R(4, 'INF')) },
     E: { A: ['PRESENT', 'PRESENT', 'PRESENT', P, P, 'IMPERFECT', 'FUTURE'], B: ['PRESENT', 'PRESENT', P, P, 'IMPERFECT', 'FUTURE', 'INF'], C: ['PRESENT', P, 'IMPERFECT', 'FUTURE', 'INF', 'INF'] }
   };
   return plans[kind][sec];
@@ -7209,7 +7211,7 @@ function hmPaperHtml(Q, set, showAns) {
   var isF = Q.mode === 'F', k = 0, secs = hmPaperSecs(Q), setName = (typeof TR_NAME !== 'undefined' && TR_NAME[set]) ? TR_NAME[set] : '';
   var total = 0; secs.forEach(function (s) { total += s[3].length; });
   var past = HMC.pastLabel + (isF && HMC.fOnly ? ' (avere only)' : '');
-  var sub = isF ? '100 CORE VERBS: Infinitives, Present Tense and ' + past + ' Tense' : '100 CORE VERBS: Infinitives, Present, ' + HMC.pastLabel + ', Imperfect and Future Tenses';
+  var sub = isF ? (window._trMode === 'fsummer' ? '100 CORE VERBS: Infinitives, Present, Future and ' + past + ' Tenses' : '100 CORE VERBS: Infinitives and Present Tense') : '100 CORE VERBS: Infinitives, Present, ' + HMC.pastLabel + ', Imperfect and Future Tenses';
   var body = secs.map(function (s) {
     var h = '<h3 style="margin:18px 0 2px;font-size:1.05rem">' + s[0] + '.&nbsp; ' + s[1] + '&nbsp; (Q' + (k + 1) + '–' + (k + s[3].length) + ') <span class="ans" style="font-weight:400;font-size:.8rem;color:#8899bb">' + s[4] + ' verbs</span></h3>' + (s[2] ? '<div style="font-size:.85rem;margin-bottom:6px">' + s[2] + '</div>' : '');
     return h + s[3].map(function (x) { k++; return '<div style="margin:0 0 16px;break-inside:avoid"><b>' + k + '.</b>&nbsp; ' + x.q + '<span class="ans" style="display:none"> &nbsp;→&nbsp; <b style="color:#1a2744">' + x.a + '</b></span><div class="ln" style="border-bottom:1px solid #999;height:20px;margin-top:4px"></div></div>'; }).join('');
@@ -7232,12 +7234,12 @@ var _hmSQD0 = startQuickDrill; startQuickDrill = function (c) { apHome = 'setup'
 </script>
 <script id="hm-trials">
 // ═════════ Trials sets, the four Core Exercises (A–D) and the practice Trials paper on screen: the same as in the French verbs app ═════════
-// F Michaelmas Trials: Infinitives, Present and the past tense. E Block Michaelmas Trials: those plus Imperfect and Future. The Summer Trials: the same as E Block Michaelmas.
+// F Michaelmas Trials: Infinitives and Present only (Units 0 to 2A). F Block Summer Trials: Infinitives, Present, Future and Preterite (Units 3B to C). E Block sets: Infinitives, Present, past, Imperfect and Future.
 var FT_DEF = { ftrials: { t: { INFINITIVE: 1, PRESENT: 1 } }, etrials: { t: { INFINITIVE: 1, PRESENT: 1, IMPERFECT: 1, FUTURE: 1 } } };
-FT_DEF.ftrials.t[HMC.past] = 1; FT_DEF.etrials.t[HMC.past] = 1;
-FT_DEF.fsummer = FT_DEF.etrials; FT_DEF.esummer = FT_DEF.etrials;
+FT_DEF.etrials.t[HMC.past] = 1;
+FT_DEF.fsummer = { t: { INFINITIVE: 1, PRESENT: 1, FUTURE: 1 } }; FT_DEF.fsummer.t[HMC.past] = 1; FT_DEF.esummer = FT_DEF.etrials;
 var TR_NAME = { ftrials: 'F Michaelmas Trials', etrials: 'E Block Michaelmas Trials', fsummer: 'F Block Summer Trials', esummer: 'E Block Summer Trials' };
-var TR_KIND = { ftrials: 'F', etrials: 'E', fsummer: 'E', esummer: 'E' };
+var TR_KIND = { ftrials: 'F', etrials: 'E', fsummer: 'F', esummer: 'E' };
 var trSet = null;   // the Trials set chosen in FIRST, or null = Choose my own
 function hmIsTrial(m) { return !!TR_NAME[m]; }
 function hmTrialOn() { return hmIsTrial(trSet) && hmIsCore(); }
@@ -7262,7 +7264,7 @@ var XQ_DEF = [
 var HM_EX = { A: 'Cuentas', B: 'Vengo (nosotros)', C: 'We drink [beber]', D: 'We give' };
 var HM_EXSUB = { A: 'Spanish verb in, English out', B: 'Same verb, new subject', C: 'English to Spanish, with a clue', D: 'English to Spanish, no clues' };
 /* The Trials papers' rule: which verb group each exercise uses (F Block paper: A Useful, B Essential, C Important, D Essential; E Block and Summer papers: no A, B Useful, C Important, D Essential) */
-var XQ_RULE = { ftrials: { A: 'U', B: 'E', C: 'I', D: 'E' }, etrials: { B: 'U', C: 'I', D: 'E' } }; XQ_RULE.fsummer = XQ_RULE.etrials; XQ_RULE.esummer = XQ_RULE.etrials;
+var XQ_RULE = { ftrials: { A: 'U', B: 'E', C: 'I', D: 'E' }, etrials: { B: 'U', C: 'I', D: 'E' } }; XQ_RULE.fsummer = XQ_RULE.ftrials; XQ_RULE.esummer = XQ_RULE.etrials;
 var xqOn = new Set(['D']);   // default: No help (English to target language, no clues); tick others to add
 var xqTrialRule = 'paper';   // 'paper' = as in Trials (the rule above) · 'any' = any verb, any exercise (harder)
 function xqRuleOn() { return hmTrialOn() && xqTrialRule === 'paper' && !!XQ_RULE[trSet]; }
@@ -11631,4 +11633,4 @@ MCQ('Which means <b>“Many boys never play rugby”</b>?',['Muchas chicos nunca
   if (document.readyState === 'complete') start(); else window.addEventListener('load', start);
 })();
 </script>
-<script id="ap-build">window.__apBuild="1f55296965";</script>
+<script id="ap-build">window.__apBuild="1d7fad3dfe";</script>
