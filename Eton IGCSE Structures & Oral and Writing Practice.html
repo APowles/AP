@@ -14775,6 +14775,9 @@ body:has(.st-oral){background:linear-gradient(180deg,#f3efe4 0,#faf8f3 300px) fi
 .bi-chip[disabled]{cursor:default;opacity:.9}
 .bi-msg{font-weight:800;font-size:1.0625rem;margin:0 0 8px}.bi-msg.ok{color:#1f6b45}.bi-msg.bad{color:#b3261e}.bi-right{margin:0 0 10px}
 .ms-b[disabled]{opacity:.45;cursor:not-allowed}
+.bi-lv{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin:0 0 10px}.bi-lvt{font-size:.8125rem;color:#6b7690;margin-left:4px}
+.bi-slot{display:inline-block;min-width:74px;min-height:46px;border:2px dashed #b9c0cf;border-radius:12px;background:#f7f8fc}
+.bi-chip.fixed{background:#e9edf6;border-color:#c3cce0;color:#44526f;box-shadow:none;cursor:default}
 </style>
 <style id="ap-matchfx-css">
 .ms-ov{position:fixed;inset:0;z-index:11500;background:rgba(11,18,38,.72);display:flex;align-items:flex-start;justify-content:center;overflow:auto;-webkit-overflow-scrolling:touch;padding:18px 12px;font-family:'DM Sans',sans-serif}
@@ -15133,7 +15136,7 @@ function closeKTRChallenge() {
     { k: 'T', name: 'Translate', lv: 4, g: 'Translate', src: 'dmT', desc: 'Short sentences from the demo, with help on hand.' }
   ];
   var DIRS = function () { return { en: 'English → ' + LN(), fr: LN() + ' → English', mix: 'Mixed' }; };
-  var SET = { per: 6, test: 15, dir: 'en', tiles: 12, tt: 20, help: 1 };
+  var SET = { per: 6, test: 15, dir: 'en', tiles: 12, tt: 20, help: 1, build: 2 };
   try { var raw = JSON.parse(localStorage.getItem(SKEY) || 'null'); if (raw) for (var k in SET) if (raw[k] != null) SET[k] = raw[k]; } catch (e) { }
   function saveSet() { try { localStorage.setItem(SKEY, JSON.stringify(SET)); } catch (e) { } }
   var W = null, keyH = null, setOpen = false, DATA = null;
@@ -15857,46 +15860,63 @@ function closeKTRChallenge() {
     if (f && f.length > 1 && /^[A-ZÀÂÉÈÊÎÔÛÇÌÒÙ][a-zàâéèêëîïôûùçìòù'’]/.test(f) && !b.pr(f)) m[0] = f.charAt(0).toLowerCase() + f.slice(1);
     return m;
   }
+  var BI_LV = { 1: 'Easy', 2: 'Medium', 3: 'Hard' };
   function biOpen() {
     var c = W.ctx, set = drawAct(c, 'O', SET.per).filter(function (b) { return biCanon(b).length >= 3; });
     if (!set.length) return;
-    W.bi = { i: 0, first: 0, done: 0, items: set.map(function (b) {
-      var canon = biCanon(b), bank = canon.map(function (t, k) { return { t: t, k: k }; }), n = 0;
-      do { bank = shuffle(bank); n++; } while (n < 30 && bank.every(function (x, j) { return x.k === j; }));
-      return { canon: canon, bank: bank, placed: [], en: b.en || '', fr: b.fr, tries: 0, state: '' };
+    var lv = SET.build || 2;
+    W.bi = { i: 0, first: 0, lv: lv, items: set.map(function (b) {
+      var canon = biCanon(b), n = canon.length, miss = lv === 3 ? n : Math.max(1, Math.min(n, Math.round(n * (lv === 1 ? 1 / 3 : 1 / 2))));
+      // the chunks that are already in place (Easy: about two-thirds, Medium: about half, Hard: none); the rest are jumbled below
+      var idx = shuffle(canon.map(function (t, k) { return k; })), gone = {}; idx.slice(0, miss).forEach(function (k) { gone[k] = 1; });
+      var slots = canon.map(function (t, k) { return gone[k] ? null : { t: t, k: k, fixed: true }; });
+      var bank = canon.map(function (t, k) { return { t: t, k: k }; }).filter(function (x) { return gone[x.k]; }), tries = 0;
+      do { bank = shuffle(bank); tries++; } while (tries < 30 && bank.length > 1 && bank.every(function (x, j) { return x.k === Object.keys(gone).map(Number).sort(function (p, q) { return p - q; })[j]; }));
+      return { canon: canon, slots: slots, bank: bank, en: b.en || '', fr: b.fr, tries: 0, state: '' };
     }) };
     biPage();
   }
+  function biFull(it) { return it.slots.every(function (x) { return !!x; }); }
   function biPage() {
     var z = W.bi, c = W.ctx; W.view = 'build'; unkey(); lockKeys(function (e) { if (e.key === 'Escape') { back(); return true; } return false; });
     if (z.i >= z.items.length) {
-      paint('<div class="od-page od-narrow">' + top('Build it ' + codeBadge(), esc(c.theme), 'Back') + '<div class="od-card" style="text-align:center"><div style="font-size:2.4rem">🧱</div><div class="od-q" style="font-size:1.25rem;font-weight:700">' + z.first + ' of ' + z.items.length + ' right the first time</div></div>'
+      paint('<div class="od-page od-narrow">' + top('Build it ' + codeBadge(), esc(c.theme), 'Back') + '<div class="od-card" style="text-align:center"><div style="font-size:2.4rem">🧱</div><div class="od-q" style="font-size:1.25rem;font-weight:700">' + z.first + ' of ' + z.items.length + ' right the first time</div><p class="od-note">' + BI_LV[z.lv] + ' level</p></div>'
         + '<div class="od-bar" style="justify-content:center"><button type="button" class="ms-b pri" data-a="bagain">🔁 Build again</button></div><div class="ms-cen"><button type="button" class="ms-b" data-a="back">← Back</button></div></div>');
       return;
     }
-    var it = z.items[z.i], full = it.placed.length === it.canon.length;
+    var it = z.items[z.i], full = biFull(it), lock = it.state === 'ok' || it.state === 'shown';
     var h = '<div class="od-page od-narrow">' + top('Build it ' + codeBadge(), esc(c.theme), 'Back');
+    h += '<div class="bi-lv" role="group" aria-label="Level">' + [1, 2, 3].map(function (n) { return '<button type="button" class="ms-b sm' + (z.lv === n ? ' on' : '') + '" data-a="blevel" data-v="' + n + '">' + BI_LV[n] + '</button>'; }).join('') + '<span class="bi-lvt">' + (z.lv === 1 ? 'Most chunks are already in place' : z.lv === 2 ? 'Half the chunks are already in place' : 'You place every chunk') + '</span></div>';
     h += '<div class="rz-prog">Sentence ' + (z.i + 1) + ' of ' + z.items.length + '</div>';
-    h += '<p class="od-note">Tap the chunks in the right order to rebuild the sentence from the demo. Tap a chunk in your sentence to take it out.</p>';
+    h += '<p class="od-note">Tap the chunks in the right order to complete the sentence from the demo. Tap one of your chunks to take it out.</p>';
     if (SET.help && it.en) h += z.clue ? hintBox(esc(it.en)) : '<div class="od-bar" style="margin:0 0 8px"><button type="button" class="ms-b sm" data-a="bclue">💡 Give me a clue</button></div>';
-    h += '<div class="bi-line' + (it.state === 'ok' ? ' ok' : it.state === 'bad' ? ' bad' : '') + '" lang="' + lang() + '">' + (it.placed.length ? it.placed.map(function (p, j) { return '<button type="button" class="bi-chip on" data-a="bunpick" data-k="' + j + '"' + (it.state === 'ok' || it.state === 'shown' ? ' disabled' : '') + '>' + esc(p.t) + '</button>'; }).join('') : '<span class="bi-ph">Your sentence goes here</span>') + '</div>';
-    h += '<div class="bi-bank" lang="' + lang() + '">' + it.bank.map(function (p, j) { return '<button type="button" class="bi-chip" data-a="bpick" data-k="' + j + '"' + (it.state === 'ok' || it.state === 'shown' ? ' disabled' : '') + '>' + esc(p.t) + '</button>'; }).join('') + '</div>';
-    if (it.state === 'ok') h += '<div class="bi-msg ok">✓ Correct!</div><div class="od-bar"><button type="button" class="ms-b sm" data-a="bsay">🔊 Hear it</button><button type="button" class="ms-b pri" data-a="bnext">' + (z.i < z.items.length - 1 ? 'Next sentence →' : 'Finish ✓') + '</button></div>';
-    else if (it.state === 'shown') h += '<div class="bi-msg">The right order:</div><div class="od-q bi-right" lang="' + lang() + '">' + esc(it.fr) + '</div><div class="od-bar"><button type="button" class="ms-b sm" data-a="bsay">🔊 Hear it</button><button type="button" class="ms-b pri" data-a="bnext">' + (z.i < z.items.length - 1 ? 'Next sentence →' : 'Finish ✓') + '</button></div>';
+    h += '<div class="bi-line' + (it.state === 'ok' ? ' ok' : it.state === 'bad' ? ' bad' : '') + '" lang="' + lang() + '">' + it.slots.map(function (p, j) {
+      if (!p) return '<span class="bi-slot"></span>';
+      if (p.fixed) return '<span class="bi-chip fixed">' + esc(p.t) + '</span>';
+      return '<button type="button" class="bi-chip on" data-a="bunpick" data-k="' + j + '"' + (lock ? ' disabled' : '') + '>' + esc(p.t) + '</button>';
+    }).join('') + '</div>';
+    h += '<div class="bi-bank" lang="' + lang() + '">' + it.bank.map(function (p, j) { return '<button type="button" class="bi-chip" data-a="bpick" data-k="' + j + '"' + (lock ? ' disabled' : '') + '>' + esc(p.t) + '</button>'; }).join('') + '</div>';
+    var nxt = '<button type="button" class="ms-b pri" data-a="bnext">' + (z.i < z.items.length - 1 ? 'Next sentence →' : 'Finish ✓') + '</button>';
+    if (it.state === 'ok') h += '<div class="bi-msg ok">✓ Correct!</div><div class="od-bar"><button type="button" class="ms-b sm" data-a="bsay">🔊 Hear it</button>' + nxt + '</div>';
+    else if (it.state === 'shown') h += '<div class="bi-msg">The right order:</div><div class="od-q bi-right" lang="' + lang() + '">' + esc(it.fr) + '</div><div class="od-bar"><button type="button" class="ms-b sm" data-a="bsay">🔊 Hear it</button>' + nxt + '</div>';
     else if (it.state === 'bad') h += '<div class="bi-msg bad">Not quite. Look at the order again.</div><div class="od-bar"><button type="button" class="ms-b pri" data-a="bretry">↺ Try again</button><button type="button" class="ms-b sm" data-a="bshow">Show me the answer</button></div>';
     else h += '<div class="od-bar"><button type="button" class="ms-b pri" data-a="bcheck"' + (full ? '' : ' disabled') + '>✓ Check</button></div>';
     h += '<div class="ms-cen"><button type="button" class="ms-b" data-a="back">← Back</button></div></div>';
     paint(h, true);
   }
-  function biPick(k) { var it = W.bi.items[W.bi.i]; if (!it || it.state === 'ok' || it.state === 'shown') return; var p = it.bank.splice(k, 1)[0]; if (p) { it.placed.push(p); it.state = ''; } biPage(); }
-  function biUnpick(k) { var it = W.bi.items[W.bi.i]; if (!it || it.state === 'ok' || it.state === 'shown') return; var p = it.placed.splice(k, 1)[0]; if (p) { it.bank.push(p); it.state = ''; } biPage(); }
+  function biPick(k) {
+    var it = W.bi.items[W.bi.i]; if (!it || it.state === 'ok' || it.state === 'shown') return;
+    var j = it.slots.indexOf(null); if (j < 0) return;
+    var p = it.bank.splice(k, 1)[0]; if (p) { it.slots[j] = p; it.state = ''; } biPage();
+  }
+  function biUnpick(k) { var it = W.bi.items[W.bi.i]; if (!it || it.state === 'ok' || it.state === 'shown') return; var p = it.slots[k]; if (p && !p.fixed) { it.slots[k] = null; it.bank.push(p); it.state = ''; } biPage(); }
   function biCheck() {
-    var z = W.bi, it = z.items[z.i]; if (it.placed.length !== it.canon.length) return;
-    it.tries++; var ok = it.placed.map(function (p) { return p.t; }).join(' ') === it.canon.join(' ');
+    var z = W.bi, it = z.items[z.i]; if (!biFull(it)) return;
+    it.tries++; var ok = it.slots.map(function (p) { return p.t; }).join(' ') === it.canon.join(' ');
     if (ok) { it.state = 'ok'; if (it.tries === 1) z.first++; } else it.state = 'bad';
     biPage();
   }
-  function biRetry() { var it = W.bi.items[W.bi.i]; it.bank = it.bank.concat(it.placed); it.placed = []; it.state = ''; biPage(); }
+  function biRetry() { var it = W.bi.items[W.bi.i]; it.slots = it.slots.map(function (p) { if (p && !p.fixed) { it.bank.push(p); return null; } return p; }); it.state = ''; biPage(); }
   function biShow() { var it = W.bi.items[W.bi.i]; it.state = 'shown'; biPage(); }
   function biNext() { var z = W.bi; z.i++; z.clue = false; biPage(); var o = $('od-ov'); if (o) o.scrollTop = 0; }
 
@@ -16099,6 +16119,7 @@ function closeKTRChallenge() {
       case 'bclue': W.bi.clue = true; biPage(); break;
       case 'bsay': say(W.bi.items[W.bi.i].fr, 'fr'); break;
       case 'bagain': biOpen(); break;
+      case 'blevel': SET.build = parseInt(t.getAttribute('data-v'), 10); saveSet(); biOpen(); break;
       case 'test': goTest(); break;
       case 'test2': goTest(); break;
       case 'crest': crestTap(t); break;
@@ -16551,4 +16572,4 @@ function closeKTRChallenge() {
   if (document.readyState === 'complete') start(); else window.addEventListener('load', start);
 })();
 </script>
-<script id="ap-build">window.__apBuild="288a31c528";</script>
+<script id="ap-build">window.__apBuild="a4e999a798";</script>
