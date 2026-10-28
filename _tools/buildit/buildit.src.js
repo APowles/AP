@@ -95,7 +95,7 @@
       + '.bi-snd,.bi-sec{font:700 .8125rem "DM Sans",sans-serif;border:1.5px solid rgba(255,255,255,.4);background:rgba(255,255,255,.1);color:#fff;border-radius:999px;padding:7px 14px;cursor:pointer}.bi-sec{font-size:.9375rem;border-radius:14px;padding:11px 18px}\n'
       + '.bi-dots{display:flex;gap:6px;align-items:center;flex-wrap:wrap;margin:0 0 12px;position:relative;z-index:1}.bi-dot{width:12px;height:12px;border-radius:50%;background:rgba(255,255,255,.25)}.bi-dot.done{background:#5be37d}.bi-dot.cur{background:#c9a84c;box-shadow:0 0 0 3px rgba(201,168,76,.4)}.bi-dt{font-size:.8125rem;color:#e8f1ea;margin-left:6px}\n'
       + '.bi-cluebtn{font:700 .875rem "DM Sans",sans-serif;border:0;border-radius:12px;padding:8px 14px;background:rgba(255,255,255,.14);color:#fff;cursor:pointer;margin:0 0 10px;position:relative;z-index:1}.bi-clue{background:rgba(255,255,255,.95);color:#1a2744;border-radius:12px;padding:8px 14px;margin:0 0 10px;font-weight:600;position:relative;z-index:1}\n'
-      + '.bi-line{min-height:74px;display:flex;flex-wrap:wrap;gap:6px;align-items:center;justify-content:center;padding:4px 0;margin:0 0 10px;border-radius:14px;transition:box-shadow .2s}.bi-line.ok{box-shadow:0 0 0 2px rgba(201,168,76,.7),0 0 22px rgba(201,168,76,.45)}.bi-line.bad{box-shadow:0 0 0 2px rgba(210,90,90,.8),0 0 18px rgba(210,90,90,.4);animation:bishake .4s}\n'
+      + '.bi-cr{min-height:46px}.bi-mr{min-height:64px;position:relative;z-index:1}.bi-line{min-height:74px;display:flex;flex-wrap:wrap;gap:6px;align-items:center;justify-content:center;padding:4px 0;margin:0 0 10px;border-radius:14px;transition:box-shadow .2s}.bi-line.ok{box-shadow:0 0 0 2px rgba(201,168,76,.7),0 0 22px rgba(201,168,76,.45)}.bi-line.bad{box-shadow:0 0 0 2px rgba(210,90,90,.8),0 0 18px rgba(210,90,90,.4);animation:bishake .4s}\n'
       + '@keyframes bishake{0%,100%{transform:translateX(0)}20%{transform:translateX(-7px)}40%{transform:translateX(7px)}60%{transform:translateX(-5px)}80%{transform:translateX(5px)}}@keyframes bipulse{50%{box-shadow:0 0 0 5px rgba(201,168,76,.3)}}@keyframes bipop{0%{transform:scale(.6)}100%{transform:scale(1)}}\n'
       + '.bi-slot{display:inline-flex;align-items:center;justify-content:center;min-width:56px;min-height:64px;border:2px solid rgba(0,0,0,.28);border-radius:8px;background:rgba(0,0,0,.22);box-shadow:inset 0 2px 5px rgba(0,0,0,.35)}.bi-slot i{font:700 .8125rem "DM Sans",sans-serif;color:rgba(255,255,255,.35);font-style:normal;align-self:flex-start;margin:3px 0 0 4px}.bi-slot.next{border-color:#c9a84c;background:rgba(201,168,76,.18);animation:bipulse 1.2s ease-in-out infinite}.bi-slot.next i{color:#e6c871}\n'
       + '.bi-tray{position:absolute;left:17.5%;right:15.5%;bottom:12.4%;display:flex;flex-wrap:wrap-reverse;justify-content:center;align-content:flex-start;gap:6px}.bi-empty{color:#f1e2b8;font-style:italic;font-size:.9375rem;position:absolute;left:0;right:0;bottom:-2px;text-align:center}\n'
@@ -125,9 +125,9 @@
     return { canon: canon, slots: slots, bank: bank, en: b.en || '', fr: b.fr, tries: 0, state: '' };
   }
   function deal() {
-    var o = Z.opts, pool = (o.items || []).filter(function (b) { var n = words(b.fr || '').length; return b.fr && n >= 4 && n <= 40 && /^[¿¡"«“‘']?\p{Lu}/u.test(b.fr) && !/\b[XY]\b/.test(b.fr); });
+    var o = Z.opts, pool = (o.items || []).filter(function (b) { var n = words(b.fr || '').length; return b.fr && n >= 4 && n <= 40 && (/^[¿¡"«“‘']?\p{Lu}/u.test(b.fr) || n >= 6) && !/\b[XY]\b/.test(b.fr); });
     var good = pool.filter(function (b) { return words(b.fr).length >= 6 && !/\d{3,}/.test(b.fr); }); if (good.length >= (o.count || 6)) pool = good;   // prefer real sentences over short labels and dated references
-    Z.items = shuffle(pool).slice(0, o.count || 6).map(function (b) { return make(b, Z.lv); }); Z.i = 0; Z.first = 0; Z.clue = false;
+    var sh = shuffle(pool); Z.rest = sh.slice(o.count || 6); Z.items = sh.slice(0, o.count || 6).map(function (b) { return make(b, Z.lv); }); Z.i = 0; Z.first = 0; Z.clue = false;
   }
   function open(o) {
     css(); close(true); Z = { opts: o, lv: parseInt(ls('bi_lv', '2'), 10) || 2 };
@@ -151,7 +151,7 @@
     var it = Z.items[Z.i], isFull = full(it), lock = it.state === 'ok' || it.state === 'shown', h = '<div class="bi-in">' + head() + '<div class="bi-stage">';
     h += '<div class="bi-top"><div class="bi-lv" role="group" aria-label="Level">' + [1, 2, 3].map(function (n) { return '<button type="button" class="bi-lvb' + (Z.lv === n ? ' on' : '') + '" data-a="level" data-v="' + n + '">' + LV[n] + '</button>'; }).join('') + '</div><button type="button" class="bi-snd" data-a="snd" aria-pressed="' + (snd() ? 'true' : 'false') + '">' + (snd() ? '🔊 Sound' : '🔇 Muted') + '</button></div>';
     h += '<div class="bi-dots">' + Z.items.map(function (x, j) { return '<span class="bi-dot' + (j < Z.i ? ' done' : j === Z.i ? ' cur' : '') + '"></span>'; }).join('') + '<span class="bi-dt">Sentence ' + (Z.i + 1) + ' of ' + Z.items.length + ' · ' + (Z.lv === 1 ? 'up to three words a piece, most in place' : Z.lv === 2 ? 'mostly single words, half in place' : 'single words') + '</span></div>';
-    if (it.en) h += Z.clue ? '<div class="bi-clue">💡 ' + esc(it.en) + '</div>' : '<button type="button" class="bi-cluebtn" data-a="clue">💡 Give me a clue</button>';
+    h += '<div class="bi-cr">' + (it.en ? (Z.clue ? '<div class="bi-clue">💡 ' + esc(it.en) + '</div>' : '<button type="button" class="bi-cluebtn" data-a="clue">💡 Give me a clue</button>') : '') + '</div>';
     var ne = it.slots.indexOf(null);
     h += '<div class="bi-line' + (it.state === 'ok' ? ' ok' : it.state === 'bad' ? ' bad' : '') + '" lang="' + lg + '">' + it.slots.map(function (p, j) {
       if (!p) return '<span class="bi-slot' + (j === ne && !lock ? ' next' : '') + '" data-s="' + j + '"><i>' + (j + 1) + '</i></span>';
@@ -160,14 +160,14 @@
     }).join('') + '</div>'; it.pop = -1;
     h += '<div class="bi-tray" lang="' + lg + '">' + (it.bank.length ? it.bank.map(function (p, j) { return '<button type="button" class="bi-chip" data-a="pick" data-k="' + j + '"' + (lock ? ' disabled' : '') + '>' + esc(p.t) + '</button>'; }).join('') : '<span class="bi-empty">All the tiles are placed</span>') + '</div>';
     var nxt = '<button type="button" class="bi-go" data-a="next">' + (Z.i < Z.items.length - 1 ? 'Next sentence →' : 'Finish ✓') + '</button>', hear = '<button type="button" class="bi-sec" data-a="say">🔊 Hear it</button>';
-    if (it.state === 'ok') h += '<div class="bi-msg ok"><span class="bi-star">⭐</span> Correct!</div><div class="bi-acts">' + hear + nxt + '</div>';
-    else if (it.state === 'shown') h += '<div class="bi-msg">The right order:</div><div class="bi-right" lang="' + lg + '">' + esc(it.fr) + '</div><div class="bi-acts">' + hear + nxt + '</div>';
-    else if (it.state === 'bad') h += '<div class="bi-msg bad">Not quite. Look at the order again.</div><div class="bi-acts"><button type="button" class="bi-go" data-a="retry">↺ Try again</button><button type="button" class="bi-sec" data-a="show">Show me the answer</button></div>';
-    else h += '<div class="bi-acts"><button type="button" class="bi-go" data-a="check"' + (isFull ? '' : ' disabled') + '>✓ Check</button></div>';
+    var mg = it.state === 'ok' ? '<div class="bi-msg ok"><span class="bi-star">⭐</span> Correct!</div>' : it.state === 'shown' ? '<div class="bi-msg">The right order:</div><div class="bi-right" lang="' + lg + '">' + esc(it.fr) + '</div>' : it.state === 'bad' ? '<div class="bi-msg bad">Not quite. Move the tiles round and it will check again.</div>' : '';
+    h += '<div class="bi-mr">' + mg + '</div>';
+    h += '<div class="bi-acts">' + (lock ? hear + nxt : '<button type="button" class="bi-sec" data-a="tile">🎯 Clue: put one tile in for me</button><button type="button" class="bi-sec" data-a="skip">↷ Another sentence</button><button type="button" class="bi-sec" data-a="show">Show me the answer</button>') + '</div>';
     root.innerHTML = h + '</div></div>';
   }
   function cur() { return Z.items[Z.i]; }
-  function pick(k) { if (Date.now() - (Z.dragEnd || 0) < 350) return; var it = cur(); if (!it || it.state === 'ok' || it.state === 'shown') return; var j = it.slots.indexOf(null); if (j < 0) return; var p = it.bank.splice(k, 1)[0]; if (p) { it.slots[j] = p; it.state = ''; it.pop = j; sound('place'); } page(); }
+  function hint() { var it = cur(); if (!it || it.state === 'ok' || it.state === 'shown') return; var opts = []; it.slots.forEach(function (p, j) { if (p) return; var k = -1; it.bank.forEach(function (b, m) { if (k < 0 && b.t === it.canon[j]) k = m; }); if (k >= 0) opts.push([j, k]); }); var ne = it.slots.indexOf(null), others = opts.filter(function (x) { return x[0] !== ne; }); if (others.length) opts = others; if (!opts.length) return; var o = opts[Math.floor(Math.random() * opts.length)], c = it.bank.splice(o[1], 1)[0]; c.fixed = true; it.slots[o[0]] = c; it.state = ''; sound('place'); if (full(it)) check(); else page(); }
+  function pick(k) { if (Date.now() - (Z.dragEnd || 0) < 350) return; var it = cur(); if (!it || it.state === 'ok' || it.state === 'shown') return; var j = it.slots.indexOf(null); if (j < 0) return; var p = it.bank.splice(k, 1)[0]; if (p) { it.slots[j] = p; it.state = ''; it.pop = j; sound('place'); } if (full(it)) check(); else page(); }
   function unpick(k) { if (Date.now() - (Z.dragEnd || 0) < 350) return; var it = cur(); if (!it || it.state === 'ok' || it.state === 'shown') return; var p = it.slots[k]; if (p && !p.fixed) { it.slots[k] = null; it.bank.push(p); it.state = ''; sound('remove'); } page(); }
   function check() { var it = cur(); if (!full(it)) return; it.tries++; var ok = it.slots.map(function (p) { return p.t; }).join(' ') === it.canon.join(' '); if (ok) { it.state = 'ok'; if (it.tries === 1) Z.first++; sound('ok'); } else { it.state = 'bad'; sound('bad'); } page(); }
   function retry() { var it = cur(); it.slots = it.slots.map(function (p) { if (p && !p.fixed) { it.bank.push(p); return null; } return p; }); it.state = ''; page(); }
@@ -175,7 +175,7 @@
   function onClick(e) {
     var t = e.target.closest && e.target.closest('[data-a]'); if (!t || !Z) return; var a = t.getAttribute('data-a');
     if (a === 'back') close(); else if (a === 'pick') pick(+t.getAttribute('data-k')); else if (a === 'unpick') unpick(+t.getAttribute('data-k')); else if (a === 'check') check(); else if (a === 'retry') retry();
-    else if (a === 'show') { cur().state = 'shown'; page(); } else if (a === 'next') { Z.i++; Z.clue = false; page(); root.scrollTop = 0; } else if (a === 'clue') { Z.clue = true; page(); }
+    else if (a === 'tile') hint(); else if (a === 'skip') { var nb = Z.rest && Z.rest.shift(); if (nb) { Z.items[Z.i] = make(nb, Z.lv); Z.clue = false; page(); } else { Z.i++; Z.clue = false; page(); } } else if (a === 'show') { cur().state = 'shown'; page(); } else if (a === 'next') { Z.i++; Z.clue = false; page(); root.scrollTop = 0; } else if (a === 'clue') { Z.clue = true; page(); }
     else if (a === 'say') say(cur().fr); else if (a === 'again') { deal(); Z.fin = 0; setTimeout(bMusic, 300); page(); }
     else if (a === 'snd') { ss('bi_snd', snd() ? '0' : '1'); if (snd()) { sound('place'); if (Z && Z.i < Z.items.length) bMusic(); } else bStop(); page(); } else if (a === 'level') { Z.lv = +t.getAttribute('data-v'); ss('bi_lv', Z.lv); deal(); page(); }
   }
@@ -197,7 +197,7 @@
     if (g.classList.contains('bi-tray')) { if (from.slot != null) { it.slots[from.slot] = null; it.bank.push(chip); it.state = ''; sound('remove'); } return page(); }
     var to = +g.getAttribute('data-s'), occ = it.slots[to]; if (isNaN(to) || (occ && occ.fixed) || from.slot === to) return page();
     if (from.tray != null) { it.bank.splice(from.tray, 1); it.slots[to] = chip; if (occ) it.bank.push(occ); } else { it.slots[from.slot] = occ || null; it.slots[to] = chip; }
-    it.state = ''; it.pop = to; sound('place'); page();
+    it.state = ''; it.pop = to; sound('place'); if (full(it)) check(); else page();
   }
   window.BuildIt = { open: open, close: close, ICON: '{{ICON}}' };
 })();
