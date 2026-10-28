@@ -15433,8 +15433,9 @@ function hmSplash(force){
   document.body.appendChild(el);SPL.el=el;SPL.live=true;SPL.t0=performance.now();
   document.addEventListener('keydown',hmKey,true);
   const c=hmCtx();let blocked=false;
+  const askClick=()=>{if(!SPL.live||blocked)return;blocked=true;const h=document.createElement('div');h.className='hm-snd';h.textContent='🔊 Cliquez pour le son';el.appendChild(h);try{c.resume().then(()=>{if(SPL.live&&blocked&&c.state==='running'){blocked=false;h.remove();hmSound(c,N)}},()=>{})}catch(e){}};
   if(c&&c.state==='running')hmSound(c,N);
-  else if(c){blocked=true;const h=document.createElement('div');h.className='hm-snd';h.textContent='🔊 Cliquez pour le son';el.appendChild(h);try{c.resume().then(()=>{if(SPL.live&&blocked&&c.state==='running'){blocked=false;h.remove();hmSound(c,N)}},()=>{})}catch(e){}}
+  else if(c){try{c.resume()}catch(e){}let pn=0;const poll=()=>{if(!SPL.live||blocked)return;if(c.state==='running'){hmSound(c,N);return}if(++pn>16){askClick();return}setTimeout(poll,75)};poll()}
   el.addEventListener('click',ev=>{
     if(blocked&&!ev.target.closest('.hm-skip')){blocked=false;try{window.parent.apIosAudio()}catch(e){}const cc=hmCtx();
       Promise.resolve(cc&&cc.resume()).then(()=>{hmEnd(true);setTimeout(()=>hmSplash(true),60)},()=>hmEnd(true));return}
@@ -17470,4 +17471,4 @@ function showKTRStudio(){
   if (document.readyState === 'complete') start(); else window.addEventListener('load', start);
 })();
 </script>
-<script id="ap-build">window.__apBuild="c02be933cf";</script>
+<script id="ap-build">window.__apBuild="6ca272431d";</script>
