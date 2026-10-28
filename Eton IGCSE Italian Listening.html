@@ -7735,6 +7735,20 @@ apFloat('.audio-panel', function(el){ return document.getElementById('section-ca
     $('ap-tt-x').onclick = function () { d.remove(); };
     $('ap-tt-n').addEventListener('input', function () { this.dataset.typed = '1'; });
     $('ap-tt-c').addEventListener('input', function () { this.dataset.typed = '1'; });
+    function aoWatch(g0, cd) {   // the code has been added to tests.txt: watch the live site until boys can really type it (same as the other apps)
+      if (!g0 || g0.dataset.w || !/^https?:/.test(location.href)) return;
+      g0.dataset.w = '1'; var lv = document.createElement('div');
+      lv.className = 'ao-live'; lv.textContent = '\u23F3 Checking when ' + cd + ' goes live\u2026'; g0.parentNode.insertBefore(lv, g0.nextSibling);
+      var base = String(location.href).replace(/[#?].*$/, '').replace(/[^\/]*$/, ''), rx = new RegExp('^\\s*' + cd + '\\s*\\|', 'mi'), t0 = Date.now();
+      (function poll() {
+        if (!document.body.contains(lv)) return;
+        fetch(base + 'tests.txt?t=' + Date.now(), { cache: 'no-store' }).then(function (r) { return r.ok ? r.text() : ''; }).then(function (t) {
+          if (rx.test(t)) { lv.className = 'ao-live ok'; lv.textContent = '\uD83D\uDFE2 GO: boys can type ' + cd + ' now'; return; }
+          if (Date.now() - t0 > 600000) { lv.className = 'ao-live slow'; lv.textContent = '\uD83D\uDFE0 ' + cd + ' is not showing yet (over 10 minutes). Check GitHub, or use the link meanwhile.'; return; }
+          lv.textContent = '\u23F3 Not live yet\u2026 checking again (' + Math.round((Date.now() - t0) / 1000) + 's)'; setTimeout(poll, 5000);
+        }).catch(function () { setTimeout(poll, 8000); });
+      })();
+    }
     var aoOrig = null;
     function aoRow(id, hide) { var el = $(id); if (!el) return; el.style.display = hide ? 'none' : ''; var p = el.previousElementSibling; if (p && p.tagName === 'LABEL') p.style.display = hide ? 'none' : ''; }
     var aoBox = $('ap-tt-ao');
@@ -7776,7 +7790,7 @@ apFloat('.audio-panel', function(el){ return document.getElementById('section-ca
         b.style.display = 'none'; var cx = $('ap-tt-x'); cx.textContent = '✓ Close'; cx.className = 'aph-btn aph-btn-primary';
         if (code && gkey()) {
           var st = document.createElement('div'); st.className = 'rd-mkgh'; st.textContent = '⏳ Adding code ' + code + ' to the AP Tests page…'; out.insertBefore(st, out.children[1]);
-          ghAdd(code, line).then(function () { st.className = 'rd-mkgh ok'; st.innerHTML = '&#9989; Code <b>' + esc(code) + '</b> added. Boys can type it on the AP Tests page in about a minute.' + (aoOne ? '<br><b>One-off: it is not in your Test Library and the code stops working after 7 days. Nothing else to do.</b>' : ''); })
+          ghAdd(code, line).then(function () { st.className = 'rd-mkgh ok'; st.innerHTML = '&#9989; Code <b>' + esc(code) + '</b> added. Boys can type it on the AP Tests page in about a minute.' + (aoOne ? '<br><b>One-off: it is not in your Test Library and the code stops working after 7 days. Nothing else to do.</b>' : ''); aoWatch(st, code); })
             .catch(function (e) { st.className = 'rd-mkgh bad'; st.innerHTML = (e && e.message === 'used' ? 'That code is already used: pick another and make the link again.' : 'The code could not be added automatically (' + esc(e && e.message || 'error') + '). Paste the line below into tests.txt.'); });
         }
       }).catch(function () { b.disabled = false; b.textContent = '🔑 Make link'; alert('The link could not be made. Check that the teacher key is saved on this device (AP Tests page ▸ Teacher).'); });
@@ -7801,7 +7815,7 @@ apFloat('.audio-panel', function(el){ return document.getElementById('section-ca
 .ao-box.ok .ao-need{display:none}
 .rd-mkov button.ao-wait{opacity:.45;cursor:not-allowed}
 .ao-live{margin:6px 0 10px;padding:9px 12px;border-radius:10px;background:#fff8e6;border:2px solid #c9a84c;font-weight:800;color:#7a5a00}
-.ao-live.ok{background:#eefaf2;border-color:#1e7a46;color:#1e7a46;font-size:1.05rem}
+.ao-live.ok{background:#1e7a46;border-color:#14572f;color:#fff;font-size:1.3rem;padding:16px 14px;text-align:center;letter-spacing:.02em;box-shadow:0 3px 10px rgba(20,87,47,.35)}
 .ao-live.slow{background:#fdecea;border-color:#c0392b;color:#7a1b12}
 #ap-tt-go:disabled{opacity:.45;cursor:not-allowed}
 .rd-mkov .ao-opt{display:block;margin:6px 0;padding:10px 12px;font:500 .9rem/1.35 var(--aph-body,inherit);letter-spacing:0;text-transform:none;color:#0f1a33}
@@ -13290,4 +13304,4 @@ window.AP_LC_CSS = "/* AP Listening class sheet: all selectors prefixed .lc- */\
   if (document.readyState === 'complete') start(); else window.addEventListener('load', start);
 })();
 </script>
-<script id="ap-build">window.__apBuild="8d8508e6d5";</script>
+<script id="ap-build">window.__apBuild="918290a729";</script>

@@ -52,7 +52,7 @@
         (function poll() {
           if (!document.body.contains(lv)) return;
           fetch(base + 'tests.txt?t=' + Date.now(), { cache: 'no-store' }).then(function (r) { return r.ok ? r.text() : ''; }).then(function (t) {
-            if (rx.test(t)) { lv.className = 'ao-live ok'; lv.textContent = '🟢 LIVE NOW: boys can type ' + cd + ' on the AP Tests page.'; return; }
+            if (rx.test(t)) { lv.className = 'ao-live ok'; lv.textContent = '🟢 GO: boys can type ' + cd + ' now'; return; }
             if (Date.now() - t0 > 600000) { lv.className = 'ao-live slow'; lv.textContent = '🟠 ' + cd + ' is not showing yet (over 10 minutes). Check GitHub, or use the link meanwhile.'; return; }
             lv.textContent = '⏳ Not live yet… checking again (' + Math.round((Date.now() - t0) / 1000) + 's)'; setTimeout(poll, 5000);
           }).catch(function () { setTimeout(poll, 8000); });
