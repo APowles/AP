@@ -13236,7 +13236,9 @@ window.AP_LC_CSS = "/* AP Listening class sheet: all selectors prefixed .lc- */\
     if (td) { td.click(); return; }                                   // the one hidden 'set as a test' button for what is on screen
     var b = document.getElementById('apdl-btn');                       // the drill-link maker, created by the apps' own code when a drill is set up
     if (b) { b.click(); return; }
-    if (typeof window.toggleTeacherMode === 'function') { window.toggleTeacherMode(); return; }   // the Listening apps: teacher mode (mock papers)
+    var cp = null; try { cp = curPaper; } catch (e) { }   // the Listening apps: a paper is open, so set it as a class sheet (link / code)
+    var ws = document.getElementById('welcome-screen');
+    if (cp && window.AP_LCLASS && typeof PAPERS !== 'undefined' && ws && !ws.classList.contains('active')) { var ix = PAPERS.indexOf(cp); if (ix >= 0) { window.AP_LCLASS.setClass(ix); return; } }
     var spd = document.querySelector('.apss-link, [data-apss-link]'), lnk = null;
     var bs = document.querySelectorAll('button'); for (var i = 0; i < bs.length; i++) { var t = (bs[i].textContent || '').trim(); if (bs[i].offsetHeight && /Make a link|Speed session link|make a test link/i.test(t)) { lnk = bs[i]; break; } }
     if (lnk) { lnk.click(); return; }
@@ -13252,6 +13254,7 @@ window.AP_LC_CSS = "/* AP Listening class sheet: all selectors prefixed .lc- */\
   }
   bind();
   try { new MutationObserver(function () { bind(); }).observe(document.body, { childList: true, subtree: true }); } catch (e) { }
+  if (location.hash === '#teacher' && key()) setTimeout(function () { if (typeof window.toggleTeacherMode === 'function') window.toggleTeacherMode(); }, 400);   // teacher mode (transcripts, mock unlock, edit) now only by adding #teacher to the address
 })();
 </script>
 </body></html>
@@ -13287,4 +13290,4 @@ window.AP_LC_CSS = "/* AP Listening class sheet: all selectors prefixed .lc- */\
   if (document.readyState === 'complete') start(); else window.addEventListener('load', start);
 })();
 </script>
-<script id="ap-build">window.__apBuild="f632567162";</script>
+<script id="ap-build">window.__apBuild="8d8508e6d5";</script>
