@@ -199,10 +199,49 @@
   // every language: a slash between words (portugués/portuguesa, il/elle) is spoken as a short pause, never « barra / slash »
   var FIXES_ALL = [[/([A-Za-zÀ-ÖØ-öø-ÿ’'.)])\s*\/\s*(?=[A-Za-zÀ-ÖØ-öø-ÿ(¿¡])/g, '$1, ']];
   function fixText(text, lang) { if (!text) return text; text = String(text); var i; for (i = 0; i < FIXES_ALL.length; i++) text = text.replace(FIXES_ALL[i][0], FIXES_ALL[i][1]); var L = FIXES[base(lang)]; if (!L) return text; for (i = 0; i < L.length; i++) text = text.replace(L[i][0], L[i][1]); return text; }
-  if (S && !S.__apFix) {
-    try { var _speak = S.speak.bind(S); S.speak = function (u) { try { if (u && u.text) { var l = u.lang || (u.voice && u.voice.lang) || ''; u.text = fixText(u.text, l); } } catch (e) { } return _speak(u); }; S.__apFix = true; } catch (e) { }
+  // SENTENCE PAUSES: a long text of several sentences is spoken one sentence at a time with a pause after each (setting: AP_VOICE.pace.pause, 0 to 2 s, kept on the device).
+  // The text, the highlighting, pause / resume and the end-of-speech callbacks all behave exactly as before: the original utterance still gets its start, boundary (with the position in the WHOLE text) and end events.
+  var PACE = { pause: 0.8 };
+  try { var _pp = parseFloat(localStorage.getItem('ap_pause')); if (_pp >= 0 && _pp <= 2.5) PACE.pause = _pp; } catch (e) { }
+  var ABBR = /(?:^|[\s(«"“])(?:m|mm|mme|mmes|mlle|mlles|dr|dra|pr|prof|st|ste|av|bd|cf|sig|sigg|sigra|dott|ecc|sr|sra|srta|vd|vds|pag|pág)$/i;
+  var CK = { tok: 0, tmr: 0, on: 0 };
+  function ckReset() { CK.tok++; clearTimeout(CK.tmr); CK.on = 0; }
+  function ckCut(t) {
+    var out = [], start = 0, rx = /[.!?…]+["”’»)]*\s+/g, m;
+    while ((m = rx.exec(t))) { if (m[0].charAt(0) === '.' && ABBR.test(t.slice(start, m.index))) continue; var end = m.index + m[0].length; out.push({ s: start, t: t.slice(start, end) }); start = end; }
+    if (start < t.length) out.push({ s: start, t: t.slice(start) });
+    return out;
   }
-  W.AP_VOICE = { fixes: FIXES, fixText: fixText, prefs: PREFS, pick: pick, quality: quality, isNovelty: novelty, usable: usable, load: load, unlock: unlock, check: check, platform: platform, tier: tierOf, region: function (l) { return REGION[base(l)] || l; } };
+  function ckFire(u, type, props) { try { var ev = new Event(type); if (props) Object.keys(props).forEach(function (k) { Object.defineProperty(ev, k, { value: props[k] }); }); u.dispatchEvent(ev); } catch (e) { } }
+  function ckSpeak(u, real) {
+    var t = String(u.text || ''); if (t.length < 40 || !(PACE.pause > 0)) return false;
+    var ch = ckCut(t); if (ch.length < 2) return false;
+    ckReset(); var my = CK.tok; CK.on = 1;
+    (function go(k) {
+      if (my !== CK.tok) return;
+      var c = ch[k], lead = c.t.length - c.t.replace(/^\s+/, '').length, n = new SpeechSynthesisUtterance(c.t.trim());
+      n.lang = u.lang; if (u.voice) n.voice = u.voice; n.rate = u.rate; n.pitch = u.pitch; n.volume = u.volume;
+      n.onstart = function () { if (my === CK.tok && k === 0) ckFire(u, 'start'); };
+      n.onboundary = function (e) { if (my === CK.tok) ckFire(u, 'boundary', { name: e.name, charIndex: c.s + lead + (e.charIndex || 0), charLength: e.charLength || 0, elapsedTime: e.elapsedTime || 0 }); };
+      n.onend = function () { if (my !== CK.tok) return; if (k + 1 < ch.length) { CK.tmr = setTimeout(function () { go(k + 1); }, Math.round(PACE.pause * 1000)); } else { CK.on = 0; ckFire(u, 'end'); } };
+      n.onerror = function (e) { if (my !== CK.tok) return; if (e && (e.error === 'canceled' || e.error === 'interrupted')) return; CK.on = 0; ckFire(u, 'error', { error: e && e.error }); };
+      real(n);
+    })(0);
+    return true;
+  }
+  if (S && !S.__apChunk) {
+    try {
+      var _cancel = S.cancel.bind(S); S.cancel = function () { ckReset(); return _cancel(); };
+      var _pd = Object.getOwnPropertyDescriptor(Object.getPrototypeOf(S), 'speaking'), _pp2 = Object.getOwnPropertyDescriptor(Object.getPrototypeOf(S), 'pending');
+      if (_pd && _pd.get) Object.defineProperty(S, 'speaking', { configurable: true, get: function () { return !!CK.on || _pd.get.call(S); } });   // between two sentences the pause is still "speaking"
+      if (_pp2 && _pp2.get) Object.defineProperty(S, 'pending', { configurable: true, get: function () { return !!CK.on || _pp2.get.call(S); } });
+      S.__apChunk = true;
+    } catch (e) { }
+  }
+  if (S && !S.__apFix) {
+    try { var _speak = S.speak.bind(S); S.speak = function (u) { try { if (u && u.text) { var l = u.lang || (u.voice && u.voice.lang) || ''; u.text = fixText(u.text, l); } } catch (e) { } try { if (ckSpeak(u, _speak)) return; } catch (e) { } return _speak(u); }; S.__apFix = true; } catch (e) { }
+  }
+  W.AP_VOICE = { pace: PACE, setPause: function (v) { v = parseFloat(v); if (v >= 0 && v <= 2.5) { PACE.pause = v; try { localStorage.setItem('ap_pause', v); } catch (e) { } } }, fixes: FIXES, fixText: fixText, prefs: PREFS, pick: pick, quality: quality, isNovelty: novelty, usable: usable, load: load, unlock: unlock, check: check, platform: platform, tier: tierOf, region: function (l) { return REGION[base(l)] || l; } };
 })(window);
 /* ===== END AP VOICE ===== */
 </script>
@@ -6553,7 +6592,7 @@ function startDemoMode() {
       <button onclick="apDemoLearn()" class="st-demo-btn st-demo-gold" id="igod-demo-btn">🎓 Learn from this demo</button>
       ${typeof tmBtnHTML === 'function' ? tmBtnHTML(_currentCard, 'demo') : ''}
       <div style="margin-top:8px;padding:7px 8px 6px;background:#fff;border:1px solid #cfe3d7;border-radius:8px;">
-        <div style="font-size:0.75rem;font-weight:700;color:#2e7d52;text-transform:uppercase;letter-spacing:0.07em;text-align:center;margin-bottom:4px;">🐢 Demo speed 🐇</div>
+        <div style="font-size:0.75rem;font-weight:700;color:#2e7d52;text-transform:uppercase;letter-spacing:0.07em;text-align:center;margin-bottom:4px;">🎚 Speed &amp; pauses</div>
         <div style="display:flex;align-items:center;gap:6px;">
           <input type="range" min="0.5" max="1.2" step="0.05" value="${_lang==='es' ? 0.75 : (window._spkRate||0.85)}"
             id="demo-rate-slider"
@@ -6561,6 +6600,13 @@ function startDemoMode() {
             style="flex:1;min-width:0;cursor:pointer;accent-color:#2e7d52;">
         </div>
         <div id="demo-rate-val" style="font-size:0.8125rem;font-weight:700;color:#2e7d52;text-align:center;margin-top:2px;">${_lang==='es' ? '0.75×' : (window._spkRate||0.85).toFixed(2)+'×'}</div>
+        <div style="font-size:0.75rem;font-weight:700;color:#2e7d52;text-align:center;margin-top:6px;">Pause after each sentence</div>
+        <div style="display:flex;align-items:center;gap:6px;">
+          <input type="range" min="0" max="2" step="0.1" value="${(window.AP_VOICE&&AP_VOICE.pace?AP_VOICE.pace.pause:0.8)}" id="demo-pause-slider"
+            oninput="AP_VOICE.setPause(this.value);document.getElementById('demo-pause-val').textContent=parseFloat(this.value).toFixed(1)+' s';"
+            style="flex:1;min-width:0;cursor:pointer;accent-color:#2e7d52;">
+        </div>
+        <div id="demo-pause-val" style="font-size:0.8125rem;font-weight:700;color:#2e7d52;text-align:center;margin-top:2px;">${(window.AP_VOICE&&AP_VOICE.pace?AP_VOICE.pace.pause:0.8).toFixed(1)+' s'}</div>
       </div>
       <button onclick="stopDemoMode()" class="st-demo-btn" style="margin-top:6px;margin-bottom:0;color:#c0392b;border-color:#e8b4ae;">■ Stop demo</button>
     </div>`;
@@ -17078,4 +17124,4 @@ function closeKTRChallenge() {
   if (document.readyState === 'complete') start(); else window.addEventListener('load', start);
 })();
 </script>
-<script id="ap-build">window.__apBuild="07f11dd398";</script>
+<script id="ap-build">window.__apBuild="2326bb1175";</script>
