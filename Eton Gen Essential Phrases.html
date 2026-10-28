@@ -66829,7 +66829,7 @@ if (window.__voc) window.__voc.speedTest = function (kind, lang, secs, rev, lv, 
   function onMut() {
     var sheet = document.querySelector('.ms-ov .ms-sheet');
     if (!sheet) { G = null; return; }
-    try { lowerTiles(sheet); } catch (e) { }
+    try { lowerTiles(sheet); spellGear(sheet); } catch (e) { }
     if (!refresh(sheet)) finish();
   }
   function start() { var OPT = { subtree: true, childList: true, attributes: true, attributeFilter: ['class'] }, mo = new MutationObserver(function () { mo.disconnect(); try { onMut(); } catch (e) { } mo.observe(document.body, OPT); });   // our own changes never re-trigger us
@@ -66954,7 +66954,24 @@ if (window.__voc) window.__voc.speedTest = function (kind, lang, secs, rev, lv, 
   }
   function vbSet(b, on) { b.innerHTML = '<img class="mfx-bi" src="assets/match-voice-' + (on ? 'on' : 'off') + '.png" alt="">' + (on ? 'Voice on' : 'Voice off'); }
   function sbSet(b, on) { b.innerHTML = '<img class="mfx-bi" src="assets/match-sound-' + (on ? 'on' : 'off') + '.png" alt="">'; }
-  function restartM() { try { if (window.apMsClose) window.apMsClose(); } catch (e) { } var L = LASTM; setTimeout(function () { try { if (L && window[L.nm]) window[L.nm].apply(null, L.a); else if (window.apMatch) window.apMatch(); } catch (e) { } }, 60); }
+  // ---- Spell settings: the same ⚙ Settings button on the Spell screen, to choose how many words ----
+  function spellGear(sheet) {
+    var hd = sheet.querySelector('.ms-head'), h2 = hd && hd.querySelector('h2'), tx = h2 ? (h2.textContent || '') : ''; if (!h2 || tx.indexOf('Spell') < 0 || tx.indexOf('done') >= 0) return;
+    if (hd.querySelector('.ms-gear-b') || typeof _selectedCount !== 'number' || typeof window.apSpell !== 'function') return;
+    var x = hd.querySelector('.ms-x'); if (!x) return;
+    var b = document.createElement('button'); b.type = 'button'; b.className = 'ms-gear-b mfx-gear'; b.textContent = '⚙ Settings';
+    b.onclick = function (e) { e.stopPropagation(); spellPanel(sheet); };
+    var w = document.createElement('span'); w.className = 'ms-hr'; hd.insertBefore(w, x); w.appendChild(b); w.appendChild(x);
+  }
+  function spellPanel(sheet) {
+    if (sheet.querySelector('.mfx-set')) return;
+    var cur = _selectedCount, p = document.createElement('div'); p.className = 'mfx-set';
+    p.innerHTML = '<div class="mfx-sbox"><h3>⚙ Spell settings</h3><div class="mfx-sl">How many words</div><div class="mfx-sr">' + [10, 20, 30, 50, -1].map(function (n) { return '<button type="button" class="ms-b' + (n === cur ? ' pri' : '') + '" data-n="' + n + '">' + (n === -1 ? 'All' : n) + '</button>'; }).join('') + '</div><div class="ms-note">Choosing a number starts a new Spell.</div><div class="ms-cen"><button type="button" class="ms-b mfx-sc">Back to the game</button></div></div>';
+    p.onclick = function (e) { var t = e.target.closest && e.target.closest('button'); if (!t) return; if (t.classList.contains('mfx-sc')) { p.remove(); return; } var n = parseInt(t.getAttribute('data-n'), 10); if (!n) return; _selectedCount = n; p.remove(); try { if (window.apMsClose) window.apMsClose(); } catch (er) { } setTimeout(function () { try { window.apSpell(); } catch (er) { } }, 60); };
+    sheet.appendChild(p);
+  }
+  function restartM() {
+ try { if (window.apMsClose) window.apMsClose(); } catch (e) { } var L = LASTM; setTimeout(function () { try { if (L && window[L.nm]) window[L.nm].apply(null, L.a); else if (window.apMatch) window.apMatch(); } catch (e) { } }, 60); }
   if (document.body) start(); else document.addEventListener('DOMContentLoaded', start);
 })();
 </script>
@@ -67480,4 +67497,4 @@ if (window.__voc) window.__voc.speedTest = function (kind, lang, secs, rev, lv, 
   if (document.readyState === 'complete') start(); else window.addEventListener('load', start);
 })();
 </script>
-<script id="ap-build">window.__apBuild="9a03a6cc8b";</script>
+<script id="ap-build">window.__apBuild="22c1603d55";</script>
