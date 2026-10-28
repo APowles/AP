@@ -11655,8 +11655,10 @@ function p1ListenPart(part, pid, label){
   var h = '<div class="p1-passage">'+esc(label)+(part.passageTitle?' – '+esc(part.passageTitle):'')+(part.duration?' <span style="font-weight:400;color:#666">('+esc(part.duration)+')</span>':'')+'</div>';
   h += '<div class="p1-player" id="'+pid+'_pl"><div class="row">'
     + '<button class="play" id="'+pid+'_pb" onclick="p1Play(\''+pid+'\')">▶ Play</button>'
+    + '<button title="Back about 10 seconds (to the start of a sentence)" onclick="p1Skip(\''+pid+'\',-10)">⏪ 10 s</button>'
     + '<button title="Back one sentence" onclick="p1Step(\''+pid+'\',-1)">⏮ Back</button>'
     + '<button title="Forward one sentence" onclick="p1Step(\''+pid+'\',1)">⏭</button>'
+    + '<button title="Forward about 10 seconds (to the start of a sentence)" onclick="p1Skip(\''+pid+'\',10)">10 s ⏩</button>'
     + '<button title="Restart" onclick="p1Restart(\''+pid+'\')">↺ Restart</button>'
     + '<button title="Voice speed and the pause after each sentence" onclick="p1PacePanel(\''+pid+'\')">🎚 Speed &amp; pauses</button>'
     + '<button title="Choose voices" onclick="p1VoicePanel(\''+pid+'\')">⚙ Voices</button>'
@@ -11728,6 +11730,24 @@ window.p1Step = function(pid, d){
   var p=P1A.p[pid]; if(!p) return; var was=p.playing;
   P1A.tok++; try{speechSynthesis.cancel();}catch(e){}
   p.idx=Math.max(0,Math.min(p.segs.length-1,p.idx+d)); p1PUpd(pid);
+  if(was){ setTimeout(function(){ p.playing=true; speakSeg(pid); },80); }
+};
+// ⏪ 10 s / 10 s ⏩ : the voice is the device's speech, not a recording, so the time of each sentence is estimated from its length, the speed and the pause; the jump lands on the start of the sentence nearest to 10 seconds away
+function p1SegSecs(p, i){
+  var seg=p.segs[i], nxt=p.segs[i+1]; if(!seg) return 0;
+  return String(seg.text).length/(20*(P1A.rate||0.8)) + P1A.pause + ((nxt&&nxt.sp!==seg.sp)?0.25:0);
+}
+window.p1Skip = function(pid, secs){
+  var p=P1A.p[pid]; if(!p||!p.segs.length) return; var was=p.playing, n=p.segs.length, from=Math.max(0,Math.min(n-1,p.idx)), tgt=from, acc, best, j;
+  if(secs<0){
+    acc=0; best=Infinity; tgt=Math.max(0,from-1);
+    for(j=from-1;j>=0;j--){ acc+=p1SegSecs(p,j); var dd=Math.abs(acc-Math.abs(secs)); if(dd<=best){ best=dd; tgt=j; } else break; }
+  } else {
+    acc=0; best=Infinity; tgt=Math.min(n-1,from+1);
+    for(j=from;j<n-1;j++){ acc+=p1SegSecs(p,j); var d2=Math.abs(acc-secs); if(d2<=best){ best=d2; tgt=j+1; } else break; }
+  }
+  P1A.tok++; try{speechSynthesis.cancel();}catch(e){}
+  p.idx=tgt; p1PUpd(pid);
   if(was){ setTimeout(function(){ p.playing=true; speakSeg(pid); },80); }
 };
 window.p1Restart = function(pid){
@@ -17449,4 +17469,4 @@ function showKTRStudio(){
   if (document.readyState === 'complete') start(); else window.addEventListener('load', start);
 })();
 </script>
-<script id="ap-build">window.__apBuild="9e4680a53d";</script>
+<script id="ap-build">window.__apBuild="b400ae16ce";</script>
