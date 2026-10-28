@@ -49344,6 +49344,7 @@ body{background:var(--cream)}
   }
   function deal() {
     var o = Z.opts, pool = (o.items || []).filter(function (b) { var n = words(b.fr || '').length; return b.fr && n >= 4 && n <= 40 && /^[¿¡"«“‘']?\p{Lu}/u.test(b.fr) && !/\b[XY]\b/.test(b.fr); });
+    var good = pool.filter(function (b) { return words(b.fr).length >= 6 && !/\d{3,}/.test(b.fr); }); if (good.length >= (o.count || 6)) pool = good;   // prefer real sentences over short labels and dated references
     Z.items = shuffle(pool).slice(0, o.count || 6).map(function (b) { return make(b, Z.lv); }); Z.i = 0; Z.first = 0; Z.clue = false;
   }
   function open(o) {
@@ -50826,7 +50827,7 @@ function mlfLeisureStart(deck) {
   var mt = null, mm = null;
   function bPlain(x) { return plain(x).split(/ \/ | \(also/)[0].trim(); }
   function bOk(f) { var n = f.split(/\s+/).length; return n >= 4 && n <= 40 && /^[¿¡"«“‘']?\p{Lu}/u.test(f) && !/\b[XY]\b/.test(f) && !/[…\[\]]|\.\.\.|___|\bqqch\b|\bqqn\b|\bqch\b|\bqn\b|\(/i.test(f); }
-  function vvBuildItems() { var seen = {}, o = []; try { getPool().forEach(function (c) { var f = bPlain(c.fr); if (!bOk(f) || seen[f]) return; seen[f] = 1; o.push({ fr: f, en: plain(c.en) }); }); } catch (e) { } return o; }
+  function vvBuildItems() { var seen = {}, o = []; try { var m = /(\d+)([abc])?$/.exec(String(currentVV)), ks = Object.keys(SD_DATA).filter(function (k) { return m ? k.indexOf('VV' + m[1] + (m[2] || '')) === 0 && /^VV\d+[abc]$/.test(k) : true; }); ks.forEach(function (k) { (SD_DATA[k] || []).forEach(function (p) { var f = String(p[0] || '').trim(); if (!bOk(f) || seen[f]) return; seen[f] = 1; o.push({ fr: f, en: String(p[1] || '') }); }); }); } catch (e) { } if (o.length >= 6) return o; try { getPool().forEach(function (c) { var f = bPlain(c.fr); if (!bOk(f) || seen[f]) return; seen[f] = 1; o.push({ fr: f, en: plain(c.en) }); }); } catch (e) { } return o; }
   window.apBuild = function () {
     syncSel(); if (unchosen()) { showMessage('Choose a set under What to practise first.'); return; }
     var it = vvBuildItems(); if (it.length < 3) { showMessage('Build it needs a set with at least 3 full sentences. Choose another set under What to practise.'); return; }
@@ -56658,4 +56659,4 @@ MCQ('Complete: <b>Je l’ai vue ___ marchait dans la rue.</b>',['en','qui','que'
   if (document.readyState === 'complete') start(); else window.addEventListener('load', start);
 })();
 </script>
-<script id="ap-build">window.__apBuild="03e4481b1c";</script>
+<script id="ap-build">window.__apBuild="36809daf76";</script>

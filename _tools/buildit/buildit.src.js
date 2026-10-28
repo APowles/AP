@@ -126,6 +126,7 @@
   }
   function deal() {
     var o = Z.opts, pool = (o.items || []).filter(function (b) { var n = words(b.fr || '').length; return b.fr && n >= 4 && n <= 40 && /^[¿¡"«“‘']?\p{Lu}/u.test(b.fr) && !/\b[XY]\b/.test(b.fr); });
+    var good = pool.filter(function (b) { return words(b.fr).length >= 6 && !/\d{3,}/.test(b.fr); }); if (good.length >= (o.count || 6)) pool = good;   // prefer real sentences over short labels and dated references
     Z.items = shuffle(pool).slice(0, o.count || 6).map(function (b) { return make(b, Z.lv); }); Z.i = 0; Z.first = 0; Z.clue = false;
   }
   function open(o) {
