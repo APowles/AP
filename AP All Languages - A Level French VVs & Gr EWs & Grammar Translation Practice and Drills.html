@@ -49279,10 +49279,12 @@ body{background:var(--cream)}
     open: function (t) { [50, 57, 62, 66].forEach(function (n, i) { bPiano(n, t + 0.05 + i * 0.12, 0.07, 2.4); }); bCel(86, t + 0.65, 0.05, 2.4); },
     finish: function (t) { [50, 57, 62, 66, 69, 74].forEach(function (n, i) { bPiano(n, t + i * 0.14, 0.08, 3.2); }); [43, 50, 55].forEach(function (n) { bPad(n, t, 2.8, 0.04); }); bCel(90, t + 1.1, 0.05, 3); }
   };
+  var WT = 0;
+  function wRun(c, fn) { try { var b = c.createBuffer(1, 1, 22050), s = c.createBufferSource(); s.buffer = b; s.connect(c.destination); s.start(0); } catch (e) { } var n = Date.now(); if (!WT) WT = n + 600; var d = WT - n; if (d > 0) setTimeout(fn, d); else fn(); }   // Safari: let the speakers wake up before the first real sound
   function sound(n) {
     if (!snd() || !BSET[n]) return; var c = bAc(); if (!c) return;
     function run() { try { if (bx()) BSET[n](BS.c.currentTime + 0.03); } catch (e) { } }
-    if (c.state === 'running') run(); else { var done = false, once = function () { if (!done) { done = true; run(); } }; try { var p = c.resume(); if (p && p.then) p.then(once, once); } catch (e) { } setTimeout(once, 250); }
+    if (c.state === 'running') wRun(c, run); else { var done = false, once = function () { if (!done) { done = true; wRun(c, run); } }; try { var p = c.resume(); if (p && p.then) p.then(once, once); } catch (e) { } setTimeout(once, 250); }
   }
   var BCH = [[43, 59, 62, 66], [38, 57, 62, 66]], BMEL = [66, null, 69, null, 66, 64, null, 62, null, 59, null, null];
   function bMusic() {
@@ -51933,10 +51935,12 @@ function mlfLeisureStart(deck) {
     s.buffer = X.nb; fl.type = o.type || 'bandpass'; fl.Q.value = o.q || 1; fl.frequency.setValueAtTime(o.f0 || 500, t); fl.frequency.exponentialRampToValueAtTime(o.f1 || 4000, t + a + d);
     s.connect(fl); fl.connect(g); sxEnv(g, t, a, d, o.v || 0.15); sxBus(g, o.send == null ? 0.4 : o.send, o.dest); s.start(t); s.stop(t + a + d + 0.1);
   }
+  var WT = 0;
+  function wRun(c, fn) { try { var b = c.createBuffer(1, 1, 22050), s = c.createBufferSource(); s.buffer = b; s.connect(c.destination); s.start(0); } catch (e) { } var n = Date.now(); if (!WT) WT = n + 600; var d = WT - n; if (d > 0) setTimeout(fn, d); else fn(); }   // Safari: let the speakers wake up before the first real sound
   function sxGo(fn) {
     if (!snd()) return; var c = ac(); if (!c) return;
     function run() { try { if (!sx()) return; fn(SX.c.currentTime + 0.03); } catch (e) { } }
-    if (c.state === 'running') run(); else { var done = false, once = function () { if (!done) { done = true; run(); } }; try { var p = c.resume(); if (p && p.then) p.then(once, once); } catch (e) { } setTimeout(once, 250); }
+    if (c.state === 'running') wRun(c, run); else { var done = false, once = function () { if (!done) { done = true; wRun(c, run); } }; try { var p = c.resume(); if (p && p.then) p.then(once, once); } catch (e) { } setTimeout(once, 250); }
   }
   function splashSound() {
     sxGo(function (t) {
@@ -56659,4 +56663,4 @@ MCQ('Complete: <b>Je l’ai vue ___ marchait dans la rue.</b>',['en','qui','que'
   if (document.readyState === 'complete') start(); else window.addEventListener('load', start);
 })();
 </script>
-<script id="ap-build">window.__apBuild="0dc3a33721";</script>
+<script id="ap-build">window.__apBuild="808a264b2d";</script>
