@@ -5615,8 +5615,12 @@ function adjustTimer(delta){
   const td=document.getElementById('timer-display'); if(td) td.textContent=timerSecs+'s';
   const itd=document.getElementById('intro-timer-display'); if(itd) itd.textContent=timerSecs+'s';
 }
+var _adjCards=null;
+function adjCardChips(){ return [10,20,30,50,-1].map(function(n){ var on=(_adjCards===n)||(_adjCards===null&&(n===-1?false:n===deck.length)); return '<button class="aph-chip'+(on?' on':'')+'" onclick="setAdjCards('+n+')">'+(n===-1?'All':n)+'</button>'; }).join(''); }
+function setAdjCards(n){ _adjCards=n; var r=document.getElementById('adj-cards'); if(r) r.innerHTML=adjCardChips(); }
+function adjTimeShow(){ var t=document.getElementById('adj-time'); if(t) t.textContent=timerSecs+'s'; }
 function renderAdjust(){
-  _adjMix=mixPct;
+  _adjMix=mixPct; _adjCards=null;
   if(countdown){ clearInterval(countdown); countdown=null; }
   const f=getLangFrom(), t=getLangTo();
   const pct=Math.round((idx/deck.length)*100);
@@ -5637,6 +5641,10 @@ function renderAdjust(){
     +'</select></div>'
     +'<div class="aph-label">Mix both ways</div>'
     +'<div class="aph-row" id="adj-mix">'+mixChips('setAdjMix',mixPct)+'</div>'
+    +'<div class="aph-label">Cards in this drill</div>'
+    +'<div class="aph-row" id="adj-cards">'+adjCardChips()+'</div>'
+    +'<div class="aph-label">Time per card</div>'
+    +'<div class="aph-row"><button class="aph-step" aria-label="Less time" onclick="adjustTimer(-1);adjTimeShow()">&#8722;</button><span class="lz-val" id="adj-time">'+timerSecs+'s</span><button class="aph-step" aria-label="More time" onclick="adjustTimer(1);adjTimeShow()">+</button></div>'
     +'<button class="aph-btn aph-btn-primary aph-btn-block" style="margin-top:22px" onclick="applyAndResume()">&#9654; Apply &amp; resume</button>'
     +'<div class="adj-paused">Drill paused</div></div></div>';
 }
@@ -5645,6 +5653,13 @@ function applyAndResume(){
   if(af) document.getElementById('lang-from').value=af.value;
   if(at2) document.getElementById('lang-to').value=at2.value;
   if(_adjMix!==mixPct){ mixPct=_adjMix; }
+  if(_adjCards!==null){   // a new number of cards: the ones already done stay, the rest are drawn from the chosen lists
+    const key=function(p){ return (p.en||'')+'|'+(p.es||''); }, seen=deck.slice(0,idx), used={}; seen.forEach(function(p){ used[key(p)]=1; });
+    const fresh=getSelectedPhrases().filter(function(p){ return !used[key(p)]; }).sort(function(){ return Math.random()-0.5; });
+    const want=_adjCards===-1?fresh.length:Math.max(1,_adjCards-idx);
+    deck=seen.concat(fresh.slice(0,want)); if(deck.length<=idx) deck=seen.concat(fresh.slice(0,1));
+    _adjCards=null;
+  }
   // the cards still to come take the new setting (Mix on: exact allocation over them; Off: the Direction row again)
   const rest=deck.slice(idx).map(function(p){ const c=Object.assign({},p); delete c._f; delete c._t; return c; });
   const dr=mixDirs(rest.length);
@@ -6261,6 +6276,31 @@ function lzSetAuto(on) {
   if (isAutotime !== on) toggleAutotime();
   lzRefreshControls();
 }
+function lzSettings() {
+  if (!isLeisureMode || !document.getElementById('lz-root') || document.getElementById('lz-set')) return;
+  if (!lzPaused) lzToggle();
+  var f = getLangFrom(), t = getLangTo(), o = document.createElement('div'); o.id = 'lz-set';
+  o.style.cssText = 'position:fixed;inset:0;z-index:12000;background:rgba(10,18,40,.72);display:flex;align-items:center;justify-content:center;padding:16px';
+  o.innerHTML = '<div class="aph-card" style="max-width:520px;width:100%;max-height:92vh;overflow:auto"><div class="aph-panel-head"><h2 class="aph-panel-title">&#9881; Leisure settings</h2></div>'
+    + '<div class="aph-label">Direction</div><div class="aph-row"><select class="aph-select" id="lzs-from"><option value="en"' + (f === 'en' ? ' selected' : '') + '>&#127468;&#127463; English</option><option value="es"' + (f === 'es' ? ' selected' : '') + '>&#127466;&#127480; Spanish</option></select><span class="sv-adj-arrow">&#8644;</span>'
+    + '<select class="aph-select" id="lzs-to"><option value="es"' + (t === 'es' ? ' selected' : '') + '>&#127466;&#127480; Spanish</option><option value="en"' + (t === 'en' ? ' selected' : '') + '>&#127468;&#127463; English</option></select></div>'
+    + '<div class="aph-label">Mix both ways</div><div class="aph-row" id="adj-mix">' + mixChips('setAdjMix', mixPct) + '</div>'
+    + lzControls()
+    + '<button class="aph-btn aph-btn-primary aph-btn-block" style="margin-top:18px" onclick="lzSettingsApply()">&#9654; Apply &amp; resume</button></div>';
+  _adjMix = mixPct; document.body.appendChild(o);
+}
+function lzSettingsApply() {
+  var af = document.getElementById('lzs-from'), at2 = document.getElementById('lzs-to');
+  if (af) document.getElementById('lang-from').value = af.value;
+  if (at2) document.getElementById('lang-to').value = at2.value;
+  if (_adjMix !== mixPct) mixPct = _adjMix;
+  var rest = lzDeck.slice(lzIdx).map(function (p) { var c = Object.assign({}, p); delete c._f; delete c._t; return c; });
+  var dr = mixDirs(rest.length);
+  if (dr) rest.forEach(function (c, i) { c._f = dr[i]; c._t = dr[i] === 'en' ? 'es' : 'en'; });
+  lzDeck = lzDeck.slice(0, lzIdx).concat(rest);
+  var o = document.getElementById('lz-set'); if (o) o.remove();
+  lzToggle();
+}
 function lzMeta() {
   return '&#9749; Leisure Mode · Card ' + (lzIdx + 1) + ' of ' + lzDeck.length + (lzRound > 1 ? ' · Round ' + lzRound : '') + (lzPaused ? ' · Paused' : '');
 }
@@ -6298,6 +6338,7 @@ function lzCard() {
           <button class="aph-btn" id="lz-pause" onclick="lzToggle()">&#9208; Pause</button>
           <button class="aph-btn" onclick="lzReplay()">&#128266; Replay</button>
           <button class="aph-btn" onclick="lzHome()">&#8962; Home</button>
+          <button class="aph-btn" onclick="lzSettings()">&#9881; Settings</button>
           ${lzH_extra()}
         </div>
       </div>
@@ -9887,4 +9928,4 @@ if (window.__spv) window.__spv.speedTest = function (kind, secs, rev, lv, mix) {
   if (document.readyState === 'complete') start(); else window.addEventListener('load', start);
 })();
 </script>
-<script id="ap-build">window.__apBuild="3ed4cfa75f";</script>
+<script id="ap-build">window.__apBuild="1bcee6f07c";</script>
