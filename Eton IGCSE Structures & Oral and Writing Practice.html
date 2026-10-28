@@ -14566,7 +14566,7 @@ body.aporal-on .st-oral-side>#igcse-exam-wrap{order:-1;margin:0 0 12px!important
 <style id="igod-css">
 .od-ov{position:fixed;inset:0;z-index:11500;background:#faf8f3;overflow:auto;-webkit-overflow-scrolling:touch;font-family:'DM Sans',system-ui,sans-serif;color:#1a2744}
 .od-page{max-width:900px;margin:0 auto;padding:14px 18px 56px}
-.od-page.od-narrow{max-width:780px}
+.od-page.od-narrow{max-width:780px}.od-page.od-narrow.bi-wide{max-width:1080px}
 .od-top{display:flex;align-items:center;gap:12px;margin:0 0 14px;flex-wrap:wrap}
 .od-back{border:2px solid #1a2744;background:#fff;color:#1a2744;border-radius:12px;min-height:46px;padding:0 18px;font:800 1rem 'DM Sans',sans-serif;cursor:pointer;touch-action:manipulation}
 .od-back:active{background:#eef0f6}
@@ -15917,9 +15917,12 @@ function closeKTRChallenge() {
       var mx = lv === 1 ? 3 : lv === 2 ? 2 : 1, out = [];
       canon.forEach(function (ch) { var w = [], q = 0; ch.split(/\s+/).forEach(function (t) { if (w.length && /^[?!:;»]+$/.test(t)) w[w.length - 1] += ' ' + t; else w.push(t); }); while (q < w.length) { var sz = mx === 1 ? 1 : 1 + Math.floor(Math.random() * mx); if (lv === 1 && sz === 1 && Math.random() < .3) sz = 2; out.push(w.slice(q, q + sz).join(' ')); q += sz; } });
       canon = out;
-      var n = canon.length, miss = lv === 3 ? n : Math.min(n, Math.max(lv === 1 ? 2 : 3, Math.round(n * (lv === 1 ? 1 / 3 : 1 / 2))));
+      var n = canon.length, miss = Math.min(n - 1, Math.max(3, Math.round(n * (lv === 1 ? 1 / 3 : lv === 2 ? 1 / 2 : 1)))); if (lv === 3) miss = n > 12 ? Math.ceil(n / 2) : n;
       // the chunks that are already in place (Easy: about two-thirds, Medium: about half, Hard: none); the rest are jumbled below
-      var idx = shuffle(canon.map(function (t, k) { return k; })), gone = {}; idx.slice(0, miss).forEach(function (k) { gone[k] = 1; });
+      var idx, gone = {};
+      if (lv === 3 && n > 12) idx = canon.map(function (t, k) { return k; }).filter(function (k) { return k % 2 === 0; }); // long Hard sentence: every other tile is already down
+      else idx = shuffle(canon.map(function (t, k) { return k; }).filter(function (k) { return lv === 3 ? true : k > 0; })); // the first tile is always in place (except Hard, where nothing is)
+      idx.slice(0, miss).forEach(function (k) { gone[k] = 1; });
       var slots = canon.map(function (t, k) { return gone[k] ? null : { t: t, k: k, fixed: true }; });
       var bank = canon.map(function (t, k) { return { t: t, k: k }; }).filter(function (x) { return gone[x.k]; }), tries = 0;
       do { bank = shuffle(bank); tries++; } while (tries < 30 && bank.length > 1 && bank.every(function (x, j) { return x.k === Object.keys(gone).map(Number).sort(function (p, q) { return p - q; })[j]; }));
@@ -15936,7 +15939,7 @@ function closeKTRChallenge() {
       return;
     }
     var it = z.items[z.i], full = biFull(it), lock = it.state === 'ok' || it.state === 'shown';
-    var h = '<div class="od-page od-narrow">' + top('Build it ' + codeBadge(), esc(c.theme), 'Back');
+    var h = '<div class="od-page od-narrow bi-wide">' + top('Build it ' + codeBadge(), esc(c.theme), 'Back');
     h += '<div class="bi-stage">';
     h += '<div class="bi-top"><div class="bi-lv" role="group" aria-label="Level">' + [1, 2, 3].map(function (n) { return '<button type="button" class="bi-lvb' + (z.lv === n ? ' on' : '') + '" data-a="blevel" data-v="' + n + '">' + BI_LV[n] + '</button>'; }).join('') + '</div>'
       + '<button type="button" class="bi-snd" data-a="bsnd" aria-pressed="' + (SET.bsnd ? 'true' : 'false') + '" title="Sound on or off">' + (SET.bsnd ? '🔊 Sound' : '🔇 Muted') + '</button></div>';
@@ -16016,7 +16019,7 @@ function closeKTRChallenge() {
   function biCheck() {
     var z = W.bi, it = z.items[z.i]; if (!biFull(it)) return;
     it.tries++; var ok = it.slots.map(function (p) { return p.t; }).join(' ') === it.canon.join(' ');
-    if (ok) { it.state = 'ok'; if (it.tries === 1) z.first++; biSound('ok'); } else { it.state = 'bad'; biSound('bad'); }
+    if (ok) { it.state = 'ok'; if (it.tries === 1) z.first++; } else { it.state = 'bad'; biSound('bad'); }
     biPage();
   }
   function biRetry() { var it = W.bi.items[W.bi.i]; it.slots = it.slots.map(function (p) { if (p && !p.fixed) { it.bank.push(p); return null; } return p; }); it.state = ''; biPage(); }
@@ -16676,4 +16679,4 @@ function closeKTRChallenge() {
   if (document.readyState === 'complete') start(); else window.addEventListener('load', start);
 })();
 </script>
-<script id="ap-build">window.__apBuild="804629b454";</script>
+<script id="ap-build">window.__apBuild="1d7bcfac53";</script>
