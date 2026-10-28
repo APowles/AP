@@ -14766,6 +14766,15 @@ body:has(.st-oral){background:linear-gradient(180deg,#f3efe4 0,#faf8f3 300px) fi
 .rz-tumble{opacity:.85}.rz-roll{font-size:1.0625rem!important}.rz-pad{margin-top:10px}
 .rz-chk{background:#f7f3e8;border-left:4px solid #c9a84c;border-radius:10px;padding:10px 14px;margin:0 0 12px}.rz-cl{font:800 .6875rem 'DM Sans',sans-serif;letter-spacing:.1em;text-transform:uppercase;color:#a8862e;margin-bottom:4px}
 .rz-nav{justify-content:space-between;margin-top:14px}.rz-nav .ms-b[disabled]{opacity:.45;cursor:not-allowed}
+.bi-line{min-height:64px;display:flex;flex-wrap:wrap;gap:8px;align-items:center;background:#fff;border:2px dashed #c9d0e0;border-radius:14px;padding:10px 12px;margin:0 0 12px}
+.bi-line.ok{border-color:#2e7d52;border-style:solid;background:#eaf5ef}.bi-line.bad{border-color:#c0392b;border-style:solid;background:#fdecea}
+.bi-ph{color:#8a93a8;font-size:.9375rem}
+.bi-bank{display:flex;flex-wrap:wrap;gap:8px;margin:0 0 12px}
+.bi-chip{font:700 1.0625rem 'DM Sans',sans-serif;min-height:46px;padding:8px 14px;border-radius:12px;border:2px solid #d9cfae;background:#f3efe4;color:#1a2744;cursor:pointer;box-shadow:0 2px 0 #cfc29a;transition:transform .08s}
+.bi-chip:active{transform:translateY(2px);box-shadow:none}.bi-chip.on{background:#1a2744;border-color:#1a2744;color:#fff;box-shadow:0 2px 0 #0d1530}
+.bi-chip[disabled]{cursor:default;opacity:.9}
+.bi-msg{font-weight:800;font-size:1.0625rem;margin:0 0 8px}.bi-msg.ok{color:#1f6b45}.bi-msg.bad{color:#b3261e}.bi-right{margin:0 0 10px}
+.ms-b[disabled]{opacity:.45;cursor:not-allowed}
 </style>
 <style id="ap-matchfx-css">
 .ms-ov{position:fixed;inset:0;z-index:11500;background:rgba(11,18,38,.72);display:flex;align-items:flex-start;justify-content:center;overflow:auto;-webkit-overflow-scrolling:touch;padding:18px 12px;font-family:'DM Sans',sans-serif}
@@ -15432,11 +15441,12 @@ function closeKTRChallenge() {
         + optRow('Timer: seconds a turn (Speed Challenge)', 'tt', [[10, '10'], [20, '20'], [30, '30'], [45, '45']])
         + '</details>';
     }
-    var ok = na > 0 && tot > 0, hasPair = selActs().some(function (a) { return a.k === 'K' || a.k === 'P' || a.k === 'B'; });
+    var hasO = selActs().some(function (a) { return a.k === 'O'; }), ok = na > 0 && tot > 0, hasPair = selActs().some(function (a) { return a.k === 'K' || a.k === 'P' || a.k === 'B'; });
     h += '<div class="ms-now">' + (!has ? '' : !na ? 'Choose at least one activity above to unlock the ways to practise it, or leave them all unticked to read the demo again or have a go.' : 'Practising: <b>' + selActs().map(function (a) { return a.name; }).join(', ') + '</b> · ' + tot + ' items') + '</div>';
     var T = [
       ['ms-drill', 'drill', 'Drill', 'Items one at a time. You mark yourself ✗ ~ ✓.', 'drill', !ok],
       ['ms-match', '🧩', 'Match', hasPair ? 'Pair up English and ' + LN() + ': Key words, Top Structures, Bold bits.' : 'Needs Key words, Top Structures or Bold bits ticked above.', 'match', !(ok && hasPair)],
+      ['ms-build', '🧱', 'Build it', hasO ? 'Tap the chunks into the right order to rebuild sentences from the demo.' : 'Needs Word order ticked above.', 'build', !(ok && hasO)],
       ['ms-speed', 'speed', 'Speed Challenge', 'Race the clock, solo or in teams.', 'speed', !ok],
       ['ms-test', 'test', 'Test', 'A short test to write with Apple Pencil or print. Answers stay hidden.', 'test', !ok],
       ['ms-print ms-viewprint', 'viewprint', 'View & print', 'Read your chosen lists tidily on screen, or print them or save a PDF.', 'vprint', !ok],
@@ -15834,6 +15844,62 @@ function closeKTRChallenge() {
   }
 
 
+  // ---------- Build it: tap the chunks of a demo sentence into the right order ----------
+  function biCanon(b) {   // the chunks in their right order (the same splitting Word order uses)
+    if (b.ch && b.ch.length > 2) return b.ch.map(function (x) { return x.replace(/[,;:]+$/, ''); });
+    var toks = b.fr.trim().split(/\s+/), m = [], pre = '';
+    toks.forEach(function (t) {
+      if (/^[«]+$/.test(t)) { pre += t + ' '; return; }
+      if (m.length && /^[?!:;»]+$/.test(t)) { m[m.length - 1] += ' ' + t; return; }
+      m.push(pre + t); pre = '';
+    });
+    var f = m[0];
+    if (f && f.length > 1 && /^[A-ZÀÂÉÈÊÎÔÛÇÌÒÙ][a-zàâéèêëîïôûùçìòù'’]/.test(f) && !b.pr(f)) m[0] = f.charAt(0).toLowerCase() + f.slice(1);
+    return m;
+  }
+  function biOpen() {
+    var c = W.ctx, set = drawAct(c, 'O', SET.per).filter(function (b) { return biCanon(b).length >= 3; });
+    if (!set.length) return;
+    W.bi = { i: 0, first: 0, done: 0, items: set.map(function (b) {
+      var canon = biCanon(b), bank = canon.map(function (t, k) { return { t: t, k: k }; }), n = 0;
+      do { bank = shuffle(bank); n++; } while (n < 30 && bank.every(function (x, j) { return x.k === j; }));
+      return { canon: canon, bank: bank, placed: [], en: b.en || '', fr: b.fr, tries: 0, state: '' };
+    }) };
+    biPage();
+  }
+  function biPage() {
+    var z = W.bi, c = W.ctx; W.view = 'build'; unkey(); lockKeys(function (e) { if (e.key === 'Escape') { back(); return true; } return false; });
+    if (z.i >= z.items.length) {
+      paint('<div class="od-page od-narrow">' + top('Build it ' + codeBadge(), esc(c.theme), 'Back') + '<div class="od-card" style="text-align:center"><div style="font-size:2.4rem">🧱</div><div class="od-q" style="font-size:1.25rem;font-weight:700">' + z.first + ' of ' + z.items.length + ' right the first time</div></div>'
+        + '<div class="od-bar" style="justify-content:center"><button type="button" class="ms-b pri" data-a="bagain">🔁 Build again</button></div><div class="ms-cen"><button type="button" class="ms-b" data-a="back">← Back</button></div></div>');
+      return;
+    }
+    var it = z.items[z.i], full = it.placed.length === it.canon.length;
+    var h = '<div class="od-page od-narrow">' + top('Build it ' + codeBadge(), esc(c.theme), 'Back');
+    h += '<div class="rz-prog">Sentence ' + (z.i + 1) + ' of ' + z.items.length + '</div>';
+    h += '<p class="od-note">Tap the chunks in the right order to rebuild the sentence from the demo. Tap a chunk in your sentence to take it out.</p>';
+    if (SET.help && it.en) h += z.clue ? hintBox(esc(it.en)) : '<div class="od-bar" style="margin:0 0 8px"><button type="button" class="ms-b sm" data-a="bclue">💡 Give me a clue</button></div>';
+    h += '<div class="bi-line' + (it.state === 'ok' ? ' ok' : it.state === 'bad' ? ' bad' : '') + '" lang="' + lang() + '">' + (it.placed.length ? it.placed.map(function (p, j) { return '<button type="button" class="bi-chip on" data-a="bunpick" data-k="' + j + '"' + (it.state === 'ok' || it.state === 'shown' ? ' disabled' : '') + '>' + esc(p.t) + '</button>'; }).join('') : '<span class="bi-ph">Your sentence goes here</span>') + '</div>';
+    h += '<div class="bi-bank" lang="' + lang() + '">' + it.bank.map(function (p, j) { return '<button type="button" class="bi-chip" data-a="bpick" data-k="' + j + '"' + (it.state === 'ok' || it.state === 'shown' ? ' disabled' : '') + '>' + esc(p.t) + '</button>'; }).join('') + '</div>';
+    if (it.state === 'ok') h += '<div class="bi-msg ok">✓ Correct!</div><div class="od-bar"><button type="button" class="ms-b sm" data-a="bsay">🔊 Hear it</button><button type="button" class="ms-b pri" data-a="bnext">' + (z.i < z.items.length - 1 ? 'Next sentence →' : 'Finish ✓') + '</button></div>';
+    else if (it.state === 'shown') h += '<div class="bi-msg">The right order:</div><div class="od-q bi-right" lang="' + lang() + '">' + esc(it.fr) + '</div><div class="od-bar"><button type="button" class="ms-b sm" data-a="bsay">🔊 Hear it</button><button type="button" class="ms-b pri" data-a="bnext">' + (z.i < z.items.length - 1 ? 'Next sentence →' : 'Finish ✓') + '</button></div>';
+    else if (it.state === 'bad') h += '<div class="bi-msg bad">Not quite. Look at the order again.</div><div class="od-bar"><button type="button" class="ms-b pri" data-a="bretry">↺ Try again</button><button type="button" class="ms-b sm" data-a="bshow">Show me the answer</button></div>';
+    else h += '<div class="od-bar"><button type="button" class="ms-b pri" data-a="bcheck"' + (full ? '' : ' disabled') + '>✓ Check</button></div>';
+    h += '<div class="ms-cen"><button type="button" class="ms-b" data-a="back">← Back</button></div></div>';
+    paint(h, true);
+  }
+  function biPick(k) { var it = W.bi.items[W.bi.i]; if (!it || it.state === 'ok' || it.state === 'shown') return; var p = it.bank.splice(k, 1)[0]; if (p) { it.placed.push(p); it.state = ''; } biPage(); }
+  function biUnpick(k) { var it = W.bi.items[W.bi.i]; if (!it || it.state === 'ok' || it.state === 'shown') return; var p = it.placed.splice(k, 1)[0]; if (p) { it.bank.push(p); it.state = ''; } biPage(); }
+  function biCheck() {
+    var z = W.bi, it = z.items[z.i]; if (it.placed.length !== it.canon.length) return;
+    it.tries++; var ok = it.placed.map(function (p) { return p.t; }).join(' ') === it.canon.join(' ');
+    if (ok) { it.state = 'ok'; if (it.tries === 1) z.first++; } else it.state = 'bad';
+    biPage();
+  }
+  function biRetry() { var it = W.bi.items[W.bi.i]; it.bank = it.bank.concat(it.placed); it.placed = []; it.state = ''; biPage(); }
+  function biShow() { var it = W.bi.items[W.bi.i]; it.state = 'shown'; biPage(); }
+  function biNext() { var z = W.bi; z.i++; z.clue = false; biPage(); var o = $('od-ov'); if (o) o.scrollTop = 0; }
+
   // ---------- Reuse it: one Top Structure at a time ----------
   // rung 1: answer one of the card's own questions with the structure; rung 2: two dice rolls (an exam topic and a kind of answer), the same structure on each.
   // The answers are written with the shared Apple Pencil pad. Check shows how the demo itself uses the structure (its own sentence: no new French is made up).
@@ -16023,6 +16089,16 @@ function closeKTRChallenge() {
       case 'drill': goDrill(); break;
       case 'speed': goSpeed(); break;
       case 'match': goMatch(); break;
+      case 'build': biOpen(); break;
+      case 'bpick': biPick(+t.getAttribute('data-k')); break;
+      case 'bunpick': biUnpick(+t.getAttribute('data-k')); break;
+      case 'bcheck': biCheck(); break;
+      case 'bretry': biRetry(); break;
+      case 'bshow': biShow(); break;
+      case 'bnext': biNext(); break;
+      case 'bclue': W.bi.clue = true; biPage(); break;
+      case 'bsay': say(W.bi.items[W.bi.i].fr, 'fr'); break;
+      case 'bagain': biOpen(); break;
       case 'test': goTest(); break;
       case 'test2': goTest(); break;
       case 'crest': crestTap(t); break;
@@ -16475,4 +16551,4 @@ function closeKTRChallenge() {
   if (document.readyState === 'complete') start(); else window.addEventListener('load', start);
 })();
 </script>
-<script id="ap-build">window.__apBuild="9a518253cd";</script>
+<script id="ap-build">window.__apBuild="1d09aba9a9";</script>
