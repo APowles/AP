@@ -12732,6 +12732,8 @@ if (window.__voc) window.__voc.lvlOf = function (i, lang) { return vocLvlOf(ALL_
   function txt(b) { return (b.textContent || '').replace(/\s+/g, ' ').trim(); }
   /* Run the original (hidden) button's own action directly, so it never depends on clicking a hidden element; if it fails, say so on screen instead of doing nothing. */
   function sptFire(o, from) {
+    var stale = document.getElementById('spt-err'); if (stale) stale.remove();
+    var mc = 0, mo = null; try { mo = new MutationObserver(function (r) { mc += r.length; }); mo.observe(document.documentElement, { childList: true, subtree: true, characterData: true }); } catch (e) { }
     var err = null, code = o.getAttribute && o.getAttribute('onclick');
     try { if (code) (new Function('event', code)).call(o, new Event('click')); else o.click(); } catch (e) { err = e; }
     setTimeout(function () {   // safety net: if the level box was built but is not on top / visible, bring it to the front; if nothing opened at all, say what state the page is in
@@ -12745,6 +12747,8 @@ if (window.__voc) window.__voc.lvlOf = function (i, lang) { return vocLvlOf(ALL_
           if (!cx || !dl.contains(cx)) { dl.style.cssText += ';pointer-events:auto'; }
           return;
         }
+        try { if (mo) mo.disconnect(); } catch (e) { }
+        if (mc > 0) return;   // the action did something on screen (e.g. the printable test appeared in the page): not a failure
         var card = from && from.closest ? from.closest('.spt-card') : null, pn = document.getElementById('amTestPanel');
         if (card && !err && card.offsetParent !== null && (!pn || pn.offsetParent !== null)) {
           var m = document.getElementById('spt-err'); if (m) m.remove();
@@ -19118,4 +19122,4 @@ MCQ('<b>“Strawberries? We ate some.”</b> Which is right?',['Des fraises ? No
   if (document.readyState === 'complete') start(); else window.addEventListener('load', start);
 })();
 </script>
-<script id="ap-build">window.__apBuild="067d9993a6";</script>
+<script id="ap-build">window.__apBuild="afa1da4fd3";</script>

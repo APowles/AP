@@ -9282,6 +9282,8 @@ setTimeout(()=>splash(false),0);
   function txt(b) { return (b.textContent || '').replace(/\s+/g, ' ').trim(); }
   /* Run the original (hidden) button's own action directly, so it never depends on clicking a hidden element; if it fails, say so on screen instead of doing nothing. */
   function sptFire(o, from) {
+    var stale = document.getElementById('spt-err'); if (stale) stale.remove();
+    var mc = 0, mo = null; try { mo = new MutationObserver(function (r) { mc += r.length; }); mo.observe(document.documentElement, { childList: true, subtree: true, characterData: true }); } catch (e) { }
     var err = null, code = o.getAttribute && o.getAttribute('onclick');
     try { if (code) (new Function('event', code)).call(o, new Event('click')); else o.click(); } catch (e) { err = e; }
     setTimeout(function () {   // safety net: if the level box was built but is not on top / visible, bring it to the front; if nothing opened at all, say what state the page is in
@@ -9295,6 +9297,8 @@ setTimeout(()=>splash(false),0);
           if (!cx || !dl.contains(cx)) { dl.style.cssText += ';pointer-events:auto'; }
           return;
         }
+        try { if (mo) mo.disconnect(); } catch (e) { }
+        if (mc > 0) return;   // the action did something on screen (e.g. the printable test appeared in the page): not a failure
         var card = from && from.closest ? from.closest('.spt-card') : null, pn = document.getElementById('amTestPanel');
         if (card && !err && card.offsetParent !== null && (!pn || pn.offsetParent !== null)) {
           var m = document.getElementById('spt-err'); if (m) m.remove();
@@ -10946,6 +10950,8 @@ var APAM_TPL = "<!doctype html>\n<html lang=\"en\"><head><meta charset=\"utf-8\"
   function txt(b) { return (b.textContent || '').replace(/\s+/g, ' ').trim(); }
   /* Run the original (hidden) button's own action directly, so it never depends on clicking a hidden element; if it fails, say so on screen instead of doing nothing. */
   function sptFire(o, from) {
+    var stale = document.getElementById('spt-err'); if (stale) stale.remove();
+    var mc = 0, mo = null; try { mo = new MutationObserver(function (r) { mc += r.length; }); mo.observe(document.documentElement, { childList: true, subtree: true, characterData: true }); } catch (e) { }
     var err = null, code = o.getAttribute && o.getAttribute('onclick');
     try { if (code) (new Function('event', code)).call(o, new Event('click')); else o.click(); } catch (e) { err = e; }
     setTimeout(function () {   // safety net: if the level box was built but is not on top / visible, bring it to the front; if nothing opened at all, say what state the page is in
@@ -10959,6 +10965,8 @@ var APAM_TPL = "<!doctype html>\n<html lang=\"en\"><head><meta charset=\"utf-8\"
           if (!cx || !dl.contains(cx)) { dl.style.cssText += ';pointer-events:auto'; }
           return;
         }
+        try { if (mo) mo.disconnect(); } catch (e) { }
+        if (mc > 0) return;   // the action did something on screen (e.g. the printable test appeared in the page): not a failure
         var card = from && from.closest ? from.closest('.spt-card') : null, pn = document.getElementById('amTestPanel');
         if (card && !err && card.offsetParent !== null && (!pn || pn.offsetParent !== null)) {
           var m = document.getElementById('spt-err'); if (m) m.remove();
@@ -11489,4 +11497,4 @@ var APAM_TPL = "<!doctype html>\n<html lang=\"en\"><head><meta charset=\"utf-8\"
   if (document.readyState === 'complete') start(); else window.addEventListener('load', start);
 })();
 </script>
-<script id="ap-build">window.__apBuild="8a50c39d2b";</script>
+<script id="ap-build">window.__apBuild="790ac057a3";</script>
