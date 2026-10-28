@@ -14749,6 +14749,14 @@ body:has(.st-oral){background:linear-gradient(180deg,#f3efe4 0,#faf8f3 300px) fi
 #oral-cycle-panel>div>div:first-child{border-radius:10px!important;padding:7px 11px!important;letter-spacing:.1em!important}
 @media (max-width:900px){.st-oral .breadcrumb-label{font-size:1.3rem!important}}
 
+.rz-prog{font:800 .75rem 'DM Sans',sans-serif;letter-spacing:.12em;text-transform:uppercase;color:#a8862e;margin:2px 0 8px}
+.rz-note{flex:1 1 100%;font-size:.8125rem;color:#8a93a8}
+.rz-slot{background:#fff;border:1.5px solid #d9deea;border-radius:14px;padding:12px 14px;margin:0 0 12px}
+.rz-res{display:flex;align-items:center;gap:12px;flex-wrap:wrap}.rz-res>div{flex:1 1 220px}.rz-res b{display:block;font-size:1.0625rem;color:#1a2744}.rz-res em{font-style:normal;font-weight:800;font-size:.75rem;letter-spacing:.08em;text-transform:uppercase;color:#a8862e}
+.rz-die{font-size:2rem;display:inline-block;line-height:1}.rz-die.spin{animation:rzspin .45s linear infinite}@keyframes rzspin{to{transform:rotate(360deg)}}
+.rz-tumble{opacity:.85}.rz-roll{font-size:1.0625rem!important}.rz-pad{margin-top:10px}
+.rz-chk{background:#f7f3e8;border-left:4px solid #c9a84c;border-radius:10px;padding:10px 14px;margin:0 0 12px}.rz-cl{font:800 .6875rem 'DM Sans',sans-serif;letter-spacing:.1em;text-transform:uppercase;color:#a8862e;margin-bottom:4px}
+.rz-nav{justify-content:space-between;margin-top:14px}.rz-nav .ms-b[disabled]{opacity:.45;cursor:not-allowed}
 </style>
 <style id="ap-matchfx-css">
 .ms-ov{position:fixed;inset:0;z-index:11500;background:rgba(11,18,38,.72);display:flex;align-items:flex-start;justify-content:center;overflow:auto;-webkit-overflow-scrolling:touch;padding:18px 12px;font-family:'DM Sans',sans-serif}
@@ -15219,10 +15227,10 @@ function closeKTRChallenge() {
   function baseItems(c) {
     var B = { K: [], P: [], B: [], G: [], O: [], E: [], T: [] }, pm = promptMap(), seen = {}, vb = vbOf(c);
     // Phrases: each Top Structure the demo uses, once, in the order it first appears
-    (c.card.demoStructures || []).forEach(function (ids) {
+    (c.card.demoStructures || []).forEach(function (ids, dqi) {
       (ids || []).forEach(function (id) {
         if (seen[id]) return; seen[id] = 1; var p = pm[id]; if (!p || !p.label || !p.hint) return;
-        B.P.push({ act: 'P', id: 'P' + id, en: String(p.label).replace(/[`]/g, ''), fr: String(p.hint).replace(/[`]/g, '') });
+        B.P.push({ act: 'P', id: 'P' + id, q: dqi, en: String(p.label).replace(/[`]/g, ''), fr: String(p.hint).replace(/[`]/g, '') });
       });
     });
     // Key words: the demo's own useful vocabulary
@@ -15425,9 +15433,10 @@ function closeKTRChallenge() {
       ['ms-print ms-viewprint', 'viewprint', 'View & print', 'Read your chosen lists tidily on screen, or print them or save a PDF.', 'vprint', !ok],
       ['ms-print', '🖨', 'Print a sheet', 'The same activities as a sheet to write on.', 'print', !ok],
       ['ms-read', '📖', 'Read it again', na > 0 ? 'Works on the whole demo: untick the activities above to use it.' : 'The demo sentence by sentence, with its structures picked out.', 'read', na > 0],
-      ['ms-go', '🎙', 'Have a go', na > 0 ? 'Works on the whole demo: untick the activities above to use it.' : 'Answer the questions yourself, then reuse the structures on a new topic.', 'go', na > 0]
+      ['ms-go ms-reuse', '🔁', 'Reuse it', (W.ctx.base.P || []).length ? 'Take one Top Structure at a time: answer a card question with it, then use it on new topics the dice give you.' : 'This demo has no Top Structures to reuse.', 'reuse', !(W.ctx.base.P || []).length],
+      ['ms-go', '🎙', 'Have a go', na > 0 ? 'Works on the whole demo: untick the activities above to use it.' : 'Answer the questions yourself, with the demo closed, then record your oral.', 'go', na > 0]
     ];
-    if (!has) T = T.filter(function (x) { return x[4] === 'read' || x[4] === 'go'; });
+    if (!has) T = T.filter(function (x) { return x[4] === 'read' || x[4] === 'go' || x[4] === 'reuse'; });
     h += '<div class="aph-tools ms-tiles">' + T.map(function (x) {
       var img = ICONS[x[1]] ? '<img class="ms-img" alt="" src="' + ICONS[x[1]] + '">' : '<span class="ms-img od-ic">' + x[1] + '</span>';
       return '<button type="button" class="ms-tile ' + x[0] + '"' + (x[5] ? ' disabled' : '') + ' data-a="' + x[4] + '">' + img + '<span class="ms-tx"><span class="ms-tt">' + x[2] + '</span><span class="ms-td">' + x[3] + '</span></span></button>';
@@ -15815,7 +15824,119 @@ function closeKTRChallenge() {
     return out;
   }
 
-  // ---------- Have a go (and Reuse it) ----------
+
+  // ---------- Reuse it: one Top Structure at a time ----------
+  // rung 1: answer one of the card's own questions with the structure; rung 2: two dice rolls (an exam topic and a kind of answer), the same structure on each.
+  // The answers are written with the shared Apple Pencil pad. Check shows how the demo itself uses the structure (its own sentence: no new French is made up).
+  function rzKinds() {
+    var out = []; try { getActivePrompts().sections.forEach(function (sc) { if (sc && sc.label) out.push(String(sc.label).replace(/\s+/g, ' ').trim()); }); } catch (e) { }
+    return out.length ? out : ['Easy present tense starter', 'Past tense anecdote', 'Detailed opinion', 'Future speculation'];
+  }
+  function rzKey(i, x) { return 'rz:' + (W.ctx.code || W.ctx.id) + ':' + W.rz.deal + ':' + i + ':' + x; }
+  function rzDeal(again) {
+    var c = W.ctx, old = W.rz;
+    if (old) { var ks = []; for (var i = 0; i < old.fr.length; i++) ['q', 'a', 'b'].forEach(function (x) { ks.push('rz:' + (c.code || c.id) + ':' + old.deal + ':' + i + ':' + x); }); try { APPEN.reset(ks); } catch (e) { } }
+    var fr = shuffle(c.base.P).slice(0, 3), qs = shuffle(c.q.map(function (q, i) { return i; }));
+    W.rz = { deal: Date.now(), fr: fr, i: 0, qi: fr.map(function (f, k) { return qs[k % qs.length]; }), slots: fr.map(function () { return [null, null]; }), pool: shuffle(otherThemes(c)), pn: 0, checked: {}, done: false, rolling: false };
+    W.frames = fr; rzPage();
+  }
+  function rzOpen() { if (!(W.ctx.base.P || []).length) return; if (!W.rz || W.rz.done) rzDeal(); else { W.frames = W.rz.fr; rzPage(); } }
+  function rzTopic() { var z = W.rz; if (!z.pool.length) z.pool = shuffle(otherThemes(W.ctx)); if (!z.pool.length) return W.ctx.theme; var t = z.pool[z.pn % z.pool.length]; z.pn++; return t; }
+  function rzDemoSentence(f) {
+    var c = W.ctx, lits = String(f.fr).split(new RegExp(PHR.source, 'g')).map(function (x) { return x.replace(/[…().,;:!?«»"]/g, ' ').replace(/\s+/g, ' ').trim(); }).filter(function (x) { return x.replace(/[^A-Za-zÀ-ÿ]/g, '').length >= 2; });
+    if (!lits.length) return '';
+    var nz = function (t) { return String(t).replace(/[\u2019\u2018]/g, "'"); }, esc2 = function (x) { return nz(x).replace(/[.*+?^${}()|[\]\\]/g, '\\$&'); };
+    var tries = [lits.map(esc2).join('.*?')]; if (lits.length > 1) { tries.push(esc2(lits[0]) + '.*?' + esc2(lits[lits.length - 1])); var lg = lits.slice().sort(function (x, y) { return y.length - x.length; })[0]; if (lg.split(' ').length >= 2) tries.push(esc2(lg)); }
+    var order = []; if (f.q != null && c.fr[f.q]) order.push(f.q); c.fr.forEach(function (x, i) { if (i !== f.q) order.push(i); });
+    for (var t = 0; t < tries.length; t++) { var rx; try { rx = new RegExp(tries[t], 'i'); } catch (e) { continue; }
+      for (var a = 0; a < order.length; a++) { var ss = c.fr[order[a]] || []; for (var b = 0; b < ss.length; b++) if (rx.test(nz(ss[b]))) return boldRanges(ss[b], rangesIn(c, order[a], ss[b])); } }
+    return '';
+  }
+  function rzFilled(key) { try { return !!APPEN.info(key).any; } catch (e) { return false; } }
+  function rzSlotHTML(i, k) {
+    var z = W.rz, sl = z.slots[i][k], x = k ? 'b' : 'a', h = '<div class="rz-slot" id="rz-s' + k + '" data-s="' + k + '"><div class="rz-dice" id="rz-d' + k + '">';
+    if (!sl) h += '<button type="button" class="ms-b pri rz-roll" data-a="rroll" data-s="' + k + '"><span class="rz-die">🎲</span> Roll the dice</button>';
+    else h += '<div class="rz-res"><span class="rz-die">🎲</span><div><b>' + esc(sl.topic) + '</b><em>' + esc(sl.kind) + '</em></div><button type="button" class="ms-b sm" data-a="rroll" data-s="' + k + '">🎲 Roll again</button></div>';
+    h += '</div>';
+    if (sl) h += '<div class="rz-pad" id="rz-p' + k + '">' + rzPadHTML(i, x, 'Topic ' + (k + 1)) + '</div>';
+    return h + '</div>';
+  }
+  function rzPadHTML(i, x, label) {
+    return APPEN.html({ key: rzKey(i, x), lines: 2, label: label, typed: '<textarea class="appen-ta" rows="2" spellcheck="false" autocomplete="off" autocorrect="off" autocapitalize="sentences" placeholder="Type your sentence"></textarea>' });
+  }
+  function rzPage() {
+    var c = W.ctx, z = W.rz; W.view = 'reuse'; unkey(); lockKeys(function (e) { if (e.key === 'Escape') { back(); return true; } return false; });
+    if (z.done) {
+      var h0 = '<div class="od-page od-narrow">' + top('Reuse it ' + codeBadge(), esc(c.theme), 'Back') + '<div class="od-card" style="text-align:center"><div style="font-size:2.4rem">🎉</div><div class="od-q" style="font-size:1.25rem;font-weight:700">You used three Top Structures on nine answers.</div><p class="od-note">Each one you have used on different topics is one you can now use in the exam.</p></div>'
+        + '<div class="od-bar" style="justify-content:center"><button type="button" class="ms-b pri" data-a="rnew">🔁 Three new structures</button></div><div class="ms-cen"><button type="button" class="ms-b" data-a="back">← Back</button></div></div>';
+      paint(h0); return;
+    }
+    var i = z.i, f = z.fr[i], q = c.q[z.qi[i]];
+    var h = '<div class="od-page od-narrow">' + top('Reuse it ' + codeBadge(), esc(c.theme), 'Back');
+    h += '<div class="rz-prog">Structure ' + (i + 1) + ' of ' + z.fr.length + '</div>';
+    h += '<div class="od-fr"><b>' + ph(f.fr) + '</b><em>' + esc(f.en) + '</em><div class="rz-note">Capital words (NOUN, VERB, INF…) are the bits you change.</div><button type="button" class="ms-b sm" data-a="fsay" data-i="' + i + '">🔊 Hear the structure</button></div>';
+    h += '<div class="ms-step"><span class="ms-num">1</span>Use it to answer a question from the card</div>';
+    h += '<div class="od-card"><div class="od-q" lang="' + lang() + '" style="font-size:1.0625rem;font-weight:600">' + esc(q) + '</div><div class="od-bar" style="margin:8px 0 0"><button type="button" class="ms-b sm" data-a="rq">🔀 Another question</button></div></div>';
+    h += '<div id="rz-pq">' + rzPadHTML(i, 'q', 'Your answer') + '</div>';
+    h += '<div class="od-bar"><button type="button" class="ms-b sm" data-a="rcheck">' + (z.checked[i] ? 'Hide the check' : '✓ Check: how the demo uses it') + '</button></div><div id="rz-chk"' + (z.checked[i] ? '' : ' hidden') + '></div>';
+    h += '<div class="ms-step"><span class="ms-num">2</span>Now use it on two new topics</div><p class="od-note">Roll the dice for a topic and the kind of answer to give. Use the same structure each time.</p>';
+    h += rzSlotHTML(i, 0) + rzSlotHTML(i, 1);
+    h += '<div class="od-bar rz-nav">' + (i > 0 ? '<button type="button" class="ms-b" data-a="rprev">← Previous structure</button>' : '') + '<button type="button" class="ms-b pri" id="rz-next" data-a="rnext" disabled>' + (i < z.fr.length - 1 ? 'Next structure →' : 'Finish ✓') + '</button></div><p class="od-note" id="rz-need"></p>';
+    h += '<div class="ms-cen"><button type="button" class="ms-b" data-a="back">← Back</button></div></div>';
+    paint(h);
+    try { APPEN.mount($('od-ov')); } catch (e) { }
+    if (z.checked[i]) rzFillCheck();
+    rzWatch();
+  }
+  function rzFillCheck() {
+    var z = W.rz, f = z.fr[z.i], b = $('rz-chk'); if (!b) return; var d = rzDemoSentence(f);
+    b.innerHTML = '<div class="rz-chk"><div class="rz-cl">In the demo</div>' + (d ? '<div class="od-q" lang="' + lang() + '" style="font-size:1.0625rem">' + d + '</div><p class="od-note" style="margin:6px 0 0">The structure is in bold. Compare it with how you used it.</p>' : '<p class="od-note" style="margin:0">Find this structure in the demo transcript (it is picked out in bold there) and compare.</p>') + '</div>';
+  }
+  function rzCheck() { var z = W.rz; z.checked[z.i] = !z.checked[z.i]; var b = $('rz-chk'); if (!b) return; b.hidden = !z.checked[z.i]; if (z.checked[z.i]) rzFillCheck(); var btn = b.previousElementSibling && b.previousElementSibling.querySelector('[data-a="rcheck"]'); if (btn) btn.textContent = z.checked[z.i] ? 'Hide the check' : '✓ Check: how the demo uses it'; }
+  function rzOtherQ() { var z = W.rz, c = W.ctx; if (c.q.length < 2) return; var n = z.qi[z.i]; do { n = Math.floor(Math.random() * c.q.length); } while (n === z.qi[z.i]); z.qi[z.i] = n; var cur = $('rz-pq'); try { APPEN.reset([rzKey(z.i, 'q')]); } catch (e) { } rzPage(); }
+  function rzStep(d) { var z = W.rz; if (d > 0 && !rzReady()) return; if (d > 0 && z.i === z.fr.length - 1) { z.done = true; rzPage(); return; } z.i = Math.max(0, Math.min(z.fr.length - 1, z.i + d)); rzPage(); var o = $('od-ov'); if (o) o.scrollTop = 0; }
+  function rzReady() { var z = W.rz, i = z.i; return rzFilled(rzKey(i, 'q')) && z.slots[i][0] && z.slots[i][1] && rzFilled(rzKey(i, 'a')) && rzFilled(rzKey(i, 'b')); }
+  function rzWatch() {
+    if (W.rzT) clearInterval(W.rzT);
+    W.rzT = setInterval(function () {
+      if (!W || W.view !== 'reuse' || !W.rz || W.rz.done || !$('rz-next')) { clearInterval(W && W.rzT); return; }
+      var ok = !!rzReady(), nb = $('rz-next'), nd = $('rz-need'); if (nb) nb.disabled = !ok;
+      if (nd) nd.textContent = ok ? '' : 'Write an answer in each box (the question and both topics) to move on.';
+    }, 500);
+  }
+  // the dice: they tumble for a moment with a rattle, then stop on an exam topic and a kind of answer
+  function rzRattle() {
+    try {
+      var AC = window.AudioContext || window.webkitAudioContext; if (!AC) return; var ac = W.rzAC || (W.rzAC = new AC()); if (ac.state === 'suspended') ac.resume();
+      for (var n = 0; n < 9; n++) {
+        var t0 = ac.currentTime + n * 0.11 + Math.random() * 0.03, len = 0.04, buf = ac.createBuffer(1, Math.floor(ac.sampleRate * len), ac.sampleRate), d = buf.getChannelData(0);
+        for (var k = 0; k < d.length; k++) d[k] = (Math.random() * 2 - 1) * (1 - k / d.length);
+        var src = ac.createBufferSource(), g = ac.createGain(), fl = ac.createBiquadFilter(); fl.type = 'bandpass'; fl.frequency.value = 1400 + Math.random() * 1800; src.buffer = buf; g.gain.value = 0.22 * (1 - n / 12);
+        src.connect(fl); fl.connect(g); g.connect(ac.destination); src.start(t0);
+      }
+    } catch (e) { }
+  }
+  function rzRoll(k) {
+    var z = W.rz, i = z.i, kinds = rzKinds(); if (z.rolling) return; z.rolling = true;
+    var box = $('rz-d' + k); if (!box) { z.rolling = false; return; }
+    rzRattle();
+    var tick = 0, final = { topic: rzTopic(), kind: kinds[Math.floor(Math.random() * kinds.length)] };
+    var timer = setInterval(function () {
+      tick++;
+      var tp = z.pool.length ? z.pool[Math.floor(Math.random() * z.pool.length)] : final.topic, kd = kinds[Math.floor(Math.random() * kinds.length)];
+      box.innerHTML = '<div class="rz-res rz-tumble"><span class="rz-die spin">🎲</span><div><b>' + esc(tp) + '</b><em>' + esc(kd) + '</em></div></div>';
+      if (tick >= 11) {
+        clearInterval(timer); z.rolling = false; var had = !!z.slots[i][k]; z.slots[i][k] = final;
+        if (W.view !== 'reuse' || z.i !== i) return;
+        var slot = $('rz-s' + k); if (!slot) return;
+        if (had) { var pad = $('rz-p' + k); slot.innerHTML = rzSlotHTML(i, k).replace(/^<div[^>]*>|<\/div>$/g, ''); if (pad) { /* the pad is rebuilt with its saved work */ } }
+        else slot.innerHTML = rzSlotHTML(i, k).replace(/^<div[^>]*>|<\/div>$/g, '');
+        try { APPEN.mount(slot); } catch (e) { }
+      }
+    }, 100);
+  }
+
+  // ---------- Have a go ----------
   function pickFrames(c) { return shuffle(c.base.P).slice(0, 3); }
   function otherThemes(c) {
     var seen = {}, out = []; seen[c.theme] = 1;
@@ -15824,16 +15945,10 @@ function closeKTRChallenge() {
   }
   function pageGo() {
     var c = W.ctx;
-    if (!W.frames) { W.frames = pickFrames(c); W.topics = otherThemes(c); }
     var h = '<div class="od-page od-narrow">' + top('Have a go ' + codeBadge(), esc(c.theme), 'Back');
     h += '<div class="od-card"><div class="od-meta" style="margin-top:0">Now answer the questions yourself, with the demo closed</div><div class="od-q" style="font-size:1.0625rem;font-weight:600">' + c.q.map(function (q, i) { return (i + 1) + '. ' + esc(q); }).join('<br>') + '</div></div>';
     h += '<p class="od-note">Use the order you have learned: present, present, past anecdote, detailed opinion, future speculation. Include as many Top Structures as you can, in your own words. Then record it.</p>';
     h += '<div class="od-bar"><button type="button" class="ms-b sm" data-a="sim">▶ Begin oral practice session</button>' + ((window.APOR && APOR.supported && APOR.supported()) ? '<button type="button" class="ms-b sm pri" data-a="rec">🎙 Record my oral (EW)</button>' : '') + '</div>';
-    if (W.frames.length) {
-      h += '<div class="ms-step" style="margin-top:20px"><span class="ms-num">★</span>Reuse it</div><p class="od-note">Use each structure below in a sentence of your own on a <b>different topic</b>, replacing the capital words (NOUN, VERB, INF…).</p>';
-      W.frames.forEach(function (f, i) { h += '<div class="od-fr"><b>' + ph(f.fr) + '</b><em>' + esc(f.en) + '</em><div style="flex:1 1 100%;font-size:.875rem;font-weight:700;color:#8a6d1f">Topic to try: ' + esc(W.topics[i % W.topics.length] || '') + '</div><textarea class="od-ta" rows="2" aria-label="Your sentence"></textarea><button type="button" class="ms-b sm" data-a="fsay" data-i="' + i + '">🔊 Hear the structure</button></div>'; });
-      h += '<div class="od-bar"><button type="button" class="ms-b sm" data-a="frames">🔀 Three different structures</button></div>';
-    }
     h += '<div class="ms-cen"><button type="button" class="ms-b" data-a="back">← Back</button></div></div>';
     W.view = 'go'; unkey(); lockKeys(function (e) { if (e.key === 'Escape') { back(); return true; } return false; });
     paint(h, true);
@@ -15885,7 +16000,13 @@ function closeKTRChallenge() {
       case 'say': say(c.fr[+t.getAttribute('data-n')][+t.getAttribute('data-i')], 'fr'); break;
       case 'fsay': var f = W.frames[+t.getAttribute('data-i')]; if (f) say(f.fr, 'fr'); break;
       case 'go': pageGo(); break;
-      case 'frames': W.frames = null; pageGo(); break;
+      case 'reuse': rzOpen(); break;
+      case 'rq': rzOtherQ(); break;
+      case 'rroll': rzRoll(+t.getAttribute('data-s')); break;
+      case 'rcheck': rzCheck(); break;
+      case 'rnext': rzStep(1); break;
+      case 'rprev': rzStep(-1); break;
+      case 'rnew': rzDeal(true); break;
       case 'show': drillShow(); break;
       case 'hint': var ho = W.dr.q[W.dr.i], hb = $('od-hintbox'); if (ho && hb && (ho.hint || ho.clue)) { hb.innerHTML = (ho.clue ? hintBox(ho.clue) : '') + (ho.hint ? hintBox(ho.hint) : ''); t.remove(); } break;
       case 'mark': drillMark(t.getAttribute('data-r')); break;
@@ -16317,4 +16438,4 @@ function closeKTRChallenge() {
   if (document.readyState === 'complete') start(); else window.addEventListener('load', start);
 })();
 </script>
-<script id="ap-build">window.__apBuild="c896b51b08";</script>
+<script id="ap-build">window.__apBuild="05385757bd";</script>
