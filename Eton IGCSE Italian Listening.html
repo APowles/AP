@@ -7698,13 +7698,19 @@ apFloat('.audio-panel', function(el){ return document.getElementById('section-ca
   function makeDialog(cfg) {
     var old = $('ap-tt-mk'); if (old) old.remove();
     var d = document.createElement('div'); d.id = 'ap-tt-mk'; d.className = 'rd-mkov';
+    var aoMode = '', aoNeed = !!tkey(), AO_CAT = '\u26A1 One-off \u25B8 Live tests (codes clear after 7 days)';
+    var aoHTML = aoNeed ? '<div class="ao-box" id="ap-tt-ao" role="radiogroup"><div class="ao-h">FIRST: is this test for today only?</div>'
+      + '<label class="ao-opt"><input type="radio" name="ao-tt" value="one"><b>\u26A1 One-off: for this lesson only</b><small>You get the link and a code now. It is <u>not</u> added to your Test Library, and the code stops working after 7 days. (The link itself keeps working.)</small></label>'
+      + '<label class="ao-opt"><input type="radio" name="ao-tt" value="keep"><b>📚 Keep permanently in my AP Tests library</b><small>Filed under a heading and folder, as before.</small></label>'
+      + '<div class="ao-need">👆 Choose one to continue</div></div>' : '';
+
     var rows = cfg.sections.map(function (s) {
       return '<div class="rd-mksec"><label class="rd-mkchk"><input type="checkbox" data-sid="' + esc(s.id) + '" checked> <b>' + esc(s.label) + '</b> <span>' + esc(s.detail || '') + ' &middot; ' + s.marks + ' mark' + (s.marks > 1 ? 's' : '') + '</span></label>'
         + (cfg.minutes ? '<span class="rd-mkmin"><input type="number" min="1" max="120" data-sid="' + esc(s.id) + '" value="' + (s.mins || 5) + '"> min</span>' : '') + '</div>';
     }).join('');
     d.innerHTML = '<div class="rd-mkbox" role="dialog" aria-modal="true"><div class="rd-mkh">&#128273; ' + esc(cfg.title) + '</div><div class="rd-mks">' + cfg.sub + '</div>'
       + '<label>' + esc(cfg.help) + '</label>' + rows + '<div class="rd-mktot" id="ap-tt-tot"></div>'
-      + '<label>Name (for your list; it is also the boys\' OneNote page title)</label><input id="ap-tt-n" type="text">'
+      + aoHTML + '<label>Name (for your list; it is also the boys\' OneNote page title)</label><input id="ap-tt-n" type="text">'
       + '<label>Library heading</label><input id="ap-tt-cat" type="text" value="' + esc(cfg.cat) + '">'
       + '<label>Folder inside it (optional)</label><input id="ap-tt-f" type="text" maxlength="40" placeholder="none">'
       + '<label>Code for the AP Tests page (the next free number is filled in' + (gkey() ? '; it is added automatically' : '') + ')</label><input id="ap-tt-c" type="text" placeholder="e.g. ' + esc(cfg.prefix) + '101" autocapitalize="characters" maxlength="12">'
@@ -7721,7 +7727,7 @@ apFloat('.audio-panel', function(el){ return document.getElementById('section-ca
     function refresh() {
       var pk = picked(), t = $('ap-tt-tot'), n = $('ap-tt-n');
       t.innerHTML = pk.ids.length ? '<b>' + pk.ids.length + ' section' + (pk.ids.length > 1 ? 's' : '') + ' &middot; ' + pk.mk + ' marks' + (cfg.minutes ? ' &middot; &#9201; ' + pk.tot + ' minutes' : '') + '</b>' + (pk.all ? ' (the whole paper)' : '') : '<b class="bad">Tick at least one section.</b>';
-      $('ap-tt-go').disabled = !pk.ids.length;
+      $('ap-tt-go').disabled = !pk.ids.length || (aoNeed && !aoMode);
       if (!n.dataset.typed && pk.ids.length) n.value = cfg.nameFor(pk);
     }
     d.addEventListener('input', function (e) { if (e.target.getAttribute('data-sid')) refresh(); });
@@ -7729,19 +7735,38 @@ apFloat('.audio-panel', function(el){ return document.getElementById('section-ca
     $('ap-tt-x').onclick = function () { d.remove(); };
     $('ap-tt-n').addEventListener('input', function () { this.dataset.typed = '1'; });
     $('ap-tt-c').addEventListener('input', function () { this.dataset.typed = '1'; });
+    var aoOrig = null;
+    function aoRow(id, hide) { var el = $(id); if (!el) return; el.style.display = hide ? 'none' : ''; var p = el.previousElementSibling; if (p && p.tagName === 'LABEL') p.style.display = hide ? 'none' : ''; }
+    var aoBox = $('ap-tt-ao');
+    if (aoBox) aoBox.addEventListener('change', function (e) {
+      var c = $('ap-tt-c'); if (!aoOrig) aoOrig = { cat: $('ap-tt-cat').value, code: c.value, typed: c.dataset.typed || '' };
+      aoMode = e.target.value; aoBox.classList.add('ok');
+      Array.prototype.forEach.call(aoBox.querySelectorAll('.ao-opt'), function (l) { l.classList.toggle('on', l.querySelector('input').checked); });
+      var one = aoMode === 'one';
+      if (one) {
+        c.dataset.typed = '1';
+        nextCode('X' + String(cfg.prefix).slice(-1).toUpperCase(), function (x) { if (aoMode === 'one') c.value = x; });
+      } else {
+        c.dataset.typed = aoOrig.typed; c.value = aoOrig.code;
+        nextCode(cfg.prefix, function (x) { if (aoMode === 'keep' && !c.dataset.typed) c.value = x; });
+      }
+      aoRow('ap-tt-cat', one); aoRow('ap-tt-f', one);
+      refresh();
+    });
     refresh();
     nextCode(cfg.prefix, function (c) { var el = $('ap-tt-c'); if (el && !el.dataset.typed) el.value = c; });
     $('ap-tt-go').onclick = function () {
       var pk = picked(), b = this, code = $('ap-tt-c').value.replace(/\s+/g, '').toUpperCase(), name = $('ap-tt-n').value.trim() || cfg.nameFor(pk),
         cat = $('ap-tt-cat').value.trim() || cfg.cat, fol = $('ap-tt-f').value.replace(/\|/g, '/').trim();
+      var aoOne = aoMode === 'one'; if (aoOne) { cat = AO_CAT; fol = new Date().toISOString().slice(0, 10); }
       b.disabled = true; b.textContent = 'Making…';
       var o = cfg.tokenFor(pk, { name: name, code: code, cat: cat, fol: fol, lim: pk.tot * 60 });
       o.made = new Date().toISOString().slice(0, 10);
       pack(o).then(function (tok) {
         var link = linkFor(tok), line = (code || cfg.prefix + '???') + ' | ' + name.replace(/\|/g, '/') + ' | ' + cat + ' | ' + fol + ' | ' + tok;
-        listAdd({ n: name, c: code, cat: cat, f: fol, made: o.made, s: o.s || 0, q: 'same', v: 1, items: (o.ids || []).length, t: o.t, lv: '', app: o.a, tok: tok });
+        if (!aoOne) listAdd({ n: name, c: code, cat: cat, f: fol, made: o.made, s: o.s || 0, q: 'same', v: 1, items: (o.ids || []).length, t: o.t, lv: '', app: o.a, tok: tok });
         var out = $('ap-tt-out');
-        out.innerHTML = '<div class="rd-mkok">&#9989; Link made. It is also saved in your list on the AP Tests page (on this device).</div>'
+        out.innerHTML = '<div class="rd-mkok">' + (aoOne ? '&#9989; Link made. <b>One-off:</b> copy it and use it now. It is not in your Test Library.' : '&#9989; Link made. It is also saved in your list on the AP Tests page (on this device).') + '</div>'
           + '<label>Link for OneNote / Teams</label><div class="rd-mkrow"><div class="rd-mklink">&#128279; <a href="' + esc(link) + '" target="_blank" rel="noopener">' + esc(name + (code ? ' (' + code + ')' : '')) + '</a></div><button type="button" class="aph-btn aph-btn-primary">&#128203; Copy link</button></div>'
           + '<div class="rd-mkhint">Pastes as the name above, with the long address hidden inside it.</div>'
           + '<label>Line for tests.txt (for a code)</label><div class="rd-mkrow"><input readonly value="' + esc(line) + '"><button type="button" class="aph-btn">&#128203; Copy line</button></div>';
@@ -7751,7 +7776,7 @@ apFloat('.audio-panel', function(el){ return document.getElementById('section-ca
         b.style.display = 'none'; var cx = $('ap-tt-x'); cx.textContent = '✓ Close'; cx.className = 'aph-btn aph-btn-primary';
         if (code && gkey()) {
           var st = document.createElement('div'); st.className = 'rd-mkgh'; st.textContent = '⏳ Adding code ' + code + ' to the AP Tests page…'; out.insertBefore(st, out.children[1]);
-          ghAdd(code, line).then(function () { st.className = 'rd-mkgh ok'; st.innerHTML = '&#9989; Code <b>' + esc(code) + '</b> added. Boys can type it on the AP Tests page in about a minute.'; })
+          ghAdd(code, line).then(function () { st.className = 'rd-mkgh ok'; st.innerHTML = '&#9989; Code <b>' + esc(code) + '</b> added. Boys can type it on the AP Tests page in about a minute.' + (aoOne ? '<br><b>One-off: it is not in your Test Library and the code stops working after 7 days. Nothing else to do.</b>' : ''); })
             .catch(function (e) { st.className = 'rd-mkgh bad'; st.innerHTML = (e && e.message === 'used' ? 'That code is already used: pick another and make the link again.' : 'The code could not be added automatically (' + esc(e && e.message || 'error') + '). Paste the line below into tests.txt.'); });
         }
       }).catch(function () { b.disabled = false; b.textContent = '🔑 Make link'; alert('The link could not be made. Check that the teacher key is saved on this device (AP Tests page ▸ Teacher).'); });
@@ -7762,6 +7787,30 @@ apFloat('.audio-panel', function(el){ return document.getElementById('section-ca
 /* ===== END AP TT ===== */
 
 </script>
+<style id="ap-oneoff-css">
+.ao-box{margin:6px 0 12px;padding:12px;border:3px solid #c0392b;border-radius:12px;background:#fff8e6}
+.ao-box.ok{border-color:#1e7a46;background:#eefaf2}
+.ao-h{font:800 .85rem/1.2 var(--aph-body,inherit);letter-spacing:.06em;color:#7a1b12;margin-bottom:8px}
+.ao-box.ok .ao-h{color:#1e7a46}
+.ao-opt{display:block;margin:6px 0;padding:10px 12px;border:2px solid #b9b3a3;border-radius:10px;background:#fff;cursor:pointer;line-height:1.35}
+.ao-opt input{margin-right:8px;transform:scale(1.25)}
+.ao-opt.on{border-color:#0f1a33;background:#eef2ff}
+.ao-opt b{font-size:1.05rem}
+.ao-opt small{display:block;margin:3px 0 0 26px;color:#444}
+.ao-need{margin-top:4px;font-weight:800;color:#c0392b}
+.ao-box.ok .ao-need{display:none}
+.rd-mkov button.ao-wait{opacity:.45;cursor:not-allowed}
+.ao-live{margin:6px 0 10px;padding:9px 12px;border-radius:10px;background:#fff8e6;border:2px solid #c9a84c;font-weight:800;color:#7a5a00}
+.ao-live.ok{background:#eefaf2;border-color:#1e7a46;color:#1e7a46;font-size:1.05rem}
+.ao-live.slow{background:#fdecea;border-color:#c0392b;color:#7a1b12}
+#ap-tt-go:disabled{opacity:.45;cursor:not-allowed}
+.rd-mkov .ao-opt{display:block;margin:6px 0;padding:10px 12px;font:500 .9rem/1.35 var(--aph-body,inherit);letter-spacing:0;text-transform:none;color:#0f1a33}
+.rd-mkov .ao-opt input{width:auto;height:auto;display:inline-block;margin:0 8px 0 0;padding:0;vertical-align:middle}
+.rd-mkov .ao-opt b{display:inline;font-size:1.05rem;color:#0f1a33}
+.rd-mkov .ao-opt small{display:block;margin:3px 0 0 26px;color:#444;font-size:.8rem;font-weight:500}
+.rd-mkov .ao-h{letter-spacing:.06em;text-transform:none}
+.rd-mkov .ao-need{font:800 .9rem var(--aph-body,inherit);letter-spacing:0;text-transform:none}
+</style>
 <script id="ap-reading">
 window.AP_RD_CSS = "/* AP Reading \u2014 styles (all selectors prefixed .rd- so nothing in the Listening app is touched) */\n.rd-modes{display:flex;gap:8px;justify-content:center;margin:0 0 1rem}\n.rd-mode{font:600 .9rem/1.2 var(--aph-body);padding:9px 20px;border-radius:999px;border:1.5px solid var(--border);background:#fff;color:var(--navy);cursor:pointer;min-height:44px}\n.rd-mode:hover{border-color:var(--navy)}\n.rd-mode.on{background:var(--navy);color:#f0d78c;border-color:var(--navy)}\n.rd-nav{display:flex;gap:6px;flex-wrap:wrap;margin:0 0 .7rem;align-items:center}\n.rd-nav .rd-done{border-color:rgba(46,125,82,.55);color:var(--correct)}\n.rd-spacer{flex:1}\n.rd-prog{display:flex;justify-content:space-between;font-size:.72rem;color:var(--text3);margin:0 0 4px}\n.rd-track{height:5px;background:var(--border);border-radius:4px;overflow:hidden;margin-bottom:.8rem}\n.rd-fill{height:100%;background:var(--gold);border-radius:4px;transition:width .4s}\n.rd-split{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:16px;align-items:start;margin-bottom:1rem}\n.rd-insert{background:#fff;border:1.5px solid var(--navy);border-radius:8px;padding:14px 16px;font-size:.95rem;line-height:1.6;color:var(--text)}\n.rd-split .rd-insert{position:sticky;top:8px;max-height:calc(100vh - 16px);overflow:auto}\n.rd-insert p{margin:0 0 .7rem}.rd-insert p:last-child{margin-bottom:0}\n.rd-text-title{text-align:center;font-weight:700;margin-bottom:.6rem}\n.rd-text{padding:0 0 .8rem;margin:0 0 .8rem;border-bottom:1px solid var(--border)}\n.rd-text:last-child{border:0;margin:0;padding:0}\n.rd-text-h{font-weight:700;margin-bottom:.2rem;color:var(--navy)}\n.rd-text-h b{display:inline-block;min-width:1.4em;color:#a8862e}\n.rd-gap{display:inline-block;border-bottom:2px solid var(--gold);min-width:5.5em;padding:0 5px;background:#fffdf5;border-radius:3px;line-height:1.35}\n.rd-gap b{font-size:.74rem;color:var(--text3);margin-right:3px}\n.rd-gap.ok{background:var(--correct-bg);border-color:var(--correct);color:var(--correct)}\n.rd-gap.bad{background:var(--wrong-bg);border-color:var(--wrong);color:var(--wrong)}\n.rd-heading{font-weight:700;color:var(--navy);margin:0 0 .5rem}\n.rd-pics{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin:0 0 1rem;max-width:720px}\n.rd-pic{position:relative;border:2px solid var(--navy);border-radius:6px;background:#fff;aspect-ratio:4/3;overflow:hidden}\n.rd-pic svg{width:100%;height:100%;display:block}.rd-pic img{width:100%;height:100%;object-fit:cover;display:block}.rd-pic:has(img){aspect-ratio:1/1}\n.rd-pic-l{position:absolute;left:0;bottom:0;background:#fff;border:1.5px solid var(--navy);border-radius:0 6px 0 0;padding:0 8px;font-weight:700;font-size:.9rem;line-height:1.5}\n.rd-signs{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin:0 0 1rem;max-width:760px}\n.rd-sign{display:flex;flex-direction:column;gap:4px}\n.rd-sign-b{border:3px double var(--navy);border-radius:6px;padding:12px 4px;text-align:center;font-weight:600;font-size:1rem;background:#fff;color:var(--navy)}\n.rd-sign-l{align-self:flex-start;border:1.5px solid var(--navy);padding:0 8px;font-weight:700;font-size:.85rem;background:#fff;line-height:1.5}\n.rd-tight{gap:.7rem!important;margin-bottom:1rem}\n.rd-m-row{display:flex;gap:12px;align-items:center;flex-wrap:wrap;justify-content:space-between}\n.rd-m-row .q-text{flex:1 1 240px;margin:0}\n.rd-letters{display:flex;gap:6px;flex-wrap:wrap}\n.rd-letter{min-width:44px;min-height:44px;border:1.5px solid var(--border);border-radius:8px;background:var(--cream);font:700 .95rem var(--aph-body);color:var(--navy);cursor:pointer}\n.rd-letter:hover:not(:disabled){border-color:var(--navy);background:#f0f4fc}\n.rd-letter.selected{border-color:var(--navy);background:#e8edf8}\n.rd-letter.correct{border-color:var(--correct);background:var(--correct-bg);color:var(--correct)}\n.rd-letter.wrong{border-color:var(--wrong);background:var(--wrong-bg);color:var(--wrong)}\n.rd-letter:disabled{cursor:default}\n.rd-opts{display:flex;flex-direction:column;gap:7px}\n.rd-opts .opt-chip{width:100%;text-align:left}\n.rd-opts2{display:grid;grid-template-columns:1fr 1fr;gap:7px}\n.rd-note{font-size:.75rem;color:var(--text3);font-style:italic}\n@media (max-width:860px){\n  .rd-split{grid-template-columns:1fr}\n  .rd-split .rd-insert{position:static;max-height:none}\n  .rd-pics{grid-template-columns:repeat(2,1fr)}\n  .rd-signs{grid-template-columns:repeat(2,1fr)}\n}\n/* \u23f1 timed Reading paper */\n#rd-clock{position:fixed;top:8px;right:8px;z-index:9000;background:#1a2744;color:#f0d78c;font:800 1.1rem/1 var(--aph-body);padding:10px 14px;border-radius:10px;border:2px solid #c9a84c;box-shadow:0 4px 14px rgba(0,0,0,.3)}\n#rd-clock.warn{background:#8a5a00;color:#fff}\n#rd-clock.crit{background:#b3261e;color:#fff;animation:rdblink 1s steps(2) infinite}\n@keyframes rdblink{50%{opacity:.55}}\n#rd-warn{display:none;position:fixed;left:0;right:0;top:0;z-index:9100;background:#d0021b;color:#fff;font:800 1.1rem/1.3 var(--aph-body);padding:16px;text-align:center;animation:rdblink .6s steps(2) infinite}\n.rd-tcard{max-width:640px;margin:0 auto;text-align:center}\n.rd-tmeta{color:var(--text2)}\n.rd-trules{text-align:left;background:#fff8e1;border-left:5px solid #c9a84c;border-radius:8px;padding:14px 16px;margin:14px 0;line-height:1.5;font-size:.95rem}\n.rd-tinfo{margin:12px auto 0;max-width:520px;font-size:.9rem;line-height:1.5;color:var(--text2)}.rd-tinfo .bad,.rd-tinfo b.bad{color:#b3261e}\n.rd-mkov{position:fixed;inset:0;z-index:9500;background:rgba(26,39,68,.55);display:flex;align-items:flex-start;justify-content:center;overflow:auto;padding:24px 12px}\n.rd-mkbox{background:#fff;border:3px solid var(--gold);border-radius:14px;max-width:560px;width:100%;padding:18px 18px 14px;text-align:left}\n.rd-mkh{font:800 1.2rem/1.2 var(--aph-body);color:var(--navy)}.rd-mks{color:var(--text2);margin:4px 0 10px;font-size:.9rem}\n.rd-mkbox label{display:block;font:700 .78rem/1.3 var(--aph-body);color:var(--text3);margin:12px 0 4px}\n.rd-mkbox input,.rd-mkbox select{width:100%;box-sizing:border-box;font:500 16px var(--aph-body);border:1.5px solid var(--border);border-radius:8px;padding:10px 12px;min-height:44px}\n.rd-mkact{display:flex;gap:8px;justify-content:flex-end;margin-top:14px}\n.rd-mkok{background:#e8f5ec;border-left:5px solid #2e7d52;border-radius:8px;padding:10px 12px;margin-top:14px}\n.rd-mkrow{display:flex;gap:8px;align-items:center}.rd-mkrow>input{flex:1;min-width:0}.rd-mklink{flex:1;min-width:0;word-break:break-word}\n.rd-mkhint{font-size:.78rem;color:var(--text3);margin-top:4px}\n.rd-mkgh{margin-top:10px;font-size:.9rem;padding:8px 10px;border-radius:8px;background:#eef3fb}.rd-mkgh.ok{background:#e8f5ec}.rd-mkgh.bad{background:#fdecea}\n.rd-mksec{display:flex;align-items:center;justify-content:space-between;gap:10px;border:1px solid var(--border);border-radius:8px;padding:6px 10px;margin:0 0 6px}\n.rd-mkbox .rd-mkchk{display:flex;align-items:center;gap:8px;margin:0;font:600 .9rem/1.3 var(--aph-body);color:var(--navy);flex:1}.rd-mkbox .rd-mkchk input{width:22px;min-height:22px;height:22px;padding:0}.rd-mkchk span{color:var(--text2);font-weight:500}\n.rd-mkmin{white-space:nowrap;color:var(--text2);font-size:.9rem}.rd-mkbox .rd-mkmin input{width:70px;min-height:38px;padding:6px 8px}\n.rd-mktot{margin:8px 0 0;color:var(--navy)}.rd-mktot .bad{color:#b3261e}\n.rd-mksec{display:flex;align-items:center;justify-content:space-between;gap:10px;border:1px solid var(--border);border-radius:8px;padding:6px 10px;margin:0 0 6px}\n.rd-mkbox .rd-mkchk{display:flex;align-items:center;gap:8px;margin:0;font:600 .9rem/1.3 var(--aph-body);color:var(--navy);flex:1}.rd-mkbox .rd-mkchk input{width:22px;min-height:22px;height:22px;padding:0}.rd-mkchk span{color:var(--text2);font-weight:500}\n.rd-mkmin{white-space:nowrap;color:var(--text2);font-size:.9rem}.rd-mkbox .rd-mkmin input{width:70px;min-height:38px;padding:6px 8px}\n.rd-mktot{margin:8px 0 0;color:var(--navy)}.rd-mktot .bad{color:#b3261e}\n";
 /* Original line drawings for Question 1 (redrawn for this app; they are not the Cambridge artwork).
@@ -13238,4 +13287,4 @@ window.AP_LC_CSS = "/* AP Listening class sheet: all selectors prefixed .lc- */\
   if (document.readyState === 'complete') start(); else window.addEventListener('load', start);
 })();
 </script>
-<script id="ap-build">window.__apBuild="3fe247d40a";</script>
+<script id="ap-build">window.__apBuild="f632567162";</script>
