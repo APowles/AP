@@ -4127,6 +4127,20 @@ function introSectionChange(){
   const hs = document.getElementById('sectionFilter'); if(hs) hs.value = currentSection;
   renderIntro();
 }
+var _adjCards=null;
+function adjCardKey(p){ var k=''; for(var a in p){ if(a.charAt(0)==='_'||a==='mf'||a==='fromLang'||a==='toLang'||a==='question'||a==='answer'||a==='n') continue; if(typeof p[a]==='string'||typeof p[a]==='number') k+=a+':'+p[a]+'|'; } return k; }
+function adjCardChips(){ return [10,20,30,50,-1].map(function(n){ var on=(_adjCards===n)||(_adjCards===null&&(n===-1?false:n===deck.length)); return '<button class="aph-chip'+(on?' on':'')+'" onclick="setAdjCards('+n+')">'+(n===-1?'All':n)+'</button>'; }).join(''); }
+function setAdjCards(n){ _adjCards=n; var r=document.getElementById('adj-cards'); if(r) r.innerHTML=adjCardChips(); }
+function adjApplyCards(){
+  if(_adjCards===null) return;
+  var want0=_adjCards; _adjCards=null;
+  var seen=deck.slice(0,idx), used={}, refs=[]; seen.forEach(function(p){ used[adjCardKey(p)]=1; refs.push(p); });
+  var fresh=stPool(currentSection || 'all').filter(function(c){ return c[fromLang] && c[toLang]; }).filter(function(p){ return refs.indexOf(p)<0 && !used[adjCardKey(p)]; }).sort(function(){ return Math.random()-0.5; });
+  var want=want0===-1?fresh.length:Math.max(1,want0-idx);
+  fresh=fresh.slice(0,want); if(!fresh.length) return;
+  var m=function(a){ return a; }; var dealt=m(fresh); if(!dealt||!dealt.length) dealt=fresh;
+  deck=seen.concat(dealt);
+}
 function adjT(d){ try{ adjustTimer(d); }catch(e){} var t=document.getElementById('adj-time'); if(t) t.textContent=timerSecs+'s'; }
 /*adjTimeRow*/
 function adjustTimer(d){
@@ -4137,7 +4151,7 @@ function adjustTimer(d){
   // Reset countdown mid-card if currently running
   if(countdown){ timeLeft = timerSecs; }
 }
-function renderAdjust(){
+function renderAdjust(){ _adjCards=null;
   if(countdown){ clearInterval(countdown); countdown = null; }
   const pct = Math.round((idx / deck.length) * 100);
   const opt = function(v, lbl, cur){ return '<option value="'+v+'"'+(cur===v?' selected':'')+'>'+lbl+'</option>'; };
@@ -4158,6 +4172,7 @@ function renderAdjust(){
     +'</div>'
     +'<div class="aph-label">Cards per session (next practice)</div>'
     +'<div class="aph-row">'+countBtns+'</div>'
+    +'<div class="aph-label">Cards in this drill</div><div class="aph-row" id="adj-cards">'+adjCardChips()+'</div>'
     +'<div class="aph-label">Time per card</div><div class="aph-row"><button class="aph-step" aria-label="Less time" onclick="adjT(-1)">&#8722;</button><span class="aph-step-val" id="adj-time">'+timerSecs+'s</span><button class="aph-step" aria-label="More time" onclick="adjT(1)">+</button></div>'
     +'<button class="aph-btn aph-btn-primary aph-btn-block" style="margin-top:22px" onclick="applyAndResume()">&#9654; Apply &amp; resume</button>'
     +'<div class="adj-paused">Practice paused</div>'
@@ -4170,7 +4185,7 @@ function applyAndResume(){
   if(at) toLang = at.value;
   const hf = document.getElementById('fromLang'), ht = document.getElementById('toLang');
   if(hf) hf.value = fromLang; if(ht) ht.value = toLang;
-  renderCard();
+  adjApplyCards(); renderCard();
 }
 function getLangFrom() { return fromLang; }
 // is the drill's target language (the non-English side) Spanish? then the speed slider sets the Spanish speed
@@ -18018,4 +18033,4 @@ function closeKTRChallenge() {
   if (document.readyState === 'complete') start(); else window.addEventListener('load', start);
 })();
 </script>
-<script id="ap-build">window.__apBuild="4fac19e6b0";</script>
+<script id="ap-build">window.__apBuild="a5273a9308";</script>

@@ -4823,6 +4823,20 @@ function getPool() {
 }
 
 function setSelectedCount(n) { _selectedCount = n; renderIntro(); }
+var _adjCards=null;
+function adjCardKey(p){ var k=''; for(var a in p){ if(a.charAt(0)==='_'||a==='mf'||a==='fromLang'||a==='toLang'||a==='question'||a==='answer'||a==='n') continue; if(typeof p[a]==='string'||typeof p[a]==='number') k+=a+':'+p[a]+'|'; } return k; }
+function adjCardChips(){ return [10,20,30,50,-1].map(function(n){ var on=(_adjCards===n)||(_adjCards===null&&(n===-1?false:n===deck.length)); return '<button class="aph-chip'+(on?' on':'')+'" onclick="setAdjCards('+n+')">'+(n===-1?'All':n)+'</button>'; }).join(''); }
+function setAdjCards(n){ _adjCards=n; var r=document.getElementById('adj-cards'); if(r) r.innerHTML=adjCardChips(); }
+function adjApplyCards(){
+  if(_adjCards===null) return;
+  var want0=_adjCards; _adjCards=null;
+  var seen=deck.slice(0,currentIndex), used={}, refs=[]; seen.forEach(function(p){ used[adjCardKey(p)]=1; refs.push(p); });
+  var fresh=getPool().filter(function(p){ return refs.indexOf(p)<0 && !used[adjCardKey(p)]; }).sort(function(){ return Math.random()-0.5; });
+  var want=want0===-1?fresh.length:Math.max(1,want0-currentIndex);
+  fresh=fresh.slice(0,want); if(!fresh.length) return;
+  var m=mixAssign; var dealt=m(fresh); if(!dealt||!dealt.length) dealt=fresh;
+  deck=seen.concat(dealt);
+}
 function adjT(d){ try{ adjustTimer(d); }catch(e){} var t=document.getElementById('adj-time'); if(t) t.textContent=timerSeconds+'s'; }
 /*adjTimeRow*/
 function adjustTimer(d) {
@@ -5177,7 +5191,7 @@ function startQuickDrill(count) {
   showCard();
 }
 
-function renderAdjust() {
+function renderAdjust() { _adjCards=null;
   if (timerInterval) clearInterval(timerInterval);
   _adjMix = mixMode;
   const counts = [10,20,30,50,-1];
@@ -5208,6 +5222,7 @@ function renderAdjust() {
         <div class="aph-row">
           ${counts.map((n,i)=>`<button class="aph-chip${_selectedCount===n?' on':''}" onclick="setSelectedCount(${n});renderAdjust()">${countLabels[i]}</button>`).join('')}
         </div>
+        <div class="aph-label">Cards in this drill</div><div class="aph-row" id="adj-cards">${adjCardChips()}</div>
         <div class="aph-label">Time per card</div><div class="aph-row"><button class="aph-step" aria-label="Less time" onclick="adjT(-1)">&#8722;</button><span class="aph-step-val" id="adj-time">${timerSeconds}s</span><button class="aph-step" aria-label="More time" onclick="adjT(1)">+</button></div>
         <button class="aph-btn aph-btn-primary aph-btn-block" style="margin-top:22px" onclick="applyAndResume()">&#9654; Apply &amp; resume</button>
         <div class="adj-paused">Drill paused</div>
@@ -5232,7 +5247,7 @@ function applyAndResume() {
     });
     deck = deck.slice(0, currentIndex).concat(mixAssign(base));
   }
-  showCard();
+  adjApplyCards(); showCard();
 }
 
 
@@ -11474,4 +11489,4 @@ var APAM_TPL = "<!doctype html>\n<html lang=\"en\"><head><meta charset=\"utf-8\"
   if (document.readyState === 'complete') start(); else window.addEventListener('load', start);
 })();
 </script>
-<script id="ap-build">window.__apBuild="59c4710e76";</script>
+<script id="ap-build">window.__apBuild="8a50c39d2b";</script>
