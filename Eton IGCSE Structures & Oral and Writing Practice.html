@@ -14802,6 +14802,26 @@ body:has(.st-oral){background:linear-gradient(180deg,#f3efe4 0,#faf8f3 300px) fi
 .bi-chip:not(.fixed):not([disabled]){touch-action:none;-webkit-user-select:none;user-select:none;-webkit-touch-callout:none}
 .bi-ghost{opacity:.25}.bi-fly{box-shadow:0 14px 26px rgba(0,0,0,.4)!important;cursor:grabbing}
 .bi-stage .drop{outline:3px solid #ffd76a;outline-offset:2px;background-color:rgba(255,215,106,.25)}
+/* Scrabble look: green baize board, wooden rack, cream tiles; text always horizontal */
+.bi-stage{background:radial-gradient(ellipse at 50% 0%,#2b6a4b 0%,#1d4f38 70%,#163f2d 100%);box-shadow:0 10px 24px rgba(10,40,25,.35),inset 0 0 0 3px #0f3322}
+.bi-stage .bi-lv{background:rgba(0,0,0,.28)}.bi-stage .bi-lvb{color:#d9e8dc}.bi-stage .bi-lvb.on{background:#f1e2b8;color:#1a2744;box-shadow:0 2px 0 #b79a4e}
+.bi-stage .bi-snd,.bi-stage .bi-sec{border-color:rgba(255,255,255,.4);background:rgba(255,255,255,.1)}
+.bi-stage .bi-cluebtn{background:rgba(255,255,255,.14)}
+.bi-stage .bi-dot.cur{background:#c9a84c}
+.bi-stage .bi-line{background:rgba(0,0,0,.22);border:2px solid rgba(255,255,255,.18);gap:6px}
+.bi-stage .bi-slot{min-width:56px;min-height:52px;border:2px solid rgba(0,0,0,.3);border-radius:6px;background:rgba(0,0,0,.18);box-shadow:inset 0 2px 5px rgba(0,0,0,.35)}
+.bi-stage .bi-slot i{color:rgba(255,255,255,.35)}
+.bi-stage .bi-slot.next{border-color:#c9a84c;background:rgba(201,168,76,.18);animation:bipulse 1.2s ease-in-out infinite}.bi-stage .bi-slot.next i{color:#e6c871}
+.bi-stage .bi-tray{background:linear-gradient(180deg,#8a5a34,#6e4526);border-radius:10px;box-shadow:inset 0 3px 6px rgba(0,0,0,.45),0 2px 0 #4a2d16;padding:14px 12px;gap:8px}
+.bi-stage .bi-empty{color:#f1e2b8}
+.bi-stage .bi-chip,.bi-stage .bi-tray .bi-chip{transform:none!important;min-height:52px;padding:8px 14px;border-radius:6px;border:1px solid #cdbb8c;background:linear-gradient(180deg,#f8efd6,#ecdcb2);color:#1a2744;text-shadow:none;font:700 1.125rem 'DM Sans',sans-serif;box-shadow:0 3px 0 #a38a52,0 5px 6px rgba(0,0,0,.35)}
+.bi-stage .bi-chip.on{animation:none}
+.bi-stage .bi-chip:active{transform:translateY(2px)!important;box-shadow:0 1px 0 #a38a52}
+.bi-stage .bi-chip.fixed{background:#d6c9a5;border-color:#b3a273;color:#3d3a2e;box-shadow:inset 0 1px 3px rgba(0,0,0,.25);cursor:default}
+.bi-stage .bi-chip.pop{animation:bipop .28s cubic-bezier(.2,1.6,.4,1)}
+.bi-stage .bi-line.ok{background:rgba(201,168,76,.28);border-color:#c9a84c}.bi-stage .bi-line.bad{background:rgba(160,40,40,.35);border-color:#e59a9a}
+.bi-stage .bi-go{background:#f1e2b8;box-shadow:0 4px 0 #b79a4e}
+.bi-fly{transform:translate(-50%,-50%) scale(1.06)!important}
 </style>
 <style id="ap-matchfx-css">
 .ms-ov{position:fixed;inset:0;z-index:11500;background:rgba(11,18,38,.72);display:flex;align-items:flex-start;justify-content:center;overflow:auto;-webkit-overflow-scrolling:touch;padding:18px 12px;font-family:'DM Sans',sans-serif}
@@ -15893,8 +15913,10 @@ function closeKTRChallenge() {
     var lv = SET.build || 2;
     W.bi = { i: 0, first: 0, lv: lv, items: set.map(function (b) {
       var canon = biCanon(b);
-      // chunk size by level: Easy = whole phrase chunks, Medium = pieces of up to two words, Hard = single words
-      if (lv > 1) { var mx = lv === 2 ? 2 : 1, out = []; canon.forEach(function (ch) { var w = ch.split(/\s+/); for (var q = 0; q < w.length; q += mx) out.push(w.slice(q, q + mx).join(' ')); }); canon = out; }
+      // piece size by level, always a mix of single words and small bits: Easy up to 3 words, Medium up to 2, Hard single words only
+      var mx = lv === 1 ? 3 : lv === 2 ? 2 : 1, out = [];
+      canon.forEach(function (ch) { var w = [], q = 0; ch.split(/\s+/).forEach(function (t) { if (w.length && /^[?!:;»]+$/.test(t)) w[w.length - 1] += ' ' + t; else w.push(t); }); while (q < w.length) { var sz = mx === 1 ? 1 : 1 + Math.floor(Math.random() * mx); if (lv === 1 && sz === 1 && Math.random() < .3) sz = 2; out.push(w.slice(q, q + sz).join(' ')); q += sz; } });
+      canon = out;
       var n = canon.length, miss = lv === 3 ? n : Math.min(n, Math.max(lv === 1 ? 2 : 3, Math.round(n * (lv === 1 ? 1 / 3 : 1 / 2))));
       // the chunks that are already in place (Easy: about two-thirds, Medium: about half, Hard: none); the rest are jumbled below
       var idx = shuffle(canon.map(function (t, k) { return k; })), gone = {}; idx.slice(0, miss).forEach(function (k) { gone[k] = 1; });
@@ -15918,7 +15940,7 @@ function closeKTRChallenge() {
     h += '<div class="bi-stage">';
     h += '<div class="bi-top"><div class="bi-lv" role="group" aria-label="Level">' + [1, 2, 3].map(function (n) { return '<button type="button" class="bi-lvb' + (z.lv === n ? ' on' : '') + '" data-a="blevel" data-v="' + n + '">' + BI_LV[n] + '</button>'; }).join('') + '</div>'
       + '<button type="button" class="bi-snd" data-a="bsnd" aria-pressed="' + (SET.bsnd ? 'true' : 'false') + '" title="Sound on or off">' + (SET.bsnd ? '🔊 Sound' : '🔇 Muted') + '</button></div>';
-    h += '<div class="bi-dots">' + z.items.map(function (x, j) { return '<span class="bi-dot' + (j < z.i ? ' done' : j === z.i ? ' cur' : '') + '"></span>'; }).join('') + '<span class="bi-dt">Sentence ' + (z.i + 1) + ' of ' + z.items.length + ' · ' + (z.lv === 1 ? 'big chunks, most in place' : z.lv === 2 ? 'smaller pieces, half in place' : 'single words, you place every one') + '</span></div>';
+    h += '<div class="bi-dots">' + z.items.map(function (x, j) { return '<span class="bi-dot' + (j < z.i ? ' done' : j === z.i ? ' cur' : '') + '"></span>'; }).join('') + '<span class="bi-dt">Sentence ' + (z.i + 1) + ' of ' + z.items.length + ' · ' + (z.lv === 1 ? 'up to three words a piece, most in place' : z.lv === 2 ? 'mostly single words, half in place' : 'single words, you place every one') + '</span></div>';
     if (SET.help && it.en) h += z.clue ? '<div class="bi-clue">💡 ' + esc(it.en) + '</div>' : '<button type="button" class="bi-cluebtn" data-a="bclue">💡 Give me a clue</button>';
     var nextEmpty = it.slots.indexOf(null);
     h += '<div class="bi-line' + (it.state === 'ok' ? ' ok' : it.state === 'bad' ? ' bad' : '') + '" lang="' + lang() + '">' + it.slots.map(function (p, j) {
@@ -16654,4 +16676,4 @@ function closeKTRChallenge() {
   if (document.readyState === 'complete') start(); else window.addEventListener('load', start);
 })();
 </script>
-<script id="ap-build">window.__apBuild="30f043634b";</script>
+<script id="ap-build">window.__apBuild="804629b454";</script>
