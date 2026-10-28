@@ -759,7 +759,51 @@ function vbScore(){ return '<span class="aph-dbar-score"><span class="ok">&#1000
 function vbBar(hint){
   return '<div class="drill-bar aph-dbar"><span class="aph-dbar-title">'+VB_NAME+'</span>'+vbScore()
     +(hint?'<button id="hintToggleBtn" class="aph-dbar-btn'+(showInfHint?' on':'')+'" onclick="toggleInfHint()">&#128161; Infinitive: '+(showInfHint?'On':'Off')+'</button>':'')
+    +'<button class="aph-dbar-btn" onclick="vbSettings()">&#9881; Settings</button>'
     +'<button class="aph-dbar-btn" '+(majorErrorDeck.length?'onclick="goToErrorReview()"':'disabled')+'>&#9654; Errors</button></div>';
+}
+/* ⚙ Settings during a verb drill: pauses the card; Time per card, Infinitive and Cards in this drill; Apply & resume */
+var _vbsCards=null;
+function vbsPool(){
+  try{
+    if(mode==='sentences') return shuffle(SENTENCES.filter(function(x){return inSentSet(x,verbMode)&&sentTenseOn(x);}));
+    if(mode==='infinitives') return shuffle(getLiveInfCards());
+    if(mode==='exer') return null;
+    return shuffle(buildPool());
+  }catch(e){ return null; }
+}
+function vbsKey(p){ var k=''; for(var a in p){ if(a.charAt(0)==='_') continue; if(typeof p[a]==='string'||typeof p[a]==='number') k+=a+':'+p[a]+'|'; } return k; }
+function vbsChips(){ return [10,20,30,50,-1].map(function(n){ var on=(_vbsCards===n)||(_vbsCards===null&&(n===-1?false:n===deck.length)); return '<button class="aph-chip'+(on?' on':'')+'" onclick="vbsSetCards('+n+')">'+(n===-1?'All':n)+'</button>'; }).join(''); }
+function vbsSetCards(n){ _vbsCards=n; var r=document.getElementById('vbs-cards'); if(r) r.innerHTML=vbsChips(); }
+function vbsTime(d){ timerSecs=Math.min(30,Math.max(4,timerSecs+d)); var t=document.getElementById('vbs-time'); if(t) t.textContent=timerSecs+'s'; }
+function vbsInf(){ toggleInfHint(); var b=document.getElementById('vbs-inf'); if(b){ b.textContent=showInfHint?'On':'Off'; b.classList.toggle('on',!!showInfHint); } }
+function vbSettings(){
+  if(document.getElementById('vbs-set')) return;
+  if(timerInterval) clearInterval(timerInterval);
+  try{ window.speechSynthesis&&window.speechSynthesis.cancel(); }catch(e){}
+  _vbsCards=null;
+  var o=document.createElement('div'); o.id='vbs-set';
+  o.style.cssText='position:fixed;inset:0;z-index:12000;background:rgba(10,18,40,.72);display:flex;align-items:center;justify-content:center;padding:16px';
+  o.innerHTML='<div class="aph-card" style="max-width:520px;width:100%;max-height:92vh;overflow:auto"><div class="aph-panel-head"><h2 class="aph-panel-title">&#9881; Settings</h2></div>'
+    +'<div class="aph-label">Time per card</div><div class="aph-row"><button class="aph-step" aria-label="Less time" onclick="vbsTime(-2)">&#8722;</button><span class="aph-step-val" id="vbs-time">'+timerSecs+'s</span><button class="aph-step" aria-label="More time" onclick="vbsTime(2)">+</button></div>'
+    +(document.getElementById('hintToggleBtn')?'<div class="aph-label">Show the infinitive</div><div class="aph-row"><button class="aph-chip'+(showInfHint?' on':'')+'" id="vbs-inf" onclick="vbsInf()">'+(showInfHint?'On':'Off')+'</button></div>':'')
+    +(vbsPool()?'<div class="aph-label">Cards in this drill</div><div class="aph-row" id="vbs-cards">'+vbsChips()+'</div>':'')
+    +'<button class="aph-btn aph-btn-primary aph-btn-block" style="margin-top:18px" onclick="vbSettingsApply()">&#9654; Apply &amp; resume</button></div>';
+  document.body.appendChild(o);
+}
+function vbSettingsApply(){
+  if(_vbsCards!==null){
+    var want0=_vbsCards; _vbsCards=null;
+    var pool=vbsPool();
+    if(pool){
+      var seen=deck.slice(0,idx), used={}; seen.forEach(function(p){ used[vbsKey(p)]=1; });
+      var fresh=pool.filter(function(p){ return !used[vbsKey(p)]; });
+      var want=want0===-1?fresh.length:Math.max(1,want0-idx);
+      if(fresh.length) deck=seen.concat(fresh.slice(0,want));
+    }
+  }
+  var o=document.getElementById('vbs-set'); if(o) o.remove();
+  showCard();
 }
 function vbSyncHint(){ var b=document.getElementById('hintToggleBtn'); if(b){ b.innerHTML='&#128161; Infinitive: '+(showInfHint?'On':'Off'); b.classList.toggle('on',!!showInfHint); } }
 function vbProgress(p){ return '<div class="aph-progress"><div class="progress-fill" style="width:'+p+'%"></div></div>'; }
@@ -10091,4 +10135,4 @@ if (window.__cj) window.__cj.speedTest = function (kind, g) {
   if (document.readyState === 'complete') start(); else window.addEventListener('load', start);
 })();
 </script>
-<script id="ap-build">window.__apBuild="5a877c19a6";</script>
+<script id="ap-build">window.__apBuild="b510f26dbb";</script>
