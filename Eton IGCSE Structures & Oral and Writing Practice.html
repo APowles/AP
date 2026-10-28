@@ -14682,7 +14682,7 @@ body.aporal-on .st-oral-side>#igcse-exam-wrap{order:-1;margin:0 0 12px!important
     var done = sheet.querySelectorAll('.ms-t.done').length / 2, bad = sheet.querySelectorAll('.ms-t.bad').length;
     if (fresh.length) {
       fresh.forEach(function (t) { spark(t, t.dataset.mfx); setTimeout(function () { t.classList.add('mfx-gone'); }, 560); });
-      G.streak++; pop(G.streak - 1);
+      G.streak++; pop(G.streak - 1); if (G.streak === 3 || G.streak === 5) streakS();
       var sk = sheet.querySelector('.mfx-streak'); if (G.streak >= 2) { setT(sk, '🔥 streak ×' + G.streak); sk.classList.remove('on'); void sk.offsetWidth; sk.classList.add('on'); }
       var W = { 3: 'Nice!', 4: 'Great!', 5: 'On fire!' }; if (W[G.streak] && done < G.total) word(W[G.streak], tm);
     }
@@ -14716,7 +14716,7 @@ body.aporal-on .st-oral-side>#igcse-exam-wrap{order:-1;margin:0 0 12px!important
     else if (prev && nb) { var d2 = document.createElement('div'); d2.className = 'mfx-delta up'; d2.textContent = (prev - t).toFixed(1) + ' s faster than your previous best'; note.parentNode.insertBefore(d2, note); }
     var t0 = Date.now(); (function tick() { var f = Math.min(1, (Date.now() - t0) / 900), e = 1 - Math.pow(1 - f, 3); big.textContent = (t * e).toFixed(1) + ' seconds'; if (f < 1) requestAnimationFrame(tick); })();
     confetti(nb ? 110 : stars === 3 ? 70 : 35);
-    for (var j = 0; j < stars; j++) (function (k) { setTimeout(function () { tone('sine', 520 * Math.pow(2, PENTA[k * 2] / 12), 900, 0.14, 0.07); }, 150 + k * 320); })(j);
+    for (var j = 0; j < stars; j++) (function (k) { setTimeout(function () { starS(k); }, 150 + k * 320); })(j);
     if (stars === 3 || nb) setTimeout(cheer, 1000);
     G = null;
   }
@@ -14741,7 +14741,102 @@ body.aporal-on .st-oral-side>#igcse-exam-wrap{order:-1;margin:0 0 12px!important
   }
   function start() { var OPT = { subtree: true, childList: true, attributes: true, attributeFilter: ['class'] }, mo = new MutationObserver(function () { mo.disconnect(); try { onMut(); } catch (e) { } mo.observe(document.body, OPT); });   // our own changes never re-trigger us
     mo.observe(document.body, OPT);
-    document.addEventListener('pointerdown', function (e) { if (e.target.closest && e.target.closest('.ms-ov .ms-t')) ac(); }, true); }
+    document.addEventListener('pointerdown', function (e) { if (e.target.closest && e.target.closest('.ms-ov .ms-t') && !e.target.closest('.ms-t.done')) { ac(); tickS(); } }, true); }
+    // ---- Obsidian sound set and Pulse music, composed for Match (replaces the old beeps) ----
+  var SX = null, MUS = null;
+  function sxF(n) { return 440 * Math.pow(2, (n - 69) / 12); }
+  function sx() {
+    var c = ac(); if (!c) return null;
+    if (SX && SX.c === c) return SX;
+    try {
+      var comp = c.createDynamicsCompressor(), out = c.createGain(), dry = c.createGain(), wet = c.createGain(), rev = c.createConvolver(), n = c.sampleRate * 2.6 | 0, ib = c.createBuffer(2, n, c.sampleRate), i, ch, d;
+      out.gain.value = 0.85; out.connect(comp); comp.connect(c.destination);
+      for (ch = 0; ch < 2; ch++) { d = ib.getChannelData(ch); for (i = 0; i < n; i++) d[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / n, 2.4); }
+      rev.buffer = ib; wet.gain.value = 0.4; dry.connect(out); wet.connect(rev); rev.connect(out);
+      var nb = c.createBuffer(1, c.sampleRate * 3, c.sampleRate), nd = nb.getChannelData(0); for (i = 0; i < nd.length; i++) nd[i] = Math.random() * 2 - 1;
+      SX = { c: c, dry: dry, wet: wet, nb: nb };
+    } catch (e) { SX = null; }
+    return SX;
+  }
+  function sxBus(g, send, dest) { var X = SX; if (dest) { g.connect(dest); return; } g.connect(X.dry); var s = X.c.createGain(); s.gain.value = send; g.connect(s); s.connect(X.wet); }
+  function sxEnv(g, t, a, d, v) { g.gain.setValueAtTime(0.0001, t); g.gain.exponentialRampToValueAtTime(v, t + a); g.gain.exponentialRampToValueAtTime(0.0001, t + a + d); }
+  function sTone(f, t, d, o) {
+    o = o || {}; var X = SX, c = X.c, v = o.v == null ? 0.2 : o.v, a = o.a || 0.01, os = c.createOscillator(), g = c.createGain();
+    os.type = o.type || 'sine'; os.frequency.setValueAtTime(f, t); if (o.f2) os.frequency.exponentialRampToValueAtTime(o.f2, t + a + d); if (o.det) os.detune.value = o.det;
+    var nd = os; if (o.lp) { var l = c.createBiquadFilter(); l.type = 'lowpass'; l.frequency.value = o.lp; os.connect(l); nd = l; }
+    nd.connect(g); sxEnv(g, t, a, d, v); sxBus(g, o.send == null ? 0.3 : o.send, o.dest); os.start(t); os.stop(t + a + d + 0.1);
+  }
+  function sBell(f, t, d, v, send) {
+    var X = SX, c = X.c, o = c.createOscillator(), m = c.createOscillator(), mg = c.createGain(), g = c.createGain();
+    o.frequency.value = f; m.frequency.value = f * 3.5; mg.gain.setValueAtTime(f * 1.5, t); mg.gain.exponentialRampToValueAtTime(1, t + d);
+    m.connect(mg); mg.connect(o.frequency); o.connect(g); sxEnv(g, t, 0.004, d, v || 0.15); sxBus(g, send == null ? 0.5 : send);
+    o.start(t); m.start(t); o.stop(t + d + 0.1); m.stop(t + d + 0.1);
+  }
+  function sNoise(t, d, o) {
+    o = o || {}; var X = SX, c = X.c, s = c.createBufferSource(), fl = c.createBiquadFilter(), g = c.createGain(), a = o.a || 0.01;
+    s.buffer = X.nb; fl.type = o.type || 'bandpass'; fl.Q.value = o.q || 1; fl.frequency.setValueAtTime(o.f0 || 500, t); fl.frequency.exponentialRampToValueAtTime(o.f1 || 4000, t + a + d);
+    s.connect(fl); fl.connect(g); sxEnv(g, t, a, d, o.v || 0.15); sxBus(g, o.send == null ? 0.4 : o.send, o.dest); s.start(t); s.stop(t + a + d + 0.1);
+  }
+  function sxGo(fn) {
+    if (!snd()) return; var c = ac(); if (!c) return;
+    function run() { try { if (!sx()) return; fn(SX.c.currentTime + 0.03); } catch (e) { } }
+    if (c.state === 'running') run(); else { var done = false, once = function () { if (!done) { done = true; run(); } }; try { var p = c.resume(); if (p && p.then) p.then(once, once); } catch (e) { } setTimeout(once, 250); }
+  }
+  function splashSound() {
+    sxGo(function (t) {
+      [-9, 0, 9].forEach(function (dt) { sTone(sxF(36), t, 0.6, { type: 'sawtooth', v: 0.1, a: 1.4, lp: 520, det: dt * 2, send: 0.3, f2: sxF(37) }); });
+      sNoise(t, 0.2, { f0: 200, f1: 9000, v: 0.1, a: 1.4 });
+      sTone(60, t + 1.5, 1.6, { v: 0.5, a: 0.005, f2: 28, send: 0.2 }); sNoise(t + 1.5, 1.4, { type: 'lowpass', f0: 3000, f1: 100, v: 0.3, send: 0.6, a: 0.005 });
+      sBell(sxF(84), t + 1.55, 3.2, 0.1); sBell(sxF(91), t + 1.7, 3.2, 0.07); sBell(sxF(96), t + 1.9, 3.2, 0.05);
+    });
+  }
+  function pop(n) {
+    var sh = PENTA[Math.min(n || 0, 5)];
+    sxGo(function (t) { sTone(sxF(72 + sh), t, 0.4, { type: 'triangle', v: 0.2, a: 0.004 }); sTone(sxF(79 + sh), t + 0.08, 0.5, { type: 'triangle', v: 0.17, a: 0.004 }); sTone(sxF(48), t, 0.3, { v: 0.2, a: 0.005, send: 0.1 }); });
+  }
+  function dull() {
+    sxGo(function (t) { sTone(sxF(40), t, 0.35, { type: 'sawtooth', v: 0.13, lp: 420, f2: sxF(34), send: 0.1 }); sTone(sxF(40), t, 0.35, { type: 'sawtooth', v: 0.1, lp: 420, f2: sxF(34), det: 30, send: 0.1 }); });
+  }
+  function streakS() {
+    sxGo(function (t) { [60, 63, 67, 72, 75, 79, 84].forEach(function (n, i) { sTone(sxF(n), t + i * 0.05, 0.3, { type: 'sawtooth', v: 0.07, lp: 3000, a: 0.004, send: 0.4 }); }); });
+  }
+  function tickS() {
+    sxGo(function (t) { sNoise(t, 0.04, { type: 'highpass', f0: 3000, f1: 6000, v: 0.1, send: 0.1 }); sTone(sxF(96), t, 0.05, { v: 0.08, send: 0.2 }); });
+  }
+  function starS(k) { sxGo(function (t) { sBell(sxF(79 + k * 4), t, 1.6, 0.11); }); }
+  function cheer() {
+    sxGo(function (t) {
+      [36, 48, 55, 60, 63, 67].forEach(function (n) { sTone(sxF(n), t, 2.6, { type: 'sawtooth', v: 0.06, a: 0.5, lp: 1200, send: 0.5 }); });
+      sTone(sxF(36), t, 2, { v: 0.4, a: 0.005, f2: sxF(24), send: 0.15 }); sBell(sxF(91), t + 0.6, 3, 0.1); sBell(sxF(96), t + 0.75, 3, 0.07);
+      for (var i = 0; i < 10; i++) sBell(sxF(84 + i * 2), t + 1.1 + i * 0.05, 1.6, 0.05, 0.6);
+    });
+  }
+  // Pulse: a soft pad, a gentle beat and little plucks, only while a Match is being played
+  var MCH = [[50, 57, 60, 64, 69], [46, 53, 57, 62, 65], [53, 57, 60, 65, 69], [48, 55, 59, 64, 67]];
+  function startMus() {
+    var c = ac(); if (!c || c.state !== 'running' || !sx()) return;
+    var X = SX, mg = c.createGain(), ms = c.createGain(); mg.gain.value = 1; ms.gain.value = 0.5; mg.connect(X.dry); mg.connect(ms); ms.connect(X.wet);
+    var sp = 60 / 96 / 2, step = 0, next = c.currentTime + 0.15;
+    function sched(s, t) {
+      var bar = Math.floor(s / 16) % 4, pos = s % 16, ch = MCH[bar];
+      if (pos === 0) ch.forEach(function (n) { sTone(sxF(n), t, sp * 16, { type: 'sawtooth', v: 0.02, a: 2.2, lp: 700, det: (Math.random() - 0.5) * 14, dest: mg }); });
+      if (pos % 8 === 0) sTone(sxF(38), t, 0.4, { v: 0.16, a: 0.01, f2: sxF(30), dest: mg });
+      if (pos % 4 === 2) sNoise(t, 0.05, { type: 'highpass', f0: 6000, f1: 9000, v: 0.02, dest: mg });
+      if (pos % 2 === 0 && ((pos / 2) % 3) !== 2) { var n = ch[(pos / 2) % 5] + 12; sTone(sxF(n), t, 0.7, { type: 'triangle', v: 0.04, a: 0.004, dest: mg }); }
+    }
+    var timer = setInterval(function () { try { while (next < c.currentTime + 0.4) { sched(step, next); next += sp; step++; } } catch (e) { } }, 100);
+    MUS = { timer: timer, mg: mg, c: c };
+  }
+  function stopMus() {
+    if (!MUS) return; var m = MUS; MUS = null; clearInterval(m.timer);
+    try { var t = m.c.currentTime; m.mg.gain.cancelScheduledValues(t); m.mg.gain.setValueAtTime(m.mg.gain.value, t); m.mg.gain.linearRampToValueAtTime(0, t + 0.6); } catch (e) { }
+  }
+  setInterval(function () {
+    try {
+      var on = snd() && document.querySelector('.ms-ov .ms-grid') && !document.querySelector('.mfx-intro');
+      if (on && !MUS) startMus(); else if (!on && MUS) stopMus();
+    } catch (e) { }
+  }, 400);
   if (document.body) start(); else document.addEventListener('DOMContentLoaded', start);
 })();
 </script>
@@ -15306,7 +15401,7 @@ body:has(.st-oral){background:linear-gradient(180deg,#f3efe4 0,#faf8f3 300px) fi
     var done = sheet.querySelectorAll('.ms-t.done').length / 2, bad = sheet.querySelectorAll('.ms-t.bad').length;
     if (fresh.length) {
       fresh.forEach(function (t) { spark(t, t.dataset.mfx); setTimeout(function () { t.classList.add('mfx-gone'); }, 560); });
-      G.streak++; pop(G.streak - 1);
+      G.streak++; pop(G.streak - 1); if (G.streak === 3 || G.streak === 5) streakS();
       var sk = sheet.querySelector('.mfx-streak'); if (G.streak >= 2) { setT(sk, '🔥 streak ×' + G.streak); sk.classList.remove('on'); void sk.offsetWidth; sk.classList.add('on'); }
       var W = { 3: 'Nice!', 4: 'Great!', 5: 'On fire!' }; if (W[G.streak] && done < G.total) word(W[G.streak], tm);
     }
@@ -15340,7 +15435,7 @@ body:has(.st-oral){background:linear-gradient(180deg,#f3efe4 0,#faf8f3 300px) fi
     else if (prev && nb) { var d2 = document.createElement('div'); d2.className = 'mfx-delta up'; d2.textContent = (prev - t).toFixed(1) + ' s faster than your previous best'; note.parentNode.insertBefore(d2, note); }
     var t0 = Date.now(); (function tick() { var f = Math.min(1, (Date.now() - t0) / 900), e = 1 - Math.pow(1 - f, 3); big.textContent = (t * e).toFixed(1) + ' seconds'; if (f < 1) requestAnimationFrame(tick); })();
     confetti(nb ? 110 : stars === 3 ? 70 : 35);
-    for (var j = 0; j < stars; j++) (function (k) { setTimeout(function () { tone('sine', 520 * Math.pow(2, PENTA[k * 2] / 12), 900, 0.14, 0.07); }, 150 + k * 320); })(j);
+    for (var j = 0; j < stars; j++) (function (k) { setTimeout(function () { starS(k); }, 150 + k * 320); })(j);
     if (stars === 3 || nb) setTimeout(cheer, 1000);
     G = null;
   }
@@ -15365,7 +15460,102 @@ body:has(.st-oral){background:linear-gradient(180deg,#f3efe4 0,#faf8f3 300px) fi
   }
   function start() { var OPT = { subtree: true, childList: true, attributes: true, attributeFilter: ['class'] }, mo = new MutationObserver(function () { mo.disconnect(); try { onMut(); } catch (e) { } mo.observe(document.body, OPT); });   // our own changes never re-trigger us
     mo.observe(document.body, OPT);
-    document.addEventListener('pointerdown', function (e) { if (e.target.closest && e.target.closest('.ms-ov .ms-t')) ac(); }, true); }
+    document.addEventListener('pointerdown', function (e) { if (e.target.closest && e.target.closest('.ms-ov .ms-t') && !e.target.closest('.ms-t.done')) { ac(); tickS(); } }, true); }
+    // ---- Obsidian sound set and Pulse music, composed for Match (replaces the old beeps) ----
+  var SX = null, MUS = null;
+  function sxF(n) { return 440 * Math.pow(2, (n - 69) / 12); }
+  function sx() {
+    var c = ac(); if (!c) return null;
+    if (SX && SX.c === c) return SX;
+    try {
+      var comp = c.createDynamicsCompressor(), out = c.createGain(), dry = c.createGain(), wet = c.createGain(), rev = c.createConvolver(), n = c.sampleRate * 2.6 | 0, ib = c.createBuffer(2, n, c.sampleRate), i, ch, d;
+      out.gain.value = 0.85; out.connect(comp); comp.connect(c.destination);
+      for (ch = 0; ch < 2; ch++) { d = ib.getChannelData(ch); for (i = 0; i < n; i++) d[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / n, 2.4); }
+      rev.buffer = ib; wet.gain.value = 0.4; dry.connect(out); wet.connect(rev); rev.connect(out);
+      var nb = c.createBuffer(1, c.sampleRate * 3, c.sampleRate), nd = nb.getChannelData(0); for (i = 0; i < nd.length; i++) nd[i] = Math.random() * 2 - 1;
+      SX = { c: c, dry: dry, wet: wet, nb: nb };
+    } catch (e) { SX = null; }
+    return SX;
+  }
+  function sxBus(g, send, dest) { var X = SX; if (dest) { g.connect(dest); return; } g.connect(X.dry); var s = X.c.createGain(); s.gain.value = send; g.connect(s); s.connect(X.wet); }
+  function sxEnv(g, t, a, d, v) { g.gain.setValueAtTime(0.0001, t); g.gain.exponentialRampToValueAtTime(v, t + a); g.gain.exponentialRampToValueAtTime(0.0001, t + a + d); }
+  function sTone(f, t, d, o) {
+    o = o || {}; var X = SX, c = X.c, v = o.v == null ? 0.2 : o.v, a = o.a || 0.01, os = c.createOscillator(), g = c.createGain();
+    os.type = o.type || 'sine'; os.frequency.setValueAtTime(f, t); if (o.f2) os.frequency.exponentialRampToValueAtTime(o.f2, t + a + d); if (o.det) os.detune.value = o.det;
+    var nd = os; if (o.lp) { var l = c.createBiquadFilter(); l.type = 'lowpass'; l.frequency.value = o.lp; os.connect(l); nd = l; }
+    nd.connect(g); sxEnv(g, t, a, d, v); sxBus(g, o.send == null ? 0.3 : o.send, o.dest); os.start(t); os.stop(t + a + d + 0.1);
+  }
+  function sBell(f, t, d, v, send) {
+    var X = SX, c = X.c, o = c.createOscillator(), m = c.createOscillator(), mg = c.createGain(), g = c.createGain();
+    o.frequency.value = f; m.frequency.value = f * 3.5; mg.gain.setValueAtTime(f * 1.5, t); mg.gain.exponentialRampToValueAtTime(1, t + d);
+    m.connect(mg); mg.connect(o.frequency); o.connect(g); sxEnv(g, t, 0.004, d, v || 0.15); sxBus(g, send == null ? 0.5 : send);
+    o.start(t); m.start(t); o.stop(t + d + 0.1); m.stop(t + d + 0.1);
+  }
+  function sNoise(t, d, o) {
+    o = o || {}; var X = SX, c = X.c, s = c.createBufferSource(), fl = c.createBiquadFilter(), g = c.createGain(), a = o.a || 0.01;
+    s.buffer = X.nb; fl.type = o.type || 'bandpass'; fl.Q.value = o.q || 1; fl.frequency.setValueAtTime(o.f0 || 500, t); fl.frequency.exponentialRampToValueAtTime(o.f1 || 4000, t + a + d);
+    s.connect(fl); fl.connect(g); sxEnv(g, t, a, d, o.v || 0.15); sxBus(g, o.send == null ? 0.4 : o.send, o.dest); s.start(t); s.stop(t + a + d + 0.1);
+  }
+  function sxGo(fn) {
+    if (!snd()) return; var c = ac(); if (!c) return;
+    function run() { try { if (!sx()) return; fn(SX.c.currentTime + 0.03); } catch (e) { } }
+    if (c.state === 'running') run(); else { var done = false, once = function () { if (!done) { done = true; run(); } }; try { var p = c.resume(); if (p && p.then) p.then(once, once); } catch (e) { } setTimeout(once, 250); }
+  }
+  function splashSound() {
+    sxGo(function (t) {
+      [-9, 0, 9].forEach(function (dt) { sTone(sxF(36), t, 0.6, { type: 'sawtooth', v: 0.1, a: 1.4, lp: 520, det: dt * 2, send: 0.3, f2: sxF(37) }); });
+      sNoise(t, 0.2, { f0: 200, f1: 9000, v: 0.1, a: 1.4 });
+      sTone(60, t + 1.5, 1.6, { v: 0.5, a: 0.005, f2: 28, send: 0.2 }); sNoise(t + 1.5, 1.4, { type: 'lowpass', f0: 3000, f1: 100, v: 0.3, send: 0.6, a: 0.005 });
+      sBell(sxF(84), t + 1.55, 3.2, 0.1); sBell(sxF(91), t + 1.7, 3.2, 0.07); sBell(sxF(96), t + 1.9, 3.2, 0.05);
+    });
+  }
+  function pop(n) {
+    var sh = PENTA[Math.min(n || 0, 5)];
+    sxGo(function (t) { sTone(sxF(72 + sh), t, 0.4, { type: 'triangle', v: 0.2, a: 0.004 }); sTone(sxF(79 + sh), t + 0.08, 0.5, { type: 'triangle', v: 0.17, a: 0.004 }); sTone(sxF(48), t, 0.3, { v: 0.2, a: 0.005, send: 0.1 }); });
+  }
+  function dull() {
+    sxGo(function (t) { sTone(sxF(40), t, 0.35, { type: 'sawtooth', v: 0.13, lp: 420, f2: sxF(34), send: 0.1 }); sTone(sxF(40), t, 0.35, { type: 'sawtooth', v: 0.1, lp: 420, f2: sxF(34), det: 30, send: 0.1 }); });
+  }
+  function streakS() {
+    sxGo(function (t) { [60, 63, 67, 72, 75, 79, 84].forEach(function (n, i) { sTone(sxF(n), t + i * 0.05, 0.3, { type: 'sawtooth', v: 0.07, lp: 3000, a: 0.004, send: 0.4 }); }); });
+  }
+  function tickS() {
+    sxGo(function (t) { sNoise(t, 0.04, { type: 'highpass', f0: 3000, f1: 6000, v: 0.1, send: 0.1 }); sTone(sxF(96), t, 0.05, { v: 0.08, send: 0.2 }); });
+  }
+  function starS(k) { sxGo(function (t) { sBell(sxF(79 + k * 4), t, 1.6, 0.11); }); }
+  function cheer() {
+    sxGo(function (t) {
+      [36, 48, 55, 60, 63, 67].forEach(function (n) { sTone(sxF(n), t, 2.6, { type: 'sawtooth', v: 0.06, a: 0.5, lp: 1200, send: 0.5 }); });
+      sTone(sxF(36), t, 2, { v: 0.4, a: 0.005, f2: sxF(24), send: 0.15 }); sBell(sxF(91), t + 0.6, 3, 0.1); sBell(sxF(96), t + 0.75, 3, 0.07);
+      for (var i = 0; i < 10; i++) sBell(sxF(84 + i * 2), t + 1.1 + i * 0.05, 1.6, 0.05, 0.6);
+    });
+  }
+  // Pulse: a soft pad, a gentle beat and little plucks, only while a Match is being played
+  var MCH = [[50, 57, 60, 64, 69], [46, 53, 57, 62, 65], [53, 57, 60, 65, 69], [48, 55, 59, 64, 67]];
+  function startMus() {
+    var c = ac(); if (!c || c.state !== 'running' || !sx()) return;
+    var X = SX, mg = c.createGain(), ms = c.createGain(); mg.gain.value = 1; ms.gain.value = 0.5; mg.connect(X.dry); mg.connect(ms); ms.connect(X.wet);
+    var sp = 60 / 96 / 2, step = 0, next = c.currentTime + 0.15;
+    function sched(s, t) {
+      var bar = Math.floor(s / 16) % 4, pos = s % 16, ch = MCH[bar];
+      if (pos === 0) ch.forEach(function (n) { sTone(sxF(n), t, sp * 16, { type: 'sawtooth', v: 0.02, a: 2.2, lp: 700, det: (Math.random() - 0.5) * 14, dest: mg }); });
+      if (pos % 8 === 0) sTone(sxF(38), t, 0.4, { v: 0.16, a: 0.01, f2: sxF(30), dest: mg });
+      if (pos % 4 === 2) sNoise(t, 0.05, { type: 'highpass', f0: 6000, f1: 9000, v: 0.02, dest: mg });
+      if (pos % 2 === 0 && ((pos / 2) % 3) !== 2) { var n = ch[(pos / 2) % 5] + 12; sTone(sxF(n), t, 0.7, { type: 'triangle', v: 0.04, a: 0.004, dest: mg }); }
+    }
+    var timer = setInterval(function () { try { while (next < c.currentTime + 0.4) { sched(step, next); next += sp; step++; } } catch (e) { } }, 100);
+    MUS = { timer: timer, mg: mg, c: c };
+  }
+  function stopMus() {
+    if (!MUS) return; var m = MUS; MUS = null; clearInterval(m.timer);
+    try { var t = m.c.currentTime; m.mg.gain.cancelScheduledValues(t); m.mg.gain.setValueAtTime(m.mg.gain.value, t); m.mg.gain.linearRampToValueAtTime(0, t + 0.6); } catch (e) { }
+  }
+  setInterval(function () {
+    try {
+      var on = snd() && document.querySelector('.ms-ov .ms-grid') && !document.querySelector('.mfx-intro');
+      if (on && !MUS) startMus(); else if (!on && MUS) stopMus();
+    } catch (e) { }
+  }, 400);
   if (document.body) start(); else document.addEventListener('DOMContentLoaded', start);
 })();
 
@@ -16927,4 +17117,4 @@ function closeKTRChallenge() {
   if (document.readyState === 'complete') start(); else window.addEventListener('load', start);
 })();
 </script>
-<script id="ap-build">window.__apBuild="5bbe03489e";</script>
+<script id="ap-build">window.__apBuild="a75e9e5b06";</script>
