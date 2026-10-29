@@ -10,6 +10,7 @@ function ord(k){var o=ORD[k.n];if(!o||o.length!==k.ican.length){o=ORD[k.n]=k.ica
 function mk(k,i){return (M[k.n]||{})[i]||''}
 var css=document.createElement('style');css.id='ican-css';css.textContent=
 '.stages{flex-wrap:nowrap!important;gap:6px!important}.stg{flex:1 1 0!important;min-width:0!important;flex-direction:column!important;align-items:center!important;text-align:center!important;gap:0!important;padding:6px 12px 6px 6px!important;position:relative}.stg b{font-size:clamp(.6rem,1.25vw,.92rem)!important;white-space:nowrap}.stg span{font-size:clamp(.54rem,.9vw,.7rem)!important;white-space:nowrap}.stg .pip{position:absolute!important;top:5px;right:5px;margin:0!important;width:6px;height:6px}'+
+'.ic-p{padding:8px 12px!important;margin:7px 0!important}.ic-h{display:flex;align-items:center;gap:10px}.ic-tag{flex:none;font-size:9.5px!important;padding:3px 8px!important}.ic-q{flex:1;min-width:0;margin:0!important;font-size:1rem!important}.ic-st{flex:none;min-width:1.2em;text-align:center;font-weight:700;opacity:.8}.ic-chk{flex:none;padding:6px 16px!important;min-height:40px}.ic-p.open .ic-chk{display:none}.ic-a{margin-top:8px}.ic-hint{margin:2px 0 0;font-size:.85rem;opacity:.75}'+
 '.ic-bar{display:flex;gap:6px;margin:10px 0 4px}.ic-seg{flex:1;min-width:0}.ic-seg i{display:block;height:9px;border-radius:5px;background:rgba(26,39,68,.12);overflow:hidden}.ic-seg i b{display:block;height:100%;width:0;transition:width .25s}.ic-seg small{display:block;font-size:12px;margin-top:3px;opacity:.75}'+
 '.ic-t-Essential{--ic:#b8902b}.ic-t-Important{--ic:#3f5f8a}.ic-t-Bonus{--ic:#7d6f94}.ic-seg i b{background:var(--ic)}'+
 '.ic-tools{display:flex;gap:8px;flex-wrap:wrap;margin:12px 0}.ic-tools .btn.on{outline:2px solid #c9a84c}'+
@@ -23,9 +24,8 @@ window.hasIcan=function(n){for(var s=0;s<DATA.subs.length;s++)for(var j=0;j<DATA
 function row(k,i){
   var p=k.ican[i],m=mk(k,i),o=OPEN[k.n+'.'+i];
   return '<div class="ic-p ic-t-'+p.tier+(o?' open':'')+(m==='v'?' done':'')+'" data-i="'+i+'" data-m="'+m+'">'+
-   '<span class="ic-tag">'+TIERS[p.tier][0]+'</span>'+
-   '<div class="ic-q">I can… '+esc(p.prompt)+'</div>'+
-   '<button class="btn ic-chk" onclick="icCheck('+i+')">Check</button>'+
+   '<div class="ic-h"><span class="ic-tag">'+TIERS[p.tier][0]+'</span><div class="ic-q">I can… '+esc(p.prompt)+'</div><span class="ic-st" aria-hidden="true">'+(m==='v'?'✓':m==='~'?'~':m==='x'?'✗':'')+'</span>'+
+   '<button class="btn ic-chk" onclick="icCheck('+i+')">Check</button></div>'+
    '<div class="ic-a"><div class="ic-fr">'+esc(p.fr)+' <button class="spk" data-t="'+esc(p.fr)+'" onclick="spk(this)" aria-label="Hear it in French">'+SPK+'</button></div>'+
    '<div class="ic-en">'+esc(p.en)+(GV?' <button class="spk" onclick="icGloss('+i+')" aria-label="Hear the English gloss">'+SPK+'</button>':'')+'</div>'+
    '<div class="ic-m"><button data-v="x" onclick="icMark('+i+',\'x\')" aria-label="Not yet">✗</button><button data-v="~" onclick="icMark('+i+',\'~\')" aria-label="Nearly">~</button><button data-v="v" onclick="icMark('+i+',\'v\')" aria-label="I can">✓</button></div></div></div>';
@@ -42,13 +42,13 @@ window.sIcan=function(k){
   mark(k.n,'i');
   return '<div class="label" style="margin-top:20px">Je peux · I can</div>'+
    '<div class="rem-intro">Read each point, say your answer aloud, press Check, then mark yourself: ✗ not yet, ~ nearly, ✓ I can.</div>'+
-   '<div class="ic-bar" id="ic-bar">'+bars(k)+'</div>'+
+   '<div class="ic-bar" id="ic-bar">'+bars(k)+'</div>'+'<div class="ic-hint">Start with the gold Essential points; the bar fills as you tick.</div>'+
    '<div class="ic-tools"><button class="btn" onclick="icShuffle()">Shuffle</button><button class="btn" onclick="icLogical()">Back to logical order</button><button class="btn" onclick="icUnticked()">Unticked first</button><button class="btn'+(ONLY[k.n]?' on':'')+'" onclick="icOnly()">Essentials only</button><button class="btn'+(GV?' on':'')+'" onclick="icGV()">Hear the English too</button></div>'+
    '<div id="ic-list">'+list(k)+'</div>';
 };
 function again(){var k=k0();document.getElementById('ic-list').innerHTML=list(k);document.getElementById('ic-bar').innerHTML=bars(k)}
 window.icCheck=function(i){var k=k0();OPEN[k.n+'.'+i]=1;var e=document.querySelector('.ic-p[data-i="'+i+'"]');if(e)e.classList.add('open')};
-window.icMark=function(i,v){var k=k0();(M[k.n]=M[k.n]||{})[i]=(M[k.n][i]===v?'':v);save();var e=document.querySelector('.ic-p[data-i="'+i+'"]');if(e){e.dataset.m=M[k.n][i];e.classList.toggle('done',M[k.n][i]==='v')}document.getElementById('ic-bar').innerHTML=bars(k)};
+window.icMark=function(i,v){var k=k0();(M[k.n]=M[k.n]||{})[i]=(M[k.n][i]===v?'':v);save();var e=document.querySelector('.ic-p[data-i="'+i+'"]');if(e){e.dataset.m=M[k.n][i];var g=e.querySelector('.ic-st');if(g)g.textContent=M[k.n][i]==='v'?'✓':M[k.n][i]==='~'?'~':M[k.n][i]==='x'?'✗':'';e.classList.toggle('done',M[k.n][i]==='v')}document.getElementById('ic-bar').innerHTML=bars(k)};
 window.icShuffle=function(){var k=k0(),o=ord(k).slice();for(var j=o.length-1;j>0;j--){var r=Math.floor(Math.random()*(j+1)),t=o[j];o[j]=o[r];o[r]=t}ORD[k.n]=o;OPEN={};again()};
 window.icLogical=function(){var k=k0();ORD[k.n]=k.ican.map(function(_,i){return i});again()};
 window.icUnticked=function(){var k=k0(),o=ord(k).slice();ORD[k.n]=o.filter(function(i){return mk(k,i)!=='v'}).concat(o.filter(function(i){return mk(k,i)==='v'}));again()};
