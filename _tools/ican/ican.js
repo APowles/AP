@@ -15,17 +15,18 @@ var css=document.createElement('style');css.id='ican-css';css.textContent=
 '.ic-sm{min-height:36px;padding:4px 14px;border-radius:999px;border:1.5px solid rgba(26,39,68,.3);background:#fff;font:600 .9rem inherit;cursor:pointer;color:#1a2744}.ic-sm.on{background:#1a2744;color:#fff}'+
 '.ic-menu{position:relative}.ic-pop{position:absolute;right:0;top:40px;z-index:5;background:#fff;border:1.5px solid rgba(26,39,68,.25);border-radius:12px;padding:6px;display:flex;flex-direction:column;gap:4px;min-width:210px;box-shadow:0 6px 18px rgba(0,0,0,.12)}.ic-pop .ic-sm{border-radius:8px;text-align:left}'+
 '.ic-bar{display:flex;gap:8px;margin:2px 0 10px}.ic-seg{flex:1;min-width:0;background:none;border:0;padding:0;text-align:left;cursor:pointer;font:inherit;color:inherit}.ic-seg i{display:block;height:10px;border-radius:5px;background:rgba(26,39,68,.12);overflow:hidden}.ic-seg i b{display:block;height:100%;width:0;background:var(--ic);transition:width .25s}.ic-seg small{display:flex;align-items:center;gap:5px;font-size:.8rem;margin-top:3px}.ic-seg small:before{content:"";width:9px;height:9px;border-radius:3px;background:var(--ic)}.ic-seg.on small{font-weight:700}.ic-seg.on i{outline:2px solid var(--ic);outline-offset:1px}'+
-'.ic-p{border:1.5px solid rgba(26,39,68,.16);border-left:5px solid var(--ic);border-radius:11px;padding:6px 10px;margin:5px 0;background:#fff}.ic-p.done{background:#f4f1e4}'+
-'.ic-h{display:flex;align-items:center;gap:8px;min-height:38px}.ic-q{flex:1;min-width:0;font-size:.98rem;line-height:1.3}.ic-st{flex:none;min-width:1.1em;text-align:center;font-weight:700;opacity:.8}.ic-chk{flex:none;min-height:34px;padding:3px 14px!important;font-size:.9rem!important}'+
+'.ic-p{border:1.5px solid rgba(26,39,68,.16);border-left:5px solid var(--ic);border-radius:11px;padding:6px 10px 6px 8px;margin:6px 0;background:#fff}.ic-p.done{background:#f4f1e4}'+
+'.ic-h{display:flex;align-items:center;gap:10px;min-height:44px}.ic-q{flex:1;min-width:0;font-size:1.05rem;line-height:1.3;color:#1a2744}.ic-q b{font-weight:800}.ic-bx{flex:none;width:34px;height:34px;border-radius:9px;border:2.5px solid var(--ic);background:#fff;cursor:pointer;padding:0;font:800 1.1rem/1 inherit;color:#fff;display:flex;align-items:center;justify-content:center}.ic-p[data-m=v] .ic-bx{background:var(--ic)}.ic-p[data-m="~"] .ic-bx{background:#fff;color:var(--ic)}.ic-p[data-m=x] .ic-bx{background:#fff;color:#1a2744;border-color:#1a2744}.ic-ins{margin:0 0 8px;font-size:.92rem;opacity:.85}.ic-ins b{font-weight:800}.ic-chk{flex:none;min-height:34px;padding:3px 14px!important;font-size:.9rem!important}'+
 '.ic-a{display:none;margin:6px 0 4px;padding-top:6px;border-top:1px dashed rgba(26,39,68,.22)}.ic-p.open .ic-a{display:block}.ic-p.open .ic-chk{display:none}'+
 '.ic-fr{font-family:"Playfair Display",serif;font-size:1.15rem;font-weight:700;color:#1a2744;line-height:1.3}.ic-en{margin-top:4px;font-size:.95rem;opacity:.85;line-height:1.35}'+
 '.ic-m{display:flex;gap:8px;margin-top:8px}.ic-m button{width:44px;height:36px;font-size:1rem;border-radius:999px;border:1.5px solid rgba(26,39,68,.3);background:#fff;cursor:pointer}.ic-p[data-m="x"] .ic-m [data-v="x"],.ic-p[data-m="~"] .ic-m [data-v="~"],.ic-p[data-m="v"] .ic-m [data-v="v"]{background:#1a2744;color:#fff}';
 document.head.appendChild(css);
 window.hasIcan=function(n){for(var s=0;s<DATA.subs.length;s++)for(var j=0;j<DATA.subs[s].ktrs.length;j++){var k=DATA.subs[s].ktrs[j];if(k.n===n)return !!k.ican}return false};
+function qh(t){var m=/^(\S+)(\s[\s\S]*)?$/.exec(t);return m?'<b>'+esc(m[1])+'</b>'+esc(m[2]||''):esc(t)}
 function row(k,i){
   var p=k.ican[i],m=mk(k,i),o=OPEN[k.n+'.'+i];
   return '<div class="ic-p ic-t-'+p.tier+(o?' open':'')+(m==='v'?' done':'')+'" data-i="'+i+'" data-m="'+m+'" title="'+p.tier+'">'+
-   '<div class="ic-h"><div class="ic-q">I can… '+esc(p.prompt)+'</div><span class="ic-st" aria-hidden="true">'+glyph(m)+'</span>'+
+   '<div class="ic-h"><button class="ic-bx" onclick="icCycle('+i+')" aria-label="Mark: I can / nearly / not yet">'+glyph(m)+'</button><div class="ic-q">'+qh(p.prompt)+'</div>'+
    '<button class="btn ic-chk" onclick="icCheck('+i+')">Check</button></div>'+
    '<div class="ic-a"><div class="ic-fr">'+esc(p.fr)+' <button class="spk" data-t="'+esc(p.fr)+'" onclick="spk(this)" aria-label="Hear it in French">'+SPK+'</button></div>'+
    '<div class="ic-en">'+esc(p.en)+(GV?' <button class="spk" onclick="icGloss('+i+')" aria-label="Hear the English gloss">'+SPK+'</button>':'')+'</div>'+
@@ -39,18 +40,19 @@ function bars(k){
 function list(k){var o=ord(k),f=TIER[k.n];return o.filter(function(i){return !f||k.ican[i].tier===f}).map(function(i){return row(k,i)}).join('')}
 function head(k){
   var sub=k.icanSub?'<small>'+esc(k.icanSub.fr)+' = '+esc(k.icanSub.en)+'</small>':'';
-  return '<div class="ic-head"><div class="ic-ttl">Je peux · I can'+sub+'</div>'+
+  return '<div class="ic-head"><div class="ic-ttl">Now I can…'+sub+'</div>'+
    '<button class="ic-sm" onclick="icShuffle()">Shuffle</button>'+
    '<span class="ic-menu"><button class="ic-sm" onclick="icMenu()" aria-label="More options">⋯</button>'+(MENU?'<div class="ic-pop"><button class="ic-sm" onclick="icLogical()">Back to logical order</button><button class="ic-sm" onclick="icUnticked()">Unticked first</button><button class="ic-sm'+(GV?' on':'')+'" onclick="icGV()">Hear the English too</button></div>':'')+'</span></div>';
 }
 window.sIcan=function(k){
   mark(k.n,'i');
-  return '<div id="ic-top">'+head(k)+'</div><div class="ic-bar" id="ic-bar">'+bars(k)+'</div><div id="ic-list">'+list(k)+'</div>';
+  return '<div id="ic-top">'+head(k)+'</div><div class="ic-ins">Tap the box when you can do it (again for nearly, not yet). Press <b>Check</b> to see the French.</div><div class="ic-bar" id="ic-bar">'+bars(k)+'</div><div id="ic-list">'+list(k)+'</div>';
 };
 function again(){var k=k0();document.getElementById('ic-list').innerHTML=list(k);document.getElementById('ic-bar').innerHTML=bars(k);document.getElementById('ic-top').innerHTML=head(k)}
 window.icMenu=function(){MENU=!MENU;again()};
 window.icCheck=function(i){var k=k0();OPEN[k.n+'.'+i]=1;var e=document.querySelector('.ic-p[data-i="'+i+'"]');if(e)e.classList.add('open')};
-window.icMark=function(i,v){var k=k0();(M[k.n]=M[k.n]||{})[i]=(M[k.n][i]===v?'':v);save();var e=document.querySelector('.ic-p[data-i="'+i+'"]');if(e){e.dataset.m=M[k.n][i];e.classList.toggle('done',M[k.n][i]==='v');var g=e.querySelector('.ic-st');if(g)g.textContent=glyph(M[k.n][i]);if(M[k.n][i]){setTimeout(function(){delete OPEN[k.n+'.'+i];e.classList.remove('open')},450)}}document.getElementById('ic-bar').innerHTML=bars(k)};
+window.icMark=function(i,v){var k=k0();(M[k.n]=M[k.n]||{})[i]=(M[k.n][i]===v?'':v);save();var e=document.querySelector('.ic-p[data-i="'+i+'"]');if(e){e.dataset.m=M[k.n][i];e.classList.toggle('done',M[k.n][i]==='v');var g=e.querySelector('.ic-bx');if(g)g.textContent=glyph(M[k.n][i]);if(M[k.n][i]){setTimeout(function(){delete OPEN[k.n+'.'+i];e.classList.remove('open')},450)}}document.getElementById('ic-bar').innerHTML=bars(k)};
+window.icCycle=function(i){var k=k0(),c=mk(k,i),n=c===''?'v':c==='v'?'~':c==='~'?'x':'';(M[k.n]=M[k.n]||{})[i]=n;save();var e=document.querySelector('.ic-p[data-i="'+i+'"]');if(e){e.dataset.m=n;e.classList.toggle('done',n==='v');e.querySelector('.ic-bx').textContent=glyph(n)}document.getElementById('ic-bar').innerHTML=bars(k)};
 window.icShuffle=function(){var k=k0(),o=ord(k).slice();for(var j=o.length-1;j>0;j--){var r=Math.floor(Math.random()*(j+1)),t=o[j];o[j]=o[r];o[r]=t}ORD[k.n]=o;OPEN={};MENU=false;again()};
 window.icLogical=function(){var k=k0();ORD[k.n]=k.ican.map(function(_,i){return i});MENU=false;again()};
 window.icUnticked=function(){var k=k0(),o=ord(k).slice();ORD[k.n]=o.filter(function(i){return mk(k,i)!=='v'}).concat(o.filter(function(i){return mk(k,i)==='v'}));MENU=false;again()};
