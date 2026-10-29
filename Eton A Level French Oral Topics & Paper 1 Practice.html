@@ -14840,6 +14840,20 @@ const KP_IC={drill:'data:image/webp;base64,UklGRqBBAABXRUJQVlA4IJRBAACQvACdASoAA
 function kpPlain(x){return String(x==null?'':x).replace(/\*\*/g,'').replace(/\s+/g,' ').trim()}
 function kpSrc(){try{const v=localStorage.getItem('ktr-kp-src')||'all';return v==='unt'?'ican':v}catch(e){return 'all'}}
 function kpMarks(k){try{return JSON.parse(localStorage.getItem('ktr-ican')||'{}')[k.n]||{}}catch(e){return {}}}
+function kpSheet(){const k=ktr(),R=k.remember||{},X=(REPX&&REPX[k.n])||[],E=esc,pl=kpPlain;
+  const cut=o=>{const a=String(o.fr).indexOf(' : '),b=String(o.en).indexOf(': ');return a<0||b<0?{h:null,fr:o.fr,en:o.en}:{h:o.fr.slice(0,a),fr:o.fr.slice(a+3),en:o.en.slice(b+2)}};
+  const up=t=>t?t.charAt(0).toUpperCase()+t.slice(1):t,im=n=>n==='@ill'?((typeof ILLUS!=='undefined'&&ILLUS[k.n]&&ILLUS[k.n].src)||''):(REPIMG[n]||'');
+  let h='';const sec=(t,b)=>b?`<div class="s"><h2>${t}</h2>${b}</div>`:'';
+  X.forEach(s=>{
+    if(s.t==='people')h+=sec('Qui ?',s.items.map(c=>{const x=R.people[c.i],t=cut(x);return `<div class="r">${c.img?`<img class="p" src="${im(c.img)}" style="object-position:${c.pos||'50% 20%'}">`:''}<div><b>${E(x.name||t.h||'')}</b> ${E(up(pl(t.fr)))}</div></div>`}).join(''));
+    else if(s.t==='quoi')h+=sec('Quoi ?',s.items.map(c=>`<div class="r">${c.img&&c.img!=='@ill'?`<img class="p" src="${im(c.img)}">`:''}<div><b>${E(c.name)}</b> ${E(up(pl(c.fr)))}</div></div>`).join(''));
+    else if(s.t==='dates')h+=sec('Quand ?',s.items.map(c=>{const x=R.dates[c.i],t=cut(x);return `<div class="r"><div><b class="d">${E(t.h||'')}</b> ${E(up(pl(t.fr)))}</div></div>`}).join(''));
+    else if(s.t==='figures')h+=sec('Combien ?',s.items.map(c=>{const x=R.figures[c.i],t=cut(x);const d=(c.full||!t.h)?x:t,big=c.big||t.h||'',tx=up(pl(d.fr));return `<div class="r"><div><b class="d">${E(big)}</b> ${E(tx.indexOf(big)===0?tx.slice(big.length).replace(/^[\s:–-]+/,''):tx)}</div></div>`}).join(''));
+  });
+  const ide=(R.ideas||[]).map(x=>`<div class="r i"><div>${E(pl(x.fr))}</div></div>`).join('');
+  const css='@page{size:A4;margin:9mm}*{box-sizing:border-box}body{margin:0;font:9.6pt/1.32 Georgia,serif;color:#1a2744}.hd{border-bottom:2px solid #c9a84c;padding-bottom:3px;margin-bottom:5px}.hd small{font:700 7pt system-ui;letter-spacing:.08em;text-transform:uppercase;color:#8a6d1d}.hd h1{font:700 14pt Georgia,serif;margin:1px 0 0}.c{column-count:2;column-gap:7mm}.s{break-inside:avoid-column;margin:0 0 5px}h2{font:700 9.5pt Georgia,serif;margin:0 0 2px;color:#8a6d1d;text-transform:uppercase;letter-spacing:.04em;border-bottom:1px solid #d9cfa8}.r{display:flex;gap:5px;align-items:flex-start;margin:1.5px 0;break-inside:avoid}.r.i{padding-left:7px;border-left:2px solid #c9a84c}body{padding:0}.p{width:34px;height:34px;border-radius:6px;object-fit:cover;flex:none}b.d{color:#8a6d1d}.ft{margin-top:5px;font:7pt system-ui;color:#778;border-top:1px solid #ddd;padding-top:2px}';
+  const doc='<!doctype html><html lang="fr"><head><meta charset="utf-8"><title>KTR '+k.n+'</title><style>'+css+'</style></head><body><div class="hd"><small>Eton College · French · KTR '+k.n+'</small><h1>'+E(k.term)+'</h1></div><div class="c">'+h+sec('Les idées clés',ide)+'</div><div class="ft">À retenir · one-sheet summary</div></body></html>';
+  try{window.parent.apPrintOverlay(doc)}catch(e){const w=window.open('','_blank');if(w){w.document.write(doc);w.document.close();setTimeout(()=>w.print(),600)}}}
 function kpOnly(){const m=kpSrc();if(m==='ideas')kpIdeasPub();return m==='ican'?['stI']:m==='ideas'?['stD']:null}
 function kpIdeasPub(){try{const o={};const ks=S.view==='sub'?cur().ktrs.filter(k=>kpXSet(S.sub).has(k.n)):[ktr()];ks.forEach(k=>{o[k.n]=((k.remember&&k.remember.ideas)||[]).map(x=>({en:kpPlain(x.en),fr:kpPlain(x.fr)})).filter(x=>x.fr&&x.en)});window.parent.__ktrIdeas=o}catch(e){}}
 function kpPre(){return kpSrc()==='ican'?'stI':kpSrc()==='ideas'?'stD':''}
@@ -14931,7 +14945,7 @@ function kpStrip(k){
    ['#c4122e',KP_IC.speed,'Speed session',SM==='who'?'Uses the whole KTR: switch to Whole KTR.':X?'Race the clock on the ticked KTRs.':'Race the clock on this KTR.',"openSpeedNow(["+(X?k.ids:k.n)+"],kpOnly())",SM==='who'||(X&&!k.ids.length)?1:0],
    ['#5b3f9e',KP_IC.test,'Spot Test',spotHost()?'Short questions on '+W+', with Apple Pencil.':'Spot Test is not available here.',X?"kpSpotN(["+k.ids+"],'Sub-theme "+S.sub+"')":"kpSpot('pen')",!spotHost()||(X&&!k.ids.length)]];
   const SB=(v,t)=>`<button type="button" class="kp-sg${SM===v?' on':''}" onclick="kpSetSrc('${v}')">${t}</button>`;
-  return `<div class="kp"><div class="kp-h">${X?'Practise across KTRs':'Practise this KTR'}</div>${X?kpPick():''}<div class="kp-sw"><span>Spell it, Build it, Speed and Spot Test practise:</span><span class="kp-sgs">${SB('all','Whole KTR')}${SB('ican','All Je peux points')}${SB('ideas','Les idées clés')}${SB('who','Qui · Quand · Quoi')}</span></div><div class="kp-t">`+t.map(x=>`<button type="button" class="kp-b" style="--tc:${x[0]}"${x[5]?' disabled':''} onclick="${x[4]}">${x[1]?`<img src="${x[1]}" alt="">`:`<span class="i"></span>`}<span><b>${x[2]}</b><small>${x[3]}</small></span></button>`).join('')+`</div>`+(spotHost()&&(!X||k.ids.length)?`<div class="kp-pr">Prefer paper? <button type="button" class="kp-lk" onclick="${X?`openPaper([${k.ids}],'Sub-theme ${S.sub}')`:`kpSpot('print')`}">Print the Spot Test</button> to write on by hand.</div>`:'')+`</div>`}
+  return `<div class="kp"><div class="kp-h">${X?'Practise across KTRs':'Practise this KTR'}</div>${X?kpPick():''}<div class="kp-sw"><span>Spell it, Build it, Speed and Spot Test practise:</span><span class="kp-sgs">${SB('all','Whole KTR')}${SB('ican','All Je peux points')}${SB('ideas','Les idées clés')}${SB('who','Qui · Quand · Quoi')}</span></div><div class="kp-t">`+t.map(x=>`<button type="button" class="kp-b" style="--tc:${x[0]}"${x[5]?' disabled':''} onclick="${x[4]}">${x[1]?`<img src="${x[1]}" alt="">`:`<span class="i"></span>`}<span><b>${x[2]}</b><small>${x[3]}</small></span></button>`).join('')+`</div>`+(spotHost()&&(!X||k.ids.length)?`<div class="kp-pr">Prefer paper? <button type="button" class="kp-lk" onclick="${X?`openPaper([${k.ids}],'Sub-theme ${S.sub}')`:`kpSpot('print')`}">Print the Spot Test</button> to write on by hand.</div>`:'')+(X?'':`<div class="kp-pr">Or print the À retenir page as <button type="button" class="kp-lk" onclick="kpSheet()">one A4 summary sheet</button>.</div>`)+`</div>`}
 function kpSpot(w){const c=document.querySelector('.spt-card');if(!c)return;try{window.parent.__ktrSpotPre=kpPre()}catch(e){}kpIdeasPub();
   const b=w==='print'?(c.querySelector('.spt-link')||c.querySelector('.spt-big.alt')):(c.querySelector('.spt-big:not(.alt)')||c.querySelector('.spt-big'));if(b)b.click()}
 let KPM=null,KPT=null;
@@ -18834,4 +18848,4 @@ textarea.ms-in{min-height:7rem;resize:vertical}
   if (document.readyState === 'complete') start(); else window.addEventListener('load', start);
 })();
 </script>
-<script id="ap-build">window.__apBuild="59890ec764";</script>
+<script id="ap-build">window.__apBuild="bce2d0fbe2";</script>
