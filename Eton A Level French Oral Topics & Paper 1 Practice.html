@@ -10629,7 +10629,7 @@ function closeOCChallenge() {
   // the same question types as the AP Spot Test from KTR Studio, for the Speed Challenge tiles: the Studio stages, and the topic sentences
   var SRCS = [['words', 'KTR words', 'English → French, word or phrase'], ['stV', 'Studio: Overview', 'The key phrases of the parts: write the French for the bold words'], ['stU', 'Studio: Go deeper', 'Facts and the story, English → French'], ['stW', 'Studio: Words', 'Words and sentence frames, English → French'],
     ['stS', 'Studio: Say it', 'Recall, Gaps and Rebuild sentences, English → French'], ['stA', 'Studio: Use it', 'Checklist ideas, frame and model sentence, English → French'], ['stK', 'Studio: Know it', 'Names, dates and figures: just answer the question'],
-    ['stO', 'Studio: Word order', 'Put the jumbled words in the right order'], ['stE', 'Studio: Spot the error', 'Correct the grammar error in the sentence'], ['stI', 'Studio: Je peux', 'The checklist prompts, English → French'], ['stIu', 'Studio: Je peux, not yet ticked', 'Only the checklist points not yet ticked ✓'], ['trtopic', 'Translation: topic sentences', 'English → French, whole sentences']];
+    ['stO', 'Studio: Word order', 'Put the jumbled words in the right order'], ['stE', 'Studio: Spot the error', 'Correct the grammar error in the sentence'], ['stI', 'Studio: Je peux', 'The checklist prompts, English → French'], ['stD', 'Studio: Les idées clés', 'The key ideas, English → French'], ['stIu', 'Studio: Je peux, not yet ticked', 'Only the checklist points not yet ticked ✓'], ['trtopic', 'Translation: topic sentences', 'English → French, whole sentences']];
   var icache = {};
   function dec(t) { return String(t || '').replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&amp;/g, '&'); }
   function build(src, k) {
@@ -10712,7 +10712,7 @@ function apSpotModeName(o) {
   var N = { def: 'Definition', ex: 'Example', an: 'Analysis' };
   if (o.src === 'dea') return o.modes.length === 1 ? N[o.modes[0]] : 'Definition · Example · Analysis';
   if (o.src === 'mix') return 'Mixed sources';
-  if (o.src.slice(0, 2) === 'st' && o.src !== 'short') return { stV: 'Studio: Overview', stU: 'Studio: Go deeper', stW: 'Studio: Words', stS: 'Studio: Say it', stA: 'Studio: Use it', stK: 'Studio: Know it', stO: 'Studio: Word order', stE: 'Studio: Spot the error', stI: 'Studio: Je peux', stIu: 'Studio: Je peux, not yet ticked' }[o.src];
+  if (o.src.slice(0, 2) === 'st' && o.src !== 'short') return { stV: 'Studio: Overview', stU: 'Studio: Go deeper', stW: 'Studio: Words', stS: 'Studio: Say it', stA: 'Studio: Use it', stK: 'Studio: Know it', stO: 'Studio: Word order', stE: 'Studio: Spot the error', stI: 'Studio: Je peux', stD: 'Studio: Les idées clés', stIu: 'Studio: Je peux, not yet ticked' }[o.src];
   return { short: 'Short versions', trlong: 'Translate: full', trshort: 'Translate: short', trtopic: 'Translate: topic sentences', words: 'KTR words' }[o.src];
 }
 function apSpotNoteUpdate() {
@@ -10859,6 +10859,7 @@ function apOverviewItems(k) {
   return out;
 }
 function apStudioPairs(n, src) { var A = apStudioAll(); if (src === 'stV') return _stvK[n] ? apOverviewItems(_stvK[n]) : [];
+  if (src === 'stD') { var ID = ((window.__ktrIdeas || {})[n]) || []; return ID.map(function (x, i) { return { en: x.en, fr: x.fr, label: 'Idée clé', st: 'stD', ix: i, task: 'ican' }; }); }
   if (src === 'stIu') { var M = {}; try { M = JSON.parse(localStorage.getItem('ktr-ican') || '{}')[n] || {}; } catch (e) { } return ((A.by[n] || {}).stI || []).filter(function (o) { return M[o.ix] !== 'v'; }); }   // the Je peux points not yet ticked ✓
   return ((A.by[n] || {})[src] || []); }
 function apStudioLevel(x) { return apLvGrader('ktr-studio', function () { return apStudioAll().all.length; }, function () { return apStudioAll().all; }, function (q) { return q.en || ''; }, function (q) { return q.fr || ''; }, 'fr')(x); }
@@ -10872,7 +10873,7 @@ function ktrStudioSpot(ns, label, mk, data, paper) {   // mk (teacher): after th
   var b = function (v, t, sub) { return '<label style="display:flex;gap:10px;align-items:flex-start;margin:0 0 6px;padding:9px 12px;border:1.5px solid #c9a84c;border-radius:10px;background:#fff;color:#1a2744;font:700 .92rem DM Sans,system-ui,sans-serif;cursor:pointer"><input type="checkbox" data-v="' + v + '" style="margin-top:3px;width:18px;height:18px;accent-color:#1a2744"><span>' + t + '<small style="display:block;font-weight:400;color:#556;margin-top:2px">' + sub + '</small></span></label>'; };
   d.innerHTML = '<div style="background:#fff;border-radius:16px;max-width:480px;width:100%;max-height:92vh;overflow:auto;padding:20px;color:#1a2744;font-family:DM Sans,system-ui,sans-serif"><div style="font:800 1.2rem Georgia,serif;margin:0 0 4px">' + (paper ? '&#128424; Paper Spot Test' : '✍ Submitted Spot Test') + '</div><div style="color:#556;font-size:.85rem;margin:0 0 4px">' + label + '. What is the test on? <b>Tick one or any combination.</b></div>'
     + '<div style="display:flex;justify-content:space-between;align-items:center;gap:8px;margin:10px 0 6px"><div style="font:800 .72rem DM Sans,sans-serif;letter-spacing:.06em;text-transform:uppercase;color:#8a6d1d">From the Studio</div><button type="button" data-all="1" style="padding:6px 12px;border:1.5px solid #1a2744;border-radius:8px;background:#1a2744;color:#f2d38a;font:800 .8rem DM Sans,sans-serif;cursor:pointer">☑ Select all Studio</button></div>' + b('stV', 'Vue d\'ensemble · Overview', 'The question, the parts in order, the key phrases') + b('stU', 'Approfondir · Go deeper', 'Facts and the story, English → French') + b('stW', 'Words', 'Words and sentence frames, English → French')
-    + b('stS', 'Say it', 'The Recall, Gaps and Rebuild sentences, English → French') + b('stA', 'Use it', 'Checklist ideas, frame and model sentence, English → French') + b('stK', 'Know it', 'Names, dates and figures: just answer the question, no translation') + b('stO', 'Word order', 'Put the jumbled words in the right order') + b('stE', 'Spot the error', 'Correct the grammar error in a sentence') + b('stI', 'Je peux · all the points', 'All 15 checklist prompts, English → French') + G('From the KTRs') + b('words', 'KTR words', 'English → French, word or phrase') + b('trtopic', 'Translation: topic sentences', 'English → French, whole sentences')
+    + b('stS', 'Say it', 'The Recall, Gaps and Rebuild sentences, English → French') + b('stA', 'Use it', 'Checklist ideas, frame and model sentence, English → French') + b('stK', 'Know it', 'Names, dates and figures: just answer the question, no translation') + b('stO', 'Word order', 'Put the jumbled words in the right order') + b('stE', 'Spot the error', 'Correct the grammar error in a sentence') + b('stI', 'Je peux · all the points', 'All 15 checklist prompts, English → French') + b('stD', 'Les idées clés', 'The key ideas of the KTR, English → French') + G('From the KTRs') + b('words', 'KTR words', 'English → French, word or phrase') + b('trtopic', 'Translation: topic sentences', 'English → French, whole sentences')
     + b('trlong', 'Translation: full definition, example, analysis', 'English → French') + b('trshort', 'Translation: short versions', 'English → French')
     + b('short', 'Short versions', 'The term → the short definition, example or analysis') + b('dea', 'Definition · Example · Analysis', 'The term → the full answer')
     + '<div style="display:flex;gap:10px;align-items:center;margin-top:12px"><button type="button" data-go="1" style="flex:1;padding:12px;border:0;border-radius:10px;background:#1a2744;color:#f2d38a;font:800 1rem DM Sans,sans-serif;cursor:pointer">Next: choose the level →</button>'
@@ -14049,11 +14050,11 @@ body.rv .src{display:inline-block}
 .avt{flex:none;position:relative;width:56px;height:56px;border-radius:50%;background:var(--surface);border:1.5px solid var(--line);display:grid;place-items:center;font-weight:700;color:var(--ink2);overflow:hidden}.avt img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}.rem-intro{color:var(--ink2);margin-bottom:4px}
 .rem-g{margin-top:34px;padding-top:2px}.rem-h{display:flex;align-items:baseline;gap:10px;flex-wrap:wrap;background:var(--surface2);border-left:6px solid var(--gold);border-radius:10px;padding:12px 16px}.rem-h .fr{font-family:var(--head);font-size:1.5rem;font-weight:700;color:var(--ink);text-transform:uppercase;letter-spacing:.04em}.rem-h .en{font-size:.95rem;font-weight:600;color:var(--gold-ink);text-transform:uppercase;letter-spacing:.08em}.rem-h .ct{margin-left:auto;font-size:.85rem;color:var(--ink2)}
 .chk.on{border-color:var(--good)}.chk.on .bx{background:var(--good);border-color:var(--good);color:var(--bg)}
-.rp-grid{display:grid;gap:16px;margin-top:14px}.rp-ppl{grid-template-columns:repeat(auto-fit,minmax(340px,1fr))}.rp-dts{grid-template-columns:repeat(auto-fit,minmax(210px,1fr))}.rp-fg{grid-template-columns:repeat(auto-fit,minmax(460px,1fr))}.rp-big .line{overflow-wrap:anywhere}.rp-ph2{grid-template-columns:repeat(auto-fit,minmax(320px,1fr))}.rp-ph2.one{grid-template-columns:1fr}
+.rp-grid{display:grid;gap:16px;margin-top:14px}.rp-ppl{grid-template-columns:repeat(auto-fit,minmax(340px,1fr))}.rp-dts{grid-template-columns:repeat(auto-fit,minmax(210px,1fr))}.rp-fg{grid-template-columns:repeat(auto-fit,minmax(460px,1fr))}.rp-big .line{overflow-wrap:break-word;flex:1 1 220px!important;min-width:200px!important}.rp-big{flex-wrap:wrap}.rp-ph2{grid-template-columns:repeat(auto-fit,minmax(320px,1fr))}.rp-ph2.one{grid-template-columns:1fr}
 .chk.rp-card{padding:0;gap:0;align-items:stretch;border-radius:16px;overflow:hidden}.rp-ph{flex:none;width:170px;position:relative;background:var(--surface)}.rp-ph img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}.rp-body{padding:16px;display:flex;flex-direction:column;gap:10px;min-width:0;flex:1}
 .rp-top{display:flex;justify-content:space-between;align-items:flex-start;gap:10px}.rp-name{font-family:var(--head);font-size:1.5rem;line-height:1.1}.rp-badge{align-self:flex-start;border:1.5px solid var(--gold);color:var(--gold);border-radius:99px;padding:2px 12px;font-size:.9rem;font-weight:700}
 .rp-card .bx,.rp-d .bx,.rp-big .bx{width:34px;height:34px;border-radius:50%;margin-top:0}
-.chk.rp-d{flex-direction:column;padding:14px;gap:10px;border-radius:16px}.rp-day{font-family:var(--head);font-size:1.9rem;line-height:1;color:var(--gold)}.rp-yr{font-weight:800;letter-spacing:.08em;color:var(--ink2);font-size:.9rem;margin-top:2px}.rp-d img{width:100%;height:120px;object-fit:cover;border-radius:10px}
+.chk.rp-d{flex-direction:column;padding:14px;gap:10px;border-radius:16px}.rp-day{font-family:var(--head);font-size:1.9rem;line-height:1;color:var(--gold)}.rp-yr{font-weight:800;letter-spacing:.08em;color:var(--ink2);font-size:.9rem;margin-top:2px}.rp-d img{width:100%;height:auto;max-height:250px;object-fit:contain;border-radius:10px;background:rgba(26,39,68,.06)}
 .chk.rp-big{background:#14663a center/cover;color:#fff;align-items:center;gap:18px;padding:20px 22px;border-radius:16px;border-color:transparent}.chk.rp-big.on{border-color:var(--good)}.rp-big b{font-family:var(--head);font-size:3.1rem;line-height:1;white-space:nowrap}.rp-big .fl{color:#fff}.rp-big .fl .e,.rp-big .fl .f{color:#fff}.rp-big .bx{border-color:#fff;color:#fff}
 .rp-chips{display:flex;flex-wrap:wrap;gap:10px;margin-top:14px}.rem-g+.row,.rp-ph2,.rp-chips{margin-bottom:18px}.rp-fi{background:#14181f}.chk.rp-card{min-height:240px}.rp-ph{width:190px}.rp-ph img{transform-origin:50% 22%}.rp-ph{overflow:hidden}
 .rp-card.wide{grid-column:1/-1;min-height:0}.rp-card.wide .rp-ph{width:340px;min-height:227px}
@@ -14837,6 +14838,8 @@ function kpPlain(x){return String(x==null?'':x).replace(/\*\*/g,'').replace(/\s+
 function kpSrc(){try{const v=localStorage.getItem('ktr-kp-src')||'all';return v==='unt'?'ican':v}catch(e){return 'all'}}
 function kpMarks(k){try{return JSON.parse(localStorage.getItem('ktr-ican')||'{}')[k.n]||{}}catch(e){return {}}}
 function kpOnly(){return kpSrc()==='ican'?['stI']:null}
+function kpIdeasPub(){try{const o={};const ks=S.view==='sub'?cur().ktrs.filter(k=>kpXSet(S.sub).has(k.n)):[ktr()];ks.forEach(k=>{o[k.n]=((k.remember&&k.remember.ideas)||[]).map(x=>({en:kpPlain(x.en),fr:kpPlain(x.fr)})).filter(x=>x.fr&&x.en)});window.parent.__ktrIdeas=o}catch(e){}}
+function kpPre(){return kpSrc()==='ican'?'stI':kpSrc()==='ideas'?'stD':''}
 function kpSetSrc(v){try{localStorage.setItem('ktr-kp-src',v)}catch(e){}const e=document.querySelector('.kp');if(e)e.outerHTML=kpStrip(S.view==='sub'?kpMerge():ktr())}
 function kpSents(k){const seen={},o=[],m=kpSrc();
   if(m==='ideas')return ((k.remember&&k.remember.ideas)||[]).map(x=>({fr:kpPlain(x.fr),en:kpPlain(x.en)})).filter(x=>x.fr);
@@ -14912,7 +14915,7 @@ function kpMerge(){const s=cur(),sel=kpXSet(s.subtheme),ks=s.ktrs.filter(k=>sel.
 function kpXTog(n,on){const q=kpXSet(S.sub);if(on)q.add(n);else q.delete(n);kpXRedraw()}
 function kpXAll(on){const q=kpXSet(S.sub);cur().ktrs.forEach(k=>on?q.add(k.n):q.delete(k.n));kpXRedraw()}
 function kpXRedraw(){const e=document.querySelector('.kp');if(e)e.outerHTML=kpStrip(kpMerge())}
-function kpSpotN(ids,label){const m=kpSrc();try{window.parent.__ktrSpotPre=m==='ican'?'stI':''}catch(e){}openSpot(ids,label)}
+function kpSpotN(ids,label){try{window.parent.__ktrSpotPre=kpPre()}catch(e){}kpIdeasPub();openSpot(ids,label)}
 function kpPick(){const sel=kpXSet(S.sub);return `<div class="kp-pk"><div class="kp-pkh"><span>Tick the KTRs to combine</span><span class="kp-sgs"><button type="button" class="kp-sg" onclick="kpXAll(true)">All ${cur().ktrs.length}</button><button type="button" class="kp-sg" onclick="kpXAll(false)">None</button></span></div><div class="kp-pkl">${cur().ktrs.map(k=>`<label><input type="checkbox" ${sel.has(k.n)?'checked':''} onchange="kpXTog(${k.n},this.checked)"><span>${esc(k.term)}</span></label>`).join('')}</div></div>`}
 function kpStrip(k){
   const X=k.__sub,W=X?'these KTRs':'this KTR',ns=kpSents(k).length,seen={},nm=(()=>{let c=0;(k.words||[]).forEach(w=>{const f=kpPlain(w.fr),e=kpPlain(w.en);if(f&&e&&!seen[f]&&!seen['e'+e]){seen[f]=seen['e'+e]=1;c++}});return c})();
@@ -14925,7 +14928,7 @@ function kpStrip(k){
    ['#5b3f9e',KP_IC.test,'Spot Test',spotHost()?'Short questions on '+W+', with Apple Pencil.':'Spot Test is not available here.',X?"kpSpotN(["+k.ids+"],'Sub-theme "+S.sub+"')":"kpSpot('pen')",!spotHost()||(X&&!k.ids.length)]];
   const SB=(v,t)=>`<button type="button" class="kp-sg${SM===v?' on':''}" onclick="kpSetSrc('${v}')">${t}</button>`;
   return `<div class="kp"><div class="kp-h">${X?'Practise across KTRs':'Practise this KTR'}</div>${X?kpPick():''}<div class="kp-sw"><span>Spell it, Build it, Speed and Spot Test practise:</span><span class="kp-sgs">${SB('all','Whole KTR')}${SB('ican','All Je peux points')}${SB('ideas','Les idées clés')}</span></div><div class="kp-t">`+t.map(x=>`<button type="button" class="kp-b" style="--tc:${x[0]}"${x[5]?' disabled':''} onclick="${x[4]}">${x[1]?`<img src="${x[1]}" alt="">`:`<span class="i"></span>`}<span><b>${x[2]}</b><small>${x[3]}</small></span></button>`).join('')+`</div>`+(spotHost()&&(!X||k.ids.length)?`<div class="kp-pr">Prefer paper? <button type="button" class="kp-lk" onclick="${X?`openPaper([${k.ids}],'Sub-theme ${S.sub}')`:`kpSpot('print')`}">Print the Spot Test</button> to write on by hand.</div>`:'')+`</div>`}
-function kpSpot(w){const c=document.querySelector('.spt-card');if(!c)return;const m=kpSrc();try{window.parent.__ktrSpotPre=m==='ican'?'stI':''}catch(e){}
+function kpSpot(w){const c=document.querySelector('.spt-card');if(!c)return;try{window.parent.__ktrSpotPre=kpPre()}catch(e){}kpIdeasPub();
   const b=w==='print'?(c.querySelector('.spt-link')||c.querySelector('.spt-big.alt')):(c.querySelector('.spt-big:not(.alt)')||c.querySelector('.spt-big'));if(b)b.click()}
 let KPM=null,KPT=null;
 function kpMClose(){if(KPT){clearInterval(KPT);KPT=null}const o=document.getElementById('ps-ov');if(o)o.remove();document.documentElement.style.overflow='';KPM=null}
@@ -18824,4 +18827,4 @@ textarea.ms-in{min-height:7rem;resize:vertical}
   if (document.readyState === 'complete') start(); else window.addEventListener('load', start);
 })();
 </script>
-<script id="ap-build">window.__apBuild="917fafae03";</script>
+<script id="ap-build">window.__apBuild="3c963495ab";</script>
