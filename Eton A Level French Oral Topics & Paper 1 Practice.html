@@ -14845,6 +14845,7 @@ function kpIdeasPub(){try{const o={};const ks=S.view==='sub'?cur().ktrs.filter(k
 function kpPre(){return kpSrc()==='ican'?'stI':kpSrc()==='ideas'?'stD':''}
 function kpSetSrc(v){try{localStorage.setItem('ktr-kp-src',v)}catch(e){}const e=document.querySelector('.kp');if(e)e.outerHTML=kpStrip(S.view==='sub'?kpMerge():ktr())}
 function kpSents(k){const seen={},o=[],m=kpSrc();
+  if(m==='who')return [];
   if(m==='ideas')return ((k.remember&&k.remember.ideas)||[]).map(x=>({fr:kpPlain(x.fr),en:kpPlain(x.en)})).filter(x=>x.fr);
   if(m!=='all'&&k.ican){const M=k.__sub?{}:kpMarks(k);return k.ican.map((p,i)=>({fr:p.fr,en:p.prompt,i:i})).filter(x=>m==='ican'||M[x.i]!=='v')}
   (k.picture||[]).concat(k.facts||[]).forEach(b=>{const f=kpPlain(b.fr),n=f.split(' ').length;
@@ -14922,24 +14923,27 @@ function kpSpotN(ids,label){try{window.parent.__ktrSpotPre=kpPre()}catch(e){}kpI
 function kpPick(){const sel=kpXSet(S.sub);return `<div class="kp-pk"><div class="kp-pkh"><span>Tick the KTRs to combine</span><span class="kp-sgs"><button type="button" class="kp-sg" onclick="kpXAll(true)">All ${cur().ktrs.length}</button><button type="button" class="kp-sg" onclick="kpXAll(false)">None</button></span></div><div class="kp-pkl">${cur().ktrs.map(k=>`<label><input type="checkbox" ${sel.has(k.n)?'checked':''} onchange="kpXTog(${k.n},this.checked)"><span>${esc(k.term)}</span></label>`).join('')}</div></div>`}
 function kpStrip(k){
   const X=k.__sub,W=X?'these KTRs':'this KTR',ns=kpSents(k).length,seen={},nm=(()=>{let c=0;(k.words||[]).forEach(w=>{const f=kpPlain(w.fr),e=kpPlain(w.en);if(f&&e&&!seen[f]&&!seen['e'+e]){seen[f]=seen['e'+e]=1;c++}});return c})();
-  const SM=kpSrc(),NS=SM==='ican'?'Needs at least 3 Je peux points.':SM==='ideas'?'Needs at least 3 key ideas.':'Needs at least 3 full sentences in '+W+'.';
-  const t=[['#e0a81f',KP_IC.drill,'Say it',X?(ns>=3?'Oral drill: say each one from the English, then check.':NS):SM==='ican'?'Uses the whole KTR: switch to Whole KTR.':SM==='ideas'?(ns>=3?'Oral drill: say each idea from the English, then check.':NS):'Oral drill: say it, check the model, rate each card.',X?"kpSay(kpMerge())":SM==='ideas'?"kpSay()":"stg('d')",X?ns<3:SM==='ican'?1:(SM==='ideas'&&ns<3?1:0)],
+  const SM=kpSrc(),nw=SM==='who'?kpWho(k).length:0,NS=SM==='who'?'Uses the whole KTR: switch to Whole KTR.':SM==='ican'?'Needs at least 3 Je peux points.':SM==='ideas'?'Needs at least 3 key ideas.':'Needs at least 3 full sentences in '+W+'.';
+  const t=[['#e0a81f',KP_IC.drill,'Say it',X?(ns>=3?'Oral drill: say each one from the English, then check.':NS):SM==='who'?'Uses the whole KTR: switch to Whole KTR.':SM==='ican'?'Uses the whole KTR: switch to Whole KTR.':SM==='ideas'?(ns>=3?'Oral drill: say each idea from the English, then check.':NS):'Oral drill: say it, check the model, rate each card.',X?"kpSay(kpMerge())":SM==='ideas'?"kpSay()":"stg('d')",X?ns<3:(SM==='ican'||SM==='who')?1:(SM==='ideas'&&ns<3?1:0)],
    ['#1f8a4c',KP_SP,'Spell it',ns>=3?'Accuracy: hear it, write it, every accent right.':NS,"kpSpell("+(X?'kpMerge()':'')+")",ns<3],
-   ['#2f5fc4',KP_IC.match,'Match it',SM!=='all'?'Uses the whole KTR: switch to Whole KTR.':nm>=3?'Find the pairs, beat the clock.':'Needs at least 3 word pairs in '+W+'.',"kpMatch("+(X?'kpMerge()':'')+")",SM!=='all'||nm<3],
+   ['#2f5fc4',KP_IC.match,'Match it',SM==='who'?(nw>=3?'Match each description to the person, date or idea.':'Needs at least 3 people, dates or ideas.'):SM!=='all'?'Uses the whole KTR: switch to Whole KTR.':nm>=3?'Find the pairs, beat the clock.':'Needs at least 3 word pairs in '+W+'.',"kpMatch("+(X?'kpMerge()':'')+")",SM==='who'?nw<3:(SM!=='all'||nm<3)],
    ['#1f8a4c',(kpHost()?(kpHost().BuildIt.ICON||''):''),'Build it',kpHost()&&ns>=3?'Sentence building: put the tiles in order.':NS,"kpBuild("+(X?'kpMerge()':'')+")",!(kpHost()&&ns>=3)],
-   ['#c4122e',KP_IC.speed,'Speed session',SM==='ideas'?'Uses the whole KTR: switch to Whole KTR.':X?'Race the clock on the ticked KTRs.':'Race the clock on this KTR.',"openSpeedNow(["+(X?k.ids:k.n)+"],kpOnly())",SM==='ideas'||(X&&!k.ids.length)?1:0],
+   ['#c4122e',KP_IC.speed,'Speed session',(SM==='ideas'||SM==='who')?'Uses the whole KTR: switch to Whole KTR.':X?'Race the clock on the ticked KTRs.':'Race the clock on this KTR.',"openSpeedNow(["+(X?k.ids:k.n)+"],kpOnly())",SM==='ideas'||SM==='who'||(X&&!k.ids.length)?1:0],
    ['#5b3f9e',KP_IC.test,'Spot Test',spotHost()?'Short questions on '+W+', with Apple Pencil.':'Spot Test is not available here.',X?"kpSpotN(["+k.ids+"],'Sub-theme "+S.sub+"')":"kpSpot('pen')",!spotHost()||(X&&!k.ids.length)]];
   const SB=(v,t)=>`<button type="button" class="kp-sg${SM===v?' on':''}" onclick="kpSetSrc('${v}')">${t}</button>`;
-  return `<div class="kp"><div class="kp-h">${X?'Practise across KTRs':'Practise this KTR'}</div>${X?kpPick():''}<div class="kp-sw"><span>Spell it, Build it, Speed and Spot Test practise:</span><span class="kp-sgs">${SB('all','Whole KTR')}${SB('ican','All Je peux points')}${SB('ideas','Les idées clés')}</span></div><div class="kp-t">`+t.map(x=>`<button type="button" class="kp-b" style="--tc:${x[0]}"${x[5]?' disabled':''} onclick="${x[4]}">${x[1]?`<img src="${x[1]}" alt="">`:`<span class="i"></span>`}<span><b>${x[2]}</b><small>${x[3]}</small></span></button>`).join('')+`</div>`+(spotHost()&&(!X||k.ids.length)?`<div class="kp-pr">Prefer paper? <button type="button" class="kp-lk" onclick="${X?`openPaper([${k.ids}],'Sub-theme ${S.sub}')`:`kpSpot('print')`}">Print the Spot Test</button> to write on by hand.</div>`:'')+`</div>`}
+  return `<div class="kp"><div class="kp-h">${X?'Practise across KTRs':'Practise this KTR'}</div>${X?kpPick():''}<div class="kp-sw"><span>Spell it, Build it, Speed and Spot Test practise:</span><span class="kp-sgs">${SB('all','Whole KTR')}${SB('ican','All Je peux points')}${SB('ideas','Les idées clés')}${SB('who','Qui · Quand · Quoi')}</span></div><div class="kp-t">`+t.map(x=>`<button type="button" class="kp-b" style="--tc:${x[0]}"${x[5]?' disabled':''} onclick="${x[4]}">${x[1]?`<img src="${x[1]}" alt="">`:`<span class="i"></span>`}<span><b>${x[2]}</b><small>${x[3]}</small></span></button>`).join('')+`</div>`+(spotHost()&&(!X||k.ids.length)?`<div class="kp-pr">Prefer paper? <button type="button" class="kp-lk" onclick="${X?`openPaper([${k.ids}],'Sub-theme ${S.sub}')`:`kpSpot('print')`}">Print the Spot Test</button> to write on by hand.</div>`:'')+`</div>`}
 function kpSpot(w){const c=document.querySelector('.spt-card');if(!c)return;try{window.parent.__ktrSpotPre=kpPre()}catch(e){}kpIdeasPub();
   const b=w==='print'?(c.querySelector('.spt-link')||c.querySelector('.spt-big.alt')):(c.querySelector('.spt-big:not(.alt)')||c.querySelector('.spt-big'));if(b)b.click()}
 let KPM=null,KPT=null;
 function kpMClose(){if(KPT){clearInterval(KPT);KPT=null}const o=document.getElementById('ps-ov');if(o)o.remove();document.documentElement.style.overflow='';KPM=null}
 function kpOv(inner){const x=document.getElementById('ps-ov');if(x)x.remove();const o=document.createElement('div');o.className='ms-ov';o.id='ps-ov';o.innerHTML='<div class="ms-sheet">'+inner+'</div>';document.body.appendChild(o);document.documentElement.style.overflow='hidden';return o.firstChild}
 function kpHead(t,sub){return '<div class="ms-head"><h2>'+t+'</h2><button type="button" class="ms-x" onclick="kpMClose()" aria-label="Close">✕</button></div>'+(sub?'<div class="ms-note" style="margin:-4px 0 8px">'+sub+'</div>':'')}
+function kpWho(k){const u=[],seen={},sh=t=>{t=kpPlain(t);if(t.length<=95)return t;const c=t.slice(0,95),i=Math.max(c.lastIndexOf(', '),c.lastIndexOf(' ; '));return (i>40?c.slice(0,i):c.replace(/\s+\S*$/,''))+'…'},add=(f,e)=>{f=kpPlain(f);e=sh(e);if(f&&e&&!seen[f]&&!seen['e'+e]){seen[f]=seen['e'+e]=1;u.push({f:f,e:e})}},cut=o=>{const a=String(o.fr).indexOf(' : '),b=String(o.en).indexOf(': ');return a<0||b<0?{h:null,fr:o.fr,en:o.en}:{h:o.fr.slice(0,a),fr:o.fr.slice(a+3),en:o.en.slice(b+2)}};
+  const ks=k.__sub?cur().ktrs.filter(q=>kpXSet(S.sub).has(q.n)):[k];
+  ks.forEach(q=>{const R=q.remember||{};(R.people||[]).forEach(x=>{const t=cut(x);add(x.name||t.h,t.en)});(R.dates||[]).forEach(x=>{const t=cut(x);if(t.h)add(t.h,t.en)});((REPX&&REPX[q.n])||[]).forEach(sc=>{if(sc.t==='quoi')sc.items.forEach(c=>add(c.name,c.en))})});return u}
 function kpMatch(k0){
   const k=k0||ktr(),seen={},u=[];
-  (k.words||[]).forEach(w=>{const f=kpPlain(w.fr),e=kpPlain(w.en);if(f&&e&&!seen[f]&&!seen['e'+e]){seen[f]=seen['e'+e]=1;u.push({f:f,e:e})}});
+  if(kpSrc()==='who')kpWho(k).forEach(p=>u.push(p));else (k.words||[]).forEach(w=>{const f=kpPlain(w.fr),e=kpPlain(w.en);if(f&&e&&!seen[f]&&!seen['e'+e]){seen[f]=seen['e'+e]=1;u.push({f:f,e:e})}});
   if(u.length<3)return;
   const sh=a=>{a=a.slice();for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]]}return a};
   const d=sh(u).slice(0,(window.apMN ? window.apMN(6) : 6));
@@ -18830,4 +18834,4 @@ textarea.ms-in{min-height:7rem;resize:vertical}
   if (document.readyState === 'complete') start(); else window.addEventListener('load', start);
 })();
 </script>
-<script id="ap-build">window.__apBuild="d8e6160274";</script>
+<script id="ap-build">window.__apBuild="c7b3410100";</script>
