@@ -14840,7 +14840,7 @@ const KP_IC={drill:'data:image/webp;base64,UklGRqBBAABXRUJQVlA4IJRBAACQvACdASoAA
 function kpPlain(x){return String(x==null?'':x).replace(/\*\*/g,'').replace(/\s+/g,' ').trim()}
 function kpSrc(){try{const v=localStorage.getItem('ktr-kp-src')||'all';return v==='unt'?'ican':v}catch(e){return 'all'}}
 function kpMarks(k){try{return JSON.parse(localStorage.getItem('ktr-ican')||'{}')[k.n]||{}}catch(e){return {}}}
-function kpOnly(){return kpSrc()==='ican'?['stI']:null}
+function kpOnly(){const m=kpSrc();if(m==='ideas')kpIdeasPub();return m==='ican'?['stI']:m==='ideas'?['stD']:null}
 function kpIdeasPub(){try{const o={};const ks=S.view==='sub'?cur().ktrs.filter(k=>kpXSet(S.sub).has(k.n)):[ktr()];ks.forEach(k=>{o[k.n]=((k.remember&&k.remember.ideas)||[]).map(x=>({en:kpPlain(x.en),fr:kpPlain(x.fr)})).filter(x=>x.fr&&x.en)});window.parent.__ktrIdeas=o}catch(e){}}
 function kpPre(){return kpSrc()==='ican'?'stI':kpSrc()==='ideas'?'stD':''}
 function kpSetSrc(v){try{localStorage.setItem('ktr-kp-src',v)}catch(e){}const e=document.querySelector('.kp');if(e)e.outerHTML=kpStrip(S.view==='sub'?kpMerge():ktr())}
@@ -14926,9 +14926,9 @@ function kpStrip(k){
   const SM=kpSrc(),nw=SM==='who'?kpWho(k).length:0,NS=SM==='who'?'Uses the whole KTR: switch to Whole KTR.':SM==='ican'?'Needs at least 3 Je peux points.':SM==='ideas'?'Needs at least 3 key ideas.':'Needs at least 3 full sentences in '+W+'.';
   const t=[['#e0a81f',KP_IC.drill,'Say it',X?(ns>=3?'Oral drill: say each one from the English, then check.':NS):SM==='who'?'Uses the whole KTR: switch to Whole KTR.':SM==='ican'?'Uses the whole KTR: switch to Whole KTR.':SM==='ideas'?(ns>=3?'Oral drill: say each idea from the English, then check.':NS):'Oral drill: say it, check the model, rate each card.',X?"kpSay(kpMerge())":SM==='ideas'?"kpSay()":"stg('d')",X?ns<3:(SM==='ican'||SM==='who')?1:(SM==='ideas'&&ns<3?1:0)],
    ['#1f8a4c',KP_SP,'Spell it',ns>=3?'Accuracy: hear it, write it, every accent right.':NS,"kpSpell("+(X?'kpMerge()':'')+")",ns<3],
-   ['#2f5fc4',KP_IC.match,'Match it',SM==='who'?(nw>=3?'Match each description to the person, date or idea.':'Needs at least 3 people, dates or ideas.'):SM!=='all'?'Uses the whole KTR: switch to Whole KTR.':nm>=3?'Find the pairs, beat the clock.':'Needs at least 3 word pairs in '+W+'.',"kpMatch("+(X?'kpMerge()':'')+")",SM==='who'?nw<3:(SM!=='all'||nm<3)],
+   ['#2f5fc4',KP_IC.match,'Match it',(SM==='ican'||SM==='ideas')?(ns>=3?'Find the pairs: each English one with its French.':NS):SM==='who'?(nw>=3?'Match each description to the person, date or idea.':'Needs at least 3 people, dates or ideas.'):SM!=='all'?'Uses the whole KTR: switch to Whole KTR.':nm>=3?'Find the pairs, beat the clock.':'Needs at least 3 word pairs in '+W+'.',"kpMatch("+(X?'kpMerge()':'')+")",(SM==='ican'||SM==='ideas')?ns<3:SM==='who'?nw<3:(SM!=='all'||nm<3)],
    ['#1f8a4c',(kpHost()?(kpHost().BuildIt.ICON||''):''),'Build it',kpHost()&&ns>=3?'Sentence building: put the tiles in order.':NS,"kpBuild("+(X?'kpMerge()':'')+")",!(kpHost()&&ns>=3)],
-   ['#c4122e',KP_IC.speed,'Speed session',(SM==='ideas'||SM==='who')?'Uses the whole KTR: switch to Whole KTR.':X?'Race the clock on the ticked KTRs.':'Race the clock on this KTR.',"openSpeedNow(["+(X?k.ids:k.n)+"],kpOnly())",SM==='ideas'||SM==='who'||(X&&!k.ids.length)?1:0],
+   ['#c4122e',KP_IC.speed,'Speed session',SM==='who'?'Uses the whole KTR: switch to Whole KTR.':X?'Race the clock on the ticked KTRs.':'Race the clock on this KTR.',"openSpeedNow(["+(X?k.ids:k.n)+"],kpOnly())",SM==='who'||(X&&!k.ids.length)?1:0],
    ['#5b3f9e',KP_IC.test,'Spot Test',spotHost()?'Short questions on '+W+', with Apple Pencil.':'Spot Test is not available here.',X?"kpSpotN(["+k.ids+"],'Sub-theme "+S.sub+"')":"kpSpot('pen')",!spotHost()||(X&&!k.ids.length)]];
   const SB=(v,t)=>`<button type="button" class="kp-sg${SM===v?' on':''}" onclick="kpSetSrc('${v}')">${t}</button>`;
   return `<div class="kp"><div class="kp-h">${X?'Practise across KTRs':'Practise this KTR'}</div>${X?kpPick():''}<div class="kp-sw"><span>Spell it, Build it, Speed and Spot Test practise:</span><span class="kp-sgs">${SB('all','Whole KTR')}${SB('ican','All Je peux points')}${SB('ideas','Les idées clés')}${SB('who','Qui · Quand · Quoi')}</span></div><div class="kp-t">`+t.map(x=>`<button type="button" class="kp-b" style="--tc:${x[0]}"${x[5]?' disabled':''} onclick="${x[4]}">${x[1]?`<img src="${x[1]}" alt="">`:`<span class="i"></span>`}<span><b>${x[2]}</b><small>${x[3]}</small></span></button>`).join('')+`</div>`+(spotHost()&&(!X||k.ids.length)?`<div class="kp-pr">Prefer paper? <button type="button" class="kp-lk" onclick="${X?`openPaper([${k.ids}],'Sub-theme ${S.sub}')`:`kpSpot('print')`}">Print the Spot Test</button> to write on by hand.</div>`:'')+`</div>`}
@@ -14943,7 +14943,7 @@ function kpWho(k){const u=[],seen={},sh=t=>{t=kpPlain(t);if(t.length<=95)return 
   ks.forEach(q=>{const R=q.remember||{};(R.people||[]).forEach(x=>{const t=cut(x);add(x.name||t.h,t.en)});(R.dates||[]).forEach(x=>{const t=cut(x);if(t.h)add(t.h,t.en)});((REPX&&REPX[q.n])||[]).forEach(sc=>{if(sc.t==='quoi')sc.items.forEach(c=>add(c.name,c.en))})});return u}
 function kpMatch(k0){
   const k=k0||ktr(),seen={},u=[];
-  if(kpSrc()==='who')kpWho(k).forEach(p=>u.push(p));else (k.words||[]).forEach(w=>{const f=kpPlain(w.fr),e=kpPlain(w.en);if(f&&e&&!seen[f]&&!seen['e'+e]){seen[f]=seen['e'+e]=1;u.push({f:f,e:e})}});
+  if(kpSrc()==='who')kpWho(k).forEach(p=>u.push(p));else if(kpSrc()==='ican'||kpSrc()==='ideas')kpSents(k).forEach(w=>{const f=kpPlain(w.fr),e=kpPlain(w.en);if(f&&e&&!seen[f]&&!seen['e'+e]){seen[f]=seen['e'+e]=1;u.push({f:f,e:e})}});else (k.words||[]).forEach(w=>{const f=kpPlain(w.fr),e=kpPlain(w.en);if(f&&e&&!seen[f]&&!seen['e'+e]){seen[f]=seen['e'+e]=1;u.push({f:f,e:e})}});
   if(u.length<3)return;
   const sh=a=>{a=a.slice();for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]]}return a};
   const d=sh(u).slice(0,(window.apMN ? window.apMN(6) : 6));
@@ -18834,4 +18834,4 @@ textarea.ms-in{min-height:7rem;resize:vertical}
   if (document.readyState === 'complete') start(); else window.addEventListener('load', start);
 })();
 </script>
-<script id="ap-build">window.__apBuild="c7b3410100";</script>
+<script id="ap-build">window.__apBuild="59890ec764";</script>
