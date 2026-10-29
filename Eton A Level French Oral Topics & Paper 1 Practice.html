@@ -6158,12 +6158,13 @@ function fallbackCopy(text){
 }
 
 
+function apPlusDe(t){return String(t).replace(/\b([Pp])lus(\s+d(?:e\s+|['’]))(?!filières|cautionnement|autorisation)/g,function(m,p,r,o,all){var b=all.slice(Math.max(0,o-45),o).split(/[.;:!?,]/).pop();return /(^|\s)(ne|n['’])\s?(\S+\s+){0,3}$|\bn['’]\S*\s+(\S+\s+){0,2}$/i.test(b)?m:p+'luss'+r})}   // 'plus de' = more: the s is sounded; silent only after ne/n' (no more)
 function cleanForSpeech(text, lang) { text=String(text).replace(/\bweek-ends?\b/gi,'ouiquènd');
   if(lang && lang.startsWith('fr')) {
     text = text.replace('(L, ES et S)', '- L - E.S - et - S -');
     text = text.replace('streaming', 'strîming');
     text = text.replace(/\bPACS\b/g, 'pax');
-    text = text.replace(/\b([Pp])lus(\s+d(?:e\s+|['’]))(?=(?:\d|un\b|une\b|deux|trois|quatre|cinq|six|sept|huit|neuf|dix|onze|douze|treize|quinze|vingt|trente|quarante|cinquante|soixante|cent|mille|million|milliard))/g, '$1luss$2');   // 'plus de + number' (more than): the s is sounded
+    text = apPlusDe(text);   // 'plus de' = more: the s is sounded (not after ne/n')
     text = text.replace('L, ES et S', '- L - E.S - et - S -');
     text = text.replace('%', ' pour cent');
     text = text.replace('«', '').replace('»', '');
@@ -14449,10 +14450,10 @@ const hasRem=n=>{for(const s of DATA.subs)for(const k of s.ktrs)if(k.n===n)retur
 const pips=n=>'<span class="pips" aria-label="progress">'+STAGES.filter(s=>(s[0]!=='r'||hasRem(n))&&(s[0]!=='i'||hasIcan(n))).map(s=>`<i class="pip${(PR[n]||{})[s[0]]?' on':''}"></i>`).join('')+'</span>';
 
 /* voice: French only. Placeholders are spelt so they sound like their label (approved spellings). */
+function apPlusDe(t){return String(t).replace(/\b([Pp])lus(\s+d(?:e\s+|['’]))(?!filières|cautionnement|autorisation)/g,function(m,p,r,o,all){var b=all.slice(Math.max(0,o-45),o).split(/[.;:!?,]/).pop();return /(^|\s)(ne|n['’])\s?(\S+\s+){0,3}$|\bn['’]\S*\s+(\S+\s+){0,2}$/i.test(b)?m:p+'luss'+r})}   // 'plus de' = more: the s is sounded; silent only after ne/n' (no more)
 function ttsText(t){
-  return String(t).replace(/\([^)]*\)/g,' ').replace(/\*/g,'')
+  return apPlusDe(String(t)).replace(/\([^)]*\)/g,' ').replace(/\*/g,'')
     .replace(/\b([Dd])['’]Yeu\b/g,'$1ieu')   // île d'Yeu: the voice spells d'Y-eu out as letters; "dieu" sounds exactly like d'Yeu
-    .replace(/\b([Pp])lus(\s+d(?:e\s+|['’]))(?=(?:\d|un\b|une\b|deux|trois|quatre|cinq|six|sept|huit|neuf|dix|onze|douze|treize|quinze|vingt|trente|quarante|cinquante|soixante|cent|mille|million|milliard))/g,'$1luss$2')   // 'plus de + number' (more than): the s is sounded
     .replace(/\bPACS\b/gi,'pax')            // PACS: the voice says "pac"; "pax" sounds right (same respelling as the main page)
     .replace(/\bYeu\b/g,'yeux')             // bare "Yeu" (e.g. a gap answer): "yeux" sounds the same
     .replace(/\+\s*(?=[A-Z])/g,'pluss ')
@@ -18829,4 +18830,4 @@ textarea.ms-in{min-height:7rem;resize:vertical}
   if (document.readyState === 'complete') start(); else window.addEventListener('load', start);
 })();
 </script>
-<script id="ap-build">window.__apBuild="3cf446c2c5";</script>
+<script id="ap-build">window.__apBuild="36f75e1c45";</script>
