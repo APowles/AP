@@ -2,7 +2,7 @@
 (function(){
 var IC_KEY='ktr-ican',IC_GV='ktr-ican-glossvoice';
 var M={};try{M=JSON.parse(localStorage.getItem(IC_KEY)||'{}')}catch(e){M={}}
-var ORD={},OPEN={},TIER={},GV=false,MENU=false;try{GV=localStorage.getItem(IC_GV)==='1'}catch(e){}
+var ORD={},OPEN={},TIER={},GV=false,MENU=false,AUTO=true;try{GV=localStorage.getItem(IC_GV)==='1';AUTO=localStorage.getItem('ktr-ican-auto')!=='0'}catch(e){}
 function save(){try{localStorage.setItem(IC_KEY,JSON.stringify(M))}catch(e){}}
 function k0(){return ktr()}
 function ord(k){var o=ORD[k.n];if(!o||o.length!==k.ican.length){o=ORD[k.n]=k.ican.map(function(_,i){return i})}return o}
@@ -42,7 +42,7 @@ function list(k){var o=ord(k),f=TIER[k.n];return o.filter(function(i){return !f|
 function head(k){
   var sub=k.icanSub?'<small>'+esc(k.icanSub.fr)+' = '+esc(k.icanSub.en)+'</small>':'';
   return '<div class="ic-head"><div class="ic-ttl">Now I can…'+sub+'</div>'+
-   '<span class="ic-cnt" id="ic-cnt">'+cnt(k)+'</span><button class="ic-sm" onclick="icShuffle()">Shuffle</button>'+
+   '<span class="ic-cnt" id="ic-cnt">'+cnt(k)+'</span><button class="ic-sm'+(AUTO?' on':'')+'" onclick="icAuto()" aria-pressed="'+AUTO+'" title="Play the French automatically when you press Check">🔊 French auto-play: '+(AUTO?'On':'Off')+'</button><button class="ic-sm" onclick="icShuffle()">Shuffle</button>'+
    '<span class="ic-menu"><button class="ic-sm" onclick="icMenu()" aria-label="More options">⋯</button>'+(MENU?'<div class="ic-pop"><button class="ic-sm" onclick="icLogical()">Back to logical order</button><button class="ic-sm" onclick="icUnticked()">Unticked first</button><button class="ic-sm'+(GV?' on':'')+'" onclick="icGV()">Hear the English too</button></div>':'')+'</span></div>';
 }
 window.sIcan=function(k){
@@ -51,7 +51,8 @@ window.sIcan=function(k){
 };
 function again(){var k=k0();document.getElementById('ic-list').innerHTML=list(k);document.getElementById('ic-bar').innerHTML=bars(k);document.getElementById('ic-top').innerHTML=head(k)}
 window.icMenu=function(){MENU=!MENU;again()};
-window.icCheck=function(i){var k=k0();OPEN[k.n+'.'+i]=1;var e=document.querySelector('.ic-p[data-i="'+i+'"]');if(e)e.classList.add('open')};
+window.icCheck=function(i){var k=k0();OPEN[k.n+'.'+i]=1;var e=document.querySelector('.ic-p[data-i="'+i+'"]');if(e){e.classList.add('open');if(AUTO){var b=e.querySelector('.ic-fr .spk');if(b)spk(b)}}};
+window.icAuto=function(){AUTO=!AUTO;try{localStorage.setItem('ktr-ican-auto',AUTO?'1':'0')}catch(e){}if(!AUTO){try{svStop()}catch(e){}}again()};
 window.icMark=function(i,v){var k=k0();(M[k.n]=M[k.n]||{})[i]=(M[k.n][i]===v?'':v);save();var e=document.querySelector('.ic-p[data-i="'+i+'"]');if(e){e.dataset.m=M[k.n][i];e.classList.toggle('done',M[k.n][i]==='v');var g=e.querySelector('.ic-bx');if(g)g.textContent=glyph(M[k.n][i]);if(M[k.n][i]){setTimeout(function(){delete OPEN[k.n+'.'+i];e.classList.remove('open')},450)}}document.getElementById('ic-bar').innerHTML=bars(k);var c=document.getElementById('ic-cnt');if(c)c.textContent=cnt(k)};
 window.icCycle=function(i){var k=k0(),c=mk(k,i),n=c===''?'v':c==='v'?'~':c==='~'?'x':'';(M[k.n]=M[k.n]||{})[i]=n;save();var e=document.querySelector('.ic-p[data-i="'+i+'"]');if(e){e.dataset.m=n;e.classList.toggle('done',n==='v');e.querySelector('.ic-bx').textContent=glyph(n)}document.getElementById('ic-bar').innerHTML=bars(k);var c=document.getElementById('ic-cnt');if(c)c.textContent=cnt(k)};
 window.icShuffle=function(){var k=k0(),o=ord(k).slice();for(var j=o.length-1;j>0;j--){var r=Math.floor(Math.random()*(j+1)),t=o[j];o[j]=o[r];o[r]=t}ORD[k.n]=o;OPEN={};MENU=false;again()};
