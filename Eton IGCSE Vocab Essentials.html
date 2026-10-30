@@ -653,6 +653,11 @@ button[onclick*="apMySetHelp"]{background:none!important;border:0!important;box-
     + '.bz-opt.bad{background:#c0392b!important;color:#fff!important;border-color:#ffc3bb!important;box-shadow:0 0 26px #e05a4a}.bz-opt.bad small{color:#ffe6e2!important}.bz-opt.bad::before{content:"✗ ";}'
     + '#bz-ov.vg::after,#bz-ov.vb::after{content:"";position:absolute;inset:0;pointer-events:none;animation:bzfl .7s ease-out forwards}#bz-ov.vg::after{box-shadow:inset 0 0 140px 30px rgba(76,193,127,.6)}#bz-ov.vb::after{box-shadow:inset 0 0 140px 30px rgba(220,70,60,.65)}@keyframes bzfl{0%{opacity:1}100%{opacity:0}}'
     + '.bz-verdict{display:inline-block;font:800 clamp(1.5rem,3.6vw,2.4rem) Georgia,serif;padding:6px 28px;margin-bottom:6px;border-radius:999px;color:#fff;background:#2e9e62;box-shadow:0 0 30px #4cc17f;animation:bzpop .35s ease-out}.bz-verdict.bad{background:#c0392b;box-shadow:0 0 30px #e05a4a}@keyframes bzpop{0%{transform:scale(.6);opacity:0}100%{transform:scale(1);opacity:1}}#bz-msg{font-size:1.1rem;color:#fff}'
+    + '#bz-ov.pt-n,#bz-ov.pt-g{--ptc:rgba(79,140,255,.6)}#bz-ov.pt-g{--ptc:rgba(240,210,122,.55)}#bz-ov.pt-n::after,#bz-ov.pt-g::after{content:"";position:absolute;inset:0;pointer-events:none;box-shadow:inset 0 0 170px 26px var(--ptc)}'
+    + '.pt-bd{display:flex;gap:16px;width:min(760px,96%);justify-content:center}.pt-t{--tc:#4f8cff;flex:1;border-radius:18px;padding:10px 10px 8px;text-align:center;border:3px solid var(--tc);background:rgba(8,14,32,.72);opacity:.33;transform:scale(.93);transition:all .25s}.pt-t.g{--tc:#f0d27a}'
+    + '.pt-t.act{opacity:1;transform:scale(1.05);background:color-mix(in srgb,var(--tc) 34%,rgba(8,14,32,.8));box-shadow:0 0 38px var(--tc)}.pt-t span{display:block;font:800 .95rem "DM Sans",sans-serif;letter-spacing:.14em;text-transform:uppercase;color:var(--tc)}.pt-t.act span{color:#fff}'
+    + '.pt-t b{display:block;font:800 2.5rem Georgia,serif;color:#fff;line-height:1.1}.pt-t em{display:block;font:800 1rem "DM Sans",sans-serif;font-style:normal;color:#fff;margin-top:2px;min-height:1.2em}'
+    + '.pt-turn{--tc:#4f8cff;font:800 clamp(1.7rem,4.6vw,3rem) Georgia,serif;color:#fff;padding:6px 34px;border-radius:999px;background:var(--tc);box-shadow:0 0 36px var(--tc);animation:bzpop .35s ease-out}.pt-turn.g{--tc:#f0d27a;color:#1a2744}.pt-card .bz-card{filter:drop-shadow(0 0 26px var(--tc))}'
     + '.bz-note{max-width:620px;color:#c8d3ea;font-size:.95rem}.bz-big-n{font:800 4rem Georgia,serif;color:#fff}'
     + '@media (max-width:900px){.bz-grid{grid-template-columns:repeat(2,1fr)}}';
   var DICE = { 1: [4], 2: [0, 8], 3: [0, 4, 8], 4: [0, 2, 6, 8], 5: [0, 2, 4, 6, 8], 6: [0, 2, 3, 5, 6, 8] };
@@ -801,6 +806,7 @@ button[onclick*="apMySetHelp"]{background:none!important;border:0!important;box-
   // ---------- frame
   var view = 'pick';
   function frame(title, body, back) {
+    ov.classList.remove('pt-n', 'pt-g');
     ov.style.backgroundImage = bgNow ? 'linear-gradient(rgba(8,14,32,.66),rgba(8,14,32,.66)),url(pictures/' + bgNow + '.jpg)' : 'url(' + BZ.stage + ')';
     ov.innerHTML = '<div class="bz-top"><button class="bz-b" onclick="apBzBack()">← Back</button><h1>Blitz it' + (title ? ' <em>· ' + esc(title) + '</em>' : '') + '</h1><button class="bz-b" onclick="apBzSet()">⚙ Settings</button><button class="bz-b' + (snd ? ' on' : '') + '" id="bz-snd" onclick="apBzSnd()">🔊 Sound ' + (snd ? 'on' : 'off') + '</button></div><div class="bz-main">' + body + '</div>';
   }
@@ -897,16 +903,18 @@ button[onclick*="apMySetHelp"]{background:none!important;border:0!important;box-
     }; go();
   };
   GAMES.pairs = function (p) {
-    var deck = shuf(p).slice(0, Math.min(CFG.pairs, p.length - (p.length % 2))), team = 0, sc = [0, 0], names = ['Navy', 'Gold'], i = 0;
+    var deck = shuf(p).slice(0, Math.min(CFG.pairs, p.length - (p.length % 2))), team = 0, sc = [0, 0], names = ['Blue', 'Gold'], i = 0;
     function show() {
       stop(); if (i >= deck.length) return fin(); var c = deck[i];
-      frame('Pairs race', '<div class="bz-stat"><div style="' + (team === 0 ? 'color:#fff' : '') + '"><b>' + sc[0] + '</b>Navy</div><div style="' + (team === 1 ? 'color:#fff' : '') + '"><b>' + sc[1] + '</b>Gold</div><div><b>' + (deck.length - i) + '</b>to go</div></div><div class="bz-note"><b>' + names[team] + '</b> to say it</div>' + card(c.q, c.a, LANG_NAMES[dirs()[0]]) + '<div class="bz-row"><button class="bz-big" id="bz-show" onclick="apBzShow()">Show answer</button></div><div class="bz-row" id="bz-mark" style="display:none"><button class="bz-big" onclick="apBzMark(1)">✓ Got it</button><button class="bz-big no" onclick="apBzMark(0)">✗ Missed</button></div>');
+      var tc = team === 0 ? '#4f8cff' : '#f0d27a', tg = team === 0 ? '' : ' g';
+      frame('Pairs race', '<div class="pt-bd"><div class="pt-t' + (team === 0 ? ' act' : '') + '"><span>' + names[0] + '</span><b>' + sc[0] + '</b><em>' + (team === 0 ? '▶ YOUR TURN' : '') + '</em></div><div class="pt-t g' + (team === 1 ? ' act' : '') + '"><span>' + names[1] + '</span><b>' + sc[1] + '</b><em>' + (team === 1 ? '▶ YOUR TURN' : '') + '</em></div></div><div class="pt-turn' + tg + '">' + names[team] + ': say it!</div><div class="pt-card" style="--tc:' + tc + '">' + card(c.q, c.a, LANG_NAMES[dirs()[0]] + ' · ' + (deck.length - i) + ' to go') + '</div><div class="bz-row"><button class="bz-big" id="bz-show" onclick="apBzShow()">Show answer</button></div><div class="bz-row" id="bz-mark" style="display:none"><div class="bz-note" style="width:100%"><b>' + names[1 - team] + '</b>: was ' + names[team] + ' right?</div><button class="bz-big" onclick="apBzMark(1)">✓ Got it</button><button class="bz-big no" onclick="apBzMark(0)">✗ Missed</button></div>');
+      ov.classList.add(team === 0 ? 'pt-n' : 'pt-g');
     }
     window.apBzShow = reveal;
     window.apBzGo = function () { show(); };
     window.apBzMark = function (g) { sfx(g ? 'ok' : 'bad'); if (g) sc[team]++; team = 1 - team; i++; show(); };
     function fin() { var w = sc[0] === sc[1] ? 'A draw' : (sc[0] > sc[1] ? names[0] : names[1]) + ' wins'; endScreen('Pairs race', { big: sc[0] + ' – ' + sc[1], note: w + '.' }, function () { GAMES.pairs(pool()); }); }
-    frame('Pairs race', '<div class="bz-note"><b>Two players, one screen.</b> Sit side by side: <b>Navy</b> and <b>Gold</b>. A word appears and the player whose turn it is says the answer out loud. Press <b>Show answer</b>: the other player checks it and presses <b>Got it</b> (a point) or <b>Missed</b> (no point). Then it is the other player\'s turn. After ' + deck.length + ' words, the higher score wins.</div><button class="bz-big go" onclick="apBzGo()">▶ Start</button>');
+    frame('Pairs race', '<div class="bz-note"><b>Two players, one screen.</b> Sit side by side: <b>Blue</b> and <b>Gold</b>. A word appears and the player whose turn it is says the answer out loud. Press <b>Show answer</b>: the other player checks it and presses <b>Got it</b> (a point) or <b>Missed</b> (no point). Then it is the other player\'s turn. After ' + deck.length + ' words, the higher score wins.</div><button class="bz-big go" onclick="apBzGo()">▶ Start</button>');
   };
 
   // ---------- Catch it
@@ -12229,4 +12237,4 @@ textarea.ms-in{min-height:7rem;resize:vertical}
   if (document.readyState === 'complete') start(); else window.addEventListener('load', start);
 })();
 </script>
-<script id="ap-build">window.__apBuild="961434f5e0";</script>
+<script id="ap-build">window.__apBuild="bd434bbdac";</script>
