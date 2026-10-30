@@ -7826,6 +7826,7 @@ h1,h2,h3{text-wrap:balance;margin:0}
 .note b{color:var(--ink)}
 .scope{display:flex;flex-wrap:wrap;gap:10px 18px;align-items:center;margin-top:16px}
 .scope select{font:inherit;font-size:.9rem;border:1.5px solid var(--line);border-radius:10px;background:var(--surface);color:var(--ink);padding:6px 10px;max-width:100%}
+.stp{margin-top:14px;padding:12px 14px 14px;border:1.5px solid var(--line);border-radius:14px;background:var(--surface)}.stp-h{font-weight:800;font-size:1.02rem;color:var(--ink)}.stp-n{display:inline-block;margin-right:8px;padding:3px 12px;border-radius:999px;background:#1a2744;color:#f2d38a;font:800 .78rem/1 'DM Sans',system-ui,sans-serif;letter-spacing:.12em}.stp-b{display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin-top:10px}.stp-or{color:var(--ink2);font-size:.9rem}.stp-c{border:2px solid #1a2744;background:#fff;color:#1a2744;border-radius:12px;padding:10px 18px;font-weight:800;font-size:.95rem;cursor:pointer}.stp-c.on{background:#1a2744;color:#f2d38a}.stp-b select{font:inherit;font-weight:700;font-size:.92rem;border:2px solid #1a2744;border-radius:12px;padding:10px 12px;max-width:100%;background:#fff;color:#1a2744}.stp-b select.on{background:#1a2744;color:#f2d38a}.stp-tiles{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:10px;margin-top:10px}.stp-t{display:flex;flex-direction:column;gap:2px;text-align:left;padding:10px 12px;border:2px solid var(--line);border-radius:12px;background:#fff;color:#1a2744;cursor:pointer;box-shadow:0 2px 0 var(--line)}.stp-t b{font-size:.95rem}.stp-t small{font-size:.76rem;color:var(--ink2);line-height:1.25}.stp-t.on{background:#1a2744;border-color:#c9a84c;box-shadow:0 3px 0 #c9a84c}.stp-t.on b{color:#f2d38a}.stp-t.on small{color:#e6dcc0}.stp-t.sp{border-color:#5b3f9e;background:#f3eefb;box-shadow:0 2px 0 #5b3f9e}.stp-sw{display:flex;align-items:center;gap:10px;margin-top:12px;padding:10px 12px;border:2px dashed #5b3f9e;border-radius:12px;background:#f3eefb;color:#1a2744;font-size:.9rem;cursor:pointer}.stp-sw input{position:absolute;opacity:0;width:0;height:0}.stp-sl{flex:0 0 auto;position:relative;width:46px;height:26px;border-radius:999px;background:#b9b3c9;transition:.15s}.stp-sl:after{content:'';position:absolute;top:3px;left:3px;width:20px;height:20px;border-radius:50%;background:#fff;transition:.15s}.stp-sw input:checked+.stp-sl{background:#5b3f9e}.stp-sw input:checked+.stp-sl:after{left:23px}.stp-sw input:focus-visible+.stp-sl{outline:3px solid #c9a84c}
 .sub-tabs{display:flex;gap:8px;margin-top:16px;flex-wrap:wrap}
 .sub-tabs .tg small{font-weight:400;opacity:.85}
 .drill{margin-top:14px;background:var(--surface);border:1.5px solid var(--line);border-radius:18px;padding:clamp(16px,4vw,32px);display:flex;flex-direction:column;gap:16px;min-height:260px}
@@ -8542,10 +8543,10 @@ window.openSpeedQ=function(i){try{const P=window.parent;if(P&&typeof P.amSpeedFr
 window.sptCard=function(i){
   if(!spotHost())return;var o=document.getElementById('spt-ov');if(o)o.remove();
   o=document.createElement('div');o.id='spt-ov';o.className='spt-ov';o.onclick=function(e){if(e.target===o)o.remove()};
-  o.innerHTML='<div class="spt-card"><div class="spt-h">\ud83d\udcdd Spot Test</div><div class="spt-s">Short questions in boxes on this topic. You mark it yourself.</div><button type="button" class="spt-big" id="spt-pen">\u270d Do it with Apple Pencil <small>hand in as a PDF if required</small></button><div class="spt-pr">Prefer paper? <button type="button" class="spt-link" id="spt-pap">Print it</button> to write on by hand.</div><div class="spt-pr"><button type="button" class="spt-link" id="spt-x">Close</button></div></div>';
+  o.innerHTML='<div class="spt-card"><div class="spt-h">\ud83d\udcdd Spot Test</div><div class="spt-s">Short questions in boxes. You mark it yourself.</div><button type="button" class="spt-big" id="spt-pen">\u270d Do it with Apple Pencil <small>hand in as a PDF if required</small></button><div class="spt-pr">Prefer paper? <button type="button" class="spt-link" id="spt-pap">Print it</button> to write on by hand.</div><div class="spt-pr"><button type="button" class="spt-link" id="spt-x">Close</button></div></div>';
   document.body.appendChild(o);
-  document.getElementById('spt-pen').onclick=function(){o.remove();openSpotQ(i)};
-  document.getElementById('spt-pap').onclick=function(){o.remove();openSpotQ(i,true)};
+  document.getElementById('spt-pen').onclick=function(){o.remove();if(i==null)openSpot(false);else openSpotQ(i)};
+  document.getElementById('spt-pap').onclick=function(){o.remove();if(i==null)openSpot(false,true);else openSpotQ(i,true)};
   document.getElementById('spt-x').onclick=function(){o.remove()};
 };
 function tcBtns(i){return spotHost()?'<div class="tcb"><button class="spt-open" onclick="sptCard('+i+')">&#128221; Spot Test</button><button class="btn" onclick="openSpeedQ('+i+')">&#9889; Speed</button></div>':''}
@@ -8561,24 +8562,29 @@ function spotRow(small){
 }
 /* ===== views ===== */
 function scopeBar(){
-  const qOpts=S.sec==='all'?'':'<select onchange="setScope(this.value)" aria-label="Question">'
-    +'<option value="all"'+(S.qi==='all'?' selected':'')+'>All questions in this section</option>'
-    +Q.filter(q=>q.section===SECS[S.sec]).map(q=>'<option value="'+q.i+'"'+(String(S.qi)===String(q.i)?' selected':'')+'>'+esc(q.q_en)+'</option>').join('')+'</select>';
   const lv=['X','E','M','H'].map(v=>'<button class="'+(S.lv===v?'on':'')+'" onclick="setLv(\''+v+'\')">'+({X:'Mixed',E:'Easy',M:'Medium',H:'Hard'})[v]+'</button>').join('');
   const nn=[10,20,0].map(v=>'<button class="'+(S.n===v?'on':'')+'" onclick="setN('+v+')">'+(v||'All')+'</button>').join('');
-  return '<div class="scope">'+qOpts
-   +(S.tab==='words'||S.tab==='pic'||S.tab==='cmb'?'':'<span class="ctl"><span class="label">Level</span><span class="seg">'+lv+'</span></span>')
+  const parts=(S.tab==='words'||S.tab==='pic'||S.tab==='cmb'?'':'<span class="ctl"><span class="label">Level</span><span class="seg">'+lv+'</span></span>')
    +(S.tab==='study'||S.tab==='words'||S.tab==='pic'||S.tab==='cmb'?'':'<span class="ctl"><span class="label">Items</span><span class="seg">'+nn+'</span></span>'
-     +(S.tab==='bold'||S.tab==='short'?'':'<button class="tg'+(S.hint?' on':'')+'" onclick="togHint()" title="Show or hide the English under the sentence">English hint</button>'))
-   +'</div>';
+     +(S.tab==='bold'||S.tab==='short'?'':'<button class="tg'+(S.hint?' on':'')+'" onclick="togHint()" title="Show or hide the English under the sentence">English hint</button>'));
+  return parts?'<details class="hx-more"><summary>Options: level, number of items</summary><div class="scope">'+parts+'</div></details>':'';
 }
 function vSec(){
-  const tabs=(S.sec==='all'?[]:(secPic(S.sec)!=null?[['pic','Pictures','See it, hear it']]:[]).concat([['study','Study',LG.sub[5]],['words',LG.words,'Learn the words']])).concat(TYPES.map(t=>[t[0],t[1],t[3]])).concat(S.sec==='all'?[]:[['cmb','Combine','Structures + material']]).concat([['mix','Mixed','All drills']])
-   .map(t=>'<button class="tg'+(S.tab===t[0]?' on':'')+'" onclick="setTab(\''+t[0]+'\')">'+t[1]+'</button>').join('');
-  const head='<div class="row" style="justify-content:space-between"><h1 class="h2">'+(S.sec==='all'?'Mixed: '+scopeN():esc(secName(SECS[S.sec])))+'</h1><button class="btn" onclick="goBack()">&larr; Back</button></div>';
+  const all=S.sec==='all',hasP=!all&&secPic(S.sec)!=null;
+  const tabsL=(all?[]:(hasP?[['pic','Pictures','See it, hear it']]:[]).concat([['study','Study',LG.sub[5]],['words',LG.words,'Learn the words']])).concat(TYPES.map(t=>[t[0],t[1],t[3]])).concat([['mix','Mixed','All drills']]);
+  const isOn=k=>S.tab===k||(k==='pic'&&S.tab==='cmb');
+  const tiles=tabsL.map(t=>'<button class="stp-t'+(isOn(t[0])?' on':'')+'" onclick="setTab(\''+t[0]+'\')"><b>'+t[1]+'</b><small>'+t[2]+'</small></button>').join('')
+    +(spotHost()?'<button class="stp-t sp" onclick="sptCard()"><b>&#128221; Spot Test</b><small>Short boxed questions: Apple Pencil or paper</small></button><button class="stp-t sp" onclick="openSpeed()"><b>&#9889; Speed</b><small>Race the clock</small></button>':'');
+  const head='<div class="row" style="justify-content:space-between"><h1 class="h2">'+(all?'Mixed: '+scopeN():esc(secName(SECS[S.sec])))+'</h1><button class="btn" onclick="goBack()">&larr; Back</button></div>';
+  const first='<div class="stp"><div class="stp-h"><span class="stp-n">FIRST</span> What do you want to practise?</div><div class="stp-b">'
+    +(all?'<b>'+esc(scopeN())+'</b>':'<button class="stp-c'+(S.qi==='all'?' on':'')+'" onclick="setScope(\'all\')">The whole section</button><span class="stp-or">or</span><select class="'+(S.qi!=='all'?'on':'')+'" aria-label="One topic" onchange="if(this.value)setScope(this.value)"><option value=""'+(S.qi==='all'?' selected':'')+'>One topic: choose&hellip;</option>'
+      +Q.filter(q=>q.section===SECS[S.sec]).map(q=>'<option value="'+q.i+'"'+(String(S.qi)===String(q.i)?' selected':'')+'>'+esc(q.q_en)+'</option>').join('')+'</select>')
+    +'</div></div>';
+  const sw=(!all&&(S.tab==='pic'||S.tab==='cmb'||!hasP))?'<label class="stp-sw"><input type="checkbox"'+(S.tab==='cmb'?' checked':'')+' onchange="setTab(this.checked?\'cmb\':\''+(hasP?'pic':'study')+'\')"><span class="stp-sl"></span><span><b>Combine</b> &middot; '+(S.tab==='cmb'?'on: ':'off: ')+'use the approved material and a range of Top Structures together</span></label>':'';
+  const next='<div class="stp"><div class="stp-h"><span class="stp-n">NEXT</span> How do you want to practise it?</div><div class="stp-tiles">'+tiles+'</div>'+sw+'</div>';
   let body;
   if(S.tab==='pic')body=vPics();else if(S.tab==='cmb')body=vCmb();else if(S.tab==='study')body=vStudy();else if(S.tab==='words')body=vWords();else{if(!S.ses)startSes();body=vDrill()}
-  return head+scopeBar()+'<div class="sub-tabs">'+tabs+'</div>'+body+'<details class="hx-more" style="margin-top:14px"><summary>Test yourself: Spot Test, Speed Challenge, Mixed</summary>'+((S.tab==='study'||S.tab==='words')?spotRow():spotRow(true))+'</details>';
+  return head+first+next+scopeBar()+body;
 }
 /* study: the approved sentences, French by default, English one click away, key phrases lit up */
 function hlFr(i,j){
