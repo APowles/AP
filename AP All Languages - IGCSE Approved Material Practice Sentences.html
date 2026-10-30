@@ -8312,6 +8312,8 @@ body[data-fcr="1"]{--bk:#6a1b2c}body[data-fcr="2"]{--bk:#1b4a33}body[data-fcr="3
 
 
 .rv2-help{gap:8px}
+.rv2-qa{justify-self:end;display:flex;gap:8px;align-items:center}.rv2-sw{display:inline-flex;gap:5px;align-items:center;font:700 .85rem var(--body);color:var(--ink2);cursor:pointer}.rv2-sw input{width:18px;height:18px;accent-color:#c9a84c}
+.rv2-tr{display:grid;grid-template-columns:1fr auto 1fr;align-items:center;gap:8px;width:100%;max-width:1100px;margin:0 auto}.rv2-tr>.btn{justify-self:start}.rv2-tr .mc-tally{justify-self:center}
 .rv2-qq{text-align:center;max-width:1000px}
 .rv2-fr{font:700 clamp(1rem,1.9vw,1.3rem)/1.25 var(--head);color:var(--navy,#1a2744)}
 .rv2-en{font-size:.82rem;line-height:1.2;color:var(--ink2);opacity:.8;margin-top:1px}
@@ -8343,7 +8345,7 @@ body.whsp{background:#080e1e}
 .wh2-tally{display:flex;gap:16px;flex-wrap:wrap;justify-content:center;font:700 .88rem var(--body);color:#f3d98a}.wh2-tally .g{color:#8be0a8}.wh2-tally .n{color:#f0b35a}
 .fc-ctl{margin:4px 0 6px;justify-content:center}
 .mc-wrap .mc-img.mc-talkpic,:fullscreen .mc-wrap .mc-img.mc-talkpic{width:min(100%,calc((100vh - 280px)*1.78));margin-left:auto;margin-right:auto}
-.mc-wrap.rv2 .mc-img.mc-talkpic,:fullscreen .mc-wrap.rv2 .mc-img.mc-talkpic{width:min(100%,calc((100vh - 385px)*1.78))}
+.mc-wrap.rv2 .mc-img.mc-talkpic,:fullscreen .mc-wrap.rv2 .mc-img.mc-talkpic{width:min(100%,calc((100vh - 420px)*1.78))}
 .fc-x .fc-pic{width:min(100%,calc((100vh - 400px)*1.78))}
 .fc-qen{text-align:center;color:var(--ink2);opacity:.55;font-size:.78rem;margin:1px 0 4px}
 .fc-pic{width:min(100%,calc((100vh - 285px)*1.78));margin-left:auto;margin-right:auto}
@@ -9228,7 +9230,7 @@ function wheelRun(o){
 }
 const WHG={cx:821,cy:462,rx:535,ry:425,hx:825,hy:458,hrx:198,hry:192,px:[775,0,885,88]};
 window.mcSpin=function(){
-  amUnlock();mcFs(true);demoStop();mcStop();try{speechSynthesis.cancel()}catch(e){}try{window.parent.speechSynthesis.cancel()}catch(e){}
+  mcQStop();amUnlock();mcFs(true);demoStop();mcStop();try{speechSynthesis.cancel()}catch(e){}try{window.parent.speechSynthesis.cancel()}catch(e){}
   const all=mcPool();MC.reset=false;
   Object.keys(MC.due).forEach(k=>MC.due[k]--);
   const dk=Object.keys(MC.due).filter(k=>MC.due[k]<=0);
@@ -9242,14 +9244,23 @@ window.mcSpin=function(){
   MC.cur=target;MC.phase='spin';MC.over=false;S.act=null;S.en=false;mcSfx('start');render();
   wheelRun({cv:document.getElementById('mcwh'),src:'pictures/ready.jpg',G:WHG,target:picSrc(target),tick:p=>mcSfx('tick',p),stop:()=>mcSfx('stop'),done:()=>mcLand(),fail:()=>{MC.to=setTimeout(()=>{MC.to=null;mcLand()},700)}});
 };
-function mcLand(){MC.fresh=true;mcSfx('land');MC.seen.add(MC.cur);MC.phase='talk';MC.over=false;MC.end=Date.now()+MC.secs*1000;render();MC.iv=setInterval(mcTick,250)}
+function mcLand(){MC.back=false;MC.fresh=true;mcSfx('land');MC.seen.add(MC.cur);MC.phase='talk';MC.over=false;MC.end=Date.now()+MC.secs*1000;render();MC.iv=setInterval(mcTick,250);if(MCQ.on)setTimeout(mcQPlay,500)}
 const fmt=s=>{s=Math.ceil(s);return Math.floor(s/60)+':'+String(s%60).padStart(2,'0')};
 function mcTick(){
   const left=Math.max(0,MC.end-Date.now()),bar=document.getElementById('mcbar'),tt=document.getElementById('mct');
   if(bar)bar.style.width=Math.round(100*left/(MC.secs*1000))+'%';if(tt)tt.textContent=fmt(left/1000);
   if(left<=0){clearInterval(MC.iv);MC.iv=null;MC.over=true;mcSfx('end');render()}
 }
-window.mcReveal=function(){if(MC.iv){clearInterval(MC.iv);MC.iv=null}MC.phase='reveal';S.pi=MC.cur;S.act=null;S.en=false;render();window.scrollTo(0,0)};
+window.mcReveal=function(){mcQStop();if(MC.iv){clearInterval(MC.iv);MC.iv=null}MC.phase='reveal';S.pi=MC.cur;S.act=null;S.en=false;render();window.scrollTo(0,0)};
+window.mcToSetup=function(){MC.phase='setup';mcStop();render();window.scrollTo(0,0)};
+window.MCQ={on:(function(){try{return localStorage.getItem('am_qa')!=='0'}catch(e){return true}})(),play:false,tok:0};
+function mcQPaint(){const b=document.getElementById('qaBtn');if(b)b.innerHTML=MCQ.play?'\u25A0 Stop':'\u{1F50A} Play question'}
+window.mcQStop=function(){MCQ.tok++;MCQ.play=false;try{speechSynthesis.cancel()}catch(e){}try{window.parent.speechSynthesis.cancel()}catch(e){}mcQPaint()};
+window.mcQPlay=function(){if(MC.phase!=='talk'||MC.cur==null)return;mcQStop();const tok=MCQ.tok,i=MC.cur;MCQ.play=true;mcQPaint();say(Q[i].q_fr,function(){if(MCQ.tok===tok){MCQ.play=false;mcQPaint()}})};
+window.mcQToggle=function(){if(MCQ.play)mcQStop();else mcQPlay()};
+window.mcQAuto=function(v){MCQ.on=!!v;try{localStorage.setItem('am_qa',v?'1':'0')}catch(e){}if(!v)mcQStop()};
+window.mcBackTalk=function(){mcQStop();mcStop();try{speechSynthesis.cancel()}catch(e){}MC.seen.delete(MC.cur);MC.cur=null;MC.over=false;MC.phase='idle';render();window.scrollTo(0,0)};
+window.mcBackHelp=function(){demoStop();try{speechSynthesis.cancel()}catch(e){}try{window.parent.speechSynthesis.cancel()}catch(e){}MC.phase='talk';MC.over=true;MC.back=true;MC.fresh=false;render();window.scrollTo(0,0)};
 window.mcPractise=function(i,tab){demoStop();mcStop();try{mcFs(false)}catch(e){}S.ret={kind:'wheel',stack:S.stack.slice()};openTopic(i,tab)};
 window.fcPractise=function(i){fcStop();fcQuiet();S.ret={kind:'cards',cur:FC.cur,stack:S.stack.slice()};openTopic(i,'pic')};
 window.goReturn=function(){
@@ -9258,7 +9269,7 @@ window.goReturn=function(){
   render();window.scrollTo(0,0);
 };
 window.mcMark=function(v){
-  demoStop();(v==='ok'?MC.ok:MC.near).push(MC.cur);if(v==='near')MC.due[MC.cur]=3;try{speechSynthesis.cancel()}catch(e){}try{window.parent.speechSynthesis.cancel()}catch(e){}
+  mcQStop();demoStop();(v==='ok'?MC.ok:MC.near).push(MC.cur);if(v==='near')MC.due[MC.cur]=3;try{speechSynthesis.cancel()}catch(e){}try{window.parent.speechSynthesis.cancel()}catch(e){}
   MC.phase=(MC.seen.size>=mcPool().length&&!Object.keys(MC.due).length)?'done':'idle';MC.cur=null;render();window.scrollTo(0,0);
 };
 function mcTally(){return '<div class="mc-tally"><span>Picture '+MC.seen.size+' of '+mcPool().length+'</span><span style="color:var(--good)">✓ Got it '+MC.ok.length+'</span><span style="color:var(--near)">≈ Near '+MC.near.length+'</span></div>'}
@@ -9283,23 +9294,23 @@ function vMachine(){
   let body='',ctl='';
   if(MC.phase==='idle'){
     const all=mcPool(),left=all.filter(n=>!MC.seen.has(n)),nl=left.length||all.length,nd=Object.keys(MC.due).length;
-    return '<div class="wh2"><div class="wh2-top"><button class="wh2-b" onclick="goBack()">← Leave</button><div class="wh2-tt"><h1 class="wh2-t">'+(MC.reset?'All seen: starting again':'Ready for the next one?')+'</h1><div class="wh2-hint">Click the wheel to spin</div></div><button class="wh2-b" onclick="MC.phase=\'setup\';mcStop();render()">Change the areas</button></div>'
+    return '<div class="wh2"><div class="wh2-top"><button class="wh2-b" onclick="mcToSetup()">← Back</button><div class="wh2-tt"><h1 class="wh2-t">'+(MC.reset?'All seen: starting again':'Ready for the next one?')+'</h1><div class="wh2-hint">Click the wheel to spin</div></div><button class="wh2-b wh2-q" onclick="amHow(\'wheel\')"><i>?</i>How it works</button></div>'
      +'<div class="mw-hero mw-live" role="button" tabindex="0" aria-label="Spin the wheel" onclick="mcSpin()" onkeydown="if(event.key===\'Enter\'||event.key===\' \'){event.preventDefault();mcSpin()}"><div class="mw-img" style="background-image:url(pictures/ready.jpg)"></div><i class="wh2-ring"></i><i class="wh2-ring wh2-hub"></i></div>'
      +'<div class="wh2-strip"><div class="wh2-tally"><span>Picture '+MC.seen.size+' of '+all.length+'</span><span class="g">✓ Got it '+MC.ok.length+'</span><span class="n">≈ Near '+MC.near.length+'</span></div>'
-     +'<div class="wh2-row"><button class="wh2-b" onclick="mcFsToggle()">⛶ Full screen</button><button class="wh2-b wh2-q" onclick="amHow(\'wheel\')"><i>?</i>How it works</button><span class="wh2-cnt">'+nl+' picture'+(nl===1?'':'s')+' to come'+(nd?' · '+nd+' Near coming back':'')+' · '+MC.secs+' seconds each</span></div></div></div>';
+     +'<div class="wh2-row"><button class="wh2-b" onclick="mcFsToggle()">⛶ Full screen</button><span class="wh2-cnt">'+nl+' picture'+(nl===1?'':'s')+' to come'+(nd?' · '+nd+' Near coming back':'')+' · '+MC.secs+' seconds each</span></div></div></div>';
   }else if(MC.phase==='spin'){
     return '<div class="wh2 wh2-spin"><div class="mc-img spin"><canvas id="mcwh" style="width:100%;height:100%;display:block"></canvas></div></div>';
   }else if(MC.phase==='talk'){
     const left=Math.max(0,MC.end-Date.now()),pct=Math.round(100*left/(MC.secs*1000));
     const i0=MC.cur,fr=MC.fresh;MC.fresh=false;
-    return mcTally()+'<div class="mc-wrap rv2'+(fr?' mc-tin':'')+'"><div><div class="fc-q">'+esc(Q[i0].q_fr)+'</div><div class="fc-qen">'+esc(Q[i0].q_en)+'</div></div><div class="mc-bar"><i id="mcbar" style="width:'+(MC.over?0:pct)+'%"></i></div>'
+    return '<div class="rv2-tr"><button class="btn" onclick="mcBackTalk()">← Back</button>'+mcTally()+'<div class="rv2-qa"><button class="btn" id="qaBtn" onclick="mcQToggle()">'+(MCQ.play?'\u25A0 Stop':'\u{1F50A} Play question')+'</button><label class="rv2-sw"><input type="checkbox" '+(MCQ.on?'checked':'')+' onchange="mcQAuto(this.checked)"><span>Auto</span></label></div></div><div class="mc-wrap rv2'+(fr?' mc-tin':'')+'"><div><div class="fc-q">'+esc(Q[i0].q_fr)+'</div><div class="fc-qen">'+esc(Q[i0].q_en)+'</div></div><div class="mc-bar"><i id="mcbar" style="width:'+(MC.over?0:pct)+'%"></i></div>'
      +'<div class="mc-img mc-talkpic"><img id="mcimg" src="'+picSrc(MC.cur)+'" alt=""></div>'
-     +'<div class="rv2-mark"><div class="rv2-row"><span class="mc-t" id="mct">'+(MC.over?'\u23F0 0:00':fmt(left/1000))+'</span><span class="mc-q2" style="margin:0">'+(MC.over?'Time is up. How did that go?':'How did that go?')+'</span></div>'
+     +'<div class="rv2-mark"><div class="rv2-row"><span class="mc-t" id="mct">'+(MC.back?'':MC.over?'\u23F0 0:00':fmt(left/1000))+'</span><span class="mc-q2" style="margin:0">'+(MC.over&&!MC.back?'Time is up. How did that go?':'How did that go?')+'</span></div>'
      +'<div class="mc-ch"><button class="btn g" onclick="mcMark(\'ok\')">\u2713 I\'ve got it</button><button class="btn n" onclick="mcMark(\'near\')">\u2248 Nearly: bring it back soon</button></div>'
      +'<div class="rv2-row"><button class="btn'+(MC.over?' pri':'')+'" onclick="mcReveal()">\u{1F4D6} Help me prepare this</button><button class="btn" onclick="mcFsToggle()">\u26F6</button><button class="rv2-skip" onclick="mcSpin()">Skip: spin again</button></div></div></div>';
   }else{
     const i=MC.cur;S.pi=i;
-    return '<div class="mc-wrap rv2 rv2-help"><div class="rv2-qq"><div class="rv2-fr">'+esc(Q[i].q_fr)+'</div><div class="rv2-en">'+esc(Q[i].q_en)+'</div></div>'
+    return '<div class="mc-wrap rv2 rv2-help"><div class="rv2-tr"><button class="btn" onclick="mcBackHelp()">← Back</button><div class="rv2-qq"><div class="rv2-fr">'+esc(Q[i].q_fr)+'</div><div class="rv2-en">'+esc(Q[i].q_en)+'</div></div><span></span></div>'
      +'<div class="rv2-row">'+demoBtnHtml(i)+'<details class="rv2-prac"><summary class="btn">Practise this topic \u25BE</summary><div class="rv2-menu">'+[['study','Study'],['words',LG.words]].concat(TYPES.map(t=>[t[0],t[1]])).map(t=>'<button class="btn" onclick="mcPractise('+i+',\''+t[0]+'\')">'+esc(t[1])+'</button>').join('')+'</div></details><button class="btn" onclick="mcFsToggle()">\u26F6</button></div>'
      +stageHtml(i,true)
      +'<div style="width:100%"><div class="label">The approved answer: click a sentence for the English</div>'+sentList2(i)+'</div>'
@@ -9358,7 +9369,7 @@ window.amHow=function(kind){
     ['Choose the areas, how many cards and (if you want one) a thinking time, then press <b>Deal the cards</b>.','Tap a card. It turns over and shows the oral question with one glowing numbered spot on the picture.','Answer the question in the language, starting from that spot. Press <b>Clue</b> if you need a hint, or <b>Reveal</b> to hear and see the approved sentence. <b>Hide the answer</b> lets you have another go from the picture alone.','When you can give the approved sentence for that number confidently, press <b>Got it</b>: the card keeps a green tick. Changed your mind? Open it and press the button again.'],
     'Why <b>Test myself again</b> (same cards, new order)? Because the aim is not to remember where a card sat on the table. The aim is to know its sentence so well that you can pick any of your cards, in any order, look only at the picture and the number, and give the agreed sentence with no Clue and no Reveal. The same cards come back with the same numbers, in a new order and with a new colour on the back, so you cannot cheat by remembering positions. Keep going round until every card has its tick, then deal a fresh hand.'],
    wheel:['How Spin the wheel works','One random picture, one oral question, and a talk you make up on the spot.',
-    ['Choose the areas and how long you will talk, then click the wheel.','The picture comes up with the oral question in the language and a countdown. Say as much as you can, using the picture to help you.','When you have finished, mark yourself under the picture: <b>I\'ve got it</b> or <b>Nearly: bring it back soon</b>. Not sure? Press <b>Help me prepare this</b> first.','<b>Help me prepare this</b> shows the picture large with its numbers (click one to hear it, click it again for the English), the approved answer with the same numbers beside the sentences, and a <b>Practise this topic</b> button. Then mark how confident you are. A gold <b>Back to my picture</b> button always brings you back.'],
+    ['Choose the areas and how long you will talk, then click the wheel.','The picture comes up with the oral question in the language and a countdown, and the French question is read aloud (press <b>Stop</b> to cut it off, or untick <b>Auto</b> to switch it off). Say as much as you can, using the picture to help you.','When you have finished, mark yourself under the picture: <b>I\'ve got it</b> or <b>Nearly: bring it back soon</b>. Not sure? Press <b>Help me prepare this</b> first.','<b>Help me prepare this</b> shows the picture large with its numbers (click one to hear it, click it again for the English), the approved answer with the same numbers beside the sentences, and a <b>Practise this topic</b> button. Then mark how confident you are. A gold <b>Back to my picture</b> button always brings you back.'],
     'Why does a Near picture come back? Because the best way to fix a weak answer is to try again soon. A Near picture returns after two other pictures, so you get a second go while you still remember the approved sentences. Pictures you marked OK do not come back until every picture has been seen.']};
   const d=D[kind];if(!d)return;
   const ov=document.createElement('div');ov.id='am-how';ov.className='hw-ov';ov.setAttribute('role','dialog');ov.setAttribute('aria-modal','true');
