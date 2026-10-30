@@ -658,6 +658,8 @@ button[onclick*="apMySetHelp"]{background:none!important;border:0!important;box-
     + '.pt-t.act{opacity:1;transform:scale(1.05);background:color-mix(in srgb,var(--tc) 34%,rgba(8,14,32,.8));box-shadow:0 0 38px var(--tc)}.pt-t span{display:block;font:800 .95rem "DM Sans",sans-serif;letter-spacing:.14em;text-transform:uppercase;color:var(--tc)}.pt-t.act span{color:#fff}'
     + '.pt-t b{display:block;font:800 2.5rem Georgia,serif;color:#fff;line-height:1.1}.pt-t em{display:block;font:800 1rem "DM Sans",sans-serif;font-style:normal;color:#fff;margin-top:2px;min-height:1.2em}'
     + '.pt-turn{--tc:#4f8cff;font:800 clamp(1.7rem,4.6vw,3rem) Georgia,serif;color:#fff;padding:6px 34px;border-radius:999px;background:var(--tc);box-shadow:0 0 36px var(--tc);animation:bzpop .35s ease-out}.pt-turn.g{--tc:#f0d27a;color:#1a2744}.pt-card .bz-card{filter:drop-shadow(0 0 26px var(--tc))}'
+    + '.rl-strip{display:flex;flex-wrap:wrap;gap:8px;justify-content:center;width:min(1040px,96%)}.rl-t{max-width:150px;padding:7px 12px;border-radius:12px;background:rgba(10,18,40,.78);border:1.5px solid rgba(201,168,76,.45);color:#c8d3ea;font:600 .85rem "DM Sans",sans-serif;line-height:1.25;overflow:hidden;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;transition:all .2s}'
+    + '.rl-t.cur{background:linear-gradient(135deg,#f0d27a,#c9a84c);color:#1a2744;border-color:#fff;transform:scale(1.1);box-shadow:0 0 22px rgba(240,210,122,.8)}.rl-t.ok{background:#2e9e62;color:#fff;border-color:#bff0d2}.rl-t.bad{background:#c0392b;color:#fff;border-color:#ffc3bb}.rl-t.ok::before{content:"✓ "}.rl-t.bad::before{content:"✗ "}'
     + '.bz-note{max-width:620px;color:#c8d3ea;font-size:.95rem}.bz-big-n{font:800 4rem Georgia,serif;color:#fff}'
     + '@media (max-width:900px){.bz-grid{grid-template-columns:repeat(2,1fr)}}';
   var DICE = { 1: [4], 2: [0, 8], 3: [0, 4, 8], 4: [0, 2, 6, 8], 5: [0, 2, 4, 6, 8], 6: [0, 2, 3, 5, 6, 8] };
@@ -846,18 +848,18 @@ button[onclick*="apMySetHelp"]{background:none!important;border:0!important;box-
   // ---------- the eight rounds
   var GAMES = {};
   function selfMarkGame(opt) {   // shared by clock / streak / twomin / roll
-    var pile = opt.deck.slice(), n = 0, ok = 0, miss = 0, startT = Date.now(), cur = null, best = opt.best || 0, run = 0, closed = false;
+    var all = opt.deck.slice(), res = [], pile = opt.deck.slice(), n = 0, ok = 0, miss = 0, startT = Date.now(), cur = null, best = opt.best || 0, run = 0, closed = false;
     function next() {
       if (closed) return; stop(); if (opt.total) { /* overall timer keeps running */ }
       if (!pile.length) return finish();
       cur = pile.shift(); n++; var pc = typeof opt.perCard === 'function' ? opt.perCard() : opt.perCard;
-      frame(opt.title, '<div class="bz-stat">' + opt.stats(ok, miss, pile.length + 1, run) + '</div>' + (pc ? ringHTML('bzr') : '') + card(cur.q, cur.a, opt.cue || '') + '<div class="bz-row"><button class="bz-big" id="bz-show" onclick="apBzShow()">Show answer</button></div><div class="bz-row" id="bz-mark" style="display:none"><button class="bz-big" onclick="apBzMark(1)">✓ Got it</button><button class="bz-big no" onclick="apBzMark(0)">✗ Missed</button></div>' + (opt.timerBar ? '<div class="bz-stat" style="margin-top:6px">Time left <b id="bz-tl">' + opt.timerBar() + '</b></div>' : ''));
+      frame(opt.title, (opt.strip ? '<div class="rl-strip">' + all.map(function (x, i) { return '<div class="rl-t' + (res[i] === 1 ? ' ok' : res[i] === 0 ? ' bad' : (i === n - 1 ? ' cur' : '')) + '">' + esc(x.q) + '</div>'; }).join('') + '</div>' : '') + '<div class="bz-stat">' + opt.stats(ok, miss, pile.length + 1, run) + '</div>' + (pc ? ringHTML('bzr') : '') + card(cur.q, cur.a, opt.cue || '') + '<div class="bz-row"><button class="bz-big" id="bz-show" onclick="apBzShow()">Show answer</button></div><div class="bz-row" id="bz-mark" style="display:none"><button class="bz-big" onclick="apBzMark(1)">✓ Got it</button><button class="bz-big no" onclick="apBzMark(0)">✗ Missed</button></div>' + (opt.timerBar ? '<div class="bz-stat" style="margin-top:6px">Time left <b id="bz-tl">' + opt.timerBar() + '</b></div>' : ''));
       if (pc) runRing('bzr', pc, function () { reveal(); });
     }
     function finish() { closed = true; opt.end({ ok: ok, miss: miss, secs: Math.round((Date.now() - startT) / 1000), best: Math.max(best, run) }); }
     window.apBzShow = function () { stop(); reveal(); if (opt.perCard) { var t = $('bzrt'); if (t) t.textContent = ''; } };
     window.apBzMark = function (good) {
-      if (closed) return; sfx(good ? 'ok' : 'bad');
+      if (closed) return; sfx(good ? 'ok' : 'bad'); res[n - 1] = good ? 1 : 0;
       if (good) { ok++; run++; best = Math.max(best, run); } else { miss++; run = 0; if (opt.requeue) { var k = Math.min(pile.length, 3 + Math.floor(Math.random() * 3)); pile.splice(k, 0, cur); } if (opt.sudden) { return finish(); } }
       next();
     };
@@ -898,7 +900,7 @@ button[onclick*="apMySetHelp"]{background:none!important;border:0!important;box-
       timers.push(setTimeout(function () {
         var n = Math.min(d1 + d2, p.length);
         frame('Roll it', '<div class="bz-row">' + dieHTML(d1) + (d2 ? dieHTML(d2) : '') + '</div><div class="bz-big-n">' + n + ' words</div><div class="bz-note">The ' + (d2 ? 'dice say ' : 'die says ') + (d1 + d2) + '. Blitz them in one go.</div><button class="bz-big" onclick="apBzGo()">▶ Blitz them</button>'); sfx('ok');
-        window.apBzGo = function () { selfMarkGame({ title: 'Roll it', deck: shuf(p).slice(0, n), cue: LANG_NAMES[dirs()[0]], stats: function (ok, miss, left) { return '<div><b>' + ok + '</b>got</div><div><b>' + left + '</b>to go</div>'; }, end: function (r) { endScreen('Roll it', { big: r.ok + '/' + n, note: r.ok === n ? 'All of them.' : (n - r.ok) + ' to look at again.' }, go); } }); };
+        window.apBzGo = function () { selfMarkGame({ title: 'Roll it', strip: true, deck: shuf(p).slice(0, n), cue: LANG_NAMES[dirs()[0]], stats: function (ok, miss, left) { return '<div><b>' + ok + '</b>got</div><div><b>' + left + '</b>to go</div>'; }, end: function (r) { endScreen('Roll it', { big: r.ok + '/' + n, note: r.ok === n ? 'All of them.' : (n - r.ok) + ' to look at again.' }, go); } }); };
       }, 1500));
     }; go();
   };
@@ -12237,4 +12239,4 @@ textarea.ms-in{min-height:7rem;resize:vertical}
   if (document.readyState === 'complete') start(); else window.addEventListener('load', start);
 })();
 </script>
-<script id="ap-build">window.__apBuild="bd434bbdac";</script>
+<script id="ap-build">window.__apBuild="1de1f47471";</script>
