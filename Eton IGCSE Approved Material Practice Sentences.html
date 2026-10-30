@@ -215,6 +215,63 @@
 })(window);
 /* ===== END AP VOICE ===== */
 </script>
+<script id="ap-sp">
+/* ===== AP SPEED & PAUSES v1 (identical in every AP app that has it) =====
+   One header button "🎚 Speed & pauses" opens a small panel: voice Speed (50–150 %) and the Pause between sentences (0–2 s).
+   Speed is applied to EVERY utterance by wrapping speechSynthesis.speak, so an app never scales the rate itself.
+   AP_SP.pauseMs() is what a multi-sentence player (whole answer, story) waits between sentences.
+   Remembered on this device (shared by all the apps). Never autoplays anything; Try is a button. */
+(function (W) {
+  if (W.AP_SP) return;
+  var K = 'ap_sp_v1', st = { speed: 1, pause: 0.3 };
+  try { var j = JSON.parse(localStorage.getItem(K) || 'null'); if (j) { if (j.speed >= .5 && j.speed <= 1.5) st.speed = j.speed; if (j.pause >= 0 && j.pause <= 2) st.pause = j.pause; } } catch (e) { }
+  function save() { try { localStorage.setItem(K, JSON.stringify(st)); } catch (e) { } }
+  var S = W.speechSynthesis;
+  if (S && !S.__apSp) {
+    try {
+      S.__apSp = 1; var sp = S.speak.bind(S);
+      S.speak = function (u) { try { if (u && !u.__apSp) { u.__apSp = 1; u.rate = Math.min(2, Math.max(.1, (u.rate || 1) * st.speed)); } } catch (e) { } return sp(u); };
+    } catch (e) { }
+  }
+  var CSS = '#apsp-pop{position:absolute;right:12px;top:100%;margin-top:6px;z-index:60;width:min(330px,90vw);background:#fff;color:#1a2744;border:2px solid #c9a84c;border-radius:12px;padding:12px 14px;box-shadow:0 8px 24px rgba(0,0,0,.28);font:500 .9rem/1.3 var(--aph-body,"DM Sans",system-ui,sans-serif)}'
+    + '#apsp-pop .pc-h{font-weight:800;margin-bottom:6px}#apsp-pop label{display:flex;justify-content:space-between;margin-top:8px;font-weight:600}#apsp-pop input[type=range]{width:100%;margin:4px 0}'
+    + '#apsp-pop .pc-b{display:flex;gap:8px;margin-top:10px}#apsp-pop .pc-b button{flex:1;padding:8px;border-radius:8px;border:2px solid #1a2744;background:#fff;color:#1a2744;font:700 .9rem var(--aph-body,inherit);cursor:pointer}#apsp-pop .pc-b button:first-child{background:#1a2744;color:#ffd76a}'
+    + '#apsp-pop .pc-n{font-size:.8rem;color:#4a5a7a;margin-top:6px}@media print{#apsp-pop,.aph-pace{display:none!important}}';
+  function toggle(ev) {
+    if (ev) ev.stopPropagation();
+    var p = document.getElementById('apsp-pop'); if (p) { p.remove(); return; }
+    p = document.createElement('div'); p.id = 'apsp-pop'; p.setAttribute('data-nogrow', '1');
+    p.innerHTML = '<div class="pc-h">Voice speed and pauses</div>'
+      + '<label>Speed <b id="apsp-sv"></b></label><input type="range" id="apsp-s" min="0.5" max="1.5" step="0.05">'
+      + '<label>Pause between sentences <b id="apsp-pv"></b></label><input type="range" id="apsp-p" min="0" max="2" step="0.1">'
+      + '<div class="pc-b"><button type="button" id="apsp-try">&#9654; Try</button><button type="button" id="apsp-reset">Reset</button></div>'
+      + '<div class="pc-n">Speed changes every voice. The pause is the gap in “Hear the whole answer” and other multi-sentence playback.</div>';
+    (document.querySelector('.aph-header') || document.body).appendChild(p);
+    var r = document.getElementById('apsp-s'), q = document.getElementById('apsp-p');
+    function show() { document.getElementById('apsp-sv').textContent = Math.round(st.speed * 100) + '%'; document.getElementById('apsp-pv').textContent = st.pause.toFixed(1) + ' s'; r.value = st.speed; q.value = st.pause; }
+    r.oninput = function () { st.speed = parseFloat(r.value); show(); save(); };
+    q.oninput = function () { st.pause = parseFloat(q.value); show(); save(); };
+    document.getElementById('apsp-reset').onclick = function () { st.speed = 1; st.pause = 0.3; show(); save(); };
+    document.getElementById('apsp-try').onclick = function () {
+      try { var s = W.speechSynthesis; s.cancel(); var L = (W.LG && W.LG.code) || 'fr'; var T = { fr: 'Bonjour, je m’appelle Thomas. J’habite à Londres avec ma famille.', it: 'Ciao, mi chiamo Luca. Abito a Londra con la mia famiglia.', es: 'Hola, me llamo Pablo. Vivo en Madrid con mi familia.' };
+        var u = new SpeechSynthesisUtterance(T[L] || T.fr); var b = W.AP_VOICE; u.lang = ({ fr: 'fr-FR', it: 'it-IT', es: 'es-ES' })[L] || 'fr-FR'; u.rate = .9;
+        try { var v = b && b.pick && b.pick(u.lang); if (v) u.voice = v; } catch (e) { } s.speak(u); } catch (e) { }
+    };
+    show();
+  }
+  function mount() {
+    if (document.querySelector('.aph-pace')) return;
+    if (!document.getElementById('apsp-css')) { var c = document.createElement('style'); c.id = 'apsp-css'; c.textContent = CSS; document.head.appendChild(c); }
+    var vb = document.querySelector('.aph-header-in .aph-voice') || document.querySelector('.aph-header .aph-voice'); if (!vb || !vb.parentNode) return;
+    var b = document.createElement('button'); b.type = 'button'; b.className = 'aph-home aph-voice aph-pace'; b.title = 'Voice speed and pause between sentences'; b.setAttribute('aria-label', 'Voice speed and pauses');
+    b.innerHTML = '🎚<span class="aph-voice-t"> Speed &amp; pauses</span>'; b.onclick = toggle; vb.parentNode.insertBefore(b, vb);
+  }
+  document.addEventListener('click', function (e) { var p = document.getElementById('apsp-pop'); if (p && !p.contains(e.target) && !(e.target.closest && e.target.closest('.aph-pace'))) p.remove(); });
+  W.AP_SP = { get speed() { return st.speed; }, get pause() { return st.pause; }, pauseMs: function () { return Math.round(st.pause * 1000); }, mount: mount, toggle: toggle };
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', mount); else mount();
+})(window);
+/* ===== END AP SPEED & PAUSES ===== */
+</script>
 <style id="aph-style">
 /* ===== AP HOUSE STYLE v1 ===== */
 /* One shared look for every AP app. Paste this block unchanged into each app (inside <style id="aph-style">);
@@ -7696,31 +7753,8 @@ function apPrintOverlay(html) {
 @media print{#am-speed{display:none!important}}
 </style>
 <script id="am-speed-js">
-/* AP voice speed meter: always on screen; scales the speed of every voice in this app (Spanish stays slower than French/Italian). Tap the number to reset. */
-(function () {
-  var K = 'ap_am_speed', v = 1;
-  try { var x = parseFloat(localStorage.getItem(K)); if (x >= 0.5 && x <= 1.5) v = x; } catch (e) { }
-  window._amSpeed = v;
-  function set(n) {
-    n = Math.round(Math.min(1.5, Math.max(0.5, n)) * 20) / 20; window._amSpeed = n;
-    var t = document.getElementById('am-sp-v');
-    if (t) t.textContent = n.toFixed(2) + '×';
-    try { localStorage.setItem(K, String(n)); } catch (e) { }
-  }
-  function build() {
-    if (document.getElementById('am-speed')) return;
-    var d = document.createElement('span'); d.id = 'am-speed'; d.className = 'aph-noprint'; d.setAttribute('role', 'group'); d.setAttribute('aria-label', 'Voice speed'); d.title = 'Voice speed (tap the number for normal speed)';
-    d.innerHTML = '<span class="am-sp-l">Speed</span><span title="Slower">🐢</span><button type="button" class="am-sp-b" id="am-sp-m" aria-label="Slower voice">−</button>'
-      + '<span class="am-sp-v" id="am-sp-v" title="Tap for normal speed">' + window._amSpeed.toFixed(2) + '×</span>'
-      + '<button type="button" class="am-sp-b" id="am-sp-p" aria-label="Faster voice">+</button><span title="Faster">🐇</span>';
-    var vb = document.querySelector('.aph-header-in .aph-voice');
-    if (vb && vb.parentNode) vb.parentNode.insertBefore(d, vb); else document.body.appendChild(d);
-    document.getElementById('am-sp-m').onclick = function () { set(window._amSpeed - 0.05); };
-    document.getElementById('am-sp-p').onclick = function () { set(window._amSpeed + 0.05); };
-    document.getElementById('am-sp-v').onclick = function () { set(1); };
-  }
-  if (document.body) build(); else document.addEventListener('DOMContentLoaded', build);
-})();
+/* Voice speed is now the shared header button "Speed & pauses" (AP SPEED & PAUSES); this app never scales the rate itself. */
+window._amSpeed = 1;
 </script>
 <script type="text/plain" id="am-studio-src"><!DOCTYPE html>
 <html lang="en">
@@ -8800,9 +8834,9 @@ function demoStart(i,en){
     if(DM.k>=ss.length){DM.on=false;DM.k=-1;paintDemo();return}
     paintDemo();
     let done=false,fb=null;
-    const nx=()=>{if(done)return;done=true;clearTimeout(fb);if(!DM.on||DM.tok!==tok)return;DM.k++;setTimeout(step,300)};
+    const nx=()=>{if(done)return;done=true;clearTimeout(fb);if(!DM.on||DM.tok!==tok)return;DM.k++;setTimeout(step,(()=>{try{return window.parent.AP_SP?window.parent.AP_SP.pauseMs():300}catch(e){return 300}})())};
     // iPad voices sometimes never report 'end': a fallback timer (generous: 0.65 s a word + 4 s) moves on so the answer can never freeze
-    fb=setTimeout(nx,Math.round(String(ss[DM.k]).split(/\s+/).length*650/(()=>{try{return window.parent._amSpeed||window._amSpeed||1}catch(e){return 1}})())+4000);
+    fb=setTimeout(nx,Math.round(String(ss[DM.k]).split(/\s+/).length*650/(()=>{try{return window.parent.AP_SP?window.parent.AP_SP.speed:1}catch(e){return 1}})())+4000);
     if(en)sayEn(ss[DM.k],nx);else say(ss[DM.k],nx);
   };
   step();
