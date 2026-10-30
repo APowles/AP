@@ -18115,7 +18115,19 @@ textarea.ms-in{min-height:7rem;resize:vertical}
   // ---------- Reuse an Oral Cycle phrase ----------
   // rung 1: answer one of the card's own questions with the structure; rung 2: two dice rolls (an exam topic and a kind of answer), the same structure on each.
   // The answers are written with the shared Apple Pencil pad. Check shows how the demo itself uses the structure (its own sentence: no new French is made up).
-  function rzKinds() { return ['Give your opinion (O)', 'Give an example from the KTRs (E)', 'Explain why: analysis (A)', 'Say what you would do: hypothesis (H)', 'Talk to the examiner (I)', 'Draw a conclusion (C)']; }
+  var RZ_KIND = { Q: 'React to the question (Q)', P: 'State your point of view (P)', S: 'Bring in a source (S)', E: 'Give an example (E)', A: 'Explain why: analysis (A)', I: 'Talk to the examiner (I)', O: 'Give your opinion (O)', H: 'Say what you would do: hypothesis (H)', C: 'Draw a conclusion (C)' };
+  function rzStageOf(f) {   // the Oral Cycle stage of the demo sentence that this phrase comes from
+    var c = W.ctx; if (!f) return '';
+    if (f.stage) return f.stage;
+    var nz = function (t) { return String(t).replace(/[\u2019\u2018]/g, "'").toLowerCase(); }, e2 = function (x) { return x.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'); };
+    var lits = String(f.fr).split(/\b(?:X|Y|Z|W|INF|PP|ADJ)\b/).map(function (x) { return nz(x).replace(/[…().,;:!?«»"]/g, ' ').replace(/\s+/g, ' ').trim(); }).filter(function (x) { return x.replace(/[^a-zà-ÿ]/g, '').length >= 2; });
+    if (!lits.length) return '';
+    var lg = lits.slice().sort(function (x, y) { return y.length - x.length; })[0], tries = [lits.map(e2).join('.*?'), e2(lits[0]), e2(lg)];
+    for (var t = 0; t < tries.length; t++) { var rx; try { rx = new RegExp(tries[t]); } catch (e) { continue; }
+      var ss = c.fr[1] || []; for (var i = 0; i < ss.length; i++) if (rx.test(nz(ss[i]).replace(/\s+/g, ' ')) && c.st[1][i]) return f.stage = c.st[1][i]; }
+    return '';
+  }
+  function rzKinds(f) { var k = RZ_KIND[rzStageOf(f)]; return k ? [k] : ['Give your opinion (O)', 'Explain why: analysis (A)']; }
   function rzKey(i, x) { return 'rz:' + (W.ctx.code || W.ctx.id) + ':' + W.rz.deal + ':' + i + ':' + x; }
   function rzDeal(again) {
     var c = W.ctx, old = W.rz;
@@ -18156,7 +18168,7 @@ textarea.ms-in{min-height:7rem;resize:vertical}
     var i = z.i, f = z.fr[i], q = z.qs[z.qi[i]];
     var h = '<div class="od-page od-narrow">' + top('Reuse an Oral Cycle phrase ' + codeBadge(), esc(c.card.topicName), 'Back');
     h += '<div class="rz-hero"><div class="rz-eye">Phrase ' + (i + 1) + ' of ' + z.fr.length + '</div><div class="rz-st" lang="fr">' + ph(f.fr) + '</div><div class="rz-en">' + esc(f.en) + '</div>'
-      + '<div class="rz-mission"><b>Your job:</b> use this Oral Cycle phrase three times. Once on a question from this card, then on two other topics chosen by the dice, each with its own kind of answer. Using it in different places is how it becomes yours for the oral.</div>'
+      + '<div class="rz-mission"><b>Your job:</b> use this Oral Cycle phrase three times. Once on a question from this card, then on two other topics chosen by the dice, using it in the kind of answer its Oral Cycle stage calls for. Using it in different places is how it becomes yours for the oral.</div>'
       + '<div class="rz-pathrow"><div class="rz-path"><span class="rz-pn"><i>1</i>Card question</span><span class="rz-pa">→</span><span class="rz-pn"><i>2</i>Dice topic' + rz3d('mini', 0) + '</span><span class="rz-pa">→</span><span class="rz-pn"><i>3</i>Dice topic' + rz3d('mini', 1) + '</span></div><span class="rz-herodice" aria-hidden="true">' + rz3d('hero', 0) + rz3d('hero', 1) + '</span></div>'
       + '<div class="rz-note">Capital letters (X, Y, INF, PP, ADJ) are the bits you change.</div><button type="button" class="ms-b sm" data-a="fsay" data-i="' + i + '">🔊 Hear the Oral Cycle phrase</button></div>';
     h += '<div class="rz-slot rz-r1"><div class="rz-rh"><span class="rz-badge">1</span><div><b>Answer a question from the card</b><small>Use the Oral Cycle phrase in your answer. Write it with Apple Pencil or type it.</small></div></div>'
@@ -18218,7 +18230,7 @@ textarea.ms-in{min-height:7rem;resize:vertical}
     } catch (e) { }
   }
   function rzRoll(k) {
-    var z = W.rz, i = z.i, kinds = rzKinds(); if (z.rolling) return; z.rolling = true;
+    var z = W.rz, i = z.i, kinds = rzKinds(z.fr[i]); if (z.rolling) return; z.rolling = true;
     var box = $('rz-d' + k); if (!box) { z.rolling = false; return; }
     rzRattle();
     var tick = 0, final = { topic: rzTopic(), kind: kinds[Math.floor(Math.random() * kinds.length)], a: 1 + Math.floor(Math.random() * 6), b: 1 + Math.floor(Math.random() * 6) };
@@ -19407,4 +19419,4 @@ textarea.ms-in{min-height:7rem;resize:vertical}
   if (document.readyState === 'complete') start(); else window.addEventListener('load', start);
 })();
 </script>
-<script id="ap-build">window.__apBuild="31f3b6f2cf";</script>
+<script id="ap-build">window.__apBuild="c32501a581";</script>
