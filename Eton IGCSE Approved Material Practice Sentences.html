@@ -8571,16 +8571,16 @@ function scopeBar(){
 }
 function vSec(){
   const all=S.sec==='all',hasP=!all&&secPic(S.sec)!=null;
-  const tabsL=(all?[]:(hasP?[['pic','Pictures','See it, hear it']]:[]).concat([['study','Study',LG.sub[5]],['words',LG.words,'Learn the words']])).concat(TYPES.map(t=>[t[0],t[1],t[3]])).concat([['mix','Mixed','All drills']]);
-  const isOn=k=>S.tab===k||(k==='pic'&&S.tab==='cmb');
+  const tabsL=(all?[]:(hasP?[['pic','Pictures','See it, hear it']]:[]).concat([['study','Study',LG.sub[5]],['words',LG.words,'Learn the words']])).concat(TYPES.map(t=>[t[0],t[1],t[3]])).concat(all?[]:[['cmb','Combine','Write an answer using the approved sentences and a Top Structure']]).concat([['mix','Mixed','All drills']]);
+  const isOn=k=>S.tab===k;
   const tiles=tabsL.map(t=>'<button class="stp-t'+(isOn(t[0])?' on':'')+'" onclick="setTab(\''+t[0]+'\')"><b>'+t[1]+'</b><small>'+t[2]+'</small></button>').join('')
-    +(spotHost()?'<button class="stp-t sp" onclick="sptCard()"><b>&#128221; Spot Test</b><small>Short boxed questions: Apple Pencil or paper</small></button><button class="stp-t sp" onclick="openSpeed()"><b>&#9889; Speed</b><small>Race the clock</small></button>':'');
+    +(spotHost()?'<button class="stp-t sp" onclick="sptCard()"><b>&#128221; Spot Test</b><small>Short boxed questions: Apple Pencil or paper</small></button><button class="stp-t" onclick="openSpeed()"><b>&#9889; Speed</b><small>Race the clock</small></button>':'');
   const head='<div class="row" style="justify-content:space-between"><h1 class="h2">'+(all?'Mixed: '+scopeN():esc(secName(SECS[S.sec])))+'</h1><button class="btn" onclick="goBack()">&larr; Back</button></div>';
   const first='<div class="stp"><div class="stp-h"><span class="stp-n">FIRST</span> What do you want to practise?</div><div class="stp-b">'
     +(all?'<b>'+esc(scopeN())+'</b>':'<button class="stp-c'+(S.qi==='all'?' on':'')+'" onclick="setScope(\'all\')">The whole section</button><span class="stp-or">or</span><select class="'+(S.qi!=='all'?'on':'')+'" aria-label="One topic" onchange="if(this.value)setScope(this.value)"><option value=""'+(S.qi==='all'?' selected':'')+'>One topic: choose&hellip;</option>'
       +Q.filter(q=>q.section===SECS[S.sec]).map(q=>'<option value="'+q.i+'"'+(String(S.qi)===String(q.i)?' selected':'')+'>'+esc(q.q_en)+'</option>').join('')+'</select>')
     +'</div></div>';
-  const sw=(!all&&(S.tab==='pic'||S.tab==='cmb'||!hasP))?'<label class="stp-sw"><input type="checkbox"'+(S.tab==='cmb'?' checked':'')+' onchange="setTab(this.checked?\'cmb\':\''+(hasP?'pic':'study')+'\')"><span class="stp-sl"></span><span><b>Combine</b> &middot; '+(S.tab==='cmb'?'on: ':'off: ')+'use the approved material and a range of Top Structures together</span></label>':'';
+  const sw='';
   const next='<div class="stp"><div class="stp-h"><span class="stp-n">NEXT</span> How do you want to practise it?</div><div class="stp-tiles">'+tiles+'</div>'+sw+'</div>';
   let body;
   if(S.tab==='pic')body=vPics();else if(S.tab==='cmb')body=vCmb();else if(S.tab==='study')body=vStudy();else if(S.tab==='words')body=vWords();else{if(!S.ses)startSes();body=vDrill()}
@@ -8910,7 +8910,7 @@ function vCmb(){
   if(S.qi==='all'){
     const cards=topicsOf(S.sec).map(q=>{const A=areaOf(q.section);
       return '<div class="tcw">'+'<button class="pcard ar-'+A+'"'+bgS(hasPic(q.i)?q.i:null)+' onclick="openTopic('+q.i+',\'cmb\')"><span class="pe">'+(hasPic(q.i)?'':AREAS[A][1])+'</span><span class="pno">'+(((LM[q.i]&&LM[q.i].s)||[]).length)+' Top Structures</span><span class="pnm">'+esc(q.q_en)+'</span><span class="pmt">'+esc(q.q_fr)+'</span></button>'+tcBtns(q.i)+'</div>'}).join('');
-    return '<p class="thm-sub" style="margin-top:12px">Choose a topic. You will have to use the approved information and a range of Top Structures together.</p><div class="pcards">'+cards+'</div>';
+    return '<p class="thm-sub" style="margin-top:12px">Combine: choose a topic. You are given a Top Structure and must use it in your answer, together with the approved sentences.</p><div class="pcards">'+cards+'</div>';
   }
   const i=+S.qi;S.pi=i;
   if(CB.i!==i)CB={i,k:0,shown:false,full:false,used:{},ord:null};
