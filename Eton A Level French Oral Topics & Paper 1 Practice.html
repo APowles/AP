@@ -14358,7 +14358,8 @@ body:not(.hm):not(.ctl-open) .ctl>*:not(.seg):not(.seglab):not(.hm-opt){display:
 .fc-card:hover{outline:3px solid var(--gold)}
 .fc-card.flip{transform:rotateY(90deg)}
 .fc-card.pre{transform:translate(var(--dx,0),var(--dy,0)) rotate(var(--r,0deg)) scale(.5);opacity:0;transition:none;pointer-events:none}
-.fc-bk,.fc-card.bk{background:radial-gradient(circle at 50% 50%,#c9a84c 0 0,transparent 0),repeating-linear-gradient(45deg,rgba(201,168,76,.30) 0 2px,transparent 2px 14px),repeating-linear-gradient(-45deg,rgba(201,168,76,.30) 0 2px,transparent 2px 14px),var(--bk,#14203a);border:6px solid #f7f3e8}
+.fc-bk,.fc-card.bk{background:url(icons/cardback_1.webp) center/cover no-repeat,#0d1a38;border:6px solid #f7f3e8}
+body[data-fcb="2"] .fc-card.bk,body[data-fcb="2"] .fc-ovi .fc-bk{background:url(icons/cardback_2.webp) center/cover no-repeat,#0d1a38}
 .fc-bk:after,.fc-card.bk:after{content:"";position:absolute;inset:7px;border:2px solid #c9a84c;border-radius:8px;pointer-events:none}
 .fc-card .fc-no{position:relative;z-index:1;display:flex;align-items:center;justify-content:center;width:clamp(44px,5.2vw,68px);height:clamp(44px,5.2vw,68px);border-radius:50%;background:#c9a84c;color:#14203a;border:3px solid #14203a;box-shadow:0 0 0 3px #c9a84c;font-family:var(--head);font-size:clamp(1.3rem,2.6vw,2rem);font-weight:800}
 .fc-card.up{border:6px solid #f7f3e8}
@@ -15555,7 +15556,7 @@ const FC={ths:new Set([1,2,3,4]),n:6,secs:0,phase:'setup',cards:[],cur:null,seen
 const fcPool=()=>{const o=[];SUBS.forEach(s=>{if(FC.ths.has(s.theme))s.ktrs.forEach(k=>{if(ILLUS[k.n]&&ILLUS[k.n].spots&&ILLUS[k.n].spots.length)o.push(k.n)})});return o};
 function fcStop(){const ov=document.getElementById('fc-ov');if(ov)ov.remove();if(FC.iv){clearInterval(FC.iv);FC.iv=null}if(FC.to){clearTimeout(FC.to);FC.to=null}FC.tms.forEach(clearTimeout);FC.tms=[]}
 function fcQuiet(){mcQuiet()}
-function openCards(){S.ret=null;document.body.removeAttribute('data-fcr');FC.round=0;mcStop();FC.phase='setup';FC.enter=true;go('cards');fcPlay('fan1')}
+function openCards(){S.ret=null;document.body.removeAttribute('data-fcr');document.body.setAttribute('data-fcb','1');FC.round=0;mcStop();FC.phase='setup';FC.enter=true;go('cards');fcPlay('fan1')}
 function fcSetupUpd(){
   document.querySelectorAll('[data-fa]').forEach(b=>b.classList.toggle('on',FC.ths.has(+b.getAttribute('data-fa'))&&!b.disabled));
   document.querySelectorAll('[data-fs]').forEach(b=>b.classList.toggle('on',FC[b.getAttribute('data-fs')]===+b.getAttribute('data-v')));
@@ -15568,7 +15569,7 @@ function fcDeal(){
   fcStop();fcQuiet();
   const pool=fcPool();let left=pool.filter(i=>!FC.seen.has(i));if(left.length<FC.n){FC.seen=new Set();left=pool.slice()}
   const pick=shuffle(left).slice(0,FC.n);pick.forEach(i=>FC.seen.add(i));
-  FC.round=0;document.body.setAttribute('data-fcr','0');const ovk=Math.floor(Math.random()*pick.length);FC.cards=pick.map((i,k)=>({i:i,done:false,ok:false,pts:null,ov:k===ovk&&!!((mcLoc(i)||{}).k||{}).hook}));FC.cur=null;FC.phase='shuffle';render();window.scrollTo(0,0);
+  FC.round=0;document.body.setAttribute('data-fcr','0');document.body.setAttribute('data-fcb','1');const ovk=Math.floor(Math.random()*pick.length);FC.cards=pick.map((i,k)=>({i:i,done:false,ok:false,pts:null,ov:k===ovk&&!!((mcLoc(i)||{}).k||{}).hook}));FC.cur=null;FC.phase='shuffle';render();window.scrollTo(0,0);
   fcPlay('fan1');FC.tms.push(setTimeout(()=>fcPlay('fan2'),800));
   FC.to=setTimeout(()=>{FC.to=null;FC.phase='table';render();fcDealAnim()},2350);
 }
@@ -15599,7 +15600,7 @@ function amHowClose(){const o=document.getElementById('am-how');if(o)o.remove();
 function fcNew(){if(FC.cards.some(c=>c.ok)&&!FC.cd){FC.cd=true;render();return}FC.cd=false;fcDeal()}
 function fcRedeal(){FC.cd=false;
   fcStop();fcQuiet();
-  FC.round++;document.body.setAttribute('data-fcr',String(FC.round%4));
+  FC.round++;document.body.setAttribute('data-fcr',String(FC.round%4));document.body.setAttribute('data-fcb','2');
   FC.cards=shuffle(FC.cards.map(c=>({i:c.i,done:false,ok:false,pts:c.pts,ov:c.ov})));FC.cur=null;FC.phase='shuffle';render();window.scrollTo(0,0);
   fcPlay('fan1');FC.tms.push(setTimeout(()=>fcPlay('fan2'),800));
   FC.to=setTimeout(()=>{FC.to=null;FC.phase='table';render();fcDealAnim()},2350);
@@ -19109,4 +19110,4 @@ textarea.ms-in{min-height:7rem;resize:vertical}
   if (document.readyState === 'complete') start(); else window.addEventListener('load', start);
 })();
 </script>
-<script id="ap-build">window.__apBuild="ea717b9a23";</script>
+<script id="ap-build">window.__apBuild="4f049b8e6c";</script>
