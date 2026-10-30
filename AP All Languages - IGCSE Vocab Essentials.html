@@ -586,7 +586,7 @@ button[onclick*="apMySetHelp"]{background:none!important;border:0!important;box-
 (function () {
   var $ = function (id) { return document.getElementById(id); };
   var ov = null, snd = true, AC = null, timers = [], PZ = false;
-  var CFG = { snd: true, style: 'marimba', vol: 1, ticks: true, clock: 3, streak: 0, tm: 2, dice: 2, pairs: 20, cw: 20, lives: 3, accel: 11, start: 100, oddR: 10, oddS: 12, gN: 12, gS: 6, lW: 10, lG: 3, oddM: 1, ln: 25 };
+  var CFG = { snd: true, style: 'marimba', vol: 1, ticks: true, clock: 3, streak: 0, tm: 2, dice: 2, pairs: 20, cw: 20, lives: 3, accel: 11, start: 100, oddR: 10, oddS: 12, gN: 12, gS: 6, lW: 10, lG: 3, oddM: 1, ln: 25, mus: 'pulse', mv: 1 };
   try { var sv = JSON.parse(localStorage.getItem('apbz_cfg') || '{}'); for (var kk in sv) if (kk in CFG) CFG[kk] = sv[kk]; } catch (e) { }
   snd = CFG.snd;
   function saveCfg() { CFG.snd = snd; try { localStorage.setItem('apbz_cfg', JSON.stringify(CFG)); } catch (e) { } }
@@ -690,6 +690,54 @@ button[onclick*="apMySetHelp"]{background:none!important;border:0!important;box-
     { var c = ctx(); if (!c || !snd) return; for (var i = 0; i < 12; i++) (function (i) { var t = c.currentTime + i * .06 + Math.random() * .02, b = c.createBuffer(1, 800, c.sampleRate), d = b.getChannelData(0); for (var j = 0; j < 800; j++) d[j] = (Math.random() * 2 - 1) * Math.exp(-j / 120); var s = c.createBufferSource(); s.buffer = b; var g = c.createGain(); g.gain.value = .25 * CFG.vol; s.connect(g); g.connect(c.destination); s.start(t); })(i); }
   }
 
+  // ---------- background music (made in the browser: low, soft, no files)
+  var MG = null, mTimer = null, mStep = 0, mNext = 0, mRate = 1;
+  var MUS = [['off', 'Off'], ['pulse', 'Pulse'], ['ambient', 'Ambient'], ['groove', 'Groove']];
+  var CH = [[73.42, [1, 1.189, 1.498]], [58.27, [1, 1.26, 1.498]], [87.31, [1, 1.26, 1.498]], [65.41, [1, 1.26, 1.498]]];   // Dm  Bb  F  C
+  function mTone(f, t, len, vol, type, att) {
+    var c = AC; if (!c || !MG) return; var o = c.createOscillator(), g = c.createGain(); o.type = type || 'sine'; o.frequency.value = f; var a = att || .01;
+    g.gain.setValueAtTime(.0001, t); g.gain.exponentialRampToValueAtTime(vol, t + a); g.gain.exponentialRampToValueAtTime(.0001, t + len); o.connect(g); g.connect(MG); o.start(t); o.stop(t + len + .05);
+  }
+  function mKick(t, vol) {
+    var c = AC; if (!c || !MG) return; var o = c.createOscillator(), g = c.createGain(); o.frequency.setValueAtTime(130, t); o.frequency.exponentialRampToValueAtTime(42, t + .13);
+    g.gain.setValueAtTime(vol, t); g.gain.exponentialRampToValueAtTime(.0001, t + .3); o.connect(g); g.connect(MG); o.start(t); o.stop(t + .35);
+  }
+  function mNoise(t, len, vol, freq, type) {
+    var c = AC; if (!c || !MG) return; var n = Math.floor(c.sampleRate * len), b = c.createBuffer(1, n, c.sampleRate), d = b.getChannelData(0); for (var i = 0; i < n; i++) d[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / n, 2);
+    var s = c.createBufferSource(); s.buffer = b; var f = c.createBiquadFilter(); f.type = type || 'bandpass'; f.frequency.value = freq; var g = c.createGain(); g.gain.value = vol; s.connect(f); f.connect(g); g.connect(MG); s.start(t);
+  }
+  function mPlay(step, t, sd) {
+    var bar = Math.floor(step / 16) % 4, s = step % 16, root = CH[bar][0], iv = CH[bar][1], st = CFG.mus;
+    if (st === 'pulse') {
+      if (s % 4 === 0) mKick(t, .55);
+      if (s % 4 === 2) mNoise(t, .05, .12, 5200, 'highpass');
+      if ([0, 3, 6, 8, 11, 14].indexOf(s) >= 0) mTone(root, t, sd * 2.4, .34, 'sine', .01);
+    } else if (st === 'ambient') {
+      if (s === 0) { iv.forEach(function (r, i) { mTone(root * 2 * r, t, sd * 16.5, .12, 'triangle', .9); mTone(root * 4 * r * (i % 2 ? 1.004 : .996), t, sd * 16.5, .05, 'sine', 1.1); }); mTone(root, t, sd * 16, .28, 'sine', .4); }
+      if (s === 8 && bar % 2 === 1) mTone(root * 4 * iv[2], t, sd * 6, .05, 'sine', .05);
+    } else if (st === 'groove') {
+      if ([0, 6, 10].indexOf(s) >= 0) mKick(t, .6);
+      if (s === 4 || s === 12) mNoise(t, .12, .2, 1400, 'bandpass');
+      if (s % 2 === 1) mNoise(t, .03, .07, 6000, 'highpass');
+      if ([0, 2, 3, 6, 7, 10, 11, 14].indexOf(s) >= 0) mTone(root * ((s === 7 || s === 14) ? 2 : 1), t, sd * 1.8, .32, 'sine', .008);
+      if (s % 2 === 0) { var k = (s / 2 + bar) % 3; mTone(root * 4 * iv[k], t, sd * 2.2, .1, 'triangle', .006); }
+    }
+  }
+  function sched() {
+    var c = AC; if (!c || !MG) return; var sd = 60 / (96 * mRate) / 4;
+    while (mNext < c.currentTime + .3) { mPlay(mStep, mNext, sd); mNext += sd; mStep++; }
+  }
+  function musicStart() {
+    musicStop(); if (!snd || CFG.mus === 'off') return; var c = ctx(); if (!c) return;
+    MG = c.createGain(); MG.gain.value = .5 * CFG.mv; var lp = c.createBiquadFilter(); lp.type = 'lowpass'; lp.frequency.value = 1500; MG.connect(lp); lp.connect(c.destination);
+    mStep = 0; mNext = c.currentTime + .12; mTimer = setInterval(sched, 60); sched();
+  }
+  function musicStop() {
+    if (mTimer) { clearInterval(mTimer); mTimer = null; }
+    if (MG) { var g = MG; try { g.gain.setTargetAtTime(0, AC.currentTime, .12); } catch (e) { } setTimeout(function () { try { g.disconnect(); } catch (e) { } }, 600); MG = null; }
+    mRate = 1;
+  }
+
   // ---------- settings (gear in the bar; the round pauses while it is open)
   var SETS = {
     clock: [['clock', 'Seconds per card', [2, 3, 4, 5, 6, 8], '', 1]],
@@ -716,6 +764,7 @@ button[onclick*="apMySetHelp"]{background:none!important;border:0!important;box-
     h += '<h3>Sound</h3><div class="bz-row" style="justify-content:flex-start"><button class="bz-b' + (snd ? ' on' : '') + '" onclick="apBzSndOpt(1)">On</button><button class="bz-b' + (!snd ? ' on' : '') + '" onclick="apBzSndOpt(0)">Off</button></div>';
     h += '<div class="bz-sl">Style (tap to hear it)</div><div class="bz-row" style="justify-content:flex-start">' + STYLES.map(function (s) { return '<button class="bz-b' + (CFG.style === s[0] ? ' on' : '') + '" onclick="apBzStyle(\'' + s[0] + '\')">' + s[1] + '</button>'; }).join('') + '</div>';
     h += '<div class="bz-sl">Volume</div><div class="bz-row" style="justify-content:flex-start">' + [[.5, 'Low'], [1, 'Medium'], [1.7, 'High']].map(function (o) { return '<button class="bz-b' + (CFG.vol === o[0] ? ' on' : '') + '" onclick="apBzVol(' + o[0] + ')">' + o[1] + '</button>'; }).join('') + '</div>';
+    h += '<h3>Background music</h3><div class="bz-row" style="justify-content:flex-start">' + MUS.map(function (m) { return '<button class="bz-b' + (CFG.mus === m[0] ? ' on' : '') + '" onclick="apBzMus(\'' + m[0] + '\')">' + m[1] + '</button>'; }).join('') + '</div><div class="bz-sl">Music volume</div><div class="bz-row" style="justify-content:flex-start">' + [[.6, 'Low'], [1, 'Medium'], [1.6, 'High']].map(function (o) { return '<button class="bz-b' + (CFG.mv === o[0] ? ' on' : '') + '" onclick="apBzMV(' + o[0] + ')">' + o[1] + '</button>'; }).join('') + '</div>';
     h += '<div class="bz-sl">Countdown ticks</div><div class="bz-row" style="justify-content:flex-start"><button class="bz-b' + (CFG.ticks ? ' on' : '') + '" onclick="apBzCfg(\'ticks\',true)">On</button><button class="bz-b' + (!CFG.ticks ? ' on' : '') + '" onclick="apBzCfg(\'ticks\',false)">Off</button></div>';
     h += '<div class="bz-row" style="margin-top:16px"><button class="bz-big" onclick="apBzSetDone()">Done</button></div></div>'; el.innerHTML = h;
   }
@@ -726,8 +775,10 @@ button[onclick*="apMySetHelp"]{background:none!important;border:0!important;box-
   window.apBzCfg = function (k, v) { CFG[k] = v; saveCfg(); var live = true; Object.keys(SETS).forEach(function (g) { SETS[g].forEach(function (s) { if (s[0] === k && !s[4]) live = false; }); }); if (!live && view !== 'pick') setDirty = true; panel(); };
   window.apBzStyle = function (s) { CFG.style = s; snd = true; saveCfg(); sndBtn(); ctx(); sfx('ok'); setTimeout(function () { sfx('bad'); }, 520); panel(); };
   window.apBzVol = function (v) { CFG.vol = v; saveCfg(); ctx(); sfx('ok'); panel(); };
-  window.apBzSndOpt = function (on) { snd = !!on; saveCfg(); sndBtn(); if (snd) { ctx(); sfx('ok'); } panel(); };
-  window.apBzSetDone = function () { var el = $('bz-set'); if (el) el.remove(); PZ = false; if (setDirty && view !== 'pick' && GAMES[view]) { setDirty = false; stop(); GAMES[view](pool()); } };
+  window.apBzSndOpt = function (on) { snd = !!on; saveCfg(); sndBtn(); if (!snd) musicStop(); else if (view !== 'pick') musicStart(); if (snd) { ctx(); sfx('ok'); } panel(); };
+  window.apBzMus = function (s) { CFG.mus = s; saveCfg(); if (s === 'off') musicStop(); else musicStart(); panel(); };
+  window.apBzMV = function (v) { CFG.mv = v; saveCfg(); if (MG) MG.gain.value = .5 * v; else if (CFG.mus !== 'off') musicStart(); panel(); };
+  window.apBzSetDone = function () { var el = $('bz-set'); if (el) el.remove(); PZ = false; if (view === 'pick') musicStop(); if (setDirty && view !== 'pick' && GAMES[view]) { setDirty = false; stop(); GAMES[view](pool()); } };
 
   // ---------- data
   function clean(s) { return String(s == null ? '' : s).replace(/[*_]/g, '').trim(); }
@@ -748,9 +799,9 @@ button[onclick*="apMySetHelp"]{background:none!important;border:0!important;box-
     ov.style.backgroundImage = bgNow ? 'linear-gradient(rgba(8,14,32,.66),rgba(8,14,32,.66)),url(pictures/' + bgNow + '.jpg)' : 'url(' + BZ.stage + ')';
     ov.innerHTML = '<div class="bz-top"><button class="bz-b" onclick="apBzBack()">← Back</button><h1>Blitz it' + (title ? ' <em>· ' + esc(title) + '</em>' : '') + '</h1><button class="bz-b" onclick="apBzSet()">⚙ Settings</button><button class="bz-b' + (snd ? ' on' : '') + '" id="bz-snd" onclick="apBzSnd()">🔊 Sound ' + (snd ? 'on' : 'off') + '</button></div><div class="bz-main">' + body + '</div>';
   }
-  window.apBzSnd = function () { snd = !snd; saveCfg(); sndBtn(); if ($('bz-set')) panel(); };
+  window.apBzSnd = function () { snd = !snd; saveCfg(); sndBtn(); if (!snd) musicStop(); else if (view !== 'pick') musicStart(); if ($('bz-set')) panel(); };
   window.apBzBack = function () { stop(); if (view === 'pick') close(); else pickScreen(); };
-  function close() { stop(); PZ = false; var sp = $('bz-set'); if (sp) sp.remove(); if (ov) { ov.remove(); ov = null; } document.documentElement.style.overflow = ''; }
+  function close() { stop(); musicStop(); PZ = false; var sp = $('bz-set'); if (sp) sp.remove(); if (ov) { ov.remove(); ov = null; } document.documentElement.style.overflow = ''; }
   window.apBlitz = function () {
     close(); ov = document.createElement('div'); ov.id = 'bz-ov'; ov.style.backgroundImage = 'url(' + BZ.stage + ')'; document.body.appendChild(ov);
     if (!$('bz-css')) { var st = document.createElement('style'); st.id = 'bz-css'; st.textContent = CSS.replace('CARDFACE', BZ.cardface); document.head.appendChild(st); }
@@ -758,17 +809,17 @@ button[onclick*="apMySetHelp"]{background:none!important;border:0!important;box-
   };
   function reasons(p) {
     var r = {}, secs = {}; p.forEach(function (x) { secs[x.sec] = 1; });
-    if (Object.keys(secs).length < 2) r.odd = 'Needs two or more lists: choose more topics.'; else if (p.length < 6) r.odd = 'Needs a few more words.';
+        if (Object.keys(secs).length < 2) r.odd = 'Needs two or more lists: choose more topics.'; else if (p.length < 6) r.odd = 'Needs a few more words.';
     var g = genderPool(p); if (target() === 'en' || g.length < 6) r.gender = 'Needs a list with nouns (le, la, un, une…).';
     if (p.length < 4) { r.clock = r.streak = r.twomin = r.roll = r.pairs = r.letter = r.lane = 'Choose a list with more words.'; }
     if (p.length < 8) r['catch'] = 'Needs at least 8 words: choose more topics.';
     return r;
   }
   function pickScreen() {
-    stop(); view = 'pick'; bgNow = null; var p = pool(), r = reasons(p);
+    stop(); musicStop(); view = 'pick'; bgNow = null; var p = pool(), r = reasons(p);
     frame('', '<div class="bz-note"><b>' + p.length + ' words</b> ready. ' + esc(dirs()[0] === 'en' ? 'English → ' + LANG_NAMES[dirs()[1]] : LANG_NAMES[dirs()[0]] + ' → English') + '. Pick a round: it starts straight away.</div><div class="bz-grid">' + MODES.map(function (m) { var off = r[m[0]]; return '<button class="bz-m"' + (off ? ' disabled' : '') + ' onclick="apBzStart(\'' + m[0] + '\')"><img alt="" src="' + BZ[m[0]] + '"><b>' + m[1] + '</b><span>' + (off || m[2]) + '</span></button>'; }).join('') + '</div>');
   }
-  window.apBzStart = function (k) { stop(); bgNow = null; view = k; ctx(); sfx('go'); GAMES[k](pool()); };
+  window.apBzStart = function (k) { stop(); bgNow = null; view = k; ctx(); sfx('go'); musicStart(); GAMES[k](pool()); };
 
   // ---------- helpers for self-marked card games
   function card(q, a, extra) { return '<div class="bz-card" id="bz-card"><small>' + esc(extra || '') + '</small><div>' + esc(q) + '</div><div class="ans" id="bz-ans" style="visibility:hidden">' + esc(a) + ' ' + SAYBTN(a) + '</div></div>'; }
@@ -779,7 +830,7 @@ button[onclick*="apMySetHelp"]{background:none!important;border:0!important;box-
     var iv = setInterval(function () { var nw = Date.now(); if (!PZ) el0 += (nw - tl0) / 1000; tl0 = nw; var el = el0, left = Math.max(0, secs - el); if (!c) return; c.setAttribute('stroke-dashoffset', (207.3 * (1 - left / secs)).toFixed(1)); var s = Math.ceil(left); if (n) n.textContent = s; if (s !== last && left > 0 && s <= 3) { sfx('tick'); } last = s; if (left <= 0) { clearInterval(iv); done(); } }, 80);
     timers.push(iv); return iv;
   }
-  function endScreen(title, stats, again) { stop(); sfx('win'); frame(title, '<div class="bz-big-n">' + stats.big + '</div><div class="bz-note">' + stats.note + '</div><div class="bz-row"><button class="bz-big go" id="bz-again" onclick="apBzAgain()">↻ Go again</button><button class="bz-b" onclick="apBzBack()">Choose another round</button></div>'); window.apBzAgain = again; setTimeout(function () { var b = $('bz-again'); if (b) try { b.focus(); } catch (e) { } }, 60); }
+  function endScreen(title, stats, again) { stop(); musicStop(); sfx('win'); frame(title, '<div class="bz-big-n">' + stats.big + '</div><div class="bz-note">' + stats.note + '</div><div class="bz-row"><button class="bz-big go" id="bz-again" onclick="apBzAgain()">↻ Go again</button><button class="bz-b" onclick="apBzBack()">Choose another round</button></div>'); window.apBzAgain = function () { musicStart(); again(); }; setTimeout(function () { var b = $('bz-again'); if (b) try { b.focus(); } catch (e) { } }, 60); }
 
   // ---------- the eight rounds
   var GAMES = {};
@@ -888,7 +939,7 @@ button[onclick*="apMySetHelp"]{background:none!important;border:0!important;box-
         el.onclick = function () { if (over || c.dead) return; cards.forEach(function (o) { o.el.classList.remove('sel'); }); if (selCard === c.uid) { selCard = null; return; } selCard = c.uid; el.classList.add('sel'); pairUp(); };
         cards.push(c);
       }
-      function speed() { return 85 * (CFG.start / 100) * Math.pow(1 + CFG.accel / 100, hits); }
+      function speed() { mRate = Math.min(1.5, 1 + hits * .025); return 85 * (CFG.start / 100) * Math.pow(1 + CFG.accel / 100, hits); }
       function fin(won) { if (over) return; over = true; cancelAnimationFrame(raf); stop(); var secs = Math.round((Date.now() - t0) / 1000); endScreen('Catch it', { big: hits + '/' + items.length, note: won ? 'Cleared all ' + items.length + ' in ' + secs + ' seconds, at ×' + (speed() / 85).toFixed(1) + ' speed.' : 'Out of lives with ' + hits + ' caught, at ×' + (speed() / 85).toFixed(1) + ' speed.' }, function () { play(); }); }
       function frameFn(now) {
         if (over) return; var dt = Math.min(.05, (now - last) / 1000); last = now; if (PZ) dt = 0;
@@ -917,7 +968,7 @@ button[onclick*="apMySetHelp"]{background:none!important;border:0!important;box-
       var hearts = function () { return new Array(lives + 1).join('♥') + new Array(L0 - lives + 1).join('♡'); };
       frame('Lane it', '<div class="bz-stat"><div><b id="ln-h">0</b>caught</div><div><b id="ln-s">×1.0</b>speed</div><div><b id="ln-l">' + hearts() + '</b>lives</div><div><b>' + deck.length + '</b>words</div></div><div class="ln-q" id="ln-q">&nbsp;</div><div class="ln-field" id="ln-f"><div class="ln-road" id="ln-r"><div class="ln-lane"></div><div class="ln-lane"></div><div class="ln-lane"></div><div class="ln-lane"></div></div><div class="ln-pop" id="ln-pop"></div></div>');
       var F = $('ln-f'), R = $('ln-r'), run = 0;
-      function speed() { return 95 * (CFG.start / 100) * Math.pow(1 + CFG.accel / 100, hits); }
+      function speed() { mRate = Math.min(1.5, 1 + hits * .025); return 95 * (CFG.start / 100) * Math.pow(1 + CFG.accel / 100, hits); }
       function next() {
         if (qi >= deck.length) return fin(true);
         var cur = deck[qi++], ds = shuf(p.filter(function (x) { return x.a !== cur.a; })).slice(0, 3), opts = shuf([cur].concat(ds));
@@ -963,7 +1014,8 @@ button[onclick*="apMySetHelp"]{background:none!important;border:0!important;box-
     var secs = Object.keys(bySec).filter(function (s) { return bySec[s].length >= 3; }), r = 0, ok = 0;
     function round() {
       stop(); if (r >= CFG.oddR) { bgNow = null; return endScreen('Odd one out', { big: ok + '/' + CFG.oddR, note: ok === CFG.oddR ? 'Spotted every one.' : 'Have another go.' }, function () { GAMES.odd(pool()); }); }
-      var sA = secs[Math.floor(Math.random() * secs.length)], others = Object.keys(bySec).filter(function (s) { return s !== sA; });
+      var sA = secs[Math.floor(Math.random() * secs.length)], others = Object.keys(bySec).filter(function (s) { return s !== sA && bySec[s].length >= 1; });
+      var far = others.filter(function (s) { return s.charAt(0) !== sA.charAt(0); }); if (!far.length) far = others.filter(function (s) { return s.split('.')[0] !== sA.split('.')[0]; }); if (far.length) others = far;
       if (!others.length) return pickScreen();
       var sB = others[Math.floor(Math.random() * others.length)], three = shuf(bySec[sA]).slice(0, 3), odd = shuf(bySec[sB])[0];
       var opts = shuf(three.concat([odd])), lab = function (x) { return x.tl || x.a; };
@@ -12261,4 +12313,4 @@ textarea.ms-in{min-height:7rem;resize:vertical}
   if (document.readyState === 'complete') start(); else window.addEventListener('load', start);
 })();
 </script>
-<script id="ap-build">window.__apBuild="7b0a583ee3";</script>
+<script id="ap-build">window.__apBuild="87f3ff8b50";</script>
