@@ -8173,6 +8173,7 @@ mark.k{background:var(--hl);color:inherit;border-radius:5px;padding:0 2px}
 .pcard .pmt{font-size:.85rem;color:#dfe5f3}
 .pcard.ar-A{--ar:#6b3fa0}.pcard.ar-B{--ar:#1f7a8c}.pcard.ar-C{--ar:#2e7d4f}.pcard.ar-D{--ar:#b8860b}.pcard.ar-E{--ar:#b03a2e}
 .tcw{display:flex;flex-direction:column;gap:6px}.tcw .pcard{flex:1}.tcb{display:flex;gap:6px}.tcb .btn{flex:1;padding:6px 8px;font-size:.85rem}
+.spt-card{box-sizing:border-box;width:min(440px,92vw);padding:14px 18px 16px;border:2px solid #5b3f9e;border-radius:16px;background:#f3eefb;box-shadow:0 4px 0 #5b3f9e;color:#1a2744;text-align:left}.spt-card .spt-h{font-weight:800;font-size:1.1rem}.spt-card .spt-s{font-size:.9rem;color:#4a5570;margin:2px 0 10px}.spt-card .spt-big{display:block;width:100%;min-height:52px;padding:10px 16px;border-radius:14px;border:2px solid #c9a84c;background:#1a2744;color:#fff;box-shadow:0 3px 0 #c9a84c;font:800 1rem/1.2 'DM Sans',system-ui,sans-serif;cursor:pointer;touch-action:manipulation}.spt-card .spt-big small{display:block;font-weight:500;font-size:.78rem;opacity:.85}.spt-card .spt-pr{font-size:.85rem;color:#4a5570;margin-top:10px}.spt-card .spt-link{font:700 .85rem 'DM Sans',system-ui,sans-serif;background:none;border:0;color:#5b3f9e;text-decoration:underline;cursor:pointer;padding:6px 2px}#spt-ov .spt-card{width:min(440px,92vw)!important;flex:none!important;margin:0!important}.spt-ov{position:fixed;inset:0;z-index:9999;background:rgba(10,20,40,.55);display:flex;align-items:center;justify-content:center}.tcb .spt-open{flex:1;padding:6px 8px;font-size:.85rem;font-weight:800;color:#5b3f9e;background:#f3eefb;border:2px solid #5b3f9e;border-radius:10px;box-shadow:0 2px 0 #5b3f9e;cursor:pointer}
 .pcard.big{min-height:min(30vh,250px)}.pcard.big .pnm{font-size:1.6rem}
 .thm-sub{color:var(--ink2);margin:4px 0 0}
 .pic-box{margin-top:14px;display:flex;flex-direction:column}
@@ -8722,7 +8723,16 @@ window.openSpotQ=function(i,paper){
   P.amStudioSpot({sec:SECS.indexOf(Q[i].section),qi:String(i),label:Q[i].q_en+' ('+LG.name+')',kinds:SPOT_KINDS.map(k=>[k[0],k[1],k[2]])},false,window,paper);
 };
 window.openSpeedQ=function(i){try{const P=window.parent;if(P&&typeof P.amSpeedFromStudio==='function')P.amSpeedFromStudio(SECS[SECS.indexOf(Q[i].section)],LG.code,i)}catch(e){}};
-function tcBtns(i){return spotHost()?'<div class="tcb"><button class="btn subbtn" onclick="openSpotQ('+i+')">&#9997; Spot Test &middot; Apple Pencil</button><button class="btn" onclick="openSpotQ('+i+',true)">&#128424; Spot Test &middot; Print</button><button class="btn" onclick="openSpeedQ('+i+')">&#9889; Speed</button></div>':''}
+window.sptCard=function(i){
+  if(!spotHost())return;var o=document.getElementById('spt-ov');if(o)o.remove();
+  o=document.createElement('div');o.id='spt-ov';o.className='spt-ov';o.onclick=function(e){if(e.target===o)o.remove()};
+  o.innerHTML='<div class="spt-card"><div class="spt-h">\ud83d\udcdd Spot Test</div><div class="spt-s">Short questions in boxes on this topic. You mark it yourself.</div><button type="button" class="spt-big" id="spt-pen">\u270d Do it with Apple Pencil <small>hand in as a PDF if required</small></button><div class="spt-pr">Prefer paper? <button type="button" class="spt-link" id="spt-pap">Print it</button> to write on by hand.</div><div class="spt-pr"><button type="button" class="spt-link" id="spt-x">Close</button></div></div>';
+  document.body.appendChild(o);
+  document.getElementById('spt-pen').onclick=function(){o.remove();openSpotQ(i)};
+  document.getElementById('spt-pap').onclick=function(){o.remove();openSpotQ(i,true)};
+  document.getElementById('spt-x').onclick=function(){o.remove()};
+};
+function tcBtns(i){return spotHost()?'<div class="tcb"><button class="spt-open" onclick="sptCard('+i+')">&#128221; Spot Test</button><button class="btn" onclick="openSpeedQ('+i+')">&#9889; Speed</button></div>':''}
 function spotRow(small){
   if(!spotHost())return '';
   const mixBtn=(S.view==='home'||S.view==='area'||S.view==='themes')?'<button class="btn mix" onclick="openSec(\'all\')">&#9733; Mixed: '+scopeN()+'</button>':'';
@@ -9404,7 +9414,7 @@ function vMachine(){
   }else{
     const i=MC.cur;S.pi=i;
     return '<div class="mc-wrap rv2 rv2-help"><div class="rv2-tr"><button class="btn" onclick="mcBackHelp()">← Back</button><div class="rv2-qq"><div class="rv2-fr">'+esc(Q[i].q_fr)+'</div><div class="rv2-en">'+esc(Q[i].q_en)+'</div></div><span></span></div>'
-     +'<div class="rv2-row">'+demoBtnHtml(i)+'<details class="rv2-prac"><summary class="btn">Practise this topic \u25BE</summary><div class="rv2-menu">'+[['study','Study'],['words',LG.words]].concat(TYPES.map(t=>[t[0],t[1]])).map(t=>'<button class="btn" onclick="mcPractise('+i+',\''+t[0]+'\')">'+esc(t[1])+'</button>').join('')+(window.openSpotQ&&(function(){try{return typeof window.parent.amStudioSpot==='function'}catch(e){return false}})()?'<button class="btn subbtn" onclick="openSpotQ('+i+')">\u270D Test</button>':'')+'</div></details><button class="btn" onclick="mcFsToggle()">\u26F6</button></div>'
+     +'<div class="rv2-row">'+demoBtnHtml(i)+'<details class="rv2-prac"><summary class="btn">Practise this topic \u25BE</summary><div class="rv2-menu">'+[['study','Study'],['words',LG.words]].concat(TYPES.map(t=>[t[0],t[1]])).map(t=>'<button class="btn" onclick="mcPractise('+i+',\''+t[0]+'\')">'+esc(t[1])+'</button>').join('')+(window.openSpotQ&&(function(){try{return typeof window.parent.amStudioSpot==='function'}catch(e){return false}})()?'<button class="btn subbtn" onclick="sptCard('+i+')">\u270D Test</button>':'')+'</div></details><button class="btn" onclick="mcFsToggle()">\u26F6</button></div>'
      +stageHtml(i,true)
      +'<div style="width:100%"><div class="label">The approved answer: click a sentence for the English</div>'+sentList2(i)+'</div>'
      +'<div class="rv2-mark"><div class="mc-q2">Now that you have prepared, how confident are you?</div><div class="mc-ch"><button class="btn g" onclick="mcMark(\'ok\')">\u2713 I\'ve got it now</button><button class="btn n" onclick="mcMark(\'near\')">\u2248 Nearly: bring it back soon</button></div><div class="rv2-sub">Nearly brings this picture back in a couple of spins.</div><button class="rv2-skip" onclick="mcSpin()">Skip without marking</button></div></div>';
