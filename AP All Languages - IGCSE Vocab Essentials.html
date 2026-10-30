@@ -586,10 +586,11 @@ button[onclick*="apMySetHelp"]{background:none!important;border:0!important;box-
 (function () {
   var $ = function (id) { return document.getElementById(id); };
   var ov = null, snd = true, AC = null, timers = [], PZ = false;
-  var CFG = { snd: true, style: 'marimba', vol: 1, ticks: true, clock: 3, streak: 0, tm: 2, dice: 2, pairs: 20, cw: 20, lives: 3, accel: 11, start: 100, oddR: 10, oddS: 12, gN: 12, gS: 6, lW: 10, lG: 3, oddM: 1 };
+  var CFG = { snd: true, style: 'marimba', vol: 1, ticks: true, clock: 3, streak: 0, tm: 2, dice: 2, pairs: 20, cw: 20, lives: 3, accel: 11, start: 100, oddR: 10, oddS: 12, gN: 12, gS: 6, lW: 10, lG: 3, oddM: 1, ln: 25 };
   try { var sv = JSON.parse(localStorage.getItem('apbz_cfg') || '{}'); for (var kk in sv) if (kk in CFG) CFG[kk] = sv[kk]; } catch (e) { }
   snd = CFG.snd;
   function saveCfg() { CFG.snd = snd; try { localStorage.setItem('apbz_cfg', JSON.stringify(CFG)); } catch (e) { } }
+  BZ.lane = 'data:image/svg+xml;utf8,' + encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 120"><defs><linearGradient id="g" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#16254d"/><stop offset="1" stop-color="#0a1330"/></linearGradient><linearGradient id="b" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#f3dc8e"/><stop offset="1" stop-color="#b8913a"/></linearGradient></defs><rect x="4" y="4" width="112" height="112" rx="26" fill="url(#g)" stroke="#c9a84c" stroke-width="3"/><g stroke="#c9a84c" stroke-opacity=".45" stroke-width="2"><line x1="32" y1="14" x2="32" y2="106"/><line x1="60" y1="14" x2="60" y2="106"/><line x1="88" y1="14" x2="88" y2="106"/></g><rect x="13" y="24" width="22" height="13" rx="4" fill="url(#b)"/><rect x="41" y="44" width="22" height="13" rx="4" fill="url(#b)"/><rect x="69" y="30" width="22" height="13" rx="4" fill="url(#b)"/><rect x="97" y="52" width="14" height="13" rx="4" fill="url(#b)"/><rect x="10" y="84" width="100" height="5" rx="2.5" fill="#f3dc8e"/><path d="M46 70 l9 9 l19 -19" fill="none" stroke="#4cc17f" stroke-width="7" stroke-linecap="round" stroke-linejoin="round"/></svg>');
   var MODES = [
     ['clock', 'Beat the clock', 'Say it before the ring runs out. Misses come round again until the pile is clear.'],
     ['streak', 'Streak', 'How long can you keep going? One miss and it ends.'],
@@ -599,6 +600,7 @@ button[onclick*="apMySetHelp"]{background:none!important;border:0!important;box-
     ['twomin', 'Timed topic', 'Set the clock (two minutes to start). How many can you say?'],
     ['roll', 'Roll it', 'Roll the dice: they decide how many words you blitz in one go.'],
     ['catch', 'Catch it', 'Words race across the screen, faster every catch. Tap the word, then its match.'],
+    ['lane', 'Lane it', 'Four lanes, four words fall. Tap the right translation before it hits the line.'],
     ['pairs', 'Pairs race', 'Two sides, same words, take turns. First to the end wins.']
   ];
   var CSS = '#bz-ov{position:fixed;inset:0;z-index:11000;color:#f4efe0;font-family:"DM Sans","Inter",system-ui,sans-serif;background:#0b1226 center/cover no-repeat;display:flex;flex-direction:column;overflow:hidden}'
@@ -608,10 +610,10 @@ button[onclick*="apMySetHelp"]{background:none!important;border:0!important;box-
     + '.bz-b{background:rgba(8,14,32,.6);color:#e9d28a;border:1.5px solid rgba(201,168,76,.7);border-radius:999px;padding:8px 16px;font-family:"DM Sans",sans-serif;font-weight:700;font-size:.9rem;cursor:pointer}'
     + '.bz-b:hover{background:rgba(201,168,76,.18)}.bz-b.on{background:linear-gradient(135deg,#c9a84c,#e3c571);color:#1a2744;border-color:#c9a84c}'
     + '.bz-main{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:12px 24px;gap:12px;min-height:0;text-align:center;overflow:auto}'
-    + '.bz-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;width:min(940px,100%)}'
+    + '.bz-grid{display:grid;grid-template-columns:repeat(5,1fr);gap:12px;width:min(1180px,100%)}'
     + '.bz-m{background:rgba(10,18,40,.72);border:1.5px solid rgba(201,168,76,.55);border-radius:18px;padding:10px 12px 12px;color:#f4efe0;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:5px;font-family:inherit;box-shadow:0 6px 22px rgba(0,0,0,.35);transition:transform .15s,box-shadow .15s}'
     + '.bz-m:hover:not([disabled]){transform:translateY(-3px);box-shadow:0 0 0 2px rgba(201,168,76,.45),0 10px 26px rgba(0,0,0,.45)}'
-    + '.bz-m img{width:92px;height:92px}.bz-m b{font:700 1.1rem Georgia,serif;color:#fff}.bz-m span{font-size:.82rem;line-height:1.35;color:#c8d3ea}'
+    + '.bz-m img{width:78px;height:78px}.bz-m b{font:700 1.1rem Georgia,serif;color:#fff}.bz-m span{font-size:.82rem;line-height:1.35;color:#c8d3ea}'
     + '.bz-m[disabled]{opacity:.45;cursor:default;filter:grayscale(.6)}.bz-m[disabled] span{color:#e9d28a}'
     + '.bz-card{width:min(640px,92%);min-height:260px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;padding:6px 14px;border:46px solid transparent;border-image:url(CARDFACE) 46 fill / 46px stretch;color:#1a2744;font:700 clamp(1.7rem,4.4vw,3rem) Georgia,"Playfair Display",serif;line-height:1.2;filter:drop-shadow(0 14px 22px rgba(0,0,0,.55))}'
     + '.bz-card small{display:block;font:600 .9rem "DM Sans",sans-serif;color:#7a6a3a;letter-spacing:.08em;text-transform:uppercase}'
@@ -636,6 +638,17 @@ button[onclick*="apMySetHelp"]{background:none!important;border:0!important;box-
     + '.bz-pn{background:#0f1a36;border:1.5px solid #c9a84c;border-radius:18px;padding:18px 24px 20px;width:min(580px,94vw);max-height:90vh;overflow:auto;color:#f4efe0;font-family:"DM Sans",system-ui,sans-serif;box-shadow:0 20px 60px rgba(0,0,0,.6)}#bz-set{position:fixed;inset:0;z-index:11050;background:rgba(5,9,20,.65);display:flex;align-items:center;justify-content:center}'
     + '.bz-pn h2{margin:0 0 4px;font:700 1.4rem Georgia,serif;color:#fff}.bz-pn h2 em{font-style:normal;color:#c9a84c}.bz-pn h3{margin:14px 0 4px;font:700 .8rem "DM Sans",sans-serif;letter-spacing:.12em;text-transform:uppercase;color:#e9d28a;border-top:1px solid rgba(201,168,76,.3);padding-top:10px}.bz-sl{margin:8px 0 5px;font-weight:600;color:#c8d3ea;font-size:.92rem}.bz-sn{font-size:.82rem;color:#9fb0d0;margin-top:8px}'
     + '.bz-big.go{background:linear-gradient(135deg,#c9a84c,#e3c571);font-size:1.45rem;padding:18px 46px;box-shadow:0 0 0 3px rgba(201,168,76,.35)}'
+    + '.ln-q{font:700 clamp(1.5rem,3.6vw,2.4rem) Georgia,serif;color:#fff;text-shadow:0 0 18px rgba(201,168,76,.8),0 2px 10px rgba(0,0,0,.8);min-height:1.4em;letter-spacing:.02em}'
+    + '.ln-field{position:relative;width:min(960px,98%);flex:1;min-height:300px;perspective:900px;perspective-origin:50% 0%;overflow:hidden;border-radius:14px;background:radial-gradient(ellipse at 50% 100%,rgba(201,168,76,.22),rgba(8,14,32,.15) 60%);transition:box-shadow .2s}'
+    + '.ln-field.fg{box-shadow:inset 0 -60px 80px -30px rgba(76,193,127,.55)}.ln-field.fb{box-shadow:inset 0 -60px 80px -30px rgba(220,70,60,.6)}'
+    + '.ln-road{position:absolute;left:2%;right:2%;top:-4%;bottom:-2%;display:grid;grid-template-columns:repeat(4,1fr);transform:rotateX(30deg);transform-origin:50% 100%;background:linear-gradient(180deg,rgba(6,10,26,.15),rgba(6,10,26,.75))}'
+    + '.ln-lane{position:relative;cursor:pointer;border-left:2px solid rgba(255,255,255,.14);--c:#f0d27a;background:linear-gradient(180deg,transparent,color-mix(in srgb,var(--c) 16%,transparent))}.ln-lane:last-of-type{border-right:2px solid rgba(255,255,255,.14)}'
+    + '.ln-lane:nth-child(2){--c:#6fd6ff}.ln-lane:nth-child(3){--c:#ff7fb0}.ln-lane:nth-child(4){--c:#7fe3a4}'
+    + '.ln-lane::after{content:"";position:absolute;left:3%;right:3%;bottom:0;height:56px;border-radius:12px;border:2px solid var(--c);background:color-mix(in srgb,var(--c) 22%,transparent);box-shadow:0 0 26px var(--c),inset 0 0 18px color-mix(in srgb,var(--c) 40%,transparent);pointer-events:none}'
+    + '.ln-lane:active::after{background:color-mix(in srgb,var(--c) 55%,transparent)}'
+    + '.ln-w{position:absolute;left:5%;right:5%;top:0;text-align:center;background:linear-gradient(180deg,#fffdf6,#f0e6c8);color:#1a2744;border:2px solid var(--c);border-radius:14px;padding:12px 4px;font:700 1.3rem Georgia,serif;box-shadow:0 0 20px var(--c),0 8px 16px rgba(0,0,0,.55);will-change:transform;pointer-events:none}.ln-w.ok{background:#d9efdf;border-color:#2e7d52;box-shadow:0 0 30px #4cc17f}.ln-w.bad{background:#f3d3cf;border-color:#c0392b;box-shadow:0 0 30px #e05a4a}'
+    + '.ln-p{position:absolute;width:9px;height:9px;border-radius:50%;pointer-events:none;background:#f0d27a;box-shadow:0 0 10px #f0d27a;animation:lnb .7s ease-out forwards}@keyframes lnb{to{transform:translate(var(--dx),var(--dy)) scale(.2);opacity:0}}'
+    + '.ln-pop{position:absolute;left:0;right:0;top:34%;text-align:center;font:800 clamp(1.8rem,5vw,3.2rem) Georgia,serif;color:#fff;text-shadow:0 0 22px #f0d27a,0 0 6px #f0d27a;pointer-events:none;opacity:0}.ln-pop.go{animation:lnp .8s ease-out}@keyframes lnp{0%{opacity:0;transform:scale(.6)}25%{opacity:1;transform:scale(1.15)}100%{opacity:0;transform:scale(1) translateY(-26px)}}'
     + '.bz-note{max-width:620px;color:#c8d3ea;font-size:.95rem}.bz-big-n{font:800 4rem Georgia,serif;color:#fff}'
     + '@media (max-width:900px){.bz-grid{grid-template-columns:repeat(2,1fr)}}';
   var DICE = { 1: [4], 2: [0, 8], 3: [0, 4, 8], 4: [0, 2, 6, 8], 5: [0, 2, 4, 6, 8], 6: [0, 2, 3, 5, 6, 8] };
@@ -684,6 +697,7 @@ button[onclick*="apMySetHelp"]{background:none!important;border:0!important;box-
     twomin: [['tm', 'Minutes on the clock', [1, 2, 3, 5], '', 0]],
     roll: [['dice', 'Dice', [[1, 'One die'], [2, 'Two dice']], '', 1]],
     pairs: [['pairs', 'Words in the race', [10, 20, 30], '', 0]],
+    lane: [['ln', 'Words in the round', [15, 25, 40], '', 0], ['lives', 'Lives', [1, 3, 5], '', 0], ['start', 'Starting speed', [[60, 'Gentle'], [100, 'Normal'], [140, 'Fast']], '', 1], ['accel', 'Speeding up', [[6, 'Slow'], [11, 'Normal'], [16, 'Brutal']], '', 1]],
     'catch': [['cw', 'Words at the bottom', [10, 15, 20], '', 0], ['lives', 'Lives', [1, 3, 5], '', 0], ['start', 'Starting speed', [[60, 'Gentle'], [100, 'Normal'], [140, 'Fast']], '', 1], ['accel', 'Speeding up', [[6, 'Slow'], [11, 'Normal'], [16, 'Brutal']], '', 1]],
     odd: [['oddM', 'Show what each word means', [[1, 'Yes'], [0, 'No']], '', 1], ['oddR', 'Rounds', [5, 10, 15], '', 1], ['oddS', 'Seconds a round', [6, 9, 12, 20], '', 1]],
     gender: [['gN', 'Nouns', [8, 12, 20], '', 0], ['gS', 'Seconds a noun', [4, 6, 9, 15], '', 1]],
@@ -746,7 +760,7 @@ button[onclick*="apMySetHelp"]{background:none!important;border:0!important;box-
     var r = {}, secs = {}; p.forEach(function (x) { secs[x.sec] = 1; });
     if (Object.keys(secs).length < 2) r.odd = 'Needs two or more lists: choose more topics.'; else if (p.length < 6) r.odd = 'Needs a few more words.';
     var g = genderPool(p); if (target() === 'en' || g.length < 6) r.gender = 'Needs a list with nouns (le, la, un, une…).';
-    if (p.length < 4) { r.clock = r.streak = r.twomin = r.roll = r.pairs = r.letter = 'Choose a list with more words.'; }
+    if (p.length < 4) { r.clock = r.streak = r.twomin = r.roll = r.pairs = r.letter = r.lane = 'Choose a list with more words.'; }
     if (p.length < 8) r['catch'] = 'Needs at least 8 words: choose more topics.';
     return r;
   }
@@ -887,6 +901,58 @@ button[onclick*="apMySetHelp"]{background:none!important;border:0!important;box-
       }
       timers.push({ __raf: 1 }); raf = requestAnimationFrame(frameFn);
       var oldStop = stopHook; stopHook = function () { over = true; cancelAnimationFrame(raf); };
+    }
+    intro();
+  };
+
+  // ---------- Lane it
+  GAMES.lane = function (p) {
+    function intro() {
+      frame('Lane it', '<div class="bz-note">A ' + esc(LANG_NAMES[dirs()[0]]) + ' word waits at the top. Four ' + esc(LANG_NAMES[dirs()[1]]) + ' words fall down four lanes. <b>Tap the lane with the right translation</b> before it reaches the line (keys 1 to 4 work too). Every right answer makes the next one fall faster. Run out of lives and it is over.</div><button class="bz-big go" onclick="apBzGo()">▶ Start</button>');
+      window.apBzGo = play;
+    }
+    function play() {
+      stop();
+      var deck = shuf(p).slice(0, CFG.ln), L0 = CFG.lives, lives = L0, hits = 0, qi = 0, over = false, raf = 0, wave = null, last = performance.now(), wait = 0, t0 = Date.now(), keyH = null;
+      var hearts = function () { return new Array(lives + 1).join('♥') + new Array(L0 - lives + 1).join('♡'); };
+      frame('Lane it', '<div class="bz-stat"><div><b id="ln-h">0</b>caught</div><div><b id="ln-s">×1.0</b>speed</div><div><b id="ln-l">' + hearts() + '</b>lives</div><div><b>' + deck.length + '</b>words</div></div><div class="ln-q" id="ln-q">&nbsp;</div><div class="ln-field" id="ln-f"><div class="ln-road" id="ln-r"><div class="ln-lane"></div><div class="ln-lane"></div><div class="ln-lane"></div><div class="ln-lane"></div></div><div class="ln-pop" id="ln-pop"></div></div>');
+      var F = $('ln-f'), R = $('ln-r'), run = 0;
+      function speed() { return 95 * (CFG.start / 100) * Math.pow(1 + CFG.accel / 100, hits); }
+      function next() {
+        if (qi >= deck.length) return fin(true);
+        var cur = deck[qi++], ds = shuf(p.filter(function (x) { return x.a !== cur.a; })).slice(0, 3), opts = shuf([cur].concat(ds));
+        $('ln-q').textContent = cur.q; wave = { cur: cur, opts: opts, y: -56, els: [], done: false };
+        opts.forEach(function (o, k) { var e = document.createElement('div'); e.className = 'ln-w'; e.textContent = o.a; e.style.transform = 'translateY(-56px)'; R.children[k].appendChild(e); wave.els.push(e); });
+      }
+      function flash(c) { F.classList.add(c); setTimeout(function () { F.classList.remove(c); }, 220); }
+      function pop(txt) { var e = $('ln-pop'); if (!e) return; e.textContent = txt; e.classList.remove('go'); void e.offsetWidth; e.classList.add('go'); }
+      function burst(k, col) { var W = F.clientWidth, H = F.clientHeight, x = (0.04 + 0.92 * (k + .5) / 4) * W, y = H * .78; for (var i = 0; i < 14; i++) { var d = document.createElement('i'); d.className = 'ln-p'; var a = Math.random() * 6.283, r = 40 + Math.random() * 90; d.style.left = x + 'px'; d.style.top = y + 'px'; d.style.setProperty('--dx', (Math.cos(a) * r).toFixed(0) + 'px'); d.style.setProperty('--dy', (Math.sin(a) * r - 30).toFixed(0) + 'px'); if (i % 3 === 0) { d.style.background = '#fff'; d.style.boxShadow = '0 0 10px #fff'; } F.appendChild(d); setTimeout(function () { d.remove(); }, 750); } }
+      function settle(k) {
+        if (!wave || wave.done || over) return; wave.done = true;
+        var good = k >= 0 && wave.opts[k] === wave.cur, ci = wave.opts.indexOf(wave.cur);
+        wave.els[ci].classList.add('ok'); if (!good && k >= 0) wave.els[k].classList.add('bad');
+        if (good) { hits++; run++; sfx('ok'); $('ln-h').textContent = hits; burst(ci, '#f0d27a'); flash('fg'); if (run >= 3) pop(run + ' in a row'); } else { lives--; run = 0; sfx('bad'); $('ln-l').textContent = hearts(); flash('fb'); }
+        if (lives <= 0) { sfx('end'); timers.push(setTimeout(function () { fin(false); }, 900)); wait = 99; } else wait = good ? .25 : 1.2;
+      }
+      [].forEach.call(R.querySelectorAll('.ln-lane'), function (l, k) { l.onclick = function () { settle(k); }; });
+      keyH = function (e) { var k = parseInt(e.key, 10); if (k >= 1 && k <= 4) settle(k - 1); }; document.addEventListener('keydown', keyH);
+      function fin(won) {
+        if (over) return; over = true; cancelAnimationFrame(raf); document.removeEventListener('keydown', keyH); var secs = Math.round((Date.now() - t0) / 1000);
+        endScreen('Lane it', { big: hits + '/' + deck.length, note: won ? 'Every lane read right, in ' + secs + ' seconds, at ×' + (speed() / 95).toFixed(1) + ' speed.' : 'Out of lives with ' + hits + ' caught, at ×' + (speed() / 95).toFixed(1) + ' speed.' }, play);
+      }
+      function loop(now) {
+        if (over) return; var dt = Math.min(.05, (now - last) / 1000); last = now; if (PZ) dt = 0;
+        if (!wave) next();
+        else if (!wave.done) {
+          wave.y += speed() * dt; var H = R.clientHeight, h = wave.els[0].offsetHeight || 44, lim = H - 58 - h;
+          wave.els.forEach(function (e) { e.style.transform = 'translateY(' + wave.y.toFixed(1) + 'px)'; });
+          var s = $('ln-s'); if (s) s.textContent = '×' + (speed() / 95).toFixed(1);
+          if (wave.y >= lim) settle(-1);
+        } else { wait -= dt; if (wait <= 0) { wave.els.forEach(function (e) { e.remove(); }); wave = null; } }
+        raf = requestAnimationFrame(loop);
+      }
+      stopHook = function () { over = true; cancelAnimationFrame(raf); document.removeEventListener('keydown', keyH); };
+      raf = requestAnimationFrame(loop);
     }
     intro();
   };
@@ -12195,4 +12261,4 @@ textarea.ms-in{min-height:7rem;resize:vertical}
   if (document.readyState === 'complete') start(); else window.addEventListener('load', start);
 })();
 </script>
-<script id="ap-build">window.__apBuild="ddef38aec2";</script>
+<script id="ap-build">window.__apBuild="327aae3654";</script>
