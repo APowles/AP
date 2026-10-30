@@ -906,8 +906,6 @@ textarea.p1-in{border:1px solid #bbb;border-radius:4px;min-height:44px}
 .apx-tile .apx-ic svg{color:#fff!important}
 .aph-header button.aph-home:not(.aph-pace){background:#c9a84c!important;color:#13203f!important;border-color:#c9a84c!important}
 
-.apx-stage #oral-cycle-panel{background:linear-gradient(160deg,#3f70c4,#274c96)!important;border:1px solid rgba(227,193,104,.6)!important;box-shadow:0 14px 32px rgba(10,20,50,.35),inset 0 1px 0 rgba(255,255,255,.25)!important}
-.apx-stage #oral-cycle-panel div[style*="font-size:0.7rem;color:#4a5a7a"]{color:#e6eeff!important}
 
 
 .rz-prog{font:800 .75rem 'DM Sans',sans-serif;letter-spacing:.12em;text-transform:uppercase;color:#a8862e;margin:2px 0 8px}
@@ -945,6 +943,16 @@ textarea.p1-in{border:1px solid #bbb;border-radius:4px;min-height:44px}
 .rz-tumble{opacity:.9}.rz-task{margin:10px 0 0;background:#1a2744;color:#fff;border-radius:12px;padding:10px 14px;font-size:1rem;line-height:1.45}.rz-task b{color:#ffd76a}
 .rz-hero span[style*='b3261e'],.rz-task span[style*='b3261e']{color:#ff9d8f!important}
 @keyframes rz3spin{from{transform:rotateX(-28deg) rotateY(20deg) rotateZ(6deg)}to{transform:rotateX(-28deg) rotateY(380deg) rotateZ(6deg)}}
+body.od-on .aph-header .aph-home:not(.aph-pace):not(.aph-voice){display:inline-block!important}
+
+.apx-stage #oral-cycle-panel{background:linear-gradient(180deg,#fffdf6,#f6eed6)!important;border:1.5px solid #c9a84c!important;box-shadow:0 14px 32px rgba(8,16,40,.35),inset 0 1px 0 #fff!important}
+.apx-stage #oral-cycle-panel>div:first-child div:first-child{color:#8a6d1f!important}
+.apx-stage #oral-cycle-panel>div:first-child{border-bottom:1px solid rgba(201,168,76,.55)!important}
+.apx-stage #oral-cycle-panel div[style*="font-size:0.72rem;font-weight:700;color:"]{color:#13203f!important}
+.apx-stage #oral-cycle-panel div[style*="font-size:0.7rem;color:#4a5a7a"]{color:#4a5a7a!important}
+.apx-stage #oral-cycle-panel>div[onclick]:hover{background:rgba(201,168,76,.18)!important}
+
+.apx-stage #oral-cycle-panel>div:first-child>div:last-child>div:first-child{background:rgba(201,168,76,.22)!important;color:#13203f!important}
 </style>
 </head>
 <body>
@@ -17834,18 +17842,24 @@ textarea.ms-in{min-height:7rem;resize:vertical}
   // ---------- the overlay ----------
   function lockKeys(fn) { unkey(); keyH = function (e) { if ($('apktr-overlay') || $('bi-ov') || !$('od-ov')) return; if (fn(e)) { e.preventDefault(); e.stopImmediatePropagation(); } else if (/^Arrow(Left|Right|Down|Up)$/.test(e.key)) e.stopImmediatePropagation(); }; window.addEventListener('keydown', keyH, true); }
   function unkey() { if (keyH) { window.removeEventListener('keydown', keyH, true); keyH = null; } }
+  // the header's Back and Home stay on screen over the Learn pages: Back goes one stage back inside them; Home closes them first
+  document.addEventListener('click', function (e) {
+    var b = e.target.closest && e.target.closest('.aph-header .aph-home'); if (!b || !$('od-ov') || b.classList.contains('aph-voice') || b.classList.contains('aph-pace')) return;
+    if (b.classList.contains('aph-back')) { e.preventDefault(); e.stopImmediatePropagation(); back(); }
+    else closeOv();
+  }, true);
   function openOv() {
     closeOv(true);
     var o = document.createElement('div'); o.id = 'od-ov'; o.className = 'od-ov'; o.setAttribute('role', 'dialog');
     o.addEventListener('click', onClick);
     try { var hd = document.querySelector('.aph-header'); window.scrollTo(0, 0); if (hd) o.style.top = Math.max(0, Math.round(hd.getBoundingClientRect().bottom)) + 'px'; } catch (e) { }
-    document.body.appendChild(o); document.documentElement.style.overflow = 'hidden';
+    document.body.appendChild(o); document.documentElement.style.overflow = 'hidden'; document.body.classList.add('od-on');
     return o;
   }
   function closeOv(quiet) {
     var o = $('od-ov'); if (o) o.remove();
     document.documentElement.style.overflow = ''; unkey(); hush();
-    if (!quiet) W = null;
+    if (!quiet) { W = null; document.body.classList.remove('od-on'); }
   }
   function paint(html, keep) {
     var o = $('od-ov'); if (!o) return;
@@ -19419,4 +19433,4 @@ textarea.ms-in{min-height:7rem;resize:vertical}
   if (document.readyState === 'complete') start(); else window.addEventListener('load', start);
 })();
 </script>
-<script id="ap-build">window.__apBuild="77a57ca0e5";</script>
+<script id="ap-build">window.__apBuild="3a0eafa41d";</script>
