@@ -586,7 +586,7 @@ button[onclick*="apMySetHelp"]{background:none!important;border:0!important;box-
 (function () {
   var $ = function (id) { return document.getElementById(id); };
   var ov = null, snd = true, AC = null, timers = [], PZ = false;
-  var CFG = { snd: true, style: 'marimba', vol: 1, ticks: true, clock: 3, streak: 0, tm: 2, dice: 2, pairs: 20, cw: 20, lives: 3, accel: 11, start: 100, oddR: 10, oddS: 12, gN: 12, gS: 6, lW: 10, lG: 3, lT: 15, oddM: 1, ln: 25, mus: 'pulse', mv: 1 };
+  var CFG = { snd: true, style: 'marimba', vol: 1, ticks: true, clock: 3, streak: 0, tm: 2, dice: 2, pairs: 20, cw: 20, lives: 3, accel: 11, start: 100, oddR: 10, oddS: 12, gN: 12, gS: 6, lW: 10, lG: 3, lT: 15, oddM: 0, ln: 25, mus: 'pulse', mv: 1 };
   try { var sv = JSON.parse(localStorage.getItem('apbz_cfg') || '{}'); for (var kk in sv) if (kk in CFG) CFG[kk] = sv[kk]; } catch (e) { }
   snd = CFG.snd;
   function saveCfg() { CFG.snd = snd; try { localStorage.setItem('apbz_cfg', JSON.stringify(CFG)); } catch (e) { } }
@@ -764,7 +764,7 @@ button[onclick*="apMySetHelp"]{background:none!important;border:0!important;box-
     pairs: [['pairs', 'Words in the race', [10, 20, 30], '', 0]],
     lane: [['ln', 'Words in the round', [15, 25, 40], '', 0], ['lives', 'Lives', [1, 3, 5], '', 0], ['start', 'Starting speed', [[60, 'Gentle'], [100, 'Normal'], [140, 'Fast']], '', 1], ['accel', 'Speeding up', [[6, 'Slow'], [11, 'Normal'], [16, 'Brutal']], '', 1]],
     'catch': [['cw', 'Words at the bottom', [10, 15, 20], '', 0], ['lives', 'Lives', [1, 3, 5], '', 0], ['start', 'Starting speed', [[60, 'Gentle'], [100, 'Normal'], [140, 'Fast']], '', 1], ['accel', 'Speeding up', [[6, 'Slow'], [11, 'Normal'], [16, 'Brutal']], '', 1]],
-    odd: [['oddM', 'Show what each word means', [[1, 'Yes'], [0, 'No']], '', 1], ['oddR', 'Rounds', [5, 10, 15], '', 1], ['oddS', 'Seconds a round', [6, 9, 12, 20], '', 1]],
+    odd: [['oddM', 'Show what each word means', [[0, 'No'], [1, 'Yes']], '', 1], ['oddR', 'Rounds', [5, 10, 15], '', 1], ['oddS', 'Seconds a round', [6, 9, 12, 20], '', 1]],
     gender: [['gN', 'Nouns', [8, 12, 20], '', 0], ['gS', 'Seconds a noun', [4, 6, 9, 15], '', 1]],
     letter: [['lT', 'Seconds a word', [[0, 'No timer'], 8, 12, 15, 20], '', 1], ['lW', 'Words', [5, 10, 15], '', 0], ['lG', 'Gaps in each word', [2, 3, 4, [99, 'Whole word']], '', 0]]
   };
@@ -1045,7 +1045,7 @@ button[onclick*="apMySetHelp"]{background:none!important;border:0!important;box-
       r++; function tn(s) { var v = (typeof SECTION_TITLES !== 'undefined' && SECTION_TITLES[s]); return v ? (typeof v === 'string' ? v : (v.title || v.name || s)) : s; }
       frame('Odd one out', '<div class="bz-stat"><div><b>' + r + '/' + CFG.oddR + '</b>round</div><div><b>' + ok + '</b>spotted</div></div>' + ringHTML('bzr') + '<div class="bz-note">Topic: <b style="color:#e9d28a;font-size:1.15rem">' + esc(tn(sA)) + '</b><br>One of these four words does <b>not</b> belong to this topic. Tap it.</div><div class="bz-row" id="bz-opts">' + opts.map(function (o, k) { return '<button class="bz-big bz-opt" data-k="' + k + '">' + esc(lab(o)) + (CFG.oddM ? '<small style="display:block;font:500 .8rem \'DM Sans\',sans-serif;color:#5a6a8a;margin-top:3px">' + esc(o.en || o.q) + '</small>' : '') + '</button>'; }).join('') + '</div><div class="bz-note" id="bz-msg" style="min-height:28px"></div>');
       var done = false;
-      function settle(pick) { if (done) return; done = true; stop(); [].forEach.call(ov.querySelectorAll('.bz-opt'), function (b, k) { b.disabled = true; if (opts[k] === odd) b.classList.add('ok'); else if (k === pick) b.classList.add('bad'); }); var good = pick >= 0 && opts[pick] === odd; if (good) ok++; sfx(good ? 'good' : 'bad'); $('bz-msg').innerHTML = VH(good, 'Spotted it!', 'Not that one') + (good ? '' : 'The odd one was <b>' + esc(lab(odd)) + '</b>. ') + (good ? '' : '') + '<b>' + esc(odd.en || odd.q) + '</b> belongs to ' + esc(tn(sB)) + '.'; timers.push(setTimeout(round, good ? 2200 : 3800)); }
+      function settle(pick) { if (done) return; done = true; stop(); [].forEach.call(ov.querySelectorAll('.bz-opt'), function (b, k) { b.disabled = true; if (opts[k] === odd) b.classList.add('ok'); else if (k === pick) b.classList.add('bad'); }); var good = pick >= 0 && opts[pick] === odd; if (good) ok++; sfx(good ? 'good' : 'bad'); $('bz-msg').innerHTML = VH(good, 'Spotted it!', 'Not that one') + '<b>' + esc(lab(odd)) + '</b> belongs to ' + esc(tn(sB)) + '.'; timers.push(setTimeout(round, good ? 2200 : 3800)); }
       [].forEach.call(ov.querySelectorAll('.bz-opt'), function (b) { b.onclick = function () { settle(parseInt(b.getAttribute('data-k'), 10)); }; });
       runRing('bzr', CFG.oddS, function () { settle(-1); });
     }
@@ -12269,4 +12269,4 @@ textarea.ms-in{min-height:7rem;resize:vertical}
   if (document.readyState === 'complete') start(); else window.addEventListener('load', start);
 })();
 </script>
-<script id="ap-build">window.__apBuild="45d2896894";</script>
+<script id="ap-build">window.__apBuild="f1a451ea4d";</script>
