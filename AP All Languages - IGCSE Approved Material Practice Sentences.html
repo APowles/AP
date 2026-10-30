@@ -8523,7 +8523,7 @@ window.sayBtn=function(b){say(b.dataset.t)};
 function spkBtn(t){return '<button class="spk" data-t="'+esc(t)+'" onclick="sayBtn(this)" aria-label="Hear it in '+LG.name+'">'+SPK+'</button>'}
 
 /* state */
-const S={pick:[],view:'home',sec:null,qi:'all',lv:'X',n:20,tab:'study',ses:null,slang:'fr',hl:true,hint:true};
+const S={pick:[],view:'home',sec:null,qi:'all',lv:'X',n:null,tab:'study',ses:null,slang:'fr',hl:true,hint:true};
 const scopeN=()=>S.pick.length?S.pick.length+' section'+(S.pick.length===1?'':'s'):'all sections';
 const inPick=q=>!S.pick.length||S.pick.indexOf(SECS.indexOf(q.section))>=0;
 function crumb(){
@@ -8541,6 +8541,7 @@ window.openSec=function(k){pushNav();S.view='sec';S.sec=k;S.qi='all';S.tab=k==='
 window.setTab=function(t){demoStop();S.tab=t;S.ses=null;S.act=null;S.en=false;saveLast();render()};
 window.setScope=function(v){demoStop();S.qi=v;S.ses=null;S.act=null;S.en=false;saveLast();render()};
 window.setLv=function(v){S.lv=v;S.ses=null;render()};
+const effN=()=>S.n===null?(S.sec==='all'?50:0):S.n;
 window.setN=function(v){S.n=v;S.ses=null;render()};
 window.setSlang=function(v){S.slang=v;render()};
 window.togHl=function(){S.hl=!S.hl;render()};
@@ -8596,7 +8597,7 @@ function startSes(){
     const pool=[];let more=true,r=0;while(more){more=false;per.forEach(a=>{if(a[r]){pool.push(a[r]);more=true}});r++}
     items=shuffle(pool);
   }else items=shuffle(itemsOf(S.tab,bl));
-  if(S.n>0)items=items.slice(0,S.n);
+  const cap=effN();if(cap>0)items=items.slice(0,cap);
   S.ses={items,i:0,phase:'ask',cur:null,done:false};
   initItem();
 }
@@ -8749,7 +8750,7 @@ function spotRow(small){
 /* ===== views ===== */
 function scopeBar(){
   const lv=['X','E','M','H'].map(v=>'<button class="'+(S.lv===v?'on':'')+'" onclick="setLv(\''+v+'\')">'+({X:'Mixed',E:'Easy',M:'Medium',H:'Hard'})[v]+'</button>').join('');
-  const nn=[10,20,0].map(v=>'<button class="'+(S.n===v?'on':'')+'" onclick="setN('+v+')">'+(v||'All')+'</button>').join('');
+  const nn=[10,20,50,0].map(v=>'<button class="'+(effN()===v?'on':'')+'" onclick="setN('+v+')">'+(v||'All')+'</button>').join('');
   const parts=(S.tab==='words'||S.tab==='pic'||S.tab==='cmb'?'':'<span class="ctl"><span class="label">Level</span><span class="seg">'+lv+'</span></span>')
    +(S.tab==='study'||S.tab==='words'||S.tab==='pic'||S.tab==='cmb'?'':'<span class="ctl"><span class="label">Items</span><span class="seg">'+nn+'</span></span>'
      +(S.tab==='bold'||S.tab==='short'?'':'<button class="tg'+(S.hint?' on':'')+'" onclick="togHint()" title="Show or hide the English under the sentence">English hint</button>'));
