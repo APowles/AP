@@ -14206,11 +14206,12 @@ body{overflow-x:clip}
 .sp-bar{height:10px;width:100%;background:var(--surface2);border-radius:99px;overflow:hidden}
 .sp-bar i{display:block;height:100%;background:var(--gold)}
 .sp-t{font-family:var(--head);font-weight:700;font-size:1.6rem;min-width:4ch;text-align:center}
-.splist{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,430px),1fr));gap:10px;width:100%}
+.splist{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,440px),1fr));gap:10px;width:100%}
 .spi{display:flex;gap:12px;align-items:flex-start;background:var(--surface2);border-radius:12px;padding:10px 14px;border:2px solid transparent}
 .spi.act{border-color:var(--gold)}
 .spn{flex:none;width:32px;height:32px;border-radius:50%;background:var(--gold);color:#14203a;font-weight:700;border:0;padding:0}
 .spi .line{flex:1;font-size:1.1rem}
+.spi .spb{flex:1;min-width:0}.spi .spb .line{font-size:1.15rem;line-height:1.4}.spi .spb .fc-pic{width:auto;margin:6px 0 0;font-size:.85rem;opacity:.7}
 body.proj .hero-panel{max-width:min(1300px,90%)}
 #fsov{position:fixed;inset:0;z-index:99999;background:#000;display:none;align-items:center;justify-content:center}
 .fs-stage{position:relative;--ar:1.7778;width:min(100vw,calc(100vh*var(--ar)));aspect-ratio:var(--ar)}
@@ -15140,7 +15141,7 @@ function fsUpd(){
   document.getElementById('fs-d').textContent=FS.demo?'⏹ Arrêter · Stop':'🎤 Écouter la démo · Hear the 30-second model';
   document.getElementById('fs-de').textContent=FS.demo?'⏹ Arrêter · Stop':'🇬🇧 Démo en anglais · Hear the model in English';
   const c=document.getElementById('fs-c');
-  if(FS.act!==null&&FS.num){const s=I.spots[FS.act];c.innerHTML=`<span class="nn">${FS.act+1}</span>${esc(s.fr)}${FS.en?`<div class="en">${esc(s.en)}</div>`:''}`;c.style.display='block'}
+  if(FS.act!==null&&FS.num){const s=I.spots[FS.act];c.innerHTML=`<span class="nn">${FS.act+1}</span>${esc(s.ff||s.fr)}${FS.en?`<div class="en">${esc(s.fe||s.en)}</div>`:''}`;c.style.display='block'}
   else if(FS.demo){c.innerHTML='🎤 Démo de 30 secondes · 30-second model';c.style.display='block'}
   else c.style.display='none';
 }
@@ -15192,7 +15193,7 @@ function spotView(k,I){
       <label class="mw"><input type="checkbox" ${SP.mem?'checked':''} onchange="spSet('mem',this.checked)"> Mode mémoire · Memory mode (image hides when time is up)</label>
       ${st?'':`<button class="btn pri" onclick="spStart()">Démarrer · Start</button>`}
       <button class="btn${st?' pri':''}" onclick="spReveal()">Révéler · Reveal</button><button class="btn" onclick="spBack()">Retour · Back</button>${fsb}`;
-  const list=rv?`<div class="splist">${I.spots.map((s,i)=>`<div class="spi${SP.act===i?' act':''}"><button class="spn" onclick="spAct(${i})" aria-label="Show detail ${i+1}">${i+1}</button>${LN({fr:s.fr,en:s.en})}</div>`).join('')}</div>`:'';
+  const list=rv?`<div class="splist">${I.spots.map((s,i)=>`<div class="spi${SP.act===i?' act':''}"><button class="spn" onclick="spAct(${i})" aria-label="Show detail ${i+1}">${i+1}</button><div class="spb">${LN({fr:s.ff||s.fr,en:s.fe||s.en})}${s.pic?`<div class="fc-pic">In the picture: ${esc(s.pic)}</div>`:''}</div></div>`).join('')}</div>`:'';
   const dem=rv&&I.demo?`<div class="spdemo"><div class="label" style="margin-bottom:6px">Démo de 30 secondes · 30-second model <button class="btn" style="margin-left:8px" onclick="spkDemoEn(${k.n})">🇬🇧 Hear it in English</button></div><div class="big">${LN(I.demo)}</div></div>`:'';
   return `<div class="spwrap">${rv?`<div class="sp-ctl">${ctl}</div>`:`<div class="sp-intro big">${intro}</div>`}
     ${st?`<div class="sp-bar"><i id="spbar" style="width:${pct}%"></i></div>`:''}
@@ -15200,7 +15201,7 @@ function spotView(k,I){
     ${rv?'':`<div class="sp-ctl">${ctl}</div>`}${list}${dem}</div>`;
 }
 /* Image machine: spin through the illustrations, stop at random; the boys name the KTR and talk for the chosen time */
-const MC={ids:new Set(),secs:30,phase:'setup',seen:new Set(),cur:null,ok:[],near:[],to:null,iv:null,end:0,over:false,act:null,reset:false,due:{},fresh:false,facts:false};
+const MC={ids:new Set(),secs:30,phase:'setup',seen:new Set(),cur:null,ok:[],near:[],to:null,iv:null,end:0,over:false,act:null,reset:false,due:{},fresh:false,facts:true};
 function mcStop(){if(MC.raf){cancelAnimationFrame(MC.raf);MC.raf=0}if(MC.to){clearTimeout(MC.to);MC.to=null}if(MC.iv){clearInterval(MC.iv);MC.iv=null}}
 function mcLoc(n){for(const s of SUBS){const i=s.ktrs.findIndex(k=>k.n===n);if(i>=0)return{s:s,i:i,k:s.ktrs[i]}}return null}
 function openMachine(ids){
@@ -15411,7 +15412,7 @@ function vMachine(){
     return mcTally()+`<div class="mc-wrap${fr?' mc-tin':''}"><div class="mc-qp"><div class="mc-qt">${esc(k.term)}</div>${k.hook?`<div class="mc-hq">${LN(k.hook)}</div>`:''}</div><div class="mc-bar"><i id="mcbar" style="width:${MC.over?0:pct}%"></i></div>${mark}<div class="mc-ctl fc-ctl">${ctl}</div><div class="mc-img mc-talkpic" style="--ar:${ar}"><img id="mcimg" src="${I.src}" alt="${esc(I.alt_en)}"></div></div>`;
   }
   const marks=I.spots.map((sp,i)=>`<button class="spmk${MC.act===i?' act':''}" style="left:${sp.x}%;top:${sp.y}%" onclick="mcAct(${i})" aria-label="Detail ${i+1}">${i+1}</button>`).join('');
-  const list=`<div class="splist">${I.spots.map((sp,i)=>`<div class="spi${MC.act===i?' act':''}"><button class="spn" onclick="mcAct(${i})" aria-label="Hear detail ${i+1}">${i+1}</button>${MC.facts?LN({fr:sp.ff||sp.fr,en:sp.fe||sp.en})+(sp.pic?`<div class="fc-pic">In the picture: ${esc(sp.pic)}</div>`:''):LN({fr:sp.fr,en:sp.en})}</div>`).join('')}</div>`;
+  const list=`<div class="splist">${I.spots.map((sp,i)=>`<div class="spi${MC.act===i?' act':''}"><button class="spn" onclick="mcAct(${i})" aria-label="Hear detail ${i+1}">${i+1}</button><div class="spb">${MC.facts?LN({fr:sp.ff||sp.fr,en:sp.fe||sp.en})+(sp.pic?`<div class="fc-pic">In the picture: ${esc(sp.pic)}</div>`:''):LN({fr:sp.fr,en:sp.en})}</div></div>`).join('')}</div>`;
   const modes=`<div class="sp-ctl" style="margin:10px 0 4px"><span class="label" style="margin:0">The details</span><button class="btn${(MC.facts||MC.ovw)?'':' pri'}" onclick="mcFacts(false)">What the picture shows</button><button class="btn${MC.facts&&!MC.ovw?' pri':''}" onclick="mcFacts(true)">Key facts to say</button><button class="btn${MC.ovw?' pri':''}" onclick="mcOv()">Vue d'ensemble · Overview</button></div>`;
   const dem=I.demo?`<div class="spdemo"><div class="label" style="margin-bottom:6px">Démo de 30 secondes · 30-second model</div><div class="big">${LN(I.demo)}</div></div>`:'';
   const prac=`<div class="sp-ctl mc-prac"><span class="label" style="margin:0">Practise this KTR</span>${STAGES.filter(st=>(st[0]!=='r'||k.remember)&&(st[0]!=='i'||k.ican)).map(st=>`<button class="btn" onclick="mcPractise('${st[0]}')">${esc(st[1])}</button>`).join('')}<button class="spbtn" onclick="openSpeedNow([${MC.cur}])">⚡ Speed</button></div>`;
@@ -18979,4 +18980,4 @@ textarea.ms-in{min-height:7rem;resize:vertical}
   if (document.readyState === 'complete') start(); else window.addEventListener('load', start);
 })();
 </script>
-<script id="ap-build">window.__apBuild="c0dfa693ed";</script>
+<script id="ap-build">window.__apBuild="ec579e3f51";</script>
