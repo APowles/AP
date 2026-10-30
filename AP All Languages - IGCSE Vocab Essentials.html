@@ -597,7 +597,6 @@ button[onclick*="apMySetHelp"]{background:none!important;border:0!important;box-
     ['odd', 'Odd one out', 'Four words appear. Tap the one that does not belong to the topic.'],
     ['letter', 'Missing letter', 'Three or four letters missing from a long word. Type them in order, accents included.'],
     ['gender', 'Gender blitz', 'Masculine, feminine or plural? One tap per noun.'],
-    ['twomin', 'Timed topic', 'Set the clock (two minutes to start). How many can you say?'],
     ['roll', 'Roll it', 'Roll the dice: they decide how many words you blitz in one go.'],
     ['catch', 'Catch it', 'Words race across the screen, faster every catch. Tap the word, then its match.'],
     ['lane', 'Lane it', 'Four lanes, four words fall. Tap the right translation before it hits the line.'],
@@ -759,7 +758,6 @@ button[onclick*="apMySetHelp"]{background:none!important;border:0!important;box-
   var SETS = {
     clock: [['clock', 'Seconds per card', [2, 3, 4, 5, 6, 8], '', 1]],
     streak: [['streak', 'Seconds per card', [[0, 'No timer'], 5, 8, 12], '', 1]],
-    twomin: [['tm', 'Minutes on the clock', [1, 2, 3, 5], '', 0]],
     roll: [['dice', 'Dice', [[1, 'One die'], [2, 'Two dice']], '', 1]],
     pairs: [['pairs', 'Words in the race', [10, 20, 30], '', 0]],
     lane: [['ln', 'Words in the round', [15, 25, 40], '', 0], ['lives', 'Lives', [1, 3, 5], '', 0], ['start', 'Starting speed', [[60, 'Gentle'], [100, 'Normal'], [140, 'Fast']], '', 1], ['accel', 'Speeding up', [[6, 'Slow'], [11, 'Normal'], [16, 'Brutal']], '', 1]],
@@ -829,7 +827,7 @@ button[onclick*="apMySetHelp"]{background:none!important;border:0!important;box-
     var r = {}, secs = {}; p.forEach(function (x) { secs[x.sec] = 1; });
         if (Object.keys(secs).length < 2) r.odd = 'Needs two or more lists: choose more topics.'; else if (p.length < 6) r.odd = 'Needs a few more words.';
     var g = genderPool(p); if (target() === 'en' || g.length < 6) r.gender = 'Needs a list with nouns (le, la, un, une…).';
-    if (p.length < 4) { r.clock = r.streak = r.twomin = r.roll = r.pairs = r.letter = r.lane = 'Choose a list with more words.'; }
+    if (p.length < 4) { r.clock = r.streak = r.roll = r.pairs = r.letter = r.lane = 'Choose a list with more words.'; }
     if (p.length < 8) r['catch'] = 'Needs at least 8 words: choose more topics.';
     return r;
   }
@@ -888,14 +886,6 @@ button[onclick*="apMySetHelp"]{background:none!important;border:0!important;box-
       selfMarkGame({ title: 'Streak', deck: shuf(p), best: bestStreak, sudden: true, perCard: function () { return CFG.streak; }, cue: LANG_NAMES[dirs()[0]],
         stats: function (ok, miss, left, run) { return '<div><b>' + run + '</b>streak</div><div><b>' + bestStreak + '</b>best today</div>'; },
         end: function (r) { bestStreak = Math.max(bestStreak, r.best); endScreen('Streak', { big: r.ok, note: r.ok === p.length ? 'Every word in a row. Faultless.' : 'A streak of ' + r.ok + '. Best this sitting: ' + bestStreak + '.' }, go); } });
-    }; go();
-  };
-  GAMES.twomin = function (p) {
-    var go = function () {
-      selfMarkGame({ title: 'Timed topic', deck: shuf(p).concat(shuf(p), shuf(p)), total: CFG.tm * 60, cue: LANG_NAMES[dirs()[0]], requeue: false,
-        timerBar: function () { return CFG.tm + ':00'; },
-        stats: function (ok, miss) { return '<div><b>' + ok + '</b>said</div><div><b>' + miss + '</b>missed</div>'; },
-        end: function (r) { endScreen('Timed topic', { big: r.ok, note: r.ok + ' said in ' + CFG.tm + (CFG.tm === 1 ? ' minute' : ' minutes') + (r.miss ? ', ' + r.miss + ' missed' : '') + '. Beat it.' }, go); } });
     }; go();
   };
   GAMES.roll = function (p) {
@@ -12365,4 +12355,4 @@ textarea.ms-in{min-height:7rem;resize:vertical}
   if (document.readyState === 'complete') start(); else window.addEventListener('load', start);
 })();
 </script>
-<script id="ap-build">window.__apBuild="93844fe4ba";</script>
+<script id="ap-build">window.__apBuild="7423a9dc5e";</script>
