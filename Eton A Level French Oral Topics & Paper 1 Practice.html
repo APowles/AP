@@ -15410,9 +15410,9 @@ function ovPanel(k,scope,hideQ){
   const bs=k.picture||[],st=ovState(scope,k.n,bs.length);
   const cards=bs.map((b,i)=>{
     const gm=bs.every(x=>x.g),hasCl=!gm&&!!(b.cl&&b.cl.fr),max=hasCl?2:1,v=Math.min(st[i],max);
-    const body=gm&&v===0?`<div class="ov-g">${esc(b.g)}</div><span class="ov-h">Tap to see and hear the French</span>`:v===0?`<span class="ov-h">Tap for ${hasCl?'a clue':'the answer'}</span>`:v===1&&hasCl?`<span class="ov-cl">${esc(b.cl.fr)}</span><span class="ov-h">Tap again to reveal</span>`:`<div class="ov-full">${LN(b)}</div><span class="ov-h">Tap to hide</span>`;
+    const body=gm&&v===0?`<div class="ov-g">${esc(b.g)}</div><span class="ov-h">Tap to see and hear the French</span>`:v===0?`<span class="ov-h">Tap for ${hasCl?'a clue':'the answer'}</span>`:v===1&&hasCl?`<span class="ov-cl">${esc(b.cl.fr)}</span><span class="ov-h">Tap again to reveal</span>`:`${gm?`<div class="ov-g ov-g2">${esc(b.g)}</div>`:''}<div class="ov-full">${LN(b)}</div><span class="ov-h">Tap to hide</span>`;
     return `<div class="ov-b s${v}" role="button" tabindex="0" onclick="if(!event.target.closest('.spk,.song'))ovTap('${scope}',${k.n},${i},${max})" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();ovTap('${scope}',${k.n},${i},${max})}"><div class="ov-t"><span class="ov-n">${i+1}</span><b>${esc(b.label)}</b><i>${esc(b.label_en||'')}</i></div>${body}</div>`}).join('');
-  return `<div class="ov">${hideQ?'':`<div class="ov-q">${k.hook?LN(k.hook):''}</div>`}<div class="ov-l">${bs.every(x=>x.g)?'The parts, in order. Read the gist, then tap to see and hear the French. When you know it, press Tout cacher · Hide all and say each part from the gist.':'The parts, in order. Say each one, then tap it for the clue, and again for the answer.'}</div>${cards}</div>`;
+  return `<div class="ov">${hideQ?'':`<div class="ov-q">${k.hook?LN(k.hook):''}</div>`}<div class="ov-l">${bs.every(x=>x.g)?'The parts, in order. Read the gist, then tap to see and hear the French, or press Partie suivante · Next part to go one at a time. When you know it, press Tout cacher · Hide all and say each part from the gist.':'The parts, in order. Say each one, then tap it for the clue, and again for the answer.'}</div>${cards}</div>`;
 }
 const mcPool=()=>[...MC.ids];
 function mcQPaint(){const b=document.getElementById('qaBtn');if(b)b.innerHTML=MCQ.play?'\u25A0 Stop':'\u{1F50A} Play question'}
@@ -16210,6 +16210,7 @@ const ORDS={};
 function ovoPerm(n){let a=[];for(let i=0;i<n;i++)a.push(i);let p=shuffle(a),t=0;while(n>1&&p.every((v,i)=>v===i)&&t++<20)p=shuffle(a);return p}
 function ovoSt(k){const n=(k.picture||[]).length;let o=ORDS[k.n];if(!o||o.len!==n){o=ORDS[k.n]={len:n,round:'order',placed:0,wrong:-1,perm:ovoPerm(n),clue:new Array(n).fill(0),rev:new Array(n).fill(0)}}return o}
 function ovSet(m){S.ovm=m;render()}
+function ovNext(){const k=ktr(),a=ovState('s',k.n,k.picture.length),i=a.findIndex(v=>!v);if(i>=0){a[i]=1;render()}}
 function ovAll(on){const k=ktr(),a=ovState('s',k.n,k.picture.length);k.picture.forEach((b,i)=>{a[i]=on?((b.cl&&b.cl.fr)?2:1):0});render()}
 function ovoShuffle(){const o=ovoSt(ktr());o.perm=ovoPerm(o.len);o.placed=0;o.wrong=-1;render()}
 function ovoRound(r){ovoSt(ktr()).round=r;render()}
@@ -16246,7 +16247,7 @@ function sOv(k){
   const m=S.ovm||'tell',bs=k.picture||[];
   const tabs=[['tell','Raconter','Tell it'],['read','Lire','Read'],['order','Remettre en ordre','Put together']].map(t=>`<button class="tg${m===t[0]?' on':''}" onclick="ovSet('${t[0]}')">${t[1]} <span style="font-weight:400">· ${t[2]}</span></button>`).join('');
   const o=ovoSt(k);
-  const act=m==='tell'?`<button class="btn" onclick="ovAll(true)">👁 Tout montrer <span style="font-weight:400">· Reveal all</span></button><button class="btn" onclick="ovAll(false)">🙈 Tout cacher <span style="font-weight:400">· Hide all</span></button>`
+  const act=m==='tell'?`<button class="btn" onclick="ovNext()">▶ Partie suivante <span style="font-weight:400">· Next part</span></button><button class="btn" onclick="ovAll(true)">👁 Tout montrer <span style="font-weight:400">· Reveal all</span></button><button class="btn" onclick="ovAll(false)">🙈 Tout cacher <span style="font-weight:400">· Hide all</span></button>`
     :m==='order'?(o.round==='gaps'?`<button class="btn" onclick="ovgReset()">↺ Recommencer <span style="font-weight:400">· Start again</span></button>`:`<button class="btn" onclick="ovoShuffle()">🔀 Mélanger <span style="font-weight:400">· Shuffle</span></button>`):'';
   let body;
   if(m==='read'){
@@ -16392,6 +16393,7 @@ syncTeach()
 .kp-sw{display:flex;flex-wrap:wrap;align-items:center;gap:6px 10px;margin:0 0 10px;font-size:.9rem;color:#4a5570}.kp-sgs{display:inline-flex;flex-wrap:wrap;gap:6px}.kp-sg{min-height:38px;padding:6px 14px;border:1.5px solid #c9a84c;border-radius:999px;background:#fffdf8;color:#1a2744;font:700 .88rem 'DM Sans',system-ui,sans-serif;cursor:pointer}.kp-sg.on{background:#1a2744;color:#f2d38a;border-color:#1a2744}
 .kp-pk{margin:0 0 12px}.kp-pkh{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:6px 10px;font-size:.9rem;font-weight:700;color:#1a2744;margin-bottom:8px}.kp-pkl{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:6px 12px}.kp-pkl label{display:flex;align-items:center;gap:8px;min-height:40px;padding:4px 10px;background:#fffdf8;border:1px solid #e3d9bd;border-radius:10px;font-size:.9rem;cursor:pointer}.kp-pkl input{width:20px;height:20px;accent-color:#1a2744;flex:none}
 .ftl{margin:14px 0;border:1px solid var(--line,#ddd5bd);border-radius:14px;background:var(--card,#fff);padding:4px 14px}.ftl summary{cursor:pointer;font-family:var(--head);font-weight:700;font-size:1.05rem;padding:10px 0;color:var(--navy,#1a2744)}.ftl summary span{font:600 .78rem var(--body,system-ui);color:#8a6d1d;margin-left:8px}.ftl-l{border-left:3px solid #c9a84c;margin:4px 0 12px 6px;padding-left:14px}.ftl-r{display:flex;gap:14px;padding:7px 0;border-bottom:1px solid rgba(0,0,0,.06)}.ftl-y{flex:0 0 120px;font-family:var(--head);font-weight:700;color:#8a6d1d}.ftl-b{flex:1;min-width:0}.ftl-b small{display:inline-block;margin-top:2px;color:#4a5570;cursor:pointer;text-decoration:underline dotted}.rt{margin:10px 0 14px;border:1px solid var(--line,#ddd5bd);border-left:4px solid #c9a84c;border-radius:12px;background:var(--card,#fff);padding:2px 14px}.rt summary{cursor:pointer;font-weight:800;padding:9px 0;color:var(--navy,#1a2744)}.rt summary span{font-weight:600;font-size:.8rem;color:#8a6d1d;margin-left:8px}.rt-l{list-style:none;margin:0;padding:0 0 4px}.rt-l li{display:flex;gap:12px;align-items:center;padding:8px 0;border-top:1px solid rgba(0,0,0,.06)}.rt-l li b{display:block}.rt-l li span{display:block;font-size:.88rem;color:#4a5570}.rt-l li>div{flex:1;min-width:0}.rt-c{flex:0 0 28px;width:28px;height:28px;border-radius:50%;border:2px solid #1a2744;background:#fff;color:#1a8a4c;font-weight:900;cursor:pointer}.rt-l li.on .rt-c{background:#e6f4ec;border-color:#1a8a4c}.rt-g{flex:0 0 auto;font:700 .82rem inherit;padding:7px 12px;border-radius:9px;border:1.5px solid #1a2744;background:#fff;color:#1a2744;cursor:pointer}@keyframes rtl{0%,100%{box-shadow:0 0 0 0 rgba(201,168,76,0)}30%{box-shadow:0 0 0 5px rgba(201,168,76,.85)}}
+.ov-g.ov-g2{font-size:.9rem;color:#667;border-bottom:1px solid #e3e0d4;margin-bottom:6px;padding-bottom:5px}
 .ov-g{font-size:1.08rem;line-height:1.4;color:#1a2744;padding:4px 0 2px}
 .rt-land{animation:rtl 1.8s ease-out;border-radius:14px}
 .rt+*{scroll-margin-top:150px}
@@ -19119,4 +19121,4 @@ textarea.ms-in{min-height:7rem;resize:vertical}
   if (document.readyState === 'complete') start(); else window.addEventListener('load', start);
 })();
 </script>
-<script id="ap-build">window.__apBuild="95210a1c6d";</script>
+<script id="ap-build">window.__apBuild="597964a0f8";</script>
