@@ -8798,7 +8798,10 @@ function demoStart(i,en){
     if(!DM.on||DM.tok!==tok)return;
     if(DM.k>=ss.length){DM.on=false;DM.k=-1;paintDemo();return}
     paintDemo();
-    const nx=()=>{if(!DM.on||DM.tok!==tok)return;DM.k++;setTimeout(step,300)};
+    let done=false,fb=null;
+    const nx=()=>{if(done)return;done=true;clearTimeout(fb);if(!DM.on||DM.tok!==tok)return;DM.k++;setTimeout(step,300)};
+    // iPad voices sometimes never report 'end': a fallback timer (generous: 0.65 s a word + 4 s) moves on so the answer can never freeze
+    fb=setTimeout(nx,Math.round(String(ss[DM.k]).split(/\s+/).length*650/(()=>{try{return window.parent._amSpeed||window._amSpeed||1}catch(e){return 1}})())+4000);
     if(en)sayEn(ss[DM.k],nx);else say(ss[DM.k],nx);
   };
   step();
