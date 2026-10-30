@@ -15407,16 +15407,17 @@ const _whU={};function whPlay(k,r,v){try{if(!_whU[k]){const b=atob(WH_SND[k]),u=
 /* ===== Vue d'ensemble · Overview: the hook question and the beats of a KTR (Avant, Ce qui s'est passé, Le débat, Pourquoi ça compte), each hidden until tapped: first a clue, then the whole sentence ===== */
 const OVS={};
 function ovState(scope,n,len){const key=scope+n;if(!OVS[key]||OVS[key].length!==len)OVS[key]=new Array(len).fill(0);return OVS[key]}
-function ovStep(scope,n,len){const a=ovState(scope,n,len),i=a.findIndex(v=>!v);if(i>=0){a[i]=1;render()}}
-function ovSetAll(scope,n,len,on){const a=ovState(scope,n,len);a.fill(on?1:0);render()}
-function ovTap(scope,n,i,max){const a=OVS[scope+n];if(!a)return;a[i]=(a[i]+1)%(max+1);render();}
+function ovStep(scope,n,len){const a=ovState(scope,n,len),i=a.findIndex(v=>!v);if(i>=0){a[i]=OVEN?1:2;render()}}
+function ovSetAll(scope,n,len,lvl){const a=ovState(scope,n,len);a.fill(lvl);render()}
+var OVEN=true;function ovEn(on){OVEN=on;render()}
+function ovTap(scope,n,i,max,g){const a=OVS[scope+n];if(!a)return;if(g&&!OVEN)a[i]=a[i]?0:2;else a[i]=(a[i]+1)%(max+1);render();}
 function ovPanel(k,scope,hideQ){
   const bs=k.picture||[],st=ovState(scope,k.n,bs.length);
   const cards=bs.map((b,i)=>{
-    const gm=bs.every(x=>x.g),hasCl=!gm&&!!(b.cl&&b.cl.fr),max=hasCl?2:1,v=Math.min(st[i],max);
-    const body=gm&&v===0?`<div class="ov-g">${esc(b.g)}</div><span class="ov-h">Tap to see and hear the French</span>`:v===0?`<span class="ov-h">Tap for ${hasCl?'a clue':'the answer'}</span>`:v===1&&hasCl?`<span class="ov-cl">${esc(b.cl.fr)}</span><span class="ov-h">Tap again to reveal</span>`:`${gm?`<div class="ov-g ov-g2">${esc(b.g)}</div>`:''}<div class="ov-full">${LN(b)}</div><span class="ov-h">Tap to hide</span>`;
-    return `<div class="ov-b s${v}" role="button" tabindex="0" onclick="if(!event.target.closest('.spk,.song'))ovTap('${scope}',${k.n},${i},${max})" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();ovTap('${scope}',${k.n},${i},${max})}"><div class="ov-t"><span class="ov-n">${i+1}</span><b>${esc(b.label)}</b><i>${esc(b.label_en||'')}</i></div>${body}</div>`}).join('');
-  return `<div class="ov">${hideQ?'':`<div class="ov-q">${k.hook?LN(k.hook):''}</div>`}<div class="ov-l">${bs.every(x=>x.g)?'The parts, in order. Read the gist, then tap to see and hear the French, or press Partie suivante · Next part to go one at a time. When you know it, press Tout cacher · Hide all and say each part from the gist.':'The parts, in order. Say each one, then tap it for the clue, and again for the answer.'}</div>${bs.every(x=>x.g)?`<div class="ov-ctl"><button class="btn" onclick="ovStep('${scope}',${k.n},${bs.length})">▶ Partie suivante <span style="font-weight:400">· Next part</span></button><button class="btn" onclick="ovSetAll('${scope}',${k.n},${bs.length},true)">👁 Tout montrer <span style="font-weight:400">· Show all</span></button><button class="btn" onclick="ovSetAll('${scope}',${k.n},${bs.length},false)">🙈 Tout cacher <span style="font-weight:400">· Hide all</span></button></div>`:''}${cards}</div>`;
+    const gm=bs.every(x=>x.g),hasCl=!gm&&!!(b.cl&&b.cl.fr),max=(gm||hasCl)?2:1,v0=Math.min(st[i],max),v=(gm&&!OVEN&&v0===1)?2:v0;
+    const body=gm&&v===0?`<span class="ov-h">Tap to show ${OVEN?'the gist':'the French'}</span>`:gm&&v===1?`<div class="ov-g">${esc(b.g)}</div><span class="ov-h">Tap to see and hear the French</span>`:v===0?`<span class="ov-h">Tap for ${hasCl?'a clue':'the answer'}</span>`:v===1&&hasCl?`<span class="ov-cl">${esc(b.cl.fr)}</span><span class="ov-h">Tap again to reveal</span>`:`${gm&&OVEN?`<div class="ov-g ov-g2">${esc(b.g)}</div>`:''}<div class="ov-full">${LN(b)}</div><span class="ov-h">Tap to hide</span>`;
+    return `<div class="ov-b s${v}" role="button" tabindex="0" onclick="if(!event.target.closest('.spk,.song'))ovTap('${scope}',${k.n},${i},${max},${gm?1:0})" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();ovTap('${scope}',${k.n},${i},${max},${gm?1:0})}"><div class="ov-t"><span class="ov-n">${i+1}</span><b>${esc(b.label)}</b><i>${esc(b.label_en||'')}</i></div>${body}</div>`}).join('');
+  return `<div class="ov">${hideQ?'':`<div class="ov-q">${k.hook?LN(k.hook):''}</div>`}<div class="ov-l">${bs.every(x=>x.g)?'The parts, in order. Everything starts hidden. Press Partie suivante · Next part to show the English gist of the next part, then tap a part to see and hear the French. Tap again to hide it. Switch the English gist off to work with French only.':'The parts, in order. Say each one, then tap it for the clue, and again for the answer.'}</div>${bs.every(x=>x.g)?`<div class="ov-ctl"><button class="btn" onclick="ovStep('${scope}',${k.n},${bs.length})">▶ Partie suivante <span style="font-weight:400">· Next part</span></button>${OVEN?`<button class="btn" onclick="ovSetAll('${scope}',${k.n},${bs.length},1)">👁 Tous les résumés <span style="font-weight:400">· Show all gists</span></button>`:''}<button class="btn" onclick="ovSetAll('${scope}',${k.n},${bs.length},2)">🇫🇷 Tout en français <span style="font-weight:400">· Show all French</span></button><button class="btn" onclick="ovSetAll('${scope}',${k.n},${bs.length},0)">🙈 Tout cacher <span style="font-weight:400">· Hide all</span></button><button class="btn" onclick="ovEn(${!OVEN})">🇬🇧 English gist: ${OVEN?'On':'Off'}</button></div>`:''}${cards}</div>`;
 }
 const mcPool=()=>[...MC.ids];
 function mcQPaint(){const b=document.getElementById('qaBtn');if(b)b.innerHTML=MCQ.play?'\u25A0 Stop':'\u{1F50A} Play question'}
@@ -16215,7 +16216,7 @@ function ovoPerm(n){let a=[];for(let i=0;i<n;i++)a.push(i);let p=shuffle(a),t=0;
 function ovoSt(k){const n=(k.picture||[]).length;let o=ORDS[k.n];if(!o||o.len!==n){o=ORDS[k.n]={len:n,round:'order',placed:0,wrong:-1,perm:ovoPerm(n),clue:new Array(n).fill(0),rev:new Array(n).fill(0)}}return o}
 function ovSet(m){S.ovm=m;render()}
 function ovNext(){const k=ktr(),a=ovState('s',k.n,k.picture.length),i=a.findIndex(v=>!v);if(i>=0){a[i]=1;render()}}
-function ovAll(on){const k=ktr(),a=ovState('s',k.n,k.picture.length);k.picture.forEach((b,i)=>{a[i]=on?((b.cl&&b.cl.fr)?2:1):0});render()}
+function ovAll(on){const k=ktr(),a=ovState('s',k.n,k.picture.length);k.picture.forEach((b,i)=>{a[i]=on?((b.cl&&b.cl.fr)||b.g?2:1):0});render()}
 function ovoShuffle(){const o=ovoSt(ktr());o.perm=ovoPerm(o.len);o.placed=0;o.wrong=-1;render()}
 function ovoRound(r){ovoSt(ktr()).round=r;render()}
 function ovoTap(i){
@@ -19127,4 +19128,4 @@ textarea.ms-in{min-height:7rem;resize:vertical}
   if (document.readyState === 'complete') start(); else window.addEventListener('load', start);
 })();
 </script>
-<script id="ap-build">window.__apBuild="9e7f4ead7f";</script>
+<script id="ap-build">window.__apBuild="0ddb8df524";</script>
