@@ -8,3 +8,12 @@ python3 $I "AP All Languages - IGCSE Vocab and Gr EWs.html"
 python3 $I "Eton F Spanish Vocab.html"
 python3 $I "Eton F Block Spanish.html" --inside fb-vocab
 python3 $I "Eton Gen Essential Phrases.html" --noun phrases --short 4 --games clock,streak,odd,letter,roll,catch,lane,pairs
+python3 $I "Eton IGCSE Structures & Oral and Writing Practice.html" --host _tools/gamify/hosts/structures.js --noun phrases --short 4 --games clock,streak,odd,letter,roll,catch,lane,pairs
+python3 $I "AP All Languages - IGCSE Structures & Oral and Writing Practice.html" --host _tools/gamify/hosts/structures.js --noun phrases --short 4 --games clock,streak,odd,letter,roll,catch,lane,pairs
+python3 $I "Eton IGCSE Approved Material Practice Sentences.html" --host _tools/gamify/hosts/am.js --noun sentences --games clock,streak,letter,roll,pairs
+python3 $I "AP All Languages - IGCSE Approved Material Practice Sentences.html" --host _tools/gamify/hosts/am.js --noun sentences --games clock,streak,letter,roll,pairs
+python3 $I "Eton A Level French Oral Topics & Paper 1 Practice.html" --host _tools/gamify/hosts/ktr.js --noun sentences --games clock,streak,letter,roll,pairs
+python3 _tools/gamify/hosts/verbs-export.py "Eton French Verbs.html" "Eton Italian Verbs.html" "Eton Spanish Verbs.html"
+python3 $I "Eton French Verbs.html" --host _tools/gamify/hosts/french-verbs.js --noun forms --short 4 --games clock,streak,letter,roll,catch,lane,pairs
+python3 $I "Eton Italian Verbs.html" --host _tools/gamify/hosts/italian-verbs.js --noun forms --short 4 --games clock,streak,letter,roll,catch,lane,pairs
+python3 $I "Eton Spanish Verbs.html" --host _tools/gamify/hosts/spanish-verbs.js --noun forms --short 4 --games clock,streak,letter,roll,catch,lane,pairs
