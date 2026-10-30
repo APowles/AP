@@ -207,6 +207,67 @@
 })(window);
 /* ===== END AP VOICE ===== */
 </script>
+<script>window.AP_SP_DEFAULT_PAUSE=0.8;</script>
+<script id="ap-sp">
+/* ===== AP SPEED & PAUSES v1 (identical in every AP app that has it) =====
+   One header button "🎚 Speed & pauses" opens a small panel: voice Speed (50–150 %) and the Pause between sentences (0–2 s).
+   Speed is applied to EVERY utterance by wrapping speechSynthesis.speak, so an app never scales the rate itself.
+   AP_SP.pauseMs() is what a multi-sentence player (whole answer, story) waits between sentences.
+   Remembered on this device (shared by all the apps). Never autoplays anything; Try is a button. */
+(function (W) {
+  if (W.AP_SP) return;
+  var K = 'ap_sp_v1', DP = (W.AP_SP_DEFAULT_PAUSE >= 0 ? W.AP_SP_DEFAULT_PAUSE : 0.3), st = { speed: 1, pause: DP };
+  try { var j = JSON.parse(localStorage.getItem(K) || 'null'); if (j) { if (j.speed >= .5 && j.speed <= 1.5) st.speed = j.speed; if (j.pause >= 0 && j.pause <= 2) st.pause = j.pause; } } catch (e) { }
+  function save() { try { localStorage.setItem(K, JSON.stringify(st)); } catch (e) { } }
+  // Speed: apps with the older "AP VOICE SPEED" block (window.__apVF) keep scaling every utterance there; the panel only sets that factor.
+  function getSpeed() { return W.__apVF ? W.__apVF.get() : st.speed; }
+  function setSpeed(x) { if (W.__apVF) W.__apVF.set(x); else st.speed = x; save(); }
+  var S = W.speechSynthesis;
+  if (S && !S.__apSp) {
+    try {
+      S.__apSp = 1; var sp = S.speak.bind(S);
+      S.speak = function (u) { try { if (u && !u.__apSp && !W.__apVF) { u.__apSp = 1; u.rate = Math.min(2, Math.max(.1, (u.rate || 1) * st.speed)); } } catch (e) { } return sp(u); };
+    } catch (e) { }
+  }
+  var CSS = '#apsp-pop{position:absolute;right:12px;top:100%;margin-top:6px;z-index:60;width:min(330px,90vw);background:#fff;color:#1a2744;border:2px solid #c9a84c;border-radius:12px;padding:12px 14px;box-shadow:0 8px 24px rgba(0,0,0,.28);font:500 .9rem/1.3 var(--aph-body,"DM Sans",system-ui,sans-serif)}'
+    + '#apsp-pop .pc-h{font-weight:800;margin-bottom:6px}#apsp-pop label{display:flex;justify-content:space-between;margin-top:8px;font-weight:600}#apsp-pop input[type=range]{width:100%;margin:4px 0}'
+    + '#apsp-pop .pc-b{display:flex;gap:8px;margin-top:10px}#apsp-pop .pc-b button{flex:1;padding:8px;border-radius:8px;border:2px solid #1a2744;background:#fff;color:#1a2744;font:700 .9rem var(--aph-body,inherit);cursor:pointer}#apsp-pop .pc-b button:first-child{background:#1a2744;color:#ffd76a}'
+    + '#apsp-pop .pc-n{font-size:.8rem;color:#4a5a7a;margin-top:6px}body.aph-at-home .aph-header .aph-home.aph-pace{display:inline-flex}@media print{#apsp-pop,.aph-pace{display:none!important}}';
+  function toggle(ev) {
+    if (ev) ev.stopPropagation();
+    var p = document.getElementById('apsp-pop'); if (p) { p.remove(); return; }
+    p = document.createElement('div'); p.id = 'apsp-pop'; p.setAttribute('data-nogrow', '1');
+    p.innerHTML = '<div class="pc-h">Voice speed and pauses</div>'
+      + '<label>Speed <b id="apsp-sv"></b></label><input type="range" id="apsp-s" min="0.5" max="1.5" step="0.05">'
+      + '<label>Pause between sentences <b id="apsp-pv"></b></label><input type="range" id="apsp-p" min="0" max="2" step="0.1">'
+      + '<div class="pc-b"><button type="button" id="apsp-try">&#9654; Try</button><button type="button" id="apsp-reset">Reset</button></div>'
+      + '<div class="pc-n">Speed changes every voice. The pause is the gap in “Hear the whole answer” and other multi-sentence playback.</div>';
+    (document.querySelector('.aph-header') || document.body).appendChild(p);
+    var r = document.getElementById('apsp-s'), q = document.getElementById('apsp-p');
+    function show() { var sv = getSpeed(); document.getElementById('apsp-sv').textContent = Math.round(sv * 100) + '%'; document.getElementById('apsp-pv').textContent = st.pause.toFixed(1) + ' s'; r.value = sv; q.value = st.pause; }
+    r.oninput = function () { setSpeed(parseFloat(r.value)); show(); };
+    q.oninput = function () { st.pause = parseFloat(q.value); show(); save(); };
+    document.getElementById('apsp-reset').onclick = function () { setSpeed(1); st.pause = DP; show(); save(); };
+    document.getElementById('apsp-try').onclick = function () {
+      try { var s = W.speechSynthesis; s.cancel(); var L = (W.LG && W.LG.code) || 'fr'; var T = { fr: 'Bonjour, je m’appelle Thomas. J’habite à Londres avec ma famille.', it: 'Ciao, mi chiamo Luca. Abito a Londra con la mia famiglia.', es: 'Hola, me llamo Pablo. Vivo en Madrid con mi familia.' };
+        var u = new SpeechSynthesisUtterance(T[L] || T.fr); var b = W.AP_VOICE; u.lang = ({ fr: 'fr-FR', it: 'it-IT', es: 'es-ES' })[L] || 'fr-FR'; u.rate = .9;
+        try { var v = b && b.pick && b.pick(u.lang); if (v) u.voice = v; } catch (e) { } s.speak(u); } catch (e) { }
+    };
+    show();
+  }
+  function mount() {
+    if (document.querySelector('.aph-pace')) return;
+    if (!document.getElementById('apsp-css')) { var c = document.createElement('style'); c.id = 'apsp-css'; c.textContent = CSS; document.head.appendChild(c); }
+    var vb = document.querySelector('.aph-header-in .aph-voice') || document.querySelector('.aph-header .aph-voice'); if (!vb || !vb.parentNode) return;
+    var b = document.createElement('button'); b.type = 'button'; b.className = 'aph-home aph-voice aph-pace'; b.title = 'Voice speed and pause between sentences'; b.setAttribute('aria-label', 'Voice speed and pauses');
+    b.innerHTML = '🎚<span class="aph-voice-t"> Speed &amp; pauses</span>'; b.onclick = toggle; vb.parentNode.insertBefore(b, vb);
+  }
+  document.addEventListener('click', function (e) { var p = document.getElementById('apsp-pop'); if (p && !p.contains(e.target) && !(e.target.closest && e.target.closest('.aph-pace'))) p.remove(); });
+  W.AP_SP = { get speed() { return getSpeed(); }, get pause() { return st.pause; }, pauseMs: function () { return Math.round(st.pause * 1000); }, mount: mount, toggle: toggle };
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', mount); else mount();
+})(window);
+/* ===== END AP SPEED & PAUSES ===== */
+</script>
 <title>Eton A Level Oral (Paper 3) and Listening, Reading, Writing (Paper 1)</title>
 <style id="aph-style">
 /* ===== AP HOUSE STYLE v1 ===== */
@@ -238,6 +299,7 @@ button,input,select,textarea,optgroup{font-family:inherit}
 .aph-home:hover{background:rgba(201,168,76,.26);color:var(--gold2)}
 .aph-avatar{width:auto;height:72px;border-radius:0;border:0;object-fit:contain;display:block;flex:none;background:none}
 body.aph-at-home .aph-header .aph-home{display:none}   /* no Home on the home screen itself */
+body.aph-at-home .aph-header .aph-home.aph-pace{display:block}   /* Speed & pauses stays on the home screen */
 
 /* ── Page column, cards, headings, labels ── */
 .aph-wrap{max-width:640px;margin:0 auto;padding:20px 16px 48px}
@@ -739,10 +801,6 @@ textarea.p1-in{border:1px solid #bbb;border-radius:4px;min-height:44px}
       <h1 class="aph-title">Eton A Level <em>Oral (Paper 3) and Listening, Reading, Writing (Paper 1)</em></h1>
       <div class="aph-sub" id="header-sub-count">70 KTRs · 12 themes · Definition · Example · Analysis · Audio</div>
     </div>
-    <label class="ot-speed" title="Speed of the French voice">🔊 Speed
-      <input type="range" min="0.5" max="1.5" step="0.1" value="0.9" id="spk-rate-slider" oninput="window._spkRate=parseFloat(this.value);document.getElementById('spk-rate-val').textContent=parseFloat(this.value).toFixed(1)+'×'">
-      <b id="spk-rate-val">0.9×</b>
-    </label>
     <button id="apEditBtn" class="ot-edit-btn" onclick="showAPEditor()" style="display: none;">✎ Edit</button>
     <button class="aph-voice" type="button" title="Voice check: which voice this app uses" onclick="AP_VOICE.check(['fr', 'en'])">&#128266;<span class="aph-voice-l"> Voices</span></button>
     <button class="aph-home" onclick="goHome()">&#8962; Home</button>
@@ -6252,7 +6310,7 @@ function speak(text, langCode, onEndCallback) {
   if (langCode && langCode.indexOf('fr') === 0) text = _phSayFr(text);
   const u = new SpeechSynthesisUtterance(text);
   u.lang = langCode;
-  u.rate = langCode && langCode.startsWith('en') ? 1.0 : (window._spkRate || 0.9);
+  u.rate = langCode && langCode.startsWith('en') ? 1.0 : 0.9;
   const v = _spkGetVoice(langCode);
   if (v) u.voice = v;
   if (onEndCallback) u.onend = onEndCallback;
@@ -9455,7 +9513,7 @@ function playDemoAnswer(uid, choice) {
       renderDemoPlayer('&#127911; Demo Mode — Student answers Part 1', card['q1' + choice], 100);
       startCountdown(100);
       var u1 = new SpeechSynthesisUtterance(demo.part1);
-      u1.lang = 'fr-FR'; u1.rate = window._spkRate || 0.9;
+      u1.lang = 'fr-FR'; u1.rate = 0.9;
       var v1 = _spkGetVoice('fr-FR'); if (v1) u1.voice = v1;
       u1._kara = [demo.part1, uid, 'Part 1', card['q1' + choice]]; if (window._karaAttach) _karaAttach(u1, demo.part1, uid, 'Part 1', card['q1' + choice]);
 
@@ -9474,7 +9532,7 @@ function playDemoAnswer(uid, choice) {
             renderDemoPlayer('&#127911; Demo Mode — Student answers Part 2', card['q2' + choice], 100);
             startCountdown(100);
             var u2 = new SpeechSynthesisUtterance(demo.part2);
-            u2.lang = 'fr-FR'; u2.rate = window._spkRate || 0.9;
+            u2.lang = 'fr-FR'; u2.rate = 0.9;
             var v2 = _spkGetVoice('fr-FR'); if (v2) u2.voice = v2;
             u2._kara = [demo.part2, uid, 'Part 2', card['q2' + choice]]; if (window._karaAttach) _karaAttach(u2, demo.part2, uid, 'Part 2', card['q2' + choice]);
 
@@ -11637,8 +11695,9 @@ window.p1ToggleTrans = function(bi){
 
 /* ---------- AUDIO (speech synthesis, one voice per speaker) ---------- */
 var P1A = {p:{}, cur:null, tok:0, rate:0.8, vM:'', vF:'', voices:[]};
-try { P1A.vM = localStorage.getItem('p1VoiceM')||''; P1A.vF = localStorage.getItem('p1VoiceF')||''; P1A.rate = parseFloat(localStorage.getItem('p1Rate'))||0.8; var _pp=parseFloat(localStorage.getItem('p1Pause')); if(_pp>=0&&_pp<=2.5) P1A.pause=_pp; } catch(e){}
-if(typeof P1A.pause!=='number') P1A.pause=0.8;
+try { P1A.vM = localStorage.getItem('p1VoiceM')||''; P1A.vF = localStorage.getItem('p1VoiceF')||''; } catch(e){}
+/* Speed and pause are the single shared 🎚 Speed & pauses control (AP_SP): rate here is the base; AP_SP multiplies it once in speechSynthesis.speak */
+P1A.rate=0.8; Object.defineProperty(P1A,'pause',{get:function(){ return window.AP_SP ? AP_SP.pauseMs()/1000 : 0.3; }});
 var F_RE=/(am[eé]lie|audrey|aur[eé]lie|marie|julie|c[eé]line|chantal|denise|[eé]lo[iï]se|hortense|virginie|l[eé]a\b|sylvie|brigitte|sophie|female|femme|jos[eé]phine|charlotte|coralie|vivienne|alice|claire|manon|[eé]lise|jacqueline|ariane|camille|google fran[cç]ais|yvette|jeanne|v[eé]ronique|isabelle|nathalie)/i;
 var M_RE=/(thomas|nicolas|daniel|paul\b|henri|jacques|claude|r[eé]mi|r[eé]my|guillaume|yves|\bmale\b|homme|mathieu|jean\b|antoine|alain|fabrice|g[eé]rard|louis|pierre|olivier|vincent|denis\b|maxime|fr[eé]d[eé]ric|bernard|julien|lucien|alexandre|eddy|reed|grandpa|rocko)/i;
 function frVoices(){
@@ -11685,7 +11744,6 @@ function p1ListenPart(part, pid, label){
     + '<button title="Forward one sentence" onclick="p1Step(\''+pid+'\',1)">Sentence ⏭&#xFE0E;</button>'
     + '<button title="Forward about 10 seconds (to the start of a sentence)" onclick="p1Skip(\''+pid+'\',10)">+10 s</button>'
     + '<button class="p1g" title="Restart" onclick="p1Restart(\''+pid+'\')">↺ Restart</button>'
-    + '<button title="Voice speed and the pause after each sentence" onclick="p1PacePanel(\''+pid+'\')">🎚 Speed &amp; pauses</button>'
     + '<button title="Choose voices" onclick="p1VoicePanel(\''+pid+'\')">⚙ Voices</button>'
     + '<span class="st" id="'+pid+'_st">0 / '+segs.length+'</span></div>'
     + '<div class="bar"><div id="'+pid+'_bar"></div></div><div id="'+pid+'_pp"></div><div id="'+pid+'_vp"></div></div>';
@@ -11760,7 +11818,7 @@ window.p1Step = function(pid, d){
 // ⏪ 10 s / 10 s ⏩ : the voice is the device's speech, not a recording, so the time of each sentence is estimated from its length, the speed and the pause; the jump lands on the start of the sentence nearest to 10 seconds away
 function p1SegSecs(p, i){
   var seg=p.segs[i], nxt=p.segs[i+1]; if(!seg) return 0;
-  return String(seg.text).length/(20*(P1A.rate||0.8)) + P1A.pause + ((nxt&&nxt.sp!==seg.sp)?0.25:0);
+  return String(seg.text).length/(20*(P1A.rate||0.8)*(window.AP_SP?AP_SP.speed:1)) + P1A.pause + ((nxt&&nxt.sp!==seg.sp)?0.25:0);
 }
 window.p1Skip = function(pid, secs){
   var p=P1A.p[pid]; if(!p||!p.segs.length) return; var was=p.playing, n=p.segs.length, from=Math.max(0,Math.min(n-1,p.idx)), tgt=from, acc, best, j;
@@ -11780,24 +11838,7 @@ window.p1Restart = function(pid){
   P1A.tok++; try{speechSynthesis.cancel();}catch(e){}
   p.idx=0; p1PUpd(pid); if(was){ setTimeout(function(){ p.playing=true; speakSeg(pid); },80); }
 };
-window.p1Rate = function(r){ P1A.rate=parseFloat(r)||0.8; try{localStorage.setItem('p1Rate',P1A.rate);}catch(e){} document.querySelectorAll('.p1-player select[title=Speed]').forEach(function(s){ s.value=String(P1A.rate); }); };
-window.p1PacePanel = function(pid){
-  var el=document.getElementById(pid+'_pp'); if(!el) return;
-  if(el.innerHTML){ el.innerHTML=''; return; }
-  el.innerHTML='<div class="p1-pace"><label><span>Speed</span><b class="rv"></b></label><input type="range" class="pr" min="0.5" max="1.1" step="0.05">'
-    +'<label><span>Pause after each sentence</span><b class="pv"></b></label><input type="range" class="pp" min="0" max="2" step="0.1">'
-    +'<div class="pb"><button type="button" class="try">▶ Try</button><button type="button" class="rst">Reset</button></div></div>';
-  var r=el.querySelector('.pr'), q=el.querySelector('.pp');
-  function show(){ document.querySelectorAll('.p1-pace').forEach(function(b){ b.querySelector('.rv').textContent=Math.round(P1A.rate*100)+'%'; b.querySelector('.pv').textContent=P1A.pause.toFixed(1)+' s'; b.querySelector('.pr').value=P1A.rate; b.querySelector('.pp').value=P1A.pause; }); }
-  function save(){ try{ localStorage.setItem('p1Rate',P1A.rate); localStorage.setItem('p1Pause',P1A.pause); }catch(e){} }
-  r.oninput=function(){ P1A.rate=parseFloat(r.value); show(); save(); };
-  q.oninput=function(){ P1A.pause=parseFloat(q.value); show(); save(); };
-  el.querySelector('.rst').onclick=function(){ P1A.rate=0.8; P1A.pause=0.8; show(); save(); };
-  el.querySelector('.try').onclick=function(){ var p=P1A.p[pid]; var vf=voiceFor((p&&p.segs[0]&&p.segs[0].sp)||'F'); P1A.tok++; try{speechSynthesis.cancel();}catch(e){} if(p&&p.playing){ p.playing=false; p1PUpd(pid); }
-    var parts=['Bonjour à tous.','Bienvenue à notre cours de français.','Cet après-midi, nous allons visiter une petite ville célèbre pour ses tours.']; var my=++P1A.tok;
-    (function go(k){ if(my!==P1A.tok||k>=parts.length) return; var u=new SpeechSynthesisUtterance(parts[k]); if(vf.voice){u.voice=vf.voice;u.lang=vf.voice.lang;} else u.lang='fr-FR'; u.pitch=vf.pitch; u.rate=P1A.rate; u.onend=function(){ setTimeout(function(){ go(k+1); }, Math.round(P1A.pause*1000)); }; speechSynthesis.speak(u); })(0); };
-  show();
-};
+window.p1PacePanel = function(){ if(window.AP_SP) AP_SP.toggle(); };
 window.p1VoicePanel = function(pid){
   var el=document.getElementById(pid+'_vp'); if(!el) return;
   if(el.innerHTML){ el.innerHTML=''; return; }
@@ -14405,7 +14446,6 @@ body.mcimm[data-mcph=reveal]{--mcx:430px}
     <button class="tg" id="tg-teach" style="display:none" onclick="toggleTeacher()" title="Show the teacher notes (not for the projector)">Teacher view</button>
     <button class="tg" id="tg-proj" onclick="toggle('proj')" title="Larger type for the projector">Large type</button>
     <button class="tg" id="tg-auto" onclick="svToggleAuto()" title="Read each new screen aloud automatically (off unless you tick it)">☐ Auto-play</button>
-    <label class="rate" title="Speed of the French voice">Voice <input id="rate" type="range" min="0.5" max="1.3" step="0.1" value="0.9"></label>
   </div>
 </div></div>
 <div class="wrap page" id="app"></div>
@@ -14470,7 +14510,7 @@ function pickVoice(){
 try{speechSynthesis.onvoiceschanged=pickVoice;pickVoice()}catch(e){}
 function say(t){
   try{if(typeof SV!=='undefined'){SV.tok++;SV.playing=false}speechSynthesis.cancel();const u=new SpeechSynthesisUtterance(ttsText(t));u.lang='fr-FR';
-    if(VOICE)u.voice=VOICE;u.rate=parseFloat($('rate').value)||0.9;speechSynthesis.speak(u)}catch(e){}
+    if(VOICE)u.voice=VOICE;u.rate=0.9;speechSynthesis.speak(u)}catch(e){}
 }
 function speakLine(o,lang){   // one line, in French or English, through the Karaoke screen when it is on
   const l=lang==='en'?'en-GB':'fr-FR',t=l==='fr-FR'?ttsText(o.fr):String(o.en||'').replace(/\*/g,'');
@@ -14529,8 +14569,8 @@ function svSpeak(list,gap,onItem,done){
     const it=list[i++];if(!quiet)svBigShow(it);if(onItem)onItem(it);
     const u=new SpeechSynthesisUtterance(it.t);u.lang=it.l;svTrack(u,it);
     if(it.l==='fr-FR'){if(VOICE)u.voice=VOICE}else{if(!ENV)pickEn();if(ENV)u.voice=ENV}
-    u.rate=parseFloat($('rate').value)||0.9;
-    let fin=false;const go2=()=>{if(fin)return;fin=true;setTimeout(next,gap)};
+    u.rate=0.9;
+    let fin=false;const go2=()=>{if(fin)return;fin=true;setTimeout(next,gap?(window.AP_SP?AP_SP.pauseMs():gap):0)};
     u.onend=go2;u.onerror=go2;
     try{speechSynthesis.speak(u)}catch(e){go2()}
   })();
@@ -15075,7 +15115,7 @@ function spAct(i){SP.act=SP.act===i?null:i;render();if(SP.act!==null){const I=IL
 let FS={n:null,num:false,act:null,demo:false,en:false,api:false,tok:0};
 function fsSay(t,cb){FS.tok++;const my=FS.tok;
   try{if(typeof SV!=='undefined'){SV.tok++;SV.playing=false}speechSynthesis.cancel();const u=new SpeechSynthesisUtterance(ttsText(t));u.lang='fr-FR';
-    if(VOICE)u.voice=VOICE;u.rate=parseFloat($('rate').value)||0.9;
+    if(VOICE)u.voice=VOICE;u.rate=0.9;
     if(cb){u.onend=u.onerror=()=>{if(FS.tok===my)cb()}}
     speechSynthesis.speak(u)}catch(e){if(cb)cb()}}
 function fsOpen(n){
@@ -15105,7 +15145,7 @@ function fsMk(i){FS.demo=false;FS.act=i;fsUpd();fsSay(ILLUS[FS.n].spots[i].fr)}
 function fsSayEn(t,cb){FS.tok++;const my=FS.tok;
   try{if(typeof SV!=='undefined'){SV.tok++;SV.playing=false}speechSynthesis.cancel();const u=new SpeechSynthesisUtterance(t);u.lang='en-GB';
     try{if(typeof pickEn==='function'&&!ENV)pickEn()}catch(e){}
-    if(typeof ENV!=='undefined'&&ENV)u.voice=ENV;u.rate=parseFloat($('rate').value)||0.9;
+    if(typeof ENV!=='undefined'&&ENV)u.voice=ENV;u.rate=0.9;
     if(cb){u.onend=u.onerror=()=>{if(FS.tok===my)cb()}}
     speechSynthesis.speak(u)}catch(e){if(cb)cb()}}
 function fsDemo(en){
