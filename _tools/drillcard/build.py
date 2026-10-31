@@ -67,7 +67,10 @@ if __name__=='__main__':
 
 # ---- ChatGPT frame mode: 9-slice border-image from a card-frame PNG (transparent corners) ----
 HIDE=('<script id="ap-drillcard-js">(function(){try{var f=function(){var c=document.querySelectorAll(".aph-drill .aph-qcard");'
- 'for(var i=0;i<c.length;i++){var h=c[i].querySelector(".prompt-hint");if(h)h.style.display=c[i].querySelector(".reveal")?"none":"";}};'
+ 'for(var i=0;i<c.length;i++){var h=c[i].querySelector(".prompt-hint");if(h)h.style.display=c[i].querySelector(".reveal")?"none":"";}'
+ 'var bb=document.querySelectorAll("[class*=dbar] button"),sb=document.querySelectorAll(".aph-drill-side button");'
+ 'for(var j=0;j<sb.length;j++){if(!/Error review/.test(sb[j].textContent))continue;var oc=sb[j].getAttribute("onclick"),dup=false;'
+ 'for(var k=0;k<bb.length;k++){if(/Errors/.test(bb[k].textContent)&&bb[k].getAttribute("onclick")===oc)dup=true;}sb[j].style.display=dup?"none":"";}};'
  'new MutationObserver(f).observe(document.documentElement,{childList:true,subtree:true});}catch(e){}})();</script>')
 def frame_css(png,slice_px,bw,radius,g=2,pad=None):
     import io,base64
