@@ -19218,7 +19218,7 @@ MCQ('<b>“Strawberries? We ate some.”</b> Which is right?',['Des fraises ? No
   function shortOnly(p) { var seen = {}; return p.filter(function (x) { if (H.short && (x.q.split(/\s+/).length > H.short || x.a.split(/\s+/).length > H.short)) return false; if (seen[x.a]) return false; seen[x.a] = 1; return true; }); }
   var TOPIC_PIC_ON = {};
   var ov = null, snd = true, AC = null, timers = [], PZ = false;
-  var CFG = { snd: true, style: 'marimba', vol: 1, ticks: true, clock: 5, streak: 0, tm: 2, dice: 2, pairs: 20, cw: 20, lives: 3, accel: 11, start: 100, oddR: 10, oddS: 12, gN: 12, gS: 6, lW: 10, lG: 3, lT: 15, oddM: 0, ln: 25, rlSay: 1, mus: 'mix', musV: 0, mv: 1 };
+  var CFG = { snd: true, style: 'marimba', vol: 1, ticks: true, clock: 5, streak: 0, tm: 2, dice: 2, pairs: 20, cw: 20, lives: 3, accel: 11, start: 100, oddR: 10, oddS: 12, gN: 12, gS: 6, lW: 10, lG: 3, lT: 15, oddM: 0, ln: 25, rlSay: 1, pSay: 1, cSay: 1, mus: 'mix', musV: 0, mv: 1 };
   try { var sv = JSON.parse(localStorage.getItem('apbz_cfg') || '{}'); for (var kk in sv) if (kk in CFG) CFG[kk] = sv[kk]; } catch (e) { }
   snd = CFG.snd;
   function saveCfg() { CFG.snd = snd; try { localStorage.setItem('apbz_cfg', JSON.stringify(CFG)); } catch (e) { } }
@@ -19416,10 +19416,10 @@ MCQ('<b>“Strawberries? We ate some.”</b> Which is right?',['Des fraises ? No
 
   // ---------- settings (gear in the bar; the round pauses while it is open)
   var SETS = {
-    clock: [['clock', 'Seconds per card', [5, 6, 7, 8, 9, 10], '', 1]],
+    clock: [['clock', 'Seconds per card', [5, 6, 7, 8, 9, 10], '', 1], ['cSay', 'Say each answer aloud when it turns over', [[1, 'On'], [0, 'Off']], '', 1]],
     streak: [['streak', 'Seconds per card', [[0, 'No timer'], 5, 8, 12], '', 1]],
     roll: [['dice', 'Dice', [[1, 'One die'], [2, 'Two dice']], '', 1], ['rlSay', 'Say each answer aloud when it turns over', [[1, 'On'], [0, 'Off']], '', 1]],
-    pairs: [['pairs', 'Words in the race', [10, 20, 30], '', 0]],
+    pairs: [['pairs', 'Words in the race', [10, 20, 30], '', 0], ['pSay', 'Say each answer aloud when it turns over', [[1, 'On'], [0, 'Off']], '', 1]],
     lane: [['ln', 'Words in the round', [15, 25, 40], '', 0], ['lives', 'Lives', [1, 3, 5], '', 0], ['start', 'Starting speed', [[60, 'Gentle'], [100, 'Normal'], [140, 'Fast']], '', 1], ['accel', 'Speeding up', [[6, 'Slow'], [11, 'Normal'], [16, 'Brutal']], '', 1]],
     'catch': [['cw', 'Words at the bottom', [10, 15, 20], '', 0], ['lives', 'Lives', [1, 3, 5], '', 0], ['start', 'Starting speed', [[60, 'Gentle'], [100, 'Normal'], [140, 'Fast']], '', 1], ['accel', 'Speeding up', [[6, 'Slow'], [11, 'Normal'], [16, 'Brutal']], '', 1]],
     odd: [['oddM', 'Show what each word means', [[0, 'No'], [1, 'Yes']], '', 1], ['oddR', 'Rounds', [5, 10, 15], '', 1], ['oddS', 'Seconds a round', [6, 9, 12, 20], '', 1]],
@@ -19525,10 +19525,11 @@ MCQ('<b>“Strawberries? We ate some.”</b> Which is right?',['Des fraises ? No
       if (!pile.length) return finish();
       cur = pile.shift(); n++; var hl = null, shown = cur; if (cur.hv && cur.hv[cur.hf] && cur.hv[cur.ht]) { var hs = cur.hv[cur.hf], ht2 = cur.hv[cur.ht]; if (cur.h == null) cur.h = Math.random() < .5 ? 0 : 1; var at = cur.q.indexOf(hs[cur.h]); if (at >= 0) { hl = [cur.q.slice(0, at), hs[cur.h], cur.q.slice(at + hs[cur.h].length)]; shown = { q: cur.q, a: ht2[cur.h] }; } } var pc = typeof opt.perCard === 'function' ? opt.perCard() : opt.perCard;
       frame(opt.title, (opt.strip ? '<div class="rl-strip">' + all.map(function (x, i) { return '<div class="rl-t' + (res[i] === 1 ? ' ok' : res[i] === 0 ? ' bad' : (i === n - 1 ? ' cur' : '')) + '">' + esc(x.q) + '</div>'; }).join('') + '</div>' : '') + '<div class="bz-stat">' + opt.stats(ok, miss, pile.length + 1, run) + '</div>' + (pc ? ringHTML('bzr') : '') + '<div onclick="apBzShow()" style="cursor:pointer;width:100%;display:flex;justify-content:center">' + card(shown.q, shown.a, opt.cue || '', hl) + '</div>' + '<div class="bz-row"><button class="bz-big" id="bz-show" onclick="apBzShow()">Show answer</button></div><div class="bz-row bz-mk" id="bz-mark" style="display:none"><button class="bz-big miss" onclick="apBzMark(0)">✗ Missed</button><button class="bz-big near" onclick="apBzMark(2)">~ Nearly</button><button class="bz-big got" onclick="apBzMark(1)">✓ Got it</button></div>' + (opt.timerBar ? '<div class="bz-stat" style="margin-top:6px">Time left <b id="bz-tl">' + opt.timerBar() + '</b></div>' : ''));
-      if (pc) runRing('bzr', pc, function () { reveal(); });
+      if (pc) runRing('bzr', pc, function () { reveal(); sayAns(); });
     }
+    function sayAns() { try { if (opt.say && CFG[opt.say] && cur && !cur.__s) { cur.__s = 1; say(dirs()[1] === 'en' ? String(cur.q).replace(/<[^>]*>/g, '') : hvOf(cur).a); } } catch (e) { } }
     function finish() { closed = true; opt.end({ ok: ok, miss: miss, secs: Math.round((Date.now() - startT) / 1000), best: Math.max(best, run) }); }
-    window.apBzShow = function () { stop(); reveal(); if (opt.perCard) { var t = $('bzrt'); if (t) t.textContent = ''; } };
+    window.apBzShow = function () { stop(); reveal(); sayAns(); if (opt.perCard) { var t = $('bzrt'); if (t) t.textContent = ''; } };
     window.apBzMark = function (good) {
       if (closed || (cur && cur.__m)) return; if (cur) cur.__m = 1; if (good === 2) { sfx('tick'); var k2 = Math.min(pile.length, 2 + Math.floor(Math.random() * 2)); pile.splice(k2, 0, cur); var c3 = cur; setTimeout(function () { c3.__m = 0; next(); }, 350); return; } sfx(good ? 'ok' : 'bad'); VH(!!good, '', ''); res[n - 1] = good ? 1 : 0;
       if (good) { ok++; run++; best = Math.max(best, run); } else { miss++; run = 0; if (opt.requeue) { var k = Math.min(pile.length, 3 + Math.floor(Math.random() * 3)); pile.splice(k, 0, cur); } if (opt.sudden) { var cc = cur; return setTimeout(function () { cc.__m = 0; finish(); }, 650); } }
@@ -19543,7 +19544,7 @@ MCQ('<b>“Strawberries? We ate some.”</b> Which is right?',['Des fraises ? No
     if (!(CFG.clock >= 5)) { CFG.clock = 5; saveCfg(); }
   if (!CFG.musV) { CFG.musV = 1; CFG.mus = 'mix'; saveCfg(); }
     var secs = CFG.clock, go = function () {
-      selfMarkGame({ title: 'Beat the clock', deck: shuf(p), perCard: function () { return CFG.clock; }, requeue: true, cue: H.names[dirs()[0]],
+      selfMarkGame({ title: 'Beat the clock', say: 'cSay', deck: shuf(p), perCard: function () { return CFG.clock; }, requeue: true, cue: H.names[dirs()[0]],
         stats: function (ok, miss, left) { return '<div><b>' + ok + '</b>cleared</div><div><b>' + left + '</b>to go</div><div><b>' + miss + '</b>missed</div>'; },
         end: function (r) { endScreen('Beat the clock', { big: r.secs + 's', note: 'Pile cleared in ' + r.secs + ' seconds with ' + r.miss + ' miss' + (r.miss === 1 ? '' : 'es') + '. Beat it next time.' }, go); } });
     };
@@ -19595,7 +19596,7 @@ MCQ('<b>“Strawberries? We ate some.”</b> Which is right?',['Des fraises ? No
       frame('Pairs race', '<div class="pt-turn' + tg + '">' + names[team] + ': say it!<small style="display:block;font:600 .95rem DM Sans,sans-serif;margin-top:2px">then tap the card to check</small></div><div class="pt-bd"><div class="pt-t' + (team === 0 ? ' act' : '') + '"><span>' + names[0] + '</span><b>' + sc[0] + '</b><em>' + (team === 0 ? '▶ YOUR TURN' : '') + '</em></div><div class="pt-t g' + (team === 1 ? ' act' : '') + '"><span>' + names[1] + '</span><b>' + sc[1] + '</b><em>' + (team === 1 ? '▶ YOUR TURN' : '') + '</em></div></div><div class="pt-card" onclick="apBzShow()" style="cursor:pointer;--tc:' + tc + '">' + cardOf(c, H.names[dirs()[0]] + ' · ' + (deck.length - i) + ' to go') + '</div><div class="bz-row bz-mk" id="bz-mark" style="display:none"><div class="bz-note" style="width:100%"><b>' + names[1 - team] + '</b>: was ' + names[team] + ' right?</div><button class="bz-big miss" onclick="apBzMark(0)">✗ Missed</button><button class="bz-big near" onclick="apBzMark(2)">~ Nearly</button><button class="bz-big got" onclick="apBzMark(1)">✓ Got it</button></div>');
       ov.classList.add(team === 0 ? 'pt-n' : 'pt-g');
     }
-    window.apBzShow = reveal;
+    window.apBzShow = function () { var cd0 = $('bz-card'), was = !cd0 || cd0.classList.contains('bz-back'); reveal(); if (!was && CFG.pSay && !deck[i].__s) { try { var c1 = deck[i]; c1.__s = 1; say(dirs()[1] === 'en' ? String(c1.q).replace(/<[^>]*>/g, '') : hvOf(c1).a); } catch (e) { } } };
     window.apBzGo = function () { show(); };
     window.apBzMark = function (g) { if (g === 2) { sfx('tick'); deck.splice(Math.min(deck.length, i + 3), 0, deck[i]); team = 1 - team; i++; show(); return; } sfx(g ? 'ok' : 'bad'); if (g) sc[team]++; team = 1 - team; i++; show(); };
     function fin() { var w = sc[0] === sc[1] ? 'A draw' : (sc[0] > sc[1] ? names[0] : names[1]) + ' wins'; endScreen('Pairs race', { big: sc[0] + ' – ' + sc[1], note: w + '.' }, function () { GAMES.pairs(pool()); }); }
