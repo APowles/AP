@@ -14940,7 +14940,7 @@ textarea.ms-in{min-height:7rem;resize:vertical}
 </script>
 <!--IGOD-START-->
 <style id="igod-css">
-.od-rung .ms-blitz{display:none!important}.od-ov.od-noticks .ms-blitz{opacity:.45;filter:grayscale(.7);pointer-events:none}body.od-on #bz-ov{z-index:11600!important}body.od-on #bz-set{z-index:11650!important}.od-ov{position:fixed;inset:0;z-index:11500;background:#faf8f3;overflow:auto;-webkit-overflow-scrolling:touch;font-family:'DM Sans',system-ui,sans-serif;color:#1a2744}
+.od-rung .ms-blitz{display:none!important}.od-hpace{margin-left:8px}body.od-on #apsp-pop{position:fixed;top:76px;right:12px;margin-top:0;z-index:11800}.od-ov.od-noticks .ms-blitz{opacity:.45;filter:grayscale(.7);pointer-events:none}body.od-on #bz-ov{z-index:11600!important}body.od-on #bz-set{z-index:11650!important}.od-ov{position:fixed;inset:0;z-index:11500;background:#faf8f3;overflow:auto;-webkit-overflow-scrolling:touch;font-family:'DM Sans',system-ui,sans-serif;color:#1a2744}
 .od-page{max-width:900px;margin:0 auto;padding:14px 18px 56px}
 .od-page.od-narrow{max-width:780px}.od-page.od-narrow.bi-wide{max-width:1080px}
 .od-top{display:flex;align-items:center;gap:12px;margin:0 0 14px;flex-wrap:wrap}
@@ -16030,7 +16030,7 @@ function closeKTRChallenge() {
   // ---------- page 1: the set-up ----------
   function pageSetup() {
     var c = W.ctx, card = c.card, na = selActs().length, tot = selTotal(), has = c.nActs > 0, D = DIRS();
-    var h = '<div class="od-page"><div class="od-hero">' + crest() + '<button type="button" class="od-hback" data-a="back">← Back to the card</button><div class="od-hk">Learn from this demo' + codeBadge() + '</div><h2 class="od-ht">' + esc(c.theme) + '</h2>'
+    var h = '<div class="od-page"><div class="od-hero">' + crest() + '<button type="button" class="od-hback" data-a="back">← Back to the card</button><button type="button" class="od-hback od-hpace" data-a="pace" title="Voice speed and pause between sentences">🎚 Speed &amp; pauses</button><div class="od-hk">Learn from this demo' + codeBadge() + '</div><h2 class="od-ht">' + esc(c.theme) + '</h2>'
       + '<details class="od-hq" open><summary>The ' + c.q.length + ' questions</summary><ol>' + c.q.map(function (q) { return '<li>' + esc(q) + '</li>'; }).join('') + '</ol></details>'
       + '<div class="od-hl"><span>🎧 <b>Start by listening.</b> Follow the Top Structures, then come back and make them yours.</span><button type="button" data-a="listen">▶ Demo Mode</button></div></div>';
     if (has) {
@@ -16447,7 +16447,9 @@ function closeKTRChallenge() {
     var ov = document.createElement('div'); ov.id = 'od-sheetov'; ov.setAttribute('role', 'dialog');
     ov.innerHTML = '<div class="od-sh-bar"><button type="button" data-sh="close">&larr; Back</button><span>' + esc(title) + ' &middot; ' + code + '</span></div>';
     var fr = document.createElement('iframe'); fr.setAttribute('title', title); fr.srcdoc = html; ov.appendChild(fr);
-    function closeSheet() { document.removeEventListener('keydown', onKey, true); ov.remove(); }
+    // iPad: printing an iframe prints the whole page with the sheet clipped, so the sheet is copied into the page for the print (and removed afterwards)
+    fr.addEventListener('load', function () { try { var w = fr.contentWindow; if (typeof window.apPrintCopy === 'function' && !w.__apOrigPrint) { w.__apOrigPrint = w.print.bind(w); w.print = function () { window.apPrintCopy(fr); }; } } catch (e) { } });
+    function closeSheet() { document.removeEventListener('keydown', onKey, true); ov.remove(); try { if (window.__apShimDone) window.__apShimDone(); } catch (e) { } }
     function onKey(e) { if (e.key === 'Escape') { e.stopPropagation(); e.preventDefault(); closeSheet(); } }
     ov.addEventListener('click', function (e) {
       var b = e.target.closest ? e.target.closest('[data-sh]') : null; if (!b) return;
@@ -16808,6 +16810,7 @@ function closeKTRChallenge() {
     var a = t.getAttribute('data-a'), c = W && W.ctx;
     switch (a) {
       case 'back': back(); break;
+      case 'pace': try { if (window.AP_SP) AP_SP.toggle(e); } catch (er) { } break;
       case 'tog': var k = t.getAttribute('data-k'); W.sel[k] = !W.sel[k]; showSetup(true); break;
       case 'all': ACTS.forEach(function (x) { if (c.avail[x.k] > 0) W.sel[x.k] = true; }); showSetup(true); break;
       case 'none': ACTS.forEach(function (x) { W.sel[x.k] = false; }); showSetup(true); break;
