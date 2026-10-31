@@ -15,9 +15,10 @@ def process(s):
     host=open(a.host,encoding='utf-8').read() if a.host else ''
     cfg='window.APBZ_HOSTCFG={games:%s,pics:%s,noun:"%s",short:%d};'%(repr(games).replace("'",'"'),'true' if a.pics else 'false',a.noun,a.short)
     tilejs=rd('tile.js')
+    deal=('<script id="ap-blitz-deal">'+rd('ap-blitz-deal-snd.txt')+'</script>\n') if 'deal' in games else ''
     block=('<style id="ap-blitz-tile">'+tilecss+'</style>\n<script id="ap-blitz-art">'+art+'</script>\n'
-     '<script id="ap-blitz-host">'+cfg+'\n'+host+'</script>\n<script id="ap-blitz">'+js+'</script>\n<script id="ap-blitz-tile-js">'+tilejs+'</script>\n')
-    pat=re.compile(r'<style id="ap-blitz-tile">.*?</style>\n?(?:<script id="ap-blitz-art">.*?</script>\n?)?(?:<script id="ap-blitz-host">.*?</script>\n?)?<script id="ap-blitz">.*?</script>\n?(?:<script id="ap-blitz-tile-js">.*?</script>\n?)?',re.S)
+     '<script id="ap-blitz-host">'+cfg+'\n'+host+'</script>\n'+deal+'<script id="ap-blitz">'+js+'</script>\n<script id="ap-blitz-tile-js">'+tilejs+'</script>\n')
+    pat=re.compile(r'<style id="ap-blitz-tile">.*?</style>\n?(?:<script id="ap-blitz-art">.*?</script>\n?)?(?:<script id="ap-blitz-host">.*?</script>\n?)?(?:<script id="ap-blitz-deal">.*?</script>\n?)?<script id="ap-blitz">.*?</script>\n?(?:<script id="ap-blitz-tile-js">.*?</script>\n?)?',re.S)
     if pat.search(s):
         s=pat.sub(lambda m:block,s,count=1)
     else:

@@ -9,7 +9,7 @@
   function shortOnly(p) { var seen = {}; return p.filter(function (x) { if (H.short && (x.q.split(/\s+/).length > H.short || x.a.split(/\s+/).length > H.short)) return false; if (seen[x.a]) return false; seen[x.a] = 1; return true; }); }
   var TOPIC_PIC_ON = {};
   var ov = null, snd = true, AC = null, timers = [], PZ = false;
-  var CFG = { snd: true, style: 'marimba', vol: 1, ticks: true, clock: 5, streak: 0, tm: 2, dice: 2, pairs: 20, cw: 20, lives: 3, accel: 11, start: 100, oddR: 10, oddS: 12, gN: 12, gS: 6, lW: 10, lG: 3, lT: 15, oddM: 0, ln: 25, rlSay: 1, pSay: 1, cSay: 1, sSay: 1, mus: 'mix', musV: 0, mv: 1 };
+  var CFG = { snd: true, style: 'marimba', vol: 1, ticks: true, clock: 5, streak: 0, tm: 2, dice: 2, pairs: 20, cw: 20, lives: 3, accel: 11, start: 100, oddR: 10, oddS: 12, gN: 12, gS: 6, lW: 10, lG: 3, lT: 15, oddM: 0, ln: 25, rlSay: 1, pSay: 1, dN: 6, dL: 5, dT: 180, dSay: 1, dP: 1, cSay: 1, sSay: 1, mus: 'mix', musV: 0, mv: 1 };
   try { var sv = JSON.parse(localStorage.getItem('apbz_cfg') || '{}'); for (var kk in sv) if (kk in CFG) CFG[kk] = sv[kk]; } catch (e) { }
   snd = CFG.snd;
   function saveCfg() { CFG.snd = snd; try { localStorage.setItem('apbz_cfg', JSON.stringify(CFG)); } catch (e) { } }
@@ -20,6 +20,7 @@
     ['odd', 'Odd one out', 'Four words appear. Tap the one that does not belong to the topic.'],
     ['letter', 'Missing letter', 'Three or four letters missing from a long word. Type them in order, accents included.'],
     ['gender', 'Gender blitz', 'Masculine, feminine or plural? One tap per noun.'],
+    ['deal', 'Deal it', 'Shuffle, deal, turn a card and say it. Get every card right, shuffle, get them right again. Solo or two players.'],
     ['roll', 'Roll it', 'Roll the dice: they decide how many words you blitz in one go.'],
     ['catch', 'Catch it', 'Words race across the screen, faster every catch. Tap the word, then its match.'],
     ['lane', 'Lane it', 'Four lanes, four words fall. Tap the right translation before it hits the line.'],
@@ -209,6 +210,7 @@
   var SETS = {
     clock: [['clock', 'Seconds per card', [5, 6, 7, 8, 9, 10], '', 1], ['cSay', 'Say each answer aloud when it turns over', [[1, 'On'], [0, 'Off']], '', 1]],
     streak: [['streak', 'Seconds per card', [[0, 'No timer'], 5, 8, 12], '', 1], ['sSay', 'Say each answer aloud when it turns over', [[1, 'On'], [0, 'Off']], '', 1]],
+    deal: [['dN', 'Cards on the table', [4, 6, 8], '', 0], ['dL', 'Levels (solo)', [3, 5, 8], '', 0], ['dT', 'Race time (two players)', [[60, '1 min'], [120, '2 min'], [180, '3 min'], [300, '5 min']], '', 0], ['dSay', 'Say each answer aloud when it turns over', [[1, 'On'], [0, 'Off']], '', 1]],
     roll: [['dice', 'Dice', [[1, 'One die'], [2, 'Two dice']], '', 1], ['rlSay', 'Say each answer aloud when it turns over', [[1, 'On'], [0, 'Off']], '', 1]],
     pairs: [['pairs', 'Words in the race', [10, 20, 30], '', 0], ['pSay', 'Say each answer aloud when it turns over', [[1, 'On'], [0, 'Off']], '', 1]],
     lane: [['ln', 'Words in the round', [15, 25, 40], '', 0], ['lives', 'Lives', [1, 3, 5], '', 0], ['start', 'Starting speed', [[60, 'Gentle'], [100, 'Normal'], [140, 'Fast']], '', 1], ['accel', 'Speeding up', [[6, 'Slow'], [11, 'Normal'], [16, 'Brutal']], '', 1]],
@@ -271,20 +273,21 @@
   function close() { stop(); musicStop(); PZ = false; var sp = $('bz-set'); if (sp) sp.remove(); if (ov) { ov.remove(); ov = null; } document.documentElement.style.overflow = ''; }
   window.apBlitz = function () {
     close(); ov = document.createElement('div'); ov.id = 'bz-ov'; ov.style.backgroundImage = 'url(' + BZ.stage + ')'; document.body.appendChild(ov);
-    if (!$('bz-css')) { var st = document.createElement('style'); st.id = 'bz-css'; st.textContent = CSS.replace('CARDFACE', BZ.cardface); document.head.appendChild(st); }
+    if (!$('bz-css')) { var st = document.createElement('style'); st.id = 'bz-css'; st.textContent = CSS.replace('CARDFACE', BZ.cardface) + DLCSS; document.head.appendChild(st); }
     document.documentElement.style.overflow = 'hidden'; pickScreen();
   };
   function reasons(p) {
     var r = {}, secs = {}; p.forEach(function (x) { secs[x.sec] = 1; });
         if (Object.keys(secs).length < 2) r.odd = 'Needs two or more lists: choose more topics.'; else if (p.length < 6) r.odd = 'Needs a few more words.';
     var g = genderPool(p); if (target() === 'en' || g.length < 6) r.gender = 'Needs a list with nouns (le, la, un, une…).';
+    if (p.length < 6) r.deal = 'Choose a list with more words.';
     if (p.length < 4) { r.clock = r.streak = r.roll = r.pairs = r.letter = r.lane = 'Choose a list with more words.'; }
     var sp = shortOnly(p); if (sp.length < 8) r['catch'] = H.short ? 'Needs at least 8 short items (up to ' + H.short + ' words): choose more.' : 'Needs at least 8 words: choose more topics.'; if (sp.length < 4) r.lane = r.lane || 'Needs at least 4 short items: choose more.';
     return r;
   }
   function pickScreen() {
     stop(); musicStop(); view = 'pick'; bgNow = null; var p = pool(), r = reasons(p);
-    frame('', '<div class="bz-note"><b>' + p.length + ' ' + (HC.noun || 'words') + '</b> ready. ' + esc(dirs()[0] === 'en' ? 'English → ' + H.names[dirs()[1]] : H.names[dirs()[0]] + ' → English') + '. Pick a round: it starts straight away.</div><div class="bz-grid">' + MODES.filter(function (m) { return !H.games || H.games.indexOf(m[0]) > -1; }).map(function (m) { var off = r[m[0]]; return '<button class="bz-m"' + (off ? ' disabled' : '') + ' onclick="apBzStart(\'' + m[0] + '\')"><img alt="" src="' + BZ[m[0]] + '"><b>' + m[1] + '</b><span>' + (off || m[2]) + '</span></button>'; }).join('') + '</div>');
+    frame('', '<div class="bz-note"><b>' + p.length + ' ' + (HC.noun || 'words') + '</b> ready. ' + esc(dirs()[0] === 'en' ? 'English → ' + H.names[dirs()[1]] : H.names[dirs()[0]] + ' → English') + '. Pick a round: it starts straight away.</div><div class="bz-grid">' + MODES.filter(function (m) { return !H.games || H.games.indexOf(m[0]) > -1; }).map(function (m) { var off = r[m[0]]; return '<button class="bz-m"' + (off ? ' disabled' : '') + ' onclick="apBzStart(\'' + m[0] + '\')"><img alt="" src="' + (BZ[m[0]] || 'icons/hx_cards.webp') + '"><b>' + m[1] + '</b><span>' + (off || m[2]) + '</span></button>'; }).join('') + '</div>');
   }
   window.apBzStart = function (k) { stop(); bgNow = null; view = k; ctx(); sfx('go'); musicStart(true); GAMES[k](pool()); };
 
@@ -375,6 +378,7 @@
             if (done >= n) timers.push(setTimeout(function () { endScreen('Roll it', { big: ok + '/' + n, note: ok === n ? 'All of them.' : (n - ok) + ' to look at again.' }, go); }, 900));
           };
           paint();
+          if (window.APBZ_DEAL_SND) { var g0 = ov.querySelector('.rl-grid'); if (g0) { dplay('fan1'); dlDealEls([].slice.call(g0.querySelectorAll('.rl-c')), g0); } }
         };
       }, 1500));
     }; go();
@@ -393,6 +397,170 @@
     function fin() { var w = sc[0] === sc[1] ? 'A draw' : (sc[0] > sc[1] ? names[0] : names[1]) + ' wins'; endScreen('Pairs race', { big: sc[0] + ' – ' + sc[1], note: w + '.' }, function () { GAMES.pairs(pool()); }); }
     frame('Pairs race', '<div class="bz-note"><b>Two players, one screen.</b> Sit side by side: <b>Blue</b> and <b>Gold</b>. A word appears and the player whose turn it is says the answer out loud. Press <b>Show answer</b>: the other player checks it and presses <b>Got it</b> (a point) or <b>Missed</b> (no point). Then it is the other player\'s turn. After ' + deck.length + ' words, the higher score wins.</div><button class="bz-big go" onclick="apBzGo()">▶ Start</button>');
   };
+
+  // ---------- Deal it: shuffle and deal (solo, or a two-player race for piles of cards)
+  var DLCSS = [
+    '.dl-tab{margin:4px auto 0;padding:clamp(18px,2.6vw,38px) clamp(20px,3.2vw,46px);border-radius:14px;background:url(icons/table_green.webp) center/100% 100% no-repeat,#0f3d2e;box-shadow:0 8px 22px rgba(0,0,0,.55);width:min(1100px,96%)}',
+    '.dl-grid{display:grid;gap:clamp(10px,1.6vw,18px);perspective:1400px}',
+    '.dl-c{position:relative;aspect-ratio:3/2;border:0;border-radius:12px;overflow:hidden;color:#fff;display:flex;align-items:center;justify-content:center;cursor:pointer;padding:0;box-sizing:border-box;font-family:inherit;box-shadow:0 6px 14px rgba(0,0,0,.55);transition:transform .4s cubic-bezier(.2,.8,.2,1),opacity .2s}',
+    '.dl-c.bk{background:url(icons/cardback_1.webp) center/cover no-repeat,#0d1a38;border:5px solid #f7f3e8}',
+    '.dl-c.bk:after{content:"";position:absolute;inset:6px;border:2px solid #c9a84c;border-radius:7px;pointer-events:none}',
+    '.dl-c.bk:hover{outline:3px solid #c9a84c}',
+    '.dl-c.pre,.rl-c.pre{transform:translate(var(--dx,0),var(--dy,0)) rotate(var(--r,0deg)) scale(.5)!important;opacity:0;transition:none!important;pointer-events:none}',
+    '.dl-c.gone{visibility:hidden}',
+    '.dl-no{position:relative;z-index:1;display:flex;align-items:center;justify-content:center;width:clamp(40px,4.6vw,60px);height:clamp(40px,4.6vw,60px);border-radius:50%;background:#c9a84c;color:#14203a;border:3px solid #14203a;box-shadow:0 0 0 3px #c9a84c;font-weight:800;font-size:clamp(1.2rem,2.4vw,1.8rem)}',
+    '.dl-c.up{background:linear-gradient(160deg,#1c2c52,#0e1830);border:5px solid #f7f3e8;cursor:default}',
+    '.dl-tt{padding:6px 10px;font-weight:700;text-align:center;font-size:clamp(.78rem,1.5vw,1.05rem);line-height:1.25}',
+    '.dl-ok{position:absolute;top:5px;right:6px;background:#2e7d52;border-radius:99px;padding:1px 9px;font-weight:800;font-size:.78rem}',
+    '.dl-deck{position:relative;width:min(40vw,360px);aspect-ratio:3/2;margin:56px auto 26px}',
+    '.dl-dk{position:absolute;inset:0;border-radius:12px;background:url(icons/cardback_1.webp) center/cover no-repeat,#0d1a38;border:5px solid #f7f3e8;box-shadow:0 3px 10px rgba(0,0,0,.4);transform-origin:50% 135%;animation:dl-rl 2s ease-in-out both}',
+    '@keyframes dl-rl{0%{transform:rotate(0)}33%{transform:rotate(var(--a))}41%{transform:rotate(var(--a))}60%{transform:translateX(var(--s)) rotate(0)}78%{transform:translateX(calc(var(--s)*-1)) rotate(0)}100%{transform:translateX(0) rotate(0)}}',
+    '.dl-shuf{text-align:center;font-weight:700;font-size:1.4rem;color:#e9d28a}',
+    '.dl-race{display:flex;align-items:flex-start;justify-content:center;gap:clamp(8px,1.6vw,22px);width:min(1280px,98%)}',
+    '.dl-race .dl-tab{flex:1 1 auto;margin:0;width:auto;min-width:0}',
+    '.dl-pcol{flex:none;width:clamp(150px,21vw,260px);display:flex;flex-direction:column;align-items:center;gap:4px;padding:8px 6px 10px;border-radius:14px;border:2px solid transparent}',
+    '.dl-pcol h3{margin:0;font-weight:800;font-size:1.15rem;letter-spacing:.04em;color:#4f8cff}',
+    '.dl-pcol.t1 h3{color:#f0d27a}',
+    '.dl-pcol.act{border-color:rgba(255,255,255,.35);background:rgba(255,255,255,.06)}',
+    '.dl-pile{position:relative;width:100%;height:clamp(150px,30vh,280px)}',
+    '.dl-pl{position:absolute;left:50%;width:86%;margin-left:-43%;aspect-ratio:3/2;border-radius:8px;background:url(icons/cardback_1.webp) center/cover no-repeat,#0d1a38;border:3px solid #f7f3e8;box-shadow:0 2px 5px rgba(0,0,0,.55)}',
+    '.dl-pl.land{animation:dl-land .55s cubic-bezier(.2,.9,.3,1.15)}',
+    '@keyframes dl-land{from{bottom:260px;opacity:0;width:104%;margin-left:-52%}}',
+    '.dl-pe{position:absolute;inset:auto 8% 0 8%;aspect-ratio:3/2;border:2px dashed rgba(255,255,255,.35);border-radius:8px;display:flex;align-items:center;justify-content:center;color:rgba(255,255,255,.55);font-size:.9rem}',
+    '.dl-cnt{font-weight:700;color:#e9d28a;font-size:.95rem}.dl-cnt b{font-size:clamp(1.8rem,3.6vw,2.8rem);color:#f0d27a;margin-right:4px}',
+    '.dl-race.dl-big{margin-top:12px}.dl-race.dl-big .dl-pile{height:clamp(170px,36vh,320px)}.dl-race.dl-big .dl-pcol{width:clamp(180px,30vw,340px)}'
+  ].join('');
+  var _dU = {}, dlSub = null, dlBackOrig = null;
+  function dplay(k) {
+    var S = window.APBZ_DEAL_SND; if (!snd || !S || !S[k]) return;
+    try {
+      if (!_dU[k]) { var b = atob(S[k]), u = new Uint8Array(b.length); for (var i = 0; i < b.length; i++) u[i] = b.charCodeAt(i); _dU[k] = URL.createObjectURL(new Blob([u], { type: 'audio/mpeg' })); }
+      var a = new Audio(_dU[k]); a.volume = Math.min(1, .7 * CFG.vol); var pr = a.play(); if (pr && pr.catch) pr.catch(function () { });
+    } catch (e) { }
+  }
+  function dTm(fn, ms) { var t = setTimeout(fn, ms); timers.push(t); return t; }
+  function dlQ(c) { var v = hvOf(c); return v.hl ? (v.hl[0].trim() ? '[…] ' : '') + (v.hl[2].trim() ? esc(v.hl[1].replace(/\s*…\s*$/, '')) + ' […]' : esc(v.hl[1])) : esc(c.q); }
+  function dlUniq(p) { var seen = {}; return p.filter(function (x) { if (seen[x.q]) return false; seen[x.q] = 1; return true; }); }
+  function dlGrid(n) { return n <= 4 ? 2 : n <= 6 ? 3 : 4; }
+  function dlDealEls(els, ref) {   // cards fly out from the middle of the table, one by one, with the dealing sounds
+    if (!els.length || !ref) return;
+    var gr = ref.getBoundingClientRect(), cx = gr.left + gr.width / 2, cy = gr.top + gr.height / 2, step = els.length > 6 ? 220 : 380;
+    els.forEach(function (e, k) { var r = e.getBoundingClientRect(); e.style.setProperty('--dx', (cx - (r.left + r.width / 2)) + 'px'); e.style.setProperty('--dy', (cy - (r.top + r.height / 2)) + 'px'); e.style.setProperty('--r', ((k % 2 ? 1 : -1) * (4 + (k % 3) * 2)) + 'deg'); e.classList.add('pre'); });
+    void ref.offsetWidth;
+    els.forEach(function (e, k) { dTm(function () { e.style.transition = 'transform .42s cubic-bezier(.2,.8,.2,1),opacity .25s'; e.classList.remove('pre', 'fresh'); dplay('d' + (k % 7 + 1)); setTimeout(function () { e.style.transition = ''; }, 520); }, 150 + k * step); });
+  }
+  function dlDeal() { var g = ov && ov.querySelector('.dl-grid'); if (g) dlDealEls([].slice.call(g.querySelectorAll('.dl-c.fresh')), g); }
+  function dlShuffle(then) {
+    var d = ''; for (var k = 0; k < 7; k++) d += '<div class="dl-dk" style="--a:' + ((k - 3) * 11) + 'deg;--s:' + (k % 2 ? 30 : -30) + '%"></div>';
+    dlSub = null; frame('Deal it', '<div class="dl-deck">' + d + '</div><div class="dl-shuf">Shuffling…</div>');
+    dplay('fan1'); dTm(function () { dplay('fan2'); }, 800); dTm(then, 2000);
+  }
+  function dlMarks() { return '<div class="bz-row bz-mk" id="bz-mark" style="display:none"><button class="bz-big miss" onclick="apBzMark(0)">✗ Missed</button><button class="bz-big near" onclick="apBzMark(2)">~ Nearly</button><button class="bz-big got" onclick="apBzMark(1)">✓ Got it</button></div>'; }
+  function dlCardView(c, cue) { var v = hvOf(c); return '<div onclick="apBzShow()" style="cursor:pointer;width:100%;display:flex;justify-content:center">' + card(c.q, v.a, cue, v.hl) + '</div><div class="bz-row"><button class="bz-big" id="bz-show" onclick="apBzShow()">Show answer</button></div>' + dlMarks(); }
+  function dlSay(c) { try { if (CFG.dSay) say(dirs()[1] === 'en' ? String(c.q).replace(/<[^>]*>/g, '') : hvOf(c).a); } catch (e) { } }
+
+  GAMES.deal = function (p) {
+    if (!dlBackOrig) { dlBackOrig = window.apBzBack; window.apBzBack = function () { if (dlSub && view === 'deal') { var f = dlSub; dlSub = null; stop(); f(); } else dlBackOrig(); }; }
+    dlSub = null;
+    frame('Deal it', '<div class="bz-note"><b>Shuffle. Deal. Turn a card. Say it.</b><br><b>Solo:</b> get every card right, then the cards are shuffled and you must get every one right a second time before you move up a level. Cards you miss go back in the pack and come round again.<br><b>Two players:</b> take turns to say a card; the other player checks. Get it right and you win the card for your pile. Biggest pile when the time is up wins.</div><div class="bz-row"><button class="bz-big go" onclick="apDlMode(1)">🃏 Solo</button><button class="bz-big go" onclick="apDlMode(2)">🃏 Two players</button></div>');
+    window.apDlMode = function (m) { CFG.dP = m; saveCfg(); sfx('go'); (m === 1 ? dealSolo : dealRace)(p); };
+  };
+
+  function dealSolo(p0) {
+    var pl = dlUniq(p0), N = Math.min(CFG.dN, pl.length), L = CFG.dL, pack = shuf(pl).slice(0, N * L), lvl = 0, pass = 1, hand = [], cur = -1, said = false, done = 0, fin = [], backs = 0, cue = H.names[dirs()[0]];
+    function ok() { return hand.length > 0 && hand.every(function (h) { return h.ok; }); }
+    function stats() { var n = hand.filter(function (h) { return h.ok; }).length; return '<div class="bz-stat"><div><b>' + lvl + ' / ' + L + '</b>level</div><div><b>' + pass + ' / 2</b>round</div><div><b>' + n + ' / ' + hand.length + '</b>secure</div></div>'; }
+    function table() {
+      dlSub = null; var cols = dlGrid(hand.length), cs = hand.map(function (h, k) {
+        var f = h.fresh; h.fresh = false;
+        return h.ok ? '<div class="dl-c up" id="dlc' + k + '"><span class="dl-ok">✓ Got it</span><span class="dl-tt">' + dlQ(h.c) + '</span></div>'
+          : '<button class="dl-c bk' + (f ? ' fresh' : '') + '" id="dlc' + k + '" onclick="apDlOpen(' + k + ')" aria-label="Turn over card ' + (k + 1) + '"><span class="dl-no">' + (k + 1) + '</span></button>';
+      }).join(''), note, btn = '';
+      if (ok() && pass === 1) { note = '<b>Every card is secure.</b> Now they are shuffled and dealt again: prove it a second time.'; btn = '<button class="bz-big go" onclick="apDlAgain()">🔀 Shuffle and prove it</button>'; }
+      else if (ok()) { var more = lvl < L && pack.length > 0; note = '<b>Level ' + lvl + ' complete.</b> ' + (hand.some(function (h) { return h.c.__miss; }) ? 'The cards you missed go back in the pack and come round again.' : 'Not one card missed.'); btn = '<button class="bz-big go" onclick="apDlNext()">' + (more || hand.some(function (h) { return h.c.__miss; }) && lvl < L ? 'Next level →' : 'See how you did') + '</button>'; }
+      else note = pass === 1 ? 'Turn a card, say it, then check. Get <b>every</b> card right.' : '<b>Second time round.</b> Shuffled: get every card right again before you move on.';
+      frame('Deal it', stats() + '<div class="bz-note" style="margin:4px auto">' + note + '</div><div class="dl-tab"><div class="dl-grid" style="grid-template-columns:repeat(' + cols + ',minmax(0,1fr))">' + cs + '</div></div>' + (btn ? '<div class="bz-row">' + btn + '</div>' : '') + '<div class="bz-row"><button class="bz-b" onclick="apDlStop()">Finish here</button></div>');
+    }
+    function deal() { dlShuffle(function () { table(); dlDeal(); }); }
+    function finish() {
+      var n = fin.length, first = fin.filter(function (c) { return !c.__ever; }).length;
+      endScreen('Deal it', { big: done + (done === 1 ? ' level' : ' levels'), note: n ? n + ' cards secured twice over. ' + first + ' right first time' + (backs ? '; ' + backs + ' went back in the pack and came round again.' : '.') : 'Finish a whole level to see your score.' }, function () { GAMES.deal(pool()); });
+    }
+    function nextLevel() {
+      if (hand.length && ok() && pass === 2) { done++; hand.forEach(function (h) { fin.push(h.c); }); }
+      var miss = hand.filter(function (h) { return h.c.__miss; });
+      if (lvl >= L) return finish();
+      miss.forEach(function (h) { h.c.__miss = 0; pack.splice(Math.floor(Math.random() * Math.min(pack.length + 1, N * 2)), 0, h.c); backs++; });
+      if (!pack.length) return finish();
+      lvl++; pass = 1; hand = pack.splice(0, N).map(function (c) { return { c: c, ok: false, fresh: true }; }); deal();
+    }
+    window.apDlOpen = function (k) {
+      var h = hand[k]; if (!h || h.ok) return; cur = k; said = false; dplay(Math.random() < .5 ? 'p2' : 'p4');
+      frame('Deal it', stats() + dlCardView(h.c, cue)); dlSub = table;
+    };
+    window.apBzShow = function () { reveal(); if (!said && cur >= 0 && hand[cur]) { said = true; dlSay(hand[cur].c); } };
+    window.apBzMark = function (g) {
+      var h = hand[cur]; if (!h || h.__m) return; h.__m = 1; var c = h.c; c.__ever = 1; dlSub = null;
+      if (g === 1) { h.ok = true; sfx('ok'); VH(true, '', ''); } else if (g === 0) { c.__miss = 1; sfx('bad'); VH(false, '', ''); } else sfx('tick');
+      dTm(function () { h.__m = 0; table(); if (ok()) sfx('good'); }, g === 2 ? 350 : 650);
+    };
+    window.apDlAgain = function () { hand = shuf(hand).map(function (h) { return { c: h.c, ok: false, fresh: true }; }); pass = 2; deal(); };
+    window.apDlNext = function () { nextLevel(); };
+    window.apDlStop = function () { finish(); };
+    nextLevel();
+  }
+
+  function dealRace(p0) {
+    var pl = dlUniq(p0), N = Math.min(CFG.dN, pl.length), pack = shuf(pl), slots = [], piles = [[], []], land = [-1, -1], team = 0, names = ['Blue', 'Gold'], left = CFG.dT, cur = -1, said = false, over = false, cue = H.names[dirs()[0]];
+    for (var i = 0; i < N; i++) slots.push({ c: pack.shift(), fresh: true });
+    function clk() { var s = Math.max(0, Math.ceil(left)); return Math.floor(s / 60) + ':' + ('0' + (s % 60)).slice(-2); }
+    function pcol(t, act) {
+      var a = piles[t], n = a.length, show = Math.min(n, 30), ly = '', landing = land[t] === n && n > 0;
+      for (var k = 0; k < show; k++) ly += '<i class="dl-pl' + (landing && k === show - 1 ? ' land' : '') + '" style="bottom:' + (k * 5) + 'px;transform:rotate(' + (((k * 53) % 11) - 5) + 'deg) translateX(' + (((k * 29) % 9) - 4) + 'px)"></i>';
+      if (landing) land[t] = -1;
+      return '<div class="dl-pcol t' + t + (act ? ' act' : '') + '"><h3>' + names[t] + '</h3><div class="dl-pile">' + ly + (n ? '' : '<span class="dl-pe">your pile</span>') + '</div><div class="dl-cnt"><b>' + n + '</b>card' + (n === 1 ? '' : 's') + '</div></div>';
+    }
+    function banner(sub) { return '<div class="pt-turn' + (team ? ' g' : '') + '">' + names[team] + ': ' + sub + '</div>'; }
+    function tint() { ov.classList.add(team === 0 ? 'pt-n' : 'pt-g'); }
+    function table() {
+      dlSub = null; cur = -1;
+      slots.forEach(function (s, k) { if (!s && pack.length) slots[k] = { c: pack.shift(), fresh: true }; });
+      if (slots.every(function (s) { return !s; })) return finish();
+      var cs = slots.map(function (s, k) { if (!s) return '<div class="dl-c gone"></div>'; var f = s.fresh; s.fresh = false; return '<button class="dl-c bk' + (f ? ' fresh' : '') + '" id="dlc' + k + '" onclick="apDlOpen(' + k + ')" aria-label="Turn over card ' + (k + 1) + '"><span class="dl-no">' + (k + 1) + '</span></button>'; }).join('');
+      frame('Deal it', banner('pick a card and say it!') + '<div class="bz-stat"><div><b id="dl-tl">' + clk() + '</b>left</div></div><div class="dl-race">' + pcol(0, team === 0) + '<div class="dl-tab"><div class="dl-grid" style="grid-template-columns:repeat(' + dlGrid(N) + ',minmax(0,1fr))">' + cs + '</div></div>' + pcol(1, team === 1) + '</div>');
+      tint(); dlDeal();
+    }
+    function finish() {
+      if (over) return; over = true; stop(); musicStop(); sfx('win'); dlSub = null;
+      var a = piles[0].length, b = piles[1].length, w = a === b ? 'A draw' : (a > b ? names[0] : names[1]) + ' wins'; if (a !== b) team = a > b ? 0 : 1;
+      frame('Deal it', '<div class="pt-turn' + (a === b ? '' : team ? ' g' : '') + '">' + w + '!</div><div class="dl-race dl-big">' + pcol(0, a >= b) + pcol(1, b >= a) + '</div><div class="bz-row"><button class="bz-big go" id="bz-again" onclick="apBzAgain()">↻ Go again</button><button class="bz-b" onclick="apBzBack()">Choose another round</button></div>');
+      if (a !== b) tint(); window.apBzAgain = function () { musicStart(); GAMES.deal(pool()); };
+    }
+    window.apDlOpen = function (k) {
+      var s = slots[k]; if (!s || over) return; cur = k; said = false; dplay(Math.random() < .5 ? 'p2' : 'p4');
+      frame('Deal it', banner('say it!') + '<div class="bz-stat"><div><b id="dl-tl">' + clk() + '</b>left</div><div><b>' + piles[0].length + '</b>' + names[0] + '</div><div><b>' + piles[1].length + '</b>' + names[1] + '</div></div><div class="bz-note" style="margin:0 auto">Then press <b>Show answer</b>: <b>' + names[1 - team] + '</b> checks and marks.</div>' + dlCardView(s.c, cue));
+      tint(); dlSub = table;
+    };
+    window.apBzShow = function () { reveal(); if (!said && cur >= 0 && slots[cur]) { said = true; dlSay(slots[cur].c); } };
+    window.apBzMark = function (g) {
+      var s = slots[cur]; if (!s || s.__m || over) return; s.__m = 1; var k = cur, c = s.c; dlSub = null;
+      if (g === 1) { piles[team].push(c); land[team] = piles[team].length; sfx('ok'); VH(true, '', ''); slots[k] = pack.length ? { c: pack.shift(), fresh: true } : null; }
+      else if (g === 0) { sfx('bad'); VH(false, '', ''); if (pack.length) { slots[k] = { c: pack.shift(), fresh: true }; pack.splice(Math.floor(Math.random() * (pack.length + 1)), 0, c); } else s.__m = 0; }
+      else { sfx('tick'); s.__m = 0; }
+      team = 1 - team;
+      dTm(function () { if (over) return; table(); if (g === 1) sfx('whoosh'); }, g === 2 ? 350 : 650);
+    };
+    dlShuffle(function () {
+      table();
+      dTm(function () {   // the clock starts once the cards are dealt
+        var t0 = Date.now(), last = -1, tv = setInterval(function () {
+          var nw = Date.now(); if (!PZ) left -= (nw - t0) / 1000; t0 = nw; var e = $('dl-tl'); if (e) e.textContent = clk();
+          var s = Math.ceil(left); if (s !== last && s <= 10 && s > 0) sfx('tick'); last = s;
+          if (left <= 0) { left = 0; clearInterval(tv); sfx('end'); finish(); }
+        }, 250); timers.push(tv);
+      }, 300 + N * 380);
+    });
+  }
 
   // ---------- Catch it
   GAMES.catch = function (p) {
