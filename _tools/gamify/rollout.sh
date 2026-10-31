@@ -3,8 +3,8 @@
 cd "$(dirname "$0")/../.."; I=_tools/gamify/inject.py
 python3 $I "Eton IGCSE Vocab Essentials.html" --pics --games clock,streak,odd,letter,gender,roll,catch,lane,pairs,deal
 python3 $I "AP All Languages - IGCSE Vocab Essentials.html" --pics --games clock,streak,odd,letter,gender,roll,catch,lane,pairs,deal
-python3 $I "Eton IGCSE Vocab and Gr EWs.html" --games clock,streak,odd,letter,gender,roll,catch,lane,pairs,deal   # Deal it: trial file
-python3 $I "AP All Languages - IGCSE Vocab and Gr EWs.html" --games clock,streak,odd,letter,gender,roll,catch,lane,pairs,deal
+python3 $I "Eton IGCSE Vocab and Gr EWs.html" --host _tools/gamify/hosts/igcse-vocab.js --games clock,streak,odd,letter,gender,roll,catch,lane,pairs,deal   # Deal it: trial file
+python3 $I "AP All Languages - IGCSE Vocab and Gr EWs.html" --host _tools/gamify/hosts/igcse-vocab.js --games clock,streak,odd,letter,gender,roll,catch,lane,pairs,deal
 python3 $I "Eton F Spanish Vocab.html" --games clock,streak,odd,letter,gender,roll,catch,lane,pairs,deal
 python3 $I "Eton Gen Essential Phrases.html" --noun phrases --short 4 --games clock,streak,odd,letter,roll,catch,lane,pairs,deal
 python3 $I "Eton IGCSE Structures & Oral and Writing Practice.html" --host _tools/gamify/hosts/structures.js --noun phrases --short 4 --games clock,streak,odd,letter,roll,catch,lane,pairs,deal
