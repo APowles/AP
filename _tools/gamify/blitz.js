@@ -54,6 +54,7 @@
     + '.bz-big.no{background:rgba(8,14,32,.8);color:#e9d28a}.bz-big:hover{box-shadow:0 0 0 3px rgba(201,168,76,.4)}.bz-big[disabled]{opacity:.5}'
     + '.bz-stat{display:flex;gap:22px;justify-content:center;font-weight:700;color:#e9d28a;letter-spacing:.06em;text-transform:uppercase;font-size:.85rem}.bz-stat b{color:#fff;font-size:1.4rem;display:block;letter-spacing:0}'
     + '.bz-ring{position:relative;width:78px;height:78px}.bz-ring svg{transform:rotate(-90deg)}.bz-ring i{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font:800 1.2rem "DM Sans",sans-serif;font-style:normal;color:#fff}'
+    + '.od-arena{position:relative;width:min(1000px,96%);height:290px;margin:6px auto}.od-w{position:absolute;white-space:nowrap;max-width:60%;will-change:left,top,transform}'
     + '.bz-opt{min-width:210px;font-size:1.3rem}.bz-opt.ok{background:#d9efdf;border-color:#2e7d52}.bz-opt.bad{background:#f3d3cf;border-color:#c0392b}'
     + '.bz-gap{font:700 clamp(1.6rem,4vw,2.6rem) "DM Mono",ui-monospace,monospace;letter-spacing:.12em}.bz-in{font:800 1.5rem "DM Sans",sans-serif;text-align:center;border:2px solid #c9a84c;border-radius:12px;padding:10px 14px;width:200px;background:#fffdf6;color:#1a2744}'
     + '.bz-acc button{background:#fffdf6;border:1.5px solid #c9a84c;border-radius:8px;padding:8px 13px;font:700 1.2rem sans-serif;margin:2px;cursor:pointer;color:#1a2744}'
@@ -461,6 +462,14 @@
     '.dl-pcol.pulse .dl-cnt b{display:inline-block;animation:dl-bump .6s ease-out}@keyframes dl-bump{40%{transform:scale(1.5);color:#fff}}',
     '.dl-wrap.fly{filter:drop-shadow(0 0 26px rgba(240,210,122,.95))}',
     '.dl-ghost{visibility:hidden}',
+    '.dl-c.lock{filter:grayscale(1) brightness(.5);cursor:not-allowed;pointer-events:none}',
+    '.dl-lk{position:absolute;left:6px;right:6px;bottom:8px;z-index:2;text-align:center;font:700 .72rem "DM Sans",sans-serif;letter-spacing:.06em;color:#f6efd8;text-shadow:0 1px 4px #000}',
+    '.dl-hint{position:absolute;bottom:26px;left:0;right:0;text-align:center;font:700 .74rem "DM Sans",sans-serif;letter-spacing:.2em;text-transform:uppercase;color:#c9a84c;opacity:.9;animation:dl-hnt 2s ease-in-out infinite}@keyframes dl-hnt{50%{opacity:.4}}',
+    '.bz-stat.dl-hot #dl-tl,.dl-hot b{color:#ff9a9a}',
+    '.dl-rev{width:min(780px,94%);margin:6px auto 0;padding:22px 28px;border-radius:16px;border:1.5px solid #c9a84c;background:linear-gradient(180deg,rgba(20,32,66,.95),rgba(8,14,32,.95));box-shadow:0 10px 36px rgba(0,0,0,.6);text-align:center}',
+    '.dl-rev h2{margin:0 0 4px;font:700 clamp(1.4rem,3vw,2rem) Georgia,serif;color:#f0d27a}.dl-rev p{margin:0 0 14px;color:rgba(246,239,216,.75);font-size:.95rem}',
+    '.dl-rl{display:flex;flex-direction:column;gap:8px;max-height:44vh;overflow:auto}',
+    '.dl-ri{display:flex;align-items:center;gap:14px;padding:9px 14px;border-radius:10px;background:rgba(255,255,255,.05);border:1px solid rgba(201,168,76,.3);text-align:left}.dl-ri span{flex:1;color:#f6efd8}.dl-ri i{color:#c9a84c;font-style:normal}.dl-ri b{flex:1;color:#f0d27a;font-weight:700}',
     '.dl-done{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;text-align:center;color:#f0d27a;font:700 clamp(1.4rem,3.4vw,2.6rem) Georgia,serif;text-shadow:0 2px 14px rgba(0,0,0,.7);pointer-events:none}'
   ].join('');
   var _dU = {}, dlSub = null, dlBackOrig = null;
@@ -508,8 +517,8 @@
     var v = hvOf(c), qh = v.hl ? esc(v.hl[0]) + '<b class="hl">' + esc(v.hl[1]) + '</b>' + esc(v.hl[2]) + '<span class="hln">Translate only the highlighted part</span>' : esc(c.q);
     var tw = Math.min(600, W0 * .88, (H0 * .46) * 1.5), th = tw * 2 / 3, tl = (W0 - tw) / 2, tt = Math.max(110, (H0 - th) / 2 - 70);
     var o = document.createElement('div'); o.id = 'dl-ov';
-    o.innerHTML = (topHTML || '') + '<div class="dl-wrap" id="dl-wrap" style="left:' + r.left + 'px;top:' + r.top + 'px;width:' + r.width + 'px;height:' + r.height + 'px" onclick="apBzShow()"><div class="dl-in" id="dl-in"><div class="dl-f dl-fb"></div><div class="dl-f dl-ff" id="dl-ff">' + dlOrn() + '<small>' + esc(cue) + '</small><div class="dl-fq' + dlSzCls(c.q) + '">' + qh + '</div></div></div></div>'
-      + '<div class="dl-ctl" id="dl-ctl" style="top:' + (tt + th + 22) + 'px;opacity:0"><div class="bz-row" id="dl-sh"><button class="dl-bt sh" id="bz-show" onclick="apBzShow()">Show answer</button></div>' + dlMarks() + '</div>';
+    o.innerHTML = (topHTML || '') + '<div class="dl-wrap" id="dl-wrap" style="left:' + r.left + 'px;top:' + r.top + 'px;width:' + r.width + 'px;height:' + r.height + 'px" onclick="apBzShow()"><div class="dl-in" id="dl-in"><div class="dl-f dl-fb"></div><div class="dl-f dl-ff" id="dl-ff">' + dlOrn() + '<small>' + esc(cue) + '</small><div class="dl-fq' + dlSzCls(c.q) + '">' + qh + '</div><div class="dl-hint">tap the card to turn it</div></div></div></div>'
+      + '<div class="dl-ctl" id="dl-ctl" style="top:' + (tt + th + 22) + 'px;opacity:0">' + dlMarks() + '</div>';
     ov.appendChild(o); if (src) src.style.visibility = 'hidden';
     dplay(Math.random() < .5 ? 'p2' : 'p4'); void o.offsetWidth;
     var w = $('dl-wrap'); w.style.left = tl + 'px'; w.style.top = tt + 'px'; w.style.width = tw + 'px'; w.style.height = th + 'px'; $('dl-in').classList.add('flip');
@@ -517,7 +526,7 @@
   }
   function dlShow(c) {   // the card turns again: the answer comes up
     var ff = $('dl-ff'), inn = $('dl-in'); if (!ff || !inn || inn.__shown) return; inn.__shown = 1;
-    var v = hvOf(c), sh = $('bz-show'); if (sh) sh.style.display = 'none';
+    var v = hvOf(c);
     inn.style.transition = 'transform .2s ease-in'; inn.style.transform = 'rotateY(270deg)'; dplay(Math.random() < .5 ? 'p2' : 'p4');
     setTimeout(function () {
       ff.innerHTML = dlOrn() + '<small>' + esc(H.names[dirs()[1]]) + '</small><div class="dl-fa' + dlSzCls(v.a) + '">' + esc(v.a) + ' ' + SAYBTN(v.a) + '</div><div class="dl-fp">' + esc(String(c.q).replace(/<[^>]*>/g, '')) + '</div>';
@@ -542,64 +551,105 @@
   GAMES.deal = function (p) {
     if (!dlBackOrig) { dlBackOrig = window.apBzBack; window.apBzBack = function () { if (dlSub && view === 'deal') { var f = dlSub; dlSub = null; try { speechSynthesis.cancel(); } catch (e) { } f(); } else dlBackOrig(); }; }
     dlSub = null; if (ov) ov.removeAttribute('data-dlr');
-    frame('Deal it', '<div class="bz-note"><b>Shuffle. Deal. Turn a card. Say it.</b><br><b>Solo:</b> get every card right, then the cards are shuffled and you must get every one right a second time before you move up a level. Cards you miss go back in the pack and come round again.<br><b>Two players:</b> take turns to say a card; the other player checks. Get it right and you win the card for your pile. Biggest pile when the time is up wins.</div><div class="bz-row"><button class="bz-big go" onclick="apDlMode(1)">🃏 Solo</button><button class="bz-big go" onclick="apDlMode(2)">🃏 Two players</button></div>');
+    frame('Deal it', '<div class="bz-note"><b>Shuffle. Deal. Turn a card. Say it.</b><br><b>Solo:</b> turn each card and say it. Right: it is secure. Nearly: it is locked until you have tried one more card, then you get one more go. Missed: it goes back in the pack and a new card is dealt. When every card is secure the round is over and the clock stops. Round two shuffles them again and you must beat your own time. At the end of each level you drill the cards you missed until every one is right.<br><b>Two players:</b> take turns to say a card; the other player checks. Get it right and you win the card for your pile. Biggest pile when the time is up wins.</div><div class="bz-row"><button class="bz-big go" onclick="apDlMode(1)">🃏 Solo</button><button class="bz-big go" onclick="apDlMode(2)">🃏 Two players</button></div>');
     window.apDlMode = function (m) { CFG.dP = m; saveCfg(); sfx('go'); (m === 1 ? dealSolo : dealRace)(p); };
   };
 
   function dealSolo(p0) {
-    var pl = dlUniq(p0), N = Math.min(CFG.dN, pl.length), L = CFG.dL, pack = shuf(pl).slice(0, N * L), lvl = 0, pass = 1, hand = [], cur = -1, said = false, done = 0, fin = [], backs = 0, lost = [], cue = H.names[dirs()[0]];
+    var pl = dlUniq(p0), N = Math.min(CFG.dN, pl.length), L = CFG.dL, pack = shuf(pl).slice(0, N * L + N), lvl = 0, pass = 1, hand = [], cur = -1, said = false, done = 0, fin = [], learned = 0, backs = 0, owed = [], moves = 0, mode = 'play', t1 = 0, tClock = 0, lim = 0, tv = null, drillQ = [], cue = H.names[dirs()[0]];
     ov.setAttribute('data-dlr', '1');
-    function turned(h) { return h.res !== undefined; }
+    function resolved(h) { return h.res !== undefined; }
     function gots() { return hand.filter(function (h) { return h.res === 'got'; }); }
-    function allTurned() { return hand.length > 0 && hand.every(turned); }
-    function stats() { return '<div class="bz-stat"><div><b>' + lvl + ' / ' + L + '</b>level</div><div><b>' + pass + ' / 2</b>round</div><div><b>' + hand.filter(turned).length + ' / ' + hand.length + '</b>turned</div></div>'; }
-    function table(doneTx, btn, note) {
-      dlSub = null; var cols = dlGrid(hand.length), cs = hand.map(function (h, k) {
-        var f = h.fresh; h.fresh = false;
-        return turned(h) ? '<div class="dl-c gone" id="dlc' + k + '"></div>'
-          : '<button class="dl-c bk' + (f ? ' fresh' : '') + '" id="dlc' + k + '" onclick="apDlOpen(' + k + ')" aria-label="Turn over card ' + (k + 1) + '"><span class="dl-no">' + (k + 1) + '</span></button>';
-      }).join('');
-      if (!note) note = pass === 1 ? 'Turn a card, say it, then check. A card you miss goes back in the pack.' : '<b>Round two.</b> Shuffled and dealt again: prove you really know them.';
-      frame('Deal it', stats() + '<div class="bz-note" style="margin:4px auto">' + note + '</div><div class="dl-race">' + dlPileHTML(1, 'Secure', gots().length, false, false, 'none yet') + '<div class="dl-tab"><div class="dl-grid" style="grid-template-columns:repeat(' + cols + ',minmax(0,1fr))">' + cs + '</div>' + (doneTx ? '<div class="dl-done">' + doneTx + '</div>' : '') + '</div>' + dlPileHTML(0, '<span style="color:#d0707c">Back in the pack</span>', lost.length, false, false, 'none yet') + '</div>' + (btn ? '<div class="bz-row">' + btn + '</div>' : '') + '<div class="bz-row"><button class="dl-bt sm" onclick="apDlStop()">Finish here</button></div>');
+    function locked(h) { return h.lock >= 0 && moves <= h.lock; }
+    function clk(x) { x = Math.max(0, Math.ceil(x)); return Math.floor(x / 60) + ':' + ('0' + (x % 60)).slice(-2); }
+    function stopClock() { if (tv) { clearInterval(tv); tv = null; } }
+    function startClock() {
+      stopClock(); var t0 = Date.now(); tClock = pass === 1 ? 0 : lim;
+      tv = setInterval(function () {
+        var nw = Date.now(), d = (nw - t0) / 1000; t0 = nw; if (PZ) return; tClock += pass === 1 ? d : -d;
+        var e = $('dl-tl'); if (e) { e.textContent = clk(tClock); e.parentNode.classList.toggle('dl-hot', pass === 2 && tClock <= 10); }
+        if (pass === 2 && tClock <= 10 && tClock > 0 && Math.abs(tClock - Math.round(tClock)) < .13) sfx('tick');
+        if (pass === 2 && tClock <= 0) { stopClock(); timeUp(); }
+      }, 250); timers.push(tv);
     }
-    function deal() { dlShuffle(function () { table(); dlDeal(); }); }
+    function stats() { return '<div class="bz-stat"><div><b>' + lvl + ' / ' + L + '</b>level</div><div><b>' + pass + ' / 2</b>round</div><div><b>' + gots().length + ' / ' + hand.length + '</b>secure</div><div><b id="dl-tl">' + clk(pass === 1 ? tClock : (tv ? tClock : lim)) + '</b>' + (pass === 1 ? 'time' : 'to beat') + '</div></div>'; }
+    function table(doneTx, btn, note) {
+      dlSub = null; moves = moves;
+      var open = hand.filter(function (h) { return !resolved(h) && !locked(h); }); if (!open.length) hand.forEach(function (h) { h.lock = -1; });
+      var cols = dlGrid(hand.length), cs = hand.map(function (h, k) {
+        var f = h.fresh; h.fresh = false;
+        if (resolved(h)) return '<div class="dl-c gone" id="dlc' + k + '"></div>';
+        if (locked(h)) return '<div class="dl-c bk lock" id="dlc' + k + '"><span class="dl-no">' + (k + 1) + '</span><span class="dl-lk">nearly · after one more card</span></div>';
+        return '<button class="dl-c bk' + (f ? ' fresh' : '') + '" id="dlc' + k + '" onclick="apDlOpen(' + k + ')" aria-label="Turn over card ' + (k + 1) + '"><span class="dl-no">' + (k + 1) + '</span></button>';
+      }).join('');
+      if (!note) note = pass === 1 ? 'Turn a card, say it, tap it to check. Right: secure. Nearly: one more go after another card. Missed: back in the pack.' : '<b>Round two.</b> Shuffled and dealt again: beat your first time.';
+      frame('Deal it', stats() + '<div class="bz-note" style="margin:4px auto">' + note + '</div><div class="dl-race">' + dlPileHTML(1, 'Secure', gots().length, false, false, 'none yet') + '<div class="dl-tab"><div class="dl-grid" style="grid-template-columns:repeat(' + cols + ',minmax(0,1fr))">' + cs + '</div>' + (doneTx ? '<div class="dl-done">' + doneTx + '</div>' : '') + '</div>' + dlPileHTML(0, 'The pack', pack.length, false, false, 'empty') + '</div>' + (btn ? '<div class="bz-row">' + btn + '</div>' : '') + '<div class="bz-row"><button class="dl-bt sm" onclick="apDlStop()">Finish here</button></div>');
+      if (stats() && tv === null && pass === 2 && !doneTx) { var e = $('dl-tl'); if (e) e.textContent = clk(lim); }
+    }
+    function deal() { dlShuffle(function () { table(); dlDeal(); dTm(startClock, 250 + hand.length * 300); }); }
     function finish() {
-      var n = fin.length, first = fin.filter(function (c) { return !c.__ever; }).length;
-      endScreen('Deal it', { big: done + (done === 1 ? ' level' : ' levels'), note: n ? n + ' card' + (n === 1 ? '' : 's') + ' mastered: right, then right again after the shuffle. ' + first + ' right first time' + (backs ? '; ' + backs + ' went back in the pack and came round again.' : '.') : 'Finish a whole level to see your score.' }, function () { GAMES.deal(pool()); });
+      stopClock(); var n = fin.length, first = fin.filter(function (c) { return !c.__ever; }).length;
+      endScreen('Deal it', { big: done + (done === 1 ? ' level' : ' levels'), note: n || learned ? n + ' card' + (n === 1 ? '' : 's') + ' mastered (right, then right again after the shuffle), ' + first + ' of them first time; ' + learned + ' learned in the drill.' : 'Finish a whole level to see your score.' }, function () { GAMES.deal(pool()); });
     }
     function nextLevel() {
-      if (lvl > 0) {
-        if (lvl >= L) return finish();
-        lost.forEach(function (c) { c.__miss = 0; pack.splice(Math.floor(Math.random() * Math.min(pack.length + 1, N * 2)), 0, c); backs++; }); lost = [];
-      }
+      if (lvl > 0 && lvl >= L) return finish();
       if (!pack.length) return finish();
-      lvl++; pass = 1; ov.setAttribute('data-dlr', '1'); hand = pack.splice(0, N).map(function (c) { return { c: c, fresh: true }; }); deal();
+      lvl++; pass = 1; tClock = 0; moves = 0; owed = []; mode = 'play'; ov.setAttribute('data-dlr', '1');
+      hand = pack.splice(0, N).map(function (c) { return { c: c, fresh: true, tries: 0, lock: -1 }; }); deal();
     }
+    function addOwed(c) { c.__ever = 1; if (owed.indexOf(c) < 0) owed.push(c); pack.splice(Math.min(pack.length, 3 + Math.floor(Math.random() * N * 2)), 0, c); backs++; }
     function levelDone() {
-      var got = gots(); if (pass === 2) got.forEach(function (h) { fin.push(h.c); }); done++;
-      var more = lvl < L && (pack.length > 0 || lost.length > 0);
-      sfx('good'); table('Level ' + lvl + ' complete', '<button class="dl-bt go" onclick="apDlNext()">' + (more ? 'Next level →' : 'See how you did') + '</button>',
-        '<b>' + (pass === 2 ? got.length + ' mastered' : 'No card secured') + '</b>' + (lost.length ? ', ' + lost.length + ' back in the pack to come round again.' : '. Not one card missed.'));
+      mode = 'play'; stopClock(); done++; var m = gots().length;
+      sfx('good'); table('Level ' + lvl + ' complete', '<button class="dl-bt go" onclick="apDlNext()">' + (lvl < L && pack.length ? 'Next level →' : 'See how you did') + '</button>', '<b>' + m + ' mastered</b>' + (learned ? ', and the cards you missed are learned.' : '. Not one card missed.'));
     }
-    function after() {
-      if (!allTurned()) return table();
-      var got = gots();
-      if (pass === 1 && got.length) {
-        sfx('good'); table('Round 1 complete', null, '<b>' + got.length + ' secure</b>' + (lost.length ? ', ' + lost.length + ' back in the pack' : '') + '. Now prove it: shuffled and dealt again.');
-        dTm(function () { hand = shuf(got).map(function (h) { return { c: h.c, fresh: true }; }); pass = 2; ov.setAttribute('data-dlr', '2'); deal(); }, 2300);
-      } else levelDone();
+    function reviewOrDone() {
+      if (!owed.length) return levelDone();
+      mode = 'review'; stopClock(); sfx('good'); dlSub = null;
+      frame('Deal it', '<div class="dl-rev"><h2>Cards to learn</h2><p>These are not secure yet. You will drill them until every one is right, then move on.</p><div class="dl-rl">' + owed.map(function (c) { var v = hvOf(c); return '<div class="dl-ri"><span>' + dlQ(c) + '</span><i>→</i><b>' + esc(v.a) + '</b></div>'; }).join('') + '</div></div><div class="bz-row"><button class="dl-bt go" onclick="apDlDrill()">Start the drill →</button></div>');
     }
+    function drillNext() {
+      if (!drillQ.length) { owed = []; return levelDone(); }
+      var c = drillQ[0]; cur = -1; said = false; mode = 'drill';
+      frame('Deal it', '<div class="bz-note" style="margin-top:40px">Drilling the cards you missed.</div>');
+      dlOpenCard(-1, c, cue, '<div class="dl-turn" style="--tc:#c0606e"><i></i>Drill · ' + drillQ.length + ' to learn</div>'); dlSub = null;
+    }
+    function roundDone() {
+      stopClock();
+      if (pass === 1) {
+        t1 = tClock; lim = Math.max(15, Math.round(t1)); var sec = gots();
+        if (!sec.length) return reviewOrDone();
+        sfx('good'); table('Round 1 complete', null, '<b>' + sec.length + ' secure</b> in <b>' + clk(t1) + '</b>. Round two: shuffled again, and you must beat that time.');
+        dTm(function () { hand = shuf(sec).map(function (h) { return { c: h.c, fresh: true, tries: 0, lock: -1 }; }); pass = 2; moves = 0; ov.setAttribute('data-dlr', '2'); deal(); }, 2600);
+      } else reviewOrDone();
+    }
+    function timeUp() {
+      var o = $('dl-ov'); if (o) o.remove(); sfx('end'); dlSub = null;
+      hand.forEach(function (h) { if (!resolved(h)) { h.res = 'miss'; addOwed(h.c); } });
+      roundDone();
+    }
+    function afterMark() { if (hand.every(resolved)) return roundDone(); table(); dlDeal(); }
     window.apDlOpen = function (k) {
-      var h = hand[k]; if (!h || turned(h) || $('dl-ov')) return; cur = k; said = false;
+      var h = hand[k]; if (mode !== 'play' || !h || resolved(h) || locked(h) || $('dl-ov')) return; cur = k; said = false;
       dlOpenCard(k, h.c, cue, ''); dlSub = function () { dlClose(k, function () { table(); }); };
     };
-    window.apBzShow = function () { if (cur >= 0 && hand[cur]) dlShow(hand[cur].c); if (!said && cur >= 0 && hand[cur]) { said = true; dlSay(hand[cur].c); } };
-    window.apBzMark = function (g) {
-      var h = hand[cur]; if (!h || h.__m) return; h.__m = 1; var c = h.c, kk = cur, got = g === 1; c.__ever = 1; dlSub = null;
-      if (got) { h.res = 'got'; sfx('ok'); VH(true, '', ''); } else { h.res = 'miss'; c.__miss = 1; lost.push(c); sfx(g === 2 ? 'tick' : 'bad'); if (g === 0) VH(false, '', ''); }
-      var dest = dlPileRect(got ? 1 : 0);
-      dTm(function () { if (got) sfx('whoosh'); dlClose(kk, function () { h.__m = 0; after(); }, dest, got ? 2 : 1, got ? 1 : .8, !got); }, 450);
+    window.apBzShow = function () {
+      var c = mode === 'drill' ? drillQ[0] : (cur >= 0 && hand[cur] ? hand[cur].c : null); if (!c) return;
+      dlShow(c); if (!said) { said = true; dlSay(c); }
     };
+    window.apBzMark = function (g) {
+      if (mode === 'drill') {
+        var dq = drillQ[0]; if (!dq || dq.__m) return; dq.__m = 1; var gd = g === 1; sfx(gd ? 'ok' : g === 2 ? 'tick' : 'bad'); if (g !== 2) VH(gd, '', '');
+        if (gd) { drillQ.shift(); learned++; } else drillQ.push(drillQ.shift());
+        dTm(function () { dq.__m = 0; dlClose(-1, drillNext); }, 500); return;
+      }
+      var h = hand[cur]; if (!h || h.__m || resolved(h)) return; h.__m = 1; var c = h.c, kk = cur, got = g === 1; dlSub = null; moves++;
+      if (got) { h.res = 'got'; sfx('ok'); VH(true, '', ''); if (h.tries) c.__ever = 1;
+        var d1 = dlPileRect(1); dTm(function () { sfx('whoosh'); dlClose(kk, function () { h.__m = 0; afterMark(); }, d1, 2, 1); }, 450); }
+      else if (g === 2 && h.tries === 0) { h.tries = 1; h.lock = moves; c.__ever = 1; sfx('tick'); dTm(function () { dlClose(kk, function () { h.__m = 0; afterMark(); }); }, 300); }
+      else { h.res = 'miss'; sfx('bad'); if (g === 0) VH(false, '', ''); var rep = pass === 1 && pack.length ? pack.shift() : null, d0 = dlPileRect(0); addOwed(c);
+        dTm(function () { dlClose(kk, function () { h.__m = 0; if (rep) hand[kk] = { c: rep, fresh: true, tries: 0, lock: -1 }; afterMark(); }, d0, 1, .8, true); }, 450); }
+    };
+    window.apDlDrill = function () { drillQ = owed.slice(); drillNext(); };
     window.apDlNext = function () { nextLevel(); };
     window.apDlStop = function () { finish(); };
     nextLevel();
@@ -780,11 +830,25 @@
       var opts = shuf(three.concat([odd])), lab = function (x) { return x.tl || x.a; };
       bgNow = TOPIC_PIC_ON[sA] || null;
       r++; function tn(s) { var v = (H.titles && H.titles[s]); return v ? (typeof v === 'string' ? v : (v.title || v.name || s)) : s; }
-      frame('Odd one out', '<div class="bz-stat"><div><b>' + r + '/' + CFG.oddR + '</b>round</div><div><b>' + ok + '</b>spotted</div></div>' + ringHTML('bzr') + '<div class="bz-note">Topic: <b style="color:#e9d28a;font-size:1.15rem">' + esc(tn(sA)) + '</b><br>One of these four words does <b>not</b> belong to this topic. Tap it.</div><div class="bz-row" id="bz-opts">' + opts.map(function (o, k) { return '<button class="bz-big bz-opt" data-k="' + k + '">' + esc(lab(o)) + (CFG.oddM ? '<small style="display:block;font:500 .8rem \'DM Sans\',sans-serif;color:#5a6a8a;margin-top:3px">' + esc(o.en || o.q) + '</small>' : '') + '</button>'; }).join('') + '</div><div class="bz-note" id="bz-msg" style="min-height:28px"></div>');
+      frame('Odd one out', '<div class="bz-stat"><div><b>' + r + '/' + CFG.oddR + '</b>round</div><div><b>' + ok + '</b>spotted</div></div>' + ringHTML('bzr') + '<div class="bz-note">Topic: <b style="color:#e9d28a;font-size:1.15rem">' + esc(tn(sA)) + '</b><br>One of these four words does <b>not</b> belong to this topic. Tap it.</div><div class="od-arena" id="bz-opts">' + opts.map(function (o, k) { return '<button class="bz-big bz-opt od-w" data-k="' + k + '">' + esc(lab(o)) + (CFG.oddM ? '<small style="display:block;font:500 .8rem \'DM Sans\',sans-serif;color:#5a6a8a;margin-top:3px">' + esc(o.en || o.q) + '</small>' : '') + '</button>'; }).join('') + '</div><div class="bz-note" id="bz-msg" style="min-height:28px"></div>');
       var done = false;
       function settle(pick) { if (done) return; done = true; stop(); [].forEach.call(ov.querySelectorAll('.bz-opt'), function (b, k) { b.disabled = true; if (opts[k] === odd) b.classList.add('ok'); else if (k === pick) b.classList.add('bad'); }); var good = pick >= 0 && opts[pick] === odd; if (good) ok++; sfx(good ? 'good' : 'bad'); $('bz-msg').innerHTML = VH(good, 'Spotted it!', 'Not that one'); [].forEach.call(ov.querySelectorAll('.bz-opt'), function (b, k) { if (!b.querySelector('small')) b.insertAdjacentHTML('beforeend', '<small class="bz-mean" style="animation-delay:' + (k * 110) + 'ms;font:600 1.05rem \'DM Sans\',sans-serif;color:#13203f;margin-top:4px">' + esc(opts[k].en || opts[k].q || '') + '</small>'); }); timers.push(setTimeout(round, 1000)); }
       [].forEach.call(ov.querySelectorAll('.bz-opt'), function (b) { b.onclick = function () { settle(parseInt(b.getAttribute('data-k'), 10)); }; });
       runRing('bzr', CFG.oddS, function () { settle(-1); });
+      (function orbit() {
+        var ar = $('bz-opts'), bs = [].slice.call(ar.querySelectorAll('.od-w')), t0 = performance.now(), ph = Math.random() * 6.28, dir = Math.random() < .5 ? 1 : -1;
+        function tick(now) {
+          if (!ar.isConnected) return;
+          var w = ar.clientWidth, rx = Math.max(60, Math.min(w / 2 - 110, 440)), ry = 105, a0 = ph + dir * (now - t0) / 1000 * .42;
+          bs.forEach(function (b, k) {
+            var a = a0 + k * Math.PI / 2, bob = Math.sin(now / 520 + k * 1.7) * 7;
+            b.style.left = (w / 2 + Math.cos(a) * rx - b.offsetWidth / 2) + 'px'; b.style.top = (ar.clientHeight / 2 + Math.sin(a) * ry - b.offsetHeight / 2 + bob) + 'px';
+            var dp = (Math.sin(a) + 1) / 2; b.style.zIndex = Math.round(dp * 10); b.style.transform = 'scale(' + (.88 + dp * .18).toFixed(3) + ')';
+          });
+          if (!done) requestAnimationFrame(tick);
+        }
+        requestAnimationFrame(tick);
+      })();
     }
     round();
   };
