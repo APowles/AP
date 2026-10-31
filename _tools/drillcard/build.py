@@ -67,7 +67,13 @@ if __name__=='__main__':
 
 # ---- ChatGPT frame mode: 9-slice border-image from a card-frame PNG (transparent corners) ----
 HIDE=('<script id="ap-drillcard-js">(function(){try{var f=function(){var c=document.querySelectorAll(".aph-drill .aph-qcard");'
- 'for(var i=0;i<c.length;i++){var h=c[i].querySelector(".prompt-hint");if(h)h.style.display=c[i].querySelector(".reveal")?"none":"";}'
+ 'for(var i=0;i<c.length;i++){var q=c[i],h=q.querySelector(".prompt-hint"),vb=q.querySelector(".vb-badge"),'
+ 'shown=vb?!q.querySelector(".form.hidden"):!!q.querySelector(".reveal,.answer,.reveal-answer");'
+ 'if(!h&&!shown&&(q.querySelector(".aph-prompt")||vb)){var tx="";if(vb){tx="Say the forms, then press Show All Forms";}else{'
+ 'var m=/\\u2192\\s*(\\uD83C\\uDDEB\\uD83C\\uDDF7|\\uD83C\\uDDEA\\uD83C\\uDDF8|\\uD83C\\uDDEE\\uD83C\\uDDF9|\\uD83C\\uDDEC\\uD83C\\uDDE7)/.exec(q.innerText);'
+ 'if(m){var L={"\\uD83C\\uDDEB\\uD83C\\uDDF7":"French","\\uD83C\\uDDEA\\uD83C\\uDDF8":"Spanish","\\uD83C\\uDDEE\\uD83C\\uDDF9":"Italian","\\uD83C\\uDDEC\\uD83C\\uDDE7":"English"};tx="Say it in "+L[m[1]]+", then press Show Answer";}}'
+ 'if(tx){h=document.createElement("div");h.className="prompt-hint";h.setAttribute("data-apd","1");h.textContent=tx;var pr=q.querySelector(".aph-prompt");if(pr&&pr.parentNode===q)pr.insertAdjacentElement("afterend",h);else q.appendChild(h);}}'
+ 'if(h)h.style.display=shown?"none":"";}'
  'var bb=document.querySelectorAll("[class*=dbar] button"),sb=document.querySelectorAll(".aph-drill-side button");'
  'for(var j=0;j<sb.length;j++){if(!/Error review/.test(sb[j].textContent))continue;var oc=sb[j].getAttribute("onclick"),dup=false;'
  'for(var k=0;k<bb.length;k++){if(/Errors/.test(bb[k].textContent)&&bb[k].getAttribute("onclick")===oc)dup=true;}sb[j].style.display=dup?"none":"";}};'
