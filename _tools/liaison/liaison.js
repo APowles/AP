@@ -16,7 +16,7 @@
   }
   window.apLiaisonFix = fix;
   // English voices say "live" to rhyme with "give" before these nouns; the adjective rhymes with "five"
-  function enFix(t) { return String(t).replace(/P[ée]tain/gi, 'Pay-tan').replace(/\blive(?=[ -](?:broadcast|stream|tv\b|television|coverage|music|event|performance|show|concert|news|audience|debate|sport|football|match|report|feed|video|radio|interview|commentary|reporting|transmission))/gi, 'lyve'); }
+  function enFix(t) { return String(t).replace(/P[ée]tain/gi, 'Pay-tan').replace(/\b(I|we|they|you|he|she|have|has|had|I've|we've|they've|you've|I'd|we'd|they'd|you'd|he's|she's) read(?= (?:in|on|about|that|an|a|the|it|them|this|these|those|some|several|many|one)\b)/gi, '$1 red').replace(/\blive(?=[ -](?:broadcast|stream|tv\b|television|coverage|music|event|performance|show|concert|news|audience|debate|sport|football|match|report|feed|video|radio|interview|commentary|reporting|transmission))/gi, 'lyve'); }
   try {
     var P = window.SpeechSynthesis && window.SpeechSynthesis.prototype; if (!P || P.__apLia) return; P.__apLia = 1;
     var orig = P.speak;
