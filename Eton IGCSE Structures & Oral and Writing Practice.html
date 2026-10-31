@@ -17344,7 +17344,7 @@ window.APBZ_HOST = {
     + '.bz-big.no{background:rgba(8,14,32,.8);color:#e9d28a}.bz-big:hover{box-shadow:0 0 0 3px rgba(201,168,76,.4)}.bz-big[disabled]{opacity:.5}'
     + '.bz-stat{display:flex;gap:22px;justify-content:center;font-weight:700;color:#e9d28a;letter-spacing:.06em;text-transform:uppercase;font-size:.85rem}.bz-stat b{color:#fff;font-size:1.4rem;display:block;letter-spacing:0}'
     + '.bz-ring{position:relative;width:78px;height:78px}.bz-ring svg{transform:rotate(-90deg)}.bz-ring i{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font:800 1.2rem "DM Sans",sans-serif;font-style:normal;color:#fff}'
-    + '.od-arena{position:relative;width:min(1000px,96%);height:290px;margin:6px auto}.od-w{position:absolute;white-space:nowrap;max-width:60%;will-change:left,top,transform}'
+    + '.od-arena{position:relative;width:min(1000px,96%);height:290px;margin:6px auto}.od-w{position:absolute;white-space:nowrap;max-width:60%;will-change:left,top,transform}.od-flat{height:auto;display:flex;flex-wrap:wrap;justify-content:center;gap:12px}.od-flat .od-w{position:static;white-space:normal;max-width:min(460px,94%);flex:1 1 300px}'
     + '.bz-opt{min-width:210px;font-size:1.3rem}.bz-opt.ok{background:#d9efdf;border-color:#2e7d52}.bz-opt.bad{background:#f3d3cf;border-color:#c0392b}'
     + '.bz-gap{font:700 clamp(1.6rem,4vw,2.6rem) "DM Mono",ui-monospace,monospace;letter-spacing:.12em}.bz-in{font:800 1.5rem "DM Sans",sans-serif;text-align:center;border:2px solid #c9a84c;border-radius:12px;padding:10px 14px;width:200px;background:#fffdf6;color:#1a2744}'
     + '.bz-acc button{background:#fffdf6;border:1.5px solid #c9a84c;border-radius:8px;padding:8px 13px;font:700 1.2rem sans-serif;margin:2px;cursor:pointer;color:#1a2744}'
@@ -18167,12 +18167,13 @@ window.APBZ_HOST = {
       var opts = shuf(three.concat([odd])), lab = function (x) { return x.tl || x.a; };
       bgNow = TOPIC_PIC_ON[sA] || null;
       r++; function tn(s) { var v = (H.titles && H.titles[s]); return v ? (typeof v === 'string' ? v : (v.title || v.name || s)) : s; }
-      frame('Odd one out', '<div class="bz-stat"><div><b>' + r + '/' + CFG.oddR + '</b>round</div><div><b>' + ok + '</b>spotted</div></div>' + ringHTML('bzr') + '<div class="bz-note">Topic: <b style="color:#e9d28a;font-size:1.15rem">' + esc(tn(sA)) + '</b><br>One of these four words does <b>not</b> belong to this topic. Tap it.</div><div class="od-arena" id="bz-opts">' + opts.map(function (o, k) { return '<button class="bz-big bz-opt od-w" data-k="' + k + '">' + esc(lab(o)) + (CFG.oddM ? '<small style="display:block;font:500 .8rem \'DM Sans\',sans-serif;color:#5a6a8a;margin-top:3px">' + esc(o.en || o.q) + '</small>' : '') + '</button>'; }).join('') + '</div><div class="bz-note" id="bz-msg" style="min-height:28px"></div>');
+      frame('Odd one out', '<div class="bz-stat"><div><b>' + r + '/' + CFG.oddR + '</b>round</div><div><b>' + ok + '</b>spotted</div></div>' + ringHTML('bzr') + '<div class="bz-note">Topic: <b style="color:#e9d28a;font-size:1.15rem">' + esc(tn(sA)) + '</b><br>One of these four words does <b>not</b> belong to this topic. Tap it.</div><div class="od-arena' + (opts.some(function (o) { return lab(o).length > 28; }) ? ' od-flat' : '') + '" id="bz-opts">' + opts.map(function (o, k) { return '<button class="bz-big bz-opt od-w" data-k="' + k + '">' + esc(lab(o)) + (CFG.oddM ? '<small style="display:block;font:500 .8rem \'DM Sans\',sans-serif;color:#5a6a8a;margin-top:3px">' + esc(o.en || o.q) + '</small>' : '') + '</button>'; }).join('') + '</div><div class="bz-note" id="bz-msg" style="min-height:28px"></div>');
       var done = false;
       function settle(pick) { if (done) return; done = true; stop(); [].forEach.call(ov.querySelectorAll('.bz-opt'), function (b, k) { b.disabled = true; if (opts[k] === odd) b.classList.add('ok'); else if (k === pick) b.classList.add('bad'); }); var good = pick >= 0 && opts[pick] === odd; if (good) ok++; sfx(good ? 'good' : 'bad'); $('bz-msg').innerHTML = VH(good, 'Spotted it!', 'Not that one'); [].forEach.call(ov.querySelectorAll('.bz-opt'), function (b, k) { if (!b.querySelector('small')) b.insertAdjacentHTML('beforeend', '<small class="bz-mean" style="animation-delay:' + (k * 110) + 'ms;font:600 1.05rem \'DM Sans\',sans-serif;color:#13203f;margin-top:4px">' + esc(opts[k].en || opts[k].q || '') + '</small>'); }); timers.push(setTimeout(round, 2800)); }
       [].forEach.call(ov.querySelectorAll('.bz-opt'), function (b) { b.onclick = function () { settle(parseInt(b.getAttribute('data-k'), 10)); }; });
       runRing('bzr', CFG.oddS, function () { settle(-1); });
       (function orbit() {
+        if ($('bz-opts').classList.contains('od-flat')) return;
         var ar = $('bz-opts'), bs = [].slice.call(ar.querySelectorAll('.od-w')), t0 = performance.now(), ph = Math.random() * 6.28, dir = Math.random() < .5 ? 1 : -1;
         function tick(now) {
           if (!ar.isConnected) return;
@@ -18347,4 +18348,4 @@ window.APBZ_HOST = {
   if (document.readyState === 'complete') start(); else window.addEventListener('load', start);
 })();
 </script>
-<script id="ap-build">window.__apBuild="2fdc7d4e84";</script>
+<script id="ap-build">window.__apBuild="41e71d094b";</script>
