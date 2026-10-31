@@ -789,9 +789,25 @@ main{display:block}
     var f = document.createElement('iframe'); f.title = 'Print preview'; f.srcdoc = html;
     f.style.cssText = 'flex:1;width:100%;border:0;background:#fff'; o.appendChild(f); document.body.appendChild(o);
     o.querySelector('#ap-print-ov-x').onclick = function () { o.remove(); };
-    o.querySelector('#ap-print-ov-go').onclick = function () { try { f.contentWindow.focus(); f.contentWindow.print(); } catch (e) { window.print(); } };
+    o.querySelector('#ap-print-ov-go').onclick = function () { printCopy(f); };
+    o.querySelector('#ap-print-ov-x').onclick = function () { o.remove(); if (window.__apShimDone) window.__apShimDone(); };
   }
-  window.apPrintOverlay = overlay;
+  // Printing an iframe on an iPad prints the whole page behind it, so the sheet is copied into the page for the print (its styles scoped to the copy) and removed afterwards
+  function printCopy(f) {
+    try {
+      var d = f.contentDocument, old = document.getElementById('appo-print'); if (old) old.remove();
+      var p = document.createElement('div'), css = ''; p.id = 'appo-print';
+      var scope = function (rules) { var out = ''; [].forEach.call(rules, function (r) { if (r.type === 1) { var sel = r.selectorText.split(',').map(function (x) { x = x.trim(); return /^(html|body)$/i.test(x) ? '#appo-print' : /^(html|body)\s/i.test(x) ? '#appo-print ' + x.replace(/^(html|body)\s+/i, '') : '#appo-print ' + x; }).join(','), tx = r.style.cssText; if (/^#appo-print(,|$)/.test(sel)) tx = tx.replace(/(^|;)\s*(height|width)\s*:[^;]*/gi, '$1'); out += sel + '{' + tx + '}'; } else if (r.type === 4) { out += '@media ' + r.media.mediaText + '{' + scope(r.cssRules) + '}'; } else if (r.type === 6) { out += '@page{' + r.style.cssText + '}'; } else if (r.type === 5) { out += r.cssText; } }); return out; };
+      [].forEach.call(d.styleSheets, function (sh) { try { css += scope(sh.cssRules); } catch (e) { } });
+      p.innerHTML = '<style>' + css + '</style>' + d.body.innerHTML; document.body.appendChild(p);
+      var st = document.createElement('style'); st.id = 'appo-print-css'; st.textContent = '@media screen{#appo-print{display:none}}@media print{body>*:not(#appo-print){display:none!important}#appo-print{display:block!important}}'; document.head.appendChild(st);
+      var de = document.documentElement, db = document.body, ov0 = [de.style.overflow, db.style.overflow, de.style.height, db.style.height];
+      de.style.overflow = db.style.overflow = 'visible'; de.style.height = db.style.height = 'auto';
+      var done = function () { p.remove(); st.remove(); de.style.overflow = ov0[0]; db.style.overflow = ov0[1]; de.style.height = ov0[2]; db.style.height = ov0[3]; window.removeEventListener('afterprint', done); window.__apShimDone = null; };
+      window.__apShimDone = done; window.addEventListener('afterprint', done); window.print();
+    } catch (e) { try { f.contentWindow.focus(); f.contentWindow.print(); } catch (e2) { window.print(); } }
+  }
+  window.apPrintOverlay = overlay; window.apPrintCopy = printCopy;
   window.open = function (url) {
     var w = null; try { w = real.apply(window, arguments); } catch (e) { w = null; }
     if (w) return w;
@@ -19832,4 +19848,4 @@ MCQ('<b>“Strawberries? We ate some.”</b> Which is right?',['Des fraises ? No
   if (document.readyState === 'complete') start(); else window.addEventListener('load', start);
 })();
 </script>
-<script id="ap-build">window.__apBuild="6903525c88";</script>
+<script id="ap-build">window.__apBuild="1ae11d0be2";</script>
