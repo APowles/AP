@@ -9989,6 +9989,10 @@ textarea.ms-in{min-height:7rem;resize:vertical}
     + '.bz-m[disabled]{opacity:.45;cursor:default;filter:grayscale(.6)}.bz-m[disabled] span{color:#e9d28a}'
     + '.bz-card{width:min(640px,92%);min-height:260px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;padding:6px 14px;border:46px solid transparent;border-image:url(CARDFACE) 46 fill / 46px stretch;color:#1a2744;font:700 clamp(1.7rem,4.4vw,3rem) Georgia,"Playfair Display",serif;line-height:1.2;filter:drop-shadow(0 14px 22px rgba(0,0,0,.55))}'
     + '.bz-card.bz-lg{font-size:clamp(1.25rem,3vw,2rem);min-height:0}.bz-card.bz-xl{font-size:clamp(1rem,2.3vw,1.45rem);min-height:0;line-height:1.25}.bz-card.bz-lg .ans,.bz-card.bz-xl .ans{font-size:.82em}'
+    + '.bz-card .hl{background:rgba(201,168,76,.4);border-radius:6px;padding:0 4px;box-decoration-break:clone;-webkit-box-decoration-break:clone}.bz-card .hln{display:block;font:700 .62em "DM Sans",sans-serif;color:#7a5a12;letter-spacing:.06em;text-transform:uppercase;margin-top:6px}'
+    + '.bz-mk{gap:22px}.bz-mk .bz-big{min-width:210px;padding:20px 34px;font-size:1.5rem;border-width:3px;box-shadow:0 6px 18px rgba(0,0,0,.45)}.bz-mk .bz-big.got{background:linear-gradient(180deg,#3fb877,#2a8f58);color:#fff;border-color:#a8e6c1}.bz-mk .bz-big.miss{background:linear-gradient(180deg,#e0624f,#b8402f);color:#fff;border-color:#f3b4aa}'
+    + '.bz-card.bz-lg .bz-gap{font-size:clamp(1.15rem,2.6vw,1.8rem);letter-spacing:.06em}.bz-card.bz-xl .bz-gap{font-size:clamp(.95rem,2vw,1.3rem);letter-spacing:.04em}'
+    + '.rl-q.rl-s{font-size:clamp(.85rem,1.7vw,1.1rem)}.rl-c .hl{background:rgba(201,168,76,.45);border-radius:5px;padding:0 3px}.rl-c .hln{display:block;font:700 .6em "DM Sans",sans-serif;letter-spacing:.06em;text-transform:uppercase;color:#e9d28a;margin-top:4px}'
     + '.bz-card small{display:block;font:600 .9rem "DM Sans",sans-serif;color:#7a6a3a;letter-spacing:.08em;text-transform:uppercase}'
     + '.bz-card .ans{color:#7a5a12;font-size:.88em}.bz-card .sp{font-size:1.1rem;background:#1a2744;color:#e9d28a;border:none;border-radius:999px;padding:6px 14px;cursor:pointer}'
     + '.bz-row{display:flex;flex-wrap:wrap;gap:12px;justify-content:center}'
@@ -10172,7 +10176,7 @@ textarea.ms-in{min-height:7rem;resize:vertical}
   function clean(s) { return String(s == null ? '' : s).replace(/[*_]/g, '').trim(); }
   function dirs() { var f = H.from(), t = H.to(); if (f !== 'en' && t !== 'en') { f = 'en'; } return [f, t]; }
   function target() { var d = dirs(); return d[1] !== 'en' ? d[1] : d[0]; }
-  function pool() { var d = dirs(), f = d[0], t = d[1], out = []; H.phrases().forEach(function (p) { var q = clean(p[f]), a = clean(p[t]); if (q && a) out.push({ q: q, a: a, sec: p.sec, en: clean(p.en), tl: clean(p[target()]) }); }); return out; }
+  function pool() { var d = dirs(), f = d[0], t = d[1], out = []; H.phrases().forEach(function (p) { var q = clean(p[f]), a = clean(p[t]); if (q && a) out.push({ q: q, a: a, sec: p.sec, en: clean(p.en), tl: clean(p[target()]), hv: p.hv || null, hf: f, ht: t }); }); return out; }
   function shuf(a) { a = a.slice(); for (var i = a.length - 1; i > 0; i--) { var j = Math.floor(Math.random() * (i + 1)), x = a[i]; a[i] = a[j]; a[j] = x; } return a; }
   function esc(s) { return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;'); }
   var stopHook = null;
@@ -10211,7 +10215,7 @@ textarea.ms-in{min-height:7rem;resize:vertical}
   window.apBzStart = function (k) { stop(); bgNow = null; view = k; ctx(); sfx('go'); musicStart(); GAMES[k](pool()); };
 
   // ---------- helpers for self-marked card games
-  function card(q, a, extra) { var n = String(q || '').length + String(a || '').length, z = n > 130 ? ' bz-xl' : n > 60 ? ' bz-lg' : ''; return '<div class="bz-card' + z + '" id="bz-card"><small>' + esc(extra || '') + '</small><div>' + esc(q) + '</div><div class="ans" id="bz-ans" style="visibility:hidden">' + esc(a) + ' ' + SAYBTN(a) + '</div></div>'; }
+  function card(q, a, extra, hl) { var n = String(q || '').length + String(a || '').length, z = n > 130 ? ' bz-xl' : n > 60 ? ' bz-lg' : '', qh = hl ? esc(hl[0]) + '<b class="hl">' + esc(hl[1]) + '</b>' + esc(hl[2]) + '<span class="hln">Translate only the highlighted part</span>' : esc(q); return '<div class="bz-card' + z + '" id="bz-card"><small>' + esc(extra || '') + '</small><div>' + qh + '</div><div class="ans" id="bz-ans" style="visibility:hidden">' + esc(a) + ' ' + SAYBTN(a) + '</div></div>'; }
   function reveal() { var a = $('bz-ans'); if (a) a.style.visibility = 'visible'; var b = $('bz-mark'); if (b) b.style.display = 'flex'; var s = $('bz-show'); if (s) s.style.display = 'none'; }
   function ringHTML(id) { return '<div class="bz-ring"><svg width="78" height="78"><circle cx="39" cy="39" r="33" fill="none" stroke="rgba(255,255,255,.18)" stroke-width="6"/><circle id="' + id + '" cx="39" cy="39" r="33" fill="none" stroke="#c9a84c" stroke-width="6" stroke-linecap="round" stroke-dasharray="207.3" stroke-dashoffset="0"/></svg><i id="' + id + 't"></i></div>'; }
   function runRing(id, secs, done) {
@@ -10223,21 +10227,23 @@ textarea.ms-in{min-height:7rem;resize:vertical}
 
   // ---------- the eight rounds
   var GAMES = {};
+  function hvOf(c) { if (c.hv && c.hv[c.hf] && c.hv[c.ht]) { var hs = c.hv[c.hf]; if (c.h == null) c.h = Math.random() < .5 ? 0 : 1; var at = c.q.indexOf(hs[c.h]); if (at >= 0) return { hl: [c.q.slice(0, at), hs[c.h], c.q.slice(at + hs[c.h].length)], a: c.hv[c.ht][c.h] }; } return { hl: null, a: c.a }; }
+  function cardOf(c, extra) { var v = hvOf(c); return card(c.q, v.a, extra, v.hl); }
   function selfMarkGame(opt) {   // shared by clock / streak / twomin / roll
     var all = opt.deck.slice(), res = [], pile = opt.deck.slice(), n = 0, ok = 0, miss = 0, startT = Date.now(), cur = null, best = opt.best || 0, run = 0, closed = false;
     function next() {
       if (closed) return; stop(); if (opt.total) { /* overall timer keeps running */ }
       if (!pile.length) return finish();
-      cur = pile.shift(); n++; var pc = typeof opt.perCard === 'function' ? opt.perCard() : opt.perCard;
-      frame(opt.title, (opt.strip ? '<div class="rl-strip">' + all.map(function (x, i) { return '<div class="rl-t' + (res[i] === 1 ? ' ok' : res[i] === 0 ? ' bad' : (i === n - 1 ? ' cur' : '')) + '">' + esc(x.q) + '</div>'; }).join('') + '</div>' : '') + '<div class="bz-stat">' + opt.stats(ok, miss, pile.length + 1, run) + '</div>' + (pc ? ringHTML('bzr') : '') + card(cur.q, cur.a, opt.cue || '') + '<div class="bz-row"><button class="bz-big" id="bz-show" onclick="apBzShow()">Show answer</button></div><div class="bz-row" id="bz-mark" style="display:none"><button class="bz-big" onclick="apBzMark(1)">✓ Got it</button><button class="bz-big no" onclick="apBzMark(0)">✗ Missed</button></div>' + (opt.timerBar ? '<div class="bz-stat" style="margin-top:6px">Time left <b id="bz-tl">' + opt.timerBar() + '</b></div>' : ''));
+      cur = pile.shift(); n++; var hl = null, shown = cur; if (cur.hv && cur.hv[cur.hf] && cur.hv[cur.ht]) { var hs = cur.hv[cur.hf], ht2 = cur.hv[cur.ht]; if (cur.h == null) cur.h = Math.random() < .5 ? 0 : 1; var at = cur.q.indexOf(hs[cur.h]); if (at >= 0) { hl = [cur.q.slice(0, at), hs[cur.h], cur.q.slice(at + hs[cur.h].length)]; shown = { q: cur.q, a: ht2[cur.h] }; } } var pc = typeof opt.perCard === 'function' ? opt.perCard() : opt.perCard;
+      frame(opt.title, (opt.strip ? '<div class="rl-strip">' + all.map(function (x, i) { return '<div class="rl-t' + (res[i] === 1 ? ' ok' : res[i] === 0 ? ' bad' : (i === n - 1 ? ' cur' : '')) + '">' + esc(x.q) + '</div>'; }).join('') + '</div>' : '') + '<div class="bz-stat">' + opt.stats(ok, miss, pile.length + 1, run) + '</div>' + (pc ? ringHTML('bzr') : '') + card(shown.q, shown.a, opt.cue || '', hl) + '<div class="bz-row"><button class="bz-big" id="bz-show" onclick="apBzShow()">Show answer</button></div><div class="bz-row bz-mk" id="bz-mark" style="display:none"><button class="bz-big miss" onclick="apBzMark(0)">✗ Missed</button><button class="bz-big got" onclick="apBzMark(1)">✓ Got it</button></div>' + (opt.timerBar ? '<div class="bz-stat" style="margin-top:6px">Time left <b id="bz-tl">' + opt.timerBar() + '</b></div>' : ''));
       if (pc) runRing('bzr', pc, function () { reveal(); });
     }
     function finish() { closed = true; opt.end({ ok: ok, miss: miss, secs: Math.round((Date.now() - startT) / 1000), best: Math.max(best, run) }); }
     window.apBzShow = function () { stop(); reveal(); if (opt.perCard) { var t = $('bzrt'); if (t) t.textContent = ''; } };
     window.apBzMark = function (good) {
-      if (closed) return; sfx(good ? 'ok' : 'bad'); res[n - 1] = good ? 1 : 0;
-      if (good) { ok++; run++; best = Math.max(best, run); } else { miss++; run = 0; if (opt.requeue) { var k = Math.min(pile.length, 3 + Math.floor(Math.random() * 3)); pile.splice(k, 0, cur); } if (opt.sudden) { return finish(); } }
-      next();
+      if (closed || (cur && cur.__m)) return; if (cur) cur.__m = 1; sfx(good ? 'ok' : 'bad'); VH(!!good, '', ''); res[n - 1] = good ? 1 : 0;
+      if (good) { ok++; run++; best = Math.max(best, run); } else { miss++; run = 0; if (opt.requeue) { var k = Math.min(pile.length, 3 + Math.floor(Math.random() * 3)); pile.splice(k, 0, cur); } if (opt.sudden) { var cc = cur; return setTimeout(function () { cc.__m = 0; finish(); }, 650); } }
+      var c2 = cur; setTimeout(function () { c2.__m = 0; next(); }, 650);
     };
     if (opt.total) { var el0 = 0, tl0 = Date.now(), tv = setInterval(function () { var nw = Date.now(); if (!PZ) el0 += (nw - tl0) / 1000; tl0 = nw; var left = Math.max(0, opt.total - el0), e = $('bz-tl'); if (e) e.textContent = Math.floor(left / 60) + ':' + ('0' + Math.ceil(left % 60 === 0 ? 0 : left % 60)).slice(-2); if (left <= 3 && left > 0) sfx('tick'); if (left <= 0) { clearInterval(tv); if (!closed) { sfx('end'); finish(); } } }, 250); timers.push(tv); }
     opt.start && opt.start();
@@ -10272,7 +10278,7 @@ textarea.ms-in{min-height:7rem;resize:vertical}
           var deck = shuf(p).slice(0, n), res = [], done = 0, ok = 0, cols = n <= 4 ? 2 : n <= 6 ? 3 : n <= 9 ? 3 : 4, cue = H.names[dirs()[0]];
           function paint() {
             frame('Roll it', '<div class="bz-stat"><div><b>' + ok + '</b>got</div><div><b>' + done + ' / ' + n + '</b>done</div></div><div class="rl-grid" style="grid-template-columns:repeat(' + cols + ',1fr)">' + deck.map(function (c, i) {
-              return '<div class="rl-c" id="rlc' + i + '" onclick="apRlOpen(' + i + ')"><small>' + esc(cue) + '</small><div class="rl-q">' + esc(c.q) + '</div><div class="rl-hint">Say it, then tap to check</div><div class="rl-a" style="display:none"><div>' + esc(c.a) + ' ' + SAYBTN(c.a) + '</div><div class="rl-m"><button class="rl-y" onclick="event.stopPropagation();apRlMark(' + i + ',1)">✓ Got it</button><button class="rl-n" onclick="event.stopPropagation();apRlMark(' + i + ',0)">✗ Missed</button></div></div></div>';
+              return '<div class="rl-c" id="rlc' + i + '" onclick="apRlOpen(' + i + ')"><small>' + esc(cue) + '</small><div class="rl-q' + (c.q.length > 90 ? ' rl-s' : '') + '">' + (function () { var v = hvOf(c); return v.hl ? esc(v.hl[0]) + '<b class="hl">' + esc(v.hl[1]) + '</b>' + esc(v.hl[2]) + '<span class="hln">Translate only the highlighted part</span>' : esc(c.q); })() + '</div><div class="rl-hint">Say it, then tap to check</div><div class="rl-a" style="display:none"><div>' + esc(hvOf(c).a) + ' ' + SAYBTN(hvOf(c).a) + '</div><div class="rl-m"><button class="rl-y" onclick="event.stopPropagation();apRlMark(' + i + ',1)">✓ Got it</button><button class="rl-n" onclick="event.stopPropagation();apRlMark(' + i + ',0)">✗ Missed</button></div></div></div>';
             }).join('') + '</div>');
           }
           window.apRlOpen = function (i) { var c = $('rlc' + i); if (!c || res[i] !== undefined || c.classList.contains('open')) return; c.classList.add('open'); c.querySelector('.rl-a').style.display = 'block'; c.querySelector('.rl-hint').style.display = 'none'; sfx('whoosh'); };
@@ -10292,7 +10298,7 @@ textarea.ms-in{min-height:7rem;resize:vertical}
     function show() {
       stop(); if (i >= deck.length) return fin(); var c = deck[i];
       var tc = team === 0 ? '#4f8cff' : '#f0d27a', tg = team === 0 ? '' : ' g';
-      frame('Pairs race', '<div class="pt-bd"><div class="pt-t' + (team === 0 ? ' act' : '') + '"><span>' + names[0] + '</span><b>' + sc[0] + '</b><em>' + (team === 0 ? '▶ YOUR TURN' : '') + '</em></div><div class="pt-t g' + (team === 1 ? ' act' : '') + '"><span>' + names[1] + '</span><b>' + sc[1] + '</b><em>' + (team === 1 ? '▶ YOUR TURN' : '') + '</em></div></div><div class="pt-turn' + tg + '">' + names[team] + ': say it!</div><div class="pt-card" style="--tc:' + tc + '">' + card(c.q, c.a, H.names[dirs()[0]] + ' · ' + (deck.length - i) + ' to go') + '</div><div class="bz-row"><button class="bz-big" id="bz-show" onclick="apBzShow()">Show answer</button></div><div class="bz-row" id="bz-mark" style="display:none"><div class="bz-note" style="width:100%"><b>' + names[1 - team] + '</b>: was ' + names[team] + ' right?</div><button class="bz-big" onclick="apBzMark(1)">✓ Got it</button><button class="bz-big no" onclick="apBzMark(0)">✗ Missed</button></div>');
+      frame('Pairs race', '<div class="pt-bd"><div class="pt-t' + (team === 0 ? ' act' : '') + '"><span>' + names[0] + '</span><b>' + sc[0] + '</b><em>' + (team === 0 ? '▶ YOUR TURN' : '') + '</em></div><div class="pt-t g' + (team === 1 ? ' act' : '') + '"><span>' + names[1] + '</span><b>' + sc[1] + '</b><em>' + (team === 1 ? '▶ YOUR TURN' : '') + '</em></div></div><div class="pt-turn' + tg + '">' + names[team] + ': say it!</div><div class="pt-card" style="--tc:' + tc + '">' + cardOf(c, H.names[dirs()[0]] + ' · ' + (deck.length - i) + ' to go') + '</div><div class="bz-row"><button class="bz-big" id="bz-show" onclick="apBzShow()">Show answer</button></div><div class="bz-row bz-mk" id="bz-mark" style="display:none"><div class="bz-note" style="width:100%"><b>' + names[1 - team] + '</b>: was ' + names[team] + ' right?</div><button class="bz-big miss" onclick="apBzMark(0)">✗ Missed</button><button class="bz-big got" onclick="apBzMark(1)">✓ Got it</button></div>');
       ov.classList.add(team === 0 ? 'pt-n' : 'pt-g');
     }
     window.apBzShow = reveal;
@@ -10464,13 +10470,13 @@ textarea.ms-in{min-height:7rem;resize:vertical}
     words[bi] = shown; return { shown: words.join(' '), miss: pick.map(function (i) { return w[i]; }), full: a };
   }
   GAMES.letter = function (p) {
-    var l = target(), deck = []; shuf(p).forEach(function (x) { if (deck.length >= CFG.lW) return; var tl = x.tl || x.a; if (tl.replace(/\s/g, '').length < 6) return; var g = gapify(tl); if (g) { g.q = x.en || x.q; deck.push(g); } });
+    var l = target(), deck = []; shuf(p).forEach(function (x) { if (deck.length >= CFG.lW) return; var tl = x.tl || x.a, qq = x.en || x.q; if (x.hv && x.hv[l] && x.hv.en) { var hh = Math.random() < .5 ? 0 : 1; tl = x.hv[l][hh]; qq = x.hv.en[hh]; } if (tl.replace(/\s/g, '').length < 6) return; var g = gapify(tl); if (g) { g.q = qq; deck.push(g); } });
     if (!deck.length) return pickScreen();
     var r = 0, ok = 0;
     function round() {
       stop(); if (r >= deck.length) return endScreen('Missing letter', { big: ok + '/' + deck.length, note: ok === deck.length ? 'Every gap filled, accents and all.' : 'Check the accents on the ones you missed.' }, function () { GAMES.letter(pool()); });
       var c = deck[r++];
-      frame('Missing letter', '<div class="bz-stat"><div><b>' + r + '/' + deck.length + '</b>word</div><div><b>' + ok + '</b>right</div></div>' + (CFG.lT ? ringHTML('bzr') : '') + '<div class="bz-card"><small>' + esc(c.q) + '</small><div class="bz-gap" id="bz-gap" style="cursor:text"></div></div><div class="bz-note">Type the missing letter' + (c.miss.length > 1 ? 's, in order' : '') + ': each one flies in and is marked at once, and one wrong letter means the word is wrong. Accents count.</div><div class="bz-row"><input class="bz-in hid" id="bz-in" maxlength="' + c.miss.length + '" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false"><button class="bz-big" id="bz-chk">Check</button></div><div class="bz-acc">' + (ACC[l] || '').split('').map(function (ch) { return '<button type="button" data-c="' + ch + '">' + ch + '</button>'; }).join('') + '</div><div class="bz-note" id="bz-msg" style="min-height:30px"></div>');
+      frame('Missing letter', '<div class="bz-stat"><div><b>' + r + '/' + deck.length + '</b>word</div><div><b>' + ok + '</b>right</div></div>' + (CFG.lT ? ringHTML('bzr') : '') + '<div class="bz-card' + (c.shown.length > 110 ? ' bz-xl' : c.shown.length > 55 ? ' bz-lg' : '') + '"><small>' + esc(c.q) + '</small><div class="bz-gap" id="bz-gap" style="cursor:text"></div></div><div class="bz-note">Type the missing letter' + (c.miss.length > 1 ? 's, in order' : '') + ': each one flies in and is marked at once, and one wrong letter means the word is wrong. Accents count.</div><div class="bz-row"><input class="bz-in hid" id="bz-in" maxlength="' + c.miss.length + '" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false"><button class="bz-big" id="bz-chk">Check</button></div><div class="bz-acc">' + (ACC[l] || '').split('').map(function (ch) { return '<button type="button" data-c="' + ch + '">' + ch + '</button>'; }).join('') + '</div><div class="bz-note" id="bz-msg" style="min-height:30px"></div>');
       var inp = $('bz-in'), gapEl = $('bz-gap'), parts = c.shown.split('＿'), ans = [], fin = false, busy = 0, revealed = false;
       function paint() { gapEl.innerHTML = parts.map(function (s, i) { var cls = 'gp'; if (i < parts.length - 1) { if (ans[i]) cls += (ans[i].ok ? ' g' : ' x') + ' pop'; else if (revealed) cls += ' x'; else if (i === ans.length) cls += ' cur'; } return esc(s) + (i < parts.length - 1 ? '<span class="' + cls + '" data-i="' + i + '">' + esc(ans[i] || revealed ? c.miss[i] : '＿') + '</span>' : ''); }).join(''); }
       paint();
@@ -10589,4 +10595,4 @@ textarea.ms-in{min-height:7rem;resize:vertical}
   if (document.readyState === 'complete') start(); else window.addEventListener('load', start);
 })();
 </script>
-<script id="ap-build">window.__apBuild="e4c1ddd403";</script>
+<script id="ap-build">window.__apBuild="c51981190f";</script>
