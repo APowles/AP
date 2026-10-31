@@ -17854,12 +17854,13 @@ textarea.ms-in{min-height:7rem;resize:vertical}
   }
   function tagHtml(o) { return '<span class="od-tag" style="background:' + o.tagc[0] + ';color:' + o.tagc[1] + '">' + esc(o.tag).toUpperCase() + '</span>'; }
   function actName(k) { for (var i = 0; i < ACTS.length; i++) if (ACTS[i].k === k) return ACTS[i].name; return ''; }
-  function selActs() { return ACTS.filter(function (a) { return W.sel[a.k] && W.ctx.avail[a.k] > 0; }); }
+  function selActs() { return ACTS.filter(function (a) { return W.sel[a.k] && W.ctx.avail[a.k] > 0 && (!W.only || W.only[a.k]); }); }
   function selTotal() { return selActs().reduce(function (n, a) { return n + W.ctx.avail[a.k]; }, 0); }
   function grpOf(k) { for (var i = 0; i < GROUPS.length; i++) if (GROUPS[i].k === k) return GROUPS[i]; return null; }
   function gAvail(g) { return g.acts.reduce(function (n, k) { return n + (W.ctx.avail[k] || 0); }, 0); }
   // the chosen FIRST option decides which activities every practice tile works on
-  function syncSel() { W.sel = {}; var g = grpOf(W.grp); if (g) g.acts.forEach(function (k) { if (W.ctx.avail[k] > 0) W.sel[k] = true; }); }
+  function ticked() { return GROUPS.filter(function (g) { return W.grps[g.k] && gAvail(g) > 0; }); }
+  function syncSel() { W.sel = {}; W.only = null; ticked().forEach(function (g) { g.acts.forEach(function (k) { if (W.ctx.avail[k] > 0) W.sel[k] = true; }); }); }
   // a whole practice set: the ticked activities in ladder order, each with its own items
   function sessionViews() {
     var out = [];
@@ -17902,24 +17903,25 @@ textarea.ms-in{min-height:7rem;resize:vertical}
 
   // ---------- page 1: the set-up: FIRST (what to learn), NEXT (how to practise it) ----------
   function pageSetup() {
-    var c = W.ctx, card = c.card, ch = c.choice, has = c.nActs > 0, g = grpOf(W.grp), tot = selTotal();
+    var c = W.ctx, card = c.card, ch = c.choice, has = c.nActs > 0, tk = ticked(), tot = selTotal(), any = tk.length > 0;
     var h = '<div class="od-page">' + top('Learn from this demo ' + codeBadge(), esc(card.topicName), 'Back to the card');
     h += '<div class="od-decl"><b>' + esc(card['decl' + ch]) + '</b><ol><li>' + esc(card['q1' + ch]) + '</li><li>' + esc(card['q2' + ch]) + '</li></ol></div>';
     h += '<div class="od-listen"><span>🎧 <b>First, listen to the demo</b> and make your notes. Then come back and make it yours.</span><button type="button" data-a="listen">▶ Demo Mode</button></div>';
     h += '<div class="od-cyc">' + ORDER.split('').map(function (s) { return '<div class="od-cy" style="background:' + ST[s][1] + '"><b>' + s + '</b>' + ST[s][0] + '</div>'; }).join('') + '</div>';
     if (has) {
       h += step('FIRST', 'What do you want to learn from this demo?');
+      h += '<div class="od-selrow"><span>Tick one, two or all three.</span><button type="button" class="od-link" data-a="all">Tick all</button><button type="button" class="od-link" data-a="none">Clear</button></div>';
       h += '<div class="od-acts">' + GROUPS.filter(function (x) { return gAvail(x) > 0; }).map(function (x) {
-        var on = W.grp === x.k, n = gAvail(x);
-        return '<button type="button" class="od-act' + (on ? ' on' : '') + '" role="radio" aria-checked="' + on + '" data-a="grp" data-g="' + x.k + '"><span class="od-chk od-rad"></span><b>' + x.name + '</b><small>' + x.desc + '</small><i>' + n + ' item' + (n === 1 ? '' : 's') + '</i></button>';
+        var on = !!W.grps[x.k], n = gAvail(x);
+        return '<button type="button" class="od-act' + (on ? ' on' : '') + '" role="checkbox" aria-checked="' + on + '" data-a="grp" data-g="' + x.k + '"><span class="od-chk"></span><b>' + x.name + '</b><small>' + x.desc + '</small><i>' + n + ' item' + (n === 1 ? '' : 's') + '</i></button>';
       }).join('') + '</div>';
-      h += '<div class="ms-now' + (g ? '' : ' ms-need') + '">' + (g ? 'Learning: <b>' + g.name + '</b> · ' + tot + ' items' : 'Choose what to learn. The ways to practise it then appear below.') + '</div>';
+      h += '<div class="ms-now' + (any ? '' : ' ms-need') + '">' + (any ? 'Learning: <b>' + tk.map(function (x) { return x.name; }).join(' + ') + '</b> · ' + tot + ' items' : 'Choose what to learn. The ways to practise it then appear below.') + '</div>';
     } else {
       h += '<div class="od-none">The extra activities (Oral Cycle phrases, Demo sentences, Facts) are not ready for this demo yet. You can still read it again, have a go yourself, or open the whole-answer translation sheet.</div>';
     }
     var sum = SET.per + ' items an activity · ' + DIRS[SET.dir] + ' · Speed: ' + SET.tiles + ' tiles, ' + SET.tt + ' s a turn';
     h += step(has ? 'NEXT' : 'FIRST', has ? 'How do you want to practise it?' : 'How do you want to use this demo?');
-    if (has && g) {
+    if (has && any) {
       h += '<details class="ms-opts" id="od-set"' + (setOpen ? ' open' : '') + '><summary><span class="ms-gear">⚙</span><span class="ms-st">Settings</span><small>' + sum + '</small><span class="ms-chg"></span></summary>'
         + optRow('Items in each activity', 'per', [[4, '4'], [6, '6'], [8, '8'], [0, 'All']])
         + optRow('Items in a test', 'test', [[10, '10'], [15, '15'], [20, '20']])
@@ -17928,25 +17930,22 @@ textarea.ms-in{min-height:7rem;resize:vertical}
         + optRow('Timer: seconds a turn (Speed Challenge)', 'tt', [[10, '10'], [20, '20'], [30, '30'], [45, '45']])
         + '</details>';
     }
-    var ok = tot > 0, av = c.avail, hasP = (c.base.P || []).length > 0;
-    var sayT = ['ms-drill', 'drill', 'Say it', 'Oral drill: say it, check the model, rate each card.', 'drill', !ok],
-      speedT = ['ms-speed', 'speed', 'Speed Challenge', 'Race the clock, solo or in teams.', 'speed', !ok],
-      testT = ['ms-test', 'test', 'Test', 'A short test to write with Apple Pencil or print. Answers stay hidden.', 'test', !ok],
-      printT = ['ms-print', '🖨', 'Print a sheet', 'The same items as a sheet to write on.', 'print', !ok],
-      rollT = ['ms-go ms-reuse', '🔁', 'Roll it', 'Oral practice: reuse one Oral Cycle phrase three times: on a card question, then on two new topics chosen by rolling the dice.', 'reuse', !hasP],
-      readT = ['ms-read', '📖', 'Read it again', 'The demo sentence by sentence, with each stage of the cycle.', 'read', false],
-      goT = ['ms-go', '🎙', 'Have a go', 'Answer the questions yourself, with the demo closed, then record your oral.', 'go', false];
-    var T;
-    if (!has) T = [['ms-build', 'build', 'Build it', 'Word order: tap the tiles to rebuild sentences from the demo.', 'build', !buildItems(c).length], readT, goT];
-    else if (g && g.k === 'P') T = [sayT, speedT, testT, printT, rollT, readT, goT];
-    else if (g && g.k === 'K') T = [sayT, speedT, testT, printT, readT, goT];
-    else if (g && g.k === 'S') T = [
-      ['ms-gap', '✍', 'Gaps', 'Fill the gap: a phrase is missing from a sentence of the demo.', 'dact', !(av.G > 0), 'G'],
-      ['ms-build', 'build', 'Build it', 'Word order: tap the tiles to rebuild sentences from the demo.', 'build', !buildItems(c).length],
-      ['ms-spot', '🔍', 'Spot the mistake', 'One grammar slip in a sentence from the demo. Find it and correct it.', 'dact', !(av.E > 0), 'E'],
-      ['ms-trans', '🔤', 'Translate', 'Translation: single sentences from the demo, short and long, in any order.', 'dact', !(av.T > 0), 'T'],
-      testT, printT, readT, goT];
-    else T = [readT, goT];
+    var av = c.avail, hasPK = !!(W.sel.P || W.sel.K), hasS = !!W.grps.S && gAvail(grpOf('S')) > 0, hasP = !!W.sel.P && (c.base.P || []).length > 0, ok = tot > 0, bi = buildItems(c).length;
+    var need = function (txt) { return 'Needs ' + txt + ' ticked above.'; };
+    var T = [['ms-read', '📖', 'Read it again', 'The demo sentence by sentence, with each stage of the cycle.', 'read', false],
+             ['ms-go', '🎙', 'Have a go', 'Answer the questions yourself, with the demo closed, then record your oral.', 'go', false]];
+    if (has && any) T = [
+      ['ms-drill', 'drill', 'Say it', hasPK ? 'Oral drill: say it, check the model, rate each card. Works on the phrases and facts you ticked.' : need('Oral Cycle phrases or Facts'), 'drill', !hasPK],
+      ['ms-speed', 'speed', 'Speed Challenge', hasPK ? 'Race the clock, solo or in teams. Works on the phrases and facts you ticked.' : need('Oral Cycle phrases or Facts'), 'speed', !hasPK],
+      ['ms-gap', '✍', 'Gaps', hasS && av.G > 0 ? 'Fill the gap: a phrase is missing from a sentence of the demo.' : need('Demo sentences'), 'dact', !(hasS && av.G > 0), 'G'],
+      ['ms-build', 'build', 'Build it', hasS && bi ? 'Word order: tap the tiles to rebuild sentences from the demo.' : need('Demo sentences'), 'build', !(hasS && bi)],
+      ['ms-spot', '🔍', 'Spot the mistake', hasS && av.E > 0 ? 'One grammar slip in a sentence from the demo. Find it and correct it.' : need('Demo sentences'), 'dact', !(hasS && av.E > 0), 'E'],
+      ['ms-trans', '🔤', 'Translate', hasS && av.T > 0 ? 'Translation: single sentences from the demo, short and long, in any order.' : need('Demo sentences'), 'dact', !(hasS && av.T > 0), 'T'],
+      ['ms-test', 'test', 'Test', 'A short test to write with Apple Pencil or print. Answers stay hidden.', 'test', !ok],
+      ['ms-print', '🖨', 'Print a sheet', 'The same items as a sheet to write on.', 'print', !ok],
+      ['ms-go ms-reuse', '🔁', 'Roll it', hasP ? 'Oral practice: reuse one Oral Cycle phrase three times: on a card question, then on two new topics chosen by rolling the dice.' : need('Oral Cycle phrases'), 'reuse', !hasP]
+    ].concat(T);
+    else if (!has) T = [['ms-build', 'build', 'Build it', 'Word order: tap the tiles to rebuild sentences from the demo.', 'build', !bi]].concat(T);
     h += '<div class="aph-tools ms-tiles">' + T.map(function (x) {
       var img = x[1] === 'build' && window.BuildIt && BuildIt.ICON ? '<img class="ms-img" alt="" src="' + BuildIt.ICON + '">' : ICONS[x[1]] ? '<img class="ms-img" alt="" src="' + ICONS[x[1]] + '">' : '<span class="ms-img od-ic">' + x[1] + '</span>';
       return '<button type="button" class="ms-tile ' + x[0] + '"' + (x[5] ? ' disabled' : '') + ' data-a="' + x[4] + '"' + (x[6] ? ' data-k="' + x[6] + '"' : '') + '>' + img + '<span class="ms-tx"><span class="ms-tt">' + x[2] + '</span><span class="ms-td">' + x[3] + '</span></span></button>';
@@ -18377,11 +18376,13 @@ textarea.ms-in{min-height:7rem;resize:vertical}
     var a = t.getAttribute('data-a'), c = W && W.ctx;
     switch (a) {
       case 'back': back(); break;
-      case 'grp': W.grp = t.getAttribute('data-g'); syncSel(); showSetup(true); break;
+      case 'grp': var gk = t.getAttribute('data-g'); W.grps[gk] = !W.grps[gk]; syncSel(); showSetup(true); break;
+      case 'all': GROUPS.forEach(function (x) { if (gAvail(x) > 0) W.grps[x.k] = true; }); syncSel(); showSetup(true); break;
+      case 'none': W.grps = {}; syncSel(); showSetup(true); break;
       case 'dact': W.sel = {}; W.sel[t.getAttribute('data-k')] = true; goDrill(); break;
       case 'opt': var key = t.getAttribute('data-o'), v = t.getAttribute('data-v'); SET[key] = (key === 'dir') ? v : parseInt(v, 10); saveSet(); showSetup(true); break;
-      case 'drill': goDrill(); break;
-      case 'speed': goSpeed(); break;
+      case 'drill': W.only = { P: 1, K: 1 }; try { goDrill(); } finally { W.only = null; } break;   // Say it works on the phrases and facts ticked
+      case 'speed': W.only = { P: 1, K: 1 }; try { goSpeed(); } finally { W.only = null; } break;
       case 'test': testChoice(); break;
       case 'test2': goTest(true); break;
       case 'tshow': W.test.show = !W.test.show; pageTest(); break;
@@ -18417,7 +18418,7 @@ textarea.ms-in{min-height:7rem;resize:vertical}
   function open(uid, choice) {
     var c = ctxFor(uid, choice); if (!c) { alert('No demo found for this card.'); return; }
     hookKtr();
-    W = { ctx: c, sel: {}, grp: '', view: 'setup', showEn: false, frames: null };
+    W = { ctx: c, sel: {}, grps: {}, only: null, view: 'setup', showEn: false, frames: null };
     openOv(); showSetup();
     lockKeys(function (e) { if (e.key === 'Escape') { back(); return true; } return false; });
     var o = $('od-ov'); if (o) o.scrollTop = 0;
@@ -20091,4 +20092,4 @@ window.APBZ_HOST = {
   if (document.readyState === 'complete') start(); else window.addEventListener('load', start);
 })();
 </script>
-<script id="ap-build">window.__apBuild="03c68ac453";</script>
+<script id="ap-build">window.__apBuild="1282641e52";</script>
