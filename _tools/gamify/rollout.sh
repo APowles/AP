@@ -6,7 +6,6 @@ python3 $I "AP All Languages - IGCSE Vocab Essentials.html" --pics --games clock
 python3 $I "Eton IGCSE Vocab and Gr EWs.html" --games clock,streak,odd,letter,gender,roll,catch,lane,pairs,deal   # Deal it: trial file
 python3 $I "AP All Languages - IGCSE Vocab and Gr EWs.html" --games clock,streak,odd,letter,gender,roll,catch,lane,pairs,deal
 python3 $I "Eton F Spanish Vocab.html" --games clock,streak,odd,letter,gender,roll,catch,lane,pairs,deal
-python3 $I "Eton F Block Spanish.html" --inside fb-vocab --games clock,streak,odd,letter,gender,roll,catch,lane,pairs,deal
 python3 $I "Eton Gen Essential Phrases.html" --noun phrases --short 4 --games clock,streak,odd,letter,roll,catch,lane,pairs,deal
 python3 $I "Eton IGCSE Structures & Oral and Writing Practice.html" --host _tools/gamify/hosts/structures.js --noun phrases --short 4 --games clock,streak,odd,letter,roll,catch,lane,pairs,deal
 python3 $I "AP All Languages - IGCSE Structures & Oral and Writing Practice.html" --host _tools/gamify/hosts/structures.js --noun phrases --short 4 --games clock,streak,odd,letter,roll,catch,lane,pairs,deal
@@ -23,3 +22,5 @@ done
 for f in "Eton A Level Oral Phrase Bank.html" "AP All Languages - A Level Oral Phrase Bank.html"; do
   python3 $I "$f" --host _tools/gamify/hosts/phrasebank.js --noun phrases --short 4 --games clock,streak,odd,letter,roll,catch,lane,pairs,deal
 done
+# F Block Spanish is built from Eton F Spanish Vocab + Eton Spanish Verbs, so it gets Gamify it (all games) in both sections by rebuilding it last:
+python3 _tools/fblock/build.py
