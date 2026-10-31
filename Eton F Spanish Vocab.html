@@ -9993,6 +9993,7 @@ textarea.ms-in{min-height:7rem;resize:vertical}
     + '.bz-mk{gap:22px}.bz-mk .bz-big{min-width:210px;padding:20px 34px;font-size:1.5rem;border-width:3px;box-shadow:0 6px 18px rgba(0,0,0,.45)}.bz-mk .bz-big.got{background:linear-gradient(180deg,#3fb877,#2a8f58);color:#fff;border-color:#a8e6c1}.bz-mk .bz-big.miss{background:linear-gradient(180deg,#e0624f,#b8402f);color:#fff;border-color:#f3b4aa}'
     + '.bz-card.bz-lg .bz-gap{font-size:clamp(1.15rem,2.6vw,1.8rem);letter-spacing:.06em}.bz-card.bz-xl .bz-gap{font-size:clamp(.95rem,2vw,1.3rem);letter-spacing:.04em}'
     + '.rl-q.rl-s{font-size:clamp(.85rem,1.7vw,1.1rem)}.rl-c .hl{background:rgba(201,168,76,.45);border-radius:5px;padding:0 3px}.rl-c .hln{display:block;font:700 .6em "DM Sans",sans-serif;letter-spacing:.06em;text-transform:uppercase;color:#e9d28a;margin-top:4px}'
+    + '.bz-acc .kr{display:flex;justify-content:center;flex-wrap:nowrap}.bz-acc .kr button{min-width:54px;padding:12px 6px;font-size:1.35rem;margin:3px}'
     + '.bz-card small{display:block;font:600 .9rem "DM Sans",sans-serif;color:#7a6a3a;letter-spacing:.08em;text-transform:uppercase}'
     + '.bz-card .ans{color:#7a5a12;font-size:.88em}.bz-card .sp{font-size:1.1rem;background:#1a2744;color:#e9d28a;border:none;border-radius:999px;padding:6px 14px;cursor:pointer}'
     + '.bz-row{display:flex;flex-wrap:wrap;gap:12px;justify-content:center}'
@@ -10476,7 +10477,7 @@ textarea.ms-in{min-height:7rem;resize:vertical}
     function round() {
       stop(); if (r >= deck.length) return endScreen('Missing letter', { big: ok + '/' + deck.length, note: ok === deck.length ? 'Every gap filled, accents and all.' : 'Check the accents on the ones you missed.' }, function () { GAMES.letter(pool()); });
       var c = deck[r++];
-      frame('Missing letter', '<div class="bz-stat"><div><b>' + r + '/' + deck.length + '</b>word</div><div><b>' + ok + '</b>right</div></div>' + (CFG.lT ? ringHTML('bzr') : '') + '<div class="bz-card' + (c.shown.length > 110 ? ' bz-xl' : c.shown.length > 55 ? ' bz-lg' : '') + '"><small>' + esc(c.q) + '</small><div class="bz-gap" id="bz-gap" style="cursor:text"></div></div><div class="bz-note">Type the missing letter' + (c.miss.length > 1 ? 's, in order' : '') + ': each one flies in and is marked at once, and one wrong letter means the word is wrong. Accents count.</div><div class="bz-row"><input class="bz-in hid" id="bz-in" maxlength="' + c.miss.length + '" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false"><button class="bz-big" id="bz-chk">Check</button></div><div class="bz-acc">' + (ACC[l] || '').split('').map(function (ch) { return '<button type="button" data-c="' + ch + '">' + ch + '</button>'; }).join('') + '</div><div class="bz-note" id="bz-msg" style="min-height:30px"></div>');
+      frame('Missing letter', '<div class="bz-stat"><div><b>' + r + '/' + deck.length + '</b>word</div><div><b>' + ok + '</b>right</div></div>' + (CFG.lT ? ringHTML('bzr') : '') + '<div class="bz-card' + (c.shown.length > 110 ? ' bz-xl' : c.shown.length > 55 ? ' bz-lg' : '') + '"><small>' + esc(c.q) + '</small><div class="bz-gap" id="bz-gap" style="cursor:text"></div></div><div class="bz-note">Type the missing letter' + (c.miss.length > 1 ? 's, in order' : '') + ': each one flies in and is marked at once, and one wrong letter means the word is wrong. Accents count.</div><div class="bz-row"><input class="bz-in hid" id="bz-in" maxlength="' + c.miss.length + '" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false"><button class="bz-big" id="bz-chk">Check</button></div><div class="bz-acc">' + ['qwertyuiop', 'asdfghjkl', 'zxcvbnm'].map(function (row) { return '<div class="kr">' + row.split('').map(function (ch) { return '<button type="button" data-c="' + ch + '">' + ch + '</button>'; }).join('') + '</div>'; }).join('') + '<div class="kr">' + (ACC[l] || '').split('').map(function (ch) { return '<button type="button" data-c="' + ch + '">' + ch + '</button>'; }).join('') + '</div></div><div class="bz-note" id="bz-msg" style="min-height:30px"></div>');
       var inp = $('bz-in'), gapEl = $('bz-gap'), parts = c.shown.split('＿'), ans = [], fin = false, busy = 0, revealed = false;
       function paint() { gapEl.innerHTML = parts.map(function (s, i) { var cls = 'gp'; if (i < parts.length - 1) { if (ans[i]) cls += (ans[i].ok ? ' g' : ' x') + ' pop'; else if (revealed) cls += ' x'; else if (i === ans.length) cls += ' cur'; } return esc(s) + (i < parts.length - 1 ? '<span class="' + cls + '" data-i="' + i + '">' + esc(ans[i] || revealed ? c.miss[i] : '＿') + '</span>' : ''); }).join(''); }
       paint();
@@ -10504,7 +10505,7 @@ textarea.ms-in{min-height:7rem;resize:vertical}
       inp.onkeydown = function (e) { if (e.key === 'Enter' && fin && !busy) { stop(); round(); } };
       gapEl.onclick = function () { try { inp.focus(); } catch (e) { } };
       setTimeout(function () { try { inp.focus(); } catch (e) { } }, 50);
-      [].forEach.call(ov.querySelectorAll('.bz-acc button'), function (b) { b.onclick = function () { typeCh(b.getAttribute('data-c')); try { inp.focus(); } catch (e) { } }; });
+      [].forEach.call(ov.querySelectorAll('.bz-acc button'), function (b) { b.onclick = function () { typeCh(b.getAttribute('data-c')); }; });
     }
     round();
   };
@@ -10595,4 +10596,4 @@ textarea.ms-in{min-height:7rem;resize:vertical}
   if (document.readyState === 'complete') start(); else window.addEventListener('load', start);
 })();
 </script>
-<script id="ap-build">window.__apBuild="c51981190f";</script>
+<script id="ap-build">window.__apBuild="811803077f";</script>
