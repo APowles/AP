@@ -62,6 +62,7 @@
     + '.ct-field{position:relative;width:min(1180px,98%);flex:1;min-height:200px;overflow:hidden;border-top:1px solid rgba(201,168,76,.25);border-bottom:1px solid rgba(201,168,76,.25);background:rgba(8,14,32,.35)}'
     + '.ct-card{position:absolute;left:0;white-space:nowrap;background:linear-gradient(180deg,#fffdf6,#efe5c6);color:#1a2744;border:2px solid #c9a84c;border-radius:12px;padding:9px 18px;font:700 1.15rem Georgia,serif;cursor:pointer;box-shadow:0 6px 14px rgba(0,0,0,.45);will-change:transform}'
     + '.ct-card.sel,.ct-chip.sel{outline:4px solid #fff;box-shadow:0 0 0 7px rgba(240,210,122,.8),0 6px 14px rgba(0,0,0,.45)}.ct-chip.sel{background:rgba(201,168,76,.45);color:#fff}.ct-card.hit{background:#d9efdf;border-color:#2e7d52;opacity:.0;transition:opacity .25s}.ct-card.miss{background:#f3d3cf;border-color:#c0392b}'
+    + '.ct-hint{width:min(1180px,98%);text-align:center;font:600 1.05rem/1.35 \'DM Sans\',system-ui,sans-serif;color:#e9d28a;padding:6px 10px;border-radius:12px;background:rgba(8,14,32,.55)}.ct-hint.two{color:#1a2744;background:linear-gradient(135deg,#f0d27a,#e3c571)}.ct-hint i{font-weight:500;opacity:.85}'
     + '.ct-tray.ct-long .ct-chip{font-size:.95rem;padding:9px 6px;min-height:0;font-weight:600}.ct-tray{display:grid;grid-template-columns:repeat(5,1fr);gap:8px;width:min(1180px,98%)}'
     + '.ct-chip{background:rgba(10,18,40,.82);color:#f4efe0;border:1.5px solid rgba(201,168,76,.6);border-radius:12px;padding:15px 6px;min-height:60px;font:700 1.25rem "DM Sans",sans-serif;cursor:pointer;line-height:1.2}'
     + '.ct-chip.done{background:#1f7a49;border-color:#bff0d2;color:#fff;opacity:1;text-decoration:none}.ct-chip.done::before{content:\'✓ \';font-weight:800}.ct-chip.shake{animation:ctshake .3s}@keyframes ctshake{25%{transform:translateX(-5px)}75%{transform:translateX(5px)}}'
@@ -385,15 +386,18 @@
       var L0 = CFG.lives, lives = L0, hits = 0, selChip = null, selCard = null, cards = [], t0 = Date.now(), last = performance.now(), spawnIn = 0.2, over = false, raf = 0, lvlMsg = '';
       frame('Catch it', '<div class="bz-stat"><div><b id="ct-hit">0</b>caught</div><div><b id="ct-lv">×1.0</b>speed</div><div><b id="ct-li">' + new Array(CFG.lives + 1).join('♥') + '</b>lives</div><div><b>' + items.length + '</b>words</div></div><div class="ct-field" id="ct-field"></div><div class="ct-tray' + (items.some(function (x) { return String(x[fixedK]).length > 40; }) ? ' ct-long' : '') + '" id="ct-tray">' + items.map(function (x) { return '<button class="ct-chip" data-i="' + x.id + '">' + esc(x[fixedK]) + '</button>'; }).join('') + '</div>');
       var field = $('ct-field'), tray = $('ct-tray');
+      var hint = document.createElement('div'); hint.className = 'ct-hint'; tray.parentNode.insertBefore(hint, tray);
+      function setHint() { hint.className = 'ct-hint' + (selChip !== null ? ' two' : ''); var nm = H.names[movK === 'tl' ? dirs()[1] : dirs()[0]] || 'matching'; hint.innerHTML = selChip !== null ? '<b>Step 2:</b> now tap its <b>' + esc(nm) + '</b> match as it flies past. <i>Gold only means selected: it scores when you tap the match.</i>' : '<b>Step 1:</b> tap a word below, then <b>Step 2:</b> tap its match as it flies across.'; }
+      setHint();
       function pairUp() {
         if (selChip === null || selCard === null) return;
         var a = selChip, b = cards.filter(function (c) { return c.uid === selCard; })[0]; selChip = selCard = null;
-        [].forEach.call(tray.querySelectorAll('.ct-chip'), function (e) { e.classList.remove('sel'); }); cards.forEach(function (c) { c.el.classList.remove('sel'); });
+        [].forEach.call(tray.querySelectorAll('.ct-chip'), function (e) { e.classList.remove('sel'); }); cards.forEach(function (c) { c.el.classList.remove('sel'); }); setHint();
         if (!b) return;
         if (b.item.id === a) { sfx('ok'); b.item.done = true; hits++; b.dead = true; b.el.classList.add('hit'); setTimeout(function () { b.el.remove(); }, 260); var ch = tray.querySelector('[data-i="' + a + '"]'); ch.classList.add('done'); ch.disabled = true; $('ct-hit').textContent = hits; if (hits % 5 === 0 && hits < items.length) { sfx('go'); } if (hits === items.length) fin(true); }
         else { sfx('bad'); b.el.classList.add('miss'); setTimeout(function () { b.el.classList.remove('miss'); }, 300); var ch2 = tray.querySelector('[data-i="' + a + '"]'); ch2.classList.add('shake'); setTimeout(function () { ch2.classList.remove('shake'); }, 300); }
       }
-      [].forEach.call(tray.querySelectorAll('.ct-chip'), function (e) { e.onclick = function () { if (over) return; var i = parseInt(e.getAttribute('data-i'), 10); [].forEach.call(tray.querySelectorAll('.ct-chip'), function (x) { x.classList.remove('sel'); }); if (selChip === i) { selChip = null; return; } selChip = i; e.classList.add('sel'); sfx('tick'); pairUp(); }; });
+      [].forEach.call(tray.querySelectorAll('.ct-chip'), function (e) { e.onclick = function () { if (over) return; var i = parseInt(e.getAttribute('data-i'), 10); [].forEach.call(tray.querySelectorAll('.ct-chip'), function (x) { x.classList.remove('sel'); }); if (selChip === i) { selChip = null; setHint(); return; } selChip = i; e.classList.add('sel'); sfx('tick'); setHint(); pairUp(); }; });
       var uid = 0;
       function spawn() {
         var live = {}; cards.forEach(function (c) { if (!c.dead) live[c.item.id] = 1; });
@@ -436,9 +440,14 @@
       frame('Lane it', '<div class="bz-stat"><div><b id="ln-h">0</b>caught</div><div><b id="ln-s">×1.0</b>speed</div><div><b id="ln-l">' + hearts() + '</b>lives</div><div><b>' + deck.length + '</b>words</div></div><div class="ln-q" id="ln-q">&nbsp;</div><div class="ln-field" id="ln-f"><div class="ln-road" id="ln-r"><div class="ln-lane"></div><div class="ln-lane"></div><div class="ln-lane"></div><div class="ln-lane"></div></div><div class="ln-pop" id="ln-pop"></div></div>');
       var F = $('ln-f'), R = $('ln-r'), run = 0;
       function speed() { mRate = Math.min(1.5, 1 + hits * .025); return 95 * (CFG.start / 100) * Math.pow(1 + CFG.accel / 100, hits); }
+      function nearLen(cur, pool, n) {
+        var wc = function (t) { return String(t).trim().split(/\s+/).length; }, w0 = wc(cur.a), l0 = String(cur.a).length;
+        var sc = shuf(pool).map(function (x) { return { x: x, s: Math.abs(wc(x.a) - w0) * 4 + Math.abs(String(x.a).length - l0) / Math.max(4, l0) * 3 }; }).sort(function (a, b) { return a.s - b.s; });
+        var out = [], seen = {}; sc.forEach(function (o) { if (out.length < n && !seen[o.x.a]) { seen[o.x.a] = 1; out.push(o.x); } }); return out;
+      }
       function next() {
         if (qi >= deck.length) return fin(true);
-        var cur = deck[qi++], ds = shuf(p.filter(function (x) { return x.a !== cur.a; })).slice(0, 3), opts = shuf([cur].concat(ds));
+        var cur = deck[qi++], ds = nearLen(cur, p.filter(function (x) { return x.a !== cur.a; }), 3), opts = shuf([cur].concat(ds));
         $('ln-q').textContent = cur.q; wave = { cur: cur, opts: opts, y: -56, els: [], done: false };
         opts.forEach(function (o, k) { var e = document.createElement('div'); e.className = 'ln-w'; e.textContent = o.a; e.style.transform = 'translateY(-56px)'; R.children[k].appendChild(e); wave.els.push(e); });
       }
