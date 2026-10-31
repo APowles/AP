@@ -833,7 +833,7 @@ textarea.p1-in{border:1px solid #bbb;border-radius:4px;min-height:44px}
 .aph-wrap>.aph-card:not(.intro-card){border:1px solid rgba(201,168,76,.45);border-radius:20px;box-shadow:0 18px 42px rgba(15,29,61,.14);position:relative;overflow:hidden}
 .aph-wrap>.aph-card:not(.intro-card):before{content:"";position:absolute;left:0;right:0;top:0;height:5px;background:linear-gradient(90deg,#14305f,#c9a84c,#14305f)}
 .aph-chip{min-height:40px;border-radius:12px;background:#f6f8fd;border-color:#cdd5e8;color:#14305f}
-.aph-chip.on,.aph-chip.on:hover{background:linear-gradient(135deg,#14305f,#1d4182);box-shadow:0 8px 18px rgba(20,48,95,.3),inset 0 1px 0 rgba(255,255,255,.2)}
+.aph-chip.on,.aph-chip.on:hover{background:linear-gradient(135deg,#14305f,#1d4182);color:#ffd76a!important;box-shadow:0 8px 18px rgba(20,48,95,.3),inset 0 1px 0 rgba(255,255,255,.2)}
 .aph-btn-primary{background:linear-gradient(135deg,#14305f,#1d4182);border-radius:12px}
 .aph-btn-primary:hover{background:linear-gradient(135deg,#1d4182,#2a5aa8)}
 .aph-btn{border-radius:12px}
@@ -18542,6 +18542,17 @@ body.od-on #apsp-pop{position:fixed;top:76px;right:12px;margin-top:0;z-index:118
   window.addEventListener('hashchange', function () { if (/^#learn=/.test(location.hash)) fromHash(); });
 })();
 </script>
+<style id="ap-gold-pulse">@keyframes apgoldpulse{50%{box-shadow:0 0 0 3px rgba(201,168,76,.4),0 0 16px 5px rgba(201,168,76,.6),0 0 30px 8px rgba(201,168,76,.3)}}</style>
+<style id="ap-ot-none">
+/* the first row of FIRST: the same gold "Nothing chosen yet | Choose topics" bar as Vocab Essentials and the Phrase Bank */
+.ms-hide{display:none!important}
+.intro-card .gg-chbtn{display:flex;align-items:center;justify-content:center;gap:10px;width:100%;min-height:54px;margin:2px 0 10px;border:0;border-radius:12px;background:#1a2744;color:#ffd76a;font:800 1.0625rem var(--aph-body);cursor:pointer;padding:8px 14px;text-align:center}
+.intro-card .gg-chbtn small{font-weight:500;color:#4a5a7a;font-size:.8125rem}
+.intro-card .gg-chbtn.has{background:#fff;color:#1a2744;border:2px solid #1a2744;box-shadow:none}
+.intro-card .gg-chbtn:not(.has){background:#fff!important;color:#1a2744!important;border:3px solid #c9a84c!important;border-radius:12px!important;justify-content:space-between!important;padding:8px 10px 8px 16px!important;box-shadow:0 0 0 2px rgba(201,168,76,.28),0 0 12px 3px rgba(201,168,76,.45),0 0 24px 6px rgba(201,168,76,.22)!important;animation:apgoldpulse 2.4s ease-in-out infinite}
+.gg-chbtn:not(.has) .ve-nc{font-weight:600;font-size:.9375rem;color:#8a94aa}
+.gg-chbtn:not(.has) .ve-nc-btn{background:#1a2744;color:#ffd76a;border-radius:10px;padding:10px 16px;font:800 1rem var(--aph-body)}
+</style>
 <style id="ap-steps-css">
 /* FIRST / NEXT badges and numbered questions inside FIRST */
 .ms-step .ms-num.ms-big{width:auto;min-width:34px;border-radius:999px;padding:0 14px;font-size:.9rem;letter-spacing:.1em}
@@ -18799,10 +18810,15 @@ textarea.ms-in{min-height:7rem;resize:vertical}
     B.head.forEach(function (e) { card.appendChild(e); });
     card.insertAdjacentHTML('beforeend', '<div class="ms-step"><span class="ms-num ms-big">FIRST</span>What do you want to practise?</div>');
     var l1 = document.createElement('div'); l1.className = 'aph-label'; l1.textContent = 'Which topics'; card.appendChild(l1);
-    var wrap = document.createElement('div'); wrap.className = 'aph-row'; B.what.forEach(function (e) { if (!e.classList.contains('aph-label')) wrap.appendChild(e); }); card.appendChild(wrap);
+    var wrap = document.createElement('div'); wrap.className = 'aph-row ms-hide'; B.what.forEach(function (e) { if (!e.classList.contains('aph-label')) wrap.appendChild(e); }); card.appendChild(wrap);
+    /* the gold "Nothing chosen yet | Choose topics" bar, as in the other apps; the drop-down stays (hidden) because the rest of the app reads it */
+    var chb = document.createElement('button'); chb.type = 'button'; chb.id = 'otChBtn'; chb.className = 'gg-chbtn' + (ok ? ' has' : '');
+    chb.onclick = function () { document.getElementById('apTopicOverviewModal').style.display = 'block'; };
+    chb.innerHTML = ok ? '\uD83D\uDCDA Change topics <small>\u00b7 ' + esc(lab) + '</small>' : '<span class="ve-nc">Nothing chosen yet</span><span class="ve-nc-btn">\uD83D\uDCDA Choose topics</span>';
+    card.insertBefore(chb, wrap);
     var l2 = document.createElement('div'); l2.className = 'aph-label'; l2.textContent = 'Kind of question'; card.appendChild(l2);
     B.kind.forEach(function (e) { if (!e.classList.contains('aph-label')) card.appendChild(e); });
-    card.insertAdjacentHTML('beforeend', '<div class="ms-now">' + (!ok ? 'Choose a topic above (or press \uD83D\uDCDA Choose topics) to unlock the ways to practise it.' : (!pool ? 'This selection has no cards yet.' : 'Practising: <b>' + esc(lab) + '</b> · ' + (ktrs ? esc(ktrs) + ' · ' : '') + pool + ' cards')) + '</div>');
+    card.insertAdjacentHTML('beforeend', '<div class="ms-now">' + (!ok ? 'Press \uD83D\uDCDA Choose topics first to unlock the ways to practise it.' : (!pool ? 'This selection has no cards yet.' : 'Practising: <b>' + esc(lab) + '</b> · ' + (ktrs ? esc(ktrs) + ' · ' : '') + pool + ' cards')) + '</div>');
     card.insertAdjacentHTML('beforeend', '<div class="ms-step"><span class="ms-num ms-big">NEXT</span>How do you want to practise it?</div>');
     card.appendChild(setDet);
     card.insertAdjacentHTML('beforeend', '<div class="aph-tools ms-tiles">' + tilesHtml + '</div>');
@@ -20601,4 +20617,4 @@ window.APBZ_HOST = {
   if (document.readyState === 'complete') start(); else window.addEventListener('load', start);
 })();
 </script>
-<script id="ap-build">window.__apBuild="998914bbb5";</script>
+<script id="ap-build">window.__apBuild="04f821efd7";</script>
