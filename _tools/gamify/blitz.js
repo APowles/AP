@@ -400,7 +400,7 @@
 
   // ---------- Deal it: shuffle and deal (solo, or a two-player race for piles of cards)
   var DLCSS = [
-    '.dl-tab{margin:4px auto 0;padding:clamp(18px,2.6vw,38px) clamp(20px,3.2vw,46px);border-radius:14px;background:url(icons/table_green.webp) center/100% 100% no-repeat,#0f3d2e;box-shadow:0 8px 22px rgba(0,0,0,.55);width:min(1100px,96%)}',
+    '.dl-tab{position:relative;margin:4px auto 0;padding:clamp(18px,2.6vw,38px) clamp(20px,3.2vw,46px);border-radius:14px;background:url(icons/table_green.webp) center/100% 100% no-repeat,#0f3d2e;box-shadow:0 8px 22px rgba(0,0,0,.55);width:min(1100px,96%)}',
     '.dl-grid{display:grid;gap:clamp(10px,1.6vw,18px);perspective:1400px}',
     '.dl-c{position:relative;aspect-ratio:3/2;border:0;border-radius:12px;overflow:hidden;color:#fff;display:flex;align-items:center;justify-content:center;cursor:pointer;padding:0;box-sizing:border-box;font-family:inherit;box-shadow:0 6px 14px rgba(0,0,0,.55);transition:transform .4s cubic-bezier(.2,.8,.2,1),opacity .2s}',
     '.dl-c.bk{background:url(icons/cardback_1.webp) center/cover no-repeat,#0d1a38;border:5px solid #f7f3e8}',
@@ -419,8 +419,8 @@
     '.dl-race{display:flex;align-items:flex-start;justify-content:center;gap:clamp(8px,1.6vw,22px);width:min(1280px,98%)}',
     '.dl-race .dl-tab{flex:1 1 auto;margin:0;width:auto;min-width:0}',
     '.dl-pcol{flex:none;width:clamp(150px,21vw,260px);display:flex;flex-direction:column;align-items:center;gap:4px;padding:8px 6px 10px;border-radius:14px;border:2px solid transparent}',
-    '.dl-pcol h3{margin:0;font-weight:800;font-size:1.15rem;letter-spacing:.04em;color:#4f8cff}',
-    '.dl-pcol.t1 h3{color:#f0d27a}',
+    '.dl-pcol h3{margin:0;font-weight:800;font-size:1.15rem;letter-spacing:.06em;color:#86a8e6}',
+    '.dl-pcol.t1 h3{color:#e0c070}',
     '.dl-pcol.act{border-color:rgba(255,255,255,.35);background:rgba(255,255,255,.06)}',
     '.dl-pile{position:relative;width:100%;height:clamp(150px,30vh,280px)}',
     '.dl-pl{position:absolute;left:50%;width:86%;margin-left:-43%;aspect-ratio:3/2;border-radius:8px;background:url(icons/cardback_1.webp) center/cover no-repeat,#0d1a38;border:3px solid #f7f3e8;box-shadow:0 2px 5px rgba(0,0,0,.55)}',
@@ -435,15 +435,32 @@
     '.dl-in.flip{transform:rotateY(180deg)}',
     '.dl-f{position:absolute;inset:0;border-radius:14px;-webkit-backface-visibility:hidden;backface-visibility:hidden;box-shadow:0 18px 50px rgba(0,0,0,.7);box-sizing:border-box}',
     '.dl-fb{background:url(icons/cardback_1.webp) center/cover no-repeat,#0d1a38;border:6px solid #f7f3e8}',
-    '.dl-ff{transform:rotateY(180deg);background:linear-gradient(160deg,#fdf8e8,#ecdcb4);border:4px double #b8932f;color:#1a2744;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;padding:16px 22px;text-align:center;overflow:hidden}',
-    '.dl-ff small{font:800 .8rem "DM Sans",sans-serif;letter-spacing:.14em;text-transform:uppercase;color:#8a6d1f}',
+    '.dl-ff{transform:rotateY(180deg);background:radial-gradient(ellipse at 50% 38%,rgba(255,255,255,.1),transparent 62%),repeating-linear-gradient(45deg,rgba(201,168,76,.09) 0 2px,transparent 2px 20px),repeating-linear-gradient(-45deg,rgba(201,168,76,.09) 0 2px,transparent 2px 20px),linear-gradient(160deg,#17294f,#0a1330);border:6px solid #f7f3e8;color:#f6efd8;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;padding:20px 30px;text-align:center;overflow:hidden}',
+    '.dl-ff:before{content:"";position:absolute;inset:7px;border:2px solid #c9a84c;border-radius:8px;pointer-events:none}',
+    '.dl-ff:after{content:"";position:absolute;inset:15px;border:1px solid rgba(201,168,76,.45);border-radius:5px;pointer-events:none}',
+    '.dl-co{position:absolute;color:#c9a84c;font-style:normal;font-size:1.25rem;line-height:1;text-shadow:0 0 8px rgba(201,168,76,.6)}.dl-co.a{top:20px;left:22px}.dl-co.b{top:20px;right:22px}.dl-co.c{bottom:20px;left:22px}.dl-co.d{bottom:20px;right:22px}',
+    '.dl-ff small{font:800 .78rem "DM Sans",sans-serif;letter-spacing:.2em;text-transform:uppercase;color:#c9a84c}',
     '.dl-fq,.dl-fa{font-family:Georgia,"Playfair Display",serif;font-weight:700;line-height:1.2;font-size:clamp(1.5rem,3.6vw,2.7rem)}',
     '.dl-fq.lg,.dl-fa.lg{font-size:clamp(1.15rem,2.6vw,1.9rem)}.dl-fq.xl,.dl-fa.xl{font-size:clamp(.95rem,2vw,1.35rem)}',
-    '.dl-fq .hl{background:rgba(201,168,76,.4);border-radius:6px;padding:0 4px}.dl-fq .hln{display:block;font:700 .5em "DM Sans",sans-serif;color:#8a6d1f;margin-top:6px}',
-    '.dl-ff .sp{background:#1a2744;color:#fff;border:0;border-radius:99px;padding:6px 14px;font-size:1.1rem;cursor:pointer;vertical-align:middle}',
-    '.dl-fp{font:600 .85rem "DM Sans",sans-serif;color:#6b6350}',
+    '.dl-fq{color:#f6efd8}.dl-fa{color:#f0d27a}.dl-fq .hl{background:rgba(201,168,76,.35);border-radius:6px;padding:0 4px}.dl-fq .hln{display:block;font:700 .5em "DM Sans",sans-serif;color:#c9a84c;margin-top:6px}',
+    '.dl-ff .sp{background:rgba(201,168,76,.18);color:#f0d27a;border:1.5px solid #c9a84c;border-radius:99px;padding:5px 14px;font-size:1.05rem;cursor:pointer;vertical-align:middle}',
+    '.dl-fp{font:600 .85rem "DM Sans",sans-serif;color:rgba(246,239,216,.6)}',
     '.dl-ctl{position:absolute;left:0;right:0;display:flex;flex-direction:column;align-items:center;gap:10px;transition:opacity .35s}',
-    '#dl-ov .pt-turn{position:absolute;top:70px;left:50%;transform:translateX(-50%);white-space:nowrap}'
+    '.dl-turn{display:inline-flex;align-items:center;gap:12px;padding:10px 30px;border-radius:999px;border:1.5px solid rgba(201,168,76,.7);background:linear-gradient(180deg,rgba(20,32,66,.94),rgba(8,14,32,.94));color:#f6efd8;font:700 clamp(1.05rem,2.3vw,1.55rem) Georgia,"Playfair Display",serif;letter-spacing:.03em;box-shadow:0 6px 24px rgba(0,0,0,.55);margin:6px auto}',
+    '.dl-turn i{width:12px;height:12px;border-radius:50%;background:var(--tc);box-shadow:0 0 10px var(--tc);flex:none}',
+    '#dl-ov .dl-turn{position:absolute;top:74px;left:50%;transform:translateX(-50%);white-space:nowrap;margin:0;transition:opacity .4s}',
+    '.dl-mk{display:none;gap:14px;justify-content:center;flex-wrap:wrap}',
+    '.dl-bt{font:700 1.05rem Georgia,"Playfair Display",serif;letter-spacing:.06em;min-width:150px;padding:12px 26px;border-radius:10px;cursor:pointer;color:#f6efd8;background:linear-gradient(180deg,rgba(26,40,80,.96),rgba(10,18,42,.96));border:1.5px solid var(--bc);box-shadow:0 4px 14px rgba(0,0,0,.5),inset 0 0 0 1px rgba(255,255,255,.06);transition:transform .15s,box-shadow .2s}',
+    '.dl-bt:hover{transform:translateY(-2px);box-shadow:0 8px 20px rgba(0,0,0,.55),0 0 18px var(--bc)}',
+    '.dl-bt b{color:var(--bc);margin-right:8px;font-weight:700}',
+    '.dl-bt.miss{--bc:#c0606e}.dl-bt.near{--bc:#c9a84c}.dl-bt.got{--bc:#58b585}.dl-bt.sh{--bc:#c9a84c;min-width:220px}',
+    '.dl-sp{position:absolute;width:9px;height:9px;margin:-4px 0 0 -4px;border-radius:50%;background:#f0d27a;box-shadow:0 0 12px 4px rgba(240,210,122,.85);pointer-events:none;z-index:60;animation:dl-spk 1s ease-out forwards}',
+    '@keyframes dl-spk{from{transform:translate(0,0) scale(1.2);opacity:1}to{transform:translate(var(--x),var(--y)) scale(.2);opacity:0}}',
+    '.dl-pcol.pulse{animation:dl-pls .9s ease-out}@keyframes dl-pls{0%{box-shadow:0 0 0 0 rgba(240,210,122,.85)}100%{box-shadow:0 0 0 34px rgba(240,210,122,0)}}',
+    '.dl-pcol.pulse .dl-cnt b{display:inline-block;animation:dl-bump .6s ease-out}@keyframes dl-bump{40%{transform:scale(1.5);color:#fff}}',
+    '.dl-wrap.fly{filter:drop-shadow(0 0 26px rgba(240,210,122,.95))}',
+    '.dl-ghost{visibility:hidden}',
+    '.dl-done{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;text-align:center;color:#f0d27a;font:700 clamp(1.4rem,3.4vw,2.6rem) Georgia,serif;text-shadow:0 2px 14px rgba(0,0,0,.7);pointer-events:none}'
   ].join('');
   var _dU = {}, dlSub = null, dlBackOrig = null;
   function dplay(k) {
@@ -470,17 +487,28 @@
     dlSub = null; frame('Deal it', '<div class="dl-deck">' + d + '</div><div class="dl-shuf">Shuffling…</div>');
     dplay('fan1'); dTm(function () { dplay('fan2'); }, 800); dTm(then, 2000);
   }
-  function dlMarks() { return '<div class="bz-row bz-mk" id="bz-mark" style="display:none"><button class="bz-big miss" onclick="apBzMark(0)">✗ Missed</button><button class="bz-big near" onclick="apBzMark(2)">~ Nearly</button><button class="bz-big got" onclick="apBzMark(1)">✓ Got it</button></div>'; }
+  function dlMarks() { return '<div class="bz-row bz-mk dl-mk" id="bz-mark" style="display:none"><button class="dl-bt miss" onclick="apBzMark(0)"><b>✗</b>Missed</button><button class="dl-bt near" onclick="apBzMark(2)"><b>~</b>Nearly</button><button class="dl-bt got" onclick="apBzMark(1)"><b>✓</b>Got it</button></div>'; }
+  function dlOrn() { return '<i class="dl-co a">✦</i><i class="dl-co b">✦</i><i class="dl-co c">✦</i><i class="dl-co d">✦</i>'; }
+  function dlTurn(team, names, sub) { return '<div class="dl-turn" style="--tc:' + (team ? '#e0c070' : '#6f9bff') + '"><i></i>' + names[team] + ' · ' + sub + '</div>'; }
+  function dlPileHTML(t, label, n, act, landing) {
+    var show = Math.min(n, 30), ly = '';
+    for (var k = 0; k < show; k++) ly += '<i class="dl-pl' + (landing && k === show - 1 ? ' land' : '') + '" style="bottom:' + (k * 5) + 'px;transform:rotate(' + (((k * 53) % 11) - 5) + 'deg) translateX(' + (((k * 29) % 9) - 4) + 'px)"></i>';
+    return '<div class="dl-pcol t' + t + (act ? ' act' : '') + '"><h3>' + label + '</h3><div class="dl-pile">' + ly + (n ? '' : '<span class="dl-pe">your pile</span>') + '</div><div class="dl-cnt"><b>' + n + '</b>card' + (n === 1 ? '' : 's') + '</div></div>';
+  }
+  function dlBurst(r) {   // a shower of gold sparks where a card lands
+    if (!ov || !r) return; var cx = r.left + r.width / 2, cy = r.top + r.height / 2;
+    for (var i = 0; i < 18; i++) { var e = document.createElement('i'), a = Math.random() * Math.PI * 2, d = 50 + Math.random() * 90; e.className = 'dl-sp'; e.style.left = cx + 'px'; e.style.top = cy + 'px'; e.style.setProperty('--x', Math.cos(a) * d + 'px'); e.style.setProperty('--y', Math.sin(a) * d + 'px'); ov.appendChild(e); (function (x) { setTimeout(function () { x.remove(); }, 1100); })(e); }
+  }
   function dlCardView(c, cue) { var v = hvOf(c); return '<div onclick="apBzShow()" style="cursor:pointer;width:100%;display:flex;justify-content:center">' + card(c.q, v.a, cue, v.hl) + '</div><div class="bz-row"><button class="bz-big" id="bz-show" onclick="apBzShow()">Show answer</button></div>' + dlMarks(); }
   function dlSzCls(t) { var n = String(t || '').length; return n > 110 ? ' xl' : n > 50 ? ' lg' : ''; }
   function dlOpenCard(k, c, cue, topHTML) {   // the tapped card lifts off the table, flips in the middle, and shows its prompt
     var o0 = $('dl-ov'); if (o0) o0.remove();
     var src = $('dlc' + k), W0 = ov.clientWidth, H0 = ov.clientHeight, r = src ? src.getBoundingClientRect() : { left: W0 / 2 - 80, top: H0 / 2 - 50, width: 160, height: 100 };
     var v = hvOf(c), qh = v.hl ? esc(v.hl[0]) + '<b class="hl">' + esc(v.hl[1]) + '</b>' + esc(v.hl[2]) + '<span class="hln">Translate only the highlighted part</span>' : esc(c.q);
-    var tw = Math.min(680, W0 * .9, (H0 * .5) * 1.5), th = tw * 2 / 3, tl = (W0 - tw) / 2, tt = Math.max(110, (H0 - th) / 2 - 70);
+    var tw = Math.min(600, W0 * .88, (H0 * .46) * 1.5), th = tw * 2 / 3, tl = (W0 - tw) / 2, tt = Math.max(110, (H0 - th) / 2 - 70);
     var o = document.createElement('div'); o.id = 'dl-ov';
-    o.innerHTML = (topHTML || '') + '<div class="dl-wrap" id="dl-wrap" style="left:' + r.left + 'px;top:' + r.top + 'px;width:' + r.width + 'px;height:' + r.height + 'px" onclick="apBzShow()"><div class="dl-in" id="dl-in"><div class="dl-f dl-fb"></div><div class="dl-f dl-ff" id="dl-ff"><small>' + esc(cue) + '</small><div class="dl-fq' + dlSzCls(c.q) + '">' + qh + '</div></div></div></div>'
-      + '<div class="dl-ctl" id="dl-ctl" style="top:' + (tt + th + 22) + 'px;opacity:0"><div class="bz-row" id="dl-sh"><button class="bz-big" id="bz-show" onclick="apBzShow()">Show answer</button></div>' + dlMarks() + '</div>';
+    o.innerHTML = (topHTML || '') + '<div class="dl-wrap" id="dl-wrap" style="left:' + r.left + 'px;top:' + r.top + 'px;width:' + r.width + 'px;height:' + r.height + 'px" onclick="apBzShow()"><div class="dl-in" id="dl-in"><div class="dl-f dl-fb"></div><div class="dl-f dl-ff" id="dl-ff">' + dlOrn() + '<small>' + esc(cue) + '</small><div class="dl-fq' + dlSzCls(c.q) + '">' + qh + '</div></div></div></div>'
+      + '<div class="dl-ctl" id="dl-ctl" style="top:' + (tt + th + 22) + 'px;opacity:0"><div class="bz-row" id="dl-sh"><button class="dl-bt sh" id="bz-show" onclick="apBzShow()">Show answer</button></div>' + dlMarks() + '</div>';
     ov.appendChild(o); if (src) src.style.visibility = 'hidden';
     dplay(Math.random() < .5 ? 'p2' : 'p4'); void o.offsetWidth;
     var w = $('dl-wrap'); w.style.left = tl + 'px'; w.style.top = tt + 'px'; w.style.width = tw + 'px'; w.style.height = th + 'px'; $('dl-in').classList.add('flip');
@@ -491,19 +519,21 @@
     var v = hvOf(c), sh = $('bz-show'); if (sh) sh.style.display = 'none';
     inn.style.transition = 'transform .2s ease-in'; inn.style.transform = 'rotateY(270deg)'; dplay(Math.random() < .5 ? 'p2' : 'p4');
     setTimeout(function () {
-      ff.innerHTML = '<small>' + esc(H.names[dirs()[1]]) + '</small><div class="dl-fa' + dlSzCls(v.a) + '">' + esc(v.a) + ' ' + SAYBTN(v.a) + '</div><div class="dl-fp">' + esc(String(c.q).replace(/<[^>]*>/g, '')) + '</div>';
+      ff.innerHTML = dlOrn() + '<small>' + esc(H.names[dirs()[1]]) + '</small><div class="dl-fa' + dlSzCls(v.a) + '">' + esc(v.a) + ' ' + SAYBTN(v.a) + '</div><div class="dl-fp">' + esc(String(c.q).replace(/<[^>]*>/g, '')) + '</div>';
       inn.style.transition = 'transform .3s ease-out'; inn.style.transform = 'rotateY(180deg)';
       var m = $('bz-mark'); if (m) m.style.display = 'flex';
     }, 210);
   }
-  function dlClose(k, then, dest) {   // the card flies back (to its place, or to a pile) and turns face down
+  function dlClose(k, then, dest, fly) {   // the card flies back (to its place, or slowly and grandly to a pile) and turns face down
     var o = $('dl-ov'), w = $('dl-wrap'); if (!o || !w) { then(); return; } if (o.__c) return; o.__c = 1;
-    var src = $('dlc' + k), r = dest || (src && src.getBoundingClientRect()), cl = $('dl-ctl'), inn = $('dl-in');
+    var src = $('dlc' + k), r = dest || (src && src.getBoundingClientRect()), cl = $('dl-ctl'), inn = $('dl-in'), T = fly ? 1.6 : .7;
     if (cl) cl.style.opacity = 0;
+    if (fly) { var e = 'cubic-bezier(.5,0,.15,1)'; w.style.transition = 'left ' + T + 's ' + e + ',top ' + T + 's ' + e + ',width ' + T + 's ' + e + ',height ' + T + 's ' + e + ',transform ' + T + 's ' + e; w.classList.add('fly'); w.style.transform = 'rotate(-7deg)'; }
     if (r) { w.style.left = r.left + 'px'; w.style.top = r.top + 'px'; w.style.width = r.width + 'px'; w.style.height = r.height + 'px'; }
-    if (inn) { inn.style.transition = ''; inn.style.transform = ''; inn.classList.remove('flip'); }
-    o.style.background = 'rgba(5,10,25,0)'; var t = o.querySelector('.pt-turn'); if (t) t.style.opacity = 0;
-    setTimeout(function () { if (o.parentNode) o.remove(); then(); }, 750);
+    if (inn) { inn.style.transition = 'transform ' + (fly ? 1.1 : .7) + 's cubic-bezier(.2,.8,.2,1)'; inn.style.transform = ''; inn.classList.remove('flip'); }
+    o.style.background = 'rgba(5,10,25,0)'; var t = o.querySelector('.dl-turn'); if (t) t.style.opacity = 0;
+    if (fly) setTimeout(function () { dlBurst(r); }, T * 1000 - 120);
+    setTimeout(function () { if (o.parentNode) o.remove(); then(); if (fly) { var pe = ov && ov.querySelector('.dl-pcol.t' + (fly - 1)); if (pe) { pe.classList.add('pulse'); setTimeout(function () { pe.classList.remove('pulse'); }, 1000); } } }, T * 1000 + 60);
   }
   function dlPileRect(t) { var e = ov && ov.querySelector('.dl-pcol.t' + t + ' .dl-pile'); if (!e) return null; var r = e.getBoundingClientRect(), w = r.width * .7, h = w * 2 / 3; return { left: r.left + r.width / 2 - w / 2, top: r.bottom - h - 8, width: w, height: h }; }
   function dlSay(c) { try { if (CFG.dSay) say(dirs()[1] === 'en' ? String(c.q).replace(/<[^>]*>/g, '') : hvOf(c).a); } catch (e) { } }
@@ -520,15 +550,15 @@
     function ok() { return hand.length > 0 && hand.every(function (h) { return h.ok; }); }
     function stats() { var n = hand.filter(function (h) { return h.ok; }).length; return '<div class="bz-stat"><div><b>' + lvl + ' / ' + L + '</b>level</div><div><b>' + pass + ' / 2</b>round</div><div><b>' + n + ' / ' + hand.length + '</b>secure</div></div>'; }
     function table() {
-      dlSub = null; var cols = dlGrid(hand.length), cs = hand.map(function (h, k) {
+      dlSub = null; var cols = dlGrid(hand.length), nOk = hand.filter(function (h) { return h.ok; }).length, cs = hand.map(function (h, k) {
         var f = h.fresh; h.fresh = false;
-        return h.ok ? '<div class="dl-c up" id="dlc' + k + '"><span class="dl-ok">✓ Got it</span><span class="dl-tt">' + dlQ(h.c) + '</span></div>'
+        return h.ok ? '<div class="dl-c gone" id="dlc' + k + '"></div>'
           : '<button class="dl-c bk' + (f ? ' fresh' : '') + '" id="dlc' + k + '" onclick="apDlOpen(' + k + ')" aria-label="Turn over card ' + (k + 1) + '"><span class="dl-no">' + (k + 1) + '</span></button>';
-      }).join(''), note, btn = '';
-      if (ok() && pass === 1) { note = '<b>Every card is secure.</b> Now they are shuffled and dealt again: prove it a second time.'; btn = '<button class="bz-big go" onclick="apDlAgain()">🔀 Shuffle and prove it</button>'; }
-      else if (ok()) { var more = lvl < L && pack.length > 0; note = '<b>Level ' + lvl + ' complete.</b> ' + (hand.some(function (h) { return h.c.__miss; }) ? 'The cards you missed go back in the pack and come round again.' : 'Not one card missed.'); btn = '<button class="bz-big go" onclick="apDlNext()">' + (more || hand.some(function (h) { return h.c.__miss; }) && lvl < L ? 'Next level →' : 'See how you did') + '</button>'; }
+      }).join(''), note, btn = '', doneTx = '';
+      if (ok() && pass === 1) { note = '<b>Every card is secure.</b> Now they are shuffled and dealt again: prove it a second time.'; doneTx = 'All ' + hand.length + ' secure'; btn = '<button class="bz-big go" onclick="apDlAgain()">🔀 Shuffle and prove it</button>'; }
+      else if (ok()) { var more = lvl < L && pack.length > 0; note = '<b>Level ' + lvl + ' complete.</b> ' + (hand.some(function (h) { return h.c.__miss; }) ? 'The cards you missed go back in the pack and come round again.' : 'Not one card missed.'); doneTx = 'Level ' + lvl + ' complete'; btn = '<button class="bz-big go" onclick="apDlNext()">' + (more || hand.some(function (h) { return h.c.__miss; }) && lvl < L ? 'Next level →' : 'See how you did') + '</button>'; }
       else note = pass === 1 ? 'Turn a card, say it, then check. Get <b>every</b> card right.' : '<b>Second time round.</b> Shuffled: get every card right again before you move on.';
-      frame('Deal it', stats() + '<div class="bz-note" style="margin:4px auto">' + note + '</div><div class="dl-tab"><div class="dl-grid" style="grid-template-columns:repeat(' + cols + ',minmax(0,1fr))">' + cs + '</div></div>' + (btn ? '<div class="bz-row">' + btn + '</div>' : '') + '<div class="bz-row"><button class="bz-b" onclick="apDlStop()">Finish here</button></div>');
+      frame('Deal it', stats() + '<div class="bz-note" style="margin:4px auto">' + note + '</div><div class="dl-race">' + dlPileHTML(1, 'Secure', nOk, false, false) + '<div class="dl-tab"><div class="dl-grid" style="grid-template-columns:repeat(' + cols + ',minmax(0,1fr))">' + cs + '</div>' + (doneTx ? '<div class="dl-done">' + doneTx + '</div>' : '') + '</div>' + dlPileHTML(1, 'Secure', 0, false, false).replace('dl-pcol', 'dl-pcol dl-ghost') + '</div>' + (btn ? '<div class="bz-row">' + btn + '</div>' : '') + '<div class="bz-row"><button class="bz-b" onclick="apDlStop()">Finish here</button></div>');
     }
     function deal() { dlShuffle(function () { table(); dlDeal(); }); }
     function finish() {
@@ -551,7 +581,7 @@
     window.apBzMark = function (g) {
       var h = hand[cur]; if (!h || h.__m) return; h.__m = 1; var c = h.c; c.__ever = 1; dlSub = null;
       if (g === 1) { h.ok = true; sfx('ok'); VH(true, '', ''); } else if (g === 0) { c.__miss = 1; sfx('bad'); VH(false, '', ''); } else sfx('tick');
-      var kk = cur; dTm(function () { dlClose(kk, function () { h.__m = 0; table(); if (ok()) sfx('good'); }); }, g === 2 ? 250 : 700);
+      var kk = cur, dest = g === 1 ? dlPileRect(1) : null; dTm(function () { if (g === 1) sfx('whoosh'); dlClose(kk, function () { h.__m = 0; table(); if (ok()) sfx('good'); }, dest, g === 1 ? 2 : 0); }, g === 2 ? 250 : 800);
     };
     window.apDlAgain = function () { hand = shuf(hand).map(function (h) { return { c: h.c, ok: false, fresh: true }; }); pass = 2; deal(); };
     window.apDlNext = function () { nextLevel(); };
@@ -563,40 +593,35 @@
     var pl = dlUniq(p0), N = Math.min(CFG.dN, pl.length), pack = shuf(pl), slots = [], piles = [[], []], land = [-1, -1], team = 0, names = ['Blue', 'Gold'], left = CFG.dT, cur = -1, said = false, over = false, cue = H.names[dirs()[0]];
     for (var i = 0; i < N; i++) slots.push({ c: pack.shift(), fresh: true });
     function clk() { var s = Math.max(0, Math.ceil(left)); return Math.floor(s / 60) + ':' + ('0' + (s % 60)).slice(-2); }
-    function pcol(t, act) {
-      var a = piles[t], n = a.length, show = Math.min(n, 30), ly = '', landing = land[t] === n && n > 0;
-      for (var k = 0; k < show; k++) ly += '<i class="dl-pl' + (landing && k === show - 1 ? ' land' : '') + '" style="bottom:' + (k * 5) + 'px;transform:rotate(' + (((k * 53) % 11) - 5) + 'deg) translateX(' + (((k * 29) % 9) - 4) + 'px)"></i>';
-      if (landing) land[t] = -1;
-      return '<div class="dl-pcol t' + t + (act ? ' act' : '') + '"><h3>' + names[t] + '</h3><div class="dl-pile">' + ly + (n ? '' : '<span class="dl-pe">your pile</span>') + '</div><div class="dl-cnt"><b>' + n + '</b>card' + (n === 1 ? '' : 's') + '</div></div>';
-    }
-    function banner(sub) { return '<div class="pt-turn' + (team ? ' g' : '') + '">' + names[team] + ': ' + sub + '</div>'; }
-    function tint() { ov.classList.add(team === 0 ? 'pt-n' : 'pt-g'); }
+    function pcol(t, act) { var n = piles[t].length, landing = land[t] === n && n > 0; if (landing) land[t] = -1; return dlPileHTML(t, names[t], n, act, landing); }
+    function banner(sub) { return dlTurn(team, names, sub); }
+    function tint() { }
     function table() {
       dlSub = null; cur = -1;
       slots.forEach(function (s, k) { if (!s && pack.length) slots[k] = { c: pack.shift(), fresh: true }; });
       if (slots.every(function (s) { return !s; })) return finish();
       var cs = slots.map(function (s, k) { if (!s) return '<div class="dl-c gone"></div>'; var f = s.fresh; s.fresh = false; return '<button class="dl-c bk' + (f ? ' fresh' : '') + '" id="dlc' + k + '" onclick="apDlOpen(' + k + ')" aria-label="Turn over card ' + (k + 1) + '"><span class="dl-no">' + (k + 1) + '</span></button>'; }).join('');
-      frame('Deal it', banner('pick a card and say it!') + '<div class="bz-stat"><div><b id="dl-tl">' + clk() + '</b>left</div></div><div class="dl-race">' + pcol(0, team === 0) + '<div class="dl-tab"><div class="dl-grid" style="grid-template-columns:repeat(' + dlGrid(N) + ',minmax(0,1fr))">' + cs + '</div></div>' + pcol(1, team === 1) + '</div>');
+      frame('Deal it', banner('pick a card and say it') + '<div class="bz-stat"><div><b id="dl-tl">' + clk() + '</b>left</div></div><div class="dl-race">' + pcol(0, team === 0) + '<div class="dl-tab"><div class="dl-grid" style="grid-template-columns:repeat(' + dlGrid(N) + ',minmax(0,1fr))">' + cs + '</div></div>' + pcol(1, team === 1) + '</div>');
       tint(); dlDeal();
     }
     function finish() {
       if (over) return; over = true; stop(); musicStop(); sfx('win'); dlSub = null;
       var a = piles[0].length, b = piles[1].length, w = a === b ? 'A draw' : (a > b ? names[0] : names[1]) + ' wins'; if (a !== b) team = a > b ? 0 : 1;
-      frame('Deal it', '<div class="pt-turn' + (a === b ? '' : team ? ' g' : '') + '">' + w + '!</div><div class="dl-race dl-big">' + pcol(0, a >= b) + pcol(1, b >= a) + '</div><div class="bz-row"><button class="bz-big go" id="bz-again" onclick="apBzAgain()">↻ Go again</button><button class="bz-b" onclick="apBzBack()">Choose another round</button></div>');
+      frame('Deal it', '<div class="dl-turn" style="--tc:' + (a === b ? '#c9a84c' : team ? '#e0c070' : '#6f9bff') + '"><i></i>' + w + '</div><div class="dl-race dl-big">' + pcol(0, a >= b) + pcol(1, b >= a) + '</div><div class="bz-row"><button class="bz-big go" id="bz-again" onclick="apBzAgain()">↻ Go again</button><button class="bz-b" onclick="apBzBack()">Choose another round</button></div>');
       if (a !== b) tint(); window.apBzAgain = function () { musicStart(); GAMES.deal(pool()); };
     }
     window.apDlOpen = function (k) {
       var s = slots[k]; if (!s || over || $('dl-ov')) return; cur = k; said = false;
-      dlOpenCard(k, s.c, cue, banner('say it!')); dlSub = function () { dlClose(k, table); };
+      dlOpenCard(k, s.c, cue, banner('say it')); dlSub = function () { dlClose(k, table); };
     };
     window.apBzShow = function () { if (cur >= 0 && slots[cur]) dlShow(slots[cur].c); if (!said && cur >= 0 && slots[cur]) { said = true; dlSay(slots[cur].c); } };
     window.apBzMark = function (g) {
       var s = slots[cur]; if (!s || s.__m || over) return; s.__m = 1; var k = cur, c = s.c, pt = team, dest = g === 1 ? dlPileRect(pt) : null; dlSub = null;
-      if (g === 1) { piles[team].push(c); land[team] = piles[team].length; sfx('ok'); VH(true, '', ''); slots[k] = pack.length ? { c: pack.shift(), fresh: true } : null; }
+      if (g === 1) { piles[team].push(c); sfx('ok'); VH(true, '', ''); slots[k] = pack.length ? { c: pack.shift(), fresh: true } : null; }
       else if (g === 0) { sfx('bad'); VH(false, '', ''); if (pack.length) { slots[k] = { c: pack.shift(), fresh: true }; pack.splice(Math.floor(Math.random() * (pack.length + 1)), 0, c); } else s.__m = 0; }
       else { sfx('tick'); s.__m = 0; }
       team = 1 - team;
-      dTm(function () { if (over) return; if (g === 1) sfx('whoosh'); dlClose(k, function () { if (over) return; table(); }, dest); }, g === 2 ? 250 : 700);
+      dTm(function () { if (over) return; if (g === 1) sfx('whoosh'); dlClose(k, function () { if (over) return; if (g === 1) sfx('good'); table(); }, dest, g === 1 ? pt + 1 : 0); }, g === 2 ? 250 : 800);
     };
     dlShuffle(function () {
       table();

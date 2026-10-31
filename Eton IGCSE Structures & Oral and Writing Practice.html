@@ -16563,7 +16563,7 @@ function closeKTRChallenge() {
     if (it.state === 'ok') h += '<div class="bi-msg ok"><span class="bi-star">⭐</span> Correct!</div><div class="bi-acts"><button type="button" class="bi-sec" data-a="bsay">🔊 Hear it</button>' + nxt + '</div>';
     else if (it.state === 'shown') h += '<div class="bi-msg">The right order:</div><div class="bi-right" lang="' + lang() + '">' + esc(it.fr) + '</div><div class="bi-acts"><button type="button" class="bi-sec" data-a="bsay">🔊 Hear it</button>' + nxt + '</div>';
     else if (it.state === 'bad') h += '<div class="bi-msg bad">Not quite. Look at the order again.</div><div class="bi-acts"><button type="button" class="bi-go" data-a="bretry">↺ Try again</button><button type="button" class="bi-sec" data-a="bshow">Show me the answer</button></div>';
-    else h += '<div class="bi-acts"><button type="button" class="bi-go" data-a="bcheck"' + (full ? '' : ' disabled') + '>✓ Check</button></div>';
+    else h += '';   // no Check button: the answer is checked by itself as soon as the last tile goes in
     h += '</div><div class="ms-cen"><button type="button" class="ms-b" data-a="back">← Back</button></div></div>';
     paint(h, true);
     biDragInit();
@@ -16613,19 +16613,19 @@ function closeKTRChallenge() {
     if (isNaN(to) || (occ && occ.fixed) || from.slot === to) return biPage();
     if (from.tray != null) { it.bank.splice(from.tray, 1); it.slots[to] = chip; if (occ) it.bank.push(occ); }
     else { it.slots[from.slot] = occ || null; it.slots[to] = chip; }
-    it.state = ''; it.pop = to; biSound('place'); biPage();
+    it.state = ''; it.pop = to; biSound('place'); if (biFull(it)) biCheck(); else biPage();
   }
   function biPick(k) {
     if (Date.now() - (W.biDragEnd || 0) < 350) return;
     var it = W.bi.items[W.bi.i]; if (!it || it.state === 'ok' || it.state === 'shown') return;
     var j = it.slots.indexOf(null); if (j < 0) return;
-    var p = it.bank.splice(k, 1)[0]; if (p) { it.slots[j] = p; it.state = ''; it.pop = j; biSound('place'); } biPage();
+    var p = it.bank.splice(k, 1)[0]; if (p) { it.slots[j] = p; it.state = ''; it.pop = j; biSound('place'); } if (biFull(it)) biCheck(); else biPage();
   }
   function biUnpick(k) { if (Date.now() - (W.biDragEnd || 0) < 350) return; var it = W.bi.items[W.bi.i]; if (!it || it.state === 'ok' || it.state === 'shown') return; var p = it.slots[k]; if (p && !p.fixed) { it.slots[k] = null; it.bank.push(p); it.state = ''; biSound('remove'); } biPage(); }
   function biCheck() {
     var z = W.bi, it = z.items[z.i]; if (!biFull(it)) return;
     it.tries++; var ok = it.slots.map(function (p) { return p.t; }).join(' ') === it.canon.join(' ');
-    if (ok) { it.state = 'ok'; if (it.tries === 1) z.first++; biSound('ok'); } else { it.state = 'bad'; biSound('bad'); }
+    if (ok) { it.state = 'ok'; if (it.tries === 1) z.first++; biSound('ok'); var zi = z.i, zz = z; clearTimeout(z.__auto); z.__auto = setTimeout(function () { if (W && W.bi === zz && zz.i === zi && it.state === 'ok' && W.view === 'build') biNext(); }, 2000); } else { it.state = 'bad'; biSound('bad'); }
     biPage();
   }
   function biRetry() { var it = W.bi.items[W.bi.i]; it.slots = it.slots.map(function (p) { if (p && !p.fixed) { it.bank.push(p); return null; } return p; }); it.state = ''; biPage(); }
