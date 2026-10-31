@@ -2442,7 +2442,10 @@ window.apPrintFrame = function (f) {
     [].forEach.call(d.styleSheets, function (sh) { try { css += scope(sh.cssRules); } catch (e) { } });
     p.innerHTML = '<style>' + css + '</style>' + d.body.innerHTML; document.body.appendChild(p);
     var st = document.createElement('style'); st.id = 'appo-print-css'; st.textContent = '@media screen{#appo-print{display:none}}@media print{body>*:not(#appo-print){display:none!important}#appo-print{display:block!important}}'; document.head.appendChild(st);
-    var done = function () { p.remove(); st.remove(); window.removeEventListener('afterprint', done); };
+    // Learn (and other overlays) lock the page with overflow:hidden, and the iPad then prints only one screen's worth; free it for the print
+    var de = document.documentElement, db = document.body, ov0 = [de.style.overflow, db.style.overflow, de.style.height, db.style.height];
+    de.style.overflow = db.style.overflow = 'visible'; de.style.height = db.style.height = 'auto';
+    var done = function () { p.remove(); st.remove(); de.style.overflow = ov0[0]; db.style.overflow = ov0[1]; de.style.height = ov0[2]; db.style.height = ov0[3]; window.removeEventListener('afterprint', done); };
     window.addEventListener('afterprint', done); window.print();
   } catch (e) { try { var w = f.contentWindow; (w.__apOrigPrint || w.print)(); } catch (e2) { window.print(); } }
 };
@@ -20157,4 +20160,4 @@ window.APBZ_HOST = {
   if (document.readyState === 'complete') start(); else window.addEventListener('load', start);
 })();
 </script>
-<script id="ap-build">window.__apBuild="044e97c44b";</script>
+<script id="ap-build">window.__apBuild="d13528fe41";</script>
