@@ -74,7 +74,7 @@ def frame_css(png,slice_px,bw,radius,g=2,pad=None):
     return ('<style id="ap-drillcard">'
       '.aph-drill{background:url(data:image/jpeg;base64,%s) center/cover;min-height:calc(100vh - 150px)}'
       '.aph-qcard{position:relative;border:%dpx solid transparent;border-image:url(%s) %d fill / %dpx stretch;background:none;border-radius:%dpx;'
-      'box-shadow:0 12px 22px rgba(26,39,68,.20),0 2px 4px rgba(26,39,68,.12);margin-bottom:22px;padding:8px 10px 12px}'
+      'box-shadow:0 12px 22px rgba(26,39,68,.20),0 2px 4px rgba(26,39,68,.12);margin-bottom:22px;padding:8px 18px 12px;isolation:isolate}.aph-qcard::before{content:"";position:absolute;inset:0;z-index:-1;background:rgba(255,253,246,.42);pointer-events:none}'
       %(b64(bg(g),900,72),bw,u,sl,bw,radius)+COMMON+'</style>')
 def inject_frame(path,png,slice_px,bw,radius,g=2):
     s=open(path,encoding='utf-8').read()
