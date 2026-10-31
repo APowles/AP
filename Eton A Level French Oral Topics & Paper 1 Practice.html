@@ -2437,7 +2437,9 @@ window.apPrintFrame = function (f) {
   try {
     var d = f.contentDocument, old = document.getElementById('appo-print'); if (old) old.remove();
     var p = document.createElement('div'), css = ''; p.id = 'appo-print';
-    [].forEach.call(d.querySelectorAll('style'), function (s) { css += s.textContent; });
+    // the sheet's own styles are scoped to the copy (its html/body rules would otherwise resize and clip the whole page, which breaks the iPad print preview)
+    var scope = function (rules) { var out = ''; [].forEach.call(rules, function (r) { if (r.type === 1) { var sel = r.selectorText.split(',').map(function (x) { x = x.trim(); return /^(html|body)$/i.test(x) ? '#appo-print' : /^(html|body)\s/i.test(x) ? '#appo-print ' + x.replace(/^(html|body)\s+/i, '') : '#appo-print ' + x; }).join(','), tx = r.style.cssText; if (/^#appo-print(,|$)/.test(sel)) tx = tx.replace(/(^|;)\s*(height|width)\s*:[^;]*/gi, '$1'); out += sel + '{' + tx + '}'; } else if (r.type === 4) { out += '@media ' + r.media.mediaText + '{' + scope(r.cssRules) + '}'; } else if (r.type === 6) { out += '@page{' + r.style.cssText + '}'; } else if (r.type === 5) { out += r.cssText; } }); return out; };
+    [].forEach.call(d.styleSheets, function (sh) { try { css += scope(sh.cssRules); } catch (e) { } });
     p.innerHTML = '<style>' + css + '</style>' + d.body.innerHTML; document.body.appendChild(p);
     var st = document.createElement('style'); st.id = 'appo-print-css'; st.textContent = '@media screen{#appo-print{display:none}}@media print{body>*:not(#appo-print){display:none!important}#appo-print{display:block!important}}'; document.head.appendChild(st);
     var done = function () { p.remove(); st.remove(); window.removeEventListener('afterprint', done); };
@@ -20155,4 +20157,4 @@ window.APBZ_HOST = {
   if (document.readyState === 'complete') start(); else window.addEventListener('load', start);
 })();
 </script>
-<script id="ap-build">window.__apBuild="8732e172e5";</script>
+<script id="ap-build">window.__apBuild="044e97c44b";</script>
