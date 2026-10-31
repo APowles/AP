@@ -2,6 +2,7 @@
 window.APBZ_HOST = {
   phrases: function () {
     var out = [];
+    if (window.__apKtrItems && window.__apKtrItems.length && !document.body.classList.contains('od-on')) return window.__apKtrItems.slice();   // opened from the KTR Studio panel: that KTR's own sentences
     getFiltered().forEach(function (t) {
       [['def_fr', 'def_en'], ['ex_fr', 'ex_en'], ['an_fr', 'an_en']].forEach(function (k) { if (t[k[0]] && t[k[1]]) out.push({ fr: t[k[0]], en: t[k[1]], sec: t.theme }); });
       (t.tp_list || []).forEach(function (x) { if (x.fr && x.en) out.push({ fr: x.fr, en: x.en, sec: t.theme }); });
