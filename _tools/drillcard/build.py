@@ -14,9 +14,9 @@ def bg(n):
 def b64(im,w,q=80):
     im=im.resize((w,int(im.height*w/im.width)),Image.LANCZOS); b=io.BytesIO(); im.save(b,'JPEG',quality=q,optimize=True,progressive=True)
     return base64.b64encode(b.getvalue()).decode()
-COMMON=('.reveal,.reveal.timed{background:none;border-left:0;border-radius:0;box-shadow:none;text-align:center;border-top:0;padding:.9rem .5rem .2rem;margin-top:.5rem}'
- '.vg-timeup{color:#8a6d1f}.vg-others>span{color:#4a5a7a;font-size:.9rem}.reveal-also{font-size:.95rem}'
- '.aph-qcard{position:relative}')
+COMMON=('.aph-drill .reveal,.aph-drill .reveal.timed{background:none;border-left:0;border-radius:0;box-shadow:none;text-align:center;border-top:0;padding:.9rem .5rem .2rem;margin-top:.5rem}'
+ '.aph-drill .answer{background:none;border-left:0;border-radius:0;box-shadow:none;padding:.9rem .5rem .2rem;margin-top:.5rem}.aph-drill .am-others>span{color:#4a5a7a}.aph-drill .vg-timeup{color:#8a6d1f}.aph-drill .vg-others>span{color:#4a5a7a;font-size:.9rem}.aph-drill .reveal-also{font-size:.95rem}'
+ '.aph-drill .aph-qcard{position:relative}')
 FRAME={'plain':'',
  'deck':('.aph-qcard::before{content:"";position:absolute;inset:7px;border:1px solid rgba(201,168,76,.55);border-radius:9px;pointer-events:none}'
   '.aph-qcard{box-shadow:0 1px 0 rgba(255,255,255,.9) inset,0 9px 20px rgba(26,39,68,.12),0 7px 0 -3px #f6f1e4,0 8px 0 -3px rgba(201,168,76,.5),0 14px 0 -6px #eee7d4,0 15px 0 -6px rgba(201,168,76,.4)!important;margin-bottom:18px}'),
@@ -66,6 +66,9 @@ if __name__=='__main__':
 
 
 # ---- ChatGPT frame mode: 9-slice border-image from a card-frame PNG (transparent corners) ----
+HIDE=('<script id="ap-drillcard-js">(function(){try{var f=function(){var c=document.querySelectorAll(".aph-drill .aph-qcard");'
+ 'for(var i=0;i<c.length;i++){var h=c[i].querySelector(".prompt-hint");if(h)h.style.display=c[i].querySelector(".reveal")?"none":"";}};'
+ 'new MutationObserver(f).observe(document.documentElement,{childList:true,subtree:true});}catch(e){}})();</script>')
 def frame_css(png,slice_px,bw,radius,g=2,pad=None):
     import io,base64
     im=Image.open(png).convert('RGBA'); w=900; im=im.resize((w,int(im.height*w/im.width)),Image.LANCZOS)
@@ -73,11 +76,12 @@ def frame_css(png,slice_px,bw,radius,g=2,pad=None):
     k=w/Image.open(png).width; sl=int(round(slice_px*k))
     return ('<style id="ap-drillcard">'
       '.aph-drill{background:url(data:image/jpeg;base64,%s) center/cover;min-height:calc(100vh - 150px)}'
-      '.aph-qcard{position:relative;border:%dpx solid transparent;border-image:url(%s) %d fill / %dpx stretch;background:none;border-radius:%dpx;'
-      'box-shadow:0 12px 22px rgba(26,39,68,.20),0 2px 4px rgba(26,39,68,.12);margin-bottom:22px;padding:8px 18px 12px;isolation:isolate}.aph-qcard::before{content:"";position:absolute;inset:0;z-index:-1;background:rgba(255,253,246,.42);pointer-events:none}'
-      %(b64(bg(g),900,72),bw,u,sl,bw,radius)+COMMON+'</style>')
+      '.aph-drill .aph-qcard{position:relative;border:%dpx solid transparent;border-image:url(%s) %d fill / %dpx stretch;background:none;border-radius:%dpx;'
+      'box-shadow:0 12px 22px rgba(26,39,68,.20),0 2px 4px rgba(26,39,68,.12);margin-bottom:22px;padding:8px 18px 12px;isolation:isolate}.aph-drill .aph-qcard::before{content:"";position:absolute;inset:0;z-index:-1;background:rgba(255,253,246,.42);pointer-events:none}'
+      %(b64(bg(g),900,72),bw,u,sl,bw,radius)+COMMON+'</style>'+HIDE)
 def inject_frame(path,png,slice_px,bw,radius,g=2):
     s=open(path,encoding='utf-8').read()
     s=re.sub(r'<style id="ap-drillcard">.*?</style>','',s,flags=re.S)
+    s=re.sub(r'<script id="ap-drillcard-js">.*?</script>','',s,flags=re.S)
     s=s.replace('</head>',frame_css(png,slice_px,bw,radius,g)+'</head>',1)
     open(path,'w',encoding='utf-8').write(s)
