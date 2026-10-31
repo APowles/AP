@@ -15053,7 +15053,7 @@ textarea.ms-in{min-height:7rem;resize:vertical}
 .od-grp:first-child{margin-top:0}
 .od-act{--ac:#6b7690;min-height:132px;border:1.5px solid #e1dccb;border-left:6px solid var(--ac);border-radius:16px;background:#fff;padding:12px 14px 10px 14px;box-shadow:0 1px 2px rgba(20,32,65,.06),0 6px 16px rgba(20,32,65,.05);transition:transform .12s,box-shadow .12s,border-color .12s}
 .od-act:hover{transform:translateY(-2px);box-shadow:0 2px 4px rgba(20,32,65,.08),0 12px 24px rgba(20,32,65,.1)}
-.od-act[data-k=K]{--ac:#0f6b6b}.od-act[data-k=P]{--ac:#1a2744}.od-act[data-k=B]{--ac:#b9770e}.od-act[data-k=G]{--ac:#6b3fa0}.od-act[data-k=O]{--ac:#1a6b3a}.od-act[data-k=E]{--ac:#b03a2e}.od-act[data-k=T]{--ac:#142041}
+.od-act[data-g=K]{--ac:#0f6b6b}.od-act[data-g=P]{--ac:#1a2744}.od-act[data-g=S]{--ac:#6b3fa0}.od-act[data-k=K]{--ac:#0f6b6b}.od-act[data-k=P]{--ac:#1a2744}.od-act[data-k=B]{--ac:#b9770e}.od-act[data-k=G]{--ac:#6b3fa0}.od-act[data-k=O]{--ac:#1a6b3a}.od-act[data-k=E]{--ac:#b03a2e}.od-act[data-k=T]{--ac:#142041}
 .od-act.on{background:#fffaf0;border-color:var(--ac);box-shadow:0 0 0 2px var(--ac),0 10px 24px rgba(20,32,65,.14)}
 .od-act.on .od-chk{background:var(--ac);border-color:var(--ac)}
 .od-act b{font-size:1.2rem}
@@ -15746,6 +15746,11 @@ function closeKTRChallenge() {
     { k: 'E', name: 'Spot the mistake', lv: 3, src: 'dmE', desc: 'One slip in a sentence from the demo: a wrong or missing word, or a spelling or grammar error. No clue. Write ONLY the corrected word or words, not the whole sentence.' },
     { k: 'T', name: 'Translate', lv: 4, g: 'Translate', src: 'dmT', desc: 'Short sentences from the demo, with help on hand.' }
   ];
+  var GROUPS = [
+    { k: 'K', name: 'Key words', acts: ['K'], desc: 'The useful words and phrases this demo uses.' },
+    { k: 'P', name: 'Top Structures', acts: ['P'], desc: 'The Top Structures this answer uses, English \u2194 target language.' },
+    { k: 'S', name: 'Demo sentences', acts: ['B', 'G', 'O', 'E', 'T'], desc: 'The demo\u2019s own sentences: bold bits, gaps, word order, spot the mistake, translation.' }
+  ];
   var DIRS = function () { return { en: 'English → ' + LN(), fr: LN() + ' → English', mix: 'Mixed' }; };
   var SET = { per: 6, test: 15, dir: 'en', tiles: 12, tt: 20, help: 1, build: 2, bsnd: 1 };
   try { var raw = JSON.parse(localStorage.getItem(SKEY) || 'null'); if (raw) for (var k in SET) if (raw[k] != null) SET[k] = raw[k]; } catch (e) { }
@@ -15988,7 +15993,11 @@ function closeKTRChallenge() {
   }
   function tagHtml(o) { return '<span class="od-tag" style="background:' + o.tagc[0] + ';color:' + o.tagc[1] + '">' + esc(o.tag).toUpperCase() + '</span>'; }
   function actName(k) { for (var i = 0; i < ACTS.length; i++) if (ACTS[i].k === k) return ACTS[i].name; return ''; }
-  function selActs() { return ACTS.filter(function (a) { return W.sel[a.k] && W.ctx.avail[a.k] > 0; }); }
+  function selActs() { return ACTS.filter(function (a) { return W.sel[a.k] && W.ctx.avail[a.k] > 0 && (!W.only || W.only[a.k]); }); }
+  function grpOf(k) { for (var i = 0; i < GROUPS.length; i++) if (GROUPS[i].k === k) return GROUPS[i]; return null; }
+  function gAvail(g) { return g.acts.reduce(function (n, k) { return n + (W.ctx.avail[k] || 0); }, 0); }
+  function ticked() { return GROUPS.filter(function (g) { return W.grps[g.k] && gAvail(g) > 0; }); }
+  function syncSel() { W.sel = {}; W.only = null; ticked().forEach(function (g) { g.acts.forEach(function (k) { if (W.ctx.avail[k] > 0) W.sel[k] = true; }); }); }
   function selTotal() { return selActs().reduce(function (n, a) { return n + W.ctx.avail[a.k]; }, 0); }
   // a whole practice set: the ticked activities in ladder order, each with its own items
   function sessionViews() {
@@ -16025,21 +16034,22 @@ function closeKTRChallenge() {
     return '<div class="od-top"><button type="button" class="od-back" data-a="back">← ' + (backTxt || 'Back') + '</button><h2 class="od-title">' + title + (sub ? '<small>' + sub + '</small>' : '') + '</h2>' + (extra || '') + crest() + '</div>';
   }
   function codeBadge() { return W.ctx.code ? '<span class="od-code">' + esc(W.ctx.code) + '</span>' : ''; }
-  function step(n, t) { return '<div class="ms-step"><span class="ms-num">' + n + '</span>' + t + '</div>'; }
+  function step(n, t) { return '<div class="ms-step"><span class="ms-num' + (/^(FIRST|NEXT)$/.test(n) ? ' ms-big' : '') + '">' + n + '</span>' + t + '</div>'; }
 
-  // ---------- page 1: the set-up ----------
+  // ---------- page 1: the set-up: FIRST (what to learn), NEXT (how to practise it) ----------
   function pageSetup() {
     var c = W.ctx, card = c.card, na = selActs().length, tot = selTotal(), has = c.nActs > 0, D = DIRS();
     var h = '<div class="od-page"><div class="od-hero">' + crest() + '<button type="button" class="od-hback" data-a="back">← Back to the card</button><button type="button" class="od-hback od-hpace" data-a="pace" title="Voice speed and pause between sentences">🎚 Speed &amp; pauses</button><div class="od-hk">Learn from this demo' + codeBadge() + '</div><h2 class="od-ht">' + esc(c.theme) + '</h2>'
       + '<details class="od-hq" open><summary>The ' + c.q.length + ' questions</summary><ol>' + c.q.map(function (q) { return '<li>' + esc(q) + '</li>'; }).join('') + '</ol></details>'
       + '<div class="od-hl"><span>🎧 <b>Start by listening.</b> Follow the Top Structures, then come back and make them yours.</span><button type="button" data-a="listen">▶ Demo Mode</button></div></div>';
     if (has) {
-      h += step('FIRST', 'What do you want to practise from this demo?');
-      h += '<div class="od-acts">' + ACTS.filter(function (a) { return c.avail[a.k] > 0; }).map(function (a) {
-        var on = !!W.sel[a.k], n = c.avail[a.k];
-        return (a.g ? '<div class="od-grp">' + a.g + '</div>' : '') + '<button type="button" class="od-act' + (on ? ' on' : '') + '" role="checkbox" aria-checked="' + on + '" data-a="tog" data-k="' + a.k + '"><span class="od-chk"></span><span class="od-lv" title="Easy to hard">' + ['', 'Easy', 'Medium', 'Harder', 'Hardest'][a.lv] + ' <em>' + dots(a.lv) + '</em></span><b>' + a.name + '</b><small>' + a.desc + '</small><i>' + n + ' item' + (n === 1 ? '' : 's') + '</i></button>';
+      h += step('FIRST', 'What do you want to learn from this demo?');
+      h += '<div class="od-selrow"><span>Tick one, two or all three.</span><button type="button" class="od-link" data-a="all">Tick all</button><button type="button" class="od-link" data-a="none">Clear</button></div>';
+      h += '<div class="od-acts">' + GROUPS.filter(function (x) { return gAvail(x) > 0; }).map(function (x) {
+        var on = !!W.grps[x.k], n = gAvail(x);
+        return '<button type="button" class="od-act' + (on ? ' on' : '') + '" role="checkbox" aria-checked="' + on + '" data-a="grp" data-g="' + x.k + '"><span class="od-chk"></span><b>' + x.name + '</b><small>' + x.desc + '</small><i>' + n + ' item' + (n === 1 ? '' : 's') + '</i></button>';
       }).join('') + '</div>';
-      h += '<div class="od-selrow"><span>Tick one, several or all. They run from easy to hard.</span><button type="button" class="od-link" data-a="all">Tick all</button><button type="button" class="od-link" data-a="none">Clear</button></div>';
+      h += '<div class="ms-now' + (na ? '' : ' ms-need') + '">' + (na ? 'Learning: <b>' + ticked().map(function (x) { return x.name; }).join(' + ') + '</b> · ' + tot + ' items' : 'Choose what to learn. The ways to practise it then appear below.') + '</div>';
     } else {
       h += '<div class="od-none">The extra activities are not ready for this demo yet. You can still read it again or have a go yourself.</div>';
     }
@@ -16055,27 +16065,30 @@ function closeKTRChallenge() {
         + optRow('Timer: seconds a turn (Speed Challenge)', 'tt', [[10, '10'], [20, '20'], [30, '30'], [45, '45']])
         + '</details>';
     }
-    var hasO = selActs().some(function (a) { return a.k === 'O'; }), ok = na > 0 && tot > 0, hasPair = selActs().some(function (a) { return a.k === 'K' || a.k === 'P' || a.k === 'B'; });
-    h += '<div class="ms-now">' + (!has ? '' : !na ? 'Choose at least one activity above to unlock the ways to practise it, or leave them all unticked to read the demo again or have a go.' : 'Practising: <b>' + selActs().map(function (a) { return a.name; }).join(', ') + '</b> · ' + tot + ' items') + '</div>';
+    var hasS = !!W.grps.S && gAvail(grpOf('S')) > 0, hasO = hasS && c.avail.O > 0, ok = na > 0 && tot > 0, hasPair = !!(W.sel.K || W.sel.P || W.sel.B), need = function (t) { return 'Needs ' + t + ' ticked above.'; };
     var T = [
-      ['ms-drill', 'drill', 'Say it', 'Oral drill: say it, check the model, rate each card.', 'drill', !ok],
-      ['ms-match', '🧩', 'Match it', hasPair ? 'Pair up English and ' + LN() + ': Key words, Top Structures, Bold bits.' : 'Needs Key words, Top Structures or Bold bits ticked above.', 'match', !(ok && hasPair)],
-      ['ms-build', 'build', 'Build it', hasO ? 'Tap or drag the tiles into the right order to rebuild sentences from the demo.' : 'Needs Word order ticked above.', 'build', !(ok && hasO)],
-      ['ms-speed', 'speed', 'Speed Challenge', 'Race the clock, solo or in teams.', 'speed', !ok],
+      ['ms-drill', 'drill', 'Say it', 'Oral drill: say it, check the model, rate each card. Demo sentences come as translation.', 'drill', !ok],
+      ['ms-match', '🧩', 'Match it', hasPair ? 'Pair up English and ' + LN() + ': Key words, Top Structures, Bold bits.' : need('Key words, Top Structures or Demo sentences'), 'match', !(ok && hasPair)],
+      ['ms-build', 'build', 'Build it', hasO ? 'Tap or drag the tiles into the right order to rebuild sentences from the demo.' : need('Demo sentences'), 'build', !(ok && hasO)],
+      ['ms-speed', 'speed', 'Speed Challenge', hasPair ? 'Race the clock, solo or in teams.' : need('Key words, Top Structures or Demo sentences'), 'speed', !(ok && hasPair)],
+      ['ms-bold', '🖍', 'Bold bits', hasS && c.avail.B > 0 ? 'Just the bold Top Structure in a demo sentence: say what it means, or say it.' : need('Demo sentences'), 'dact', !(hasS && c.avail.B > 0), 'B'],
+      ['ms-gap', '✍', 'Gaps', hasS && c.avail.G > 0 ? 'A short phrase is missing from a sentence of the demo. Fill it in.' : need('Demo sentences'), 'dact', !(hasS && c.avail.G > 0), 'G'],
+      ['ms-spot', '🔍', 'Spot the mistake', hasS && c.avail.E > 0 ? 'One slip in a sentence from the demo. Find it and write only the correction.' : need('Demo sentences'), 'dact', !(hasS && c.avail.E > 0), 'E'],
+      ['ms-trans', '🔤', 'Translate', hasS && c.avail.T > 0 ? 'Short sentences from the demo, with help on hand.' : need('Demo sentences'), 'dact', !(hasS && c.avail.T > 0), 'T'],
       ['ms-test', 'test', 'Test', 'A short test to write with Apple Pencil or print. Answers stay hidden.', 'test', !ok],
       ['ms-print ms-viewprint', 'viewprint', 'View & print', 'Read your chosen lists tidily on screen, or print them or save a PDF.', 'vprint', !ok],
       ['ms-print', '🖨', 'Print a sheet', 'The same activities as a sheet to write on.', 'print', !ok],
-      ['ms-read', '📖', 'Read it again', na > 0 ? 'Works on the whole demo: untick the activities above to use it.' : 'The demo sentence by sentence, with its structures picked out.', 'read', na > 0],
+      ['ms-read', '📖', 'Read it again', na > 0 ? 'Works on the whole demo: untick what you chose above to use it.' : 'The demo sentence by sentence, with its structures picked out.', 'read', na > 0],
       ['ms-go ms-reuse', '🔁', 'Roll it', (W.ctx.base.P || []).length ? 'Oral practice: reuse one Top Structure three times: on a card question, then on two new topics chosen by rolling the dice.' : 'This demo has no Top Structures to reuse.', 'reuse', !(W.ctx.base.P || []).length],
-      ['ms-go', '🎙', 'Have a go', na > 0 ? 'Works on the whole demo: untick the activities above to use it.' : 'Answer the questions yourself, with the demo closed, then record your oral.', 'go', na > 0]
+      ['ms-go', '🎙', 'Have a go', na > 0 ? 'Works on the whole demo: untick what you chose above to use it.' : 'Answer the questions yourself, with the demo closed, then record your oral.', 'go', na > 0]
     ];
     if (!has) T = T.filter(function (x) { return x[4] === 'read' || x[4] === 'go' || x[4] === 'reuse'; });
     h += '<div class="aph-tools ms-tiles">' + T.map(function (x) {
       var img = ICONS[x[1]] ? '<img class="ms-img" alt="" src="' + ICONS[x[1]] + '">' : '<span class="ms-img od-ic">' + x[1] + '</span>';
-      return '<button type="button" class="ms-tile ' + x[0] + '"' + (x[5] ? ' disabled' : '') + ' data-a="' + x[4] + '">' + img + '<span class="ms-tx"><span class="ms-tt">' + x[2] + '</span><span class="ms-td">' + x[3] + '</span></span></button>';
+      return '<button type="button" class="ms-tile ' + x[0] + '"' + (x[5] ? ' disabled' : '') + ' data-a="' + x[4] + '"' + (x[6] ? ' data-k="' + x[6] + '"' : '') + '>' + img + '<span class="ms-tx"><span class="ms-tt">' + x[2] + '</span><span class="ms-td">' + x[3] + '</span></span></button>';
     }).join('') + '</div>';
     var hasTm = typeof tmItems === 'function' && tmItems(card), dis = na > 0;
-    h += '<div class="od-rung"><div class="od-grp">Top rung: the whole answer</div><p class="od-rp">Ready to take the scaffolding away? These work on the whole demo, not the ticked activities above.' + (dis ? ' Untick the activities to use them.' : '') + '</p><div class="aph-tools ms-tiles">'
+    h += '<div class="od-rung"><div class="od-grp">Top rung: the whole answer</div><p class="od-rp">Ready to take the scaffolding away? These work on the whole demo, not what you ticked above.' + (dis ? ' Untick the activities to use them.' : '') + '</p><div class="aph-tools ms-tiles">'
       + (hasTm ? '<button type="button" class="ms-tile ms-test"' + (dis ? ' disabled' : '') + ' data-a="tm"><span class="ms-img od-ic">✍️</span><span class="ms-tx"><span class="ms-tt">Translate 10 sentences</span><span class="ms-td">Timed or untimed, with a pause. Apple Pencil, marked out of 40, then a PDF.</span></span></button>' : '')
       + '<button type="button" class="ms-tile ms-print"' + (dis ? ' disabled' : '') + ' data-a="sheet"><span class="ms-img od-ic">🖨</span><span class="ms-tx"><span class="ms-tt">Full translation sheet</span><span class="ms-td">Every sentence of the demo, to translate on paper.</span></span></button></div>'
       + '<div class="od-extra"><p>A link to this page can be pasted into OneNote: it opens straight here.</p><button type="button" class="ms-b sm" data-a="link">🔗 Copy link to this demo</button></div></div>';
@@ -16086,7 +16099,7 @@ function closeKTRChallenge() {
     return '<div class="od-set"><span>' + label + '</span>' + opts.map(function (o) { return '<button type="button" class="ms-b sm' + (SET[key] === o[0] ? ' on' : '') + '" data-a="opt" data-o="' + key + '" data-v="' + o[0] + '">' + o[1] + '</button>'; }).join('') + '</div>';
   }
   function showSetup(keep) {
-    W.view = 'setup'; unkey(); hush();
+    W.view = 'setup'; syncSel(); unkey(); hush();
     paint(pageSetup(), keep);
     try { var ov0 = $('od-ov'); if (ov0) ov0.classList.toggle('od-noticks', demoPool().length < 4); } catch (e) { }
     var d = $('od-set'); if (d) d.addEventListener('toggle', function () { setOpen = d.open; });
@@ -16357,7 +16370,7 @@ function closeKTRChallenge() {
   // for the drill-link maker (link to this set-up) and for opening such a link
   function linkInfo() {
     if (!W || !W.ctx || !$('od-ov')) return null;
-    var ks = selActs(); if (!ks.length) return { why: 'Tick the activities you want first (under FIRST), then make the link.' };
+    var ks = selActs(); if (!ks.length) return { why: 'Tick what you want to learn first (under FIRST), then make the link.' };
     return { cfg: { k: 'l', c: W.ctx.code || W.ctx.id, a: ks.map(function (a) { return a.k; }).join('') }, lang: W.ctx.lang || lang(), title: 'Learn from this demo: ' + (W.ctx.code || W.ctx.id) + ' · ' + ks.map(function (a) { return a.name; }).join(', ') };
   }
   function applyLink(c) {
@@ -16811,12 +16824,13 @@ function closeKTRChallenge() {
     switch (a) {
       case 'back': back(); break;
       case 'pace': try { if (window.AP_SP) AP_SP.toggle(e); } catch (er) { } break;
-      case 'tog': var k = t.getAttribute('data-k'); W.sel[k] = !W.sel[k]; showSetup(true); break;
-      case 'all': ACTS.forEach(function (x) { if (c.avail[x.k] > 0) W.sel[x.k] = true; }); showSetup(true); break;
-      case 'none': ACTS.forEach(function (x) { W.sel[x.k] = false; }); showSetup(true); break;
+      case 'grp': var gk = t.getAttribute('data-g'); W.grps[gk] = !W.grps[gk]; syncSel(); showSetup(true); break;
+      case 'all': GROUPS.forEach(function (x) { if (gAvail(x) > 0) W.grps[x.k] = true; }); syncSel(); showSetup(true); break;
+      case 'none': W.grps = {}; syncSel(); showSetup(true); break;
+      case 'dact': W.only = {}; W.only[t.getAttribute('data-k')] = 1; try { goDrill(); } finally { W.only = null; } break;   // one kind of demo-sentence activity
       case 'opt': var key = t.getAttribute('data-o'), v = t.getAttribute('data-v'); SET[key] = (key === 'dir') ? v : parseInt(v, 10); saveSet(); showSetup(true); break;
-      case 'drill': goDrill(); break;
-      case 'speed': goSpeed(); break;
+      case 'drill': W.only = { K: 1, P: 1, B: 1, T: 1 }; try { goDrill(); } finally { W.only = null; } break;   // Say it: words, structures, bold bits and (as translation) the demo sentences
+      case 'speed': W.only = { K: 1, P: 1, B: 1 }; try { goSpeed(); } finally { W.only = null; } break;
       case 'match': goMatch(); break;
       case 'build': biOpen(); break;
       case 'bpick': biPick(+t.getAttribute('data-k')); break;
@@ -16871,7 +16885,7 @@ function closeKTRChallenge() {
     var c = ctxFor(card); if (!c) { alert('No demo found for this card.'); return; }
     try { if (typeof stopDemoMode === 'function' && document.getElementById('demo-pause-btn')) stopDemoMode(); } catch (e) { }
     hookKtr(); hookGamify();
-    W = { ctx: c, sel: {}, view: 'setup', showEn: false, frames: null };
+    W = { ctx: c, sel: {}, grps: {}, view: 'setup', showEn: false, frames: null };
     openOv(); showSetup();
     lockKeys(function (e) { if (e.key === 'Escape') { back(); return true; } return false; });
     var o = $('od-ov'); if (o) o.scrollTop = 0;
@@ -16891,7 +16905,7 @@ function closeKTRChallenge() {
     try { launchOral(); setLang(lg); showCard(card, 'code'); } catch (e) { return false; }
     setTimeout(function () {
       open();
-      if (acts && W && W.ctx) { ACTS.forEach(function (a) { if (acts.indexOf(a.k) >= 0 && W.ctx.avail[a.k] > 0) W.sel[a.k] = true; }); showSetup(true); try { var st = $('od-ov').querySelectorAll('.ms-step'); if (st[1]) $('od-ov').scrollTop = st[1].offsetTop - 12; } catch (e) { } }
+      if (acts && W && W.ctx) { GROUPS.forEach(function (g) { if (g.acts.some(function (k) { return acts.indexOf(k) >= 0; }) && gAvail(g) > 0) W.grps[g.k] = true; }); showSetup(true); try { var st = $('od-ov').querySelectorAll('.ms-step'); if (st[1]) $('od-ov').scrollTop = st[1].offsetTop - 12; } catch (e) { } }
     }, 250);
     return true;
   }
