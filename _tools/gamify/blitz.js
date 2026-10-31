@@ -421,7 +421,7 @@
     '.dl-race{display:flex;align-items:flex-start;justify-content:center;gap:clamp(8px,1.6vw,22px);width:min(1280px,98%)}',
     '.dl-race .dl-tab{flex:1 1 auto;margin:0;width:auto;min-width:0}',
     '.dl-pcol{flex:none;width:clamp(150px,21vw,260px);display:flex;flex-direction:column;align-items:center;gap:4px;padding:8px 6px 10px;border-radius:14px;border:2px solid transparent}',
-    '.dl-pcol h3{margin:0;font-weight:800;font-size:1.15rem;letter-spacing:.06em;color:#86a8e6}',
+    '.dl-pcol h3{position:relative;z-index:6;text-shadow:0 1px 6px #000;margin:0 0 6px;font-weight:800;font-size:1.15rem;letter-spacing:.06em;color:#86a8e6}',
     '.dl-pcol.t1 h3{color:#e0c070}',
     '.dl-pcol.act{border-color:rgba(255,255,255,.35);background:rgba(255,255,255,.06)}',
     '.dl-pile{position:relative;width:100%;height:clamp(150px,30vh,280px)}',
@@ -502,7 +502,7 @@
   function dlTurn(team, names, sub) { return '<div class="dl-turn" style="--tc:' + (team ? '#e0c070' : '#6f9bff') + '"><i></i>' + names[team] + ' · ' + sub + '</div>'; }
   function dlPileHTML(t, label, n, act, landing, emptyTx) {
     var show = Math.min(n, 30), ly = '';
-    for (var k = 0; k < show; k++) ly += '<i class="dl-pl' + (landing && k === show - 1 ? ' land' : '') + '" style="bottom:' + (k * 5) + 'px;transform:rotate(' + (((k * 53) % 11) - 5) + 'deg) translateX(' + (((k * 29) % 9) - 4) + 'px)"></i>';
+    for (var k = 0; k < show; k++) ly += '<i class="dl-pl' + (landing && k === show - 1 ? ' land' : '') + '" style="bottom:' + (k * (show > 14 ? 2.6 : 5)) + 'px;transform:rotate(' + (((k * 53) % 11) - 5) + 'deg) translateX(' + (((k * 29) % 9) - 4) + 'px)"></i>';
     return '<div class="dl-pcol t' + t + (act ? ' act' : '') + '"><h3>' + label + '</h3><div class="dl-pile">' + ly + (n ? '' : '<span class="dl-pe">' + (emptyTx || 'your pile') + '</span>') + '</div><div class="dl-cnt"><b>' + n + '</b>card' + (n === 1 ? '' : 's') + '</div></div>';
   }
   function dlBurst(r) {   // a shower of gold sparks where a card lands

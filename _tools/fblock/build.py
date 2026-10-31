@@ -66,7 +66,7 @@ HUB_JS = r'''W.goHub = function () {
     var I = window.FB_ICONS || {};
     function card(on, key, name, desc, tags) { return '<div class="fbh-card" onclick="' + on + '"><img class="fbh-ic" src="' + (I[key] || '') + '" alt=""><div class="fbh-t">' + name + '</div><div class="fbh-d">' + desc + '</div><div class="fbh-tags">' + tags.map(function (t) { return '<span>' + t + '</span>'; }).join('') + '</div><button type="button" class="fbh-btn" onclick="event.stopPropagation();' + on + '">&#9654; Start ' + name + '</button></div>'; }
     show('<div class="aph-wrap gh-hub"><div class="fbh-title">What would you like to practise?</div><div class="fbh-sub">Choose where to start</div><div class="fbh-grid">'
-      + card('fbDoor(\'vocab\')', 'vocab', 'Vocab', 'Learn and test the F Block vocabulary, unit by unit, with audio.', ['Say it', 'Spell it', 'Match it', 'Tests'])
+      + card('fbDoor(\'vocab\')', 'vocab', 'Vocab', 'Learn and test the F Block vocabulary, unit by unit, with audio.', ['Drill it', 'Spell it', 'Match it', 'Tests'])
       + card('hmOpen(\'core\')', 'verbs', 'Verbs', 'The 100 Core Verbs: drills, tests and sentences, one tense at a time.', ['100 Core Verbs', 'Audio', 'Trials'])
       + card('gramMenu()', 'grammar', 'Grammar', 'Clear notes for beginners, step-by-step lessons, drills and tests.', ['Notes', 'Studio', 'Drills', 'Tests'])
       + '</div></div>');
