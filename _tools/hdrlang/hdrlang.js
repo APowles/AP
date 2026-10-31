@@ -45,7 +45,8 @@
   var last = '', t;
   function sync() {
     var h = D.querySelector('.aph-header-in') || D.querySelector('.aph-header'); if (!h) return;
-    if (h.querySelector('.gg-hdr-langs')) return;   // an app that already has its own header language pills
+    var own = [].slice.call(h.querySelectorAll('button')).some(function (x) { return x.offsetParent !== null && !x.classList.contains('aph-hlang') && ['French', 'Italian', 'Spanish'].indexOf((x.textContent || '').replace(/[^A-Za-z]/g, '')) >= 0; });
+    if (h.querySelector('.gg-hdr-langs') || own) { var mine = h.querySelector('.aph-hlangs'); if (mine) mine.remove(); return; }   // an app that already has its own header language buttons
     var m = model(), box = h.querySelector('.aph-hlangs');
     if (!m) { if (box) box.remove(); last = ''; return; }
     var sig = m.L.join() + '|' + m.cur;
