@@ -202,4 +202,11 @@
     it.state = ''; it.pop = to; sound('place'); if (full(it)) check(); else page();
   }
   window.BuildIt = { open: open, close: close, ICON: '{{ICON}}' };
+  /* the Build it tile's picture: whichever screen draws the tile (and whenever it redraws), it gets the icon */
+  (function () {
+    var busy = false;
+    function fill() { if (busy) return; busy = true; try { var im = document.querySelectorAll('.ms-build .ms-img'); for (var i = 0; i < im.length; i++) if (im[i].getAttribute('src') !== window.BuildIt.ICON) im[i].setAttribute('src', window.BuildIt.ICON); } catch (e) { } busy = false; }
+    try { new MutationObserver(function () { fill(); }).observe(document.documentElement, { childList: true, subtree: true }); } catch (e) { }
+    fill();
+  })();
 })();

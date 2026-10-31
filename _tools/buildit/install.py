@@ -9,6 +9,11 @@ for k,v in {'{{BOARD}}':rd('board.txt'),'{{TILE}}':rd('tile.txt'),'{{ICON}}':rd(
 block='<!--BUILDIT:START-->\n<script>\n'+src+'\n</script>\n<!--BUILDIT:END-->\n'
 for f in sys.argv[1:]:
     s=open(f,encoding='utf-8').read()
-    s=re.sub(r'<!--BUILDIT:START-->.*?<!--BUILDIT:END-->\n?','',s,flags=re.S)
-    i=s.rindex('</body>'); s=s[:i]+block+s[i:]
+    pat=re.compile(r'<!--BUILDIT:START-->.*?<!--BUILDIT:END-->\n?',re.S)
+    if pat.search(s): s=pat.sub(lambda m: block,s,count=1)
+    else:
+        i=s.rfind('</body>')
+        # some pages end without a real </body> (the last one is inside a script string): then the block goes at the very end
+        if i<0 or s.rfind('<script',0,i)>s.rfind('</script>',0,i): s=s.rstrip('\n')+'\n'+block
+        else: s=s[:i]+block+s[i:]
     open(f,'w',encoding='utf-8').write(s); print('installed in',f)
