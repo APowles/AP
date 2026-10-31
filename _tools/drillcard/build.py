@@ -14,8 +14,8 @@ def bg(n):
 def b64(im,w,q=80):
     im=im.resize((w,int(im.height*w/im.width)),Image.LANCZOS); b=io.BytesIO(); im.save(b,'JPEG',quality=q,optimize=True,progressive=True)
     return base64.b64encode(b.getvalue()).decode()
-COMMON=('.reveal{background:rgba(255,255,255,.62);border-left:3px solid var(--navy);box-shadow:0 1px 3px rgba(26,39,68,.06)}'
- '.reveal.timed{background:rgba(255,255,255,.62);border-left-color:var(--navy)}.vg-timeup{color:#8a6d1f}.vg-others>span{color:#4a5a7a}'
+COMMON=('.reveal,.reveal.timed{background:none;border-left:0;border-radius:0;box-shadow:none;text-align:center;border-top:1px solid rgba(201,168,76,.75);padding:.7rem .5rem .2rem;margin-top:.75rem}'
+ '.vg-timeup{color:#8a6d1f}.vg-others>span{color:#4a5a7a}'
  '.aph-qcard{position:relative}')
 FRAME={'plain':'',
  'deck':('.aph-qcard::before{content:"";position:absolute;inset:7px;border:1px solid rgba(201,168,76,.55);border-radius:9px;pointer-events:none}'
