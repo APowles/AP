@@ -18049,15 +18049,20 @@ body.od-on #apsp-pop{position:fixed;top:76px;right:12px;margin-top:0;z-index:118
   function halves(b) {
     // the rule: a sentence of 14 words or more is never translated whole: it is split at a "…" (else a ";" or ",") that sits at the same place in the English and the French, nearest the middle
     function wc(t) { return String(t || '').trim().split(/\s+/).filter(Boolean).length; }
-    if (!b || !b.fr || !b.en || (wc(b.fr) < 14 && wc(b.en) < 14)) return null;
+    if (!b || !b.fr || !b.en) return null;
+    var long = wc(b.fr) >= 14 || wc(b.en) >= 14;   // a "…" is your own pause, so it always splits; a ';' or ',' only splits a sentence of 14+ words
     function cuts(t, sep) { var o = [], k = -1; while ((k = t.indexOf(sep, k + 1)) >= 0) { if (sep === ',' && /\d/.test(t.charAt(k - 1)) && /\d/.test(t.charAt(k + 1))) continue; o.push(k); } return o; }
     var seps = ['…', ';', ','];
     for (var s = 0; s < seps.length; s++) {
+      if (seps[s] !== '…' && !long) continue;
       var cf = cuts(b.fr, seps[s]), ce = cuts(b.en, seps[s]); if (!cf.length || cf.length !== ce.length) continue;
       var best = -1, bd = 1e9, tot = wc(b.en);
-      ce.forEach(function (k, n) { var d = Math.abs(wc(b.en.slice(0, k + 1)) - tot / 2); if (d < bd) { bd = d; best = n; } });
+      ce.forEach(function (k, n) { var d = Math.abs(wc(b.en.slice(0, k + 1)) - tot / 2); if (seps[s] === ',' && !/^(because|but|which|while|whereas|although|though|even if|even though|so that|so|as|since|yet|given that|before|after|when|where|if|unless|until|whether)\b/i.test(b.en.slice(k + 1).trim())) return; if (d < bd) { bd = d; best = n; } });
+      if (best < 0) continue;
       var f0 = b.fr.slice(0, cf[best] + 1).trim(), f1 = b.fr.slice(cf[best] + 1).trim(), e0 = b.en.slice(0, ce[best] + 1).trim(), e1 = b.en.slice(ce[best] + 1).trim();
-      if (wc(f0) >= 3 && wc(f1) >= 3 && wc(e0) >= 3 && wc(e1) >= 3) return { fr: [f0, f1], en: [e0, e1] };
+      var min = seps[s] === ',' ? 6 : 3;   // a comma is only a safe place to cut when both halves are substantial (and the sentence is 18+ words); your own "…" pauses are always safe
+      if (seps[s] === ',' && (tot < 18 || !/^(because|but|which|while|whereas|although|though|even if|even though|so that|so|as|since|yet|given that|whereas|before|after|when|where|if|unless|until|whether|while)\b/i.test(e1))) continue;
+      if (wc(f0) >= min && wc(f1) >= min && wc(e0) >= min && wc(e1) >= min) return { fr: [f0, f1], en: [e0, e1] };
     }
     return null;
   }
@@ -20135,4 +20140,4 @@ window.APBZ_HOST = {
   if (document.readyState === 'complete') start(); else window.addEventListener('load', start);
 })();
 </script>
-<script id="ap-build">window.__apBuild="98516d8fd8";</script>
+<script id="ap-build">window.__apBuild="17570795df";</script>
