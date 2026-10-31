@@ -15762,7 +15762,7 @@ textarea.ms-in{min-height:7rem;resize:vertical}
 </script>
 <!--IGOD-START-->
 <style id="igod-css">
-.od-ov{position:fixed;inset:0;z-index:11500;background:#faf8f3;overflow:auto;-webkit-overflow-scrolling:touch;font-family:'DM Sans',system-ui,sans-serif;color:#1a2744}
+.od-rung .ms-blitz{display:none!important}.od-ov.od-noticks .ms-blitz{opacity:.45;filter:grayscale(.7);pointer-events:none}body.od-on #bz-ov{z-index:11600!important}body.od-on #bz-set{z-index:11650!important}.od-ov{position:fixed;inset:0;z-index:11500;background:#faf8f3;overflow:auto;-webkit-overflow-scrolling:touch;font-family:'DM Sans',system-ui,sans-serif;color:#1a2744}
 .od-page{max-width:900px;margin:0 auto;padding:14px 18px 56px}
 .od-page.od-narrow{max-width:780px}.od-page.od-narrow.bi-wide{max-width:1080px}
 .od-top{display:flex;align-items:center;gap:12px;margin:0 0 14px;flex-wrap:wrap}
@@ -16826,13 +16826,13 @@ function closeKTRChallenge() {
     closeOv(true);
     var o = document.createElement('div'); o.id = 'od-ov'; o.className = 'od-ov'; o.setAttribute('role', 'dialog'); o.setAttribute('data-nogrow', '1');
     o.addEventListener('click', onClick);
-    document.body.appendChild(o); document.documentElement.style.overflow = 'hidden';
+    document.body.appendChild(o); document.documentElement.style.overflow = 'hidden'; document.body.classList.add('od-on');
     return o;
   }
   function closeOv(quiet) {
     var o = $('od-ov'); if (o) o.remove();
     document.documentElement.style.overflow = ''; unkey(); hush();
-    if (!quiet) W = null;
+    if (!quiet) { W = null; document.body.classList.remove('od-on'); }
   }
   function paint(html, keep) {
     var o = $('od-ov'); if (!o) return;
@@ -16910,6 +16910,7 @@ function closeKTRChallenge() {
   function showSetup(keep) {
     W.view = 'setup'; unkey(); hush();
     paint(pageSetup(), keep);
+    try { var ov0 = $('od-ov'); if (ov0) ov0.classList.toggle('od-noticks', demoPool().length < 4); } catch (e) { }
     var d = $('od-set'); if (d) d.addEventListener('toggle', function () { setOpen = d.open; });
   }
 
@@ -17082,6 +17083,29 @@ function closeKTRChallenge() {
     }
   }
   var BASE_TPL = null;
+  // ---------- Gamify it: while this screen is open the games play on exactly what is ticked, not on the whole section ----------
+  function learnOpen() { return !!(W && W.ctx && $('od-ov')); }
+  function demoPool() {
+    var c = W.ctx, out = [], L = lang(), seen = {};
+    function add(fr, en, sec) { fr = String(fr || '').trim(); en = String(en || '').trim(); if (!fr || !en || /\b[A-Z]{3,}\b/.test(fr + ' ' + en) || seen[sec + '|' + fr]) return; seen[sec + '|' + fr] = 1; var o = { en: en, sec: sec }; o[L] = fr; out.push(o); }
+    selActs().forEach(function (a) {
+      (c.base[a.k] || []).forEach(function (b) {
+        if (a.k === 'K' || a.k === 'P' || a.k === 'T') add(b.fr, b.en, a.k);
+        else if (a.k === 'B') add(b.cut, b.gloss || b.en, 'B');
+      });
+    });
+    return out;
+  }
+  function hookGamify() {
+    var H = window.APBZ_HOST; if (!H || H.__od || typeof H.phrases !== 'function') return; H.__od = 1;
+    var o = { phrases: H.phrases, from: H.from, to: H.to };
+    H.phrases = function () { return learnOpen() ? demoPool() : o.phrases.apply(H, arguments); };
+    H.from = function () { return learnOpen() ? (SET.dir === 'fr' ? lang() : 'en') : o.from.apply(H, arguments); };
+    H.to = function () { return learnOpen() ? (SET.dir === 'fr' ? 'en' : lang()) : o.to.apply(H, arguments); };
+    try { var HC = window.APBZ_HOSTCFG, nn = HC && HC.noun; if (HC) Object.defineProperty(HC, 'noun', { configurable: true, get: function () { return learnOpen() ? 'items' : nn; } }); } catch (e) { }
+    var ab = window.apBlitz;
+    if (typeof ab === 'function') window.apBlitz = function () { if (learnOpen() && demoPool().length < 4) return; return ab.apply(this, arguments); };
+  }
   function goSpeed() {
     var c = W.ctx, ks = selActs(); if (!ks.length) return;
     if (typeof openKTRChallenge !== 'function' || !window.__ktr) { alert('The Speed Challenge is not available here.'); return; }
@@ -17665,7 +17689,7 @@ function closeKTRChallenge() {
     var card = (typeof _currentCard !== 'undefined') ? _currentCard : null;
     var c = ctxFor(card); if (!c) { alert('No demo found for this card.'); return; }
     try { if (typeof stopDemoMode === 'function' && document.getElementById('demo-pause-btn')) stopDemoMode(); } catch (e) { }
-    hookKtr();
+    hookKtr(); hookGamify();
     W = { ctx: c, sel: {}, view: 'setup', showEn: false, frames: null };
     openOv(); showSetup();
     lockKeys(function (e) { if (e.key === 'Escape') { back(); return true; } return false; });
