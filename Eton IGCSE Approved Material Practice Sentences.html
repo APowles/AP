@@ -12388,7 +12388,7 @@ window.APBZ_HOST = {
     function reviewOrDone() {
       if (!owed.length) return levelDone();
       mode = 'review'; stopClock(); sfx('good'); dlSub = null;
-      frame('Deal it', '<div class="dl-rev"><h2>Cards to learn</h2><p>These are not secure yet. You will drill them until every one is right, then move on.</p><div class="dl-rl">' + owed.map(function (c) { var v = hvOf(c); return '<div class="dl-ri"><span>' + dlQ(c) + '</span><i>→</i><b>' + esc(v.a) + '</b></div>'; }).join('') + '</div></div><div class="bz-row"><button class="dl-bt go" onclick="apDlDrill()">Start the drill →</button></div>');
+      frame('Deal it', '<div class="dl-rev"><h2>Cards to learn</h2><p>These were Nearly or Missed. Drill them until every one is right, then move on. Nearly goes back in the pile, shuffled; Missed goes to the end.</p><div class="dl-rl">' + owed.map(function (c) { var v = hvOf(c); return '<div class="dl-ri"><span>' + dlQ(c) + '</span><i>→</i><b>' + esc(v.a) + '</b></div>'; }).join('') + '</div></div><div class="bz-row"><button class="dl-bt go" onclick="apDlDrill()">Start the drill →</button></div>');
     }
     function drillNext() {
       if (!drillQ.length) { owed = []; return levelDone(); }
@@ -12445,13 +12445,13 @@ window.APBZ_HOST = {
     window.apBzMark = function (g) {
       if (mode === 'drill') {
         var dq = drillQ[0]; if (!dq || dq.__m) return; dq.__m = 1; var gd = g === 1; sfx(gd ? 'ok' : g === 2 ? 'tick' : 'bad'); if (g !== 2) VH(gd, '', '');
-        if (gd) { drillQ.shift(); learned++; } else drillQ.push(drillQ.shift());
+        if (gd) { drillQ.shift(); learned++; } else if (g === 2) { drillQ.shift(); drillQ.push(dq); if (drillQ.length > 1) { var q0 = drillQ.slice(); do { drillQ = shuf(q0); } while (drillQ[0] === dq); } } else drillQ.push(drillQ.shift());
         dTm(function () { dq.__m = 0; dlClose(-1, drillNext); }, 500); return;
       }
       var h = hand[cur]; if (!h || h.__m || resolved(h)) return; h.__m = 1; var c = h.c, kk = cur, got = g === 1; dlSub = null; moves++;
       if (got) { h.res = 'got'; sfx('ok'); VH(true, '', ''); if (h.tries) c.__ever = 1;
         var d1 = dlPileRect(1); dTm(function () { sfx('whoosh'); dlClose(kk, function () { h.__m = 0; afterMark(); }, d1, 2, 1); }, 450); }
-      else if (g === 2 && h.tries === 0) { h.tries = 1; h.lock = -1; c.__ever = 1; sfx('tick'); dTm(function () { dlClose(kk, function () { h.__m = 0; shuffleTable(); }); }, 300); }
+      else if (g === 2 && h.tries === 0) { h.tries = 1; h.lock = -1; c.__ever = 1; if (owed.indexOf(c) < 0) owed.push(c); sfx('tick'); dTm(function () { dlClose(kk, function () { h.__m = 0; shuffleTable(); }); }, 300); }
       else { h.res = 'miss'; sfx('bad'); if (g === 0) VH(false, '', ''); var rep = pass === 1 && pack.length ? pack.shift() : null, d0 = dlPileRect(0); addOwed(c);
         dTm(function () { dlClose(kk, function () { h.__m = 0; if (rep) hand[kk] = { c: rep, fresh: true, tries: 0, lock: -1 }; afterMark(); }, d0, 1, .8, true); }, 450); }
     };
