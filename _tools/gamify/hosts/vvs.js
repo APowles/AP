@@ -1,6 +1,6 @@
 /* Gamify it host: A Level VVs, Gr EWs & Translation. The games take whatever the boy has chosen on the page he is on. */
 (function () {
-  var PAIRS = ['clock', 'streak', 'odd', 'letter', 'gender', 'roll', 'catch', 'lane', 'pairs'], SENT = ['clock', 'streak', 'letter', 'roll', 'pairs'];
+  var PAIRS = ['clock', 'streak', 'odd', 'letter', 'gender', 'roll', 'catch', 'lane', 'pairs', 'deal'], SENT = ['clock', 'streak', 'letter', 'roll', 'pairs', 'deal'];
   var BOX = [['drillContainer', 'vv'], ['sdContainer', 'sd'], ['grEwsContainer', 'e'], ['grammarContainer', 'd'], ['mlfContainer', 'm']];
   function ctx() { for (var i = 0; i < BOX.length; i++) { var e = document.getElementById(BOX[i][0]); if (e && e.getClientRects().length) return BOX[i][1]; } return 'vv'; }
   var idx = null;
