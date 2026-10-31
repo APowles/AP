@@ -19511,7 +19511,7 @@ window.APBZ_HOST = {
   function shortOnly(p) { var seen = {}; return p.filter(function (x) { if (H.short && (x.q.split(/\s+/).length > H.short || x.a.split(/\s+/).length > H.short)) return false; if (seen[x.a]) return false; seen[x.a] = 1; return true; }); }
   var TOPIC_PIC_ON = {};
   var ov = null, snd = true, AC = null, timers = [], PZ = false;
-  var CFG = { snd: true, style: 'marimba', vol: 1, ticks: true, clock: 3, streak: 0, tm: 2, dice: 2, pairs: 20, cw: 20, lives: 3, accel: 11, start: 100, oddR: 10, oddS: 12, gN: 12, gS: 6, lW: 10, lG: 3, lT: 15, oddM: 0, ln: 25, mus: 'pulse', mv: 1 };
+  var CFG = { snd: true, style: 'marimba', vol: 1, ticks: true, clock: 5, streak: 0, tm: 2, dice: 2, pairs: 20, cw: 20, lives: 3, accel: 11, start: 100, oddR: 10, oddS: 12, gN: 12, gS: 6, lW: 10, lG: 3, lT: 15, oddM: 0, ln: 25, mus: 'pulse', mv: 1 };
   try { var sv = JSON.parse(localStorage.getItem('apbz_cfg') || '{}'); for (var kk in sv) if (kk in CFG) CFG[kk] = sv[kk]; } catch (e) { }
   snd = CFG.snd;
   function saveCfg() { CFG.snd = snd; try { localStorage.setItem('apbz_cfg', JSON.stringify(CFG)); } catch (e) { } }
@@ -19686,7 +19686,7 @@ window.APBZ_HOST = {
 
   // ---------- settings (gear in the bar; the round pauses while it is open)
   var SETS = {
-    clock: [['clock', 'Seconds per card', [2, 3, 4, 5, 6, 8], '', 1]],
+    clock: [['clock', 'Seconds per card', [5, 6, 7, 8, 9, 10], '', 1]],
     streak: [['streak', 'Seconds per card', [[0, 'No timer'], 5, 8, 12], '', 1]],
     roll: [['dice', 'Dice', [[1, 'One die'], [2, 'Two dice']], '', 1]],
     pairs: [['pairs', 'Words in the race', [10, 20, 30], '', 0]],
@@ -19804,12 +19804,13 @@ window.APBZ_HOST = {
   }
   var bestStreak = 0;
   GAMES.clock = function (p) {
+    if (!(CFG.clock >= 5)) { CFG.clock = 5; saveCfg(); }
     var secs = CFG.clock, go = function () {
       selfMarkGame({ title: 'Beat the clock', deck: shuf(p), perCard: function () { return CFG.clock; }, requeue: true, cue: H.names[dirs()[0]],
         stats: function (ok, miss, left) { return '<div><b>' + ok + '</b>cleared</div><div><b>' + left + '</b>to go</div><div><b>' + miss + '</b>missed</div>'; },
         end: function (r) { endScreen('Beat the clock', { big: r.secs + 's', note: 'Pile cleared in ' + r.secs + ' seconds with ' + r.miss + ' miss' + (r.miss === 1 ? '' : 'es') + '. Beat it next time.' }, go); } });
     };
-    frame('Beat the clock', '<div class="bz-note">You get <b>' + secs + ' seconds</b> a card to say the answer out loud. When the ring runs out the answer shows. Mark yourself. Misses come round again.</div><div class="bz-row">' + [2, 3, 4, 5].map(function (s) { return '<button class="bz-b' + (s === secs ? ' on' : '') + '" onclick="apBzSecs(' + s + ')">' + s + ' s</button>'; }).join('') + '</div><button class="bz-big" onclick="apBzGo()">▶ Start</button>');
+    frame('Beat the clock', '<div class="bz-note">You get <b>' + secs + ' seconds</b> a card to say the answer out loud. When the ring runs out the answer shows. Mark yourself. Misses come round again.</div><div class="bz-row">' + [5, 6, 7, 8, 9, 10].map(function (s) { return '<button class="bz-b' + (s === secs ? ' on' : '') + '" onclick="apBzSecs(' + s + ')">' + s + ' s</button>'; }).join('') + '</div><button class="bz-big" onclick="apBzGo()">▶ Start</button>');
     window.apBzSecs = function (s) { secs = s; CFG.clock = s; saveCfg(); [].forEach.call(ov.querySelectorAll('.bz-row .bz-b'), function (b) { b.className = 'bz-b' + (parseInt(b.textContent, 10) === s ? ' on' : ''); }); };
     window.apBzGo = go;
   };
@@ -20148,4 +20149,4 @@ window.APBZ_HOST = {
   if (document.readyState === 'complete') start(); else window.addEventListener('load', start);
 })();
 </script>
-<script id="ap-build">window.__apBuild="b0c7aba4cc";</script>
+<script id="ap-build">window.__apBuild="6659ce1a2e";</script>
