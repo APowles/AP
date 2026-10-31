@@ -9950,7 +9950,7 @@ textarea.ms-in{min-height:7rem;resize:vertical}
   function shortOnly(p) { var seen = {}; return p.filter(function (x) { if (H.short && (x.q.split(/\s+/).length > H.short || x.a.split(/\s+/).length > H.short)) return false; if (seen[x.a]) return false; seen[x.a] = 1; return true; }); }
   var TOPIC_PIC_ON = {};
   var ov = null, snd = true, AC = null, timers = [], PZ = false;
-  var CFG = { snd: true, style: 'marimba', vol: 1, ticks: true, clock: 5, streak: 0, tm: 2, dice: 2, pairs: 20, cw: 20, lives: 3, accel: 11, start: 100, oddR: 10, oddS: 12, gN: 12, gS: 6, lW: 10, lG: 3, lT: 15, oddM: 0, ln: 25, mus: 'mix', musV: 0, mv: 1 };
+  var CFG = { snd: true, style: 'marimba', vol: 1, ticks: true, clock: 5, streak: 0, tm: 2, dice: 2, pairs: 20, cw: 20, lives: 3, accel: 11, start: 100, oddR: 10, oddS: 12, gN: 12, gS: 6, lW: 10, lG: 3, lT: 15, oddM: 0, ln: 25, rlSay: 1, mus: 'mix', musV: 0, mv: 1 };
   try { var sv = JSON.parse(localStorage.getItem('apbz_cfg') || '{}'); for (var kk in sv) if (kk in CFG) CFG[kk] = sv[kk]; } catch (e) { }
   snd = CFG.snd;
   function saveCfg() { CFG.snd = snd; try { localStorage.setItem('apbz_cfg', JSON.stringify(CFG)); } catch (e) { } }
@@ -10150,7 +10150,7 @@ textarea.ms-in{min-height:7rem;resize:vertical}
   var SETS = {
     clock: [['clock', 'Seconds per card', [5, 6, 7, 8, 9, 10], '', 1]],
     streak: [['streak', 'Seconds per card', [[0, 'No timer'], 5, 8, 12], '', 1]],
-    roll: [['dice', 'Dice', [[1, 'One die'], [2, 'Two dice']], '', 1]],
+    roll: [['dice', 'Dice', [[1, 'One die'], [2, 'Two dice']], '', 1], ['rlSay', 'Say each answer aloud when it turns over', [[1, 'On'], [0, 'Off']], '', 1]],
     pairs: [['pairs', 'Words in the race', [10, 20, 30], '', 0]],
     lane: [['ln', 'Words in the round', [15, 25, 40], '', 0], ['lives', 'Lives', [1, 3, 5], '', 0], ['start', 'Starting speed', [[60, 'Gentle'], [100, 'Normal'], [140, 'Fast']], '', 1], ['accel', 'Speeding up', [[6, 'Slow'], [11, 'Normal'], [16, 'Brutal']], '', 1]],
     'catch': [['cw', 'Words at the bottom', [10, 15, 20], '', 0], ['lives', 'Lives', [1, 3, 5], '', 0], ['start', 'Starting speed', [[60, 'Gentle'], [100, 'Normal'], [140, 'Fast']], '', 1], ['accel', 'Speeding up', [[6, 'Slow'], [11, 'Normal'], [16, 'Brutal']], '', 1]],
@@ -10307,7 +10307,7 @@ textarea.ms-in{min-height:7rem;resize:vertical}
           function cardHTML(c, i) {
               return '<div class="rl-c" id="rlc' + i + '" onclick="apRlOpen(' + i + ')"><small>' + esc(cue) + (back.indexOf(c) >= 0 ? ' · back again' : '') + '</small><div class="rl-q' + (c.q.length > 90 ? ' rl-s' : '') + '">' + qOf(c) + '</div><div class="rl-hint">Say it, then tap to check</div><div class="rl-a" style="display:none"><div class="rl-qs">' + qOf(c) + '</div><div class="rl-ans">' + esc(hvOf(c).a) + ' ' + SAYBTN(hvOf(c).a) + '</div><div class="rl-m"><button class="rl-y" onclick="event.stopPropagation();apRlMark(' + i + ',1)">✓ Got it</button><button class="rl-n" onclick="event.stopPropagation();apRlMark(' + i + ',0)">✗ Missed</button><button class="rl-nr" onclick="event.stopPropagation();apRlMark(' + i + ',2)">~ Nearly</button></div></div></div>';
           }
-          window.apRlOpen = function (i) { var c = $('rlc' + i); if (!c || res[i] !== undefined || c.classList.contains('open') || c.classList.contains('flipout')) return; sfx('whoosh'); c.classList.add('flipout'); setTimeout(function () { c.classList.remove('flipout'); c.classList.add('open', 'flipin'); c.querySelector('.rl-q').style.display = 'none'; c.querySelector('.rl-a').style.display = 'block'; c.querySelector('.rl-hint').style.display = 'none'; setTimeout(function () { c.classList.remove('flipin'); }, 260); try { c.scrollIntoView({ block: 'nearest', behavior: 'smooth' }); } catch (e) { } }, 170); };
+          window.apRlOpen = function (i) { var c = $('rlc' + i); if (!c || res[i] !== undefined || c.classList.contains('open') || c.classList.contains('flipout')) return; sfx('whoosh'); c.classList.add('flipout'); setTimeout(function () { c.classList.remove('flipout'); c.classList.add('open', 'flipin'); c.querySelector('.rl-q').style.display = 'none'; c.querySelector('.rl-a').style.display = 'block'; c.querySelector('.rl-hint').style.display = 'none'; try { if (CFG.rlSay) say(dirs()[1] === 'en' ? String(deck[i].q).replace(/<[^>]*>/g, '') : hvOf(deck[i]).a); } catch (e) { } setTimeout(function () { c.classList.remove('flipin'); }, 260); try { c.scrollIntoView({ block: 'nearest', behavior: 'smooth' }); } catch (e) { } }, 170); };
           window.apRlMark = function (i, g) {
             if (res[i] !== undefined) return; if (g === 2) { var c0 = $('rlc' + i); sfx('tick'); if (spare.length && c0) { carry.push(deck[i]); deck[i] = spare.shift(); c0.outerHTML = cardHTML(deck[i], i); } else if (c0) { c0.classList.remove('open'); c0.querySelector('.rl-a').style.display = 'none'; c0.querySelector('.rl-q').style.display = ''; c0.querySelector('.rl-hint').style.display = ''; } return; } res[i] = g; done++; if (g) ok++; sfx(g ? 'ok' : 'bad');
             var c = $('rlc' + i); c.classList.remove('open'); c.classList.add(g ? 'ok' : 'bad'); c.querySelector('.rl-m').style.display = 'none';
