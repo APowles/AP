@@ -195,9 +195,10 @@
     var c = AC; if (!c || !MG) return; var sd = 60 / (mBpm * mRate) / 4;
     while (mNext < c.currentTime + .3) { mPlay(mStep, mNext, sd); mNext += sd; mStep++; }
   }
+  var musLvl = 0;
   function musicStart(fresh) {
     musicStop(); if (!snd || CFG.mus === 'off') return; var c = ctx(); if (!c) return;
-    if (CFG.mus === 'mix') { if (fresh || !curMus || curMus === 'mix') { var opts = ['pulse', 'ambient', 'groove'].filter(function (x) { return x !== curMus; }); curMus = opts[Math.floor(Math.random() * opts.length)]; var pi = Math.floor(Math.random() * PROGS.length); if (pi === lastProg) pi = (pi + 1) % PROGS.length; lastProg = pi; CH = PROGS[pi]; mBpm = [88, 96, 104, 112][Math.floor(Math.random() * 4)]; } } else { curMus = CFG.mus; CH = CH0; mBpm = 96; }
+    if (CFG.mus === 'mix') { if (fresh || !curMus || curMus === 'mix') { var opts = ['pulse', 'ambient', 'groove'].filter(function (x) { return x !== curMus; }); curMus = opts[Math.floor(Math.random() * opts.length)]; var pi = Math.floor(Math.random() * PROGS.length); if (pi === lastProg) pi = (pi + 1) % PROGS.length; lastProg = pi; CH = PROGS[pi]; mBpm = [88, 96, 104, 112][Math.floor(Math.random() * 4)]; } } else { curMus = CFG.mus; CH = musLvl ? PROGS[musLvl % PROGS.length] : CH0; mBpm = 96 + 6 * (musLvl % 5); }
     MG = c.createGain(); MG.gain.value = .5 * CFG.mv; var lp = c.createBiquadFilter(); lp.type = 'lowpass'; lp.frequency.value = 1500; MG.connect(lp); lp.connect(c.destination);
     mStep = 0; mNext = c.currentTime + .12; mTimer = setInterval(sched, 60); sched();
   }
@@ -566,14 +567,14 @@
 
   function dealSolo(p0) {
     var pl = dlUniq(p0), N = Math.min(CFG.dN, pl.length), L = CFG.dL, pack = shuf(pl).slice(0, N * L + N), lvl = 0, pass = 1, hand = [], cur = -1, said = false, done = 0, fin = [], learned = 0, backs = 0, owed = [], moves = 0, mode = 'play', t1 = 0, tClock = 0, lim = 0, tv = null, drillQ = [], cue = H.names[dirs()[0]];
-    ov.setAttribute('data-dlr', '1');
+    ov.setAttribute('data-dlr', '1'); musLvl = 0;
     function resolved(h) { return h.res !== undefined; }
     function gots() { return hand.filter(function (h) { return h.res === 'got'; }); }
     function locked(h) { return h.lock >= 0 && moves <= h.lock; }
     function clk(x) { x = Math.max(0, Math.ceil(x)); return Math.floor(x / 60) + ':' + ('0' + (x % 60)).slice(-2); }
-    function stopClock() { if (tv) { clearInterval(tv); tv = null; } ov.classList.remove('dl-vig'); }
+    function stopClock() { if (tv) { clearInterval(tv); tv = null; } ov.classList.remove('dl-vig'); mRate = 1; }
     function startClock() {
-      stopClock(); var t0 = Date.now(); tClock = pass === 1 ? 0 : lim;
+      stopClock(); if (pass === 2) mRate = 1.18; var t0 = Date.now(); tClock = pass === 1 ? 0 : lim;
       tv = setInterval(function () {
         var nw = Date.now(), d = (nw - t0) / 1000; t0 = nw; if (PZ) return; var was = Math.ceil(tClock); tClock += pass === 1 ? d : -d;
         var e = $('dl-tl'), bg = $('dl-big'), br = $('dl-bar'); if (e) e.textContent = clk(tClock);
@@ -610,6 +611,7 @@
       if (lvl > 0 && lvl >= L) return finish();
       if (!pack.length) return finish();
       lvl++; pass = 1; tClock = 0; moves = 0; owed = []; mode = 'play'; ov.setAttribute('data-dlr', '1');
+      if (lvl > 1) { musLvl = lvl - 1; try { musicStart(true); } catch (e) { } }
       var TH = [['The Green Baize', 0, '#6fe0a0'], ['The Teal Room', 60, '#5fd6e0'], ['The Purple Salon', 150, '#c79bff'], ['The Crimson Room', 230, '#ff8a8a'], ['The Gold Room', -70, '#f0d27a']], th = TH[(lvl - 1) % TH.length];
       ov.style.setProperty('--lh', th[1] + 'deg'); ov.style.setProperty('--lc', th[2]);
       hand = pack.splice(0, N).map(function (c) { return { c: c, fresh: true, tries: 0, lock: -1 }; });
@@ -639,7 +641,7 @@
         t1 = tClock; lim = Math.max(15, Math.round(t1)); var sec = gots();
         if (!sec.length) return reviewOrDone();
         sfx('good'); table('Round 1 complete', null, '<b>' + sec.length + ' secure</b> in <b>' + clk(t1) + '</b>. Round two: shuffled again, and you must beat that time.');
-        dTm(function () { hand = shuf(sec).map(function (h) { return { c: h.c, fresh: true, tries: 0, lock: -1 }; }); pass = 2; moves = 0; ov.setAttribute('data-dlr', '2'); deal(); }, 2600);
+        dTm(function () { hand = shuf(sec).map(function (h) { return { c: h.c, fresh: true, tries: 0, lock: -1 }; }); pass = 2; moves = 0; ov.setAttribute('data-dlr', '2'); mRate = 1.18; deal(); }, 2600);
       } else reviewOrDone();
     }
     function timeUp() {
