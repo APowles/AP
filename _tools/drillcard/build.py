@@ -68,7 +68,7 @@ if __name__=='__main__':
 # ---- ChatGPT frame mode: 9-slice border-image from a card-frame PNG (transparent corners) ----
 def frame_css(png,slice_px,bw,radius,g=2,pad=None):
     import io,base64
-    im=Image.open(png).convert('RGBA'); w=700; im=im.resize((w,int(im.height*w/im.width)),Image.LANCZOS)
+    im=Image.open(png).convert('RGBA'); w=900; im=im.resize((w,int(im.height*w/im.width)),Image.LANCZOS)
     b=io.BytesIO(); im.save(b,'PNG',optimize=True); u='data:image/png;base64,'+base64.b64encode(b.getvalue()).decode()
     k=w/Image.open(png).width; sl=int(round(slice_px*k))
     return ('<style id="ap-drillcard">'
