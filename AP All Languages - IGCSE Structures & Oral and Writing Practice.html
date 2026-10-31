@@ -18063,7 +18063,7 @@ window.APBZ_HOST = {
   function shortOnly(p) { var seen = {}; return p.filter(function (x) { if (H.short && (x.q.split(/\s+/).length > H.short || x.a.split(/\s+/).length > H.short)) return false; if (seen[x.a]) return false; seen[x.a] = 1; return true; }); }
   var TOPIC_PIC_ON = {};
   var ov = null, snd = true, AC = null, timers = [], PZ = false;
-  var CFG = { snd: true, style: 'marimba', vol: 1, ticks: true, clock: 5, streak: 0, tm: 2, dice: 2, pairs: 20, cw: 20, lives: 3, accel: 11, start: 100, oddR: 10, oddS: 12, gN: 12, gS: 6, lW: 10, lG: 3, lT: 15, oddM: 0, ln: 25, mus: 'pulse', mv: 1 };
+  var CFG = { snd: true, style: 'marimba', vol: 1, ticks: true, clock: 5, streak: 0, tm: 2, dice: 2, pairs: 20, cw: 20, lives: 3, accel: 11, start: 100, oddR: 10, oddS: 12, gN: 12, gS: 6, lW: 10, lG: 3, lT: 15, oddM: 0, ln: 25, mus: 'mix', musV: 0, mv: 1 };
   try { var sv = JSON.parse(localStorage.getItem('apbz_cfg') || '{}'); for (var kk in sv) if (kk in CFG) CFG[kk] = sv[kk]; } catch (e) { }
   snd = CFG.snd;
   function saveCfg() { CFG.snd = snd; try { localStorage.setItem('apbz_cfg', JSON.stringify(CFG)); } catch (e) { } }
@@ -18192,7 +18192,8 @@ window.APBZ_HOST = {
 
   // ---------- background music (made in the browser: low, soft, no files)
   var MG = null, mTimer = null, mStep = 0, mNext = 0, mRate = 1;
-  var MUS = [['off', 'Off'], ['pulse', 'Pulse'], ['ambient', 'Ambient'], ['groove', 'Groove']];
+  var curMus = null;
+  var MUS = [['off', 'Off'], ['mix', 'Shuffle (new each game)'], ['pulse', 'Pulse'], ['ambient', 'Ambient'], ['groove', 'Groove']];
   var CH = [[73.42, [1, 1.189, 1.498]], [58.27, [1, 1.26, 1.498]], [87.31, [1, 1.26, 1.498]], [65.41, [1, 1.26, 1.498]]];   // Dm  Bb  F  C
   function mTone(f, t, len, vol, type, att) {
     var c = AC; if (!c || !MG) return; var o = c.createOscillator(), g = c.createGain(); o.type = type || 'sine'; o.frequency.value = f; var a = att || .01;
@@ -18207,7 +18208,7 @@ window.APBZ_HOST = {
     var s = c.createBufferSource(); s.buffer = b; var f = c.createBiquadFilter(); f.type = type || 'bandpass'; f.frequency.value = freq; var g = c.createGain(); g.gain.value = vol; s.connect(f); f.connect(g); g.connect(MG); s.start(t);
   }
   function mPlay(step, t, sd) {
-    var bar = Math.floor(step / 16) % 4, s = step % 16, root = CH[bar][0], iv = CH[bar][1], st = CFG.mus;
+    var bar = Math.floor(step / 16) % 4, s = step % 16, root = CH[bar][0], iv = CH[bar][1], st = curMus || CFG.mus;
     if (st === 'pulse') {
       if (s % 4 === 0) mKick(t, .55);
       if (s % 4 === 2) mNoise(t, .05, .12, 5200, 'highpass');
@@ -18227,8 +18228,9 @@ window.APBZ_HOST = {
     var c = AC; if (!c || !MG) return; var sd = 60 / (96 * mRate) / 4;
     while (mNext < c.currentTime + .3) { mPlay(mStep, mNext, sd); mNext += sd; mStep++; }
   }
-  function musicStart() {
+  function musicStart(fresh) {
     musicStop(); if (!snd || CFG.mus === 'off') return; var c = ctx(); if (!c) return;
+    if (CFG.mus === 'mix') { if (fresh || !curMus || curMus === 'mix') { var opts = ['pulse', 'ambient', 'groove'].filter(function (x) { return x !== curMus; }); curMus = opts[Math.floor(Math.random() * opts.length)]; } } else curMus = CFG.mus;
     MG = c.createGain(); MG.gain.value = .5 * CFG.mv; var lp = c.createBiquadFilter(); lp.type = 'lowpass'; lp.frequency.value = 1500; MG.connect(lp); lp.connect(c.destination);
     mStep = 0; mNext = c.currentTime + .12; mTimer = setInterval(sched, 60); sched();
   }
@@ -18319,7 +18321,7 @@ window.APBZ_HOST = {
     stop(); musicStop(); view = 'pick'; bgNow = null; var p = pool(), r = reasons(p);
     frame('', '<div class="bz-note"><b>' + p.length + ' ' + (HC.noun || 'words') + '</b> ready. ' + esc(dirs()[0] === 'en' ? 'English → ' + H.names[dirs()[1]] : H.names[dirs()[0]] + ' → English') + '. Pick a round: it starts straight away.</div><div class="bz-grid">' + MODES.filter(function (m) { return !H.games || H.games.indexOf(m[0]) > -1; }).map(function (m) { var off = r[m[0]]; return '<button class="bz-m"' + (off ? ' disabled' : '') + ' onclick="apBzStart(\'' + m[0] + '\')"><img alt="" src="' + BZ[m[0]] + '"><b>' + m[1] + '</b><span>' + (off || m[2]) + '</span></button>'; }).join('') + '</div>');
   }
-  window.apBzStart = function (k) { stop(); bgNow = null; view = k; ctx(); sfx('go'); musicStart(); GAMES[k](pool()); };
+  window.apBzStart = function (k) { stop(); bgNow = null; view = k; ctx(); sfx('go'); musicStart(true); GAMES[k](pool()); };
 
   // ---------- helpers for self-marked card games
   function card(q, a, extra, hl) { var n = String(q || '').length + String(a || '').length, z = n > 130 ? ' bz-xl' : n > 60 ? ' bz-lg' : '', qh = hl ? esc(hl[0]) + '<b class="hl">' + esc(hl[1]) + '</b>' + esc(hl[2]) + '<span class="hln">Translate only the highlighted part</span>' : esc(q); return '<div class="bz-card' + z + '" id="bz-card"><small>' + esc(extra || '') + '</small><div>' + qh + '</div><div class="ans" id="bz-ans" style="visibility:hidden">' + esc(a) + ' ' + SAYBTN(a) + '</div></div>'; }
@@ -18359,6 +18361,7 @@ window.APBZ_HOST = {
   var bestStreak = 0;
   GAMES.clock = function (p) {
     if (!(CFG.clock >= 5)) { CFG.clock = 5; saveCfg(); }
+  if (!CFG.musV) { CFG.musV = 1; CFG.mus = 'mix'; saveCfg(); }
     var secs = CFG.clock, go = function () {
       selfMarkGame({ title: 'Beat the clock', deck: shuf(p), perCard: function () { return CFG.clock; }, requeue: true, cue: H.names[dirs()[0]],
         stats: function (ok, miss, left) { return '<div><b>' + ok + '</b>cleared</div><div><b>' + left + '</b>to go</div><div><b>' + miss + '</b>missed</div>'; },
@@ -18703,4 +18706,4 @@ window.APBZ_HOST = {
   if (document.readyState === 'complete') start(); else window.addEventListener('load', start);
 })();
 </script>
-<script id="ap-build">window.__apBuild="009247c28b";</script>
+<script id="ap-build">window.__apBuild="e8a2f17ce3";</script>
