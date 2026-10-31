@@ -659,19 +659,20 @@
       if (ids.length < 2) return afterMark();
       shBusy = true;
       var bef = {}; ids.forEach(function (i) { var e = $('dlc' + i); if (e) bef[i] = e.getBoundingClientRect(); });
-      var objs = shuf(ids.map(function (i) { return hand[i]; })), from = {};
+      var cur0 = ids.map(function (i) { return hand[i]; }), objs = shuf(cur0), tries = 0; while (tries++ < 60 && objs.some(function (o, j) { return o === cur0[j]; })) objs = shuf(cur0);   // nobody stays where it was
+      var from = {};
       ids.forEach(function (i, j) { from[i] = hand.indexOf(objs[j]); hand[i] = objs[j]; });
       sfx('whoosh'); table();
       var moved = [], tab = ov.querySelector('.dl-grid'), tr = tab ? tab.getBoundingClientRect() : null, cx = tr ? tr.left + tr.width / 2 : 0, cy = tr ? tr.top + tr.height / 2 : 0;
       ids.forEach(function (i) { var e = $('dlc' + i), bb = bef[from[i]]; if (!e || !bb) return; var a = e.getBoundingClientRect(); e.__dx = bb.left - a.left; e.__dy = bb.top - a.top; e.__cx = cx - (a.left + a.width / 2); e.__cy = cy - (a.top + a.height / 2); e.__a = a; e.style.transition = 'none'; e.style.transform = 'translate(' + e.__dx + 'px,' + e.__dy + 'px)'; e.style.zIndex = 4; moved.push(e); });
       void document.body.offsetWidth;
       // 1: every card sweeps into a heap in the middle
-      moved.forEach(function (e, n) { e.style.transition = 'transform .5s cubic-bezier(.5,0,.3,1) ' + (n * 25) + 'ms'; e.style.transform = 'translate(' + e.__cx + 'px,' + e.__cy + 'px) rotate(' + (Math.random() * 40 - 20) + 'deg) scale(.92)'; });
+      moved.forEach(function (e, n) { e.style.transition = 'transform .32s cubic-bezier(.5,0,.3,1) ' + (n * 15) + 'ms'; e.style.transform = 'translate(' + e.__cx + 'px,' + e.__cy + 'px) rotate(' + (Math.random() * 40 - 20) + 'deg) scale(.92)'; });
       // 2: the heap is riffled: quick jitters
-      for (var r = 0; r < 4; r++) (function (r) { dTm(function () { sfx('tick'); moved.forEach(function (e) { e.style.transition = 'transform .16s ease-in-out'; e.style.transform = 'translate(' + (e.__cx + Math.random() * 90 - 45) + 'px,' + (e.__cy + Math.random() * 60 - 30) + 'px) rotate(' + (Math.random() * 70 - 35) + 'deg) scale(.92)'; }); }, 750 + r * 190); })(r);
+      for (var r = 0; r < 4; r++) (function (r) { dTm(function () { sfx('tick'); moved.forEach(function (e) { e.style.transition = 'transform .11s ease-in-out'; e.style.transform = 'translate(' + (e.__cx + Math.random() * 90 - 45) + 'px,' + (e.__cy + Math.random() * 60 - 30) + 'px) rotate(' + (Math.random() * 70 - 35) + 'deg) scale(.92)'; }); }, 480 + r * 130); })(r);
       // 3: dealt out again to the new places
-      dTm(function () { sfx('whoosh'); moved.forEach(function (e, n) { e.style.transition = 'transform .7s cubic-bezier(.2,.9,.3,1.05) ' + (n * 60) + 'ms'; e.style.transform = 'translate(0,0) rotate(0deg) scale(1)'; }); }, 1600);
-      dTm(function () { shBusy = false; moved.forEach(function (e) { e.style.transition = ''; e.style.transform = ''; e.style.zIndex = ''; }); }, 2700);
+      dTm(function () { sfx('whoosh'); moved.forEach(function (e, n) { e.style.transition = 'transform .5s cubic-bezier(.2,.9,.3,1.05) ' + (n * 40) + 'ms'; e.style.transform = 'translate(0,0) rotate(0deg) scale(1)'; }); }, 1050);
+      dTm(function () { shBusy = false; moved.forEach(function (e) { e.style.transition = ''; e.style.transform = ''; e.style.zIndex = ''; }); }, 1900);
     }
     function afterMark() { if (hand.every(resolved)) return roundDone(); table(); dlDeal(); }
     window.apDlOpen = function (k) {
