@@ -17624,6 +17624,8 @@ textarea.ms-in{min-height:7rem;resize:vertical}
 .ms-print .od-ic{background:linear-gradient(135deg,#2e6f8b,#4a9cbf)}.ms-read .od-ic{background:linear-gradient(135deg,#1f8a4c,#4cbf7e)}.ms-go .od-ic{background:linear-gradient(135deg,#b8222f,#e65a4a)}
 .ms-gap .od-ic{background:linear-gradient(135deg,#6b3fa0,#9b6fd0)}.ms-spot .od-ic{background:linear-gradient(135deg,#b03a2e,#e0705f)}.ms-trans .od-ic{background:linear-gradient(135deg,#1a2744,#3d5a99)}
 .od-chk.od-rad{border-radius:50%}
+.od-ov.od-noticks .ms-blitz{opacity:.45;filter:grayscale(.7);pointer-events:none}
+body.od-on #apsp-pop{position:fixed;top:76px;right:12px;margin-top:0;z-index:11800}body.od-on #bz-ov{z-index:11600!important}body.od-on #bz-set{z-index:11650!important}
 .ms-img.od-ic{box-shadow:0 2px 5px rgba(26,39,68,.25)!important}
 .od-extra{display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin:12px 0 0;padding:12px 14px;border:1.5px dashed #c9a84c;border-radius:12px;background:#fffdf5}
 .od-extra p{margin:0;flex:1 1 260px;font-size:.9375rem;line-height:1.4;color:#3d4866}
@@ -17935,7 +17937,7 @@ textarea.ms-in{min-height:7rem;resize:vertical}
     var T = [['ms-read', '📖', 'Read it again', 'The demo sentence by sentence, with each stage of the cycle.', 'read', false],
              ['ms-go', '🎙', 'Have a go', 'Answer the questions yourself, with the demo closed, then record your oral.', 'go', false]];
     if (has && any) T = [
-      ['ms-drill', 'drill', 'Say it', hasPK ? 'Oral drill: say it, check the model, rate each card. Works on the phrases and facts you ticked.' : need('Oral Cycle phrases or Facts'), 'drill', !hasPK],
+      ['ms-drill', 'drill', 'Say it', 'Oral drill: say it, check the model, rate each card. Demo sentences come as English to French.', 'drill', !ok],
       ['ms-speed', 'speed', 'Speed Challenge', hasPK ? 'Race the clock, solo or in teams. Works on the phrases and facts you ticked.' : need('Oral Cycle phrases or Facts'), 'speed', !hasPK],
       ['ms-gap', '✍', 'Gaps', hasS && av.G > 0 ? 'Fill the gap: a phrase is missing from a sentence of the demo.' : need('Demo sentences'), 'dact', !(hasS && av.G > 0), 'G'],
       ['ms-build', 'build', 'Build it', hasS && bi ? 'Word order: tap the tiles to rebuild sentences from the demo.' : need('Demo sentences'), 'build', !(hasS && bi)],
@@ -17963,6 +17965,7 @@ textarea.ms-in{min-height:7rem;resize:vertical}
     W.view = 'setup'; syncSel(); unkey(); hush();
     paint(pageSetup(), keep);
     var d = $('od-set'); if (d) d.addEventListener('toggle', function () { setOpen = d.open; });
+    var ov = $('od-ov'); if (ov) ov.classList.toggle('od-noticks', ticked().length === 0);
   }
 
   // ---------- Drill ----------
@@ -18056,6 +18059,27 @@ textarea.ms-in{min-height:7rem;resize:vertical}
       window.APKTR_TPL = T;
     }
   }
+  // ---------- Gamify it: while this screen is open the games play on exactly what is ticked, not on the KTR sentences ----------
+  function learnOpen() { return !!(W && $('od-ov')); }
+  function demoPool() {
+    var c = W.ctx, out = [];
+    ticked().forEach(function (g) {
+      if (g.k === 'P') (c.base.P || []).forEach(function (b) { out.push({ fr: b.fr, en: b.en, sec: 'P' }); });
+      else if (g.k === 'S') (c.base.T || []).forEach(function (b) { out.push({ fr: b.fr, en: b.en, sec: 'S' }); });
+      else if (g.k === 'K') (c.base.K || []).forEach(function (b) { out.push({ fr: b.a, en: b.q, sec: 'K' }); });
+    });
+    return out;
+  }
+  function hookGamify() {
+    var H = window.APBZ_HOST; if (!H || H.__od || typeof H.phrases !== 'function') return; H.__od = 1;
+    var o = { phrases: H.phrases, from: H.from, to: H.to };
+    H.phrases = function () { return learnOpen() ? demoPool() : o.phrases.apply(H, arguments); };
+    H.from = function () { return learnOpen() ? (SET.dir === 'fr' ? 'fr' : 'en') : o.from.apply(H, arguments); };
+    H.to = function () { return learnOpen() ? (SET.dir === 'fr' ? 'en' : 'fr') : o.to.apply(H, arguments); };
+    try { var HC = window.APBZ_HOSTCFG, nn = HC && HC.noun; if (HC) Object.defineProperty(HC, 'noun', { configurable: true, get: function () { return learnOpen() ? 'items' : nn; } }); } catch (e) { }
+    var ab = window.apBlitz;
+    if (typeof ab === 'function') window.apBlitz = function () { if (learnOpen() && !ticked().length) return; return ab.apply(this, arguments); };
+  }
   function goSpeed() {
     var c = W.ctx, ks = selActs(); if (!ks.length) return;
     if (typeof openKTRChallenge !== 'function' || !window.__ktr) { alert('The Speed Challenge is not available here.'); return; }
@@ -18128,6 +18152,16 @@ textarea.ms-in{min-height:7rem;resize:vertical}
     var keep = [apSpotRows, apSpotLabel, apSpotQFlag, apSpotAFlag, apSpotBrand];
     apSpotRows = t.rows; apSpotLabel = 'Demo ' + (W.ctx.code || W.ctx.id); apSpotQFlag = ''; apSpotAFlag = '&#127467;&#127479;'; apSpotBrand = 'A Level Oral &middot; Learn from this demo';
     try { openAPSpotTestPDF(null, teacher ? 1 : 0); } finally { apSpotRows = keep[0]; apSpotLabel = keep[1]; apSpotQFlag = keep[2]; apSpotAFlag = keep[3]; apSpotBrand = keep[4]; }
+    // the same test, with or without its answers: one button in the sheet's bar swaps between them (never a new draw)
+    try {
+      var bar = document.querySelector('#appo-frame .apmp-frame-bar');
+      if (bar && !bar.querySelector('.od-ansbtn')) {
+        var b = document.createElement('button'); b.type = 'button'; b.className = 'aph-btn aph-btn-sm od-ansbtn';
+        b.textContent = teacher ? '🙈 Hide the answers' : '👁 Show the answers';
+        b.onclick = function () { printTest(!teacher); };
+        bar.appendChild(b);
+      }
+    } catch (e) { }
   }
 
   // ---------- Print a sheet ----------
@@ -18381,7 +18415,7 @@ textarea.ms-in{min-height:7rem;resize:vertical}
       case 'none': W.grps = {}; syncSel(); showSetup(true); break;
       case 'dact': W.sel = {}; W.sel[t.getAttribute('data-k')] = true; goDrill(); break;
       case 'opt': var key = t.getAttribute('data-o'), v = t.getAttribute('data-v'); SET[key] = (key === 'dir') ? v : parseInt(v, 10); saveSet(); showSetup(true); break;
-      case 'drill': W.only = { P: 1, K: 1 }; try { goDrill(); } finally { W.only = null; } break;   // Say it works on the phrases and facts ticked
+      case 'drill': W.only = { P: 1, K: 1, T: 1 }; try { goDrill(); } finally { W.only = null; } break;   // Say it: the phrases, the facts and (as translation) the demo sentences ticked
       case 'speed': W.only = { P: 1, K: 1 }; try { goSpeed(); } finally { W.only = null; } break;
       case 'test': testChoice(); break;
       case 'test2': goTest(true); break;
@@ -18417,7 +18451,7 @@ textarea.ms-in{min-height:7rem;resize:vertical}
   // ---------- public ----------
   function open(uid, choice) {
     var c = ctxFor(uid, choice); if (!c) { alert('No demo found for this card.'); return; }
-    hookKtr();
+    hookKtr(); hookGamify();
     W = { ctx: c, sel: {}, grps: {}, only: null, view: 'setup', showEn: false, frames: null };
     openOv(); showSetup();
     lockKeys(function (e) { if (e.key === 'Escape') { back(); return true; } return false; });
@@ -20092,4 +20126,4 @@ window.APBZ_HOST = {
   if (document.readyState === 'complete') start(); else window.addEventListener('load', start);
 })();
 </script>
-<script id="ap-build">window.__apBuild="1282641e52";</script>
+<script id="ap-build">window.__apBuild="c30d57a933";</script>
