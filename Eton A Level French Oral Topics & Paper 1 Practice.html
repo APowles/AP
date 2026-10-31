@@ -2455,6 +2455,17 @@ aphWatchHome(document.getElementById('app'), '.ot-home');
 .apmp-pt-row button.ok{background:#2e7d52;color:#fff}
 /* ===== END AP MARKED PAPER ===== */
 </style>
+<script id="ap-popout">
+/* AP POP-OUT: a sheet or test to print opens over this page, in the same window (never a new tab). Back closes it. */
+window.apPopOut = function (html, note, own) {
+  var old = document.getElementById('appo-frame'); if (old) old.remove();
+  var o = document.createElement('div'); o.id = 'appo-frame'; o.className = 'apmp-frame';
+  o.innerHTML = '<div class="apmp-frame-bar"><button type="button" class="aph-btn aph-btn-sm" id="appo-close">&larr; Back</button><span>' + (note || '') + '</span>' + (own ? '' : '<button type="button" class="aph-btn aph-btn-sm aph-btn-primary" id="appo-print">&#128424; Print / Save as PDF</button>') + '</div>';
+  var f = document.createElement('iframe'); f.title = 'Sheet'; f.srcdoc = html; o.appendChild(f); document.body.appendChild(o);
+  o.querySelector('#appo-close').onclick = function () { o.remove(); };
+  var pb = o.querySelector('#appo-print'); if (pb) pb.onclick = function () { try { f.contentWindow.focus(); f.contentWindow.print(); } catch (e) { window.print(); } };
+};
+</script>
 <script id="apmp-script">
 /* ===== AP MARKED PAPER → PDF v1 (shared; identical in every AP app with marked papers) =====
    APMP.save(build): asks once for the boy's name (in-page; remembered in localStorage 'apStudentName'; Skip allowed),
@@ -7315,9 +7326,7 @@ function openAPSpotTestPDF(type) {
     '<tbody>'+tableRows+'</tbody></table>',
     '<div class="footer">'+label+' &nbsp;&middot;&nbsp; Eton Spot Test &nbsp;&middot;&nbsp; '+sT+'</div>',
     '</body></html>'].join('');
-  var blob=new Blob([html],{type:'text/html'});
-  var w=window.open(URL.createObjectURL(blob),'_blank');
-  if(!w) alert('Please allow pop-ups.');
+  apPopOut(html, 'Print or save as a PDF, then press Back.');
 }
 
 
@@ -7712,9 +7721,7 @@ function openAPSpotTestPDF(btn, isTeacherNum) {
     +'<tbody>'+tableRows+'</tbody></table>'
     +aphPrintFoot('Eton A Level Oral (Paper 3) and Listening, Reading, Writing (Paper 1) &middot; Eton Spot Test &middot; '+(isTeacher?'Teacher sheet':'Student sheet'))
     +'</body></html>';
-  var blob=new Blob([html],{type:'text/html'});
-  var w=window.open(URL.createObjectURL(blob),'_blank');
-  if(!w) alert('Please allow pop-ups.');
+  apPopOut(html, 'Print or save as a PDF, then press Back.');
 }
 
 // ── Study Sheet field picker ─────────────────────────────────
@@ -17918,7 +17925,7 @@ textarea.ms-in{min-height:7rem;resize:vertical}
       ['ms-build', 'build', 'Build it', 'Sentence building: put the tiles in order.', 'build', !buildItems(c).length],
       ['ms-print', '🖨', 'Print a sheet', 'The same activities as a sheet to write on.', 'print', !ok],
       ['ms-read', '📖', 'Read it again', na > 0 ? 'Works on the whole demo: untick the activities above to use it.' : 'The demo sentence by sentence, with each stage of the cycle.', 'read', na > 0],
-      ['ms-go ms-reuse', '🔁', 'Roll it', (W.ctx.base.P || []).length ? 'Oral practice: reuse one Oral Cycle phrase three times: on a card question, then on two new topics chosen by rolling the dice.' : 'This demo has no Oral Cycle phrases to reuse.', 'reuse', !(W.ctx.base.P || []).length],
+      ['ms-go ms-reuse', '🔁', 'Roll it', (W.ctx.base.P || []).length ? (na > 0 && !W.sel.P ? 'Works on the Phrases: tick Phrases above (or untick everything).' : 'Oral practice: reuse one Oral Cycle phrase three times: on a card question, then on two new topics chosen by rolling the dice.') : 'This demo has no Oral Cycle phrases to reuse.', 'reuse', !(W.ctx.base.P || []).length || (na > 0 && !(W.sel.P && W.ctx.avail.P > 0))],
       ['ms-go', '🎙', 'Have a go', na > 0 ? 'Works on the whole demo: untick the activities above to use it.' : 'Answer the questions yourself, with the demo closed, then record your oral.', 'go', na > 0]
     ];
     if (!has) T = T.filter(function (x) { return x[4] === 'read' || x[4] === 'go' || x[4] === 'reuse' || x[4] === 'build'; });
@@ -18043,7 +18050,7 @@ textarea.ms-in{min-height:7rem;resize:vertical}
   }
 
   // ---------- Test: a short test on screen (answers behind a button), printed with the app's own Spot Test sheets ----------
-  function goTest(again) {
+  function goTest(again, mode) {
     var ks = selActs(); if (!ks.length) return;
     var pools = ks.map(function (a) { return drawAct(W.ctx, a.k, 0); }), avail = pools.reduce(function (n, p) { return n + p.length; }, 0);
     var fit = (typeof apSpotFit === 'function') ? apSpotFit(avail, Math.max(1, Math.round(SET.test / 5))) : { per: Math.max(1, Math.min(3, Math.floor(avail / 5))) };
@@ -18053,8 +18060,37 @@ textarea.ms-in{min-height:7rem;resize:vertical}
     got.sort(function (a, b) { return a.i - b.i; });   // easy to hard
     var vs = got.map(function (g) { return view(g.b, SET.dir); }), rows = [];
     for (var i = 0; i < 5; i++) rows.push(vs.slice(i * fit.per, i * fit.per + fit.per).map(function (o) { return { term: o.qh + (o.clue ? '<div style="font-size:.9em;color:#56607a;font-style:italic;margin-top:4px">' + o.clue + '</div>' : ''), _modeLabel: o.tag, _answer: o.ah.replace(/<span class="why">(.*?)<\/span>/g, ' <span style="color:#56607a;font-size:.9em">($1)</span>') }; }));
-    W.view = 'test'; if (W.test && W.test.sn) { try { APPEN.reset(W.test.vs.map(function (x, i) { return 'odt:' + W.test.sn + ':' + i; })); } catch (e) { } }
-    W.test = { vs: vs, rows: rows, per: fit.per, show: false, note: fit.note || '', sn: Date.now().toString(36) }; pageTest();
+    var prevView = W.view; W.view = 'test'; if (W.test && W.test.sn) { try { APPEN.reset(W.test.vs.map(function (x, i) { return 'odt:' + W.test.sn + ':' + i; })); } catch (e) { } }
+    W.test = { vs: vs, rows: rows, per: fit.per, show: false, note: fit.note || '', sn: Date.now().toString(36) };
+    if (mode === 'timed') {   // the normal Spot Test, against the clock and submitted (same machine as every other Spot Test)
+      W.view = prevView;
+      apttSpot({ id: 'od|' + (W.ctx.code || W.ctx.id) + '|' + W.test.sn, title: 'Learn from this demo &middot; ' + esc(W.ctx.code || W.ctx.id), meta: '5 &times; ' + fit.per + ' = ' + (5 * fit.per) + ' items', lang: '', langCode: '', kind: 'sentence', nolevel: true, rows: rows,
+        q: function (p) { return p.term || ''; }, a: function (p) { return p._answer || ''; }, label: function (p) { return p._modeLabel || ''; } });
+      return;
+    }
+    if (mode === 'print' || mode === 'printkey') { W.view = prevView; printTest(mode === 'printkey'); return; }
+    pageTest();
+  }
+  // ---------- Test: always the choice ----------
+  function testChoice() {
+    if (!selActs().length) return;
+    var d = document.getElementById('od-tch'); if (d) d.remove();
+    d = document.createElement('div'); d.id = 'od-tch';
+    d.style.cssText = 'position:fixed;inset:0;z-index:12500;background:rgba(11,18,38,.72);display:flex;align-items:center;justify-content:center;padding:16px';
+    var b = function (k, t, sub, pri) { return '<button type="button" data-k="' + k + '" style="display:block;width:100%;text-align:left;margin:0 0 8px;padding:12px 14px;border-radius:12px;cursor:pointer;font:800 1.02rem DM Sans,system-ui,sans-serif;border:' + (pri ? '0;background:#1a2744;color:#f2d38a' : '1.5px solid #c9a84c;background:#fff;color:#1a2744') + '">' + t + '<small style="display:block;margin-top:3px;font:500 .84rem DM Sans,system-ui,sans-serif;color:' + (pri ? '#d9def0' : '#556') + '">' + sub + '</small></button>'; };
+    d.innerHTML = '<div role="dialog" aria-modal="true" style="background:#fff;border-radius:16px;max-width:460px;width:100%;padding:18px;color:#1a2744;font-family:DM Sans,system-ui,sans-serif"><div style="font:800 1.25rem Georgia,serif;margin:0 0 4px">Test</div><div style="color:#556;font-size:.88rem;margin:0 0 12px">How do you want to do it?</div>'
+      + b('timed', '&#9201; Spot Test: timed', 'On screen, against the clock, written with Apple Pencil and submitted at the end.', true)
+      + b('open', '&#9997; Spot Test: no time limit', 'On screen with Apple Pencil: take as long as you need.')
+      + b('print', '&#128424; Print the test', 'A paper test to write on.')
+      + b('printkey', '&#128424; Print with answers', 'The paper test with the answers (for marking).')
+      + '<button type="button" data-k="x" style="border:0;background:none;color:#556;cursor:pointer;padding:6px 2px;font:600 .9rem DM Sans,sans-serif">Cancel</button></div>';
+    d.addEventListener('click', function (e) {
+      var t = e.target.closest('button'); if (!t) { if (e.target === d) d.remove(); return; }
+      var k = t.getAttribute('data-k'); if (!k) return; d.remove();
+      if (k === 'x') return;
+      goTest(false, k === 'open' ? '' : k);
+    });
+    document.body.appendChild(d);
   }
   function pageTest() {
     var t = W.test, k = 0; unkey();
@@ -18083,7 +18119,7 @@ textarea.ms-in{min-height:7rem;resize:vertical}
     var sets = ks.map(function (a) { return { a: a, vs: drawAct(c, a.k, SET.per).map(function (b) { return view(b, SET.dir); }) }; });
     var css = '@page{size:A4;margin:12mm 13mm}*{box-sizing:border-box}body{margin:0;font:9.5pt/1.4 "DM Sans",Helvetica,Arial,sans-serif;color:#1a2744;background:#fff;-webkit-print-color-adjust:exact;print-color-adjust:exact}'
       + '.toolbar{position:sticky;top:0;background:#1a2744;color:#fff;padding:10px 16px;display:flex;gap:14px;align-items:center;flex-wrap:wrap;font-size:13px;z-index:5}.toolbar button{background:#c9a84c;color:#1a2744;border:0;border-radius:6px;padding:8px 14px;font-weight:700;cursor:pointer;font-family:inherit}.toolbar label{display:flex;gap:6px;align-items:center;cursor:pointer}'
-      + '.sheet{max-width:184mm;margin:0 auto;padding:6mm 0}@media print{.toolbar{display:none}.sheet{padding:0;max-width:none}}'
+      + '.act{break-inside:auto!important}.it{break-inside:avoid}.sheet{max-width:184mm;margin:0 auto;padding:6mm 0}@media print{.toolbar{display:none}.sheet{padding:0;max-width:none}}'
       + '.decl{border:1.5px solid #1a2744;border-radius:2mm;padding:2mm 3mm;font-weight:700;margin:2mm 0}.intro{font-size:9pt;color:#3d4866;background:#f7f3e8;border-left:3px solid #c9a84c;padding:2mm 3mm;margin:0 0 3mm}'
       + '.act{border:1.5px solid #c9a84c;border-radius:3mm;margin:0 0 4mm;break-inside:avoid;overflow:hidden}.ah{background:#1a2744;color:#fff;padding:2mm 3.5mm;display:flex;justify-content:space-between;align-items:baseline}.ah b{font-size:10.5pt}.ah span{font-size:7.5pt;letter-spacing:.06em;text-transform:uppercase;color:#e6d8ad}'
       + '.ab{padding:2mm 3.5mm 2.5mm}.how{font-size:8.5pt;color:#56607a;margin:0 0 1.5mm}.it{margin:1.8mm 0}.it .n{display:inline-block;width:5mm;font-weight:700;color:#a8862e}.ln{height:7.5mm;border-bottom:1px solid #b9c0cf}.sm{font-size:8pt;color:#8a93a8;font-style:italic}'
@@ -18103,9 +18139,7 @@ textarea.ms-in{min-height:7rem;resize:vertical}
       + '<div class="toolbar"><button onclick="window.print()">&#128424; Print / PDF</button><label><input type="checkbox" onchange="document.body.classList.toggle(\'showkey\',this.checked)"> Include the answer pages</label><span>Answers stay hidden unless you tick the box.</span></div><div class="sheet">'
       + head + '<div class="decl">' + esc(c.card['decl' + c.choice]) + '</div><div class="intro">You have listened to the demo and made your notes. Now make it yours: do the activities in order, from easy to hard.</div>' + body
       + '<div class="key"><div class="pb"></div><h1>Answers &mdash; <em>' + code + '</em></h1><p class="sub">Check your work, then correct anything wrong in a different colour.</p>' + keyH2 + '</div></div></body></html>';
-    var w = window.open('', '_blank');
-    if (!w) { alert('Please allow pop-ups for this page so the sheet can open in a new tab.'); return; }
-    w.document.open(); w.document.write(html); w.document.close();
+    apPopOut(html, 'Tick the box to include the answer pages, then press Print.', true);
   }
 
   // ---------- Read it again ----------
@@ -18331,7 +18365,7 @@ textarea.ms-in{min-height:7rem;resize:vertical}
       case 'opt': var key = t.getAttribute('data-o'), v = t.getAttribute('data-v'); SET[key] = (key === 'dir') ? v : parseInt(v, 10); saveSet(); showSetup(true); break;
       case 'drill': goDrill(); break;
       case 'speed': goSpeed(); break;
-      case 'test': goTest(); break;
+      case 'test': testChoice(); break;
       case 'test2': goTest(true); break;
       case 'tshow': W.test.show = !W.test.show; pageTest(); break;
       case 'tprint': printTest(t.getAttribute('data-t') === '1'); break;
@@ -20040,4 +20074,4 @@ window.APBZ_HOST = {
   if (document.readyState === 'complete') start(); else window.addEventListener('load', start);
 })();
 </script>
-<script id="ap-build">window.__apBuild="3505a98996";</script>
+<script id="ap-build">window.__apBuild="5a0ad42683";</script>
