@@ -2445,7 +2445,8 @@ window.apPrintFrame = function (f) {
     // Learn (and other overlays) lock the page with overflow:hidden, and the iPad then prints only one screen's worth; free it for the print
     var de = document.documentElement, db = document.body, ov0 = [de.style.overflow, db.style.overflow, de.style.height, db.style.height];
     de.style.overflow = db.style.overflow = 'visible'; de.style.height = db.style.height = 'auto';
-    var done = function () { p.remove(); st.remove(); de.style.overflow = ov0[0]; db.style.overflow = ov0[1]; de.style.height = ov0[2]; db.style.height = ov0[3]; window.removeEventListener('afterprint', done); };
+    var done = function () { p.remove(); st.remove(); var lk = !!document.getElementById('od-ov') || de.classList.contains('aptt-open'); de.style.overflow = lk ? 'hidden' : ''; db.style.overflow = ''; de.style.height = ov0[2]; db.style.height = ov0[3]; window.removeEventListener('afterprint', done); window.__apPrintDone = null; };
+    window.__apPrintDone = done;
     window.addEventListener('afterprint', done); window.print();
   } catch (e) { try { var w = f.contentWindow; (w.__apOrigPrint || w.print)(); } catch (e2) { window.print(); } }
 };
@@ -2454,7 +2455,7 @@ window.apPopOut = function (html, note, own) {
   var o = document.createElement('div'); o.id = 'appo-frame'; o.className = 'apmp-frame';
   o.innerHTML = '<div class="apmp-frame-bar"><button type="button" class="aph-btn aph-btn-sm" id="appo-close">&larr; Back</button><span>' + (note || '') + '</span>' + (own ? '' : '<button type="button" class="aph-btn aph-btn-sm aph-btn-primary" id="appo-print">&#128424; Print / Save as PDF</button>') + '</div>';
   var f = document.createElement('iframe'); f.title = 'Sheet'; f.srcdoc = html; o.appendChild(f); document.body.appendChild(o);
-  o.querySelector('#appo-close').onclick = function () { o.remove(); };
+  o.querySelector('#appo-close').onclick = function () { o.remove(); if (window.__apPrintDone) window.__apPrintDone(); };
   var pb = o.querySelector('#appo-print'); if (pb) pb.onclick = function () { apPrintFrame(f); };
   f.addEventListener('load', function () { try { var w = f.contentWindow; if (!w.__apOrigPrint) { w.__apOrigPrint = w.print.bind(w); w.print = function () { apPrintFrame(f); }; } } catch (e) { } });
 };
@@ -20160,4 +20161,4 @@ window.APBZ_HOST = {
   if (document.readyState === 'complete') start(); else window.addEventListener('load', start);
 })();
 </script>
-<script id="ap-build">window.__apBuild="d13528fe41";</script>
+<script id="ap-build">window.__apBuild="54a459c69d";</script>
