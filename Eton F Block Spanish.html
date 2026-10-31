@@ -21948,6 +21948,7 @@ textarea.ms-in{min-height:7rem;resize:vertical}
     }; go();
   };
   GAMES.roll = function (p) {
+    var carry = [];
     var go = function () {
       var d1 = 1 + Math.floor(Math.random() * 6), d2 = CFG.dice === 1 ? 0 : 1 + Math.floor(Math.random() * 6);
       frame('Roll it', '<div class="bz-row" id="bz-dice">' + dieHTML(d1, true) + (d2 ? dieHTML(d2, true) : '') + '</div><div class="bz-note">Rolling…</div>'); sfx('dice');
@@ -21955,15 +21956,16 @@ textarea.ms-in{min-height:7rem;resize:vertical}
         var n = Math.min(d1 + d2, p.length);
         frame('Roll it', '<div class="bz-row">' + dieHTML(d1) + (d2 ? dieHTML(d2) : '') + '</div><div class="bz-big-n">' + n + ' words</div><div class="bz-note">The ' + (d2 ? 'dice say ' : 'die says ') + (d1 + d2) + '. Blitz them in one go.</div><button class="bz-big" onclick="apBzGo()">▶ Blitz them</button>'); sfx('ok');
         window.apBzGo = function () {
-          var deck = shuf(p).slice(0, n), res = [], done = 0, ok = 0, cols = n <= 4 ? 2 : n <= 6 ? 3 : n <= 9 ? 3 : (deck.some(function (x) { return x.q.length > 70; }) ? 3 : 4), cue = H.names[dirs()[0]];
+          var back = carry.splice(0, n), deck = back.concat(shuf(p.filter(function (x) { return back.indexOf(x) < 0; })).slice(0, n - back.length)), spare = shuf(p.filter(function (x) { return deck.indexOf(x) < 0; })), res = [], done = 0, ok = 0, cols = n <= 4 ? 2 : n <= 6 ? 3 : n <= 9 ? 3 : (deck.some(function (x) { return x.q.length > 70; }) ? 3 : 4), cue = H.names[dirs()[0]];
           function paint() {
-            frame('Roll it', '<div class="bz-stat"><div><b>' + ok + '</b>got</div><div><b>' + done + ' / ' + n + '</b>done</div></div><div class="rl-grid" style="grid-template-columns:repeat(' + cols + ',1fr)">' + deck.map(function (c, i) {
-              return '<div class="rl-c" id="rlc' + i + '" onclick="apRlOpen(' + i + ')"><small>' + esc(cue) + '</small><div class="rl-q' + (c.q.length > 90 ? ' rl-s' : '') + '">' + (function () { var v = hvOf(c); return v.hl ? (v.hl[0].trim() ? '[…] ' : '') + (v.hl[2].trim() ? esc(v.hl[1].replace(/\s*…\s*$/, '')) + ' […]' : esc(v.hl[1])) : esc(c.q); })() + '</div><div class="rl-hint">Say it, then tap to check</div><div class="rl-a" style="display:none"><div>' + esc(hvOf(c).a) + ' ' + SAYBTN(hvOf(c).a) + '</div><div class="rl-m"><button class="rl-y" onclick="event.stopPropagation();apRlMark(' + i + ',1)">✓ Got it</button><button class="rl-n" onclick="event.stopPropagation();apRlMark(' + i + ',0)">✗ Missed</button><button class="rl-nr" onclick="event.stopPropagation();apRlMark(' + i + ',2)">~ Nearly</button></div></div></div>';
-            }).join('') + '</div>');
+            frame('Roll it', '<div class="bz-stat"><div><b>' + ok + '</b>got</div><div><b>' + done + ' / ' + n + '</b>done</div></div><div class="rl-grid" style="grid-template-columns:repeat(' + cols + ',1fr)">' + deck.map(cardHTML).join('') + '</div>');
+          }
+          function cardHTML(c, i) {
+              return '<div class="rl-c" id="rlc' + i + '" onclick="apRlOpen(' + i + ')"><small>' + esc(cue) + (back.indexOf(c) >= 0 ? ' · back again' : '') + '</small><div class="rl-q' + (c.q.length > 90 ? ' rl-s' : '') + '">' + (function () { var v = hvOf(c); return v.hl ? (v.hl[0].trim() ? '[…] ' : '') + (v.hl[2].trim() ? esc(v.hl[1].replace(/\s*…\s*$/, '')) + ' […]' : esc(v.hl[1])) : esc(c.q); })() + '</div><div class="rl-hint">Say it, then tap to check</div><div class="rl-a" style="display:none"><div>' + esc(hvOf(c).a) + ' ' + SAYBTN(hvOf(c).a) + '</div><div class="rl-m"><button class="rl-y" onclick="event.stopPropagation();apRlMark(' + i + ',1)">✓ Got it</button><button class="rl-n" onclick="event.stopPropagation();apRlMark(' + i + ',0)">✗ Missed</button><button class="rl-nr" onclick="event.stopPropagation();apRlMark(' + i + ',2)">~ Nearly</button></div></div></div>';
           }
           window.apRlOpen = function (i) { var c = $('rlc' + i); if (!c || res[i] !== undefined || c.classList.contains('open')) return; c.classList.add('open'); c.querySelector('.rl-a').style.display = 'block'; c.querySelector('.rl-hint').style.display = 'none'; sfx('whoosh'); };
           window.apRlMark = function (i, g) {
-            if (res[i] !== undefined) return; if (g === 2) { var c0 = $('rlc' + i); if (c0) { c0.classList.remove('open'); c0.querySelector('.rl-a').style.display = 'none'; c0.querySelector('.rl-hint').style.display = ''; } sfx('tick'); return; } res[i] = g; done++; if (g) ok++; sfx(g ? 'ok' : 'bad');
+            if (res[i] !== undefined) return; if (g === 2) { var c0 = $('rlc' + i); sfx('tick'); if (spare.length && c0) { carry.push(deck[i]); deck[i] = spare.shift(); c0.outerHTML = cardHTML(deck[i], i); } else if (c0) { c0.classList.remove('open'); c0.querySelector('.rl-a').style.display = 'none'; c0.querySelector('.rl-hint').style.display = ''; } return; } res[i] = g; done++; if (g) ok++; sfx(g ? 'ok' : 'bad');
             var c = $('rlc' + i); c.classList.remove('open'); c.classList.add(g ? 'ok' : 'bad'); c.querySelector('.rl-m').style.display = 'none';
             var s = ov.querySelector('.bz-stat'); if (s) s.innerHTML = '<div><b>' + ok + '</b>got</div><div><b>' + done + ' / ' + n + '</b>done</div>';
             if (done >= n) timers.push(setTimeout(function () { endScreen('Roll it', { big: ok + '/' + n, note: ok === n ? 'All of them.' : (n - ok) + ' to look at again.' }, go); }, 900));
@@ -22308,4 +22310,4 @@ textarea.ms-in{min-height:7rem;resize:vertical}
   if (document.readyState === 'complete') start(); else window.addEventListener('load', start);
 })();
 </script>
-<script id="ap-build">window.__apBuild="57e4fe28f9";</script>
+<script id="ap-build">window.__apBuild="c9d55db93d";</script>
