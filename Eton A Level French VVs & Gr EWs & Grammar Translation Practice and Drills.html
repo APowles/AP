@@ -52240,6 +52240,15 @@ textarea.ms-in{min-height:7rem;resize:vertical}
 .vvg-b{border:1.5px solid #dfe4ee;border-radius:9px;background:#fff;padding:9px 2px;min-height:40px;font:700 .875rem var(--aph-body);color:#1a2744;cursor:pointer}
 .vvg-b:hover{border-color:var(--gold);background:#fffbe6}
 .vvg-b.on{background:#1a2744;color:#ffd76a;border-color:#1a2744}
+.vvsum{display:block;width:100%;background:none;border:0;box-shadow:none;padding:2px 2px 8px;margin:0;font:500 .9375rem var(--aph-body);color:#56607a;text-align:left;cursor:default}
+.vvsum b{color:#1a2744;font-weight:800}
+.vvg{gap:6px;margin-bottom:6px}
+.vvg-b{padding:6px 2px;min-height:34px;font-size:.8125rem;border-radius:8px}
+.vvg-cap{display:none}
+.vvinc{gap:6px;margin:8px 0 12px}
+.vvinc .aph-chip{padding:7px 12px;min-height:36px;font-size:.875rem}
+.vvinc-lock{border:1.5px solid #dfe4ee;background:#fff;border-radius:50%;width:36px;height:36px;font-size:1rem;cursor:pointer}
+.vvinc-note{flex-basis:100%;font-size:.8125rem;color:#6b7690;line-height:1.35}
 </style>
 <!-- One-picker pattern: the four "Choose a set…" menu selects under What to practise become one full-screen chooser.
      The selects stay in the DOM (hidden) and still drive everything downstream; the chooser just sets their value via vvPickSet. -->
@@ -52306,7 +52315,7 @@ textarea.ms-in{min-height:7rem;resize:vertical}
     var st = incState(), unlocked = /^TV(E|I|R)/.test(currentVV) ? !vcLockOn() : (typeof vsRecogUnlocked !== 'undefined' && vsRecogUnlocked);
     function c(w, l) { return '<button type="button" class="aph-chip' + (st[w] ? ' on' : '') + '" onclick="vvIncToggle(\'' + w + '\')">' + (st[w] ? '&#10003; ' : '') + l + '</button>'; }
     return '<span class="vvinc-l">Include:</span>' + c('tv', 'Topic vocab') + c('E', 'Essential') + c('I', 'Important') + c('R', 'Recognition')
-      + (st.R ? '<button type="button" class="aph-chip vv-lock ' + (unlocked ? 'open' : 'locked') + '" onclick="vvIncLock()">' + (unlocked ? '&#128275; Recognition: either way' : '&#128274; Recognition: French &rarr; English only') + '</button>' : '');
+      + (st.R ? '<button type="button" class="vvinc-lock" title="' + (unlocked ? 'Either way round' : 'French to English only') + '" onclick="vvIncLock()">' + (unlocked ? '&#128275;' : '&#128274;') + '</button><div class="vvinc-note">' + (unlocked ? 'Recognition structures are practised either way round. Tap the padlock to lock them to French &rarr; English.' : 'Recognition structures are French &rarr; English only. Tap the padlock to practise them into French too.') + '</div>' : '');
   }
   function gridHtml(chosen) {
     var st = incState(), cur = sufOf(currentVV), sufs = [];
@@ -52367,11 +52376,12 @@ textarea.ms-in{min-height:7rem;resize:vertical}
     var gr = $('vvgrid-row');
     if (!gr) { gr = document.createElement('div'); gr.id = 'vvgrid-row'; ir.parentNode.insertBefore(gr, ir.nextSibling); }
     gr.innerHTML = gridHtml(!!card.querySelector('.vv-grp.on'));
+    b.parentNode.insertBefore(gr, b.nextSibling); gr.parentNode.insertBefore(ir, gr.nextSibling);
     b.onclick = null; b.style.cursor = 'default'; b.style.boxShadow = 'none';
     var onEl = card.querySelector('.vv-grp.on');
     var label = (typeof currentVV !== 'undefined' && currentVV === 'Personalised set') ? 'Personalised set' : (onEl && typeof vvSetLabel === 'function' ? vvSetLabel(currentVV) : null);
-    b.className = 'gg-chbtn' + (label ? ' has' : '');
-    b.innerHTML = label ? ('&#128214; Choose a set <small>' + esc(label) + ' &middot; ' + ((VV_DATA[currentVV] || []).length) + ' phrases</small>') : '&#128214; Choose a set <small>tap to choose a set: 1a, 1b … 12 Entire</small>';
+    b.className = 'vvsum' + (label ? ' has' : '');
+    b.innerHTML = label ? ('Your set: <b>' + esc(label) + ' &middot; ' + ((VV_DATA[currentVV] || []).length) + ' phrases</b>') : 'Pick a set below, then choose what to include.';
   }
   var ri0 = window.renderIntro;
   window.renderIntro = function () { var r = ri0.apply(this, arguments); try { btn(); } catch (e) { } return r; };
