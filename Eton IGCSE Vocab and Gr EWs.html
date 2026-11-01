@@ -9639,7 +9639,7 @@ function vtKeep(p) { if (vtOn === 'ALL') return true; var t = vocTierOf(p); if (
 // plug into the Words filter so every mode (Drill, tests, View, Print, Speed Challenge) obeys it
 var _vtCogKeep0 = cogKeep; cogKeep = function (p, lang) { return _vtCogKeep0(p, lang) && vtKeep(p); };
 var _vtCogFilter0 = cogFilter; cogFilter = function (arr, lang) { var a = _vtCogFilter0(arr, lang); return vtOn === 'ALL' ? a : a.filter(vtKeep); };
-var _vtCogLabel0 = cogLabel; cogLabel = function () { var a = _vtCogLabel0(), b = vtOn === 'ALL' ? '' : VT_DEF.filter(function (x) { return x[0] === vtOn; })[0][1] + ' only'; return [a, b].filter(Boolean).join(' · '); };
+var _vtCogLabel0 = cogLabel; cogLabel = function () { var a = _vtCogLabel0(), b = vtOn === 'ALL' ? '' : vtDefOf(vtOn)[1] + ' only'; return [a, b].filter(Boolean).join(' · '); };
 if (window.__voc) { window.__voc.cogLabel = cogLabel; window.__voc.tierOf = function (i) { return vocTierOf(ALL_PHRASES[i]); }; }
 // Recognition is target language to English only; "Either direction" turns that off
 function vtLocked() { return vtOn === 'R' && !vtUnlocked; }
@@ -9689,7 +9689,7 @@ renderIntro = function () {
   var anchor = card.querySelector('.cog-row'); if (!anchor) return;
   var d = document.createElement('div'); d.className = 'vt-row';
   d.innerHTML = '<div class="aph-label">Importance</div><div class="aph-row" style="flex-wrap:wrap">' + vtControls(false) + '</div>'
-    + '<div class="ih-tip vt-tip" style="' + ((vtOn === 'ALL' && !vtNote()) ? 'display:none' : '') + '">' + (vtOn === 'ALL' ? vtNote() : '<b>' + VT_DEF.filter(function (x) { return x[0] === vtOn; })[0][1] + '</b>: ' + VT_DEF.filter(function (x) { return x[0] === vtOn; })[0][2] + '. This is about how useful a word is to <i>produce</i> in the IGCSE, not how hard it is. The core lists (nouns, verbs, adjectives, prepositions) are not graded and always stay in.') + '</div>';
+    + '<div class="ih-tip vt-tip" style="' + ((vtOn === 'ALL' && !vtNote()) ? 'display:none' : '') + '">' + (vtOn === 'ALL' ? vtNote() : '<b>' + vtDefOf(vtOn)[1] + '</b>: ' + vtDefOf(vtOn)[2] + '. This is about how useful a word is to <i>produce</i> in the IGCSE, not how hard it is. The core lists (nouns, verbs, adjectives, prepositions) are not graded and always stay in.') + '</div>';
   anchor.parentNode.insertBefore(d, anchor.nextSibling);
 };
 // Choose lists: Importance row before Trials
@@ -9738,7 +9738,7 @@ _ovRenderView = function () {
 };
 try { var _a2 = document.getElementById('app'); if (_a2 && _a2.querySelector('.intro-card')) renderIntro(); } catch (e) {}
 // ───── Tests: the Importance choice is part of every timed test and the Speed Challenge, and is flagged so it is not missed ─────
-function vtTierText() { return vtOn === 'ALL' ? '' : VT_DEF.filter(function (x) { return x[0] === vtOn; })[0][1] + ' only'; }
+function vtTierText() { return vtOn === 'ALL' ? '' : vtDefOf(vtOn)[1] + ' only'; }
 var _vtSpot0 = apttSpot;
 apttSpot = function (o) {
   var open0 = APTT.open, t = String(o.id || '').indexOf('voc|') === 0 ? vtTierText() : '';
@@ -11795,7 +11795,7 @@ textarea.ms-in{min-height:7rem;resize:vertical}
   function wordsSummary() {
     var lv = 'Mixed', im = 'All words';
     try { if (!cogAll()) lv = COG_BANDS.filter(function (x) { return cogOn.indexOf(x[0]) >= 0; }).map(function (x) { return x[1]; }).join(' + '); } catch (e) { }
-    try { if (vtOn !== 'ALL') im = VT_DEF.filter(function (x) { return x[0] === vtOn; })[0][1]; } catch (e) { }
+    try { if (vtOn !== 'ALL') im = vtDefOf(vtOn)[1]; } catch (e) { }
     return 'Level: ' + lv + ' · Importance: ' + im;
   }
   function settingsSummary() {
@@ -12746,6 +12746,89 @@ textarea.ms-in{min-height:7rem;resize:vertical}
 .ap-crest-msg.on{opacity:1}
 .ap-crest-wrap{position:relative;display:inline-block}
 </style>
+<script id="ov-steps">
+/* IGCSE vocab "Choose lists": the same clear steps as the A Level picker.
+   FIRST: 1 Which lists?  2 What to include? (greyed until a list is ticked).  Direction and cognates are tucked away. */
+(function () {
+  var st = document.createElement('style');
+  st.textContent = '#ov-modal .ovs{margin:10px 0 12px;padding:12px 14px 6px;border-radius:14px;background:#f7f3e6;border:1.5px solid #e6dbb4}'
+    + '#ov-modal .ovs-h{display:flex;align-items:center;gap:10px;margin:0 0 8px;font:800 1rem var(--aph-display,Georgia,serif);color:#1a2744}'
+    + '#ov-modal .ovs-n{display:inline-flex;align-items:center;justify-content:center;width:26px;height:26px;border-radius:50%;background:#1a2744;color:#ffd76a;font:800 .875rem var(--aph-body,sans-serif)}'
+    + '#ov-modal .ovs-s{font:500 .8125rem var(--aph-body,sans-serif);color:#6a7794;margin-left:2px}'
+    + '#ov-modal .ovs.off{opacity:.38;filter:grayscale(1);pointer-events:none}'
+    + '#ov-modal .ovs-first{font:800 .75rem var(--aph-body,sans-serif);letter-spacing:.14em;text-transform:uppercase;color:#b8922a;margin:2px 0 0}'
+    + '#ov-modal .ovs-ask{font:700 1.25rem var(--aph-display,Georgia,serif);color:#1a2744;margin:0 0 4px}'
+    + '#ov-modal .ovs-chip{position:relative;border:2px solid #cfd6e6;background:#fff;color:#4a5a7a;border-radius:14px;padding:8px 16px;min-height:44px;font:700 1rem var(--aph-body,sans-serif);cursor:pointer;display:inline-flex;align-items:center;gap:8px}'
+    + '#ov-modal .ovs-chip.on{border-color:#1a2744;background:#1a2744;color:#ffd76a}'
+    + '#ov-modal .ovs-chip .ovs-tk{font-size:1.1rem}'
+    + '#ov-modal .ovs-chip b{font:700 .8125rem var(--aph-body,sans-serif);opacity:.8}'
+    + '#ov-modal .ovs-lock{border-width:2px;border-style:solid;border-radius:14px;padding:8px 16px;min-height:44px;font:700 .9375rem var(--aph-body,sans-serif);cursor:pointer}'
+    + '#ov-modal .ovs-lock.shut{background:#1a2744;border-color:#1a2744;color:#fff}'
+    + '#ov-modal .ovs-lock.open{background:#fff3cf;border-color:#c98a00;color:#7a4b00;border-style:dashed}'
+    + '#ov-modal .ovs-note{font:500 .875rem var(--aph-body,sans-serif);color:#1a2744;margin:2px 0 8px}'
+    + '#ov-modal details.ovs-more{margin:6px 0 10px;border:1.5px dashed #cfd6e6;border-radius:12px;padding:8px 14px}'
+    + '#ov-modal details.ovs-more summary{cursor:pointer;font:700 .9375rem var(--aph-body,sans-serif);color:#4a5a7a;min-height:32px}'
+    + '#ov-modal details.ovs-more .ov-row{margin-top:8px}';
+  document.head.appendChild(st);
+  var moreOpen = false;
+  window.ovMoreTog = function (el) { moreOpen = !!el.open; };
+  function tiers() { return vtOn === 'ALL' ? 'EIR' : vtOn; }
+  window.vtTick = function (k) {
+    var cur = tiers(), nw = cur.indexOf(k) >= 0 ? cur.replace(k, '') : cur + k;
+    if (!nw) return;   // at least one tier stays ticked
+    nw = 'EIR'.split('').filter(function (x) { return nw.indexOf(x) >= 0; }).join('');
+    vtOn = nw === 'EIR' ? 'ALL' : nw; vtFixDir(); cogSet();
+  };
+  window.vtDefOf = function (k) {
+    var d = VT_DEF.filter(function (x) { return x[0] === k; })[0]; if (d) return d;
+    return [k, k.split('').map(function (c) { return VT_NAME[c]; }).join(' + '), 'the words you chose'];
+  };
+  var _tg0 = vtToggleLock;
+  window.vtToggleLock = vtToggleLock = function () {
+    vtUnlocked = !vtUnlocked; try { localStorage.setItem('apvoc_recog_unlocked', vtUnlocked ? '1' : '0'); } catch (e) { }
+    if (mixMode === 'rec' || mixMode === 'off') mixMode = vtUnlocked ? 'off' : 'rec';   // unlocked: the whole list goes the way chosen under Direction
+    vtFixDir(); cogSet();
+  };
+  function tierCounts() {
+    var c = { E: 0, I: 0, R: 0 }, on = {}; _ovSecs.forEach(function (s) { on[s] = 1; });
+    ALL_PHRASES.forEach(function (p) { if (on[p.sec]) { var t = vocTierOf(p); if (t) c[t]++; } });
+    return c;
+  }
+  window._ovRenderModal = _ovRenderModal = function () {
+    var on = {}; _ovSecs.forEach(function (s) { on[s] = 1; });
+    var n = _ovPhrases().length, hasSel = _ovSecs.length > 0, L = LANG_NAMES[mixTarget()] || 'French', tc = tierCounts(), tk = tiers();
+    var h = '<div class="ov-box"><div class="ov-head"><div><div class="ov-kick">Eton IGCSE · Vocab &amp; Gr EWs</div><div class="ovs-first">FIRST</div><div class="ovs-ask">What do you want to practise?</div></div>'
+      + '<button class="ov-x" onclick="closeListOverview()">✕ Close</button></div>';
+    /* 1 Which lists */
+    h += '<div class="ovs"><div class="ovs-h"><span class="ovs-n">1</span>Which lists? <span class="ovs-s">Tick as many as you like.</span></div>';
+    h += '<div class="ov-row">' + OV_PRESETS.map(function (p, i) { var all = p[1].every(function (s) { return on[s]; }); return '<button class="ov-chip' + (all ? ' on' : '') + '" onclick="_ovPreset(' + i + ')">' + p[0] + '</button>'; }).join('') + '</div>';
+    h += '<div class="ov-grid">';
+    OV_GROUPS.forEach(function (g, gi) {
+      var ks = g[1].filter(function (s) { return _ovCount(s); }); if (!ks.length) return;
+      var all = ks.every(function (s) { return on[s]; });
+      h += '<div class="ov-grp"><button class="ov-gh' + (all ? ' on' : '') + '" onclick="_ovGroup(' + gi + ')"><span class="ov-tick">' + (all ? '☑' : '☐') + '</span>' + g[0] + '</button>';
+      ks.forEach(function (s) { h += '<label class="ov-item' + (on[s] ? ' on' : '') + '"><input type="checkbox"' + (on[s] ? ' checked' : '') + ' onchange="_ovTog(\'' + s + '\')"><span>' + _ovEsc(SECTION_TITLES[s] || s) + '</span><small>' + _ovCount(s) + '</small></label>'; });
+      h += '</div>';
+    });
+    h += '</div></div>';
+    /* 2 What to include */
+    var chip = function (k, name) { var o = tk.indexOf(k) >= 0; return '<button class="ovs-chip' + (o ? ' on' : '') + '" onclick="vtTick(\'' + k + '\')"><span class="ovs-tk">' + (o ? '☑' : '☐') + '</span>' + name + (hasSel ? ' <b>' + tc[k] + '</b>' : '') + '</button>'; };
+    h += '<div class="ovs' + (hasSel ? '' : ' off') + '"><div class="ovs-h"><span class="ovs-n">2</span>What to include? <span class="ovs-s">Essential words are the ones to say and write.</span></div><div class="ov-row">'
+      + chip('E', 'Essential') + chip('I', 'Important') + chip('R', 'Recognition');
+    if (tk.indexOf('R') >= 0) h += '<button class="ovs-lock ' + (vtUnlocked ? 'open' : 'shut') + '" onclick="vtToggleLock()" title="Recognition words are practised ' + L + ' to English. Press to turn that off or on.">' + (vtUnlocked ? '🔓 Recognition: either way' : '🔒 Recognition: ' + L + ' → English') + '</button>';
+    h += '</div>';
+    var nt = vtNote();
+    h += '<div class="ovs-note">' + (vtOn === 'R' ? (vtUnlocked ? 'Recognition words go whichever way you choose under More options.' : 'Recognition words: ' + L + ' → English.') : nt) + '</div></div>';
+    /* tucked away */
+    h += '<details class="ovs-more"' + (moreOpen ? ' open' : '') + ' ontoggle="ovMoreTog(this)"><summary>More options: direction, cognates first' + (cogTeacher() ? ', test level' : '') + '</summary>'
+      + _ovLangPicker('_ovRenderModal()')
+      + '<div class="ov-row"><span class="ov-lab">Cognates</span>' + cogControls(true) + '</div></details>';
+    h += '<div class="ov-foot"><div class="ov-count">' + (n ? '<b>' + n + '</b> words · ' + _ovSecs.length + ' list' + (_ovSecs.length > 1 ? 's' : '') : 'Tick at least one list') + (n ? ' <button class="ov-clear" onclick="_ovNone()">Clear</button>' : '') + '</div>'
+      + '<div class="ov-acts"><button class="gold" ' + (n ? '' : 'disabled ') + 'onclick="ovDone()">✓ That’s my selection: now choose how to practise it</button></div></div></div>';
+    document.getElementById('ov-modal').innerHTML = h;
+  };
+})();
+</script>
 <script id="ap-crest">
 /* AP CREST add-on: tapping the crest opens the teacher's link / code maker for whatever is set up on screen
    (only with the teacher key on this device). Without the key it just says "Not available". The crest no longer opens any edit mode.
