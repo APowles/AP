@@ -50742,6 +50742,7 @@ textarea.ms-in{min-height:7rem;resize:vertical}
   // ---- the picker starts on "Choose a set…": nothing is preselected until a boy picks one (not when a link has chosen content)
   var fresh = !/^#(vv|myset|recap|sd|mlf)/.test(location.hash || ''), DEF = currentVV;
   function unchosen() { if (window.__sdPool) return false; return fresh && currentVV === DEF; }
+  window.vvMarkChosen = function () { fresh = false; };   // picking the default set (1a) must count as a choice too
   var activeG = null;
   (function () {
     var oP = window.vvPickSet, oG = window.vvSwitchGroup, oT = window.vvSetTier;
@@ -52359,7 +52360,7 @@ textarea.ms-in{min-height:7rem;resize:vertical}
     return VV_DATA[key] ? key : null;
   }
   function apply(key) {
-    if (!key) return; currentVV = key;
+    if (!key) return; currentVV = key; try { window.vvMarkChosen && window.vvMarkChosen(); } catch (e) { }
     try { vcSync(key); if (vsTierOfKey(key)) vsTier = vsTierOfKey(key); } catch (e) { }
     try { if (/^TV(E|I|R)/.test(key)) { try { localStorage.removeItem('apvv_combo_lock'); } catch (e) { } } } catch (e) { }
     vvKeepRecognitionFrToEn(); renderIntro();
