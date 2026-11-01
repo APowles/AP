@@ -1,4 +1,8 @@
 #!/bin/bash
+# DANGER: this script rebuilds each app's Gamify glue from _tools/gamify/hosts, and some of those copies (vvs.js, igcse-vocab.js, F Block) are OLDER than the live apps.
+# Running it rolls back newer code. To push a blitz.js change into the apps, use:  python3 _tools/shuffles/apply.py   (patches only the blitz block, idempotent).
+# Only run this deliberately with:  FORCE_ROLLOUT=1 bash _tools/gamify/rollout.sh   after refreshing the hosts files from the live apps.
+if [ "$FORCE_ROLLOUT" != "1" ]; then echo "rollout.sh is disabled (stale host files would roll back newer code). See the comment at the top of this file."; exit 1; fi
 # Re-inject / refresh the Gamify it games in every app that has them. Run from the repo root after editing blitz.js.
 cd "$(dirname "$0")/../.."; I=_tools/gamify/inject.py
 python3 $I "Eton IGCSE Vocab Essentials.html" --pics --games clock,streak,odd,letter,gender,roll,catch,lane,pairs,deal
