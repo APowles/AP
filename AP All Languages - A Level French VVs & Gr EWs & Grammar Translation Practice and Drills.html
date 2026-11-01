@@ -3738,7 +3738,7 @@ const VV_MIX_OPTS = [[0, 'Off'], [50, '50–50'], [70, '70–30']];
 function mixOK(m) { m = +m; return m === 50 || m === 70 ? m : 0; }
 function mixTag(m) { return m + '–' + (100 - m); }
 function mixLabel(m) { return 'Mix English ↔ French · ' + mixTag(m); }
-function mixTitle(m) { return 'Mix ' + mixTag(m) + ' (English ↔ French)'; }
+function mixTitle(m) { return m === 50 ? 'Mixed directions: half → French, half → English' : 'Mixed directions: 70% → French, 30% → English'; }
 // exact allocation: n flags, exactly round(n * pct / 100) of them true (= English → French), in random order
 function mixAlloc(n, pct) {
   const k = Math.round(n * pct / 100), a = [];
@@ -6200,8 +6200,8 @@ function openVVBrowse(){
             <button class="vvb-pbtn" onclick="vvbPrint('study')">&#128424; Study Sheet</button>
             <button class="vvb-pbtn" onclick="vvbPrint('testfr')">&#128221; Test → French</button>
             <button class="vvb-pbtn" onclick="vvbPrint('testen')">&#128221; Test → English</button>
-            <button class="vvb-pbtn" onclick="vvbPrint('testmix50')">&#128221; Test — Mix 50–50</button>
-            <button class="vvb-pbtn" onclick="vvbPrint('testmix70')">&#128221; Test — Mix 70–30</button>
+            <button class="vvb-pbtn" onclick="vvbPrint('testmix50')">&#128221; Test — Mixed (half each way)</button>
+            <button class="vvb-pbtn" onclick="vvbPrint('testmix70')">&#128221; Test — Mixed (70% → French)</button>
           </div>
         </div>
       </div>`;
@@ -6461,6 +6461,7 @@ function vvbSheet(kind, groups, opt){
   }
 
   let body = '';
+  if (mixPct) body += '<div style="margin:0 0 10px;padding:7px 11px;border:1px solid #c9a84c;border-radius:8px;background:#fffaf0;font-size:0.85rem;line-height:1.4;"><b>How this test works:</b> each question has a tag, <b>→ French</b> or <b>→ English</b>. Translate it into the language in the tag. ' + (mixPct === 50 ? 'About half the questions go each way.' : 'About 7 in 10 go into French and 3 in 10 into English.') + '</div>';
   let q = 0;
   groups.forEach(g => {
     body += '<div class="grp">'+vvbEsc(g.label || vvbLabel(g.set))+'<span>'+g.items.length+'</span></div>';
