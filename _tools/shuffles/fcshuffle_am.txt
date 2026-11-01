@@ -1,0 +1,10 @@
+function fcShuffleGo(){   // a different shuffle each time (shared engine, see _tools/shuffles), then the deal as before
+  const tok=FC.sxTok=(FC.sxTok||0)+1;FC.to=setTimeout(()=>{},120000);
+  const st=document.getElementById('shx-st');
+  const finish=()=>{if(tok!==FC.sxTok||FC.phase!=='shuffle'||S.view!=='cards')return;if(FC.to){clearTimeout(FC.to);FC.to=null}FC.phase='table';render();fcDealAnim()};
+  if(!st||typeof apShuffle==='undefined'){fcPlay('fan1');FC.tms.push(setTimeout(()=>fcPlay('fan2'),800));FC.tms.push(setTimeout(finish,1700));return}
+  const faces=shuffle(fcPool().slice()).slice(0,8).map(i=>picSrc(i));
+  apShuffle.run(st,{ar:9/16,faces:faces,back:'url(icons/cardback_'+(document.body.getAttribute('data-fcb')==='2'?2:1)+'.webp) center/cover no-repeat,#0d1a38',
+    later:(fn,ms)=>{FC.tms.push(setTimeout(()=>{if(tok===FC.sxTok&&FC.phase==='shuffle')fn()},ms))},play:(k,v)=>fcPlay(k,v),
+    alive:()=>tok===FC.sxTok&&FC.phase==='shuffle'&&S.view==='cards',done:finish});
+}
