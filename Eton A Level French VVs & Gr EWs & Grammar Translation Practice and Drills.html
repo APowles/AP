@@ -52261,6 +52261,9 @@ textarea.ms-in{min-height:7rem;resize:vertical}
 .vvinc-note{flex-basis:100%}
 .vvinc{flex-wrap:wrap}
 .vvinc .vvinc-l{display:none}
+.intro-card.vv-g2 #vvnow-step,.intro-card.vv-g2 #vvinc-row,.intro-card.vv-g3 #vvnow-step~.ms-step,.intro-card.vv-g3 #vvnow-step~.ms-step~*{opacity:.35;filter:grayscale(1);pointer-events:none;user-select:none}
+.vvinc-done{flex-basis:100%;background:#1a2744;color:#ffd76a;border:0;border-radius:10px;padding:10px 16px;min-height:42px;font:700 .9375rem var(--aph-body);cursor:pointer;margin-top:2px}
+#vvnow-step{margin-top:14px!important}
 </style>
 <!-- One-picker pattern: the four "Choose a set…" menu selects under What to practise become one full-screen chooser.
      The selects stay in the DOM (hidden) and still drive everything downstream; the chooser just sets their value via vvPickSet. -->
@@ -52317,17 +52320,21 @@ textarea.ms-in{min-height:7rem;resize:vertical}
     try { if (/^TV(E|I|R)/.test(key)) { try { localStorage.removeItem('apvv_combo_lock'); } catch (e) { } } } catch (e) { }
     vvKeepRecognitionFrToEn(); renderIntro();
   }
+  var incDone = null;
+  var vca0 = window.vvClearAll; if (vca0) window.vvClearAll = function () { incDone = false; return vca0.apply(this, arguments); };
+  window.vvIncDone = function () { incDone = true; renderIntro(); };
   window.vvIncToggle = function (w) {
+    incDone = true;
     var st = incState(); st[w] = !st[w];
     if (!st.tv && !st.E && !st.I && !st.R) return;   // something must stay ticked
     apply(keyFor(st, sufOf(currentVV)));
   };
-  window.vvIncLock = function () { if (/^TV(E|I|R)/.test(currentVV)) vcToggleLock(); else vvToggleRecogLock(); };
+  window.vvIncLock = function () { incDone = true; if (/^TV(E|I|R)/.test(currentVV)) vcToggleLock(); else vvToggleRecogLock(); };
   function incRow() {
     var st = incState(), unlocked = /^TV(E|I|R)/.test(currentVV) ? !vcLockOn() : (typeof vsRecogUnlocked !== 'undefined' && vsRecogUnlocked);
     function c(w, l) { return '<button type="button" class="aph-chip' + (st[w] ? ' on' : '') + '" onclick="vvIncToggle(\'' + w + '\')">' + (st[w] ? '&#10003; ' : '') + l + '</button>'; }
-    return '<span class="vvinc-l">Include:</span>' + c('tv', 'Topic vocab') + c('E', 'Essential') + c('I', 'Important') + c('R', 'Recognition')
-      + (st.R ? '<button type="button" class="vvinc-lock ' + (unlocked ? 'open' : 'shut') + '" title="' + (unlocked ? 'Either way round' : 'French to English only') + '" onclick="vvIncLock()">' + (unlocked ? '&#128275; Open' : '&#128274; Locked') + '</button><div class="vvinc-note">' + (unlocked ? 'Recognition structures are practised either way round. Tap the padlock to lock them to French &rarr; English.' : 'Recognition structures are French &rarr; English only. Tap the padlock to practise them into French too.') + '</div>' : '');
+    return c('tv', 'Topic vocab') + c('E', 'Essential') + c('I', 'Important') + c('R', 'Recognition')
+      + (st.R ? '<button type="button" class="vvinc-lock ' + (unlocked ? 'open' : 'shut') + '" title="' + (unlocked ? 'Either way round' : 'French to English only') + '" onclick="vvIncLock()">' + (unlocked ? '&#128275; Open' : '&#128274; Locked') + '</button><div class="vvinc-note">' + (unlocked ? 'Recognition structures are practised either way round. Tap the padlock to lock them to French &rarr; English.' : 'Recognition structures are French &rarr; English only. Tap the padlock to practise them into French too.') + '</div>' : '') + (incDone ? '' : '<button type="button" class="vvinc-done" onclick="vvIncDone()">&#10003; That\'s my selection</button>');
   }
   function gridHtml(chosen) {
     var st = incState(), cur = sufOf(currentVV), sufs = [];
@@ -52382,13 +52389,19 @@ textarea.ms-in{min-height:7rem;resize:vertical}
       if (anchor && anchor.parentNode) anchor.parentNode.insertBefore(b, anchor);
       else { var what = card.querySelector('.vv-grp'); if (what) { var last = what; while (last.nextElementSibling && (last.nextElementSibling.classList.contains('vv-grp') || last.nextElementSibling.classList.contains('vv-tier') || last.nextElementSibling.classList.contains('vv-glow-box'))) last = last.nextElementSibling; last.parentNode.insertBefore(b, last.nextSibling); } } }
     }
+    var lab0 = !!card.querySelector('.vv-grp.on'); if (incDone === null) incDone = lab0;
+    var nowb = $('vvnow-step');
+    if (!nowb) { nowb = document.createElement('div'); nowb.id = 'vvnow-step'; nowb.className = 'ms-step'; nowb.innerHTML = '<span class="ms-num ms-big">NOW</span>What do you want to include?'; }
     var ir = $('vvinc-row');
     if (!ir) { ir = document.createElement('div'); ir.id = 'vvinc-row'; ir.className = 'vvinc'; b.parentNode.insertBefore(ir, b.nextSibling); }
     if (currentVV !== 'Personalised set') ir.innerHTML = incRow(); else ir.innerHTML = '';
     var gr = $('vvgrid-row');
     if (!gr) { gr = document.createElement('div'); gr.id = 'vvgrid-row'; ir.parentNode.insertBefore(gr, ir.nextSibling); }
     gr.innerHTML = gridHtml(!!card.querySelector('.vv-grp.on'));
-    b.parentNode.insertBefore(gr, b.nextSibling); gr.parentNode.insertBefore(ir, gr.nextSibling);
+    b.parentNode.insertBefore(gr, b.nextSibling); gr.parentNode.insertBefore(nowb, gr.nextSibling); nowb.parentNode.insertBefore(ir, nowb.nextSibling);
+    card.classList.toggle('vv-g2', !lab0); card.classList.toggle('vv-g3', !(lab0 && incDone));
+    card.querySelectorAll('.ms-step').forEach(function (e) { e.classList.toggle('vv-nextstep', /^NEXT/.test(e.textContent.trim())); });
+    var mn = card.querySelector('.ms-now'); if (mn && /^Press/.test(mn.textContent.trim())) mn.textContent = 'Pick a set above, then say what to include.';
     b.onclick = null; b.style.cursor = 'default'; b.style.boxShadow = 'none';
     var onEl = card.querySelector('.vv-grp.on');
     var label = (typeof currentVV !== 'undefined' && currentVV === 'Personalised set') ? 'Personalised set' : (onEl && typeof vvSetLabel === 'function' ? vvSetLabel(currentVV) : null);
