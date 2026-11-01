@@ -6195,11 +6195,12 @@ function openVVBrowse(){
           <div id="vvbCount" class="vvb-count"></div>
           <div id="vvbLvSlot"></div>
           <label id="vvbAnsRow" style="display:flex;align-items:center;gap:8px;margin:2px 0 8px;font-size:0.82rem;font-weight:600;color:#1a2744;cursor:pointer"><input type="checkbox" id="vvbAnsChk" style="width:18px;height:18px" onchange="vvbAns=this.checked"> Include the answers on a separate last page <span style="font-weight:400;color:#8899bb">(off: the sheet is for the boys, with no answers)</span></label>
+          <div style="font:700 .8125rem var(--aph-body);color:#1a2744;margin:2px 0 6px">Make a sheet. It opens here, ready to print or save as PDF:</div>
           <div class="vvb-prints">
-            <button class="vvb-pbtn navy" onclick="vvbPrint('list')">&#128424; List</button>
-            <button class="vvb-pbtn" onclick="vvbPrint('study')">&#128424; Study Sheet</button>
-            <button class="vvb-pbtn" onclick="vvbPrint('testfr')">&#128221; Test → French</button>
-            <button class="vvb-pbtn" onclick="vvbPrint('testen')">&#128221; Test → English</button>
+            <button class="vvb-pbtn navy" onclick="vvbPrint('list')">&#128203; Formatted word list</button>
+            <button class="vvb-pbtn" onclick="vvbPrint('study')">&#128203; Study sheet (to learn from)</button>
+            <button class="vvb-pbtn" onclick="vvbPrint('testfr')">&#128221; Test: English → French</button>
+            <button class="vvb-pbtn" onclick="vvbPrint('testen')">&#128221; Test: French → English</button>
             <button class="vvb-pbtn" onclick="vvbPrint('testmix50')">&#128221; Test — Mixed (half each way)</button>
             <button class="vvb-pbtn" onclick="vvbPrint('testmix70')">&#128221; Test — Mixed (70% → French)</button>
           </div>
@@ -6549,6 +6550,30 @@ function vvbSheet(kind, groups, opt){
   return { title: 'AP A Level VVs, Gr EWs, Translation &amp; Drills — '+vvbEsc(setsTitle)+' — '+kindName, css1: aphCSS(), css2: css2, css: aphCSS()+css2, body: bodyHtml };
 }
 
+
+/* Sheets open in a pop-up over the same screen (never a new tab): Print / Save as PDF and Close sit in a slim bar above the sheet. */
+function apSheetPopup(html, title) {
+  try {
+    var old = document.getElementById('ap-sheet-pop'); if (old) old.remove();
+    html = String(html).replace(/<script>[^<]*window\.print\(\)[^<]*<\/script>/g, '');
+    var o = document.createElement('div'); o.id = 'ap-sheet-pop';
+    o.style.cssText = 'position:fixed;left:0;top:0;right:0;bottom:0;z-index:2147483000;background:rgba(18,26,48,.72);display:flex;flex-direction:column;padding:10px;box-sizing:border-box';
+    var bar = document.createElement('div');
+    bar.style.cssText = 'display:flex;align-items:center;gap:10px;background:#1a2744;color:#ffd76a;border-radius:12px 12px 0 0;padding:8px 12px;font:700 .9375rem/1.2 system-ui,sans-serif';
+    bar.innerHTML = '<span style="flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">' + String(title || 'Sheet').replace(/</g, '&lt;') + '</span>'
+      + '<button type="button" id="ap-sheet-print" style="min-height:40px;padding:0 14px;border:0;border-radius:10px;background:#ffd76a;color:#1a2744;font:800 .9375rem system-ui,sans-serif;cursor:pointer">🖨 Print / Save as PDF</button>'
+      + '<button type="button" id="ap-sheet-close" style="min-height:40px;padding:0 14px;border:2px solid #ffd76a;border-radius:10px;background:transparent;color:#ffd76a;font:800 .9375rem system-ui,sans-serif;cursor:pointer">✕ Close</button>';
+    var f = document.createElement('iframe'); f.title = title || 'Sheet'; f.srcdoc = html;
+    f.style.cssText = 'flex:1;width:100%;border:0;background:#fff;border-radius:0 0 12px 12px';
+    o.appendChild(bar); o.appendChild(f); document.body.appendChild(o);
+    function close() { o.remove(); document.removeEventListener('keydown', esc); document.documentElement.style.overflow = ''; }
+    function esc(e) { if (e.key === 'Escape') close(); }
+    document.addEventListener('keydown', esc); document.documentElement.style.overflow = 'hidden';
+    bar.querySelector('#ap-sheet-close').onclick = close;
+    bar.querySelector('#ap-sheet-print').onclick = function () { try { f.contentWindow.focus(); f.contentWindow.print(); } catch (e) { window.print(); } };
+    return true;
+  } catch (e) { return false; }
+}
 function vvbPrint(kind){
   const mixPct = kind === 'testmix50' ? 50 : kind === 'testmix70' ? 70 : 0;
   const lvTest = kind === 'testfr' || kind === 'testen' || mixPct > 0;
@@ -6558,10 +6583,7 @@ function vvbPrint(kind){
   const html = '<!DOCTYPE html><html><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">'
     + '<title>' + sh.title + '</title><style>' + sh.css1 + '</style><style>' + sh.css2 + '</style></head><body>' + sh.body + '</body></html>';
 
-  const w = window.open('', '_blank');
-  if (!w) { alert('Pop-up blocked — please allow pop-ups for this page and try again.'); return; }
-  w.document.write(html);
-  w.document.close();
+  if (!apSheetPopup(html, sh.title.replace(/<[^>]*>/g, ''))) { const w = window.open('', '_blank'); if (!w) { alert('Pop-up blocked — please allow pop-ups for this page and try again.'); return; } w.document.write(html); w.document.close(); }
 }
 
 </script>

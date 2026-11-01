@@ -9542,6 +9542,30 @@ function ovSheetParts() {
     + 'body.blank td.a{color:transparent}body.blank td.a .ovbr{color:transparent}body.blank td.a{border-bottom:1px solid #b9c0cf}';
   return { css: css, body: body, names: names, F: F, L: L };
 }
+
+/* Sheets open in a pop-up over the same screen (never a new tab): Print / Save as PDF and Close sit in a slim bar above the sheet. */
+function apSheetPopup(html, title) {
+  try {
+    var old = document.getElementById('ap-sheet-pop'); if (old) old.remove();
+    html = String(html).replace(/<script>[^<]*window\.print\(\)[^<]*<\/script>/g, '');
+    var o = document.createElement('div'); o.id = 'ap-sheet-pop';
+    o.style.cssText = 'position:fixed;left:0;top:0;right:0;bottom:0;z-index:2147483000;background:rgba(18,26,48,.72);display:flex;flex-direction:column;padding:10px;box-sizing:border-box';
+    var bar = document.createElement('div');
+    bar.style.cssText = 'display:flex;align-items:center;gap:10px;background:#1a2744;color:#ffd76a;border-radius:12px 12px 0 0;padding:8px 12px;font:700 .9375rem/1.2 system-ui,sans-serif';
+    bar.innerHTML = '<span style="flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">' + String(title || 'Sheet').replace(/</g, '&lt;') + '</span>'
+      + '<button type="button" id="ap-sheet-print" style="min-height:40px;padding:0 14px;border:0;border-radius:10px;background:#ffd76a;color:#1a2744;font:800 .9375rem system-ui,sans-serif;cursor:pointer">🖨 Print / Save as PDF</button>'
+      + '<button type="button" id="ap-sheet-close" style="min-height:40px;padding:0 14px;border:2px solid #ffd76a;border-radius:10px;background:transparent;color:#ffd76a;font:800 .9375rem system-ui,sans-serif;cursor:pointer">✕ Close</button>';
+    var f = document.createElement('iframe'); f.title = title || 'Sheet'; f.srcdoc = html;
+    f.style.cssText = 'flex:1;width:100%;border:0;background:#fff;border-radius:0 0 12px 12px';
+    o.appendChild(bar); o.appendChild(f); document.body.appendChild(o);
+    function close() { o.remove(); document.removeEventListener('keydown', esc); document.documentElement.style.overflow = ''; }
+    function esc(e) { if (e.key === 'Escape') close(); }
+    document.addEventListener('keydown', esc); document.documentElement.style.overflow = 'hidden';
+    bar.querySelector('#ap-sheet-close').onclick = close;
+    bar.querySelector('#ap-sheet-print').onclick = function () { try { f.contentWindow.focus(); f.contentWindow.print(); } catch (e) { window.print(); } };
+    return true;
+  } catch (e) { return false; }
+}
 function ovPrint() {
   if (!_ovSecs.length) return;
   var SP = ovSheetParts(), F = SP.F, L = SP.L, names = SP.names, body = SP.body, css = SP.css;
@@ -9551,9 +9575,7 @@ function ovPrint() {
     + '<div class="sheet">' + aphPrintHead({ kicker: 'Eton IGCSE &middot; Vocab &amp; Gr EWs', title: 'Vocab &mdash; <em>' + _ovEsc(names.join(' · ')) + '</em>',
         meta: OV_ALL[F] + ' &rarr; ' + OV_ALL[L] + ' &middot; ' + _ovPhrases().length + ' words' + (typeof cogLabel === 'function' && cogLabel() ? ' &middot; ' + cogLabel() : ''), strip: false, print: false })
     + '<div class="who"><span>Name</span><span>Division</span><span>Date</span></div>' + body + aphPrintFoot('Eton IGCSE Vocab &amp; Gr EWs &middot; View &amp; Print &middot; Word list') + '</div></body></html>';
-  var w = window.open('', '_blank');
-  if (!w) { alert('Please allow pop-ups for this page so the sheet can open in a new tab.'); return; }
-  w.document.open(); w.document.write(html); w.document.close();
+  if (!apSheetPopup(html, 'Vocab sheet · ' + _ovEsc(names.join(', ')))) { var w = window.open('', '_blank'); if (!w) { alert('Please allow pop-ups for this page so the sheet can open.'); return; } w.document.open(); w.document.write(html); w.document.close(); }
 }
 
 </script>
