@@ -9697,16 +9697,18 @@ renderIntro = function () {
 // ═════════ COGNATES: how easy a word is (Easy / Medium / Hard) never decides what a boy learns ═════════
 // Importance (Essential / Important / Recognition) decides what to produce and what to recognise. Cognate band is a separate thing:
 // for a boy it only puts the easier cognates first (nothing is removed); the Easy / Medium / Hard filter stays only on a teacher's device, for setting tests.
-var cogFirst = false;
+var cogOrder = '';   // '' as listed | 'E' easiest first | 'H' hardest first
 function cogTeacher() { try { return !!localStorage.getItem('apTeacherKey'); } catch (e) { return false; } }
-function cogSort(arr) { if (!cogFirst) return arr; var rk = { E: 0, M: 1, H: 2 }; return arr.map(function (p, i) { return [p, i]; }).sort(function (a, b) { return (rk[cogBand(a[0])] - rk[cogBand(b[0])]) || (a[1] - b[1]); }).map(function (x) { return x[0]; }); }
-function cogToggleFirst() { cogFirst = !cogFirst; cogSet(); }
+function cogSort(arr) { if (!cogOrder) return arr; var rk = { E: 0, M: 1, H: 2 }, sg = cogOrder === 'H' ? -1 : 1; return arr.map(function (p, i) { return [p, i]; }).sort(function (a, b) { return (sg * (rk[cogBand(a[0])] - rk[cogBand(b[0])])) || (a[1] - b[1]); }).map(function (x) { return x[0]; }); }
+function cogSetOrder(k) { cogOrder = k; cogSet(); }
 var _cogFilterB0 = cogFilter; cogFilter = function (arr, lang) { return cogSort(_cogFilterB0(arr, lang)); };
 var _cogControlsB0 = cogControls;
 cogControls = function (compact) {
   if (!cogTeacher()) cogOn = 'EMH';   // a boy's practice is never cut down by cognate band
-  var first = '<button class="aph-chip cogk' + (cogFirst ? ' on' : '') + '" title="Put the easy cognates (words that look like English) first. Nothing is removed." onclick="cogToggleFirst()">Cognates first</button>';
-  return cogTeacher() ? '<span class="cogt">' + first + '</span> <span class="cogw">Test level (teacher):</span> ' + _cogControlsB0(compact) : '<span class="cogt">' + first + '</span><span class="cogw">Easy cognates come first. Every word stays in.</span>';
+  var oc = function (k, t, tip) { return '<button class="aph-chip cogk' + (cogOrder === k ? ' on' : '') + '" title="' + tip + '" onclick="cogSetOrder(\'' + k + '\')">' + t + '</button>'; };
+  var first = oc('', 'As listed', 'The words stay in the order of the list') + oc('E', 'Easiest first', 'Cognates first: words that look like English come first') + oc('H', 'Hardest first', 'The words with nothing to go on come first');
+  var why = '<span class="cogw" style="display:block;margin:4px 0 0;line-height:1.4">Which words come first. <b>Easy</b> looks like English (famille = family), <b>Medium</b> looks like a different English word (appartement = flat), <b>Hard</b> gives nothing to go on (manger = to eat). Every word stays in, whichever you pick.</span>';
+  return cogTeacher() ? '<span class="cogt">' + first + '</span> <span class="cogw">Test level (teacher):</span> ' + _cogControlsB0(compact) + why : '<span class="cogt">' + first + '</span>' + why;
 };
 function vtNote() {
   if (!(typeof mixIsRec === 'function' && mixIsRec())) return '';
@@ -9726,7 +9728,7 @@ _ovRenderModal = function () {
   var d = document.createElement('div'); d.className = 'ov-row'; d.innerHTML = '<span class="ov-lab">Importance</span>' + vtControls(false);
   at.parentNode.insertBefore(d, at);
   var nt = vtNote(); if (nt) { var n2 = document.createElement('div'); n2.className = 'ov-row'; n2.innerHTML = '<span class="ov-lab"></span><span class="cogw" style="margin-left:0">' + nt + '</span>'; at.parentNode.insertBefore(n2, at); }
-  rows.forEach(function (r) { var l = r.querySelector('.ov-lab'); if (l && l.textContent === 'Level') l.textContent = 'Cognates'; });
+
 };
 // View on screen: Importance + Group by in the toolbar
 var _vtRV0 = _ovRenderView;
@@ -12820,9 +12822,9 @@ textarea.ms-in{min-height:7rem;resize:vertical}
     var nt = vtNote();
     h += '<div class="ovs-note">' + (vtOn === 'R' ? (vtUnlocked ? 'Recognition words go whichever way you choose under More options.' : 'Recognition words: ' + L + ' → English.') : nt) + '</div></div>';
     /* tucked away */
-    h += '<details class="ovs-more"' + (moreOpen ? ' open' : '') + ' ontoggle="ovMoreTog(this)"><summary>More options: direction, cognates first' + (cogTeacher() ? ', test level' : '') + '</summary>'
+    h += '<details class="ovs-more"' + (moreOpen ? ' open' : '') + ' ontoggle="ovMoreTog(this)"><summary>More options: direction, which words first' + (cogTeacher() ? ', test level' : '') + '</summary>'
       + _ovLangPicker('_ovRenderModal()')
-      + '<div class="ov-row"><span class="ov-lab">Cognates</span>' + cogControls(true) + '</div></details>';
+      + '<div class="ov-row"><span class="ov-lab">Order</span>' + cogControls(true) + '</div></details>';
     h += '<div class="ov-foot"><div class="ov-count">' + (n ? '<b>' + n + '</b> words · ' + _ovSecs.length + ' list' + (_ovSecs.length > 1 ? 's' : '') : 'Tick at least one list') + (n ? ' <button class="ov-clear" onclick="_ovNone()">Clear</button>' : '') + '</div>'
       + '<div class="ov-acts"><button class="gold" ' + (n ? '' : 'disabled ') + 'onclick="ovDone()">✓ That’s my selection: now choose how to practise it</button></div></div></div>';
     document.getElementById('ov-modal').innerHTML = h;
