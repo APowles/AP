@@ -9527,13 +9527,23 @@ function ovSheetParts() {
   var body = '';
   vtGroups().forEach(function (g) {
     var s = g.key, ps = g.ps; if (!ps.length) return;
-    var half = Math.ceil(ps.length / 2), rows = '';
-    for (var i = 0; i < half; i++) {
-      var a = ps[i], b = ps[i + half];
-      rows += '<tr><td class="n">' + (i + 1) + '</td><td class="q">' + vtBadge(a) + _ovFmt(a[F]) + '</td><td class="a">' + _ovFmt(a[L]) + '</td><td class="gap"></td>'
-        + (b ? '<td class="n">' + (i + half + 1) + '</td><td class="q">' + vtBadge(b) + _ovFmt(b[F]) + '</td><td class="a">' + _ovFmt(b[L]) + '</td>' : '<td></td><td></td><td></td>') + '</tr>';
-    }
-    body += '<section><h2>' + _ovEsc(g.title) + ' <span>' + ps.length + ' words</span></h2><table><colgroup><col class="cn"><col class="cq"><col class="ca"><col class="cg"><col class="cn"><col class="cq"><col class="ca"></colgroup><tbody>' + rows + '</tbody></table></section>';
+    var BN = { E: ['Easy', 'looks like the English'], M: ['Medium', 'looks like a different English word'], H: ['Hard', 'nothing to go on'] };
+    var runs = [];
+    if (cogSheetOrder) { ps.forEach(function (p) { var bd = cogBand(p), r = runs[runs.length - 1]; if (r && r.bd === bd) r.ps.push(p); else runs.push({ bd: bd, ps: [p] }); }); }
+    else runs.push({ bd: '', ps: ps });
+    var off = 0, tabs = '';
+    runs.forEach(function (run) {
+      var q = run.ps, half = Math.ceil(q.length / 2), rows = '';
+      for (var i = 0; i < half; i++) {
+        var a = q[i], b = q[i + half];
+        rows += '<tr><td class="n">' + (off + i + 1) + '</td><td class="q">' + vtBadge(a) + _ovFmt(a[F]) + '</td><td class="a">' + _ovFmt(a[L]) + '</td><td class="gap"></td>'
+          + (b ? '<td class="n">' + (off + i + half + 1) + '</td><td class="q">' + vtBadge(b) + _ovFmt(b[F]) + '</td><td class="a">' + _ovFmt(b[L]) + '</td>' : '<td></td><td></td><td></td>') + '</tr>';
+      }
+      off += q.length;
+      if (run.bd) tabs += '<div class="cb cb-' + run.bd + '"><b>' + BN[run.bd][0] + '</b> · ' + BN[run.bd][1] + ' <span>' + q.length + ' words</span></div>';
+      tabs += '<table><colgroup><col class="cn"><col class="cq"><col class="ca"><col class="cg"><col class="cn"><col class="cq"><col class="ca"></colgroup><tbody>' + rows + '</tbody></table>';
+    });
+    body += '<section><h2>' + _ovEsc(g.title) + ' <span>' + ps.length + ' words</span></h2>' + tabs + '</section>';
   });
   var css = '@page{size:A4;margin:11mm 10mm}*{box-sizing:border-box}body{margin:0;background:#fff;font-family:var(--aph-body);color:#1a2744;-webkit-print-color-adjust:exact;print-color-adjust:exact}.aph-pband{margin-bottom:4mm}'
     + '.bar{position:sticky;top:0;z-index:5;background:#1a2744;color:#fff;padding:10px 16px;display:flex;gap:10px;align-items:center;flex-wrap:wrap;font-size:13px}.bar button{background:#c9a84c;color:#1a2744;border:0;border-radius:6px;padding:8px 14px;font-weight:700;cursor:pointer;font-family:inherit}.bar button.alt{background:transparent;color:#ffd76a;border:1.5px solid #c9a84c}.bar button.alt.on{background:#c9a84c;color:#1a2744}'
@@ -9544,6 +9554,7 @@ function ovSheetParts() {
     + 'table{width:100%;border-collapse:collapse;table-layout:fixed;font-size:8.6pt;line-height:1.28}col.cn{width:6mm}col.cg{width:3mm}tr{break-inside:avoid}td{padding:1.1mm 1.5mm;border-bottom:1px solid #e6e9f0;vertical-align:top}tr:nth-child(even) td:not(.gap){background:#faf8f3}td.gap{border:0;background:#fff!important}'
     + 'td.n{color:#a0a8bd;font-size:7pt;text-align:right;padding-right:1mm}td.q{color:#3d4866;font-style:italic}td.a{font-weight:700}.ovbr{font-weight:400;color:#8a93a8;font-style:normal}'
     + '.vtb{display:inline-block;min-width:3.4mm;text-align:center;font:700 6.5pt/1.3 var(--aph-body);border-radius:1mm;margin-right:1.5mm;padding:0 .8mm;color:#fff;font-style:normal}.vtb-E{background:#1a2744}.vtb-I{background:#a8862e}.vtb-R{background:#8a93a8}'
+    + '.cb{break-after:avoid;font-size:7.5pt;letter-spacing:.04em;padding:1mm 3mm;color:#1a2744;border-left:3mm solid;margin-top:1.5mm}.cb span{color:#56607a;font-weight:400;margin-left:2mm}.cb-E{background:#e3f1e6;border-color:#3f8f55}.cb-M{background:#fff1d6;border-color:#d89a1e}.cb-H{background:#fbe1e1;border-color:#c0504d}'
     + 'body.blank td.a{color:transparent}body.blank td.a .ovbr{color:transparent}body.blank td.a{border-bottom:1px solid #b9c0cf}';
   return { css: css, body: body, names: names, F: F, L: L };
 }
