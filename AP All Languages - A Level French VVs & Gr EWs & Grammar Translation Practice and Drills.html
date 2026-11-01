@@ -56727,6 +56727,16 @@ html.gc-open,html.gc-open body{overflow:hidden}
     if (sm) { e.preventDefault(); e.stopPropagation(); open(); }
   }, true);
   document.addEventListener('keydown', function (e) { if (e.key === 'Escape') close(); });
+  /* The set-up screen draws the Chapters list already expanded: keep it shut, and when nothing is chosen yet open the pop-out straight away. */
+  var seen = false;
+  function guard() {
+    var d = $('ge-chap'); if (!d) { seen = false; return; }
+    if (d.hasAttribute('open')) d.removeAttribute('open');
+    try { if (typeof GE !== 'undefined') GE.chapOpen = false; } catch (e) { }
+    if (!seen) { seen = true; if (!selected().length && !(location.hash || location.search).length) open(); }
+  }
+  new MutationObserver(guard).observe(document.body, { childList: true, subtree: true, attributes: true, attributeFilter: ['open'] });
+  guard();
   var hook0 = window.aphBackHook;
   window.aphBackHook = function () { if (close()) return true; return hook0 ? hook0.apply(this, arguments) : false; };
 })();
