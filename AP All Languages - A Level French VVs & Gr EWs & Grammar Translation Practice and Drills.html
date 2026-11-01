@@ -6195,8 +6195,10 @@ function vvbSortSel(){
   vvbSel.sort((a,b) => order.indexOf(a) - order.indexOf(b));
 }
 
+let vvbLastCV = null;   // the FIRST choice (set + Include ticks) the list was last built from
 function openVVBrowse(){
-  // Start from the set chosen in the drill dropdown
+  // Start from the set chosen in FIRST; if that choice (set or Include ticks) has changed since the list was last opened, rebuild from it
+  if (vvbLastCV !== currentVV) { vvbSel = []; vvbLastCV = currentVV; }
   if (!vvbSel.length) {
     const m = (currentVV||'').match(/^((?:VV|TVEIR|TVEI|TVER|TVIR|TVE|TVI|TVR|TV|VSEI|VSE|VSI|VSR|VS)\d+)_Entire$/);
     vvbSel = m ? vvbAllSets().filter(k => new RegExp('^'+m[1]+'[a-z]$').test(k))
