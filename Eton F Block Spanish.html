@@ -6392,7 +6392,7 @@ function closeConjChallenge() {
     S.run = { qs: shuf(qs).map(function (q) {
       if (q.t === 'mc') { var idx = shuf([0, 1, 2, 3]); q = Object.assign({}, q, { o: idx.map(function (i) { return q.o[i]; }), a: idx.indexOf(q.a) }); }
       return q;
-    }), i: 0, log: [], test: !!testMode, done: false };
+    }), i: 0, log: [], test: !!testMode, oral: !testMode, shown: false, done: false };
     if (list) S.run.qs = list.map(function (q) {   // keep a made test in its printed order
       if (q.t === 'mc') return q; return q;
     });
@@ -6400,13 +6400,38 @@ function closeConjChallenge() {
   };
   function accentRow() { return '<div class="gq-acc">' + ['á', 'é', 'í', 'ó', 'ú', 'ü', 'ñ', '¿', '¡'].map(function (c) { return '<button type="button" onmousedown="event.preventDefault()" onclick="gramAcc(\'' + c + '\')">' + c + '</button>'; }).join('') + '</div>'; }
   W.gramAcc = function (c) { var i = $('gq-in'); if (!i || i.disabled) return; var s = i.selectionStart == null ? i.value.length : i.selectionStart, e = i.selectionEnd == null ? s : i.selectionEnd; i.value = i.value.slice(0, s) + c + i.value.slice(e); i.focus(); i.selectionStart = i.selectionEnd = s + 1; };
+  /* ---------- ORAL DRILL: say it, show the answer, mark yourself (Tests stay on screen as before) ---------- */
+  function ansOf(q) { return q.t === 'mc' ? q.o[q.a] : q.a.filter(function (x, i, r) { var k = String(x).toLowerCase().replace(/[. !?]+$/, ''); return r.findIndex(function (y) { return String(y).toLowerCase().replace(/[. !?]+$/, '') === k; }) === i; }).join('  /  '); }
+  function oralCard(q) {
+    var h = '<div class="aph-prompt card-question gq-q' + (q.t === 'mc' ? '' : ' gq-gap') + '" id="gq-sent">' + (q.t === 'mc' ? esc(q.q) : blank(q)) + '</div>';
+    if (q.t === 'mc') h += '<div class="gq-opts">' + q.o.map(function (o, i) { return '<div class="gq-opt" id="gq-o' + i + '" style="cursor:default"><span class="gq-l">' + 'ABCD'[i] + '</span>' + esc(o) + '</div>'; }).join('') + '</div>';
+    h += '<p class="gh-p gq-sayit">' + (q.t === 'mc' ? 'Say your choice out loud, then press Show answer.' : 'Say the missing word out loud, then press Show answer.') + '</p>'
+      + '<button class="aph-btn aph-btn-primary aph-btn-block" id="gq-show" onclick="gramShow()">Show answer</button>';
+    return h;
+  }
+  W.gramShow = function () {
+    var R = S.run, q = R && R.qs[R.i]; if (!q || !R.oral || R.lock || R.shown) return; R.shown = true;
+    var b = $('gq-show'); if (b) b.style.display = 'none';
+    var sy = document.querySelector('.gq-sayit'); if (sy) sy.style.display = 'none';
+    if (q.t === 'mc') { var ok = $('gq-o' + q.a); if (ok) ok.classList.add('ok'); }
+    else { var s = $('gq-sent'); if (s) s.innerHTML = blank(q, q.a[0], 'ok'); }
+    $('gq-fb').innerHTML = '<div class="gq-fb"><b>Answer: ' + esc(ansOf(q)) + '</b><p>' + esc(q.e) + '</p></div>' + vbMarkRow('gramSelf');
+  };
+  W.gramSelf = function (k) {
+    var R = S.run, q = R && R.qs[R.i]; if (!q || !R.oral || !R.shown || R.lock) return;
+    record(k === 'got' ? 'ok' : k === 'nearly' ? 'near' : 'bad', null);
+    R.shown = false; R.i++; gramCard();
+  };
   function gramCard() {
     var R = S.run, q = R.qs[R.i]; if (!q) { gramEnd(); return; }
+    R.shown = false;
     var pct = R.i / R.qs.length * 100;
     var h = '<div class="aph-wrap gq-wrap"><div class="aph-progress"><div class="progress-fill" style="width:' + pct + '%"></div></div>'
       + '<div class="aph-card aph-qcard gq-card"><div class="aph-qmeta">' + (R.test ? 'Test' : 'Drill') + ' &middot; question ' + (R.i + 1) + ' of ' + R.qs.length + ' &middot; ' + esc(uName(q.u)) + (LVN[q.d] ? ' &middot; <span class="gq-lv gq-lv-' + q.d + '">' + LVN[q.d] + '</span>' : '') + '</div>'
       + '<div class="gq-topic">' + esc(q.topic) + '</div>';
-    if (q.t === 'mc') {
+    if (R.oral) {
+      h += oralCard(q);
+    } else if (q.t === 'mc') {
       h += '<div class="aph-prompt card-question gq-q">' + esc(q.q) + '</div><div class="gq-opts">'
         + q.o.map(function (o, i) { return '<button class="gq-opt" id="gq-o' + i + '" onclick="gramPick(' + i + ')"><span class="gq-l">' + 'ABCD'[i] + '</span>' + esc(o) + '</button>'; }).join('') + '</div>';
     } else {
@@ -6447,6 +6472,14 @@ function closeConjChallenge() {
     if (!$('gq-sent') && !document.querySelector('.gq-opts')) return;
     var R = S.run; if (!R || R.done) return;
     var q = R.qs[R.i]; if (!q) return;
+    if (R.oral) {
+      if (e.ctrlKey || e.metaKey || e.altKey) return;
+      if (!R.shown) { if (e.key === 'ArrowRight' || e.key === 'Enter' || e.key === ' ') { e.preventDefault(); gramShow(); } }
+      else if (e.key === 'ArrowLeft') { e.preventDefault(); gramSelf('error'); }
+      else if (e.key === 'ArrowDown') { e.preventDefault(); gramSelf('nearly'); }
+      else if (e.key === 'ArrowRight') { e.preventDefault(); gramSelf('got'); }
+      return;
+    }
     if (q.t === 'mc' && !R.lock) { var k = 'abcd1234'.indexOf(e.key.toLowerCase()); if (k >= 0 && !e.ctrlKey && !e.metaKey) { e.preventDefault(); gramPick(k % 4); } }
     else if (R.lock && e.key === 'Enter' && $('gq-next') && document.activeElement !== $('gq-next')) { e.preventDefault(); gramNext(); }
   });
@@ -6459,14 +6492,14 @@ function closeConjChallenge() {
     var msg = pc >= 90 ? 'Excellent!' : pc >= 70 ? 'Very good.' : pc >= 50 ? 'Getting there. Read the notes for the ones you missed.' : 'Keep going: read the notes, then try again.';
     var miss = R.log.filter(function (l) { return l.res !== 'ok'; });
     var h = '<div class="aph-wrap gq-endwrap gq-wrap"><div class="aph-card gq-end"><h2 class="aph-h">' + (R.test ? 'Test marked' : 'Drill finished') + '</h2>'
-      + '<div class="gq-score"><span>' + (Math.round(score * 2) / 2) + '</span> / ' + n + '</div><p class="gh-p"><b>' + pc + '%</b> &middot; ' + msg + (nr ? ' (' + nr + ' answer' + (nr === 1 ? ' was' : 's were') + ' right apart from an accent: half a mark each.)' : '') + '</p>';
+      + '<div class="gq-score"><span>' + (Math.round(score * 2) / 2) + '</span> / ' + n + '</div><p class="gh-p"><b>' + pc + '%</b> &middot; ' + msg + (nr ? (R.oral ? ' (' + nr + ' marked Nearly: half a mark each.)' : ' (' + nr + ' answer' + (nr === 1 ? ' was' : 's were') + ' right apart from an accent: half a mark each.)') : '') + '</p>';
     if (miss.length) {
       h += '<div class="aph-label">To go over</div>';
       miss.forEach(function (l) {
         var q = l.q, ans = q.t === 'mc' ? q.o[q.a] : q.a[0], given = q.t === 'mc' ? (l.given == null ? '' : q.o[l.given]) : l.given;
         var ti = uByCode[q.u].topics.findIndex(function (t) { return t.title === q.topic; });
         h += '<div class="gq-rev"><div class="gq-rq">' + (q.t === 'mc' ? esc(q.q) : blank(q, ans, 'ok')) + '</div>'
-          + (l.res === 'bad' ? '<div class="gq-rg">You put: <s>' + esc(given || '(blank)') + '</s></div>' : '')
+          + (l.res === 'bad' && l.given !== null ? '<div class="gq-rg">You put: <s>' + esc(given || '(blank)') + '</s></div>' : '')
           + '<div class="gq-ra">Answer: <b>' + esc(ans) + '</b></div><div class="gq-re">' + esc(q.e) + '</div>'
           + (ti >= 0 ? '<button class="aph-btn aph-btn-sm" onclick="gramView({c:\'' + q.u + '\',i:' + ti + '})">&#128214; Read: ' + esc(q.topic) + '</button>' : '') + '</div>';
       });
