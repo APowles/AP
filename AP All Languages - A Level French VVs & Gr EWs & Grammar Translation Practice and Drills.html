@@ -57317,16 +57317,15 @@ html.gc-open,html.gc-open body{overflow:hidden}
   window.apBzSndOpt = function (on) { snd = !!on; saveCfg(); sndBtn(); if (!snd) musicStop(); else if (view !== 'pick') musicStart(); if (snd) { ctx(); sfx('ok'); } panel(); };
   window.apBzMus = function (s) { CFG.mus = s; saveCfg(); if (s === 'off') musicStop(); else musicStart(); panel(); };
   window.apBzMV = function (v) { CFG.mv = v; saveCfg(); if (MG) MG.gain.value = .5 * v; else if (CFG.mus !== 'off') musicStart(); panel(); };
-  window.apBzSetDone = function () { var el = $('bz-set'); if (el) el.remove(); PZ = false; if (view === 'pick') musicStop(); if (setDirty && view !== 'pick' && GAMES[view]) { setDirty = false; stop(); GAMES[view](/^(catch|lane)$/.test(view) ? optPool(pool()) : pool()); } };
+  window.apBzSetDone = function () { var el = $('bz-set'); if (el) el.remove(); PZ = false; if (view === 'pick') musicStop(); if (setDirty && view !== 'pick' && GAMES[view]) { setDirty = false; stop(); GAMES[view](pool(/^(catch|lane)$/.test(view))); } };
 
   // ---------- data
   function clean(s) { return String(s == null ? '' : s).replace(/[*_]/g, '').trim(); }
   function dirs() { var f = H.from(), t = H.to(); if (f !== 'en' && t !== 'en') { f = 'en'; } return [f, t]; }
   function target() { var d = dirs(); return d[1] !== 'en' ? d[1] : d[0]; }
-  function pool() { var d = dirs(), out = []; H.phrases().forEach(function (p) { var f = d[0], t = d[1]; if (p.rec) { f = 'fr'; t = 'en'; } var q = clean(p[f]), a = clean(p[t]); if (q && a) out.push({ q: q, a: a, sec: p.sec, en: clean(p.en), tl: clean(p[target()]), hv: p.hv || null, hf: f, ht: t, rec: !!p.rec }); }); return out; }
+  function pool(plain) { var d = dirs(), out = []; H.phrases().forEach(function (p) { var f = d[0], t = d[1]; if (p.rec && !plain) { f = 'fr'; t = 'en'; } var q = clean(p[f]), a = clean(p[t]); if (q && a) out.push({ q: q, a: a, sec: p.sec, en: clean(p.en), tl: clean(p[target()]), hv: p.hv || null, hf: f, ht: t, rec: !!p.rec }); }); return out; }
   function cueFor(c, cue) { return (c && c.rec && c.hf) ? H.names[c.hf] : cue; }
   function toEn(c) { return ((c && c.ht) || dirs()[1]) === 'en'; }
-  function optPool(p) { var d0 = dirs()[0]; return p.filter(function (x) { return !x.rec || x.hf === d0; }); }   // pick-the-word games build their options from one side, so a French -> English phrase joins them only when the round is already French -> English
   function shuf(a) { a = a.slice(); for (var i = a.length - 1; i > 0; i--) { var j = Math.floor(Math.random() * (i + 1)), x = a[i]; a[i] = a[j]; a[j] = x; } return a; }
   function esc(s) { return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;'); }
   var stopHook = null;
@@ -57363,7 +57362,7 @@ html.gc-open,html.gc-open body{overflow:hidden}
     stop(); musicStop(); view = 'pick'; bgNow = null; if (ov) ov.removeAttribute('data-dlr'); var p = pool(), r = reasons(p);
     frame('', '<div class="bz-note"><b>' + p.length + ' ' + (HC.noun || 'words') + '</b> ready. ' + esc(dirs()[0] === 'en' ? 'English → ' + H.names[dirs()[1]] : H.names[dirs()[0]] + ' → English') + '. Pick a round: it starts straight away.</div><div class="bz-grid">' + MODES.filter(function (m) { return !H.games || H.games.indexOf(m[0]) > -1; }).map(function (m) { var off = r[m[0]]; return '<button class="bz-m"' + (off ? ' disabled' : '') + ' onclick="apBzStart(\'' + m[0] + '\')"><img alt="" src="' + (BZ[m[0]] || 'icons/hx_cards.webp') + '"><b>' + m[1] + '</b><span>' + (off || m[2]) + '</span></button>'; }).join('') + '</div>');
   }
-  window.apBzStart = function (k) { stop(); bgNow = null; view = k; ctx(); sfx('go'); musicStart(true); GAMES[k](/^(catch|lane)$/.test(k) ? optPool(pool()) : pool()); };
+  window.apBzStart = function (k) { stop(); bgNow = null; view = k; ctx(); sfx('go'); musicStart(true); GAMES[k](pool(/^(catch|lane)$/.test(k))); };   // Catch it and Lane it only pair words up (recognition), so a Recognition word is just an ordinary word there
 
   // ---------- helpers for self-marked card games
   function card(q, a, extra, hl) { var n = String(q || '').length + String(a || '').length, z = n > 130 ? ' bz-xl' : n > 60 ? ' bz-lg' : '', qh = hl ? esc(hl[0]) + '<b class="hl">' + esc(hl[1]) + '</b>' + esc(hl[2]) + '<span class="hln">Translate only the highlighted part</span>' : esc(q); return '<div class="bz-card' + z + '" id="bz-card"><small>' + esc(extra || '') + '</small><div>' + qh + '</div><div class="ans" id="bz-ans" style="visibility:hidden">' + esc(a) + ' ' + SAYBTN(a) + '</div></div>'; }
