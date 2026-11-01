@@ -9668,7 +9668,7 @@ function vtGroups() {
   var secs = _ovOrdered();
   if (vtGroupBy === 'cog') {
     var allc = []; secs.forEach(function (s) { _ovSecList(s).forEach(function (p) { allc.push(p); }); });
-    var ord = cogOrder === 'H' ? ['H', 'M', 'E'] : ['E', 'M', 'H'], nm = { E: 'Easy: looks like English', M: 'Medium: looks like a different English word', H: 'Hard: nothing to go on' };
+    var ord = cogCurOrder() === 'H' ? ['H', 'M', 'E'] : ['E', 'M', 'H'], nm = { E: 'Easy: looks like English', M: 'Medium: looks like a different English word', H: 'Hard: nothing to go on' };
     return ord.map(function (k) { return { key: 'C' + k, title: nm[k], ps: allc.filter(function (p) { return cogBand(p) === k; }) }; });
   }
   if (vtGroupBy !== 'tier') return secs.map(function (s) { return { key: s, title: SECTION_TITLES[s] || s, ps: _ovSecList(s) }; });
@@ -9702,15 +9702,18 @@ renderIntro = function () {
 // ═════════ COGNATES: how easy a word is (Easy / Medium / Hard) never decides what a boy learns ═════════
 // Importance (Essential / Important / Recognition) decides what to produce and what to recognise. Cognate band is a separate thing:
 // for a boy it only puts the easier cognates first (nothing is removed); the Easy / Medium / Hard filter stays only on a teacher's device, for setting tests.
-var cogOrder = 'E';   // '' as listed | 'E' easiest first | 'H' hardest first
+var cogOrder = '', cogSheetOrder = 'E', cogCtxSheet = false;   // learning: Mixed up by default; word sheets: Easy first by default
+function cogCurOrder() { return cogCtxSheet ? cogSheetOrder : cogOrder; }   // '' as listed | 'E' easiest first | 'H' hardest first
 function cogTeacher() { try { return !!localStorage.getItem('apTeacherKey'); } catch (e) { return false; } }
-function cogSort(arr) { if (!cogOrder) return arr; var rk = { E: 0, M: 1, H: 2 }, sg = cogOrder === 'H' ? -1 : 1; return arr.map(function (p, i) { return [p, i]; }).sort(function (a, b) { return (sg * (rk[cogBand(a[0])] - rk[cogBand(b[0])])) || (a[1] - b[1]); }).map(function (x) { return x[0]; }); }
+function cogSort(arr) { var co = cogCurOrder(); if (!co) return arr; var rk = { E: 0, M: 1, H: 2 }, sg = co === 'H' ? -1 : 1; return arr.map(function (p, i) { return [p, i]; }).sort(function (a, b) { return (sg * (rk[cogBand(a[0])] - rk[cogBand(b[0])])) || (a[1] - b[1]); }).map(function (x) { return x[0]; }); }
 function cogSetOrder(k) { cogOrder = k; cogSet(); }
+function cogSetSheetOrder(k) { cogSheetOrder = k; cogSet(); }
+var _vtGroups0 = vtGroups; vtGroups = function () { cogCtxSheet = true; try { return _vtGroups0.apply(this, arguments); } finally { cogCtxSheet = false; } };
 var _cogFilterB0 = cogFilter; cogFilter = function (arr, lang) { return cogSort(_cogFilterB0(arr, lang)); };
 var _cogControlsB0 = cogControls;
 cogControls = function (compact) {
   if (!cogTeacher()) cogOn = 'EMH';   // a boy's practice is never cut down by cognate band
-  var oc = function (k, t, tip) { return '<button class="aph-chip cogk' + (cogOrder === k ? ' on' : '') + '" title="' + tip + '" onclick="cogSetOrder(\'' + k + '\')">' + t + '</button>'; };
+  var oc = function (k, t, tip) { return '<button class="aph-chip cogk' + ((compact ? cogSheetOrder : cogOrder) === k ? ' on' : '') + '" title="' + tip + '" onclick="' + (compact ? 'cogSetSheetOrder' : 'cogSetOrder') + '(\'' + k + '\')">' + t + '</button>'; };
   var first = oc('', 'Mixed up', 'Easy, Medium and Hard words all shuffled together') + oc('E', 'Easy words first', 'Easy batch first, then Medium, then Hard') + oc('H', 'Hard words first', 'Hard batch first, then Medium, then Easy');
   var why = '<span class="cogw" style="display:block;margin:4px 0 0;line-height:1.4">Words come in three batches: <b>Easy</b> (looks like English: famille), <b>Medium</b> (appartement = flat), <b>Hard</b> (manger = to eat). Easy first builds confidence; Hard first tackles the toughest while you are fresh. Each batch is shuffled and every word stays in.</span>';
   return '<span class="cogt">' + first + '</span>' + why;
