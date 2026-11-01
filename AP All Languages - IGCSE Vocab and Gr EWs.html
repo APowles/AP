@@ -9713,7 +9713,7 @@ cogControls = function (compact) {
   var oc = function (k, t, tip) { return '<button class="aph-chip cogk' + (cogOrder === k ? ' on' : '') + '" title="' + tip + '" onclick="cogSetOrder(\'' + k + '\')">' + t + '</button>'; };
   var first = oc('', 'As listed', 'The words stay in the order of the list') + oc('E', 'Easiest first', 'Cognates first: words that look like English come first') + oc('H', 'Hardest first', 'The words with nothing to go on come first');
   var why = '<span class="cogw" style="display:block;margin:4px 0 0;line-height:1.4">Which words come first. <b>Easy</b> looks like English (famille = family), <b>Medium</b> looks like a different English word (appartement = flat), <b>Hard</b> gives nothing to go on (manger = to eat). Every word stays in, whichever you pick.</span>';
-  return cogTeacher() ? '<span class="cogt">' + first + '</span> <span class="cogw">Test level (teacher):</span> ' + _cogControlsB0(compact) + why : '<span class="cogt">' + first + '</span>' + why;
+  return '<span class="cogt">' + first + '</span>' + why;
 };
 function vtNote() {
   if (!(typeof mixIsRec === 'function' && mixIsRec())) return '';
@@ -11075,6 +11075,7 @@ if (window.__voc) window.__voc.lvlOf = function (i, lang) { return vocLvlOf(ALL_
     d.innerHTML = '<div class="aptt-mkbox" role="dialog" aria-modal="true"><div class="aptt-mkh">🎯 Set this drill as an EW</div>'
       + '<div class="aptt-mks">' + esc(info.title) + '</div>'
       + '<div class="aptt-mkhint" style="margin:0 0 6px">The boys open the link (or type the code on the AP Tests page) and go <b>straight into this drill</b> with exactly this selection. No timer is added and nothing is logged: it is the normal drill.</div>'
+      + (info.cfg.m === 'voc' ? '<label>Level of words <span style="font-weight:400">(Easy looks like English, Medium looks like a different English word, Hard gives nothing to go on)</span></label><div id="apdl-lv" style="display:flex;gap:6px;flex-wrap:wrap;margin:2px 0 8px"></div>' : '')
       + '<label>Name (for your list; the boys see it at the top)</label><input id="apdl-mk-n" type="text" value="' + esc(name) + '">'
       + '<label>Library heading</label><select id="apdl-mk-cat">' + (cats.indexOf(ct0) < 0 ? [ct0].concat(cats) : cats).map(function (x) { return '<option' + (x === ct0 ? ' selected' : '') + '>' + esc(x) + '</option>'; }).join('') + '</select>'
       + '<label>Folder inside it (optional: e.g. C Block Set 2, Autumn 2026)</label><input id="apdl-mk-f" type="text" list="apdl-mk-fl" maxlength="40" placeholder="none"><datalist id="apdl-mk-fl">' + ((APTT.folders && APTT.folders()) || []).map(function (x) { return '<option value="' + esc(x) + '">'; }).join('') + '</datalist>'
@@ -11083,6 +11084,10 @@ if (window.__voc) window.__voc.lvlOf = function (i, lang) { return vocLvlOf(ALL_
       + '<div id="apdl-mk-out"></div></div>';
     document.body.appendChild(d);
     $('apdl-mk-x').onclick = function () { d.remove(); };
+    var LV = info.cfg.lv || 'EMH', lvBox = $('apdl-lv');
+    function lvDraw() { if (!lvBox) return; lvBox.innerHTML = [['E', 'Easy'], ['M', 'Medium'], ['H', 'Hard'], ['X', 'Mixed']].map(function (x) { var on = x[0] === 'X' ? LV === 'EMH' : (LV !== 'EMH' && LV.indexOf(x[0]) >= 0); return '<button type="button" class="aph-chip cogk' + (on ? ' on' : '') + '" data-l="' + x[0] + '">' + x[1] + '</button>'; }).join(''); [].forEach.call(lvBox.querySelectorAll('button'), function (bt) { bt.onclick = function () { var l = bt.getAttribute('data-l'); if (l === 'X') LV = 'EMH'; else { var cur = LV === 'EMH' ? '' : LV; cur = cur.indexOf(l) >= 0 ? cur.replace(l, '') : cur + l; LV = ('EMH'.split('').filter(function (c) { return cur.indexOf(c) >= 0; }).join('')) || 'EMH'; } lvDraw(); }; }); }
+    lvDraw();
+    function lvName() { return LV === 'EMH' ? '' : ['E', 'M', 'H'].filter(function (c) { return LV.indexOf(c) >= 0; }).map(function (c) { return { E: 'Easy', M: 'Medium', H: 'Hard' }[c]; }).join(' + ') + ' words'; }
     if (APTT.nextCodeFor) APTT.nextCodeFor(AD.prefix, function (c) { var i = $('apdl-mk-c'); if (i && !i.dataset.typed) i.value = c; });
     $('apdl-mk-c').addEventListener('input', function () { this.dataset.typed = '1'; });
     $('apdl-mk-go').onclick = function () {
@@ -11090,7 +11095,8 @@ if (window.__voc) window.__voc.lvlOf = function (i, lang) { return vocLvlOf(ALL_
       if (!pageName()) { alert('This page has no file name, so a link cannot be made from it.'); return; }
       b.disabled = true; b.textContent = 'Making…';
       var made = new Date().toISOString().slice(0, 10);
-      var o = { v: 1, kind: 'drill', n: nm, c: code, a: AD.app, t: info.title, l: AD.lang, p: pageName(), cfg: info.cfg, s: 0, q: 'same', id: 'drill|' + pageName() + '|' + hash32(JSON.stringify(info.cfg)), cat: ct, f: fol, made: made };
+      var cfg2 = info.cfg; if (cfg2.m === 'voc') { cfg2 = Object.assign({}, cfg2, { lv: LV }); }
+      var o = { v: 1, kind: 'drill', n: nm, c: code, a: AD.app, t: info.title + (cfg2.m === 'voc' && lvName() && info.title.indexOf(lvName()) < 0 ? ' · ' + lvName() : ''), l: AD.lang, p: pageName(), cfg: cfg2, s: 0, q: 'same', id: 'drill|' + pageName() + '|' + hash32(JSON.stringify(cfg2)), cat: ct, f: fol, made: made };
       APTT.pack(o).then(function (tok) {
         var link = APTT.linkFor(tok), line = (code || AD.prefix + '???') + ' | ' + nm.replace(/\|/g, '/') + ' | ' + ct + ' | ' + fol + ' | ' + tok;
         if (APTT.listAdd) APTT.listAdd({ n: nm, c: code, cat: ct, f: fol, made: made, s: 0, q: 'same', v: 1, items: 0, t: info.title, lv: '', app: AD.app, tok: tok });
@@ -12835,7 +12841,7 @@ textarea.ms-in{min-height:7rem;resize:vertical}
     var nt = vtNote();
     h += '<div class="ovs-note">' + (vtOn === 'R' ? (vtUnlocked ? 'Recognition words go whichever way you choose under More options.' : 'Recognition words: ' + L + ' → English.') : nt) + '</div></div>';
     /* tucked away */
-    h += '<details class="ovs-more"' + (moreOpen ? ' open' : '') + ' ontoggle="ovMoreTog(this)"><summary>More options: direction, which words first' + (cogTeacher() ? ', test level' : '') + '</summary>'
+    h += '<details class="ovs-more"' + (moreOpen ? ' open' : '') + ' ontoggle="ovMoreTog(this)"><summary>More options: direction, which words first' + '</summary>'
       + _ovLangPicker('_ovRenderModal()')
       + '<div class="ov-row"><span class="ov-lab">Order</span>' + cogControls(true) + '</div></details>';
     h += '<div class="ov-foot"><div class="ov-count">' + (n ? '<b>' + n + '</b> words · ' + _ovSecs.length + ' list' + (_ovSecs.length > 1 ? 's' : '') : 'Tick at least one list') + (n ? ' <button class="ov-clear" onclick="_ovNone()">Clear</button>' : '') + '</div>'
