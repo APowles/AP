@@ -47404,6 +47404,11 @@ function renderGrEwsCard() {
     if (m) currentChapterLabel = 'Gr ' + m[1];
   }
 
+  // "Want an Eton grammar recap?" bar above every card: opens the recap for this card's chapter (nothing else to choose)
+  let recapKey = '';
+  { const rm = String(item.grRef || '').match(/(\d+)/); if (rm && GR_EWS_RECAP['gr' + rm[1]]) recapKey = 'gr' + rm[1]; else if (grEwsState.grKey && GR_EWS_RECAP[grEwsState.grKey]) recapKey = grEwsState.grKey; }
+  const recapBar = recapKey ? `<div class="vv-recap" style="margin:0 0 10px"><button class="vv-recap-btn" onclick="grEwsToggleRecap()"><span class="vv-recap-l"><span class="vv-recap-av" style="background-image:url('${document.querySelector('header img').src}')"></span> Want an Eton grammar recap? <em>Gr ${recapKey.replace('gr', '')} · ${GR_EWS_DATA[recapKey].title}</em></span><span id="grEwsRecapArrow" class="vv-recap-arrow">▶</span></button><div id="grEwsRecapBody" class="vv-recap-body" style="display:none">${grEwsRecapFull(recapKey)}</div></div>` : '';
+
   // TTS: translate = speak English question; rule = say "Point de grammaire"
   if (item.type === 'translate') {
     const plainEn = item.en.replace(/<[^>]+>/g, '');
@@ -47419,6 +47424,7 @@ function renderGrEwsCard() {
     ${vvhProg(pct)}
     <div class="aph-drill">
       <div class="aph-drill-main">
+        ${recapBar}
         <div class="aph-qcard">
           <div class="aph-qmeta">Card ${grEwsState.idx + 1} of ${total} · 🏆 ${drillSetLabel}${currentChapterLabel?' <span class="vv-pill">'+currentChapterLabel+'</span>':''}</div>
           <div class="vv-kind">${item.grRef} · ${item.type === 'rule' ? '📖 Grammar Rule' : '✏️ Translate'}</div>
