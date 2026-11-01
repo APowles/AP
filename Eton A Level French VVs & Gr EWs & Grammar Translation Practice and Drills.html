@@ -52234,6 +52234,12 @@ textarea.ms-in{min-height:7rem;resize:vertical}
 .vvinc{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin:2px 0 14px}
 .vvinc .vvinc-l{font-size:.875rem;font-weight:600;color:#6b7690;margin-right:2px}
 .vvinc .aph-chip{display:inline-flex!important}
+.vvg-cap{font-size:.6875rem;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:#8a94ad;margin:4px 0 6px}
+.vvg{display:grid;grid-template-columns:repeat(8,1fr);gap:7px;margin-bottom:8px}
+.vvg.vvg-t{grid-template-columns:repeat(4,1fr);margin-bottom:14px}
+.vvg-b{border:1.5px solid #dfe4ee;border-radius:9px;background:#fff;padding:9px 2px;min-height:40px;font:700 .875rem var(--aph-body);color:#1a2744;cursor:pointer}
+.vvg-b:hover{border-color:var(--gold);background:#fffbe6}
+.vvg-b.on{background:#1a2744;color:#ffd76a;border-color:#1a2744}
 </style>
 <!-- One-picker pattern: the four "Choose a set…" menu selects under What to practise become one full-screen chooser.
      The selects stay in the DOM (hidden) and still drive everything downstream; the chooser just sets their value via vvPickSet. -->
@@ -52302,6 +52308,17 @@ textarea.ms-in{min-height:7rem;resize:vertical}
     return '<span class="vvinc-l">Include:</span>' + c('tv', 'Topic vocab') + c('E', 'Essential') + c('I', 'Important') + c('R', 'Recognition')
       + (st.R ? '<button type="button" class="aph-chip vv-lock ' + (unlocked ? 'open' : 'locked') + '" onclick="vvIncLock()">' + (unlocked ? '&#128275; Recognition: either way' : '&#128274; Recognition: French &rarr; English only') + '</button>' : '');
   }
+  function gridHtml(chosen) {
+    var st = incState(), cur = sufOf(currentVV), sufs = [];
+    Object.keys(VV_DATA).forEach(function (k) { var m = /^TV(\d+(?:[a-z]|_Entire))$/.exec(k); if (m) sufs.push(m[1]); });
+    sufs.sort(function (a, b) { var na = parseInt(a), nb = parseInt(b); if (na !== nb) return na - nb; var o = ['a', 'b', 'c', '_Entire']; return o.indexOf(a.replace(/^\d+/, '')) - o.indexOf(b.replace(/^\d+/, '')); });
+    var h = '<div class="vvg-cap">Sets</div><div class="vvg">' + sufs.map(function (x) {
+      return '<button type="button" class="vvg-b' + (chosen && x === cur && !/Trial/.test(currentVV) ? ' on' : '') + '" onclick="vvpkPickSet(\'' + x + '\')">' + x.replace(/_/g, ' ') + '</button>';
+    }).join('') + '</div>';
+    var trials = Object.keys(VV_DATA).filter(function (k) { return /Trial/.test(k) && !/\s/.test(k); }).sort();
+    if (trials.length) h += '<div class="vvg vvg-t">' + trials.map(function (k) { return '<button type="button" class="vvg-b' + (chosen && currentVV === k ? ' on' : '') + '" onclick="vvpkPick(\'VV\',\'' + k + '\')">' + k.replace(/_/g, ' ') + '</button>'; }).join('') + '</div>';
+    return h;
+  }
   function rowsHtml(q) {
     q = (q || '').trim().toLowerCase();
     var st = incState(), cur = sufOf(currentVV), sufs = [], html = '';
@@ -52347,6 +52364,10 @@ textarea.ms-in{min-height:7rem;resize:vertical}
     var ir = $('vvinc-row');
     if (!ir) { ir = document.createElement('div'); ir.id = 'vvinc-row'; ir.className = 'vvinc'; b.parentNode.insertBefore(ir, b.nextSibling); }
     if (currentVV !== 'Personalised set') ir.innerHTML = incRow(); else ir.innerHTML = '';
+    var gr = $('vvgrid-row');
+    if (!gr) { gr = document.createElement('div'); gr.id = 'vvgrid-row'; ir.parentNode.insertBefore(gr, ir.nextSibling); }
+    gr.innerHTML = gridHtml(!!card.querySelector('.vv-grp.on'));
+    b.onclick = null; b.style.cursor = 'default'; b.style.boxShadow = 'none';
     var onEl = card.querySelector('.vv-grp.on');
     var label = (typeof currentVV !== 'undefined' && currentVV === 'Personalised set') ? 'Personalised set' : (onEl && typeof vvSetLabel === 'function' ? vvSetLabel(currentVV) : null);
     b.className = 'gg-chbtn' + (label ? ' has' : '');
