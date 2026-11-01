@@ -11801,6 +11801,7 @@ textarea.ms-in{min-height:7rem;resize:vertical}
   function step(n, t) { return '<div class="ms-step"><span class="ms-num">' + n + '</span>' + t + '</div>'; }
   function myBox(m, n, dc, on) {
     var fl = [['all', 'All'], ['3', 'Hard only'], ['23', 'Tricky + hard'], ['due', 'Due today (' + dc + ')']];
+    if (!n && !on && !m.note) return '<div class="ms-mybox ms-mymin"><span class="aph-note" style="min-width:auto">★ <b>My personalised set</b> builds itself: anything you mark ✗ Major error in a drill joins it.</span> <button class="ms-b sm" onclick="apMySetHelp()">? How does this work?</button></div>';
     return '<div class="ms-mybox' + (on ? ' on' : '') + '"><div class="ms-brow"><button class="aph-chip' + (on ? ' on' : '') + '"' + (n || on ? '' : ' disabled style="opacity:.5"') + ' onclick="apMySetUse()" style="min-width:190px">★ My personalised set</button>'
       + '<span class="aph-note" style="min-width:auto">' + n + ' ' + (n === 1 ? m.one : m.many) + (dc ? ' · ' + dc + ' due today' : '') + '</span>'
       + '<button class="ms-b sm" onclick="apMySetHelp()">? How does this work?</button></div>'
@@ -11937,17 +11938,16 @@ textarea.ms-in{min-height:7rem;resize:vertical}
     var s = $('ggSel'); if (s) s.classList.toggle('ms-my', !!ggS.my);
   };
   var gTestOpen = false;
-  function gNarrowSum() { return 'Level: ' + (ggS.lvl === 'all' ? 'Mixed' : GG_LVL_NAME[ggS.lvl]) + ' · Items: ' + (GG_TYPES.filter(function (t) { return t[0] === ggS.type; })[0] || ['', 'All'])[1].replace(/^[^A-Za-z]+/, '') + ' · Timer: ' + ggTimerSecs + 's a card'; }
+  function gNarrowSum() { return 'Level: ' + (ggS.lvl === 'all' ? 'Mixed' : GG_LVL_NAME[ggS.lvl]) + ' · Items: ' + (GG_TYPES.filter(function (t) { return t[0] === ggS.type; })[0] || ['', 'All'])[1].replace(/^[^A-Za-z]+/, ''); }
   function gNarrowInner() {
-    return '<div class="aph-label">Level</div><div class="gg-chips">' + ggLvlRow('ggRefreshAct()') + '</div><div class="gg-hint">Easy = one form or a short sentence · Medium = a short sentence or one verb in full · Hard = a trickier grammar point · Mixed = everything.</div>'
-      + '<div class="aph-label">Item type</div><div class="gg-chips">' + ggTypeRow('ggRefreshAct()') + '</div>'
-      + '<div class="aph-label">Timer per card (Drill)</div><div class="aph-row"><button class="aph-step" onclick="ggAdjustTimer(-5)">&#8722;</button><span class="aph-step-val" id="gg-timer-display">' + ggTimerSecs + 's</span><button class="aph-step" onclick="ggAdjustTimer(5)">+</button></div><div class="gg-hint">When time runs out the answer is shown; then mark yourself as usual.</div>';
+    return '<div class="aph-label">Level</div><div class="gg-chips">' + ggLvlRow('ggRefreshAct()') + '</div><div class="gg-hint">Easy: one form or a short sentence · Medium: a sentence or a verb in full · Hard: a trickier grammar point.</div>'
+      + '<div class="aph-label">Item type</div><div class="gg-chips">' + ggTypeRow('ggRefreshAct()') + '</div><div class="gg-hint">Rules: questions on the rule · Translations: English into French · Transforms: rewrite a French sentence another way.</div>';
   }
   function gMyHtml() { return myBox(G, inSet(G).length, dueCount(G), !!ggS.my); }
   ggActHtml = function () {
     var keys = ggSelKeys(), has = keys.length > 0, pool = has ? ggPool(keys) : [], usable = has && pool.length > 0;
     var tr = G.pool(), canPair = usable && G.pairPool().length >= 3, canSpell = usable && tr.length > 0;
-    var h = '<div class="ms-now">' + (!has ? (ggS.my ? 'Your personalised set is empty so far.' : 'Choose your chapters above to unlock the ways to practise them.') : (!usable ? 'No items match the Level and Item type chosen. Change them under Narrow the items.' : 'Practising: <b>' + esc(ggSelLabel(keys)) + '</b> · ' + pool.length + ' item' + (pool.length === 1 ? '' : 's'))) + '</div>';
+    var h = '<div class="ms-now">' + (!has ? (ggS.my ? 'Your personalised set is empty so far.' : 'Choose your chapters above to unlock the ways to practise them.') : (!usable ? 'No items match the Level and Item type chosen. Change them under Only some of these items?.' : 'Practising: <b>' + esc(ggSelLabel(keys)) + '</b> · ' + pool.length + ' item' + (pool.length === 1 ? '' : 's'))) + '</div>';
     var LN = GGL().lang;
     h += '<div class="aph-tools ms-tiles">'
       + tileHtml(TILES[0], !usable, TILES[0][3], 'ggStart()')
@@ -11986,9 +11986,10 @@ textarea.ms-in{min-height:7rem;resize:vertical}
       + step(1, 'What do you want to practise?')
       + ggPicker().replace('<div class="gg-pick-h">① Choose your chapters</div>', '')
       + '<div id="ggMy">' + gMyHtml() + '</div>'
-      + '<details class="ms-opts" id="ggNarrow"><summary><span class="ms-gear">🎯</span><span class="ms-st">Narrow the items and set the timer</span><small id="ggNarrowSum">' + esc(gNarrowSum()) + '</small><span class="ms-chg"></span></summary><div id="ggNarrowIn">' + gNarrowInner() + '</div></details>'
+      + '<details class="ms-opts" id="ggNarrow"><summary><span class="ms-gear">🎯</span><span class="ms-st">Only some of these items? <small style="font-weight:500">(optional)</small></span><small id="ggNarrowSum">' + esc(gNarrowSum()) + '</small><span class="ms-chg"></span></summary><div id="ggNarrowIn">' + gNarrowInner() + '</div></details>'
       + step(2, 'How do you want to practise it?')
-      + '<div id="ggAct">' + ggActHtml() + '</div>' + edit
+      + '<div id="ggAct">' + ggActHtml() + '</div>'
+      + '<div class="ms-timer"><span>⏱ Drill: time per card</span><button class="aph-step" onclick="ggAdjustTimer(-5)">&#8722;</button><span class="aph-step-val" id="gg-timer-display">' + ggTimerSecs + 's</span><button class="aph-step" onclick="ggAdjustTimer(5)">+</button><small>When time runs out the answer is shown; then mark yourself.</small></div>' + edit
       + '</div>'
       + '<div id="ggTestOut"></div>'
       + '</div>';
@@ -19329,6 +19330,9 @@ html.gi-open,html.gi-open body{overflow:hidden}
 .gi-open-btn{display:flex;align-items:center;gap:10px;width:100%;box-sizing:border-box;min-height:54px;padding:10px 16px;border:2px solid #1a2744;border-radius:12px;background:#fff;color:#1a2744;font:800 1.05rem var(--aph-body,system-ui,sans-serif);cursor:pointer;text-align:left;margin:6px 0 4px}
 .gi-open-btn small{margin-left:auto;font-weight:700;color:#a8862e}
 #ggSel.gg-hassel .gi-open-btn,#ggSel .gg-chbtn{display:none!important}
+.ms-timer{display:flex;align-items:center;flex-wrap:wrap;gap:10px;margin:10px 0 4px;font-weight:700;color:#1a2744}
+.ms-timer small{flex-basis:100%;font-weight:500;color:#667;font-size:.8125rem}
+.ms-mymin{padding:8px 12px;margin:8px 0}
 @media (max-width:640px){#giModal .gg-rlist{grid-template-columns:1fr}}
 </style>
 <script id="gs-igpick">
