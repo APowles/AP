@@ -1,6 +1,59 @@
 <html lang="it"><head>
 <meta charset="UTF-8">
 <meta name="robots" content="noindex, nofollow">
+<script>/* apOpenSheet: printable sheets open as a pop-up over the same screen, never a new tab */
+(function () {
+  if (window.apOpenSheet) return;
+  function printClone(f) {
+    try {
+      var h = '<!doctype html>' + f.contentDocument.documentElement.outerHTML.replace(/<script[\s\S]*?<\/script>/gi, '');
+      var g = document.createElement('iframe'); g.setAttribute('aria-hidden', 'true');
+      g.style.cssText = 'position:fixed;left:0;top:0;width:210mm;height:297mm;border:0;opacity:0;pointer-events:none;z-index:-1';
+      g.srcdoc = h;
+      g.onload = function () { setTimeout(function () { try { g.contentWindow.focus(); g.contentWindow.print(); } catch (e) { try { window.print(); } catch (e2) { } } setTimeout(function () { try { g.remove(); } catch (e) { } }, 60000); }, 400); };
+      document.body.appendChild(g);
+    } catch (e) { try { f.contentWindow.focus(); window.print.call(f.contentWindow); } catch (e2) { window.print(); } }
+  }
+  function pop(html, src, title) {
+    try {
+      var old = document.getElementById('ap-sheet-pop'); if (old) old.remove();
+      var o = document.createElement('div'); o.id = 'ap-sheet-pop';
+      o.style.cssText = 'position:fixed;left:0;top:0;right:0;bottom:0;z-index:2147483000;background:rgba(18,26,48,.72);display:flex;flex-direction:column;padding:10px;box-sizing:border-box';
+      var bar = document.createElement('div');
+      bar.style.cssText = 'display:flex;align-items:center;gap:10px;background:#1a2744;color:#ffd76a;border-radius:12px 12px 0 0;padding:8px 12px;font:700 .9375rem/1.2 system-ui,sans-serif';
+      bar.innerHTML = '<span style="flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap"></span>'
+        + '<button type="button" class="aps-print" style="min-height:40px;padding:0 14px;border:0;border-radius:10px;background:#ffd76a;color:#1a2744;font:800 .9375rem system-ui,sans-serif;cursor:pointer">🖨 Print / Save as PDF</button>'
+        + '<button type="button" class="aps-close" style="min-height:40px;padding:0 14px;border:2px solid #ffd76a;border-radius:10px;background:transparent;color:#ffd76a;font:800 .9375rem system-ui,sans-serif;cursor:pointer">✕ Close</button>';
+      bar.firstChild.textContent = title || 'Sheet';
+      var f = document.createElement('iframe'); f.title = title || 'Sheet';
+      f.style.cssText = 'flex:1;width:100%;border:0;background:#fff;border-radius:0 0 12px 12px';
+      if (src) f.src = src; else f.srcdoc = html;
+      o.appendChild(bar); o.appendChild(f); document.body.appendChild(o);
+      var prevOv = document.documentElement.style.overflow;
+      function close() { o.remove(); document.removeEventListener('keydown', esc); document.documentElement.style.overflow = prevOv; }
+      function esc(e) { if (e.key === 'Escape') close(); }
+      document.addEventListener('keydown', esc); document.documentElement.style.overflow = 'hidden';
+      bar.querySelector('.aps-close').onclick = close;
+      bar.querySelector('.aps-print').onclick = function () { printClone(f); };
+      f.addEventListener('load', function () { try { f.contentWindow.print = function () { printClone(f); }; } catch (e) { } });
+      return f;
+    } catch (e) { return null; }
+  }
+  window.apOpenSheet = function (url, ttl) {
+    var buf = '', ifr = null, shown = false;
+    function show() {
+      if (shown) return; shown = true;
+      var h = String(buf).replace(/<script>[^<]*window\.print\(\)[^<]*<\/script>/g, '');
+      var m = /<title>([^<]*)<\/title>/i.exec(h);
+      ifr = pop(h, null, ttl || (m ? m[1].replace(/&amp;/g, '&') : 'Sheet'));
+    }
+    var doc = { open: function () { buf = ''; return doc; }, write: function (s) { buf += s; }, writeln: function (s) { buf += s + '\n'; }, close: function () { show(); } };
+    var w = { document: doc, closed: false, focus: function () { }, close: function () { }, print: function () { try { ifr.contentWindow.print(); } catch (e) { window.print(); } } };
+    if (url) { shown = true; ifr = pop('', url, 'Sheet'); }
+    return w;
+  };
+})();
+</script>
 <script id="ap-update">
 /* AP auto-update: if this copy is older than the published version, reload once with the new one (saved answers are kept) */
 (function () {
@@ -1104,7 +1157,7 @@ var APMP = (function () {
     o.querySelector('#apmp-fprint').onclick = function () { try { f.contentWindow.focus(); f.contentWindow.print(); } catch (e) { window.print(); } };
   }
   function open(html) {
-    var w = null; try { w = window.open('', '_blank'); } catch (e) { w = null; }
+    var w = null; try { w = apOpenSheet(); } catch (e) { w = null; }
     if (w && w.document) { w.document.open(); w.document.write(html); w.document.close(); try { w.focus(); } catch (e) { } return 'window'; }
     overlay(html); return 'overlay';
   }
@@ -7548,7 +7601,7 @@ function buildAnswerSheetHTML(p,withKey){
 function printGenericAnswerSheet(){
   var src=PAPERS.filter(function(x){return /–/.test(x.sections[0].title);})[0]||PAPERS[0];if(!src)return;
   var p=Object.assign({},src,{generic:true,frcode:'',code:'',title:''});
-  var w=window.open('','_blank');
+  var w=apOpenSheet();
   if(!w){alert('Please allow pop-ups for this page so the answer sheet can open in a new tab.');return;}
   w.document.open();w.document.write(buildAnswerSheetHTML(p,false));w.document.close();
 }
@@ -7556,7 +7609,7 @@ function printAnswerSheet(idx,key){
   if(key&&!teacherMode){return;}
   var p=(typeof idx==='number')?PAPERS[idx]:curPaper;if(!p)return;
   var html=buildAnswerSheetHTML(p,!!key);
-  var w=window.open('','_blank');
+  var w=apOpenSheet();
   if(!w){alert('Please allow pop-ups for this page so the answer sheet can open in a new tab.');return;}
   w.document.open();w.document.write(html);w.document.close();
 }
@@ -12781,7 +12834,7 @@ window.AP_RD_PAPERS.push({
     else p = cur;
     if (!p) return;
     if (typeof aphPrintHead !== 'function') { alert('The print layout is not available in this copy of the app.'); return; }
-    var w = window.open('', '_blank');
+    var w = apOpenSheet();
     if (!w) { alert('Please allow pop-ups for this page so the answer sheet can open in a new tab.'); return; }
     w.document.open(); w.document.write(sheetHTML(p, !!key)); w.document.close();
   }

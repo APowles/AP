@@ -1,6 +1,59 @@
 <html lang="en"><head>
 <meta name="robots" content="noindex, nofollow">
 <meta charset="UTF-8">
+<script>/* apOpenSheet: printable sheets open as a pop-up over the same screen, never a new tab */
+(function () {
+  if (window.apOpenSheet) return;
+  function printClone(f) {
+    try {
+      var h = '<!doctype html>' + f.contentDocument.documentElement.outerHTML.replace(/<script[\s\S]*?<\/script>/gi, '');
+      var g = document.createElement('iframe'); g.setAttribute('aria-hidden', 'true');
+      g.style.cssText = 'position:fixed;left:0;top:0;width:210mm;height:297mm;border:0;opacity:0;pointer-events:none;z-index:-1';
+      g.srcdoc = h;
+      g.onload = function () { setTimeout(function () { try { g.contentWindow.focus(); g.contentWindow.print(); } catch (e) { try { window.print(); } catch (e2) { } } setTimeout(function () { try { g.remove(); } catch (e) { } }, 60000); }, 400); };
+      document.body.appendChild(g);
+    } catch (e) { try { f.contentWindow.focus(); window.print.call(f.contentWindow); } catch (e2) { window.print(); } }
+  }
+  function pop(html, src, title) {
+    try {
+      var old = document.getElementById('ap-sheet-pop'); if (old) old.remove();
+      var o = document.createElement('div'); o.id = 'ap-sheet-pop';
+      o.style.cssText = 'position:fixed;left:0;top:0;right:0;bottom:0;z-index:2147483000;background:rgba(18,26,48,.72);display:flex;flex-direction:column;padding:10px;box-sizing:border-box';
+      var bar = document.createElement('div');
+      bar.style.cssText = 'display:flex;align-items:center;gap:10px;background:#1a2744;color:#ffd76a;border-radius:12px 12px 0 0;padding:8px 12px;font:700 .9375rem/1.2 system-ui,sans-serif';
+      bar.innerHTML = '<span style="flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap"></span>'
+        + '<button type="button" class="aps-print" style="min-height:40px;padding:0 14px;border:0;border-radius:10px;background:#ffd76a;color:#1a2744;font:800 .9375rem system-ui,sans-serif;cursor:pointer">🖨 Print / Save as PDF</button>'
+        + '<button type="button" class="aps-close" style="min-height:40px;padding:0 14px;border:2px solid #ffd76a;border-radius:10px;background:transparent;color:#ffd76a;font:800 .9375rem system-ui,sans-serif;cursor:pointer">✕ Close</button>';
+      bar.firstChild.textContent = title || 'Sheet';
+      var f = document.createElement('iframe'); f.title = title || 'Sheet';
+      f.style.cssText = 'flex:1;width:100%;border:0;background:#fff;border-radius:0 0 12px 12px';
+      if (src) f.src = src; else f.srcdoc = html;
+      o.appendChild(bar); o.appendChild(f); document.body.appendChild(o);
+      var prevOv = document.documentElement.style.overflow;
+      function close() { o.remove(); document.removeEventListener('keydown', esc); document.documentElement.style.overflow = prevOv; }
+      function esc(e) { if (e.key === 'Escape') close(); }
+      document.addEventListener('keydown', esc); document.documentElement.style.overflow = 'hidden';
+      bar.querySelector('.aps-close').onclick = close;
+      bar.querySelector('.aps-print').onclick = function () { printClone(f); };
+      f.addEventListener('load', function () { try { f.contentWindow.print = function () { printClone(f); }; } catch (e) { } });
+      return f;
+    } catch (e) { return null; }
+  }
+  window.apOpenSheet = function (url, ttl) {
+    var buf = '', ifr = null, shown = false;
+    function show() {
+      if (shown) return; shown = true;
+      var h = String(buf).replace(/<script>[^<]*window\.print\(\)[^<]*<\/script>/g, '');
+      var m = /<title>([^<]*)<\/title>/i.exec(h);
+      ifr = pop(h, null, ttl || (m ? m[1].replace(/&amp;/g, '&') : 'Sheet'));
+    }
+    var doc = { open: function () { buf = ''; return doc; }, write: function (s) { buf += s; }, writeln: function (s) { buf += s + '\n'; }, close: function () { show(); } };
+    var w = { document: doc, closed: false, focus: function () { }, close: function () { }, print: function () { try { ifr.contentWindow.print(); } catch (e) { window.print(); } } };
+    if (url) { shown = true; ifr = pop('', url, 'Sheet'); }
+    return w;
+  };
+})();
+</script>
 <script id="ap-update">
 /* AP auto-update: if this copy is older than the published version, reload once with the new one (saved answers are kept) */
 (function () {
@@ -1721,7 +1774,7 @@ var APMP = (function () {
     o.querySelector('#apmp-fprint').onclick = function () { try { f.contentWindow.focus(); f.contentWindow.print(); } catch (e) { window.print(); } };
   }
   function open(html) {
-    var w = null; try { w = window.open('', '_blank'); } catch (e) { w = null; }
+    var w = null; try { w = apOpenSheet(); } catch (e) { w = null; }
     if (w && w.document) { w.document.open(); w.document.write(html); w.document.close(); try { w.focus(); } catch (e) { } return 'window'; }
     overlay(html); return 'overlay';
   }
@@ -29291,7 +29344,7 @@ function openIGCSETestPDF(type) {
     ${aphPrintFoot('AP Essential Phrases &middot; Test &middot; ' + (isQuestions ? 'Student sheet' : 'Teacher sheet'))}
   </body></html>`;
 
-  const w = window.open('', '_blank');
+  const w = apOpenSheet();
   if (!w) { alert('Please allow pop-ups for this page.'); return; }
   w.document.write(html);
   w.document.close();
@@ -29588,7 +29641,7 @@ function generateVocabPracticePdf() {
     + '</style></head><body>'
     + sheet1 + '<div class="page-break">' + sheet2 + '</div>'
     + '</body></html>';
-  const w = window.open('', '_blank');
+  const w = apOpenSheet();
   if (!w) { alert('Please allow pop-ups for this page, then try again.'); return; }
   w.document.write(html);
   w.document.close();
@@ -29657,7 +29710,7 @@ function openIGCSESpotTestPDF(type) {
     '<div class="footer">'+label+' &nbsp;&middot;&nbsp; AP Essential Phrases Spot Test &nbsp;&middot;&nbsp; '+sT+'</div>',
     '</body></html>'].join('');
   var blob=new Blob([html],{type:'text/html'});
-  var w=window.open(URL.createObjectURL(blob),'_blank');
+  var w=apOpenSheet(URL.createObjectURL(blob));
   if(!w) alert('Please allow pop-ups.');
 }
 
@@ -29798,7 +29851,7 @@ function openIGCSESpotTestPDF(btn, isTeacherNum) {
     +aphPrintFoot('AP Essential Phrases &middot; Eton Spot Test &middot; '+(isTeacher?'Teacher sheet':'Student sheet'))
     +'</body></html>';
   var blob=new Blob([html],{type:'text/html'});
-  var w=window.open(URL.createObjectURL(blob),'_blank');
+  var w=apOpenSheet(URL.createObjectURL(blob));
   if(!w) alert('Please allow pop-ups.');
 }
 
@@ -29905,7 +29958,7 @@ function generateIGCSEStudySheet(){
     '<table><tbody>',rows,'</tbody></table>', aphPrintFoot('AP Essential Phrases &middot; Study Sheet'), '</body></html>'
   ].join('');
   var blob = new Blob([html], {type:'text/html'});
-  var w = window.open(URL.createObjectURL(blob), '_blank');
+  var w = apOpenSheet(URL.createObjectURL(blob));
   if(!w) alert('Please allow pop-ups.');
 }
 
@@ -30194,7 +30247,7 @@ function printStudyView() {
   var pageHdr = aphPrintHead({ kicker: 'Eton &middot; Essential Phrases', title: 'Study Sheet &mdash; <em>' + langs.map(function (l) { return l.name; }).join(' / ') + '<' + '/em>', meta: phrases.length + ' phrases', strip: false });
   var pageFoot = aphPrintFoot('AP Essential Phrases &middot; View &amp; Print &middot; Study Sheet') + '<' + '/body><' + '/html>';
 
-  var w = window.open('', '_blank');
+  var w = apOpenSheet();
   if (!w) { alert('Please allow pop-ups.'); return; }
   w.document.write(pageHead + pageHdr + body + pageFoot);
   w.document.close();
@@ -31857,7 +31910,7 @@ var APMP = (function () {
     o.querySelector('#apmp-fprint').onclick = function () { try { f.contentWindow.focus(); f.contentWindow.print(); } catch (e) { window.print(); } };
   }
   function open(html) {
-    var w = null; try { w = window.open('', '_blank'); } catch (e) { w = null; }
+    var w = null; try { w = apOpenSheet(); } catch (e) { w = null; }
     if (w &amp;&amp; w.document) { w.document.open(); w.document.write(html); w.document.close(); try { w.focus(); } catch (e) { } return 'window'; }
     overlay(html); return 'overlay';
   }
@@ -64467,7 +64520,7 @@ function openIGCSETestPDF(type) {
     ${aphPrintFoot('AP Essential Spanish Vocabulary &amp;middot; Test &amp;middot; ' + (isQuestions ? 'Student sheet' : 'Teacher sheet'))}
   </body></html>`;
 
-  const w = window.open('', '_blank');
+  const w = apOpenSheet();
   if (!w) { alert('Please allow pop-ups for this page.'); return; }
   w.document.write(html);
   w.document.close();
@@ -64764,7 +64817,7 @@ function generateVocabPracticePdf() {
     + '</style></head><body>'
     + sheet1 + '<div class=&quot;page-break&quot;>' + sheet2 + '</div>'
     + '</body></html>';
-  const w = window.open('', '_blank');
+  const w = apOpenSheet();
   if (!w) { alert('Please allow pop-ups for this page, then try again.'); return; }
   w.document.write(html);
   w.document.close();
@@ -64833,7 +64886,7 @@ function openIGCSESpotTestPDF(type) {
     '<div class=&quot;footer&quot;>'+label+' &amp;nbsp;&amp;middot;&amp;nbsp; AP Essential Spanish Vocabulary Spot Test &amp;nbsp;&amp;middot;&amp;nbsp; '+sT+'</div>',
     '</body></html>'].join('');
   var blob=new Blob([html],{type:'text/html'});
-  var w=window.open(URL.createObjectURL(blob),'_blank');
+  var w=apOpenSheet(URL.createObjectURL(blob));
   if(!w) alert('Please allow pop-ups.');
 }
 
@@ -64961,7 +65014,7 @@ function openIGCSESpotTestPDF(btn, isTeacherNum) {
     +aphPrintFoot('AP Essential Spanish Vocabulary &amp;middot; Eton Spot Test &amp;middot; '+(isTeacher?'Teacher sheet':'Student sheet'))
     +'</body></html>';
   var blob=new Blob([html],{type:'text/html'});
-  var w=window.open(URL.createObjectURL(blob),'_blank');
+  var w=apOpenSheet(URL.createObjectURL(blob));
   if(!w) alert('Please allow pop-ups.');
 }
 
@@ -65068,7 +65121,7 @@ function generateIGCSEStudySheet(){
     '<table><tbody>',rows,'</tbody></table>', aphPrintFoot('AP Essential Spanish Vocabulary &amp;middot; Study Sheet'), '</body></html>'
   ].join('');
   var blob = new Blob([html], {type:'text/html'});
-  var w = window.open(URL.createObjectURL(blob), '_blank');
+  var w = apOpenSheet(URL.createObjectURL(blob));
   if(!w) alert('Please allow pop-ups.');
 }
 
@@ -65433,7 +65486,7 @@ function printStudyView() {
   var pageHdr = aphPrintHead({ kicker: 'Eton &amp;middot; Essential Spanish Vocabulary', title: 'Study Sheet &amp;mdash; <em>' + langs.map(function (l) { return l.name; }).join(' / ') + '<' + '/em>', meta: phrases.length + ' items', strip: false });
   var pageFoot = aphPrintFoot('AP Essential Spanish Vocabulary &amp;middot; View &amp;amp; Print &amp;middot; Study Sheet') + '<' + '/body><' + '/html>';
 
-  var w = window.open('', '_blank');
+  var w = apOpenSheet();
   if (!w) { alert('Please allow pop-ups.'); return; }
   w.document.write(pageHead + pageHdr + body + pageFoot);
   w.document.close();

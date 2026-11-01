@@ -1,6 +1,59 @@
 <html lang="en"><head>
 <meta charset="UTF-8">
 <meta name="robots" content="noindex, nofollow">
+<script>/* apOpenSheet: printable sheets open as a pop-up over the same screen, never a new tab */
+(function () {
+  if (window.apOpenSheet) return;
+  function printClone(f) {
+    try {
+      var h = '<!doctype html>' + f.contentDocument.documentElement.outerHTML.replace(/<script[\s\S]*?<\/script>/gi, '');
+      var g = document.createElement('iframe'); g.setAttribute('aria-hidden', 'true');
+      g.style.cssText = 'position:fixed;left:0;top:0;width:210mm;height:297mm;border:0;opacity:0;pointer-events:none;z-index:-1';
+      g.srcdoc = h;
+      g.onload = function () { setTimeout(function () { try { g.contentWindow.focus(); g.contentWindow.print(); } catch (e) { try { window.print(); } catch (e2) { } } setTimeout(function () { try { g.remove(); } catch (e) { } }, 60000); }, 400); };
+      document.body.appendChild(g);
+    } catch (e) { try { f.contentWindow.focus(); window.print.call(f.contentWindow); } catch (e2) { window.print(); } }
+  }
+  function pop(html, src, title) {
+    try {
+      var old = document.getElementById('ap-sheet-pop'); if (old) old.remove();
+      var o = document.createElement('div'); o.id = 'ap-sheet-pop';
+      o.style.cssText = 'position:fixed;left:0;top:0;right:0;bottom:0;z-index:2147483000;background:rgba(18,26,48,.72);display:flex;flex-direction:column;padding:10px;box-sizing:border-box';
+      var bar = document.createElement('div');
+      bar.style.cssText = 'display:flex;align-items:center;gap:10px;background:#1a2744;color:#ffd76a;border-radius:12px 12px 0 0;padding:8px 12px;font:700 .9375rem/1.2 system-ui,sans-serif';
+      bar.innerHTML = '<span style="flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap"></span>'
+        + '<button type="button" class="aps-print" style="min-height:40px;padding:0 14px;border:0;border-radius:10px;background:#ffd76a;color:#1a2744;font:800 .9375rem system-ui,sans-serif;cursor:pointer">🖨 Print / Save as PDF</button>'
+        + '<button type="button" class="aps-close" style="min-height:40px;padding:0 14px;border:2px solid #ffd76a;border-radius:10px;background:transparent;color:#ffd76a;font:800 .9375rem system-ui,sans-serif;cursor:pointer">✕ Close</button>';
+      bar.firstChild.textContent = title || 'Sheet';
+      var f = document.createElement('iframe'); f.title = title || 'Sheet';
+      f.style.cssText = 'flex:1;width:100%;border:0;background:#fff;border-radius:0 0 12px 12px';
+      if (src) f.src = src; else f.srcdoc = html;
+      o.appendChild(bar); o.appendChild(f); document.body.appendChild(o);
+      var prevOv = document.documentElement.style.overflow;
+      function close() { o.remove(); document.removeEventListener('keydown', esc); document.documentElement.style.overflow = prevOv; }
+      function esc(e) { if (e.key === 'Escape') close(); }
+      document.addEventListener('keydown', esc); document.documentElement.style.overflow = 'hidden';
+      bar.querySelector('.aps-close').onclick = close;
+      bar.querySelector('.aps-print').onclick = function () { printClone(f); };
+      f.addEventListener('load', function () { try { f.contentWindow.print = function () { printClone(f); }; } catch (e) { } });
+      return f;
+    } catch (e) { return null; }
+  }
+  window.apOpenSheet = function (url, ttl) {
+    var buf = '', ifr = null, shown = false;
+    function show() {
+      if (shown) return; shown = true;
+      var h = String(buf).replace(/<script>[^<]*window\.print\(\)[^<]*<\/script>/g, '');
+      var m = /<title>([^<]*)<\/title>/i.exec(h);
+      ifr = pop(h, null, ttl || (m ? m[1].replace(/&amp;/g, '&') : 'Sheet'));
+    }
+    var doc = { open: function () { buf = ''; return doc; }, write: function (s) { buf += s; }, writeln: function (s) { buf += s + '\n'; }, close: function () { show(); } };
+    var w = { document: doc, closed: false, focus: function () { }, close: function () { }, print: function () { try { ifr.contentWindow.print(); } catch (e) { window.print(); } } };
+    if (url) { shown = true; ifr = pop('', url, 'Sheet'); }
+    return w;
+  };
+})();
+</script>
 <script id="ap-update">
 /* AP auto-update: if this copy is older than the published version, reload once with the new one (saved answers are kept) */
 (function () {
@@ -1421,7 +1474,7 @@ var APMP = (function () {
     o.querySelector('#apmp-fprint').onclick = function () { try { f.contentWindow.focus(); f.contentWindow.print(); } catch (e) { window.print(); } };
   }
   function open(html) {
-    var w = null; try { w = window.open('', '_blank'); } catch (e) { w = null; }
+    var w = null; try { w = apOpenSheet(); } catch (e) { w = null; }
     if (w && w.document) { w.document.open(); w.document.write(html); w.document.close(); try { w.focus(); } catch (e) { } return 'window'; }
     overlay(html); return 'overlay';
   }
@@ -5279,7 +5332,7 @@ function printSDTest(mode) {
   <script>window.onload=function(){window.print();}<\/script>
   </body></html>`;
 
-  const w = window.open('','_blank');
+  const w = apOpenSheet();
   w.document.write(html);
   w.document.close();
 }
@@ -5458,7 +5511,7 @@ function apSpotPrintRows(rows, qHtml, aHtml) {
 }
 
 function _openSpotPrintWindow(html) {
-  const w = window.open('', '_blank');
+  const w = apOpenSheet();
   if (!w) { alert('Pop-up blocked — please allow pop-ups for this page and try again.'); return; }
   w.document.write(html);
   w.document.close();
@@ -5729,7 +5782,7 @@ function openVVTestPDF(type) {
     + aphPrintFoot('AP A Level VVs, Gr EWs, Translation &amp; Drills &middot; Test &middot; ' + (isQuestions ? 'Student sheet' : 'Teacher sheet'))
     + '</body></html>';
 
-  const w = window.open('', '_blank');
+  const w = apOpenSheet();
   if (!w) { alert('Please allow pop-ups for this page.'); return; }
   w.document.write(html);
   w.document.close();
@@ -5966,7 +6019,7 @@ function openVVSpotTestPDF(type) {
   // Use document.write rather than a Blob URL. Both Safari/Mac and
   // Chrome/Windows handle window.print() from a document.write'd page
   // reliably; Safari's Save-as-PDF on a Blob-URL tab can produce blank output.
-  const w = window.open('', '_blank');
+  const w = apOpenSheet();
   if (!w) { alert('Please allow pop-ups for this page.'); return; }
   w.document.write(html);
   w.document.close();
@@ -6552,28 +6605,7 @@ function vvbSheet(kind, groups, opt){
 
 
 /* Sheets open in a pop-up over the same screen (never a new tab): Print / Save as PDF and Close sit in a slim bar above the sheet. */
-function apSheetPopup(html, title) {
-  try {
-    var old = document.getElementById('ap-sheet-pop'); if (old) old.remove();
-    html = String(html).replace(/<script>[^<]*window\.print\(\)[^<]*<\/script>/g, '');
-    var o = document.createElement('div'); o.id = 'ap-sheet-pop';
-    o.style.cssText = 'position:fixed;left:0;top:0;right:0;bottom:0;z-index:2147483000;background:rgba(18,26,48,.72);display:flex;flex-direction:column;padding:10px;box-sizing:border-box';
-    var bar = document.createElement('div');
-    bar.style.cssText = 'display:flex;align-items:center;gap:10px;background:#1a2744;color:#ffd76a;border-radius:12px 12px 0 0;padding:8px 12px;font:700 .9375rem/1.2 system-ui,sans-serif';
-    bar.innerHTML = '<span style="flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">' + String(title || 'Sheet').replace(/</g, '&lt;') + '</span>'
-      + '<button type="button" id="ap-sheet-print" style="min-height:40px;padding:0 14px;border:0;border-radius:10px;background:#ffd76a;color:#1a2744;font:800 .9375rem system-ui,sans-serif;cursor:pointer">🖨 Print / Save as PDF</button>'
-      + '<button type="button" id="ap-sheet-close" style="min-height:40px;padding:0 14px;border:2px solid #ffd76a;border-radius:10px;background:transparent;color:#ffd76a;font:800 .9375rem system-ui,sans-serif;cursor:pointer">✕ Close</button>';
-    var f = document.createElement('iframe'); f.title = title || 'Sheet'; f.srcdoc = html;
-    f.style.cssText = 'flex:1;width:100%;border:0;background:#fff;border-radius:0 0 12px 12px';
-    o.appendChild(bar); o.appendChild(f); document.body.appendChild(o);
-    function close() { o.remove(); document.removeEventListener('keydown', esc); document.documentElement.style.overflow = ''; }
-    function esc(e) { if (e.key === 'Escape') close(); }
-    document.addEventListener('keydown', esc); document.documentElement.style.overflow = 'hidden';
-    bar.querySelector('#ap-sheet-close').onclick = close;
-    bar.querySelector('#ap-sheet-print').onclick = function () { try { f.contentWindow.focus(); f.contentWindow.print(); } catch (e) { window.print(); } };
-    return true;
-  } catch (e) { return false; }
-}
+function apSheetPopup(html, title) { try { var w = apOpenSheet(null, String(title || '').replace(/&amp;/g, '&')); w.document.write(html); w.document.close(); return true; } catch (e) { return false; } }
 function vvbPrint(kind){
   const mixPct = kind === 'testmix50' ? 50 : kind === 'testmix70' ? 70 : 0;
   const lvTest = kind === 'testfr' || kind === 'testen' || mixPct > 0;
@@ -6583,7 +6615,7 @@ function vvbPrint(kind){
   const html = '<!DOCTYPE html><html><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">'
     + '<title>' + sh.title + '</title><style>' + sh.css1 + '</style><style>' + sh.css2 + '</style></head><body>' + sh.body + '</body></html>';
 
-  if (!apSheetPopup(html, sh.title.replace(/<[^>]*>/g, ''))) { const w = window.open('', '_blank'); if (!w) { alert('Pop-up blocked — please allow pop-ups for this page and try again.'); return; } w.document.write(html); w.document.close(); }
+  if (!apSheetPopup(html, sh.title.replace(/<[^>]*>/g, ''))) { const w = apOpenSheet(); if (!w) { alert('Pop-up blocked — please allow pop-ups for this page and try again.'); return; } w.document.write(html); w.document.close(); }
 }
 
 </script>
@@ -36990,7 +37022,7 @@ function printPassage(id) {
 </body>
 </html>`;
 
-  const w = window.open('', '_blank');
+  const w = apOpenSheet();
   if (!w) { alert('Please allow pop-ups for this page.'); return; }
   w.document.write(html);
   w.document.close();
@@ -41302,7 +41334,7 @@ function generateGrammarTest(setId) {
     return `<tr><td style="padding:6px 8px;font-size:0.85rem;border-bottom:1px solid #eee;width:50%">${i+1}. ${grQ(s,false)}</td><td style="padding:6px 8px;font-size:0.85rem;border-bottom:1px solid #eee;width:50%;color:#1a3a5c;font-weight:600">${grTestAns(s)}</td></tr>`;
   }).join('');
 
-  const win = window.open('', '_blank');
+  const win = apOpenSheet();
   win.document.write(`<!DOCTYPE html><html lang="fr"><head><meta charset="UTF-8"><title>${set.title} — Test</title>
   <style>body{font-family:'DM Sans',system-ui,sans-serif;max-width:800px;margin:0 auto;padding:20px;color:#1a2744}
   h1{font-family:'Playfair Display',Georgia,serif;font-size:1.4rem;color:#1a2744;margin-bottom:4px}
@@ -41337,7 +41369,7 @@ function generateGrammarSpotTest(setId) {
     return `<tr><td style="padding:6px 8px;font-size:0.9rem;border-bottom:1px solid #eee">${i+1}. ${grQ(s,false)}</td><td style="padding:6px 8px;font-size:0.9rem;border-bottom:1px solid #eee;color:#1a3a5c;font-weight:600;width:55%">${grTestAns(s)}${s.note ? `<br><span style="font-size:0.72rem;color:#8899bb;font-style:italic">${s.note}</span>` : ''}</td></tr>`;
   }).join('');
 
-  const win = window.open('', '_blank');
+  const win = apOpenSheet();
   win.document.write(`<!DOCTYPE html><html lang="fr"><head><meta charset="UTF-8"><title>${set.title} — Spot Test</title>
   <style>body{font-family:'DM Sans',system-ui,sans-serif;max-width:700px;margin:0 auto;padding:20px;color:#1a2744}
   h1{font-family:'Playfair Display',Georgia,serif;font-size:1.3rem;color:#1a2744}
@@ -41507,7 +41539,7 @@ function printGrammarTest(items, setTitle) {
   let answerRows = items.map((s,i) => { const plain = s.fr.replace(/<[^>]+>/g,''); return '<tr><td style="padding:6px 8px;border:1px solid #ccc;font-weight:700;text-align:center;width:28px;color:#1a2744;">'+(i+1)+'</td><td style="padding:8px;border:1px solid #ccc;font-size:10pt;color:#555;">'+grQ(s,false)+'</td><td style="padding:8px;border:1px solid #ccc;font-size:10pt;color:#1a2744;font-weight:600;">'+grTestAns(s)+(s.note?'<br><span style="font-size:7.5pt;color:#888;">'+s.note+'</span>':'')+'</td></tr>'; }).join('');
   const bandTitle = 'Grammar Test &mdash; <em>' + setTitle + '</em>';
   const html = `<!DOCTYPE html><html><head><meta charset="UTF-8"><title>${title}</title><style>${aphCSS()}</style><style>body{font-family:var(--aph-body);background:#fff;color:#1a2744;margin:1.2cm 1.5cm;font-size:10.5pt;}table{width:100%;border-collapse:collapse;margin-bottom:24px;}th{background:#1a2744;color:#c9a84c;padding:6px 8px;font-size:8.5pt;text-align:left;border:1px solid #1a2744;}.rules{background:#f8f9fc;border-left:4px solid #c9a84c;padding:10px 14px;margin-bottom:16px;font-size:9pt;line-height:1.7;}@media print{.no-print{display:none}}</style></head><body>${aphPrintHead({ kicker: 'AP A Level &middot; VVs, Gr EWs &amp; Translation', title: bandTitle, meta: 'Eton Grammar Drills &nbsp;&middot;&nbsp; ' + items.length + ' questions', total: items.length })}<table><tr><th>#</th><th>English</th><th>French</th></tr>${rows}</table>${aphPrintFoot('AP A Level VVs, Gr EWs, Translation &amp; Drills &middot; Test &middot; Student sheet')}<div style="page-break-before:always;">${aphPrintHead({ kicker: 'AP A Level &middot; VVs, Gr EWs &amp; Translation &middot; Answers', title: bandTitle, meta: 'Answer key', strip: false, print: false })}<table><tr><th>#</th><th>English</th><th>French (Answer)</th></tr>${answerRows}</table>${aphPrintFoot('AP A Level VVs, Gr EWs, Translation &amp; Drills &middot; Test &middot; Teacher sheet')}</div><script>window.onload=function(){window.print();}<\/script></body></html>`;
-  const w = window.open('','_blank'); w.document.write(html); w.document.close();
+  const w = apOpenSheet(); w.document.write(html); w.document.close();
 }
 
 function printGrammarSpotTest(rows, opts) {
@@ -47893,7 +47925,7 @@ function grEwsPrintTest(mode) {
   else body = studentSection + sFoot + '<div style="page-break-before:always;">' + teacherSection + tFoot + '</div>';
 
   const html = `<!DOCTYPE html><html><head><meta charset="UTF-8"><title>Gr EWs Test — ${title}</title><style>${aphCSS()}</style><style>body{font-family:var(--aph-body);background:#fff;max-width:800px;margin:0 auto;padding:20px;color:#1a2744}table{width:100%;border-collapse:collapse;margin-bottom:20px}th{background:#1a2744;color:#c9a84c;padding:7px;font-size:0.8rem;text-align:left}@media print{.no-print{display:none}}</style></head><body>${body}<button class="aph-btn aph-btn-primary no-print" onclick="window.print()" style="margin-top:12px;">&#128424; Print / PDF</button></body></html>`;
-  const w = window.open('','_blank'); w.document.write(html); w.document.close();
+  const w = apOpenSheet(); w.document.write(html); w.document.close();
 }
 
 // ============================================================
@@ -48451,7 +48483,7 @@ function generateMlfTest() {
 ${sh.body}
 <script>window.onload=function(){window.print();}<\/script>
 </body></html>`;
-  const w = window.open('','_blank'); w.document.write(html); w.document.close();
+  const w = apOpenSheet(); w.document.write(html); w.document.close();
 }
 
 // ==================== MLF SPOT TEST ====================
@@ -48584,7 +48616,7 @@ ${aphPrintHead({ kicker: 'AP A Level &middot; VVs, Gr EWs &amp; Translation', ti
 ${aphPrintFoot('AP A Level VVs, Gr EWs, Translation &amp; Drills &middot; Eton Spot Test &middot; ' + (isTeacher ? 'Teacher sheet' : 'Student sheet'))}
 <script>window.onload=function(){window.print();}<\/script>
 </body></html>`;
-  const w = window.open('','_blank'); w.document.write(html); w.document.close();
+  const w = apOpenSheet(); w.document.write(html); w.document.close();
 }
 
 // Keyboard support for MLF
@@ -49344,7 +49376,7 @@ body{background:var(--cream)}
       + '.rc-chh{display:flex;gap:10px;align-items:baseline;background:#1a2744;color:#fff;border-radius:8px;padding:7px 12px;margin-bottom:8px;break-after:avoid;page-break-after:avoid}.rc-chh b{color:#ffd76a;font-size:1rem}.rc-chh span{font-size:.85rem}'
       + '.gr-block{break-inside:avoid;page-break-inside:avoid}.gr-label,.gr-section-title{break-after:avoid;page-break-after:avoid}.nc-chk{display:none!important}' + (R.ans ? '.nc-ans{display:block!important}' : '.nc-ans{display:none!important}') + ''
       + '.rc-chh,.gr-block,.gr-tense-pill,.gr-example,.gr-pronoun-pill,.gr-neg-pill,.gr-hl,.gg-key *{-webkit-print-color-adjust:exact;print-color-adjust:exact}body{margin:1.2cm 1.5cm}';
-    var w = null; try { w = window.open('', '_blank'); } catch (e) { w = null; }
+    var w = null; try { w = apOpenSheet(); } catch (e) { w = null; }
     if (!w) { alert('The print window was blocked. Allow pop-ups for this page, then try again.'); return; }
     w.document.write('<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>' + esc(title) + '</title><style>' + css + extra + '</style></head><body>' + bodyHtml + '<script>window.onload=function(){setTimeout(function(){window.print()},500)}<\/script></body></html>');
     w.document.close();
