@@ -52217,6 +52217,18 @@ textarea.ms-in{min-height:7rem;resize:vertical}
 .gg-modal .gg-ovcount{font-size:.9rem;color:#56607a}
 .gg-modal .gg-ovdone{background:var(--navy);color:var(--gold2);border:0;border-radius:8px;padding:10px 20px;min-height:44px;font:700 1rem var(--aph-body);cursor:pointer}
 @media (max-width:560px){.gg-modal .gg-rrow{flex-wrap:wrap;row-gap:0}.gg-modal .gg-rrow-s{order:3;flex:1 0 100%;padding-left:0;margin-top:-2px}}
+
+.gg-modal .gg-ovbox{display:flex;flex-direction:column;height:calc(100vh - 22px);min-height:0;overflow:hidden}
+.gg-modal .gg-rlist{flex:1;overflow-y:auto;min-height:0;padding-bottom:8px}
+.gg-modal .gg-ovfoot{margin:0 -24px;flex-shrink:0}
+.gg-modal .gg-rgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(112px,1fr));gap:8px;margin:6px 0 4px}
+.gg-modal .gg-rrow{flex-direction:column;align-items:flex-start;justify-content:center;gap:1px;min-height:52px;padding:8px 12px;border:1.5px solid #dfe4ee;border-radius:10px;background:#fff}
+.gg-modal .gg-rrow:hover{border-color:var(--gold);background:#fffbe6}
+.gg-modal .gg-rrow.on{border-color:var(--navy);background:var(--navy)}
+.gg-modal .gg-rrow.on .gg-rrow-l{color:var(--gold2)}.gg-modal .gg-rrow.on .gg-rrow-n{color:#c8d3ea}
+.gg-modal .gg-rrow-l{min-width:0;font-size:.9375rem}
+.gg-modal .gg-rrow-n{margin-left:0;padding-left:0;font-size:.6875rem}
+.gg-modal .gg-ovcount{display:none}.gg-modal .gg-ovfoot{justify-content:flex-end}
 </style>
 <!-- One-picker pattern: the four "Choose a set…" menu selects under What to practise become one full-screen chooser.
      The selects stay in the DOM (hidden) and still drive everything downstream; the chooser just sets their value via vvPickSet. -->
@@ -52252,6 +52264,7 @@ textarea.ms-in{min-height:7rem;resize:vertical}
       + '<div class="gg-ovfoot"><div class="gg-ovcount" id="vvpk-count">Tap a set to choose it and close.</div><button class="gg-ovdone" onclick="vvpkClose()">Close</button></div></div>';
     document.body.appendChild(m); return m;
   }
+  function gsh(ls){if(ls.length<2)return ls;var p=ls[0];ls.forEach(function(l){while(l.indexOf(p)!==0)p=p.slice(0,-1)});var i=p.lastIndexOf(' ');p=i>=0?p.slice(0,i+1):'';return ls.map(function(l){return l.slice(p.length)||l})}
   function rowsHtml(q) {
     q = (q || '').trim().toLowerCase();
     var html = '';
@@ -52260,12 +52273,13 @@ textarea.ms-in{min-height:7rem;resize:vertical}
         return !q || vvSetLabel(k).toLowerCase().indexOf(q) >= 0 || g[1].toLowerCase().indexOf(q) >= 0;
       });
       if (!keys.length) return;
-      html += '<div class="gg-rgh"><span>' + esc(g[1]) + '</span></div>';
-      html += keys.map(function (k) {
+      html += '<div class="gg-rgh"><span>' + esc(g[1]) + '</span></div><div class="gg-rgrid">';
+      var sl = gsh(keys.map(function (k) { return vvSetLabel(k); }));
+      html += keys.map(function (k, ix) {
         var on = (typeof currentVV !== 'undefined' && currentVV === k && document.querySelector('#drillContainer .vv-grp.on'));
         var n = (VV_DATA[k] || []).length;
-        return '<div class="gg-rrow' + (on ? ' on' : '') + '" onclick="vvpkPick(\'' + g[0] + '\',\'' + k.replace(/'/g, "\\'") + '\')"><span class="gg-rrow-l">' + esc(vvSetLabel(k)) + '</span><span class="gg-rrow-n">' + n + ' phrases</span></div>';
-      }).join('');
+        return '<div class="gg-rrow' + (on ? ' on' : '') + '" onclick="vvpkPick(\'' + g[0] + '\',\'' + k.replace(/'/g, "\\'") + '\')"><span class="gg-rrow-l">' + esc(sl[ix]) + '</span><span class="gg-rrow-n">' + n + ' phrases</span></div>';
+      }).join('') + '</div>';
     });
     return html || '<div class="gg-rempty">No set matches that search.</div>';
   }
@@ -52383,18 +52397,19 @@ textarea.ms-in{min-height:7rem;resize:vertical}
       + '<div class="gg-ovfoot"><div class="gg-ovcount" id="sdpk-count">Tap a set to choose it and close.</div><button class="gg-ovdone" onclick="sdpkClose()">Close</button></div></div>';
     document.body.appendChild(m); return m;
   }
+  function gsh(ls){if(ls.length<2)return ls;var p=ls[0];ls.forEach(function(l){while(l.indexOf(p)!==0)p=p.slice(0,-1)});var i=p.lastIndexOf(' ');p=i>=0?p.slice(0,i+1):'';return ls.map(function(l){return l.slice(p.length)||l})}
   function rowsHtml(q) {
     q = (q || '').trim().toLowerCase();
     var html = '';
     [['Topic parts (a / b / c)', parts()], ['Whole topics (a + b + c combined)', wholes()]].forEach(function (grp) {
       var keys = grp[1].filter(function (k) { return !q || k.toLowerCase().indexOf(q) >= 0; });
       if (!keys.length) return;
-      html += '<div class="gg-rgh"><span>' + esc(grp[0]) + '</span></div>';
+      html += '<div class="gg-rgh"><span>' + esc(grp[0]) + '</span></div><div class="gg-rgrid">';
       html += keys.map(function (k) {
         var on = sdState.currentSet === k;
         var label = k.replace('_Entire', ' Entire');
         return '<div class="gg-rrow' + (on ? ' on' : '') + '" onclick="sdpkPick(\'' + k + '\')"><span class="gg-rrow-l">' + esc(label) + '</span><span class="gg-rrow-n">' + keyLen(k) + ' sentences</span></div>';
-      }).join('');
+      }).join('') + '</div>';
     });
     return html || '<div class="gg-rempty">No set matches that search.</div>';
   }
