@@ -178,7 +178,27 @@
   ] };
   // every language: a slash between words (portugués/portuguesa, il/elle) is spoken as a short pause, never « barra / slash »
   var FIXES_ALL = [[/([A-Za-zÀ-ÖØ-öø-ÿ’'.)])\s*\/\s*(?=[A-Za-zÀ-ÖØ-öø-ÿ(¿¡])/g, '$1, ']];
-  function fixText(text, lang) { if (!text) return text; text = String(text); var i; for (i = 0; i < FIXES_ALL.length; i++) text = text.replace(FIXES_ALL[i][0], FIXES_ALL[i][1]); var L = FIXES[base(lang)]; if (!L) return text; for (i = 0; i < L.length; i++) text = text.replace(L[i][0], L[i][1]); return text; }
+    // ---- grammar placeholders (INF, ADJ, SUBJ, NOUN, X, Y, VERB…) are spoken as the label itself, respelt for each voice (approved 1 Nov 2026) ----
+  var PH_SPOKEN = {
+    fr: { INF: 'innf', ADJ: 'adj', SUBJ: 'seubdje', NOUN: 'naoune', NOUNS: 'naounes', TIME: 'taïme', X: 'ixe', Y: 'i grec', VERBE: 'verbe', VERBANT: 'verbant', VERBAIS: 'verbais', VERBAIT: 'verbait', VERBERAI: 'verberai', 'VERBÉ': 'verbé' },
+    it: { INF: 'innf', ADJ: 'edge', SUBJ: 'sabdge', NOUN: 'naun', NOUNS: 'nauns', TIME: 'taim', X: 'ics', Y: 'ipsilon', VERBO: 'verbo', VERBANDO: 'verbando', VERBATO: 'verbato', VERBARE: 'verbare', VERBAVO: 'verbavo', VERBAVA: 'verbava' },
+    es: { INF: 'hinf', ADJ: 'ach', SUBJ: 'sabch', NOUN: 'naun', NOUNS: 'nauns', TIME: 'taim', X: 'equis', Y: 'i griega', VERBO: 'verbo', VERBANDO: 'verbando', 'VERBÉ': 'verbé', VERBAR: 'verbar', VERBABA: 'verbaba' },
+    en: { INF: 'inff', ADJ: 'adge', SUBJ: 'subj', NOUN: 'noun', NOUNS: 'nouns', TIME: 'time', X: 'ecks', Y: 'why', VERB: 'verb', VERBING: 'verbing', VERBED: 'verbed', FUT: 'fewch', PREP: 'prep', PP: 'pee pee' }
+  };
+  var PH_ALL = { PJRP: 'peuh djerp', ANPQ: 'anne peuh kweuh' };
+  function phFix(text, lang) {
+    var b = String(lang || '').toLowerCase().split(/[-_]/)[0], T = PH_SPOKEN[b];
+    if (!T) return text;
+    var hasX = new RegExp('(^|[^A-Za-zÀ-ÿ])X(?![A-Za-zÀ-ÿ])').test(text);
+    return text.replace(/(^|[^A-Za-zÀ-ÿ])([A-ZÀ-Þ]{1,9})(?![A-Za-zÀ-ÿ])/g, function (m, pre, w) {
+      var r = PH_ALL[w];
+      if (r == null && Object.prototype.hasOwnProperty.call(T, w)) r = T[w];
+      if (r == null && w.length > 4 && w.indexOf('VERB') === 0) r = w.toLowerCase();   // any other VERB… slot is spoken as a plain word
+      if (r != null && w === 'Y' && (b === 'fr' || b === 'es') && !hasX) r = null;      // « Y a-t-il… », « Y no puedo… » are real words
+      return r == null ? m : pre + r;
+    });
+  }
+  function fixText(text, lang) { if (!text) return text; text = String(text); text = phFix(text, lang); var i; for (i = 0; i < FIXES_ALL.length; i++) text = text.replace(FIXES_ALL[i][0], FIXES_ALL[i][1]); var L = FIXES[base(lang)]; if (!L) return text; for (i = 0; i < L.length; i++) text = text.replace(L[i][0], L[i][1]); return text; }
   if (S && !S.__apFix) {
     try { var _speak = S.speak.bind(S); S.speak = function (u) { try { if (u && u.text) { var l = u.lang || (u.voice && u.voice.lang) || ''; u.text = fixText(u.text, l); } } catch (e) { } return _speak(u); }; S.__apFix = true; } catch (e) { }
   }
