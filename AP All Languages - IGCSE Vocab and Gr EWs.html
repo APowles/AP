@@ -9638,7 +9638,7 @@ Object.keys(VOC_TIER).forEach(function (sec) { ['E', 'I'].forEach(function (t) {
 function vocTierOf(p) { if (!p) return null; return VOC_TIER_MAP[p.sec + '|' + p.n] || (VOC_TIER[p.sec] ? 'R' : null); }
 var VT_DEF = [['E', 'Essential', 'learn it and be able to say or write it in the target language'], ['I', 'Important', 'the next most useful words to produce'], ['EI', 'Essential + Important', 'both of the above'], ['R', 'Recognition', 'understand it when you read or hear it (target language to English)'], ['ALL', 'All words', 'everything in the lists']];
 var VT_NAME = { E: 'Essential', I: 'Important', R: 'Recognition' };
-var vtOn = 'ALL', vtGroupBy = 'set', vtUnlocked = false;
+var vtOn = 'ALL', vtGroupBy = 'tier', vtUnlocked = false;
 try { vtUnlocked = localStorage.getItem('apvoc_recog_unlocked') === '1'; } catch (e) {}
 function vtKeep(p) { if (vtOn === 'ALL') return true; var t = vocTierOf(p); if (t === null) return true; return vtOn.indexOf(t) >= 0; }
 // plug into the Words filter so every mode (Drill, tests, View, Print, Speed Challenge) obeys it
@@ -9707,7 +9707,7 @@ renderIntro = function () {
 // ═════════ COGNATES: how easy a word is (Easy / Medium / Hard) never decides what a boy learns ═════════
 // Importance (Essential / Important / Recognition) decides what to produce and what to recognise. Cognate band is a separate thing:
 // for a boy it only puts the easier cognates first (nothing is removed); the Easy / Medium / Hard filter stays only on a teacher's device, for setting tests.
-var cogOrder = '';   // '' as listed | 'E' easiest first | 'H' hardest first
+var cogOrder = 'E';   // '' as listed | 'E' easiest first | 'H' hardest first
 function cogTeacher() { try { return !!localStorage.getItem('apTeacherKey'); } catch (e) { return false; } }
 function cogSort(arr) { if (!cogOrder) return arr; var rk = { E: 0, M: 1, H: 2 }, sg = cogOrder === 'H' ? -1 : 1; return arr.map(function (p, i) { return [p, i]; }).sort(function (a, b) { return (sg * (rk[cogBand(a[0])] - rk[cogBand(b[0])])) || (a[1] - b[1]); }).map(function (x) { return x[0]; }); }
 function cogSetOrder(k) { cogOrder = k; cogSet(); }
