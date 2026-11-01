@@ -12844,6 +12844,76 @@ textarea.ms-in{min-height:7rem;resize:vertical}
   };
 })();
 </script>
+<script id="iv-inline">
+/* IGCSE vocab home: the A Level picker steps, on the page.
+   FIRST: pick the lists (grid of chips) · NOW: what to include (Essential / Important / Recognition, with the padlock) · NEXT stays greyed until "That's my selection". */
+(function () {
+  var st = document.createElement('style');
+  st.textContent = '.ivsum{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:2px 2px 8px;font:500 .9375rem var(--aph-body,sans-serif);color:#56607a}.ivsum b{color:#1a2744;font-weight:800}'
+    + '.ivclr{background:none;border:0;color:#6b7690;font:600 .8125rem var(--aph-body,sans-serif);text-decoration:underline;cursor:pointer}'
+    + '#iv-grid{margin:0 0 6px}.iv-cap{font:700 .6875rem var(--aph-body,sans-serif);letter-spacing:.08em;text-transform:uppercase;color:#8a94ad;margin:8px 0 5px;display:flex;align-items:center;gap:8px}'
+    + '.iv-cap button{border:0;background:none;color:#8a94ad;font:inherit;letter-spacing:inherit;text-transform:inherit;cursor:pointer;padding:0}.iv-cap button:hover{color:#1a2744}'
+    + '.iv-chips{display:grid;grid-template-columns:repeat(auto-fill,minmax(82px,1fr));gap:6px}'
+    + '.iv-b{border:1.5px solid #dfe4ee;border-radius:8px;background:#fff;padding:6px 2px;min-height:34px;font:700 .8125rem var(--aph-body,sans-serif);color:#1a2744;cursor:pointer}'
+    + '.iv-b:hover{border-color:#c9a84c;background:#fffbe6}.iv-b.on{background:#1a2744;color:#ffd76a;border-color:#1a2744}.iv-b.trial{background:#eef1f8;border-color:#cdd5e8}.iv-b.trial.on{background:#1a2744;border-color:#1a2744}'
+    + '#iv-inc{display:flex;flex-wrap:wrap;gap:6px;align-items:center;margin:8px 0 12px}'
+    + '#iv-inc .iv-b{padding:6px 12px;min-height:36px;font-size:.875rem}#iv-inc .iv-b b{font-weight:600;opacity:.75;margin-left:4px}'
+    + '.iv-lock{height:36px;padding:0 14px;border-radius:999px;font:800 .875rem var(--aph-body,sans-serif);cursor:pointer;white-space:nowrap}'
+    + '.iv-lock.shut{background:#1a2744;color:#ffd76a;border:1.5px solid #1a2744}.iv-lock.open{background:#e6f6ec;color:#17803d;border:1.5px solid #1faa59}'
+    + '.iv-note{flex-basis:100%;font-size:.8125rem;color:#6b7690;line-height:1.35}'
+    + '.iv-done{flex-basis:100%;background:#1a2744;color:#ffd76a;border:0;border-radius:10px;padding:10px 16px;min-height:42px;font:700 .9375rem var(--aph-body,sans-serif);cursor:pointer;margin-top:2px}.iv-done.is-done{box-shadow:0 0 0 3px #ffd76a}'
+    + '#iv-now{margin-top:14px!important}'
+    + '.intro-card.iv-g2 #iv-now,.intro-card.iv-g2 #iv-inc,.intro-card.iv-g3 #iv-now~.ms-step,.intro-card.iv-g3 #iv-now~.ms-step~*{opacity:.35;filter:grayscale(1);pointer-events:none;user-select:none}'
+    + '.intro-card.iv-on .ms-listsrow,.intro-card.iv-on #ms-words,.intro-card.iv-on .ms-now{display:none!important}';
+  document.head.appendChild(st);
+  var ivDone = false;
+  function $(id) { return document.getElementById(id); }
+  function esc(s) { return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/"/g, '&quot;'); }
+  function short(s) { return String(SECTION_TITLES[s] || s).replace(/^[ED] (Mich|Lent|Summer) /, '').replace(/^IGCSE /, ''); }
+  function apply() { _ovSave(); _ovSelOption(); renderIntro(); }
+  window.ivTog = function (s) { var i = _ovSecs.indexOf(s); if (i >= 0) _ovSecs.splice(i, 1); else _ovSecs.push(s); apply(); };
+  window.ivPreset = function (i) { _ovSecs = OV_PRESETS[i][1].slice(); apply(); };
+  window.ivGroup = function (gi) { var ks = OV_GROUPS[gi][1].filter(function (s) { return _ovCount(s); }), all = ks.every(function (s) { return _ovSecs.indexOf(s) >= 0; });
+    ks.forEach(function (s) { var i = _ovSecs.indexOf(s); if (all && i >= 0) _ovSecs.splice(i, 1); if (!all && i < 0) _ovSecs.push(s); }); apply(); };
+  window.ivClear = function () { _ovSecs = []; ivDone = false; apply(); };
+  window.ivConfirm = function () { ivDone = true; renderIntro(); setTimeout(function () { try { var el = [].slice.call(document.querySelectorAll('.ms-step')).filter(function (e) { return /How do you want to practise/i.test(e.textContent); })[0]; if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' }); } catch (e) { } }, 100); };
+  function counts() { var c = { E: 0, I: 0, R: 0 }, on = {}; _ovSecs.forEach(function (s) { on[s] = 1; }); ALL_PHRASES.forEach(function (p) { if (on[p.sec]) { var t = vocTierOf(p); if (t) c[t]++; } }); return c; }
+  function build() {
+    var card = document.querySelector('#app .intro-card'); if (!card || card.querySelector('#iv-grid')) return;
+    var wrap = card.querySelector('.ms-listsrow'), first = card.querySelector('.ms-step'); if (!wrap || !first) return;
+    var sel = $('sel-section'), my = !!(sel && sel.value === 'MYSET'), has = _ovSecs.length > 0 && !my, n = has ? _ovPhrases().length : 0;
+    var on = {}; _ovSecs.forEach(function (s) { on[s] = 1; });
+    var sum = '<div class="ivsum"><span>' + (my ? 'Your personalised set is chosen.' : has ? '<b>' + n + '</b> words · ' + _ovSecs.length + ' list' + (_ovSecs.length > 1 ? 's' : '') : 'Pick your lists below, then say what to include.') + '</span>' + (has ? '<button class="ivclr" onclick="ivClear()">↻ Clear all selections</button>' : '') + '</div>';
+    var g = '<div id="iv-grid"><div class="iv-chips">' + OV_PRESETS.map(function (p, i) { var all = p[1].every(function (s) { return on[s]; }); return '<button class="iv-b trial' + (all ? ' on' : '') + '" onclick="ivPreset(' + i + ')">' + p[0].replace('⭐ ', '') + '</button>'; }).join('') + '</div>';
+    OV_GROUPS.forEach(function (gr, gi) {
+      var ks = gr[1].filter(function (s) { return _ovCount(s); }); if (!ks.length) return;
+      var all = ks.every(function (s) { return on[s]; });
+      g += '<div class="iv-cap"><button onclick="ivGroup(' + gi + ')" title="Tick or untick this whole block">' + (all ? '☑' : '☐') + ' ' + esc(gr[0]) + '</button></div><div class="iv-chips">'
+        + ks.map(function (s) { return '<button class="iv-b' + (on[s] ? ' on' : '') + '" title="' + esc(SECTION_TITLES[s] || s) + ' · ' + _ovCount(s) + ' words" onclick="ivTog(\'' + s + '\')">' + esc(short(s)) + '</button>'; }).join('') + '</div>';
+    });
+    g += '</div>';
+    var now = '<div id="iv-now" class="ms-step"><span class="ms-num ms-big">NOW</span>What do you want to include?</div>';
+    var tk = vtOn === 'ALL' ? 'EIR' : vtOn, tc = counts(), L = LANG_NAMES[mixTarget()] || 'French';
+    var chip = function (k, name) { var o = tk.indexOf(k) >= 0; return '<button class="iv-b' + (o ? ' on' : '') + '" onclick="vtTick(\'' + k + '\')">' + (o ? '✓ ' : '') + name + (has ? '<b>' + tc[k] + '</b>' : '') + '</button>'; };
+    var inc = '<div id="iv-inc">' + chip('E', 'Essential') + chip('I', 'Important') + chip('R', 'Recognition');
+    if (tk.indexOf('R') >= 0) inc += '<button class="iv-lock ' + (vtUnlocked ? 'open' : 'shut') + '" onclick="vtToggleLock()" title="Recognition words are practised ' + L + ' to English. Press to turn that off or on.">' + (vtUnlocked ? '🔓 Open' : '🔒 Locked') + '</button>';
+    var note = vtOn === 'R' ? (vtUnlocked ? 'Recognition words go whichever way round you choose in Settings.' : 'Recognition words: ' + L + ' → English.') : vtNote();
+    inc += '<div class="iv-note">' + esc(note) + (tk.indexOf('R') >= 0 && !vtUnlocked ? ' The padlock keeps them that way round.' : '') + '</div>';
+    inc += '<button class="iv-done' + (ivDone ? ' is-done' : '') + '" onclick="ivConfirm()">✓ That’s my selection</button></div>';
+    var d0 = document.createElement('div'); d0.innerHTML = sum + g + now + inc;
+    var ref = first.nextSibling; while (d0.firstChild) card.insertBefore(d0.firstChild, ref);
+    // the "Refine my choice" content (Order, teacher test level) moves into Settings
+    var setDet = $('ms-set'), cog = card.querySelector('.cog-row'); if (setDet && cog) setDet.appendChild(cog);
+    var vt = card.querySelector('.vt-row'); if (vt) vt.style.display = 'none';
+    card.classList.add('iv-on');
+    card.classList.toggle('iv-g2', !(has || my));
+    card.classList.toggle('iv-g3', !((has || my) && (ivDone || my)));
+  }
+  var _r0 = renderIntro;
+  renderIntro = function () { var r = _r0.apply(this, arguments); try { build(); } catch (e) { } return r; };
+  try { var a = $('app'); if (a && a.querySelector('.intro-card')) renderIntro(); } catch (e) { }
+})();
+</script>
 <script id="ap-crest">
 /* AP CREST add-on: tapping the crest opens the teacher's link / code maker for whatever is set up on screen
    (only with the teacher key on this device). Without the key it just says "Not available". The crest no longer opens any edit mode.
