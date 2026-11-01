@@ -6418,6 +6418,22 @@ function vvbReveal(key){
 // ── Printing ─────────────────────────────────────────────────
 // The sheet behind the Print buttons AND the one-click-copy vocab list: { title, css1 (page), css2 (sheet), css (both), body }. opt: { setsTitle, print:false (no Print button) }
 var vvbAns = false;   // View & Print tests: answers only when the teacher ticks 'Include the answers'
+// A short, readable title for the sheet: 'VVs · Essential + Important · Set 1 (a, b, c), Set 2 (a)'. Returns '' if the keys are not the usual TV/VS set keys.
+function vvbNiceTitle(keys){
+  const by = {}, order = [];
+  for (const k of keys) {
+    const m = String(k).match(/^(TV|VS)([EIR]*)(\d+)([a-z]?)$/);
+    if (!m) return '';
+    const head = (m[1] === 'VS' ? 'Verb structures' : 'VVs') + (m[2] ? ' \u00b7 ' + m[2].split('').map(c => ({E:'Essential',I:'Important',R:'Recognition'})[c]).join(' + ') : '');
+    if (!by[head]) { by[head] = {}; order.push(head); }
+    (by[head][m[3]] = by[head][m[3]] || []).push(m[4]);
+  }
+  return order.map(h => {
+    const nums = Object.keys(by[h]).map(Number).sort((a,b)=>a-b);
+    const parts = nums.map(n => { const l = by[h][n].filter(Boolean); return 'Set ' + n + (l.length ? ' (' + l.join(', ') + ')' : ''); });
+    return h + ' \u00b7 ' + (parts.length > 4 ? parts.slice(0,3).join(', ') + ' + ' + (parts.length-3) + ' more' : parts.join(', '));
+  }).join('  /  ');
+}
 function vvbSheet(kind, groups, opt){
   const mixPct = kind === 'testmix50' ? 50 : kind === 'testmix70' ? 70 : 0;
   const lvTest = kind === 'testfr' || kind === 'testen' || mixPct > 0;
@@ -6434,7 +6450,7 @@ function vvbSheet(kind, groups, opt){
   let setsTitle = opt.setsTitle;
   if (setsTitle == null) {
     const setNames = vvbGroupBy === 'set' ? groups.map(g => vvbLabel(g.set)) : vvbSel.map(vvbLabel);   // the title names the sets chosen, however the list is grouped
-    setsTitle = setNames.length <= 4 ? setNames.join(', ') : setNames.slice(0,3).join(', ') + ' + ' + (setNames.length-3) + ' more';
+    setsTitle = vvbNiceTitle(vvbGroupBy === 'set' ? groups.map(g => g.set) : vvbSel) || (setNames.length <= 4 ? setNames.join(', ') : setNames.slice(0,3).join(', ') + ' + ' + (setNames.length-3) + ' more');
   }
   const kindName = {list:'Content List', study:'Study Sheet', testfr:'Test — English → French', testen:'Test — French → English', testmix50:'Test — ' + mixTitle(50), testmix70:'Test — ' + mixTitle(70)}[kind] + (lvTest ? apLvTag('vvb') : '');
   const isTest = lvTest;
@@ -6455,6 +6471,12 @@ function vvbSheet(kind, groups, opt){
         body += '<tr><td class="en">'+splitHint(a.en)+'</td><td class="fr">'+vvbFmt(a.fr)+'</td><td class="divider"></td>'
               + '<td class="en">'+(b?splitHint(b.en):'')+'</td><td class="fr">'+(b?vvbFmt(b.fr):'')+'</td></tr>';
       }
+      body += '</tbody></table>';
+    } else if (kind === 'list') {
+      const half = Math.ceil(g.items.length / 2);
+      const cell = it => it ? '<td class="num">'+it.n+(it.tier ? '<span class="tb tb'+it.tier+'">'+it.tier+'</span>' : '')+'</td><td class="en">'+vvbFmt(it.en)+'</td><td class="fr">'+vvbFmt(it.fr)+'</td>' : '<td></td><td></td><td></td>';
+      body += '<table class="list two"><colgroup><col class="cn"><col class="ce"><col class="cf"><col class="cg"><col class="cn"><col class="ce"><col class="cf"></colgroup><tbody>';
+      for (let i = 0; i < half; i++) body += '<tr>'+cell(g.items[i])+'<td class="gap"></td>'+cell(g.items[i+half])+'</tr>';
       body += '</tbody></table>';
     } else {
       body += '<table class="list"><tbody>';
@@ -6496,8 +6518,10 @@ function vvbSheet(kind, groups, opt){
     '.pbtn{background:#c9a84c;color:#1a2744;border:none;padding:4px 10px;border-radius:3px;font-size:0.65rem;font-weight:700;cursor:pointer;white-space:nowrap;}',
     '.name{display:flex;gap:24px;font-size:0.72rem;color:#4a5a7a;margin:2px 0 8px;}',
     '.name span{flex:1;border-bottom:1px solid #aab;padding-bottom:2px;}',
-    '.grp{font-family:"DM Sans",sans-serif;font-size:0.8rem;font-weight:700;color:#1a2744;border-bottom:2px solid #c9a84c;padding:8px 0 2px;margin-bottom:2px;}',
-    '.grp span{font-family:var(--aph-body);font-size:0.68rem;color:#8899bb;font-weight:500;margin-left:8px;}',
+    '.grp{font-family:var(--aph-body);font-size:0.72rem;font-weight:700;letter-spacing:.07em;text-transform:uppercase;background:#1a2744;color:#ffd76a;padding:5px 10px;margin:12px 0 0;border-radius:3px 3px 0 0;}',
+    '.grp span{font-size:0.68rem;color:#c8d3ea;font-weight:500;text-transform:none;letter-spacing:0;margin-left:8px;}',
+    'table.two{table-layout:fixed;font-size:0.72rem;}table.two col.cn{width:9mm}table.two col.cg{width:4mm}table.two col.ce{width:30%}table.two col.cf{width:auto}',
+    'table.two td{padding:4px 6px;line-height:1.3;overflow-wrap:anywhere}table.two tr:nth-child(even) td:not(.gap){background:#faf8f3}table.two td.gap{border:0;background:#fff!important}table.two td.en{color:#4a5576;font-style:italic;width:auto}table.two td.fr{font-weight:700;width:auto}table.two td.num{width:auto;text-align:right;padding-right:3px}',
     'table{width:100%;border-collapse:collapse;}',
     'table.list td{padding:5px 8px;border-bottom:1px solid #ececec;vertical-align:top;font-size:0.75rem;line-height:1.4;}',
     'td.num{color:#aaa;font-size:0.7rem;width:38px;padding-right:4px;white-space:nowrap;}',
@@ -6506,7 +6530,7 @@ function vvbSheet(kind, groups, opt){
     'table.list td.fr{color:#1a2744;font-weight:500;width:48%;}',
     'tr.t td{height:0.95cm;}',
     'td.blank{border-bottom:1px solid #9aa4bb!important;}',
-    'table.study td{padding:4px 6px;border:1px solid #ccc;vertical-align:top;font-size:0.73rem;line-height:1.4;}',
+    'table.study td{padding:4px 6px;border:0;border-bottom:1px solid #e6e9f0;vertical-align:top;font-size:0.73rem;line-height:1.4;}table.study tr:nth-child(even) td:not(.divider){background:#faf8f3}',
     'table.study td.en{font-style:italic;color:#444;width:24%;}',
     'table.study td.fr{font-weight:700;color:#1a2744;width:24%;}',
     'td.divider{width:4%;border-left:2px dashed #aaa!important;border-right:none!important;border-top:none!important;border-bottom:none!important;background:#f8f8f8;}',
