@@ -9659,13 +9659,18 @@ var _vtIDir0 = introOnDirChange; introOnDirChange = function () { var r = _vtIDi
 function vtControls(grp) {
   var h = '<span class="cogt vtt">' + VT_DEF.map(function (x) { return '<button class="aph-chip cogk vtk' + (vtOn === x[0] ? ' on' : '') + '" title="' + x[1] + ': ' + x[2] + '" onclick="vtSet(\'' + x[0] + '\')">' + x[1] + '</button>'; }).join('') + '</span>';
   if (vtOn === 'R') h += '<button class="aph-chip cogk vtk' + (vtUnlocked ? ' on' : '') + '" onclick="vtToggleLock()" title="Recognition words are practised target language to English. Press to turn that lock off or on.">' + (vtUnlocked ? '🔓 Either direction' : '🔒 Target language → English only') + '</button>';
-  if (grp) h += '<span class="cogt vtt vtg"><span class="vtl">Group by</span>' + [['set', 'List'], ['tier', 'Tier']].map(function (x) { return '<button class="aph-chip cogk vtk' + (vtGroupBy === x[0] ? ' on' : '') + '" onclick="vtSetGroup(\'' + x[0] + '\')">' + x[1] + '</button>'; }).join('') + '</span>';
+  if (grp) h += '<span class="cogt vtt vtg"><span class="vtl">Group by</span>' + [['set', 'List'], ['tier', 'Importance'], ['cog', 'Easy / Medium / Hard']].map(function (x) { return '<button class="aph-chip cogk vtk' + (vtGroupBy === x[0] ? ' on' : '') + '" onclick="vtSetGroup(\'' + x[0] + '\')">' + x[1] + '</button>'; }).join('') + '</span>';
   return h;
 }
 function vtBadge(p) { var t = vocTierOf(p); return t ? '<span class="vtb vtb-' + t + '" title="' + VT_NAME[t] + '">' + t + '</span>' : ''; }
 // the groups shown in View and Print: one per list (default), or Essential / Important / Recognition across all the chosen lists
 function vtGroups() {
   var secs = _ovOrdered();
+  if (vtGroupBy === 'cog') {
+    var allc = []; secs.forEach(function (s) { _ovSecList(s).forEach(function (p) { allc.push(p); }); });
+    var ord = cogOrder === 'H' ? ['H', 'M', 'E'] : ['E', 'M', 'H'], nm = { E: 'Easy: looks like English', M: 'Medium: looks like a different English word', H: 'Hard: nothing to go on' };
+    return ord.map(function (k) { return { key: 'C' + k, title: nm[k], ps: allc.filter(function (p) { return cogBand(p) === k; }) }; });
+  }
   if (vtGroupBy !== 'tier') return secs.map(function (s) { return { key: s, title: SECTION_TITLES[s] || s, ps: _ovSecList(s) }; });
   var all = []; secs.forEach(function (s) { _ovSecList(s).forEach(function (p) { all.push(p); }); });
   return [['E', 'Essential'], ['I', 'Important'], ['R', 'Recognition'], [null, 'Core lists (not graded)']].map(function (g) {
