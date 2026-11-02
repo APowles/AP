@@ -8352,12 +8352,12 @@ textarea.ms-in.ms-in-big{min-height:8.5rem;font-size:1.4rem;margin:6px 0}
   function noacc(s) { return s.normalize('NFD').replace(/[̀-ͯ]/g, ''); }
   window.apSpCheck = function () {
     if (sp.rev) return; sp.rev = true;
-    var c = sp.d[sp.i], typed = norm($('ms-in').value).replace(/[\s.]+$/, ''), /* a stray full stop from the Pencil tap on Check is ignored */ ans = plain(c.es).replace(/[’‘`]/g, "'"), tw = typed ? typed.split(/\s+/) : [], bad = 0, acc = 0;
+    var c = sp.d[sp.i], typed = norm($('ms-in').value).replace(/[\s.]+$/, ''), /* a stray full stop from the Pencil tap on Check is ignored */ ans = plain(c.es).replace(/[’‘`]/g, "'"), tw = typed ? typed.split(/\s+/) : [], typedL = norm($('ms-in').value.replace(/I/g, 'l')).replace(/[\s.]+$/, ''), tw2 = typedL ? typedL.split(/\s+/) : [], bad = 0, acc = 0;   /* handwriting often reads a small l as a capital I: both readings are accepted */
     var words = ans.split(/\s+/).map(function (w) {
       var k = w.toLowerCase(); if (!tw.length) return '<span class="ms-w">' + esc(w) + '</span>';
       var kw = k.replace(/[,.;:!?]+$/, '');
-      if (tw.indexOf(k) >= 0 || tw.indexOf(kw) >= 0) return '<span class="ms-w ok">' + esc(w) + '</span>';
-      if (tw.some(function (t) { return noacc(t) === noacc(k) || noacc(t) === noacc(kw); })) { acc++; return '<span class="ms-w acc">' + esc(w) + '</span>'; }
+      if (tw.indexOf(k) >= 0 || tw.indexOf(kw) >= 0 || tw2.indexOf(k) >= 0 || tw2.indexOf(kw) >= 0) return '<span class="ms-w ok">' + esc(w) + '</span>';
+      if (tw.concat(tw2).some(function (t) { return noacc(t) === noacc(k) || noacc(t) === noacc(kw); })) { acc++; return '<span class="ms-w acc">' + esc(w) + '</span>'; }
       bad++; return '<span class="ms-w no">' + esc(w) + '</span>';
     }).join(' ');
     var msg = !tw.length ? '' : (!bad && !acc && tw.length === ans.split(/\s+/).length ? 'Every word right, accents included.' : (acc ? acc + ' accent slip' + (acc > 1 ? 's' : '') + ' (wavy orange). ' : '') + (bad ? bad + ' word' + (bad > 1 ? 's' : '') + ' wrong or missing (red).' : ''));
@@ -8366,7 +8366,7 @@ textarea.ms-in.ms-in-big{min-height:8.5rem;font-size:1.4rem;margin:6px 0}
     /* Spell it: a perfect answer (same words, same order, every accent right) is registered as Got it automatically */
     var _sp = function (t) { return t.toLowerCase().replace(/[.,;:!?\u00bf\u00a1]/g, ' ').replace(/\s+/g, ' ').trim(); };
     var pm = $('ms-res') && $('ms-res').querySelector('.aph-mark');
-    if (pm && typed && _sp(typed) === _sp(ans)) {
+    if (pm && typed && (_sp(typed) === _sp(ans) || _sp(typedL) === _sp(ans))) {
       pm.outerHTML = '<div class="ms-tick" style="text-align:center;font:800 4.5rem/1 Georgia,serif;color:#1f8a4c;margin-top:6px">\u2713</div><div class="ms-big" style="text-align:center;color:#1f8a4c;font-size:1.25rem">Correct!</div><div class="ms-cen" style="margin-top:8px"><button class="ms-b pri" onclick="apSpMark(\'ok\')">Next \u2192</button></div>';
       apSpChime();
       setTimeout(function () { if ($('ms-res') && sp && sp.rev && sp.d[sp.i] === c) apSpMark('ok'); }, 2000);
@@ -21879,12 +21879,12 @@ textarea.ms-in.ms-in-big{min-height:8.5rem;font-size:1.4rem;margin:6px 0}
   function noacc(s) { return s.normalize('NFD').replace(/[̀-ͯ]/g, ''); }
   window.apSpCheck = function () {
     if (sp.rev) return; sp.rev = true;
-    var c = sp.d[sp.i], typed = norm($('ms-in').value).replace(/[\s.]+$/, ''), /* a stray full stop from the Pencil tap on Check is ignored */ ans = es(c).replace(/[’‘`]/g, "'"), tw = typed ? typed.split(/\s+/) : [], bad = 0, acc = 0;
+    var c = sp.d[sp.i], typed = norm($('ms-in').value).replace(/[\s.]+$/, ''), /* a stray full stop from the Pencil tap on Check is ignored */ ans = es(c).replace(/[’‘`]/g, "'"), tw = typed ? typed.split(/\s+/) : [], typedL = norm($('ms-in').value.replace(/I/g, 'l')).replace(/[\s.]+$/, ''), tw2 = typedL ? typedL.split(/\s+/) : [], bad = 0, acc = 0;   /* handwriting often reads a small l as a capital I: both readings are accepted */
     var words = ans.split(/\s+/).map(function (w) {
       var k = w.toLowerCase(); if (!tw.length) return '<span class="ms-w">' + esc(w) + '</span>';
       var kw = k.replace(/[,.;:!?¿¡]+$/, '');
-      if (tw.indexOf(k) >= 0 || tw.indexOf(kw) >= 0) return '<span class="ms-w ok">' + esc(w) + '</span>';
-      if (tw.some(function (t) { return noacc(t) === noacc(k) || noacc(t) === noacc(kw); })) { acc++; return '<span class="ms-w acc">' + esc(w) + '</span>'; }
+      if (tw.indexOf(k) >= 0 || tw.indexOf(kw) >= 0 || tw2.indexOf(k) >= 0 || tw2.indexOf(kw) >= 0) return '<span class="ms-w ok">' + esc(w) + '</span>';
+      if (tw.concat(tw2).some(function (t) { return noacc(t) === noacc(k) || noacc(t) === noacc(kw); })) { acc++; return '<span class="ms-w acc">' + esc(w) + '</span>'; }
       bad++; return '<span class="ms-w no">' + esc(w) + '</span>';
     }).join(' ');
     var msg = !tw.length ? '' : (!bad && !acc && tw.length === ans.split(/\s+/).length ? 'Every word right, accents included.' : (acc ? acc + ' accent slip' + (acc > 1 ? 's' : '') + ' (wavy orange). ' : '') + (bad ? bad + ' word' + (bad > 1 ? 's' : '') + ' wrong or missing (red).' : ''));
@@ -21893,7 +21893,7 @@ textarea.ms-in.ms-in-big{min-height:8.5rem;font-size:1.4rem;margin:6px 0}
     /* Spell it: a perfect answer (same words, same order, every accent right) is registered as Got it automatically */
     var _sp = function (t) { return t.toLowerCase().replace(/[.,;:!?\u00bf\u00a1]/g, ' ').replace(/\s+/g, ' ').trim(); };
     var pm = $('ms-res') && $('ms-res').querySelector('.aph-mark');
-    if (pm && typed && _sp(typed) === _sp(ans)) {
+    if (pm && typed && (_sp(typed) === _sp(ans) || _sp(typedL) === _sp(ans))) {
       pm.outerHTML = '<div class="ms-tick" style="text-align:center;font:800 4.5rem/1 Georgia,serif;color:#1f8a4c;margin-top:6px">\u2713</div><div class="ms-big" style="text-align:center;color:#1f8a4c;font-size:1.25rem">Correct!</div><div class="ms-cen" style="margin-top:8px"><button class="ms-b pri" onclick="apSpMark(\'ok\')">Next \u2192</button></div>';
       apSpChime();
       setTimeout(function () { if ($('ms-res') && sp && sp.rev && sp.d[sp.i] === c) apSpMark('ok'); }, 2000);
@@ -24369,4 +24369,4 @@ function deck(el,m,n,x,y,face,gap){clear(el);const cs=[];for(let i=0;i<n;i++){co
   if (document.readyState === 'complete') start(); else window.addEventListener('load', start);
 })();
 </script>
-<script id="ap-build">window.__apBuild="03ebba36f8";</script>
+<script id="ap-build">window.__apBuild="7d3b004ce2";</script>
