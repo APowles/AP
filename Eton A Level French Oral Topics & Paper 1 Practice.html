@@ -20539,7 +20539,7 @@ function deck(el,m,n,x,y,face,gap){clear(el);const cs=[];for(let i=0;i<n;i++){co
   window.apBzSndOpt = function (on) { snd = !!on; saveCfg(); sndBtn(); if (!snd) musicStop(); else if (view !== 'pick') musicStart(); if (snd) { ctx(); sfx('ok'); } panel(); };
   window.apBzMus = function (s) { CFG[view === 'run' ? 'musRun' : 'mus'] = s; saveCfg(); if (s === 'off') musicStop(); else musicStart(); panel(); };
   window.apBzMV = function (v) { CFG.mv = v; saveCfg(); if (MG) MG.gain.value = (curMus === 'hymn' ? .2 : .5) * v; else if (musSel() !== 'off') musicStart(); panel(); };
-  window.apBzSetDone = function () { var el = $('bz-set'); if (el) el.remove(); PZ = false; if (view === 'pick') musicStop(); if (setDirty && view !== 'pick' && GAMES[view]) { setDirty = false; stop(); GAMES[view](pool()); } };
+  window.apBzSetDone = function () { var el = $('bz-set'); if (el) el.remove(); PZ = false; if (view === 'pick') musicStop(); if (setDirty && view !== 'pick' && GAMES[view]) { setDirty = false; stop(); GAMES[view](pool(/^(catch|lane)$/.test(view))); } };
 
   // ---------- data
   function clean(s) { return String(s == null ? '' : s).replace(/[*_]/g, '').trim(); }
@@ -20563,7 +20563,9 @@ function deck(el,m,n,x,y,face,gap){clear(el);const cs=[];for(let i=0;i<n;i++){co
     if (!c.length) return null; c.sort(function (x, y) { return x.d - y.d; });
     var x = c[0], y = c[1] || c[0]; return { fr: [x.a, y.a], en: [x.b, y.b] };
   }
-  function pool() { var d = dirs(), f = d[0], t = d[1], out = []; H.phrases().forEach(function (p) { var q = clean(p[f]), a = clean(p[t]); if (p.ask) { q = clean(p.en); a = clean(p.fr); } if (q && a) out.push({ ask: p.ask ? 1 : 0, q: q, a: a, sec: p.sec, en: clean(p.en), tl: clean(p[target()]), hv: p.hv || (H.frag && p.fr && p.en && !p.ask ? fragOf(clean(p.fr), clean(p.en)) : null), hf: f, ht: t }); }); return out; }
+  function pool(plain) { var d = dirs(), out = []; H.phrases().forEach(function (p) { var f = d[0], t = d[1]; if (p.rec && !plain) { f = target(); t = 'en'; } var q = clean(p[f]), a = clean(p[t]); if (p.ask) { q = clean(p.en); a = clean(p.fr); } if (q && a) out.push({ ask: p.ask ? 1 : 0, q: q, a: a, sec: p.sec, en: clean(p.en), tl: clean(p[target()]), hv: p.hv || (H.frag && p.fr && p.en && !p.ask ? fragOf(clean(p.fr), clean(p.en)) : null), hf: f, ht: t, rec: !!p.rec }); }); return out; }
+  function cueFor(c, cue) { return (c && c.rec && c.hf) ? H.names[c.hf] : cue; }   // a Recognition word is always asked from the target language into English, and its cue says so
+  function toEn(c) { return ((c && c.ht) || dirs()[1]) === 'en'; }
   function shuf(a) { a = a.slice(); for (var i = a.length - 1; i > 0; i--) { var j = Math.floor(Math.random() * (i + 1)), x = a[i]; a[i] = a[j]; a[j] = x; } return a; }
   function esc(s) { return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;'); }
   var stopHook = null;
@@ -20601,7 +20603,7 @@ function deck(el,m,n,x,y,face,gap){clear(el);const cs=[];for(let i=0;i<n;i++){co
     stop(); musicStop(); view = 'pick'; bgNow = null; if (ov) ov.removeAttribute('data-dlr'); var p = pool(), r = reasons(p);
     frame('', '<div class="bz-note"><b>' + p.length + ' ' + (HC.noun || 'words') + '</b> ready. ' + esc(dirs()[0] === 'en' ? 'English → ' + H.names[dirs()[1]] : H.names[dirs()[0]] + ' → English') + '. Pick a round: it starts straight away.</div><div class="bz-grid">' + MODES.filter(function (m) { return !H.games || H.games.indexOf(m[0]) > -1; }).map(function (m) { var off = r[m[0]]; return '<button class="bz-m"' + (off ? ' disabled' : '') + ' onclick="apBzStart(\'' + m[0] + '\')"><img alt="" src="' + (BZ[m[0]] || ({ run: 'icons/gm_run.webp', four: 'icons/gm_four.webp' })[m[0]] || 'icons/hx_cards.webp') + '"><b>' + m[1] + '</b><span>' + (off || m[2]) + '</span></button>'; }).join('') + '</div>');
   }
-  window.apBzStart = function (k) { stop(); bgNow = null; view = k; ctx(); sfx('go'); musicStart(true); GAMES[k](pool()); };
+  window.apBzStart = function (k) { stop(); bgNow = null; view = k; ctx(); sfx('go'); musicStart(true); GAMES[k](pool(/^(catch|lane)$/.test(k))); };   // Catch it and Lane it only pair words up (recognition), so a Recognition word is just an ordinary word there
 
   // ---------- helpers for self-marked card games
   function card(q, a, extra, hl) { var n = String(q || '').length + String(a || '').length, z = n > 130 ? ' bz-xl' : n > 60 ? ' bz-lg' : '', qh = hl ? esc(hl[0]) + '<b class="hl">' + esc(hl[1]) + '</b>' + esc(hl[2]) + '<span class="hln">Translate only the highlighted part</span>' : esc(q); return '<div class="bz-card' + z + '" id="bz-card"><small>' + esc(extra || '') + '</small><div>' + qh + '</div><div class="ans" id="bz-ans" style="visibility:hidden">' + esc(a) + ' ' + SAYBTN(a) + '</div></div>'; }
@@ -20630,10 +20632,10 @@ function deck(el,m,n,x,y,face,gap){clear(el);const cs=[];for(let i=0;i<n;i++){co
       if (closed) return; stop(); if (opt.total) { /* overall timer keeps running */ }
       if (!pile.length) return finish();
       cur = pile.shift(); n++; var hl = null, shown = cur; if (cur.hv && cur.hv[cur.hf] && cur.hv[cur.ht]) { var hs = cur.hv[cur.hf], ht2 = cur.hv[cur.ht]; if (cur.h == null) cur.h = Math.random() < .5 ? 0 : 1; var at = cur.q.indexOf(hs[cur.h]); if (at >= 0) { hl = [cur.q.slice(0, at), hs[cur.h], cur.q.slice(at + hs[cur.h].length)]; shown = { q: cur.q, a: ht2[cur.h] }; } } var pc = typeof opt.perCard === 'function' ? opt.perCard() : opt.perCard;
-      frame(opt.title, (opt.strip ? '<div class="rl-strip">' + all.map(function (x, i) { return '<div class="rl-t' + (res[i] === 1 ? ' ok' : res[i] === 0 ? ' bad' : (i === n - 1 ? ' cur' : '')) + '">' + esc(x.q) + '</div>'; }).join('') + '</div>' : '') + '<div class="bz-stat">' + opt.stats(ok, miss, pile.length + 1, run) + '</div>' + (pc ? ringHTML('bzr') : '') + '<div onclick="apBzShow()" style="cursor:pointer;width:100%;display:flex;justify-content:center">' + card(shown.q, shown.a, opt.cue || '', hl) + '</div>' + '<div class="bz-row"><button class="bz-big" id="bz-show" onclick="apBzShow()">Show answer</button></div><div class="bz-row bz-mk" id="bz-mark" style="display:none"><button class="bz-big miss" onclick="apBzMark(0)">✗ Major error</button><button class="bz-big near" onclick="apBzMark(2)">~ Nearly</button><button class="bz-big got" onclick="apBzMark(1)">✓ Got it</button></div>' + (opt.timerBar ? '<div class="bz-stat" style="margin-top:6px">Time left <b id="bz-tl">' + opt.timerBar() + '</b></div>' : ''));
+      frame(opt.title, (opt.strip ? '<div class="rl-strip">' + all.map(function (x, i) { return '<div class="rl-t' + (res[i] === 1 ? ' ok' : res[i] === 0 ? ' bad' : (i === n - 1 ? ' cur' : '')) + '">' + esc(x.q) + '</div>'; }).join('') + '</div>' : '') + '<div class="bz-stat">' + opt.stats(ok, miss, pile.length + 1, run) + '</div>' + (pc ? ringHTML('bzr') : '') + '<div onclick="apBzShow()" style="cursor:pointer;width:100%;display:flex;justify-content:center">' + card(shown.q, shown.a, cueFor(cur, opt.cue || ''), hl) + '</div>' + '<div class="bz-row"><button class="bz-big" id="bz-show" onclick="apBzShow()">Show answer</button></div><div class="bz-row bz-mk" id="bz-mark" style="display:none"><button class="bz-big miss" onclick="apBzMark(0)">✗ Major error</button><button class="bz-big near" onclick="apBzMark(2)">~ Nearly</button><button class="bz-big got" onclick="apBzMark(1)">✓ Got it</button></div>' + (opt.timerBar ? '<div class="bz-stat" style="margin-top:6px">Time left <b id="bz-tl">' + opt.timerBar() + '</b></div>' : ''));
       if (pc) runRing('bzr', pc, function () { reveal(); sayAns(); });
     }
-    function sayAns() { try { if (opt.say && CFG[opt.say] && cur && !cur.__s) { cur.__s = 1; say(dirs()[1] === 'en' ? String(cur.q).replace(/<[^>]*>/g, '') : hvOf(cur).a); } } catch (e) { } }
+    function sayAns() { try { if (opt.say && CFG[opt.say] && cur && !cur.__s) { cur.__s = 1; say(toEn(cur) ? String(cur.q).replace(/<[^>]*>/g, '') : hvOf(cur).a); } } catch (e) { } }
     function finish() { closed = true; opt.end({ ok: ok, miss: miss, secs: Math.round((Date.now() - startT) / 1000), best: Math.max(best, run) }); }
     window.apBzShow = function () { stop(); reveal(); sayAns(); if (opt.perCard) { var t = $('bzrt'); if (t) t.textContent = ''; } };
     window.apBzMark = function (good) {
@@ -20680,9 +20682,9 @@ function deck(el,m,n,x,y,face,gap){clear(el);const cs=[];for(let i=0;i<n;i++){co
           }
           function qOf(c) { var v = hvOf(c); return v.hl ? (v.hl[0].trim() ? '[…] ' : '') + (v.hl[2].trim() ? esc(v.hl[1].replace(/\s*…\s*$/, '')) + ' […]' : esc(v.hl[1])) : esc(c.q); }
           function cardHTML(c, i) {
-              return '<div class="rl-c" id="rlc' + i + '" onclick="apRlOpen(' + i + ')"><small>' + esc(cue) + (back.indexOf(c) >= 0 ? ' · back again' : '') + '</small><div class="rl-q' + (c.q.length > 90 ? ' rl-s' : '') + '">' + qOf(c) + '</div><div class="rl-hint">Say it, then tap to check</div><div class="rl-a' + (String(hvOf(c).a).length > 95 ? ' rl-ls' : '') + '" style="display:none"><div class="rl-qs">' + qOf(c) + '</div><div class="rl-ans">' + esc(hvOf(c).a) + ' ' + SAYBTN(hvOf(c).a) + '</div><div class="rl-m"><button class="rl-n" onclick="event.stopPropagation();apRlMark(' + i + ',0)">✗ Major error</button><button class="rl-nr" onclick="event.stopPropagation();apRlMark(' + i + ',2)">~ Nearly</button><button class="rl-y" onclick="event.stopPropagation();apRlMark(' + i + ',1)">✓ Got it</button></div></div></div>';
+              return '<div class="rl-c" id="rlc' + i + '" onclick="apRlOpen(' + i + ')"><small>' + esc(cueFor(c, cue)) + (back.indexOf(c) >= 0 ? ' · back again' : '') + '</small><div class="rl-q' + (c.q.length > 90 ? ' rl-s' : '') + '">' + qOf(c) + '</div><div class="rl-hint">Say it, then tap to check</div><div class="rl-a' + (String(hvOf(c).a).length > 95 ? ' rl-ls' : '') + '" style="display:none"><div class="rl-qs">' + qOf(c) + '</div><div class="rl-ans">' + esc(hvOf(c).a) + ' ' + SAYBTN(hvOf(c).a) + '</div><div class="rl-m"><button class="rl-n" onclick="event.stopPropagation();apRlMark(' + i + ',0)">✗ Major error</button><button class="rl-nr" onclick="event.stopPropagation();apRlMark(' + i + ',2)">~ Nearly</button><button class="rl-y" onclick="event.stopPropagation();apRlMark(' + i + ',1)">✓ Got it</button></div></div></div>';
           }
-          window.apRlOpen = function (i) { var c = $('rlc' + i); if (!c || res[i] !== undefined || c.classList.contains('open') || c.classList.contains('flipout')) return; sfx('whoosh'); c.classList.add('flipout'); setTimeout(function () { c.classList.remove('flipout'); c.classList.add('open', 'flipin'); c.querySelector('.rl-q').style.display = 'none'; c.querySelector('.rl-a').style.display = 'block'; c.querySelector('.rl-hint').style.display = 'none'; try { if (CFG.rlSay) say(dirs()[1] === 'en' ? String(deck[i].q).replace(/<[^>]*>/g, '') : hvOf(deck[i]).a); } catch (e) { } setTimeout(function () { c.classList.remove('flipin'); }, 260); try { c.scrollIntoView({ block: 'nearest', behavior: 'smooth' }); } catch (e) { } }, 170); };
+          window.apRlOpen = function (i) { var c = $('rlc' + i); if (!c || res[i] !== undefined || c.classList.contains('open') || c.classList.contains('flipout')) return; sfx('whoosh'); c.classList.add('flipout'); setTimeout(function () { c.classList.remove('flipout'); c.classList.add('open', 'flipin'); c.querySelector('.rl-q').style.display = 'none'; c.querySelector('.rl-a').style.display = 'block'; c.querySelector('.rl-hint').style.display = 'none'; try { if (CFG.rlSay) say(toEn(deck[i]) ? String(deck[i].q).replace(/<[^>]*>/g, '') : hvOf(deck[i]).a); } catch (e) { } setTimeout(function () { c.classList.remove('flipin'); }, 260); try { c.scrollIntoView({ block: 'nearest', behavior: 'smooth' }); } catch (e) { } }, 170); };
           window.apRlMark = function (i, g) {
             if (res[i] !== undefined) return; if (g === 2) { var c0 = $('rlc' + i); sfx('tick'); if (spare.length && c0) { carry.push(deck[i]); deck[i] = spare.shift(); c0.outerHTML = cardHTML(deck[i], i); } else if (c0) { c0.classList.remove('open'); c0.querySelector('.rl-a').style.display = 'none'; c0.querySelector('.rl-q').style.display = ''; c0.querySelector('.rl-hint').style.display = ''; } return; } res[i] = g; done++; if (g) ok++; sfx(g ? 'ok' : 'bad');
             var c = $('rlc' + i); c.classList.remove('open'); c.classList.add(g ? 'ok' : 'bad'); c.querySelector('.rl-m').style.display = 'none';
@@ -20700,10 +20702,10 @@ function deck(el,m,n,x,y,face,gap){clear(el);const cs=[];for(let i=0;i<n;i++){co
     function show() {
       stop(); if (i >= deck.length) return fin(); var c = deck[i];
       var tc = team === 0 ? '#4f8cff' : '#f0d27a', tg = team === 0 ? '' : ' g';
-      frame('Pairs race', '<div class="pt-turn' + tg + '">' + names[team] + ': say it!<small style="display:block;font:600 .95rem DM Sans,sans-serif;margin-top:2px">then tap the card to check</small></div><div class="pt-bd"><div class="pt-t' + (team === 0 ? ' act' : '') + '"><span>' + names[0] + '</span><b>' + sc[0] + '</b><em>' + (team === 0 ? '▶ YOUR TURN' : '') + '</em></div><div class="pt-t g' + (team === 1 ? ' act' : '') + '"><span>' + names[1] + '</span><b>' + sc[1] + '</b><em>' + (team === 1 ? '▶ YOUR TURN' : '') + '</em></div></div><div class="pt-card" onclick="apBzShow()" style="cursor:pointer;--tc:' + tc + '">' + cardOf(c, H.names[dirs()[0]] + ' · ' + (deck.length - i) + ' to go') + '</div><div class="bz-row bz-mk" id="bz-mark" style="display:none"><div class="bz-note" style="width:100%"><b>' + names[1 - team] + '</b>: was ' + names[team] + ' right?</div><button class="bz-big miss" onclick="apBzMark(0)">✗ Major error</button><button class="bz-big near" onclick="apBzMark(2)">~ Nearly</button><button class="bz-big got" onclick="apBzMark(1)">✓ Got it</button></div>');
+      frame('Pairs race', '<div class="pt-turn' + tg + '">' + names[team] + ': say it!<small style="display:block;font:600 .95rem DM Sans,sans-serif;margin-top:2px">then tap the card to check</small></div><div class="pt-bd"><div class="pt-t' + (team === 0 ? ' act' : '') + '"><span>' + names[0] + '</span><b>' + sc[0] + '</b><em>' + (team === 0 ? '▶ YOUR TURN' : '') + '</em></div><div class="pt-t g' + (team === 1 ? ' act' : '') + '"><span>' + names[1] + '</span><b>' + sc[1] + '</b><em>' + (team === 1 ? '▶ YOUR TURN' : '') + '</em></div></div><div class="pt-card" onclick="apBzShow()" style="cursor:pointer;--tc:' + tc + '">' + cardOf(c, cueFor(c, H.names[dirs()[0]]) + ' · ' + (deck.length - i) + ' to go') + '</div><div class="bz-row bz-mk" id="bz-mark" style="display:none"><div class="bz-note" style="width:100%"><b>' + names[1 - team] + '</b>: was ' + names[team] + ' right?</div><button class="bz-big miss" onclick="apBzMark(0)">✗ Major error</button><button class="bz-big near" onclick="apBzMark(2)">~ Nearly</button><button class="bz-big got" onclick="apBzMark(1)">✓ Got it</button></div>');
       ov.classList.add(team === 0 ? 'pt-n' : 'pt-g');
     }
-    window.apBzShow = function () { var cd0 = $('bz-card'), was = !cd0 || cd0.classList.contains('bz-back'); reveal(); if (!was && CFG.pSay && !deck[i].__s) { try { var c1 = deck[i]; c1.__s = 1; say(dirs()[1] === 'en' ? String(c1.q).replace(/<[^>]*>/g, '') : hvOf(c1).a); } catch (e) { } } };
+    window.apBzShow = function () { var cd0 = $('bz-card'), was = !cd0 || cd0.classList.contains('bz-back'); reveal(); if (!was && CFG.pSay && !deck[i].__s) { try { var c1 = deck[i]; c1.__s = 1; say(toEn(c1) ? String(c1.q).replace(/<[^>]*>/g, '') : hvOf(c1).a); } catch (e) { } } };
     window.apBzGo = function () { names = [esc(pnGet(0, 'Team 1')), esc(pnGet(1, 'Team 2'))]; show(); };
     window.apBzMark = function (g) { if (g === 2) { sfx('tick'); deck.splice(Math.min(deck.length, i + 3), 0, deck[i]); team = 1 - team; i++; show(); return; } sfx(g ? 'ok' : 'bad'); if (g) sc[team]++; team = 1 - team; i++; show(); };
     function fin() { var w = sc[0] === sc[1] ? 'A draw' : (sc[0] > sc[1] ? names[0] : names[1]) + ' wins'; endScreen('Pairs race', { big: sc[0] + ' – ' + sc[1], note: w + '.' }, function () { GAMES.pairs(pool()); }); }
@@ -21042,7 +21044,7 @@ function deck(el,m,n,x,y,face,gap){clear(el);const cs=[];for(let i=0;i<n;i++){co
     if (!ov || !r) return; var cx = r.left + r.width / 2, cy = r.top + r.height / 2;
     for (var i = 0; i < 18; i++) { var e = document.createElement('i'), a = Math.random() * Math.PI * 2, d = 50 + Math.random() * 90; e.className = 'dl-sp'; e.style.left = cx + 'px'; e.style.top = cy + 'px'; e.style.setProperty('--x', Math.cos(a) * d + 'px'); e.style.setProperty('--y', Math.sin(a) * d + 'px'); ov.appendChild(e); (function (x) { setTimeout(function () { x.remove(); }, 1100); })(e); }
   }
-  function dlCardView(c, cue) { var v = hvOf(c); return '<div onclick="apBzShow()" style="cursor:pointer;width:100%;display:flex;justify-content:center">' + card(c.q, v.a, cue, v.hl) + '</div><div class="bz-row"><button class="bz-big" id="bz-show" onclick="apBzShow()">Show answer</button></div>' + dlMarks(); }
+  function dlCardView(c, cue) { var v = hvOf(c); return '<div onclick="apBzShow()" style="cursor:pointer;width:100%;display:flex;justify-content:center">' + card(c.q, v.a, cueFor(c, cue), v.hl) + '</div><div class="bz-row"><button class="bz-big" id="bz-show" onclick="apBzShow()">Show answer</button></div>' + dlMarks(); }
   function dlSzCls(t) { var n = String(t || '').length; return n > 110 ? ' xl' : n > 50 ? ' lg' : ''; }
   function dlOpenCard(k, c, cue, topHTML) {   // the tapped card lifts off the table, flips in the middle, and shows its prompt
     var o0 = $('dl-ov'); if (o0) o0.remove();
@@ -21050,7 +21052,7 @@ function deck(el,m,n,x,y,face,gap){clear(el);const cs=[];for(let i=0;i<n;i++){co
     var v = hvOf(c), qh = v.hl ? esc(v.hl[0]) + '<b class="hl">' + esc(v.hl[1]) + '</b>' + esc(v.hl[2]) + '<span class="hln">Translate only the highlighted part</span>' : esc(c.q);
     var tw = Math.min(600, W0 * .88, (H0 * .46) * 1.5), th = tw * 2 / 3, tl = (W0 - tw) / 2, tt = Math.max(110, (H0 - th) / 2 - 70);
     var o = document.createElement('div'); o.id = 'dl-ov';
-    o.innerHTML = (topHTML || '') + '<div class="dl-wrap" id="dl-wrap" style="left:' + r.left + 'px;top:' + r.top + 'px;width:' + r.width + 'px;height:' + r.height + 'px" onclick="apBzShow()"><div class="dl-in" id="dl-in"><div class="dl-f dl-fb"></div><div class="dl-f dl-ff" id="dl-ff">' + dlOrn() + '<small>' + esc(cue) + '</small><div class="dl-fq' + dlSzCls(c.q) + '">' + qh + '</div><div class="dl-hint">tap the card to turn it</div></div></div></div>'
+    o.innerHTML = (topHTML || '') + '<div class="dl-wrap" id="dl-wrap" style="left:' + r.left + 'px;top:' + r.top + 'px;width:' + r.width + 'px;height:' + r.height + 'px" onclick="apBzShow()"><div class="dl-in" id="dl-in"><div class="dl-f dl-fb"></div><div class="dl-f dl-ff" id="dl-ff">' + dlOrn() + '<small>' + esc(cueFor(c, cue)) + '</small><div class="dl-fq' + dlSzCls(c.q) + '">' + qh + '</div><div class="dl-hint">tap the card to turn it</div></div></div></div>'
       + '<div class="dl-ctl" id="dl-ctl" style="top:' + (tt + th + 22) + 'px;opacity:0">' + dlMarks() + '</div>';
     ov.appendChild(o); if (src) src.style.visibility = 'hidden';
     dplay(Math.random() < .5 ? 'p2' : 'p4'); void o.offsetWidth;
@@ -21079,7 +21081,7 @@ function deck(el,m,n,x,y,face,gap){clear(el);const cs=[];for(let i=0;i<n;i++){co
     setTimeout(function () { if (o.parentNode) o.remove(); then(); if (fly) { var pe = ov && ov.querySelector('.dl-pcol.t' + (fly - 1)); if (pe && !quiet) { pe.classList.add('pulse'); setTimeout(function () { pe.classList.remove('pulse'); }, 1000); } } }, T * 1000 + 60);
   }
   function dlPileRect(t) { var e = ov && ov.querySelector('.dl-pcol.t' + t + ' .dl-pile'); if (!e) return null; var r = e.getBoundingClientRect(), w = r.width * .7, h = w * 2 / 3; return { left: r.left + r.width / 2 - w / 2, top: r.bottom - h - 8, width: w, height: h }; }
-  function dlSay(c) { try { if (CFG.dSay) say(dirs()[1] === 'en' ? String(c.q).replace(/<[^>]*>/g, '') : hvOf(c).a); } catch (e) { } }
+  function dlSay(c) { try { if (CFG.dSay) say(toEn(c) ? String(c.q).replace(/<[^>]*>/g, '') : hvOf(c).a); } catch (e) { } }
 
   GAMES.deal = function (p) {
     if (!dlBackOrig) { dlBackOrig = window.apBzBack; window.apBzBack = function () { if (dlSub && view === 'deal') { var f = dlSub; dlSub = null; try { speechSynthesis.cancel(); } catch (e) { } f(); } else dlBackOrig(); }; }
@@ -21558,7 +21560,7 @@ function deck(el,m,n,x,y,face,gap){clear(el);const cs=[];for(let i=0;i<n;i++){co
         a2.onfinish = function () { inn.style.transform = 'rotateX(-6deg) rotateY(168deg)'; };
         timers.push(setTimeout(function () { sfx('ok'); }, 800));
       };
-      window.apFlRev = function () { var cd = cards[openI], b = $('fl-bk'); if (!cd || !b) return; sfx('tick'); b.innerHTML = backA(cd); try { if (CFG.fSay) say(dirs()[1] === 'en' ? String(cd.c.q) : hvOf(cd.c).a); } catch (e) { } };
+      window.apFlRev = function () { var cd = cards[openI], b = $('fl-bk'); if (!cd || !b) return; sfx('tick'); b.innerHTML = backA(cd); try { if (CFG.fSay) say(toEn(cd.c) ? String(cd.c.q) : hvOf(cd.c).a); } catch (e) { } };
       function others(me) { return scores.map(function (v, s) { return s; }).filter(function (s) { return s !== me; }); }
       window.apFlSur = function () {
         var cd = cards[openI], t = cd.sur[0], me = cur, o = others(me), lead = o.reduce(function (a, s) { return scores[s] > scores[a] ? s : a; }, o[0]);
@@ -21981,7 +21983,7 @@ function deck(el,m,n,x,y,face,gap){clear(el);const cs=[];for(let i=0;i<n;i++){co
         timers.push(setTimeout(function () { el.style.transition = 'opacity .3s'; el.style.opacity = '0'; }, 2500));
         timers.push(setTimeout(function () { el.remove(); fn(); }, 2850));
       }
-      window.apErRev = function () { var b = $('er-q'); if (!b || !qd) return; sfx('tick'); b.innerHTML = backA(); try { if (CFG.fSay) say(dirs()[1] === 'en' ? String(qd.q) : hvOf(qd).a); } catch (e) { } };
+      window.apErRev = function () { var b = $('er-q'); if (!b || !qd) return; sfx('tick'); b.innerHTML = backA(); try { if (CFG.fSay) say(toEn(qd) ? String(qd.q) : hvOf(qd).a); } catch (e) { } };
       function turnFlash(txt, col, ms, quiet) {   // a big central flash in the team colour; ms = how long it stays (2 s unless told otherwise)
         var old = document.querySelector('.er-turn'); if (old) old.remove();
         var el = document.createElement('div'); el.className = 'er-turn'; el.style.setProperty('--tc', col);
@@ -22180,7 +22182,7 @@ function deck(el,m,n,x,y,face,gap){clear(el);const cs=[];for(let i=0;i<n;i++){co
         st.innerHTML = '<div class="c4-q" id="c4-q">' + backQ() + '</div>'; ov.appendChild(st);
         try { $('c4-q').animate([{ transform: 'translateY(80px) rotateX(38deg) scale(.88)', opacity: 0 }, { transform: 'none', opacity: 1 }], { duration: 520, easing: 'cubic-bezier(.2,.8,.2,1)' }); } catch (e) { }
       };
-      window.apC4Rev = function () { var b = $('c4-q'); if (!b || !qd) return; sfx('tick'); b.innerHTML = backA(); try { if (CFG.fSay) say(dirs()[1] === 'en' ? String(qd.q) : hvOf(qd).a); } catch (e) { } };
+      window.apC4Rev = function () { var b = $('c4-q'); if (!b || !qd) return; sfx('tick'); b.innerHTML = backA(); try { if (CFG.fSay) say(toEn(qd) ? String(qd.q) : hvOf(qd).a); } catch (e) { } };
       window.apC4Mk = function (m) {
         var stg = $('c4-stage'); if (!stg || !qd) return; qd = null; stg.style.pointerEvents = 'none'; var c = pend; try { speechSynthesis.cancel(); } catch (e) { }
         stg.style.transition = 'opacity .22s'; stg.style.opacity = '0';
@@ -22597,4 +22599,4 @@ function deck(el,m,n,x,y,face,gap){clear(el);const cs=[];for(let i=0;i<n;i++){co
   if (document.readyState === 'complete') start(); else window.addEventListener('load', start);
 })();
 </script>
-<script id="ap-build">window.__apBuild="27f98f2d37";</script>
+<script id="ap-build">window.__apBuild="62c686cd59";</script>
