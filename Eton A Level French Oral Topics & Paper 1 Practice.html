@@ -20746,6 +20746,7 @@ function deck(el,m,n,x,y,face,gap){clear(el);const cs=[];for(let i=0;i<n;i++){co
     '.er-sq .fx{position:absolute;right:-6%;top:-6%;min-width:28%;padding:0 4%;height:28%;border-radius:999px;background:#14203f;border:2px solid #f4d77a;color:#f7e9b5;font:900 calc(var(--bw)*.0135)/1 "DM Sans",sans-serif;display:flex;align-items:center;justify-content:center;box-shadow:0 2px 4px rgba(0,0,0,.5);z-index:2}.er-sq.g .fx{background:#12503a;border-color:#5fe3a0}.er-sq.b .fx{background:#5a1c24;border-color:#ff7b6b}',
     '.er-sq .cp{position:absolute;top:calc(100% + var(--bw)*.006);left:50%;transform:translateX(-50%);white-space:nowrap;padding:.12em .55em;border-radius:999px;background:rgba(8,16,40,.82);color:#f3ead0;font:700 max(10px,calc(var(--bw)*.0118))/1.25 "DM Sans",sans-serif;letter-spacing:.02em;z-index:1}.er-sq.np .cp{display:none}',
     '.er-lay{position:absolute;inset:0;pointer-events:none}',
+    '.er-sq .cr{display:none}.er-sq.hid .cr{display:block;width:64%;height:auto;border-radius:0;box-shadow:none;filter:drop-shadow(0 0 4px rgba(244,215,122,.8))}.er-sq.hid{background:radial-gradient(circle at 40% 35%,#24498f,#0a1740 75%);box-shadow:0 0 calc(var(--bw)*.012) rgba(244,215,122,.55),inset 0 0 calc(var(--bw)*.01) rgba(0,0,0,.6);outline:calc(var(--bw)*.0045) solid #d9b95a;outline-offset:calc(var(--bw)*-.0045)}.er-sq.hid>img:not(.cr),.er-sq.hid .fx,.er-sq.hid .cp,.er-sq.hid .pn{display:none!important}.er-sq.hid::after{display:none}',
     '.er-sq{cursor:pointer}',
     '.er-lc{position:absolute;left:50%;top:50%;width:calc(var(--bw)*.4);z-index:40;box-sizing:border-box;padding:calc(var(--bw)*.018) calc(var(--bw)*.022) calc(var(--bw)*.02);border-radius:calc(var(--bw)*.02);text-align:center;color:#f6efd8;background:linear-gradient(165deg,#14264f,#0a1531);border:calc(var(--bw)*.0045) solid #e6c15a;box-shadow:0 18px 50px rgba(0,0,0,.75),0 0 0 calc(var(--bw)*.003) rgba(0,0,0,.6);transform:translate(-50%,-50%);animation:erlc .55s cubic-bezier(.2,.9,.3,1.15);cursor:pointer;font-family:"DM Sans",sans-serif}',
     '.er-lc.g{border-color:#5fe3a0;box-shadow:0 18px 50px rgba(0,0,0,.75),0 0 calc(var(--bw)*.03) rgba(95,227,160,.55)}.er-lc.b{border-color:#ff7b6b;box-shadow:0 18px 50px rgba(0,0,0,.75),0 0 calc(var(--bw)*.03) rgba(255,123,107,.55)}',
@@ -21612,13 +21613,15 @@ function deck(el,m,n,x,y,face,gap){clear(el);const cs=[];for(let i=0;i<n;i++){co
       }
       function board() {
         var h = ''; BD.forEach(function (q, i) {
-          var k = q[1] || '', c = padPos(i), cls = k === 'g' ? 'g' : k === 'b' ? 'b' : (k === 'f' || k === 'f0') ? 'f' : '', ic = ICO[q[0]], fx = q[3] != null ? fxOf(q) : '';
-          h += '<div class="er-sq ' + cls + (ic ? '' : ' np') + '" onclick="apErSq(' + i + ')" title="' + esc(q[0] + (q[2] ? ': ' + q[2] : '')) + '" style="left:' + c[0] + '%;top:' + c[1] + '%">'
+          var k = q[1] || '', c = padPos(i), cls = k === 'g' ? 'g' : k === 'b' ? 'b' : (k === 'f' || k === 'f0') ? 'f' : '', ic = ICO[q[0]], fx = q[3] != null ? fxOf(q) : '', hid = !RV[i];
+          h += '<div class="er-sq ' + (hid ? 'hid' : cls) + (ic ? '' : ' np') + '" data-k="' + cls + '" onclick="apErSq(' + i + ')"' + (hid ? '' : ' title="' + esc(q[0] + (q[2] ? ': ' + q[2] : '')) + '"') + ' style="left:' + c[0] + '%;top:' + c[1] + '%"><img class="cr" alt="" src="' + CREST() + '">'
             + (ic ? '<img src="icons/er_' + ic + '.webp" alt="" onerror="this.parentNode.classList.add(\'np\');this.remove()">' : '')
             + '<span class="pn">' + esc(shortOf(q[0])) + '</span>' + (fx ? '<span class="fx">' + fx + '</span>' : '') + '<span class="cp">' + esc(shortOf(q[0])) + '</span></div>';
         });
         return h;
       }
+      var RV = { 0: 1 }; RV[LAST] = 1;
+      function CREST() { try { var a = document.querySelector('.aph-avatar'); if (a && a.src) return a.src; } catch (e) { } return ''; }
       function carXY(s, i) { var c = PADS[i] || PADS[0], X = P === 1 ? [0] : P === 2 ? [-30, 30] : P === 3 ? [-42, 0, 42] : [-54, -18, 18, 54], Y = P === 1 ? 66 : (s % 2 ? 72 : 66); return [((c[0] + X[s]) / 15.36) + '%', ((c[1] + Y) / 10.24) + '%']; }
       function carW() { return P === 1 ? 4.6 : P === 2 ? 4.3 : 3.7; }
       function cars() { var h = ''; for (var s = 0; s < P; s++) { var xy = carXY(s, pos[s]), im = 'icons/er_p' + picks[s] + '.webp'; h += '<div class="er-car' + (s === cur ? ' on' : '') + '" id="erc' + s + '" style="left:' + xy[0] + ';top:' + xy[1] + ';width:' + carW() + '%;--g:' + pcL(s) + ';--sl:' + SCN[picks[s]] + ';--im:url(' + im + ')"><span class="rg"></span><span class="fg"><img alt="" src="' + im + '"><span class="sn"></span></span></div>'; } return h; }
@@ -21694,7 +21697,7 @@ function deck(el,m,n,x,y,face,gap){clear(el);const cs=[];for(let i=0;i<n;i++){co
       function eff(me, e, done) {
         if (e === 'again') { sfx('good'); done(true); }
         else if (e === 'miss' || e === 'miss2') { sfx('bad'); skip[me] = e === 'miss2' ? 2 : 1; done(false); }
-        else { var tgt = Math.max(0, Math.min(LAST - 1, pos[me] + e)); (function mv() { if (pos[me] === tgt) { timers.push(setTimeout(function () { done(false); }, 500)); return; } pos[me] += pos[me] < tgt ? 1 : -1; setCar(me); sfx('thump'); refresh(); timers.push(setTimeout(mv, 600)); })(); }
+        else { var tgt = Math.max(0, Math.min(LAST - 1, pos[me] + e)); (function mv() { if (pos[me] === tgt) { popSq(pos[me]); timers.push(setTimeout(function () { done(false); }, 1500)); return; } pos[me] += pos[me] < tgt ? 1 : -1; setCar(me); sfx('thump'); refresh(); timers.push(setTimeout(mv, 600)); })(); }
       }
       function offer(ag) {
         var me = cur; ofr = { t: 'ask' }; refresh();
@@ -21717,6 +21720,7 @@ function deck(el,m,n,x,y,face,gap){clear(el);const cs=[];for(let i=0;i<n;i++){co
       }
       function popSq(i) {
         var all = document.querySelectorAll('#er-board .er-sq'), el = all[i]; if (!el) return; el.style.zIndex = 30;
+        if (!RV[i]) { RV[i] = 1; el.classList.remove('hid'); var kk = el.getAttribute('data-k'); if (kk) el.classList.add(kk); var q0 = BD[i]; el.setAttribute('title', q0[0] + (q0[2] ? ': ' + q0[2] : '')); }
         try { el.animate([{ transform: 'translate(-50%,-50%) scale(1)', filter: 'brightness(1)', offset: 0, easing: 'cubic-bezier(.2,.9,.3,1.2)' }, { transform: 'translate(-50%,-50%) scale(2.9)', filter: 'brightness(1.12) drop-shadow(0 0 18px rgba(255,236,160,.9))', offset: .3 }, { transform: 'translate(-50%,-50%) scale(2.9)', filter: 'brightness(1.12) drop-shadow(0 0 18px rgba(255,236,160,.9))', offset: .78, easing: 'ease-in' }, { transform: 'translate(-50%,-50%) scale(1)', filter: 'brightness(1)', offset: 1 }], { duration: 1350 }); } catch (e) { }
         timers.push(setTimeout(function () { el.style.zIndex = ''; }, 1400));
       }
@@ -21735,7 +21739,7 @@ function deck(el,m,n,x,y,face,gap){clear(el);const cs=[];for(let i=0;i<n;i++){co
         el.onclick = close; bd.appendChild(el); lcDone = close; sfx('tick');
         if (cb) timers.push(setTimeout(close, big ? 6500 : 4000));
       }
-      window.apErSq = function (i) { if (busy || $('er-lc') || $('er-stage')) return; lcShow(i, null); };
+      window.apErSq = function (i) { if (busy || $('er-lc') || $('er-stage') || !RV[i]) return; lcShow(i, null); };
       window.apErMk = function (m) {
         var stg = $('er-stage'); if (!stg || !qd) return; try { speechSynthesis.cancel(); } catch (e) { }
         stg.style.transition = 'opacity .22s'; stg.style.opacity = '0'; turns++;
@@ -22206,4 +22210,4 @@ function deck(el,m,n,x,y,face,gap){clear(el);const cs=[];for(let i=0;i<n;i++){co
   if (document.readyState === 'complete') start(); else window.addEventListener('load', start);
 })();
 </script>
-<script id="ap-build">window.__apBuild="c282d7c5e7";</script>
+<script id="ap-build">window.__apBuild="3485d1f6cc";</script>
