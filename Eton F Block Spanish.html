@@ -8368,10 +8368,28 @@ textarea.ms-in.ms-in-big{min-height:15rem;font-size:1.4rem;margin:6px 0}
     var pm = $('ms-res') && $('ms-res').querySelector('.aph-mark');
     if (pm && typed && _sp(typed) === _sp(ans)) {
       pm.outerHTML = '<div class="ms-tick" style="text-align:center;font:800 4.5rem/1 Georgia,serif;color:#1f8a4c;margin-top:6px">\u2713</div><div class="ms-big" style="text-align:center;color:#1f8a4c;font-size:1.25rem">Correct!</div><div class="ms-cen" style="margin-top:8px"><button class="ms-b pri" onclick="apSpMark(\'ok\')">Next \u2192</button></div>';
+      apSpChime();
       setTimeout(function () { if ($('ms-res') && sp && sp.rev && sp.d[sp.i] === c) apSpMark('ok'); }, 2000);
     }
     var i = $('ms-in'); if (i) i.blur();
   };
+  /* Spell it: soft low chime for a perfect answer (chosen by AP: option 1, "Low soft chime") */
+  var _chime = null, _chimeCtx = null;
+  function apSpChime() {
+    try {
+      if (!_chime) {
+        var SR = 22050, notes = [[262, 0, 1.0, .5], [524, 0, .6, .12], [131, 0, 1.0, .25]], N = Math.floor(1.05 * SR), buf = new Float32Array(N);
+        notes.forEach(function (n) { var s0 = Math.floor(n[1] * SR), d = Math.floor(n[2] * SR); for (var i = 0; i < d && s0 + i < N; i++) { buf[s0 + i] += Math.sin(2 * Math.PI * n[0] * i / SR) * Math.min(1, i / (SR * .012)) * Math.exp(-4.2 * i / d) * n[3]; } });
+        var out = new DataView(new ArrayBuffer(44 + N * 2)); function ws(o, t) { for (var i = 0; i < t.length; i++) out.setUint8(o + i, t.charCodeAt(i)); }
+        ws(0, 'RIFF'); out.setUint32(4, 36 + N * 2, true); ws(8, 'WAVEfmt '); out.setUint32(16, 16, true); out.setUint16(20, 1, true); out.setUint16(22, 1, true); out.setUint32(24, SR, true); out.setUint32(28, SR * 2, true); out.setUint16(32, 2, true); out.setUint16(34, 16, true); ws(36, 'data'); out.setUint32(40, N * 2, true);
+        for (var j = 0; j < N; j++) out.setInt16(44 + j * 2, Math.max(-1, Math.min(1, buf[j])) * 32767, true);
+        _chime = { f: buf, sr: SR, wav: new Uint8Array(out.buffer) };
+      }
+      var viaCtx = function () { var AC = window.AudioContext || window.webkitAudioContext; if (!AC) return; if (!_chimeCtx) _chimeCtx = new AC(); _chimeCtx.resume().then(function () { var ab = _chimeCtx.createBuffer(1, _chime.f.length, _chime.sr); ab.getChannelData(0).set(_chime.f); var src = _chimeCtx.createBufferSource(); src.buffer = ab; src.connect(_chimeCtx.destination); src.start(0); }).catch(function () { }); };
+      var a = new Audio(URL.createObjectURL(new Blob([_chime.wav], { type: 'audio/wav' }))), pr = a.play();
+      if (pr && pr.catch) pr.catch(viaCtx);
+    } catch (e) { }
+  }
   window.apSpMark = function (r) {
     var c = sp.d[sp.i]; record(c.card, r); sp[r === 'ok' ? 'ok' : r]++; if (r === 'bad') sp.miss.push(c); sp.i++; spCard();
   };
@@ -21874,10 +21892,28 @@ textarea.ms-in.ms-in-big{min-height:15rem;font-size:1.4rem;margin:6px 0}
     var pm = $('ms-res') && $('ms-res').querySelector('.aph-mark');
     if (pm && typed && _sp(typed) === _sp(ans)) {
       pm.outerHTML = '<div class="ms-tick" style="text-align:center;font:800 4.5rem/1 Georgia,serif;color:#1f8a4c;margin-top:6px">\u2713</div><div class="ms-big" style="text-align:center;color:#1f8a4c;font-size:1.25rem">Correct!</div><div class="ms-cen" style="margin-top:8px"><button class="ms-b pri" onclick="apSpMark(\'ok\')">Next \u2192</button></div>';
+      apSpChime();
       setTimeout(function () { if ($('ms-res') && sp && sp.rev && sp.d[sp.i] === c) apSpMark('ok'); }, 2000);
     }
     var i = $('ms-in'); if (i) i.blur();
   };
+  /* Spell it: soft low chime for a perfect answer (chosen by AP: option 1, "Low soft chime") */
+  var _chime = null, _chimeCtx = null;
+  function apSpChime() {
+    try {
+      if (!_chime) {
+        var SR = 22050, notes = [[262, 0, 1.0, .5], [524, 0, .6, .12], [131, 0, 1.0, .25]], N = Math.floor(1.05 * SR), buf = new Float32Array(N);
+        notes.forEach(function (n) { var s0 = Math.floor(n[1] * SR), d = Math.floor(n[2] * SR); for (var i = 0; i < d && s0 + i < N; i++) { buf[s0 + i] += Math.sin(2 * Math.PI * n[0] * i / SR) * Math.min(1, i / (SR * .012)) * Math.exp(-4.2 * i / d) * n[3]; } });
+        var out = new DataView(new ArrayBuffer(44 + N * 2)); function ws(o, t) { for (var i = 0; i < t.length; i++) out.setUint8(o + i, t.charCodeAt(i)); }
+        ws(0, 'RIFF'); out.setUint32(4, 36 + N * 2, true); ws(8, 'WAVEfmt '); out.setUint32(16, 16, true); out.setUint16(20, 1, true); out.setUint16(22, 1, true); out.setUint32(24, SR, true); out.setUint32(28, SR * 2, true); out.setUint16(32, 2, true); out.setUint16(34, 16, true); ws(36, 'data'); out.setUint32(40, N * 2, true);
+        for (var j = 0; j < N; j++) out.setInt16(44 + j * 2, Math.max(-1, Math.min(1, buf[j])) * 32767, true);
+        _chime = { f: buf, sr: SR, wav: new Uint8Array(out.buffer) };
+      }
+      var viaCtx = function () { var AC = window.AudioContext || window.webkitAudioContext; if (!AC) return; if (!_chimeCtx) _chimeCtx = new AC(); _chimeCtx.resume().then(function () { var ab = _chimeCtx.createBuffer(1, _chime.f.length, _chime.sr); ab.getChannelData(0).set(_chime.f); var src = _chimeCtx.createBufferSource(); src.buffer = ab; src.connect(_chimeCtx.destination); src.start(0); }).catch(function () { }); };
+      var a = new Audio(URL.createObjectURL(new Blob([_chime.wav], { type: 'audio/wav' }))), pr = a.play();
+      if (pr && pr.catch) pr.catch(viaCtx);
+    } catch (e) { }
+  }
   window.apSpMark = function (r) {
     var c = sp.d[sp.i]; record(c, r); sp[r === 'ok' ? 'ok' : r]++; if (r === 'bad') sp.miss.push(c); sp.i++; spCard();
   };
@@ -24327,4 +24363,4 @@ function deck(el,m,n,x,y,face,gap){clear(el);const cs=[];for(let i=0;i<n;i++){co
   if (document.readyState === 'complete') start(); else window.addEventListener('load', start);
 })();
 </script>
-<script id="ap-build">window.__apBuild="eff108a76c";</script>
+<script id="ap-build">window.__apBuild="91a67e4a22";</script>
