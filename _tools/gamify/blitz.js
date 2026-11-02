@@ -208,7 +208,7 @@ function deck(el,m,n,x,y,face,gap){clear(el);const cs=[];for(let i=0;i<n;i++){co
 })();
 /*SHX-END*/
   var ov = null, snd = true, AC = null, timers = [], PZ = false;
-  var CFG = { c4P: 2, erP: 2, snd: true, style: 'marimba', vol: 1, ticks: true, clock: 5, streak: 0, tm: 2, dice: 2, pairs: 20, cw: 20, lives: 3, accel: 11, start: 100, oddR: 10, oddS: 12, gN: 12, gS: 6, lW: 10, lG: 3, lT: 15, oddM: 0, ln: 25, rlSay: 1, pSay: 1, dN: 6, dL: 5, dT: 180, dSay: 1, dP: 1, cSay: 1, sSay: 1, mus: 'mix', musV: 0, mv: 1, fP: 1, fN: 24, fS: 0, fSay: 1 };
+  var CFG = { c4P: 2, erP: 2, snd: true, style: 'marimba', vol: 1, ticks: true, clock: 5, streak: 0, tm: 2, dice: 2, pairs: 20, cw: 20, lives: 3, accel: 11, start: 100, oddR: 10, oddS: 12, gN: 12, gS: 6, lW: 10, lG: 3, lT: 15, oddM: 0, ln: 25, rlSay: 1, pSay: 1, dN: 6, dL: 5, dT: 180, dSay: 1, dP: 1, cSay: 1, sSay: 1, mus: 'mix', musRun: 'hymn', musV: 0, mv: 1, fP: 1, fN: 24, fS: 0, fSay: 0 };
   try { var sv = JSON.parse(localStorage.getItem('apbz_cfg') || '{}'); for (var kk in sv) if (kk in CFG) CFG[kk] = sv[kk]; } catch (e) { }
   snd = CFG.snd;
   function saveCfg() { CFG.snd = snd; try { localStorage.setItem('apbz_cfg', JSON.stringify(CFG)); } catch (e) { } }
@@ -380,6 +380,13 @@ function deck(el,m,n,x,y,face,gap){clear(el);const cs=[];for(let i=0;i<n;i++){co
       hg.gain.setValueAtTime(.0001, t0); hg.gain.exponentialRampToValueAtTime(v * 1.2, t0 + .4); hg.gain.setValueAtTime(v * 1.2, t0 + 1.2); hg.gain.exponentialRampToValueAtTime(.0001, t0 + 2);
       h1.connect(hg); h2.connect(hg); hg.connect(c.destination); h1.start(t0); h2.start(t0); h1.stop(t0 + 2.05); h2.stop(t0 + 2.05);
     }
+    else if (k === 'clack') {   // a plastic "tok" for a counter landing; sfx('clack', vol) scales it
+      var c = ctx(); if (!c || !snd) return; var t0 = c.currentTime, v = .3 * CFG.vol * (arguments[1] || 1);
+      var nb = c.createBuffer(1, Math.floor(c.sampleRate * .03), c.sampleRate), nd = nb.getChannelData(0); for (var j = 0; j < nd.length; j++) nd[j] = Math.random() * 2 - 1;
+      var ns = c.createBufferSource(); ns.buffer = nb; var nf = c.createBiquadFilter(); nf.type = 'bandpass'; nf.frequency.value = 1900; nf.Q.value = 1.2; var ng = c.createGain(); ng.gain.setValueAtTime(v * .9, t0); ng.gain.exponentialRampToValueAtTime(.0001, t0 + .03); ns.connect(nf); nf.connect(ng); ng.connect(c.destination); ns.start(t0); ns.stop(t0 + .035);
+      var o = c.createOscillator(), g = c.createGain(); o.type = 'sine'; o.frequency.setValueAtTime(230, t0); o.frequency.exponentialRampToValueAtTime(115, t0 + .055); g.gain.setValueAtTime(v * .8, t0); g.gain.exponentialRampToValueAtTime(.0001, t0 + .09); o.connect(g); g.connect(c.destination); o.start(t0); o.stop(t0 + .1);
+      var o2 = c.createOscillator(), g2 = c.createGain(); o2.type = 'triangle'; o2.frequency.setValueAtTime(330, t0); o2.frequency.exponentialRampToValueAtTime(300, t0 + .05); g2.gain.setValueAtTime(v * .25, t0); g2.gain.exponentialRampToValueAtTime(.0001, t0 + .05); o2.connect(g2); g2.connect(c.destination); o2.start(t0); o2.stop(t0 + .06);
+    }
     else if (k === 'win') { [523, 659, 784, 1047].forEach(function (f, i) { note(f / 2, i * .13, 1); }); }
     else if (k === 'go') { note(370, 0, .45); }
     else if (k === 'end') { note(110, 0, 1.1, .26); note(165, .22, 1, .2); }
@@ -488,9 +495,9 @@ function deck(el,m,n,x,y,face,gap){clear(el);const cs=[];for(let i=0;i<n;i++){co
     while (mNext < c.currentTime + .3) { mPlay(mStep, mNext, sd); mNext += sd; mStep++; }
   }
   var musLvl = 0;
+  function musSel() { return view === 'run' ? CFG.musRun : CFG.mus; }   // Eton Rules keeps its own music setting (Jerusalem by default)
   function musicStart(fresh) {
-    musicStop(); if (!snd || CFG.mus === 'off') return; var c = ctx(); if (!c) return;
-    var mu = (CFG.mus === 'hymn' && view !== 'run') ? 'mix' : CFG.mus;
+    musicStop(); var ms = musSel(), mu = (ms === 'hymn' && view !== 'run') ? 'mix' : ms; if (!snd || mu === 'off') return; var c = ctx(); if (!c) return;
     if (mu === 'mix' && view === 'run') { curMus = 'hymn'; mBpm = 42; CH = CH0; } else if (mu === 'mix') { if (fresh || !curMus || curMus === 'mix') { var opts = ['pulse', 'ambient', 'groove', 'arp', 'lofi', 'disco', 'suspense', 'bounce'].filter(function (x) { return x !== curMus; }); curMus = opts[Math.floor(Math.random() * opts.length)]; var pi = Math.floor(Math.random() * PROGS.length); if (pi === lastProg) pi = (pi + 1) % PROGS.length; lastProg = pi; CH = PROGS[pi]; mBpm = [88, 96, 104, 112][Math.floor(Math.random() * 4)]; } } else { curMus = mu; CH = musLvl ? PROGS[musLvl % PROGS.length] : CH0; mBpm = curMus === 'hymn' ? 42 : 96 + 6 * (musLvl % 5); }
     MG = c.createGain(); MG.gain.value = (curMus === 'hymn' ? .2 : .5) * CFG.mv; var lp = c.createBiquadFilter(); lp.type = 'lowpass'; lp.frequency.value = 1500; MG.connect(lp); lp.connect(c.destination);
     mStep = 0; mNext = c.currentTime + .12; mTimer = setInterval(sched, 60); sched();
@@ -530,7 +537,8 @@ function deck(el,m,n,x,y,face,gap){clear(el);const cs=[];for(let i=0;i<n;i++){co
     h += '<h3>Sound</h3><div class="bz-row" style="justify-content:flex-start"><button class="bz-b' + (snd ? ' on' : '') + '" onclick="apBzSndOpt(1)">On</button><button class="bz-b' + (!snd ? ' on' : '') + '" onclick="apBzSndOpt(0)">Off</button></div>';
     h += '<div class="bz-sl">Style (tap to hear it)</div><div class="bz-row" style="justify-content:flex-start">' + STYLES.map(function (s) { return '<button class="bz-b' + (CFG.style === s[0] ? ' on' : '') + '" onclick="apBzStyle(\'' + s[0] + '\')">' + s[1] + '</button>'; }).join('') + '</div>';
     h += '<div class="bz-sl">Volume</div><div class="bz-row" style="justify-content:flex-start">' + [[.5, 'Low'], [1, 'Medium'], [1.7, 'High']].map(function (o) { return '<button class="bz-b' + (CFG.vol === o[0] ? ' on' : '') + '" onclick="apBzVol(' + o[0] + ')">' + o[1] + '</button>'; }).join('') + '</div>';
-    h += '<h3>Background music</h3><div class="bz-row" style="justify-content:flex-start">' + MUS.filter(function (m) { return m[0] !== 'hymn' || view === 'run'; }).map(function (m) { return '<button class="bz-b' + (CFG.mus === m[0] ? ' on' : '') + '" onclick="apBzMus(\'' + m[0] + '\')">' + m[1] + '</button>'; }).join('') + '</div><div class="bz-sl">Music volume</div><div class="bz-row" style="justify-content:flex-start">' + [[.6, 'Low'], [1, 'Medium'], [1.6, 'High']].map(function (o) { return '<button class="bz-b' + (CFG.mv === o[0] ? ' on' : '') + '" onclick="apBzMV(' + o[0] + ')">' + o[1] + '</button>'; }).join('') + '</div>';
+    var ms = musSel(), msel = (ms === 'hymn' && view !== 'run') ? 'mix' : ms;
+    h += '<h3>Background music</h3><div class="bz-row" style="justify-content:flex-start">' + MUS.filter(function (m) { return m[0] !== 'hymn' || view === 'run'; }).map(function (m) { return '<button class="bz-b' + (msel === m[0] ? ' on' : '') + '" onclick="apBzMus(\'' + m[0] + '\')">' + m[1] + '</button>'; }).join('') + '</div><div class="bz-sl">Music volume</div><div class="bz-row" style="justify-content:flex-start">' + [[.6, 'Low'], [1, 'Medium'], [1.6, 'High']].map(function (o) { return '<button class="bz-b' + (CFG.mv === o[0] ? ' on' : '') + '" onclick="apBzMV(' + o[0] + ')">' + o[1] + '</button>'; }).join('') + '</div>';
     h += '<div class="bz-sl">Countdown ticks</div><div class="bz-row" style="justify-content:flex-start"><button class="bz-b' + (CFG.ticks ? ' on' : '') + '" onclick="apBzCfg(\'ticks\',true)">On</button><button class="bz-b' + (!CFG.ticks ? ' on' : '') + '" onclick="apBzCfg(\'ticks\',false)">Off</button></div>';
     h += '<div class="bz-row" style="margin-top:16px"><button class="bz-big" onclick="apBzSetDone()">Done</button></div></div>'; el.innerHTML = h;
   }
@@ -542,8 +550,8 @@ function deck(el,m,n,x,y,face,gap){clear(el);const cs=[];for(let i=0;i<n;i++){co
   window.apBzStyle = function (s) { CFG.style = s; snd = true; saveCfg(); sndBtn(); ctx(); sfx('ok'); setTimeout(function () { sfx('bad'); }, 520); panel(); };
   window.apBzVol = function (v) { CFG.vol = v; saveCfg(); ctx(); sfx('ok'); panel(); };
   window.apBzSndOpt = function (on) { snd = !!on; saveCfg(); sndBtn(); if (!snd) musicStop(); else if (view !== 'pick') musicStart(); if (snd) { ctx(); sfx('ok'); } panel(); };
-  window.apBzMus = function (s) { CFG.mus = s; saveCfg(); if (s === 'off') musicStop(); else musicStart(); panel(); };
-  window.apBzMV = function (v) { CFG.mv = v; saveCfg(); if (MG) MG.gain.value = .5 * v; else if (CFG.mus !== 'off') musicStart(); panel(); };
+  window.apBzMus = function (s) { CFG[view === 'run' ? 'musRun' : 'mus'] = s; saveCfg(); if (s === 'off') musicStop(); else musicStart(); panel(); };
+  window.apBzMV = function (v) { CFG.mv = v; saveCfg(); if (MG) MG.gain.value = (curMus === 'hymn' ? .2 : .5) * v; else if (musSel() !== 'off') musicStart(); panel(); };
   window.apBzSetDone = function () { var el = $('bz-set'); if (el) el.remove(); PZ = false; if (view === 'pick') musicStop(); if (setDirty && view !== 'pick' && GAMES[view]) { setDirty = false; stop(); GAMES[view](pool()); } };
 
   // ---------- data
@@ -598,6 +606,7 @@ function deck(el,m,n,x,y,face,gap){clear(el);const cs=[];for(let i=0;i<n;i++){co
     var g = genderPool(p); if (target() === 'en' || g.length < 6) r.gender = 'Needs a list with nouns (le, la, un, une…).';
     if (p.length < 6) r.deal = 'Choose a list with more words.';
     if (p.length < 4) { r.clock = r.streak = r.roll = r.pairs = r.letter = r.lane = r.flip = r.four = r.run = 'Choose a list with more words.'; }
+    if (p.length < 12) r.run = 'Needs at least 12 items for a race: choose more.';
     var sp = shortOnly(p); if (sp.length < 8) r['catch'] = H.short ? 'Needs at least 8 short items (up to ' + H.short + ' words): choose more.' : 'Needs at least 8 words: choose more topics.'; if (sp.length < 4) r.lane = r.lane || 'Needs at least 4 short items: choose more.';
     return r;
   }
@@ -805,7 +814,7 @@ function deck(el,m,n,x,y,face,gap){clear(el);const cs=[];for(let i=0;i<n;i++){co
     '.er-lc.g .bd{color:#5fe3a0;border-color:#5fe3a0}.er-lc.b .bd{color:#ff7b6b;border-color:#ff7b6b}',
     '.er-lc .bd.w{font-size:calc(var(--bw)*.03)}',
     '.er-lc .tp{margin-top:calc(var(--bw)*.008);font:600 calc(var(--bw)*.012)/1 "DM Sans",sans-serif;letter-spacing:.1em;text-transform:uppercase;color:#8e9bc4}',
-    '.er-car{position:absolute;transform:translate(-50%,-100%);z-index:3;transition:left .6s ease-in-out,top .6s ease-in-out;pointer-events:none;opacity:.9}.er-car.on{z-index:4;opacity:1}.er-car.tp{transition:none}',
+    '.er-car{position:absolute;transform:translate(-50%,-100%);z-index:3;transition:left .6s ease-in-out,top .6s ease-in-out;pointer-events:none;opacity:.9}.er-car.on{z-index:4;opacity:1}',
     '.er-car .rg{position:absolute;left:50%;bottom:-3%;width:190%;aspect-ratio:3.4;transform:translateX(-50%);border-radius:50%;border:max(1.5px,calc(var(--bw)*.002)) solid var(--g);box-shadow:0 0 calc(var(--bw)*.01) var(--g),inset 0 0 calc(var(--bw)*.01) var(--g);background:radial-gradient(ellipse,rgba(255,255,255,.35),transparent 70%)}',
     '.er-car.on .rg{animation:erpulse 1.5s ease-in-out infinite alternate}@keyframes erpulse{from{opacity:.55}to{opacity:1;box-shadow:0 0 calc(var(--bw)*.022) var(--g),inset 0 0 calc(var(--bw)*.014) var(--g)}}',
     '.er-car::before{content:"";position:absolute;left:-30%;right:-30%;bottom:6%;height:125%;background:var(--g);clip-path:polygon(18% 100%,82% 100%,100% 0,0 0);-webkit-mask-image:linear-gradient(to top,rgba(0,0,0,.5),transparent);mask-image:linear-gradient(to top,rgba(0,0,0,.5),transparent);filter:blur(6px);opacity:.45;mix-blend-mode:screen}.er-car.on::before{opacity:.75}',
@@ -813,9 +822,8 @@ function deck(el,m,n,x,y,face,gap){clear(el);const cs=[];for(let i=0;i<n;i++){co
     '.er-car.on .fg{animation:erbob 1.4s ease-in-out infinite alternate;filter:drop-shadow(0 0 3px #fff) drop-shadow(0 0 calc(var(--bw)*.01) var(--g)) drop-shadow(0 0 calc(var(--bw)*.026) var(--g)) brightness(1.35) saturate(1.15)}@keyframes erbob{from{transform:translateY(0)}to{transform:translateY(-5%)}}',
     '.er-car .fg img{display:block;width:100%;height:auto}',
     '.er-car.hop .fg{animation:erhop .6s ease-out}@keyframes erhop{50%{transform:translateY(-22%)}}',
-    '.er-car.vn .fg{opacity:0;transform:scaleY(1.3) translateY(-6%);animation:none;filter:brightness(3) blur(3px)}.er-car.vn .rg,.er-car.vn::before{opacity:0}',
     '.er-pt{display:flex;gap:10px;justify-content:center;flex-wrap:wrap;margin:2px 0 4px}.er-chip{display:flex;align-items:center;gap:8px;padding:4px 14px 4px 8px;border-radius:14px;border:2px solid rgba(255,255,255,.18);background:rgba(8,16,40,.7);color:#f3ead0;font:700 .95rem "DM Sans",sans-serif;cursor:pointer}.er-chip img{height:46px}.er-chip.on{border-color:var(--sc);box-shadow:0 0 14px var(--sc)}',
-    '.er-in{align-self:stretch;flex:1;min-height:0;display:flex;flex-direction:column;align-items:center;gap:8px;position:relative;--sh:min(52vh,560px);--fh:min(calc(var(--sh)*.82),calc((100vw - 56px)/8/.4))}',
+    '.er-in{align-self:stretch;flex:1;min-height:0;display:flex;flex-direction:column;align-items:center;gap:8px;position:relative;--sh:min(52vh,560px);--fh:min(calc(var(--sh)*.82),calc((100vw - 56px)/8/.54))}',
     '.er-hw{border:2px solid #f4d77a!important;box-shadow:0 0 6px #f4d77a,0 0 16px rgba(244,215,122,.7),inset 0 0 8px rgba(244,215,122,.35);animation:erhw 1.8s ease-in-out infinite alternate}@keyframes erhw{from{box-shadow:0 0 4px #f4d77a,0 0 10px rgba(244,215,122,.5),inset 0 0 6px rgba(244,215,122,.25)}to{box-shadow:0 0 10px #fff2b0,0 0 26px rgba(244,215,122,.95),inset 0 0 12px rgba(244,215,122,.5)}}',
     '.er-show{position:fixed;left:50%;top:53%;z-index:11500;pointer-events:none;height:min(88vh,1000px);aspect-ratio:.533;perspective:1500px;transform:translate(-50%,-50%);animation:ershowin .45s ease-out both}@keyframes ershowin{from{opacity:0;transform:translate(-50%,-50%) scale(.3)}to{opacity:1;transform:translate(-50%,-50%) scale(1)}}',
     '.er-show.out{animation:ershowout .56s ease-in forwards}@keyframes ershowout{from{opacity:1;transform:translate(-50%,-50%) scale(1)}to{opacity:0;transform:translate(-50%,-50%) scale(.55)}}',
@@ -873,14 +881,13 @@ function deck(el,m,n,x,y,face,gap){clear(el);const cs=[];for(let i=0;i<n;i++){co
     '.er-hp:hover .fg,.er-hp.sel .fg{filter:drop-shadow(0 0 4px #fff) drop-shadow(0 0 20px var(--hc)) drop-shadow(0 0 48px var(--hc)) brightness(1.32) saturate(1.15)}.er-hp.sel .fl{scale:1.1}.er-hp.sel .bm{opacity:.85}.er-hp.sel small{color:#fff;font-size:.88rem}.er-hp.tk{opacity:.62}.er-hp.sel{opacity:1}',
     '.er-ft{display:flex;align-items:center;justify-content:center;gap:22px;flex-wrap:wrap;margin-top:-4px}.er-ft .er-pt{margin:0}',
     '.er-how{position:absolute;inset:-12px -24px;display:none;align-items:center;justify-content:center;background:rgba(4,8,20,.84);z-index:20}.er-how.on{display:flex}.er-how>div{max-width:640px;padding:22px 28px;background:#0b1530;border:2px solid #c9a84c;border-radius:16px;color:#dfe7fb;font:500 1.02rem/1.5 "DM Sans",sans-serif;text-align:left}.er-how .bz-b{margin-top:14px}',
-    '.er-die{position:fixed;left:50%;top:44%;transform:translate(-50%,-50%);width:120px;height:120px;border-radius:24px;background:linear-gradient(160deg,#fbf7ea,#e3d7ae);border:4px solid #d9b95a;color:#14203f;font:900 4.6rem Georgia,serif;display:flex;align-items:center;justify-content:center;box-shadow:0 12px 30px rgba(0,0,0,.6);z-index:9;pointer-events:none}',
     '.er-d3{position:fixed;left:50%;top:50%;width:0;height:0;z-index:45;pointer-events:none;perspective:1000px}.er-d3 .jp,.er-d3 .cb{position:absolute;width:var(--S);height:var(--S);transform-style:preserve-3d}.er-d3 .jp{left:calc(var(--S)/-2);top:calc(var(--S)/-2)}.er-d3 .cb{left:0;top:0}',
     '.er-d3 .f{position:absolute;inset:0;box-sizing:border-box;border-radius:15%;background:linear-gradient(145deg,#fffdf6,#e0d5b4);display:grid;grid-template:repeat(3,1fr)/repeat(3,1fr);padding:14%;box-shadow:inset 0 0 calc(var(--S)*.12) rgba(0,0,0,.22);border:1px solid rgba(120,100,50,.35)}.er-d3 .f i{margin:10%;border-radius:50%;background:radial-gradient(circle at 35% 30%,#3a62c0,#081640);box-shadow:inset 0 -2px 3px rgba(0,0,0,.4)}.er-d3 .f i.o{background:none;box-shadow:none}',
     '.er-d3 .sh{position:absolute;left:calc(var(--S)*-.62);top:calc(var(--S)*.42);width:calc(var(--S)*1.24);height:calc(var(--S)*.3);border-radius:50%;background:rgba(0,0,0,.6);filter:blur(12px)}',
     '.er-full .bz-main{padding:0;gap:0;overflow:hidden;justify-content:flex-start}.er-full .er-wrap{--bw:min(100vw,calc((100vh - 58px)*1.5));gap:0;margin:0}.er-full .er-board{margin:0;border-radius:0;box-shadow:none}',
     '.er-full .bz-top{padding:0 14px;gap:8px;height:52px;align-items:center}.er-full .bz-top h1{flex:none;font-size:1.02rem;margin-right:4px}.er-full .bz-top>.bz-b{height:34px;padding:0 12px;font-size:.78rem;border-radius:10px;display:inline-flex;align-items:center}',
     '.bz-top .er-row{flex:1;width:auto;min-height:0;height:34px;flex-wrap:nowrap;gap:8px;min-width:0;align-items:stretch}',
-    '.er-chip{display:inline-flex;align-items:center;gap:4px;height:34px;padding:0 12px;border-radius:10px;border:1.5px solid rgba(201,168,76,.45);background:rgba(8,14,32,.65);color:#f3ead0;font:600 .82rem/1 "DM Sans",sans-serif;white-space:nowrap;box-sizing:border-box}',
+    '.bz-top .er-chip{display:inline-flex;align-items:center;gap:4px;height:34px;padding:0 12px;border-radius:10px;border:1.5px solid rgba(201,168,76,.45);background:rgba(8,14,32,.65);color:#f3ead0;font:600 .82rem/1 "DM Sans",sans-serif;white-space:nowrap;box-sizing:border-box}',
     '.er-chip b{color:#f4d77a;font:800 1rem Georgia,serif}.er-chip small{color:#c8d3ea;font:700 .62rem/1 "DM Sans",sans-serif;letter-spacing:.08em;text-transform:uppercase}',
     '.er-chip.er-sc.cur{border-color:var(--sc,#c9a84c);box-shadow:0 0 0 1px var(--sc,#c9a84c) inset,0 0 10px rgba(0,0,0,.25);background:rgba(8,14,32,.88)}',
     '.er-chip.er-sc b{color:var(--sc,#f4d77a)}',
@@ -901,7 +908,6 @@ function deck(el,m,n,x,y,face,gap){clear(el);const cs=[];for(let i=0;i<n;i++){co
     '.er-off .x b.g{color:#5fe3a0}.er-off .x b.b{color:#ff7b6b}',
     '.er-off .bts{display:flex;gap:14px;justify-content:center;flex-wrap:wrap}',
     '.er-off .er-off-b{height:52px;min-width:200px;font-size:1rem;border-radius:12px}',
-    '.er-st-ask{color:#f6efd8;font-weight:700;background:rgba(8,14,32,.75)!important;border-color:rgba(244,215,122,.5)!important}',
     '.er-btn.er-take,.er-btn.er-pass{min-width:160px;justify-content:center;font-size:.88rem;font-weight:800;text-transform:uppercase;letter-spacing:.06em}',
     '.er-btn.er-take{background:linear-gradient(135deg,#2a8f54,#4cdc78)!important;color:#06240e!important;border-color:#4cdc78!important;animation:erTake 1.5s ease-in-out infinite}',
     '.er-btn.er-pass{background:linear-gradient(135deg,#b03030,#ff6060)!important;color:#2a0808!important;border-color:#ff5050!important;animation:erPass 1.5s ease-in-out infinite}',
@@ -922,8 +928,7 @@ function deck(el,m,n,x,y,face,gap){clear(el);const cs=[];for(let i=0;i<n;i++){co
     '.er-dc.out{animation:erdcOut .3s ease-in forwards}',
     '@keyframes erdcIn{0%{opacity:0;transform:translate(-50%,-50%) scale(.3) rotate(-6deg)}70%{opacity:1;transform:translate(-50%,-50%) scale(1.08) rotate(0deg)}100%{opacity:1;transform:translate(-50%,-50%) scale(1)}}',
     '@keyframes erdcOut{to{opacity:0;transform:translate(-50%,-50%) scale(.9)}}','.er-row{display:flex;align-items:center;justify-content:space-between;gap:14px;width:var(--bw);min-height:60px;flex-wrap:wrap}','.er-row .er-st{text-align:left;flex:1;min-width:160px}',
-    '.er-row .fl-bar{margin:0;gap:8px;flex:none}.er-row .fl-sd{min-width:0;padding:4px 14px;flex-direction:row;gap:8px;align-items:baseline}.er-row .fl-sd b{font-size:1.2rem}.er-row .fl-sd small{font-size:.66rem}',
-    '.er-of{display:flex;align-items:center;gap:12px;flex:1;justify-content:flex-end;flex-wrap:wrap}.er-of .tx{flex:1;text-align:left;min-width:220px;color:#f6efd8;font:600 1rem/1.3 "DM Sans",sans-serif}.er-of .tx b{color:#f4d77a;font:700 1.2rem Georgia,serif}.er-of .tx b.g{color:#5fe3a0}.er-of .tx b.b{color:#ff7b6b}'
+    '.er-row .fl-bar{margin:0;gap:8px;flex:none}.er-row .fl-sd{min-width:0;padding:4px 14px;flex-direction:row;gap:8px;align-items:baseline}.er-row .fl-sd b{font-size:1.2rem}.er-row .fl-sd small{font-size:.66rem}'
   ].join('\n');
   var DLCSS = [
     '#bz-ov{--cb:url(icons/cardback_1.webp)}#bz-ov[data-dlr="2"]{--cb:url(icons/cardback_2.webp)}',
@@ -1719,7 +1724,7 @@ function deck(el,m,n,x,y,face,gap){clear(el);const cs=[];for(let i=0;i<n;i++){co
       ['Litter pick on Sunday', 'g', 'Enjoyed the litter pick: forward 1', 1], ['Got into the Polo team', 'g', 'Into the team: forward 2', 2], ['Francophone Society', 'g', 'A great night: forward 1', 1], ['A great session with my French assistant', 'g', 'A great oral session: forward 2', 2]
     ];
     var PBAD = [
-      ['The Wall Game', 'b', 'Stuck in the scrum: back 2', -2], ['Collect the post (School Office)', 'b', 'A job: back 1', -1], ['College Chapel', 'b', 'Miss a go', 'miss'], ['2 Days\' Close Gating', 'b', 'Worst: miss 2 goes', 'miss2'],
+      ['The Wall Game', 'b', 'Stuck in the scrum: back 2', -2], ['Collect the post (School Office)', 'b', 'A job: back 1', -1], ['College Chapel', 'b', 'Miss a go', 'miss'], ['2 Days\' Close Gating', 'b', 'Gated: miss 2 goes', 'miss2'],
       ['Detention (Lower School)', 'b', 'Back 4', -4], ['Sign the Tardy Book (School Office)', 'b', 'Five minutes late: back 2', -2], ['Missed 2nd music lesson in a row', 'b', 'Back 3', -3], ['Dutchmans', 'b', 'The far fields: back 3', -3], ['Lecture in Jafar Hall', 'b', 'Miss a go', 'miss'],
       ['10-minute queue at Bekynton', 'b', 'A long queue: back 2', -2], ['iPad dies in an important test', 'b', 'Battery on 0%: back 3', -3], ['Dress-offenced by a member of Pop', 'b', 'Dress-offenced by a Pop: back 2', -2], ['Caught cheating in a test', 'b', 'The worst: miss 2 goes', 'miss2'],
       ['Off Games for several days', 'b', 'Miss a go', 'miss'], ['Freak beagling accident', 'b', 'Injured: miss a go', 'miss'], ['On crutches for 2 weeks', 'b', 'Back 3', -3], ['30-minute punishment for insubordination', 'b', 'Back 3', -3],
@@ -1739,9 +1744,8 @@ function deck(el,m,n,x,y,face,gap){clear(el);const cs=[];for(let i=0;i<n;i++){co
     function nm(s) { return pnGet(s, 'Team ' + (s + 1)); }
     function qOf(c) { var v = hvOf(c); return v.hl ? esc(v.hl[0]) + '<b class="hl">' + esc(v.hl[1]) + '</b>' + esc(v.hl[2]) : esc(c.q); }
     function sz(c) { var L = c.q.length; return L > 120 ? ' fl-xl' : L > 60 ? ' fl-lg' : ''; }
-    var holoT = null;
-    function holoStart() { holoStop(); }
-    function holoStop() { if (holoT) { clearInterval(holoT); holoT = null; } } window.__erHoloStop = function () { if (holoT) { clearInterval(holoT); holoT = null; } try { erShowKill(); } catch (e) { } };
+    function howText() { return 'Race from your House to Birley Schools. On your go, answer the question: say it, press Reveal, then mark yourself. Got it rolls the die (1–3) and you walk that many squares; Nearly moves you one square; Major error means no move. Every square is hidden under the crest until someone lands on it. Green squares help you on and red squares hold you back; the purple-ringed fate squares are good or bad, and the outcome is rolled again for each boy who lands there. A square you are sent to also counts, but only once. Some squares make you miss a go or go again. After a right answer you can take an Eton Rules card or pass: it may be good news or bad, and no card comes round again until the whole pack has been used. Only a roll of the die or a Nearly can take you into Birley Schools. Tap any revealed square to read it again. The first to Birley Schools is Sent Up For Good.'; }
+    window.__erHoloStop = function () { try { erShowKill(); } catch (e) { } };
     function pickHTML(P, start) {
       if (pickTurn >= P) pickTurn = 0;
       var h = '<div class="er-stg">';
@@ -1749,11 +1753,25 @@ function deck(el,m,n,x,y,face,gap){clear(el);const cs=[];for(let i=0;i<n;i++){co
         var who = picks.slice(0, P).indexOf(i), cls = who === pickTurn ? ' sel' : who > -1 ? ' tk' : '';
         h += '<button class="er-hp' + cls + '" onclick="apErPick(' + i + ')" style="--sc:' + PCS[i][2] + ';--d:' + ((i * 1.37 % 4.5) * -1) + 's;--ht:' + (7 + (i * 0.4 + (i%3)*0.8)) + 's;--sl:' + SCN[i] + ';--im:url(icons/er_p' + i + '.webp)"><span class="hoop h1"></span><span class="hoop h2"></span><span class="hoop h3"></span><span class="hoop h4"></span><span class="shards"><i style="--l:.15;--sy1:35%;--sy2:92%;--st:3.1s;--sd:.1s"></i><i style="--l:.6;--sy1:48%;--sy2:97%;--st:4.4s;--sd:1.1s"></i><i style="--l:.85;--sy1:22%;--sy2:88%;--st:3.6s;--sd:2.3s"></i></span><span class="bm"></span><span class="pd"><i></i><i></i></span><span class="fl"><span class="fg"><img alt="" src="icons/er_p' + i + '.webp"><span class="sn"></span></span></span><small>' + (who > -1 && P > 1 ? esc(nm(who)) : PCS[i][0]) + '</small></button>';
       }
-      h += '</div><div class="er-ft"><div class="er-pt">';
-      for (var s = 0; s < P; s++) h += '<button class="er-chip' + (s === pickTurn ? ' on' : '') + '" onclick="apErTurn(' + s + ')" style="--sc:' + pcL(s) + '"><img alt="" src="icons/er_p' + picks[s] + '.webp"><b>' + esc(P > 1 ? nm(s) + ': choosing' : 'Tap a figure to choose your player') + '</b></button>';
+      h += '</div><div class="er-ft"><div class="er-pt">' + chipsHTML(P);
       return h + '</div>' + start + '</div>';
     }
-    window.apErTurn = function (s) { pickTurn = s; intro(); };
+    function chipsHTML(P) {
+      var h = ''; for (var s = 0; s < P; s++) h += '<button class="er-chip' + (s === pickTurn ? ' on' : '') + '" onclick="apErTurn(' + s + ')" style="--sc:' + pcL(s) + '"><img alt="" src="icons/er_p' + picks[s] + '.webp"><b>' + esc(P > 1 ? nm(s) + (s === pickTurn ? ': choosing…' : ': ' + pcN(s)) : 'Tap a figure to choose your player') + '</b></button>';
+      return h;
+    }
+    function pickRefresh(P) {   // after a pick or a turn change: update the figures' classes and labels and the chip row only, so the animations run on and the name boxes keep focus
+      var hps = document.querySelectorAll('.er-stg .er-hp'), pt = document.querySelector('.er-pt');
+      if (hps.length !== PCS.length || !pt) { intro(); return; }
+      if (pickTurn >= P) pickTurn = 0;
+      for (var i = 0; i < hps.length; i++) {
+        var who = picks.slice(0, P).indexOf(i), sm = hps[i].querySelector('small');
+        hps[i].classList.toggle('sel', who === pickTurn); hps[i].classList.toggle('tk', who > -1 && who !== pickTurn);
+        if (sm) sm.textContent = who > -1 && P > 1 ? nm(who) : PCS[i][0];
+      }
+      pt.innerHTML = chipsHTML(P);
+    }
+    window.apErTurn = function (s) { pickTurn = s; pickRefresh(CFG.erP); };
     var GLB_AVAIL = { 0: 1, 1: 1, 2: 1, 3: 1, 4: 1, 5: 1, 6: 1, 7: 1 };
     function flat2DShowcase(i, el) {
       var fr = 'icons/er_p' + i + '.webp', bk = fr, sd = fr, fr34 = fr, br34 = fr;  // rare fallback (no WebGL / model failed): the picture itself turns; the AI side/back pictures were not good enough to show
@@ -1854,9 +1872,9 @@ function deck(el,m,n,x,y,face,gap){clear(el);const cs=[];for(let i=0;i<n;i++){co
       }
     };
     window.apErPick = function (i) {
-      var P = CFG.erP, t = picks.slice(0, P).indexOf(i);
+      var P = CFG.erP, t = picks.indexOf(i);
       if (t > -1 && t !== pickTurn) { picks[t] = picks[pickTurn]; }
-      picks[pickTurn] = i; pickTurn = (pickTurn + 1) % P; intro(); sfx('holoact'); window.apErShow(i);
+      picks[pickTurn] = i; pickTurn = (pickTurn + 1) % P; pickRefresh(P); sfx('holoact'); window.apErShow(i);
     };
     function shufBoard() {
       function ok(m) { if (m[0][1] === 'b') return false; var run = 0; for (var i = 0; i < m.length; i++) { run = m[i][1] === 'b' ? run + 1 : 0; if (run > 2) return false; } return true; }
@@ -1867,32 +1885,38 @@ function deck(el,m,n,x,y,face,gap){clear(el);const cs=[];for(let i=0;i<n;i++){co
           return out.length >= n;
         }); return out;
       }
-      var mid = [], m = null;
-      for (var t = 0; t < 400; t++) {
-        var all = shuf(PGOOD.concat(PBAD)), g = [], b = [], used = {};
-        // draw from both pools together so linked squares never share a board
-        var ff = draw(PFATE.map(function (f) { return [f[0], 'x', 'Fate &mdash; good or bad!', 0, f[1]]; }), 2);
-        var gg = draw(PGOOD, 11), bb = draw(PBAD, 9), names = {}; gg.concat(bb).concat(ff).forEach(function (q) { names[q[0]] = 1; });
-        var clash = PGRP.some(function (grp) { return grp.filter(function (x) { return names[x]; }).length > 1; });
-        if (clash) continue;
-        var c = shuf(gg.concat(bb, ff, PLAIN)); if (ok(c)) { m = c; break; }
+      function fates() { return PFATE.map(function (f) { return [f[0], 'x', 'Fate — good or bad!', 0, f[1]]; }); }
+      // draw from both pools together so linked squares never share a board; a name may appear only once
+      // (College Chapel and the House Play role are both pool squares and fate squares), so names are counted
+      function pick() {
+        var ff = draw(fates(), 2), gg = draw(PGOOD, 11), bb = draw(PBAD, 9), names = {};
+        gg.concat(bb, ff).forEach(function (q) { names[q[0]] = (names[q[0]] || 0) + 1; });
+        if (Object.keys(names).some(function (n) { return names[n] > 1; })) return null;
+        return { c: gg.concat(bb, ff), names: names };
       }
-      if (!m) { var ff2 = draw(PFATE.map(function (f) { return [f[0], 'x', 'Fate &mdash; good or bad!', 0, f[1]]; }), 2); m = shuf(draw(PGOOD, 11).concat(draw(PBAD, 9), ff2, PLAIN)); }
+      var m = null;
+      for (var t = 0; t < 400; t++) {
+        var d = pick(); if (!d) continue;
+        if (PGRP.some(function (grp) { return grp.filter(function (x) { return d.names[x]; }).length > 1; })) continue;
+        var c = shuf(d.c.concat(PLAIN)); if (ok(c)) { m = c; break; }
+      }
+      for (var t2 = 0; !m && t2 < 400; t2++) { var d2 = pick(); if (d2) m = shuf(d2.c.concat(PLAIN)); }
+      if (!m) { var ff3 = draw(fates(), 2), nf = {}, nx = function (q) { return !nf[q[0]]; }; ff3.forEach(function (q) { nf[q[0]] = 1; }); m = shuf(draw(PGOOD.filter(nx), 11).concat(draw(PBAD.filter(nx), 9), ff3, PLAIN)); }
       return [SQ[0]].concat(m, [SQ[1]]);
     }
     function intro() {
-      var P = CFG.erP; holoStart(); try { erShowKill(); er3Preload(); } catch (e) { }
+      var P = CFG.erP; try { erShowKill(); er3Preload(); } catch (e) { }
       frame('Eton Rules', '<div class="er-in"><div class="er-hd"><span>Race from your House to Birley Schools!</span><button class="bz-b er-hw" onclick="apErHow(1)">Click for how to play</button></div>'
         + '<div class="er-ctl"><div class="bz-row">' + [[1, 'Solo'], [2, 'Two teams'], [3, 'Three teams'], [4, 'Four teams']].map(function (o) { return '<button class="bz-b' + (P === o[0] ? ' on' : '') + '" onclick="apErSet(' + o[0] + ')">' + o[1] + '</button>'; }).join('') + '</div>'
         + (P > 1 ? pnBox(P, ['Team 1', 'Team 2', 'Team 3', 'Team 4'], [0, 1, 2, 3].map(pcL)) : '') + '</div>'
         + pickHTML(P, '<button class="bz-big go" onclick="apBzGo()">▶ Start</button>')
-        + '<div class="er-how" id="er-how" onclick="apErHow(0)"><div>Race from your House to Birley Schools. On your go, answer a question: say it, reveal it, then mark yourself. A right answer rolls the die and you walk that many squares; Nearly moves you one; a Major error keeps you where you are. Rowland\'s, Budgens and the Library help you on. A right answer also earns a chance to take an Eton Rules card, which can be good news or bad. Detention, the Tardy Book, the Chapel and jobs hold you back. First to reach Birley Schools is Sent Up For Good and wins.<br><button class="bz-b">Got it</button></div></div></div>');
+        + '<div class="er-how" id="er-how" onclick="apErHow(0)"><div>' + howText() + '<br><button class="bz-b">Got it</button></div></div></div>');
       window.apBzGo = play;
     }
     window.apErHow = function (on) { var e = $('er-how'); if (e) e.classList.toggle('on', !!on); };
     window.apErSet = function (n) { CFG.erP = n; saveCfg(); intro(); };
     function play() {
-      stop(); holoStop(); sfx('erstart'); musicStart(true);
+      stop(); sfx('erstart'); musicStart(true);
       var BD = shufBoard(); erShowKill();
       var P = CFG.erP, pos = [], skip = [], cur = 0, busy = false, deck = [], di = 0, qd = null, turns = 0, msg = '';
       for (var s = 0; s < P; s++) { pos.push(0); skip.push(0); }
@@ -1905,7 +1929,7 @@ function deck(el,m,n,x,y,face,gap){clear(el);const cs=[];for(let i=0;i<n;i++){co
       }
       function board() {
         var h = ''; BD.forEach(function (q, i) {
-          var k = q[1] || '', c = padPos(i), cls = k === 'g' ? 'g' : k === 'b' ? 'b' : (k === 'f' || k === 'f0') ? 'f' : '', ic = ICO[q[0]], fx = q[3] != null ? fxOf(q) : '', hid = !RV[i];
+          var k = q[1] || '', c = padPos(i), cls = k === 'g' ? 'g' : k === 'b' ? 'b' : k === 'x' ? 'x' : (k === 'f' || k === 'f0') ? 'f' : '', ic = ICO[q[0]], fx = q[3] != null ? fxOf(q) : '', hid = !RV[i];
           h += '<div class="er-sq ' + (hid ? 'hid' : cls) + (ic ? '' : ' np') + '" data-k="' + cls + '" onclick="apErSq(' + i + ')"' + (hid ? '' : ' title="' + esc(q[0] + (q[2] ? ': ' + q[2] : '')) + '"') + ' style="left:' + c[0] + '%;top:' + c[1] + '%"><img class="cr" alt="" src="' + CREST() + '">'
             + (ic ? '<img src="icons/er_' + ic + '.webp" alt="" onerror="this.parentNode.classList.add(\'np\');this.remove()">' : '')
             + '<span class="pn">' + esc(shortOf(q[0])) + '</span>' + (fx ? '<span class="fx">' + fx + '</span>' : '') + '<span class="cp">' + esc(shortOf(q[0])) + '</span></div>';
@@ -1917,10 +1941,9 @@ function deck(el,m,n,x,y,face,gap){clear(el);const cs=[];for(let i=0;i<n;i++){co
       function carXY(s, i) { var c = PADS[i] || PADS[0], X = P === 1 ? [0] : P === 2 ? [-30, 30] : P === 3 ? [-42, 0, 42] : [-54, -18, 18, 54], Y = P === 1 ? 66 : (s % 2 ? 72 : 66); return [((c[0] + X[s]) / 15.36) + '%', ((c[1] + Y) / 10.24) + '%']; }
       function carW() { return P === 1 ? 4.6 : P === 2 ? 4.3 : 3.7; }
       function cars() { var h = ''; for (var s = 0; s < P; s++) { var xy = carXY(s, pos[s]), im = 'icons/er_p' + picks[s] + '.webp'; h += '<div class="er-car' + (s === cur ? ' on' : '') + '" id="erc' + s + '" style="left:' + xy[0] + ';top:' + xy[1] + ';width:' + carW() + '%;--g:' + pcL(s) + ';--sl:' + SCN[picks[s]] + ';--im:url(' + im + ')"><span class="rg"></span><span class="fg"><img alt="" src="' + im + '"><span class="sn"></span></span></div>'; } return h; }
-      function setCar(s, jump) {
+      function setCar(s) {
         var e = $('erc' + s); if (!e) return; var xy = carXY(s, pos[s]);
-        if (jump) { e.classList.add('vn'); timers.push(setTimeout(function () { e.classList.add('tp'); e.style.left = xy[0]; e.style.top = xy[1]; void e.offsetWidth; e.classList.remove('tp'); timers.push(setTimeout(function () { e.classList.remove('vn'); }, 140)); }, 500)); }
-        else { e.style.left = xy[0]; e.style.top = xy[1]; e.classList.remove('hop'); void e.offsetWidth; e.classList.add('hop'); timers.push(setTimeout(function () { e.classList.remove('hop'); }, 640)); }
+        e.style.left = xy[0]; e.style.top = xy[1]; e.classList.remove('hop'); void e.offsetWidth; e.classList.add('hop'); timers.push(setTimeout(function () { e.classList.remove('hop'); }, 640));
       }
       var ofr = null;
       function rowHTML() {
@@ -1933,16 +1956,16 @@ function deck(el,m,n,x,y,face,gap){clear(el);const cs=[];for(let i=0;i<n;i++){co
         for (var s = 0; s < P; s++) { var e = $('erc' + s); if (e) e.classList[s === cur ? 'add' : 'remove']('on'); }
       }
       try { if (BZ.bcard) { ov.style.setProperty('--fl-card', 'url(' + BZ.bcard + ')'); ov.classList.add('flc-img'); } } catch (e) { }
-      frame('Eton Rules', '<div class="er-wrap"><div class="er-board" id="er-board" style="--erb:url(icons/er_board.webp)">' + board() + '<div class="er-lay" id="er-lay">' + cars() + '</div></div><div class="er-how" id="er-how" onclick="apErHow(0)"><div>Race from your House to Birley Schools. On your go, answer a question: say it, reveal it, then mark yourself. A right answer rolls the die and you walk that many squares; Nearly moves you one; a Major error keeps you where you are. The green squares help you on, the red ones hold you back. A right answer also earns a chance to take an Eton Rules card, which can be good news or bad. First to reach Birley Schools is Sent Up For Good and wins.<br><button class="er-btn er-go">Got it</button></div></div></div>');
+      frame('Eton Rules', '<div class="er-wrap"><div class="er-board" id="er-board" style="--erb:url(icons/er_board.webp)">' + board() + '<div class="er-lay" id="er-lay">' + cars() + '</div></div><div class="er-how" id="er-how" onclick="apErHow(0)"><div>' + howText() + '<br><button class="er-btn er-go">Got it</button></div></div></div>');
       ov.classList.add('er-full'); ov.style.backgroundImage = 'linear-gradient(rgba(5,10,24,.8),rgba(5,10,24,.8)),url(icons/er_board.webp)';
       var tpb = ov.querySelector('.bz-top'); if (tpb) { var rw = document.createElement('div'); rw.id = 'er-row'; rw.className = 'er-row'; rw.innerHTML = rowHTML(); tpb.insertBefore(rw, tpb.children[2]); }
+      if (P > 1) timers.push(setTimeout(function () { turnFlash(nm(0) + ' to answer', pcL(0)); }, 900));
       function who() { return '<small class="fl-who"><span style="color:' + pcT(cur) + '">' + (P > 1 ? esc(nm(cur)) + ' · ' + pcN(cur) : 'Your go') + '</span> · square ' + pos[cur] + ' · ' + esc(H.names[dirs()[0]]) + '</small>'; }
       function task(c, v) { return '<div class="fl-hl">' + (c.ask ? 'Answer the question in ' + esc(H.names[target()]) : (v.hl ? 'Translate only the bold part into ' : 'Translate into ') + esc(H.names[dirs()[1]])) + '</div>'; }
       function backQ() { var v = hvOf(qd); return who() + '<div class="fl-q' + sz(qd) + '">' + qOf(qd) + '</div>' + task(qd, v) + '<div class="fl-hint">Say it, then reveal</div><button class="bz-big go" onclick="apErRev()">Reveal</button>'; }
       function backA() { var v = hvOf(qd); return who() + '<div class="fl-qs">' + qOf(qd) + '</div><div class="fl-ans' + (String(v.a).length > 95 ? ' fl-lg' : '') + '">' + esc(v.a) + ' ' + SAYBTN(v.a) + '</div><div class="fl-m"><button class="fl-n" onclick="apErMk(0)">✗ Major error</button><button class="fl-nr" onclick="apErMk(2)">~ Nearly</button><button class="fl-y" onclick="apErMk(1)">✓ Got it</button></div>'; }
       window.apErAsk = function () {
-        if (busy) return;
-        if (skip[cur] > 0) { skip[cur]--; msg = nm(cur) + ' misses this go.'; cur = (cur + 1) % P; msg += ' ' + (P > 1 ? nm(cur) + ', your go.' : ''); sfx('tick'); refresh(); return; }
+        if (busy) return; if (lcDone) lcDone();
         busy = true; qd = nextQ(); sfx('whoosh'); refresh();
         var st = document.createElement('div'); st.id = 'er-stage'; st.className = 'fl-stage'; st.innerHTML = '<div class="c4-q" id="er-q">' + backQ() + '</div>'; ov.appendChild(st);
         try { $('er-q').animate([{ transform: 'translateY(80px) rotateX(38deg) scale(.88)', opacity: 0 }, { transform: 'none', opacity: 1 }], { duration: 520, easing: 'cubic-bezier(.2,.8,.2,1)' }); } catch (e) { }
@@ -1974,12 +1997,17 @@ function deck(el,m,n,x,y,face,gap){clear(el);const cs=[];for(let i=0;i<n;i++){co
       }
       function nextTurn(again) {
         if (!again) cur = (cur + 1) % P; busy = false;
+        if (!again && skip[cur] > 0) {   // a missed go: say so, flash it, then move on after a moment
+          skip[cur]--; busy = true; msg = P > 1 ? nm(cur) + ' misses this go.' : 'You miss this go.'; refresh();
+          if (P > 1) turnFlash(nm(cur) + ' misses a go', pcL(cur)); else sfx('bad');
+          timers.push(setTimeout(function () { nextTurn(false); }, P > 1 ? 2100 : 1400)); return;
+        }
         msg = again ? (P > 1 ? nm(cur) + ' goes again.' : 'Go again.') : (P > 1 ? nm(cur) + ', your go.' : 'Your go.');
         refresh();
         if (P > 1) turnFlash(nm(cur) + (again ? ': go again!' : ' to answer'), pcL(cur));
       }
       function win() {
-        sfx('win'); msg = (P > 1 ? nm(cur) : 'You') + ' reached Birley Schools: Sent Up For Good!'; refresh();
+        msg = (P > 1 ? nm(cur) : 'You') + ' reached Birley Schools: Sent Up For Good!'; refresh();
         timers.push(setTimeout(function () { endScreen('Eton Rules', { big: esc(P > 1 ? nm(cur) : 'Birley Schools'), note: P > 1 ? 'is Sent Up For Good: first to Birley Schools.' : 'Sent Up For Good! You reached Birley Schools in ' + turns + ' turns.' }, play); }, 1800));
       }
       function walk(n) {
@@ -1996,7 +2024,7 @@ function deck(el,m,n,x,y,face,gap){clear(el);const cs=[];for(let i=0;i<n;i++){co
         ['Spelling test', [['Top of the Div in the spelling test: forward 2', 2], ['Got the hardest word wrong: back 2', -2]]],
         ['CCF Field Day', [['Mentioned in dispatches: forward 2', 2], ['Lost in the woods: back 2', -2]]],
         ['Sports Day race', [['First across the line: forward 2', 2], ['Fell at the hurdles: back 2', -2]]],
-        ['Essay deadline', [['Top mark for your essay: forward 2', 2], ['Rushed essay &mdash; given a Detention: back 3', -3]]],
+        ['Essay deadline', [['Top mark for your essay: forward 2', 2], ['Rushed essay — given a Detention: back 3', -3]]],
         ['Weekend trip', [['Back on time: forward 1', 1], ['Missed curfew: back 2', -2]]],
         ['Society talk', [['An insightful contribution: forward 1', 1], ['Fell asleep in the talk: back 1', -1]]],
         ['Boarding house inspection', [['Spotless room: forward 1', 1], ['Fined for mess: back 1', -1]]],
@@ -2013,10 +2041,23 @@ function deck(el,m,n,x,y,face,gap){clear(el);const cs=[];for(let i=0;i<n;i++){co
         var k = (typeof pick[1] === 'number' && pick[1] > 0) || pick[1] === 'again' ? 'g' : 'b';
         return [themed[0], pick[0], pick[1], k];
       }
-      function eff(me, e, done) {
+      function eff(me, e, done, chained) {
+        if (typeof e === 'number' && e > 3) e = 3;
         if (e === 'again') { sfx('good'); done(true); }
         else if (e === 'miss' || e === 'miss2') { sfx('bad'); skip[me] = e === 'miss2' ? 2 : 1; done(false); }
-        else { var tgt = Math.max(0, Math.min(LAST - 1, pos[me] + e)); (function mv() { if (pos[me] === tgt) { popSq(pos[me]); timers.push(setTimeout(function () { done(false); }, 2850)); return; } pos[me] += pos[me] < tgt ? 1 : -1; setCar(me); sfx('thump'); refresh(); timers.push(setTimeout(mv, 600)); })(); }
+        else {
+          var from = pos[me], tgt = Math.max(0, Math.min(LAST - 1, pos[me] + e));
+          (function mv() {
+            if (pos[me] === tgt) {
+              // the square you are sent to counts too, but only once: a chained effect never makes a third hop
+              var q = BD[pos[me]];
+              if (!chained && tgt !== from && (q[3] !== undefined || q[1] === 'x')) land(me, true, done);
+              else { popSq(pos[me]); timers.push(setTimeout(function () { done(false); }, 2850)); }
+              return;
+            }
+            pos[me] += pos[me] < tgt ? 1 : -1; setCar(me); sfx('thump'); refresh(); timers.push(setTimeout(mv, 600));
+          })();
+        }
       }
       function offer(ag) {
         var me = cur; ofr = { t: 'ask' }; refresh();
@@ -2038,7 +2079,7 @@ function deck(el,m,n,x,y,face,gap){clear(el);const cs=[];for(let i=0;i<n;i++){co
         sfx(c[3] === 'g' ? 'good' : 'bad');
         var bg = document.createElement('div'); bg.className = 'er-dc-bg';
         var el = document.createElement('div'); el.className = 'er-dc ' + c[3];
-        var fx = c[2], big = typeof fx === 'number' ? (fx > 0 ? '+' + fx : '' + fx) : fx === 'again' ? '↻ Go again' : fx === 'miss' ? 'Miss a go' : fx === 'miss2' ? 'Miss 2 goes' : '';
+        var fx = c[2], big = typeof fx === 'number' ? (fx > 0 ? '+' + fx : '\u2212' + Math.abs(fx)) : fx === 'again' ? '↻ Go again' : fx === 'miss' ? 'Miss a go' : fx === 'miss2' ? 'Miss 2 goes' : '';
         var tag = c[3] === 'g' ? 'GOOD NEWS' : 'BAD NEWS';
         el.innerHTML = '<div class="tp">Eton Rules Card</div><div class="tag">' + tag + '</div><div class="t">' + esc(c[0]) + '</div><div class="x">' + esc(c[1]) + '</div>' + (big ? '<div class="bd' + (typeof fx === 'number' ? '' : ' w') + '">' + esc(big) + '</div>' : '') + '<div class="hint">Tap to carry on</div>';
         ov.appendChild(bg); ov.appendChild(el);
@@ -2046,24 +2087,25 @@ function deck(el,m,n,x,y,face,gap){clear(el);const cs=[];for(let i=0;i<n;i++){co
         el.onclick = close; bg.onclick = close; timers.push(setTimeout(close, 5500));
       }
       function after(ag) { if (earned) { earned = false; offer(ag); } else nextTurn(ag); }
-      function land(me) {
-        if (pos[me] >= LAST) { win(); return; }
+      function land(me, chained, cont) {
+        var fin = cont || after;
+        if (pos[me] >= LAST) { popSq(LAST); win(); return; }
         var q0 = BD[pos[me]], q = q0;
-        if (q0[1] === 'f0') { after(false); return; }
+        if (q0[1] === 'f0') { fin(false); return; }
         if (q0[1] === 'x') {
           var outs = q0[4], pick = outs[Math.floor(Math.random() * outs.length)];
           var k = (typeof pick[1] === 'number' && pick[1] > 0) || pick[1] === 'again' ? 'g' : 'b';
           q = [q0[0], k, pick[0], pick[1]];
         }
         var e = q[3];
-        popSq(pos[me], q);
-        if (e === undefined) { timers.push(setTimeout(function () { after(false); }, 2850)); return; }
+        popSq(pos[me]);
+        if (e === undefined) { timers.push(setTimeout(function () { fin(false); }, 2850)); return; }
         msg = (q[0] + ': ' + q[2] + '.'); refresh();
-        timers.push(setTimeout(function () { lcShow(pos[me], function () { eff(me, e, after); }, q); }, 2850));
+        timers.push(setTimeout(function () { lcShow(pos[me], function () { eff(me, e, fin, chained); }, q); }, 2850));
       }
-      function popSq(i, qOv) {
+      function popSq(i) {
         var all = document.querySelectorAll('#er-board .er-sq'), el = all[i]; if (!el) return; el.style.zIndex = 30;
-        if (!RV[i]) { RV[i] = 1; el.classList.remove('hid'); var kk = el.getAttribute('data-k'); if (kk) el.classList.add(kk); var q0 = qOv || BD[i]; el.setAttribute('title', q0[0] + (q0[2] ? ': ' + q0[2] : '')); }
+        if (!RV[i]) { RV[i] = 1; el.classList.remove('hid'); var kk = el.getAttribute('data-k'); if (kk) el.classList.add(kk); var q0 = BD[i]; el.setAttribute('title', q0[0] + (q0[2] ? ': ' + q0[2] : '')); }
         try { el.animate([{ transform: 'translate(-50%,-50%) scale(1)', filter: 'brightness(1)', offset: 0, easing: 'cubic-bezier(.2,.9,.3,1.2)' }, { transform: 'translate(-50%,-50%) scale(2.9)', filter: 'brightness(1.12) drop-shadow(0 0 18px rgba(255,236,160,.9))', offset: .2 }, { transform: 'translate(-50%,-50%) scale(2.9)', filter: 'brightness(1.12) drop-shadow(0 0 18px rgba(255,236,160,.9))', offset: .9, easing: 'ease-in' }, { transform: 'translate(-50%,-50%) scale(1)', filter: 'brightness(1)', offset: 1 }], { duration: 2800 }); } catch (e) { }
         timers.push(setTimeout(function () { el.style.zIndex = ''; }, 2850));
       }
@@ -2084,7 +2126,7 @@ function deck(el,m,n,x,y,face,gap){clear(el);const cs=[];for(let i=0;i<n;i++){co
       }
       window.apErSq = function (i) { if (busy || $('er-lc') || $('er-stage') || !RV[i]) return; lcShow(i, null); };
       window.apErMk = function (m) {
-        var stg = $('er-stage'); if (!stg || !qd) return; try { speechSynthesis.cancel(); } catch (e) { }
+        var stg = $('er-stage'); if (!stg || !qd) return; qd = null; stg.style.pointerEvents = 'none'; try { speechSynthesis.cancel(); } catch (e) { }
         stg.style.transition = 'opacity .22s'; stg.style.opacity = '0'; turns++;
         timers.push(setTimeout(function () {
           stg.remove();
@@ -2141,7 +2183,7 @@ function deck(el,m,n,x,y,face,gap){clear(el);const cs=[];for(let i=0;i<n;i++){co
       };
       window.apC4Rev = function () { var b = $('c4-q'); if (!b || !qd) return; sfx('tick'); b.innerHTML = backA(); try { if (CFG.fSay) say(dirs()[1] === 'en' ? String(qd.q) : hvOf(qd).a); } catch (e) { } };
       window.apC4Mk = function (m) {
-        var stg = $('c4-stage'); if (!stg || !qd) return; var c = pend; try { speechSynthesis.cancel(); } catch (e) { }
+        var stg = $('c4-stage'); if (!stg || !qd) return; qd = null; stg.style.pointerEvents = 'none'; var c = pend; try { speechSynthesis.cancel(); } catch (e) { }
         stg.style.transition = 'opacity .22s'; stg.style.opacity = '0';
         timers.push(setTimeout(function () {
           stg.remove();
@@ -2163,10 +2205,13 @@ function deck(el,m,n,x,y,face,gap){clear(el);const cs=[];for(let i=0;i<n;i++){co
         var r = R - 1; while (r >= 0 && g[r][c] !== -1) r--; if (r < 0) { busy = false; return; }
         g[r][c] = cur; cnt++;
         var lay = $('c4-lay'), d = document.createElement('div'); d.className = 'c4-d s' + cur; d.id = 'c4d' + r + '_' + c; d.style.setProperty('--r', r); d.style.setProperty('--c', c); d.innerHTML = '<i></i>'; lay.appendChild(d);
-        var cs = d.offsetHeight || 80, h = (r + 1.4) * cs;
-        try { d.animate([{ transform: 'translateY(' + (-h) + 'px)', easing: 'cubic-bezier(.55,0,.95,.6)' }, { transform: 'translateY(0)', offset: .56 }, { transform: 'translateY(' + (-cs * .2) + 'px)', offset: .72, easing: 'ease-in' }, { transform: 'translateY(0)', offset: .86 }, { transform: 'translateY(' + (-cs * .05) + 'px)', offset: .94, easing: 'ease-in' }, { transform: 'translateY(0)' }], { duration: 760 + r * 40 }); } catch (e) { }
+        var cs = d.offsetHeight || 80, h = (r + 1.4) * cs, D = 760 + r * 40;
+        try { d.animate([{ transform: 'translateY(' + (-h) + 'px)', easing: 'cubic-bezier(.55,0,.95,.6)' }, { transform: 'translateY(0)', offset: .56 }, { transform: 'translateY(' + (-cs * .2) + 'px)', offset: .72, easing: 'ease-in' }, { transform: 'translateY(0)', offset: .86 }, { transform: 'translateY(' + (-cs * .05) + 'px)', offset: .94, easing: 'ease-in' }, { transform: 'translateY(0)' }], { duration: D }); } catch (e) { }
         var me = cur, w = winOf(r, c, me);
-        timers.push(setTimeout(function () { sfx('tick'); }, 440 + r * 25));
+        // three clacks timed to the counter's landing and its two bounces
+        timers.push(setTimeout(function () { sfx('clack'); }, Math.round(D * .56)));
+        timers.push(setTimeout(function () { sfx('clack', .5); }, Math.round(D * .86)));
+        timers.push(setTimeout(function () { sfx('clack', .25); }, D));
         timers.push(setTimeout(function () {
           if (w) {
             w.forEach(function (x) { var e = $('c4d' + x[0] + '_' + x[1]); if (e) e.classList.add('w'); });
