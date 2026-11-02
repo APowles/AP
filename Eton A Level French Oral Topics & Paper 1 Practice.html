@@ -20336,6 +20336,16 @@ function deck(el,m,n,x,y,face,gap){clear(el);const cs=[];for(let i=0;i<n;i++){co
     else if (k === 'lose') { note(55, 0, .6, .5); note(233, 0, .3, .34); note(196, .17, .35, .34); note(165, .34, .45, .34); note(110, .55, 1.1, .42); }
     else if (k === 'tick') { if (CFG.ticks) note(440, 0, .07, .09); }
     else if (k === 'thump') { note(120, 0, .12, .2); note(72, .01, .18, .2); }
+    else if (k === 'holoscan') {
+      var c = ctx(); if (!c || !snd) return; var t0 = c.currentTime, v = .11 * CFG.vol;
+      [[700, 1900, .55, 'sine'], [1400, 3600, .5, 'triangle']].forEach(function (p) { var o = c.createOscillator(), g = c.createGain(); o.type = p[3]; o.frequency.setValueAtTime(p[0], t0); o.frequency.exponentialRampToValueAtTime(p[1], t0 + p[2] * .9); g.gain.setValueAtTime(.0001, t0); g.gain.exponentialRampToValueAtTime(v, t0 + .05); g.gain.exponentialRampToValueAtTime(.0001, t0 + p[2]); var f = c.createBiquadFilter(); f.type = 'bandpass'; f.frequency.value = 2200; f.Q.value = 1.6; o.connect(f); f.connect(g); g.connect(c.destination); o.start(t0); o.stop(t0 + p[2] + .05); });
+    }
+    else if (k === 'holoact') {
+      var c = ctx(); if (!c || !snd) return; var t0 = c.currentTime, v = .22 * CFG.vol;
+      var o1 = c.createOscillator(), g1 = c.createGain(); o1.type = 'sawtooth'; o1.frequency.setValueAtTime(90, t0); o1.frequency.exponentialRampToValueAtTime(2200, t0 + .5); g1.gain.setValueAtTime(.0001, t0); g1.gain.exponentialRampToValueAtTime(v, t0 + .06); g1.gain.exponentialRampToValueAtTime(.0001, t0 + .6); var f1 = c.createBiquadFilter(); f1.type = 'bandpass'; f1.frequency.setValueAtTime(500, t0); f1.frequency.exponentialRampToValueAtTime(3000, t0 + .5); f1.Q.value = 6; o1.connect(f1); f1.connect(g1); g1.connect(c.destination); o1.start(t0); o1.stop(t0 + .65);
+      [0, .09, .18].forEach(function (dt, i) { var o = c.createOscillator(), g = c.createGain(); o.type = 'sine'; var fq = [1760, 2349, 3136][i]; o.frequency.setValueAtTime(fq, t0 + .35 + dt); g.gain.setValueAtTime(.0001, t0 + .35 + dt); g.gain.exponentialRampToValueAtTime(v * .55, t0 + .4 + dt); g.gain.exponentialRampToValueAtTime(.0001, t0 + 1.1 + dt); o.connect(g); g.connect(c.destination); o.start(t0 + .35 + dt); o.stop(t0 + 1.15 + dt); });
+      var o3 = c.createOscillator(), g3 = c.createGain(); o3.type = 'sine'; o3.frequency.setValueAtTime(60, t0 + .55); o3.frequency.exponentialRampToValueAtTime(30, t0 + 1.5); g3.gain.setValueAtTime(.0001, t0 + .55); g3.gain.exponentialRampToValueAtTime(v * .5, t0 + .62); g3.gain.exponentialRampToValueAtTime(.0001, t0 + 1.6); o3.connect(g3); g3.connect(c.destination); o3.start(t0 + .55); o3.stop(t0 + 1.65);
+    }
     else if (k === 'win') { [523, 659, 784, 1047].forEach(function (f, i) { note(f / 2, i * .13, 1); }); }
     else if (k === 'go') { note(370, 0, .45); }
     else if (k === 'end') { note(110, 0, 1.1, .26); note(165, .22, 1, .2); }
@@ -20541,7 +20551,7 @@ function deck(el,m,n,x,y,face,gap){clear(el);const cs=[];for(let i=0;i<n;i++){co
     ov.innerHTML = '<div class="bz-top"><button class="bz-b" onclick="apBzBack()">← Back</button><h1>Gamify it' + (title ? ' <em>· ' + esc(title) + '</em>' : '') + '</h1><button class="bz-b" onclick="apBzSet()">⚙ Settings</button><button class="bz-b' + (snd ? ' on' : '') + '" id="bz-snd" onclick="apBzSnd()">🔊 Sound ' + (snd ? 'on' : 'off') + '</button></div><div class="bz-main">' + body + '</div>';
   }
   window.apBzSnd = function () { snd = !snd; saveCfg(); sndBtn(); if (!snd) musicStop(); else if (view !== 'pick') musicStart(); if ($('bz-set')) panel(); };
-  window.apBzBack = function () { stop(); if (view === 'pick') close(); else pickScreen(); };
+  window.apBzBack = function () { stop(); try { if (window.__erHoloStop) __erHoloStop(); } catch (e) { } if (view === 'pick') close(); else pickScreen(); };
   function close() { stop(); musicStop(); PZ = false; var sp = $('bz-set'); if (sp) sp.remove(); if (ov) { ov.remove(); ov = null; } document.documentElement.style.overflow = ''; }
   window.apBlitz = function () {
     close(); ov = document.createElement('div'); ov.id = 'bz-ov'; ov.style.backgroundImage = 'url(' + BZ.stage + ')'; document.body.appendChild(ov);
@@ -21543,6 +21553,9 @@ function deck(el,m,n,x,y,face,gap){clear(el);const cs=[];for(let i=0;i<n;i++){co
     function nm(s) { return pnGet(s, 'Team ' + (s + 1)); }
     function qOf(c) { var v = hvOf(c); return v.hl ? esc(v.hl[0]) + '<b class="hl">' + esc(v.hl[1]) + '</b>' + esc(v.hl[2]) : esc(c.q); }
     function sz(c) { var L = c.q.length; return L > 120 ? ' fl-xl' : L > 60 ? ' fl-lg' : ''; }
+    var holoT = null;
+    function holoStart() { holoStop(); if (!snd) return; try { sfx('holoscan'); } catch (e) { } holoT = setInterval(function () { try { sfx('holoscan'); } catch (e) { } }, 3200); }
+    function holoStop() { if (holoT) { clearInterval(holoT); holoT = null; } } window.__erHoloStop = function () { if (holoT) { clearInterval(holoT); holoT = null; } };
     function pickHTML(P, start) {
       if (pickTurn >= P) pickTurn = 0;
       var h = '<div class="er-stg">';
@@ -21565,7 +21578,7 @@ function deck(el,m,n,x,y,face,gap){clear(el);const cs=[];for(let i=0;i<n;i++){co
     window.apErPick = function (i) {
       var P = CFG.erP, t = picks.slice(0, P).indexOf(i);
       if (t > -1 && t !== pickTurn) { picks[t] = picks[pickTurn]; }
-      picks[pickTurn] = i; pickTurn = (pickTurn + 1) % P; intro(); window.apErShow(i);
+      picks[pickTurn] = i; pickTurn = (pickTurn + 1) % P; intro(); sfx('holoact'); window.apErShow(i);
     };
     function shufBoard() {
       function ok(m) { if (m[0][1] === 'b') return false; var run = 0; for (var i = 0; i < m.length; i++) { run = m[i][1] === 'b' ? run + 1 : 0; if (run > 2) return false; } return true; }
@@ -21589,7 +21602,7 @@ function deck(el,m,n,x,y,face,gap){clear(el);const cs=[];for(let i=0;i<n;i++){co
       return [SQ[0]].concat(m, [SQ[1]]);
     }
     function intro() {
-      var P = CFG.erP;
+      var P = CFG.erP; holoStart();
       frame('Eton Rules', '<div class="er-in"><div class="er-hd"><span>Race from your House to Birley Schools!</span><button class="bz-b er-hw" onclick="apErHow(1)">Click for how to play</button></div>'
         + '<div class="er-ctl"><div class="bz-row">' + [[1, 'Solo'], [2, 'Two teams'], [3, 'Three teams'], [4, 'Four teams']].map(function (o) { return '<button class="bz-b' + (P === o[0] ? ' on' : '') + '" onclick="apErSet(' + o[0] + ')">' + o[1] + '</button>'; }).join('') + '</div>'
         + (P > 1 ? pnBox(P, ['Team 1', 'Team 2', 'Team 3', 'Team 4'], [0, 1, 2, 3].map(pcL)) : '') + '</div>'
@@ -21600,7 +21613,7 @@ function deck(el,m,n,x,y,face,gap){clear(el);const cs=[];for(let i=0;i<n;i++){co
     window.apErHow = function (on) { var e = $('er-how'); if (e) e.classList.toggle('on', !!on); };
     window.apErSet = function (n) { CFG.erP = n; saveCfg(); intro(); };
     function play() {
-      stop();
+      stop(); holoStop();
       var BD = shufBoard(); var sh0 = document.querySelector('.er-show'); if (sh0) sh0.remove();
       var P = CFG.erP, pos = [], skip = [], cur = 0, busy = false, deck = [], di = 0, qd = null, turns = 0, msg = '';
       for (var s = 0; s < P; s++) { pos.push(0); skip.push(0); }
@@ -22210,4 +22223,4 @@ function deck(el,m,n,x,y,face,gap){clear(el);const cs=[];for(let i=0;i<n;i++){co
   if (document.readyState === 'complete') start(); else window.addEventListener('load', start);
 })();
 </script>
-<script id="ap-build">window.__apBuild="8b5de9934b";</script>
+<script id="ap-build">window.__apBuild="44953ef0bb";</script>
