@@ -821,7 +821,7 @@ function deck(el,m,n,x,y,face,gap){clear(el);const cs=[];for(let i=0;i<n;i++){co
     '.er-show .au{position:absolute;inset:0;width:100%;height:100%;filter:brightness(0) invert(1) blur(2px) drop-shadow(0 0 28px var(--hc)) drop-shadow(0 0 70px var(--hc));opacity:.5}',
     '.er-show .rg{position:absolute;left:50%;bottom:-2%;width:150%;aspect-ratio:3.4;transform:translateX(-50%);border-radius:50%;border:3px solid var(--hc);box-shadow:0 0 30px var(--hc),inset 0 0 30px var(--hc);background:radial-gradient(ellipse,rgba(255,255,255,.4),transparent 70%)}',
     '.er-show .ro{position:absolute;inset:0;transform-style:preserve-3d;animation:ershowro 2.6s cubic-bezier(.45,0,.25,1) .3s both}@keyframes ershowro{from{transform:rotateY(0)}to{transform:rotateY(360deg)}}',
-    '.er-show .ly{position:absolute;inset:0;width:100%;height:100%;backface-visibility:hidden;-webkit-backface-visibility:hidden}.er-show .ly.k{opacity:.32}.er-show .ly.bk{filter:brightness(.5) saturate(.8)}',
+    '.er-show .ly{position:absolute;inset:0;width:100%;height:100%;backface-visibility:hidden;-webkit-backface-visibility:hidden;object-fit:contain}.er-show .ly.fr{transform:rotateY(0deg) translateZ(1px)}.er-show .ly.sr{transform:rotateY(90deg) translateZ(1px)}.er-show .ly.bk{transform:rotateY(180deg) translateZ(1px)}.er-show .ly.sl{transform:rotateY(270deg) scaleX(-1) translateZ(1px)}',
     '.er-hd{display:flex;align-items:center;gap:14px;font:700 1.2rem "Playfair Display",Georgia,serif;color:#f4d77a;text-shadow:0 2px 6px #000}.er-hd .bz-b{padding:5px 14px;font-size:.85rem}',
     '.er-ctl{display:flex;flex-wrap:wrap;gap:6px 16px;align-items:center;justify-content:center}.er-ctl .bz-b{padding:6px 15px}.er-ctl .fl-opt{margin:0;flex-direction:row}.er-ctl .fl-opt>span,.er-ctl .fl-opt small{display:none}.er-ctl .pn-in{width:132px;padding:6px 10px;font-size:.9rem}',
     '.er-stg{position:relative;flex:none;width:min(1340px,100%);height:var(--sh);display:flex;align-items:flex-end;justify-content:center;margin-top:2px}',
@@ -1663,9 +1663,14 @@ function deck(el,m,n,x,y,face,gap){clear(el);const cs=[];for(let i=0;i<n;i++){co
     window.apErTurn = function (s) { pickTurn = s; intro(); };
     window.apErShow = function (i) {
       var o = document.querySelector('.er-show'); if (o) o.remove();
-      var el = document.createElement('div'), im = 'icons/er_p' + i + '.webp'; el.className = 'er-show'; el.style.cssText = '--hc:' + PCS[i][2] + ';--sl:' + SCN[i];
-      var L = ''; [4, 8, 12, 16, 20, 24].forEach(function (z) { L += '<img class="ly k" alt="" src="' + im + '" style="transform:translateZ(' + z + 'px)">'; });
-      el.innerHTML = '<img class="au" alt="" src="' + im + '"><span class="rg"></span><div class="ro"><img class="ly bk" alt="" src="' + im + '" style="transform:translateZ(-28px) rotateY(180deg)">' + L + '<img class="ly" alt="" src="' + im + '" style="transform:translateZ(28px)"></div>';
+      var fr = 'icons/er_p' + i + '.webp', bk = 'icons/er_p' + i + '_back.webp', sd = 'icons/er_p' + i + '_side.webp';
+      var el = document.createElement('div'); el.className = 'er-show'; el.style.cssText = '--hc:' + PCS[i][2] + ';--sl:' + SCN[i];
+      el.innerHTML = '<img class="au" alt="" src="' + fr + '"><span class="rg"></span><div class="ro">' +
+        '<img class="ly fr" alt="" src="' + fr + '">' +
+        '<img class="ly sr" alt="" src="' + sd + '">' +
+        '<img class="ly bk" alt="" src="' + bk + '">' +
+        '<img class="ly sl" alt="" src="' + sd + '">' +
+        '</div>';
       document.body.appendChild(el); setTimeout(function () { if (el.parentNode) el.remove(); }, 3500);
     };
     window.apErPick = function (i) {
