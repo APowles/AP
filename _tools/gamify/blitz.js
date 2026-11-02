@@ -350,8 +350,13 @@ function deck(el,m,n,x,y,face,gap){clear(el);const cs=[];for(let i=0;i<n;i++){co
     else if (k === 'tick') { if (CFG.ticks) note(440, 0, .07, .09); }
     else if (k === 'thump') { note(120, 0, .12, .2); note(72, .01, .18, .2); }
     else if (k === 'holoscan') {
-      var c = ctx(); if (!c || !snd) return; var t0 = c.currentTime, v = .11 * CFG.vol;
-      [[700, 1900, .55, 'sine'], [1400, 3600, .5, 'triangle']].forEach(function (p) { var o = c.createOscillator(), g = c.createGain(); o.type = p[3]; o.frequency.setValueAtTime(p[0], t0); o.frequency.exponentialRampToValueAtTime(p[1], t0 + p[2] * .9); g.gain.setValueAtTime(.0001, t0); g.gain.exponentialRampToValueAtTime(v, t0 + .05); g.gain.exponentialRampToValueAtTime(.0001, t0 + p[2]); var f = c.createBiquadFilter(); f.type = 'bandpass'; f.frequency.value = 2200; f.Q.value = 1.6; o.connect(f); f.connect(g); g.connect(c.destination); o.start(t0); o.stop(t0 + p[2] + .05); });
+      var c = ctx(); if (!c || !snd) return; var t0 = c.currentTime, v = .07 * CFG.vol, up = arguments[1] !== false;
+      var o = c.createOscillator(), g = c.createGain(), fl = c.createBiquadFilter();
+      o.type = 'sine'; o.frequency.setValueAtTime(up ? 420 : 1800, t0); o.frequency.exponentialRampToValueAtTime(up ? 1800 : 420, t0 + 4.8);
+      fl.type = 'bandpass'; fl.frequency.setValueAtTime(up ? 900 : 2400, t0); fl.frequency.exponentialRampToValueAtTime(up ? 2400 : 900, t0 + 4.8); fl.Q.value = 2.2;
+      g.gain.setValueAtTime(.0001, t0); g.gain.exponentialRampToValueAtTime(v, t0 + .5); g.gain.setValueAtTime(v, t0 + 4.3); g.gain.exponentialRampToValueAtTime(.0001, t0 + 5);
+      o.connect(fl); fl.connect(g); g.connect(c.destination); o.start(t0); o.stop(t0 + 5.1);
+      var o2 = c.createOscillator(), g2 = c.createGain(); o2.type = 'triangle'; o2.frequency.setValueAtTime(up ? 1680 : 7200, t0); o2.frequency.exponentialRampToValueAtTime(up ? 7200 : 1680, t0 + 4.8); g2.gain.setValueAtTime(.0001, t0); g2.gain.exponentialRampToValueAtTime(v * .4, t0 + .8); g2.gain.setValueAtTime(v * .4, t0 + 4.3); g2.gain.exponentialRampToValueAtTime(.0001, t0 + 5); o2.connect(g2); g2.connect(c.destination); o2.start(t0); o2.stop(t0 + 5.1);
     }
     else if (k === 'holoact') {
       var c = ctx(); if (!c || !snd) return; var t0 = c.currentTime, v = .22 * CFG.vol;
@@ -817,7 +822,7 @@ function deck(el,m,n,x,y,face,gap){clear(el);const cs=[];for(let i=0;i<n;i++){co
     '@keyframes erfloat{from{transform:translateY(0)}to{transform:translateY(-9px)}}',
     '.er-hp .fg img{display:block;height:var(--fh);width:auto;animation:erflk 6s linear infinite;animation-delay:var(--d)}',
     '@keyframes erflk{0%,44%,56%,100%{opacity:1}46%{opacity:.72}48%{opacity:1}50%{opacity:.84}52%{opacity:1}}',
-    '.er-hp .sn,.er-hp .sn::after,.er-car .sn,.er-car .sn::after{position:absolute;inset:0;-webkit-mask-image:var(--im);mask-image:var(--im);-webkit-mask-size:100% 100%;mask-size:100% 100%;pointer-events:none}.er-hp .sn,.er-car .sn{background:linear-gradient(0deg,transparent 40%,var(--sl) 50%,transparent 60%);background-size:100% 300%;animation:erscan 3.2s linear infinite;mix-blend-mode:screen;filter:brightness(1.3)}.er-hp .sn{animation-delay:var(--d)}.er-hp .sn::after,.er-car .sn::after{content:"";background:repeating-linear-gradient(0deg,transparent 0 3px,var(--sl) 3px 4px);opacity:.3}',
+    '.er-hp .sn,.er-hp .sn::after,.er-car .sn,.er-car .sn::after{position:absolute;inset:0;-webkit-mask-image:var(--im);mask-image:var(--im);-webkit-mask-size:100% 100%;mask-size:100% 100%;pointer-events:none}.er-hp .sn,.er-car .sn{background:linear-gradient(0deg,transparent 40%,var(--sl) 50%,transparent 60%);background-size:100% 300%;animation:erscan 5s ease-in-out infinite alternate;mix-blend-mode:screen;filter:brightness(1.3)}.er-hp .sn{animation-delay:var(--d)}.er-hp .sn::after,.er-car .sn::after{content:"";background:repeating-linear-gradient(0deg,transparent 0 3px,var(--sl) 3px 4px);opacity:.3}',
     '@keyframes erscan{from{background-position:0 0,0 0%}to{background-position:0 0,0 100%}}',
     '.er-hp small{position:relative;z-index:3;padding:2px 10px;border-radius:999px;background:rgba(8,16,40,.85);border:1px solid var(--hc);color:#e8f6ff;box-shadow:0 0 8px var(--hc)}',
     '.er-hp:hover .fg,.er-hp.sel .fg{filter:drop-shadow(0 0 4px #fff) drop-shadow(0 0 20px var(--hc)) drop-shadow(0 0 48px var(--hc)) brightness(1.32) saturate(1.15)}.er-hp.sel .fl{scale:1.1}.er-hp.sel .bm{opacity:.85}.er-hp.sel small{color:#fff;font-size:.88rem}.er-hp.tk{opacity:.62}.er-hp.sel{opacity:1}',
@@ -1567,7 +1572,7 @@ function deck(el,m,n,x,y,face,gap){clear(el);const cs=[];for(let i=0;i<n;i++){co
     function qOf(c) { var v = hvOf(c); return v.hl ? esc(v.hl[0]) + '<b class="hl">' + esc(v.hl[1]) + '</b>' + esc(v.hl[2]) : esc(c.q); }
     function sz(c) { var L = c.q.length; return L > 120 ? ' fl-xl' : L > 60 ? ' fl-lg' : ''; }
     var holoT = null;
-    function holoStart() { holoStop(); if (!snd) return; try { sfx('holoscan'); } catch (e) { } holoT = setInterval(function () { try { sfx('holoscan'); } catch (e) { } }, 3200); }
+    function holoStart() { holoStop(); if (!snd) return; var up = true; function tick() { try { sfx('holoscan', up); } catch (e) { } up = !up; } tick(); holoT = setInterval(tick, 5000); }
     function holoStop() { if (holoT) { clearInterval(holoT); holoT = null; } } window.__erHoloStop = function () { if (holoT) { clearInterval(holoT); holoT = null; } };
     function pickHTML(P, start) {
       if (pickTurn >= P) pickTurn = 0;
