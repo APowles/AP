@@ -1432,8 +1432,8 @@ function deck(el,m,n,x,y,face,gap){clear(el);const cs=[];for(let i=0;i<n;i++){co
     var SQ = [
       ['Your House', 'f0', 'Start'], ['Keate\'s Lane'], ['Evans\'s'], ['Rowland\'s & Tap', 'g', 'Go again', 'again'], ['High Street'], ['Budgens', 'g', 'Forward 4', 4],
       ['Barnes Pool'], ['Baldwin\'s Shore'], ['Collect the post (School Office)', 'b', 'A job: back 1', -1], ['Brewhouse'], ['Cloisters'], ['College Chapel', 'b', 'Miss a go', 'miss'],
-      ['Porters\' Lodge'], ['School Yard'], ['Detention (Lower School)', 'b', 'Back 4', -4], ['Sign the Tardy Book (School Office)', 'b', 'Punishment: back 2', -2], ['School Library', 'g', 'Forward 2', 2], ['Durnford'],
-      ['Hawtrey'], ['Carter'], ['Bekynton'], ['Music School', 'g', 'Go again', 'again'], ['Eton Wick Road'], ['South Meadow Lane'],
+      ['2 Days\' Close Gating', 'b', 'Worst: miss 2 goes', 'miss2'], ['School Yard'], ['Detention (Lower School)', 'b', 'Back 4', -4], ['Sign the Tardy Book (School Office)', 'b', 'Punishment: back 2', -2], ['School Library', 'g', 'Forward 2', 2], ['Durnford'],
+      ['Three Show Ups in one day', 'g', 'Great news: forward 5', 5], ['Carter'], ['Missed 2nd music lesson in a row', 'b', 'Back 3', -3], ['Music School', 'g', 'Go again', 'again'], ['Eton Wick Road'], ['South Meadow Lane'],
       ['Lower Chapel'], ['Rain walk: Allington to Queen\'s', 'b', 'Long walk: back 2', -2], ['Lecture in Jafar Hall', 'b', 'Miss a go', 'miss'], ['Birley Schools', 'f', 'Finish']
     ], LAST = SQ.length - 1, COLS = 7, ROWS = Math.ceil(SQ.length / COLS);
     function nm(s) { return pnGet(s, 'Team ' + (s + 1)); }
@@ -1452,7 +1452,7 @@ function deck(el,m,n,x,y,face,gap){clear(el);const cs=[];for(let i=0;i<n;i++){co
     function play() {
       stop();
       var P = CFG.erP, pos = [], skip = [], cur = 0, busy = false, deck = [], di = 0, qd = null, turns = 0, msg = '';
-      for (var s = 0; s < P; s++) { pos.push(0); skip.push(false); }
+      for (var s = 0; s < P; s++) { pos.push(0); skip.push(0); }
       msg = P > 1 ? nm(0) + ', your go.' : 'Your go.';
       function nextQ() { if (di >= deck.length) { deck = shuf(p); di = 0; } return deck[di++]; }
       function bar() {
@@ -1484,7 +1484,7 @@ function deck(el,m,n,x,y,face,gap){clear(el);const cs=[];for(let i=0;i<n;i++){co
       function backA() { var v = hvOf(qd); return who() + '<div class="fl-qs">' + qOf(qd) + '</div><div class="fl-ans' + (String(v.a).length > 95 ? ' fl-lg' : '') + '">' + esc(v.a) + ' ' + SAYBTN(v.a) + '</div><div class="fl-m"><button class="fl-n" onclick="apErMk(0)">✗ Major error</button><button class="fl-nr" onclick="apErMk(2)">~ Nearly</button><button class="fl-y" onclick="apErMk(1)">✓ Got it</button></div>'; }
       window.apErAsk = function () {
         if (busy) return;
-        if (skip[cur]) { skip[cur] = false; msg = nm(cur) + ' misses this go.'; cur = (cur + 1) % P; msg += ' ' + (P > 1 ? nm(cur) + ', your go.' : ''); sfx('tick'); refresh(); return; }
+        if (skip[cur] > 0) { skip[cur]--; msg = nm(cur) + ' misses this go.'; cur = (cur + 1) % P; msg += ' ' + (P > 1 ? nm(cur) + ', your go.' : ''); sfx('tick'); refresh(); return; }
         busy = true; qd = nextQ(); sfx('whoosh'); refresh();
         var st = document.createElement('div'); st.id = 'er-stage'; st.className = 'fl-stage'; st.innerHTML = '<div class="c4-q" id="er-q">' + backQ() + '</div>'; ov.appendChild(st);
         try { $('er-q').animate([{ transform: 'translateY(80px) rotateX(38deg) scale(.88)', opacity: 0 }, { transform: 'none', opacity: 1 }], { duration: 520, easing: 'cubic-bezier(.2,.8,.2,1)' }); } catch (e) { }
@@ -1513,7 +1513,7 @@ function deck(el,m,n,x,y,face,gap){clear(el);const cs=[];for(let i=0;i<n;i++){co
         msg = (q[0] + ': ' + q[2] + '.'); refresh();
         timers.push(setTimeout(function () {
           if (e === 'again') { sfx('good'); nextTurn(true); }
-          else if (e === 'miss') { sfx('bad'); skip[me] = true; nextTurn(false); }
+          else if (e === 'miss' || e === 'miss2') { sfx('bad'); skip[me] = e === 'miss2' ? 2 : 1; nextTurn(false); }
           else { sfx(e > 0 ? 'whoosh' : 'bad'); pos[me] = Math.max(0, Math.min(LAST - 1, pos[me] + e)); setCar(me, true); refresh(); timers.push(setTimeout(function () { nextTurn(false); }, 900)); }
         }, 900));
       }
