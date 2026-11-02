@@ -854,6 +854,14 @@ function deck(el,m,n,x,y,face,gap){clear(el);const cs=[];for(let i=0;i<n;i++){co
     '.er-btn{height:34px;padding:0 14px;border-radius:10px;border:1.5px solid rgba(201,168,76,.5);background:rgba(8,14,32,.65);color:#f3ead0;font:700 .82rem/1 "DM Sans",sans-serif;cursor:pointer;display:inline-flex;align-items:center;letter-spacing:.02em}.er-btn:hover{box-shadow:0 0 0 2px rgba(201,168,76,.3)}.er-btn[disabled]{opacity:.4;cursor:default}',
     '.er-btn.er-go{background:linear-gradient(135deg,#c9a84c,#e3c571);color:#1a2744;border-color:#c9a84c;font-weight:800;text-transform:uppercase;letter-spacing:.06em;box-shadow:0 2px 6px rgba(0,0,0,.3)}.er-btn.er-go:hover{filter:brightness(1.08);box-shadow:0 2px 10px rgba(201,168,76,.5)}',
     '.er-btn.er-how-b{color:#a8bff0;border-color:rgba(168,191,240,.4)}',
+    '.er-off-bg{position:fixed;inset:0;z-index:11800;background:radial-gradient(circle at 50% 50%,rgba(5,10,24,.7),rgba(0,0,0,.88));backdrop-filter:blur(3px);animation:erdcBg .35s ease-out both}',
+    '.er-off{position:fixed;left:50%;top:52%;transform:translate(-50%,-50%);width:min(640px,92vw);z-index:11900;padding:34px 42px 32px;border-radius:22px;background:linear-gradient(160deg,#1a2a52,#0a1430);border:4px solid #f4d77a;box-shadow:0 24px 70px rgba(0,0,0,.85),0 0 70px rgba(244,215,122,.35);color:#f6efd8;text-align:center;animation:erdcIn .5s cubic-bezier(.2,.9,.3,1.4)}',
+    '.er-off .tp{font:800 .85rem/1 "DM Sans",sans-serif;letter-spacing:.4em;text-transform:uppercase;color:#f4d77a;margin-bottom:16px}',
+    '.er-off .t{font:800 2.1rem/1.15 Georgia,serif;color:#fff;margin-bottom:12px;text-shadow:0 2px 8px rgba(0,0,0,.5)}',
+    '.er-off .x{font:600 1.1rem/1.35 "DM Sans",sans-serif;color:#dfe7fb;margin-bottom:26px}',
+    '.er-off .x b.g{color:#5fe3a0}.er-off .x b.b{color:#ff7b6b}',
+    '.er-off .bts{display:flex;gap:14px;justify-content:center;flex-wrap:wrap}',
+    '.er-off .er-off-b{height:52px;min-width:200px;font-size:1rem;border-radius:12px}'
     '.er-st-ask{color:#f6efd8;font-weight:700;background:rgba(8,14,32,.75)!important;border-color:rgba(244,215,122,.5)!important}',
     '.er-btn.er-take,.er-btn.er-pass{min-width:160px;justify-content:center;font-size:.88rem;font-weight:800;text-transform:uppercase;letter-spacing:.06em}',
     '.er-btn.er-take{background:linear-gradient(135deg,#2a8f54,#4cdc78)!important;color:#06240e!important;border-color:#4cdc78!important;animation:erTake 1.5s ease-in-out infinite}',
@@ -1704,8 +1712,7 @@ function deck(el,m,n,x,y,face,gap){clear(el);const cs=[];for(let i=0;i<n;i++){co
       var ofr = null;
       function rowHTML() {
         var h = bar();
-        if (ofr && ofr.t === 'ask') h += '<div class="er-chip er-st er-st-ask">Eton Rules card? Good news or bad &mdash; take a chance?</div><button class="er-btn er-take" onclick="apErCard(1)">✓ Take the card</button><button class="er-btn er-pass" onclick="apErCard(0)">✗ Not this time</button>';
-        else h += '<div class="er-chip er-st" id="er-st">' + esc(msg) + '</div><button class="er-btn er-how-b" onclick="apErHow(1)">How to play</button><button class="er-btn er-go" id="er-go" onclick="apErAsk()"' + (busy ? ' disabled' : '') + '>' + (P > 1 ? esc(nm(cur)) + ': ' : '') + 'Answer</button>';
+        h += '<div class="er-chip er-st" id="er-st">' + esc(msg) + '</div><button class="er-btn er-how-b" onclick="apErHow(1)">How to play</button><button class="er-btn er-go" id="er-go" onclick="apErAsk()"' + (busy || (ofr && ofr.t === 'ask') ? ' disabled' : '') + '>' + (P > 1 ? esc(nm(cur)) + ': ' : '') + 'Answer</button>';
         return h;
       }
       function refresh() {
@@ -1771,9 +1778,15 @@ function deck(el,m,n,x,y,face,gap){clear(el);const cs=[];for(let i=0;i<n;i++){co
       }
       function offer(ag) {
         var me = cur; ofr = { t: 'ask' }; refresh();
+        var bg = document.createElement('div'); bg.className = 'er-off-bg';
+        var el = document.createElement('div'); el.className = 'er-off';
+        el.innerHTML = '<div class="tp">Eton Rules Card</div><div class="t">Take a chance?</div><div class="x">The card could be <b class="g">good news</b> or <b class="b">bad news</b>.</div><div class="bts"><button class="er-btn er-take er-off-b" onclick="apErCard(1)">✓ Take the card</button><button class="er-btn er-pass er-off-b" onclick="apErCard(0)">✗ Not this time</button></div>';
+        ov.appendChild(bg); ov.appendChild(el);
+        try { sfx('whoosh'); } catch (e) { }
+        function kill() { if (bg.parentNode) bg.remove(); if (el.parentNode) el.remove(); }
         window.apErCard = function (t) {
           if (!ofr || ofr.t !== 'ask') return;
-          ofr = null; refresh();
+          ofr = null; kill(); refresh();
           if (!t) { msg = (P > 1 ? nm(me) + ' passed' : 'You passed') + ' on the card.'; refresh(); timers.push(setTimeout(function () { nextTurn(ag); }, 900)); return; }
           var c = CARDS[Math.floor(Math.random() * CARDS.length)];
           drawCardShow(c, function () { eff(me, c[2], function (a2) { nextTurn(ag || a2); }); });
