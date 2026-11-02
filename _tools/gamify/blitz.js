@@ -822,6 +822,9 @@ function deck(el,m,n,x,y,face,gap){clear(el);const cs=[];for(let i=0;i<n;i++){co
     '.er-show .rg{position:absolute;left:50%;bottom:-2%;width:150%;aspect-ratio:3.4;transform:translateX(-50%);border-radius:50%;border:3px solid var(--hc);box-shadow:0 0 30px var(--hc),inset 0 0 30px var(--hc);background:radial-gradient(ellipse,rgba(255,255,255,.4),transparent 70%)}',
     '.er-show .ro{position:absolute;inset:0;transform-style:preserve-3d;animation:ershowro 5s linear .3s both}@keyframes ershowro{from{transform:rotateY(0)}to{transform:rotateY(360deg)}}',
     '.er-show .er-mv{position:absolute;inset:0;width:100%;height:100%;--poster-color:transparent;background:transparent;filter:drop-shadow(0 0 18px var(--hc)) drop-shadow(0 0 40px var(--hc)) brightness(1.08) saturate(1.05)}',
+    '.er-show .er-face{position:absolute;inset:0;width:100%;height:100%;object-fit:contain;object-position:50% 100%;opacity:0;pointer-events:none;z-index:3;filter:drop-shadow(0 0 18px var(--hc)) drop-shadow(0 0 40px var(--hc)) brightness(1.08) saturate(1.05)}',
+    '.er-show .er-face.on{animation:erFace 5s linear infinite}',
+    '@keyframes erFace{0%,10%{opacity:1}22%,78%{opacity:0}90%,100%{opacity:1}}',
     '.er-show .ly{position:absolute;inset:0;width:100%;height:100%;backface-visibility:visible;-webkit-backface-visibility:visible;object-fit:contain}',
     '.er-show .ly.a0{transform:rotateY(0deg) translateZ(1px);animation:erOp0 5s linear .3s both}',
     '.er-show .ly.a1{transform:rotateY(-45deg) translateZ(1px);animation:erOp1 5s linear .3s both}',
@@ -1703,8 +1706,10 @@ function deck(el,m,n,x,y,face,gap){clear(el);const cs=[];for(let i=0;i<n;i++){co
         '</div>';
     }
     function glb3DShowcase(i, el) {
-      el.innerHTML = '<span class="rg"></span><model-viewer class="er-mv" src="icons/er_p' + i + '.glb" auto-rotate auto-rotate-delay="0" rotation-per-second="72deg" camera-orbit="0deg 85deg 2.4m" field-of-view="25deg" interaction-prompt="none" disable-zoom disable-pan exposure="1.15" shadow-intensity="0" environment-image="neutral" skybox-image=""></model-viewer>';
+      el.innerHTML = '<span class="rg"></span><model-viewer class="er-mv" src="icons/er_p' + i + '.glb" auto-rotate auto-rotate-delay="0" rotation-per-second="72deg" camera-orbit="0deg 85deg 2.4m" field-of-view="25deg" interaction-prompt="none" disable-zoom disable-pan exposure="1.15" shadow-intensity="0" environment-image="neutral" skybox-image=""></model-viewer><img class="er-face" alt="" src="icons/er_p' + i + '.webp">';
       loadMV(function () { });
+      var mv = el.querySelector('.er-mv');
+      if (mv) mv.addEventListener('load', function () { var f = el.querySelector('.er-face'); if (f) f.classList.add('on'); }, { once: true });
     }
     window.apErShow = function (i) {
       var o = document.querySelector('.er-show'); if (o) { if (o.__kill) o.__kill(); o.remove(); }
