@@ -472,7 +472,7 @@ function deck(el,m,n,x,y,face,gap){clear(el);const cs=[];for(let i=0;i<n;i++){co
   function clean(s) { return String(s == null ? '' : s).replace(/[*_]/g, '').trim(); }
   function dirs() { var f = H.from(), t = H.to(); if (f !== 'en' && t !== 'en') { f = 'en'; } return [f, t]; }
   function target() { var d = dirs(); return d[1] !== 'en' ? d[1] : d[0]; }
-  function pool() { var d = dirs(), f = d[0], t = d[1], out = []; H.phrases().forEach(function (p) { var q = clean(p[f]), a = clean(p[t]); if (q && a) out.push({ q: q, a: a, sec: p.sec, en: clean(p.en), tl: clean(p[target()]), hv: p.hv || null, hf: f, ht: t }); }); return out; }
+  function pool() { var d = dirs(), f = d[0], t = d[1], out = []; H.phrases().forEach(function (p) { var q = clean(p[f]), a = clean(p[t]); if (p.ask) { q = clean(p.en); a = clean(p.fr); } if (q && a) out.push({ ask: p.ask ? 1 : 0, q: q, a: a, sec: p.sec, en: clean(p.en), tl: clean(p[target()]), hv: p.hv || null, hf: f, ht: t }); }); return out; }
   function shuf(a) { a = a.slice(); for (var i = a.length - 1; i > 0; i--) { var j = Math.floor(Math.random() * (i + 1)), x = a[i]; a[i] = a[j]; a[j] = x; } return a; }
   function esc(s) { return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;'); }
   var stopHook = null;
@@ -1301,8 +1301,8 @@ function deck(el,m,n,x,y,face,gap){clear(el);const cs=[];for(let i=0;i<n;i++){co
       function sz(c) { var L = c.q.length; return L > 120 ? ' fl-xl' : L > 60 ? ' fl-lg' : ''; }
       function backQ(cd) {
         if (cd.sur) return '<div class="fl-sur"><div class="fl-ic">' + cd.sur[1] + '</div><h2>' + cd.sur[2] + '</h2><p>' + cd.sur[3] + '</p></div><button class="bz-big go" onclick="apFlSur()">OK</button>';
-        var v = hvOf(cd.c);
-        return who(cd) + '<div class="fl-q' + sz(cd.c) + '">' + qOf(cd.c) + '</div>' + '<div class="fl-hl">' + (v.hl ? 'Translate only the highlighted part into ' : 'Translate into ') + esc(H.names[dirs()[1]]) + '</div>' + '<div class="fl-hint">Say it, then reveal</div><button class="bz-big go" onclick="apFlRev()">Reveal</button>';
+        var v = hvOf(cd.c), CARD = cd.c;
+        return who(cd) + '<div class="fl-q' + sz(cd.c) + '">' + qOf(cd.c) + '</div>' + '<div class="fl-hl">' + (CARD.ask ? 'Answer the question in ' + esc(H.names[target()]) : (v.hl ? 'Translate only the highlighted part into ' : 'Translate into ') + esc(H.names[dirs()[1]])) + '</div>' + '<div class="fl-hint">Say it, then reveal</div><button class="bz-big go" onclick="apFlRev()">Reveal</button>';
       }
       function backA(cd) {
         var v = hvOf(cd.c);
@@ -1420,7 +1420,7 @@ function deck(el,m,n,x,y,face,gap){clear(el);const cs=[];for(let i=0;i<n;i++){co
       try { if (BZ.bcard) { ov.style.setProperty('--fl-card', 'url(' + BZ.bcard + ')'); ov.classList.add('flc-img'); } } catch (e) { }
       frame('Four in a row', bar() + '<div class="c4-wrap"><div class="c4-st" id="c4-st">' + esc(msg) + '</div><div class="c4-cols" id="c4-cols">' + cols() + '</div><div class="c4-board" id="c4-board"><div class="c4-edge"></div><div class="c4-lay" id="c4-lay"></div><div class="c4-face"></div><div class="c4-rim"></div><div class="c4-gloss"></div></div></div>');
       function who() { return '<small class="fl-who"><span style="color:' + TXC[cur] + '">' + esc(nm(cur)) + ' · ' + COLN[cur] + '</span> · column ' + (pend + 1) + ' · ' + esc(H.names[dirs()[0]]) + '</small>'; }
-      function backQ() { var v = hvOf(qd); return who() + '<div class="fl-q' + sz(qd) + '">' + qOf(qd) + '</div>' + '<div class="fl-hl">' + (v.hl ? 'Translate only the highlighted part into ' : 'Translate into ') + esc(H.names[dirs()[1]]) + '</div>' + '<div class="fl-hint">Say it, then reveal</div><button class="bz-big go" onclick="apC4Rev()">Reveal</button>'; }
+      function backQ() { var v = hvOf(qd), CARD = qd; return who() + '<div class="fl-q' + sz(qd) + '">' + qOf(qd) + '</div>' + '<div class="fl-hl">' + (CARD.ask ? 'Answer the question in ' + esc(H.names[target()]) : (v.hl ? 'Translate only the highlighted part into ' : 'Translate into ') + esc(H.names[dirs()[1]])) + '</div>' + '<div class="fl-hint">Say it, then reveal</div><button class="bz-big go" onclick="apC4Rev()">Reveal</button>'; }
       function backA() { var v = hvOf(qd); return who() + '<div class="fl-qs">' + qOf(qd) + '</div><div class="fl-ans' + (String(v.a).length > 95 ? ' fl-lg' : '') + '">' + esc(v.a) + ' ' + SAYBTN(v.a) + '</div><div class="fl-m"><button class="fl-n" onclick="apC4Mk(0)">✗ Major error</button><button class="fl-nr" onclick="apC4Mk(2)">~ Nearly</button><button class="fl-y" onclick="apC4Mk(1)">✓ Got it</button></div>'; }
       window.apC4Pick = function (c) {
         if (busy || colFull(c)) return; busy = true; pend = c; qd = nextQ(); sfx('whoosh');
