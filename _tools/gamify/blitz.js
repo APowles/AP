@@ -1703,7 +1703,7 @@ function deck(el,m,n,x,y,face,gap){clear(el);const cs=[];for(let i=0;i<n;i++){co
         '</div>';
     }
     function glb3DShowcase(i, el) {
-      el.innerHTML = '<span class="rg"></span><model-viewer class="er-mv" src="icons/er_p' + i + '.glb" auto-rotate auto-rotate-delay="0" rotation-per-second="72deg" camera-orbit="0deg 85deg 2.4m" field-of-view="25deg" interaction-prompt="none" disable-zoom disable-pan exposure="1.15" shadow-intensity="0" ar-status="not-presenting"></model-viewer>';
+      el.innerHTML = '<span class="rg"></span><model-viewer class="er-mv" src="icons/er_p' + i + '.glb" auto-rotate auto-rotate-delay="0" rotation-per-second="72deg" camera-orbit="0deg 85deg 2.4m" field-of-view="25deg" interaction-prompt="none" disable-zoom disable-pan exposure="1.15" shadow-intensity="0" environment-image="neutral" skybox-image=""></model-viewer>';
       loadMV(function () { });
     }
     window.apErShow = function (i) {
