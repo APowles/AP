@@ -8022,7 +8022,7 @@ if (window.__cj && window.__cj.inSet) { var _vqInSet0 = window.__cj.inSet; windo
 .ms-big{font-size:1.5rem;font-weight:600;text-align:center;margin:10px 0;line-height:1.35}
 .ms-in{width:100%;box-sizing:border-box;font:inherit;font-size:1.25rem;padding:12px 14px;border:2px solid #c9d0e0;border-radius:12px;margin:8px 0;-webkit-appearance:none}
 .ms-in:focus{outline:none;border-color:#c9a84c}
-textarea.ms-in{min-height:7rem;resize:vertical}
+textarea.ms-in{min-height:7rem;resize:vertical}.ms-hint.ms-hint-sm{font-size:.78rem;line-height:1.3;padding:5px 10px;margin:4px 0 0;opacity:.85}.ms-b.ms-b-sm{font-size:.9rem;padding:6px 14px;min-height:36px;border-radius:10px}textarea.ms-in.ms-in-big{min-height:8.5rem;font-size:1.4rem;margin:6px 0}
 .ms-hint{font-size:.9rem;line-height:1.35;color:#5a6580;background:#f6f3ea;border-left:4px solid #c9a84c;border-radius:8px;padding:8px 12px;margin:10px 0 2px}
 .ms-ans{font-size:1.375rem;font-weight:600;text-align:center;margin:12px 0;line-height:1.5}
 .ms-w.ok{color:#1f8a4c}.ms-w.acc{color:#c77d00;text-decoration:underline wavy}.ms-w.no{color:#c0392b;text-decoration:underline}
@@ -8647,17 +8647,17 @@ textarea.ms-in{min-height:7rem;resize:vertical}
     if (sp.i >= sp.d.length) return spEnd();
     var c = sp.d[sp.i]; sp.rev = false;
     ov(head('✍ Spell it', esc(sp.label) + ' · card ' + (sp.i + 1) + ' of ' + sp.d.length) + '<div class="ms-bar"><div style="width:' + Math.round(sp.i / sp.d.length * 100) + '%"></div></div>'
-      + '<div class="ms-cen"><button class="ms-b pri" onclick="apSpListen()">🔊 Listen</button>' + (c.en ? '<button class="ms-b" onclick="apSpHint()">Show English</button>' : '') + '</div>'
+      + '<div class="ms-cen"><button class="ms-b ms-b-sm pri" onclick="apSpListen()">🔊 Listen</button>' + (c.en ? '<button class="ms-b ms-b-sm" onclick="apSpHint()">Show English</button>' : '') + '</div>'
       + '<div class="ms-note" style="text-align:center">' + esc(c.lab) + '</div>'
       + '<div class="ms-big" id="ms-mean" style="display:none;font-weight:500;color:#4a5570;font-size:1.125rem">' + esc(c.en) + '</div>'
-      + '<div class="ms-hint">✏ Apple Pencil: write in the box and your writing is turned into text for checking. Write very clearly, and print difficult words in separate letters (no joined-up writing).</div>' + '<textarea id="ms-in" class="ms-in" rows="3" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false" lang="it" placeholder="Type what you hear, or write it here with your Apple Pencil"></textarea>'
-      + '<div class="ms-cen"><button class="ms-b pri" onclick="apSpCheck()">Check</button></div><div id="ms-res"></div>');
+      + '<div class="ms-hint ms-hint-sm">✏ Apple Pencil: write in the box and your writing is turned into text for checking. Write very clearly, and print difficult words in separate letters (no joined-up writing).</div>' + '<textarea id="ms-in" class="ms-in ms-in-big" rows="3" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false" lang="it" placeholder="Type what you hear, or write it here with your Apple Pencil"></textarea>'
+      + '<div class="ms-cen" style="margin-top:30px"><button class="ms-b ms-b-sm pri" onpointerdown="var t=document.getElementById(\'ms-in\');if(t)t.blur()" onclick="apSpCheck()">Check</button></div><div id="ms-res"></div>');
     keys(function (e) {
       if (!sp.rev) { if (e.key === 'Enter' && !e.shiftKey) { apSpCheck(); return true; } return false; }
       if (e.key === 'ArrowLeft') { apSpMark('bad'); return true; } if (e.key === 'ArrowDown') { apSpMark('near'); return true; } if (e.key === 'ArrowRight' || e.key === 'Enter') { apSpMark('ok'); return true; }
       return false;
     });
-    apSpListen(); var i = $('ms-in'); if (i) setTimeout(function () { try { i.focus(); } catch (e) { } }, 50);
+    apSpListen(); var i = $('ms-in'); if (i) { i.addEventListener('input', function () { var v = i.value; if (/\.\s*$/.test(v)) i.value = v.replace(/\s*\.+\s*$/, ''); }); setTimeout(function () { try { i.focus(); } catch (e) { } }, 50); }  /* a full stop (e.g. from a Pencil tap) is never kept in the box */
   }
   window.apSpListen = function () { var c = sp.d[sp.i]; speakIt(c.es); };
   window.apSpHint = function () { var m = $('ms-mean'); m.style.display = m.style.display === 'none' ? 'block' : 'none'; };
@@ -8665,19 +8665,45 @@ textarea.ms-in{min-height:7rem;resize:vertical}
   function noacc(s) { return s.normalize('NFD').replace(/[̀-ͯ]/g, ''); }
   window.apSpCheck = function () {
     if (sp.rev) return; sp.rev = true;
-    var c = sp.d[sp.i], typed = norm($('ms-in').value), ans = plain(c.es).replace(/[’‘`]/g, "'"), tw = typed ? typed.split(/\s+/) : [], bad = 0, acc = 0;
+    var c = sp.d[sp.i], typed = norm($('ms-in').value).replace(/[\s.]+$/, '') /* a stray full stop from the Pencil tap on Check is ignored */, ans = plain(c.es).replace(/[’‘`]/g, "'"), tw = typed ? typed.split(/\s+/) : [], typedL = norm($('ms-in').value.replace(/I/g, 'l')).replace(/[\s.]+$/, ''), tw2 = typedL ? typedL.split(/\s+/) : [], bad = 0, acc = 0;
+    var twA = tw.concat(tw2);
     var words = ans.split(/\s+/).map(function (w) {
       var k = w.toLowerCase(); if (!tw.length) return '<span class="ms-w">' + esc(w) + '</span>';
       var kw = k.replace(/[,.;:!?]+$/, '');
-      if (tw.indexOf(k) >= 0 || tw.indexOf(kw) >= 0) return '<span class="ms-w ok">' + esc(w) + '</span>';
-      if (tw.some(function (t) { return noacc(t) === noacc(k) || noacc(t) === noacc(kw); })) { acc++; return '<span class="ms-w acc">' + esc(w) + '</span>'; }
+      if (twA.indexOf(k) >= 0 || twA.indexOf(kw) >= 0) return '<span class="ms-w ok">' + esc(w) + '</span>';
+      if (twA.some(function (t) { return noacc(t) === noacc(k) || noacc(t) === noacc(kw); })) { acc++; return '<span class="ms-w acc">' + esc(w) + '</span>'; }
       bad++; return '<span class="ms-w no">' + esc(w) + '</span>';
     }).join(' ');
     var msg = !tw.length ? '' : (!bad && !acc && tw.length === ans.split(/\s+/).length ? 'Every word right, accents included.' : (acc ? acc + ' accent slip' + (acc > 1 ? 's' : '') + ' (wavy orange). ' : '') + (bad ? bad + ' word' + (bad > 1 ? 's' : '') + ' wrong or missing (red).' : ''));
     $('ms-res').innerHTML = '<div class="ms-ans" style="font-size:1.125rem">' + words + '</div>' + (msg ? '<div class="ms-note" style="text-align:center;font-size:1rem">' + msg + '</div>' : '') + (c.en ? '<div class="ms-note" style="text-align:center">' + esc(c.en) + '</div>' : '')
       + '<div class="aph-mark" style="margin-top:12px"><button class="aph-mark-btn bad" onclick="apSpMark(\'bad\')">✗ Major error<small>← key</small></button><button class="aph-mark-btn near" onclick="apSpMark(\'near\')">~ Nearly<small>↓ key</small></button><button class="aph-mark-btn ok" onclick="apSpMark(\'ok\')">✓ Got it<small>→ key</small></button></div>';
+    /* Spell it: a perfect answer (same words, same order, every accent right) is registered as Got it automatically */
+    var _sp = function (t) { return t.toLowerCase().replace(/[^\p{L}\p{N}'\-\s]/gu, ' ').replace(/\s+/g, ' ').trim(); };
+    var pm = document.getElementById('ms-res') && document.getElementById('ms-res').querySelector('.aph-mark'), _a1 = _sp(ans), _a2 = null;
+    if (pm && tw.length && (_sp(tw.join(' ')) === _a1 || _sp(tw2.join(' ')) === _a1 || _sp(tw.join(' ')) === _a2 || _sp(tw2.join(' ')) === _a2)) {
+      pm.outerHTML = '<div class="ms-tick" style="text-align:center;font:800 4.5rem/1 Georgia,serif;color:#1f8a4c;margin-top:6px">✓</div><div class="ms-big" style="text-align:center;color:#1f8a4c;font-size:1.25rem">Correct!</div><div class="ms-cen" style="margin-top:8px"><button class="ms-b pri" onclick="apSpMark(\'ok\')">Next →</button></div>';
+      apSpChime();
+      setTimeout(function () { if (document.getElementById('ms-res') && sp && sp.rev && sp.d[sp.i] === c) apSpMark('ok'); }, 2000);
+    }
     var i = $('ms-in'); if (i) i.blur();
   };
+  /* Spell it: soft low chime for a perfect answer (chosen by AP: "Gentle low three-note rise") */
+  var _chime = null, _chimeCtx = null;
+  function apSpChime() {
+    try {
+      if (!_chime) {
+        var SR = 22050, notes = [[196, 0, .4, .42], [247, .15, .4, .42], [294, .3, .9, .48], [98, .3, .9, .2]], N = Math.floor(1.25 * SR), buf = new Float32Array(N);
+        notes.forEach(function (n) { var s0 = Math.floor(n[1] * SR), d = Math.floor(n[2] * SR); for (var i = 0; i < d && s0 + i < N; i++) { buf[s0 + i] += Math.sin(2 * Math.PI * n[0] * i / SR) * Math.min(1, i / (SR * .012)) * Math.exp(-4.2 * i / d) * n[3]; } });
+        var out = new DataView(new ArrayBuffer(44 + N * 2)); function ws(o, t) { for (var i = 0; i < t.length; i++) out.setUint8(o + i, t.charCodeAt(i)); }
+        ws(0, 'RIFF'); out.setUint32(4, 36 + N * 2, true); ws(8, 'WAVEfmt '); out.setUint32(16, 16, true); out.setUint16(20, 1, true); out.setUint16(22, 1, true); out.setUint32(24, SR, true); out.setUint32(28, SR * 2, true); out.setUint16(32, 2, true); out.setUint16(34, 16, true); ws(36, 'data'); out.setUint32(40, N * 2, true);
+        for (var j = 0; j < N; j++) out.setInt16(44 + j * 2, Math.max(-1, Math.min(1, buf[j])) * 32767, true);
+        _chime = { f: buf, sr: SR, wav: new Uint8Array(out.buffer) };
+      }
+      var viaCtx = function () { var AC = window.AudioContext || window.webkitAudioContext; if (!AC) return; if (!_chimeCtx) _chimeCtx = new AC(); _chimeCtx.resume().then(function () { var ab = _chimeCtx.createBuffer(1, _chime.f.length, _chime.sr); ab.getChannelData(0).set(_chime.f); var src = _chimeCtx.createBufferSource(); src.buffer = ab; src.connect(_chimeCtx.destination); src.start(0); }).catch(function () { }); };
+      var a = new Audio(URL.createObjectURL(new Blob([_chime.wav], { type: 'audio/wav' }))), pr = a.play();
+      if (pr && pr.catch) pr.catch(viaCtx);
+    } catch (e) { }
+  }
   window.apSpMark = function (r) {
     var c = sp.d[sp.i]; record(c.card, r); sp[r === 'ok' ? 'ok' : r]++; if (r === 'bad') sp.miss.push(c); sp.i++; spCard();
   };
@@ -9156,11 +9182,18 @@ textarea.ms-in{min-height:7rem;resize:vertical}
   // ---- Spell settings: the same ⚙ Settings button on the Spell screen, to choose how many words ----
   function spellGear(sheet) {
     var hd = sheet.querySelector('.ms-head'), h2 = hd && hd.querySelector('h2'), tx = h2 ? (h2.textContent || '') : ''; if (!h2 || tx.indexOf('Spell') < 0 || tx.indexOf('done') >= 0) return;
-    if (hd.querySelector('.ms-gear-b') || typeof _selectedCount !== 'number' || typeof window.apSpell !== 'function') return;
+    if (hd.querySelector('.aph-pace') || typeof window.apSpell !== 'function') return;
     var x = hd.querySelector('.ms-x'); if (!x) return;
-    var b = document.createElement('button'); b.type = 'button'; b.className = 'ms-gear-b mfx-gear'; b.textContent = '⚙ Settings';
-    b.onclick = function (e) { e.stopPropagation(); spellPanel(sheet); };
-    var w = document.createElement('span'); w.className = 'ms-hr'; hd.insertBefore(w, x); w.appendChild(b); w.appendChild(x);
+    sheet.style.maxWidth = '1100px';   /* Spell it: a wider, shorter writing area, so the answer and the marking buttons stay on screen */
+    var sb = document.createElement('button'); sb.type = 'button'; sb.className = 'ms-gear-b mfx-gear aph-pace'; sb.textContent = '🎚 Speed & pauses'; sb.title = 'Voice speed and pause between sentences';
+    sb.onclick = function (e) { e.stopPropagation(); if (!window.AP_SP) return; window.AP_SP.toggle(e); var pp = document.getElementById('apsp-pop'); if (pp) { sheet.style.position = 'relative'; sheet.appendChild(pp); pp.style.top = '66px'; pp.style.right = '12px'; pp.style.marginTop = '0'; pp.style.zIndex = '12000'; } };   /* voice speed inside Spell it, as in every app */
+    var w = document.createElement('span'); w.className = 'ms-hr'; hd.insertBefore(w, x); w.appendChild(sb);
+    if (typeof _selectedCount === 'number') {   /* the word-count settings, where this app has them */
+      var b = document.createElement('button'); b.type = 'button'; b.className = 'ms-gear-b mfx-gear'; b.textContent = '⚙ Settings';
+      b.onclick = function (e) { e.stopPropagation(); spellPanel(sheet); };
+      w.appendChild(b);
+    }
+    w.appendChild(x);
   }
   function spellPanel(sheet) {
     if (sheet.querySelector('.mfx-set')) return;
@@ -11239,4 +11272,4 @@ function deck(el,m,n,x,y,face,gap){clear(el);const cs=[];for(let i=0;i<n;i++){co
   if (document.readyState === 'complete') start(); else window.addEventListener('load', start);
 })();
 </script>
-<script id="ap-build">window.__apBuild="a1472ec89b";</script>
+<script id="ap-build">window.__apBuild="7c2aa64bf2";</script>
