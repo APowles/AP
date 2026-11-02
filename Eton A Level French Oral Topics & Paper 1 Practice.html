@@ -21653,7 +21653,8 @@ function deck(el,m,n,x,y,face,gap){clear(el);const cs=[];for(let i=0;i<n;i++){co
   var ER3_FS = 'precision highp float;uniform sampler2D map;uniform vec3 tint;uniform float t;uniform float holo;varying vec2 vUv;varying vec3 vN;varying vec3 vV;varying float vY;'
     + 'void main(){vec4 c=texture2D(map,vUv);float nv=abs(dot(normalize(vN),normalize(vV)));float fr=pow(1.0-nv,2.4);'
     + 'float scan=0.5+0.5*sin(vY*150.0-t*5.0);float band=smoothstep(0.975,1.0,sin(vY*2.4+t*1.7));float flick=0.975+0.025*sin(t*41.0)*sin(t*13.0);'
-    + 'vec3 col=mix(c.rgb,c.rgb*vec3(0.78,0.92,1.12)+tint*0.2,0.55*holo);col+=tint*(fr*1.15+band*0.55)*holo;col*=(1.0-0.2*holo*scan)*flick;'
+    + 'float head=smoothstep(0.2,0.32,vY);float hscan=0.5+0.5*sin(vY*420.0+t*9.0);'
+    + 'vec3 col=mix(c.rgb,c.rgb*vec3(0.78,0.92,1.12)+tint*0.2,0.55*holo);col=mix(col,col*0.55+tint*0.75,head*0.6*holo);col+=tint*(fr*1.15+band*0.55)*holo;col*=(1.0-0.2*holo*scan)*(1.0-0.3*head*holo*hscan)*flick;'
     + 'float a=1.0-0.12*holo*scan;gl_FragColor=vec4(col,a);}';
   function er3Prep(o) {  // hologram material; centred at the origin and scaled to height 1, so every figure is framed exactly like its 2D picture
     var mats = [];
@@ -21783,7 +21784,7 @@ function deck(el,m,n,x,y,face,gap){clear(el);const cs=[];for(let i=0;i<n;i++){co
         try { var tc = new THREE.Color(PCS[i][2]); (obj.__mats || []).forEach(function (m) { m.uniforms.tint.value.copy(tc); }); } catch (e) { }
         // transporter motes: small lights in the figure's colour drifting up through the beam, drawn only while the model shows
         var sp = document.createElement('canvas'); sp.className = 'er-sp'; el.appendChild(sp); st.sp = sp;
-        var motes = [], NM = 120; for (var k = 0; k < NM; k++) motes.push({ x: .5 + (Math.random() + Math.random() + Math.random() - 1.5) * .22, y: Math.random(), v: .05 + Math.random() * .14, r: .6 + Math.random() * 1.6, p: Math.random() * 6.283, f: 2 + Math.random() * 4 });
+        var motes = [], NM = 170; for (var k = 0; k < NM; k++) motes.push(k < 120 ? { x: .5 + (Math.random() + Math.random() + Math.random() - 1.5) * .22, y: Math.random(), v: .05 + Math.random() * .14, r: .6 + Math.random() * 1.6, p: Math.random() * 6.283, f: 2 + Math.random() * 4 } : { hd: 1, x: .5 + (Math.random() + Math.random() - 1) * .16, y: .03 + Math.random() * .27, v: .02 + Math.random() * .05, r: .8 + Math.random() * 1.8, p: Math.random() * 6.283, f: 3 + Math.random() * 5 });
         var hc = PCS[i][2], last = 0;
         function drawMotes(now, k) {
           var w = el.clientWidth, h = el.clientHeight, d = Math.min(window.devicePixelRatio || 1, 2); if (!w || !h) return;
@@ -21791,7 +21792,7 @@ function deck(el,m,n,x,y,face,gap){clear(el);const cs=[];for(let i=0;i<n;i++){co
           var g = sp.getContext('2d'); if (!g) return; var dt = last ? Math.min(.05, (now - last) / 1000) : 0; last = now; var ts = now / 1000;
           g.setTransform(d, 0, 0, d, 0, 0); g.clearRect(0, 0, w, h); g.globalCompositeOperation = 'lighter';
           for (var j = 0; j < NM; j++) {
-            var m = motes[j]; m.y -= m.v * dt; if (m.y < -.02) { m.y = 1.02; m.x = .5 + (Math.random() + Math.random() + Math.random() - 1.5) * .22; }
+            var m = motes[j]; m.y -= m.v * dt; if (m.hd) { if (m.y < .03) { m.y = .3; m.x = .5 + (Math.random() + Math.random() - 1) * .16; } } else if (m.y < -.02) { m.y = 1.02; m.x = .5 + (Math.random() + Math.random() + Math.random() - 1.5) * .22; }
             var a = k * (.25 + .75 * (.5 + .5 * Math.sin(m.p + ts * m.f))); if (a < .02) continue;
             var x = m.x * w, y = m.y * h, rr = m.r * (w / 420);
             g.globalAlpha = a * .9; g.fillStyle = hc; g.beginPath(); g.arc(x, y, rr * 2.2, 0, 6.283); g.fill();
@@ -22539,4 +22540,4 @@ function deck(el,m,n,x,y,face,gap){clear(el);const cs=[];for(let i=0;i<n;i++){co
   if (document.readyState === 'complete') start(); else window.addEventListener('load', start);
 })();
 </script>
-<script id="ap-build">window.__apBuild="3df84a029f";</script>
+<script id="ap-build">window.__apBuild="9cb8b5f8c2";</script>
