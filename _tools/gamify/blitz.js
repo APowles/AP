@@ -622,7 +622,7 @@ function deck(el,m,n,x,y,face,gap){clear(el);const cs=[];for(let i=0;i<n;i++){co
 
   var FLCSS = [
     '#bz-ov .bz-top{position:relative;z-index:12}',
-    '.fl-opt{display:flex;flex-direction:column;align-items:center;gap:8px;margin:12px 0}.fl-opt>span{font-weight:700;color:#e9d28a;letter-spacing:.08em;text-transform:uppercase;font-size:.85rem}.fl-opt small{color:#c8d3ea;max-width:580px;text-align:center;line-height:1.4}',
+    '.fl-opt{display:flex;flex-direction:column;align-items:center;gap:8px;margin:12px 0}.fl-opt>span{font-weight:700;color:#e9d28a;letter-spacing:.08em;text-transform:uppercase;font-size:.85rem}.fl-opt small{color:#f2f5ff;max-width:580px;text-align:center;line-height:1.4;background:rgba(8,16,40,.78);padding:8px 14px;border-radius:12px;text-shadow:0 1px 2px #000;box-shadow:0 0 0 1px rgba(233,210,138,.25)}',
     '.fl-bar{display:flex;gap:12px;justify-content:center;align-items:stretch;margin:2px auto 10px}',
     '.fl-sd{display:flex;flex-direction:column;align-items:center;min-width:110px;padding:6px 16px;border-radius:14px;background:rgba(8,14,32,.62);border:2px solid rgba(255,255,255,.16);opacity:.7;transition:opacity .2s,box-shadow .2s}',
     '.fl-sd.on{opacity:1;border-color:var(--sc);box-shadow:0 0 0 2px var(--sc),0 0 24px rgba(0,0,0,.45)}.fl-sd b{font:800 1.8rem Georgia,serif;color:var(--sc,#e9d28a);line-height:1.1}.fl-sd small{color:#c8d3ea;font-size:.74rem;letter-spacing:.07em;text-transform:uppercase}',
