@@ -10902,10 +10902,10 @@ textarea.ms-in{min-height:7rem;resize:vertical}.ms-hint.ms-hint-sm{font-size:.78
   };
   function spCard() {
     if (sp.i >= sp.d.length) return spEnd();
-    var c = sp.d[sp.i]; sp.rev = false;
+    var c = sp.d[sp.i]; sp.rev = false; spFrag(c);
     ov(head('✍ Spell it', esc(sp.label) + ' · card ' + (sp.i + 1) + ' of ' + sp.d.length) + '<div class="ms-bar"><div style="width:' + Math.round(sp.i / sp.d.length * 100) + '%"></div></div>'
       + '<div class="ms-cen"><button class="ms-b ms-b-sm pri" onclick="apSpListen()">🔊 Listen again</button><button class="ms-b ms-b-sm" onclick="apSpHint()">Show English</button></div>'
-      + '<div class="ms-big" id="ms-mean" style="display:none;font-weight:500;color:#4a5570;font-size:1.125rem">' + esc(plain(c.en)) + '</div>'
+      + '<div class="ms-big" id="ms-mean" style="display:none;font-weight:500;color:#4a5570;font-size:1.125rem">' + esc(spEn(c)) + '</div>'
       + '<div class="ms-hint ms-hint-sm">✏ Apple Pencil: write in the box and your writing is turned into text for checking. Write very clearly, and print difficult words in separate letters (no joined-up writing).</div>' + '<textarea id="ms-in" class="ms-in ms-in-big" rows="3" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false" lang="' + sp.L + '" placeholder="Type what you hear, or write it here with your Apple Pencil"></textarea>'
       + '<div class="ms-cen" style="margin-top:30px"><button class="ms-b ms-b-sm pri" onpointerdown="var t=document.getElementById(\'ms-in\');if(t)t.blur()" onclick="apSpCheck()">Check</button></div><div id="ms-res"></div>');
     keys(function (e) {
@@ -10915,13 +10915,25 @@ textarea.ms-in{min-height:7rem;resize:vertical}.ms-hint.ms-hint-sm{font-size:.78
     });
     apSpListen(); var i = document.getElementById('ms-in'); if (i) { i.addEventListener('input', function () { var v = i.value; if (/\.\s*$/.test(v)) i.value = v.replace(/\s*\.+\s*$/, ''); }); setTimeout(function () { try { i.focus(); } catch (e) { } }, 50); }  /* a full stop (e.g. from a Pencil tap) is never kept in the box */
   }
-  window.apSpListen = function () { var c = sp.d[sp.i]; speak(plain(c[sp.L]), sp.L); };
+  /* Approved Material: Spell it uses the same shortened sentences as the Spot Test (a third or half of a long sentence, cut at clause breaks); short sentences stay whole */
+  function spFrag(c) {
+    c._sf = null;
+    try {
+      if (typeof window.amFragCands !== 'function' || sp.L === 'en') return;
+      var cs = window.amFragCands(c, sp.L, 'en'); if (!cs || !cs.length) return;
+      var x = cs[Math.floor(Math.random() * cs.length)], t = plain(String(c[sp.L]).slice(x.s, x.e)).trim();
+      if (t) c._sf = { fr: t, en: plain(String(x.ans || '')).trim() };
+    } catch (e) { c._sf = null; }
+  }
+  function spTxt(c) { return c._sf ? c._sf.fr : plain(c[sp.L]); }
+  function spEn(c) { return c._sf && c._sf.en ? c._sf.en : plain(c.en); }
+  window.apSpListen = function () { var c = sp.d[sp.i]; speak(spTxt(c), sp.L); };
   window.apSpHint = function () { var m = document.getElementById('ms-mean'); m.style.display = m.style.display === 'none' ? 'block' : 'none'; };
   function norm(s) { return plain(s).replace(/[’‘`]/g, "'").replace(/\s+([,.;:!?])/g, '$1').toLowerCase(); }
   function noacc(s) { return s.normalize('NFD').replace(/[̀-ͯ]/g, ''); }
   window.apSpCheck = function () {
     if (sp.rev) return; sp.rev = true;
-    var c = sp.d[sp.i], typed = norm(document.getElementById('ms-in').value).replace(/[\s.]+$/, '') /* a stray full stop from the Pencil tap on Check is ignored */, ans = plain(c[sp.L]).replace(/[’‘`]/g, "'"), tw = typed ? typed.split(/\s+/) : [], typedL = norm(document.getElementById('ms-in').value.replace(/I/g, 'l')).replace(/[\s.]+$/, ''), tw2 = typedL ? typedL.split(/\s+/) : [], bad = 0, acc = 0;
+    var c = sp.d[sp.i], typed = norm(document.getElementById('ms-in').value).replace(/[\s.]+$/, '') /* a stray full stop from the Pencil tap on Check is ignored */, ans = spTxt(c).replace(/[’‘`]/g, "'"), tw = typed ? typed.split(/\s+/) : [], typedL = norm(document.getElementById('ms-in').value.replace(/I/g, 'l')).replace(/[\s.]+$/, ''), tw2 = typedL ? typedL.split(/\s+/) : [], bad = 0, acc = 0;
     var twA = tw.concat(tw2);
     var words = ans.split(/\s+/).map(function (w) {
       var k = w.toLowerCase(); if (!tw.length) return '<span class="ms-w">' + esc(w) + '</span>';
@@ -10966,7 +10978,7 @@ textarea.ms-in{min-height:7rem;resize:vertical}.ms-hint.ms-hint-sm{font-size:.78
   function spEnd() {
     var n = sp.d.length;
     ov(head('✍ Spell it · done') + '<div class="ms-big">' + sp.ok + ' of ' + n + ' got it</div><div class="ms-note" style="text-align:center;font-size:1rem">' + sp.near + ' nearly · ' + sp.bad + ' major error' + (sp.bad === 1 ? '' : 's') + (sp.miss.length ? ' · ' + sp.miss.length + ' added to my personalised set' : '') + '</div>'
-      + (sp.miss.length ? '<div class="ms-list">' + sp.miss.map(function (c) { return '<div class="ms-li"><div><div class="f">' + esc(plain(c[sp.L])) + '</div><div class="e">' + esc(plain(c.en)) + '</div></div></div>'; }).join('') + '</div>' : '')
+      + (sp.miss.length ? '<div class="ms-list">' + sp.miss.map(function (c) { return '<div class="ms-li"><div><div class="f">' + esc(spTxt(c)) + '</div><div class="e">' + esc(spEn(c)) + '</div></div></div>'; }).join('') + '</div>' : '')
       + '<div class="ms-cen" style="margin-top:14px"><button class="ms-b pri" onclick="apSpell()">↻ Again</button><button class="ms-b" onclick="apMsClose()">Close</button></div>');
     keys(function () { return false; });
   }
