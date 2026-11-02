@@ -1,6 +1,6 @@
 /* AP LIAISON v1: obligatory liaison in inverted questions, said by every French voice.
    Voices drop the t of "fait-il", "dit-on", "sont-ils" and the z of "allez-y". This respells them for the voice only
-   (fait-il -> fait-til, dit-on -> dit-ton, vont-elles -> vont-telles, allez-y -> allez-zy, parlez-en -> parlez-zen).
+   (Covid -> covide, fait-il -> fait-til, dit-on -> dit-ton, vont-elles -> vont-telles, allez-y -> allez-zy, parlez-en -> parlez-zen).
    Also keeps Match silent unless Voice is switched on (here because this script runs before the apps' own code).
    Wraps speechSynthesis.speak, so every app and pop-out page gets it; the text on screen never changes. */
 (function () {
@@ -12,6 +12,7 @@
     t = String(t);
     t = t.replace(reT, function (m, pre, v, p) { return pre + v + '-' + (/^ils?$/i.test(p) ? 't' + p.replace(/s$/i, '') : /^elles?$/i.test(p) ? 't' + p : 't' + p); });
     t = t.replace(reZ, function (m, pre, v, p) { return pre + v + '-z' + p; });
+    t = t.replace(/(^|[^A-Za-z\u00C0-\u00FF])covid(?![A-Za-z\u00C0-\u00FF])/gi, '$1covide');   // voices drop the final d of Covid
     return t;
   }
   window.apLiaisonFix = fix;
