@@ -849,7 +849,25 @@ function deck(el,m,n,x,y,face,gap){clear(el);const cs=[];for(let i=0;i<n;i++){co
     '.er-chip.er-st{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;color:#f3ead0;font:600 .9rem/1.1 "DM Sans",sans-serif;background:rgba(8,14,32,.4);border-color:rgba(201,168,76,.25)}.er-chip.er-st b.g{color:#5fe3a0}.er-chip.er-st b.b{color:#ff7b6b}',
     '.er-btn{height:34px;padding:0 14px;border-radius:10px;border:1.5px solid rgba(201,168,76,.5);background:rgba(8,14,32,.65);color:#f3ead0;font:700 .82rem/1 "DM Sans",sans-serif;cursor:pointer;display:inline-flex;align-items:center;letter-spacing:.02em}.er-btn:hover{box-shadow:0 0 0 2px rgba(201,168,76,.3)}.er-btn[disabled]{opacity:.4;cursor:default}',
     '.er-btn.er-go{background:linear-gradient(135deg,#c9a84c,#e3c571);color:#1a2744;border-color:#c9a84c;font-weight:800;text-transform:uppercase;letter-spacing:.06em;box-shadow:0 2px 6px rgba(0,0,0,.3)}.er-btn.er-go:hover{filter:brightness(1.08);box-shadow:0 2px 10px rgba(201,168,76,.5)}',
-    '.er-btn.er-how-b{color:#a8bff0;border-color:rgba(168,191,240,.4)}','.er-row{display:flex;align-items:center;justify-content:space-between;gap:14px;width:var(--bw);min-height:60px;flex-wrap:wrap}','.er-row .er-st{text-align:left;flex:1;min-width:160px}',
+    '.er-btn.er-how-b{color:#a8bff0;border-color:rgba(168,191,240,.4)}',
+    '.er-st-ask{color:#f6efd8;font-weight:700;background:rgba(8,14,32,.75)!important;border-color:rgba(244,215,122,.5)!important}',
+    '.er-btn.er-take,.er-btn.er-pass{min-width:160px;justify-content:center;font-size:.88rem;font-weight:800;text-transform:uppercase;letter-spacing:.06em}',
+    '.er-btn.er-take{background:linear-gradient(135deg,#2a8f54,#4cdc78)!important;color:#06240e!important;border-color:#4cdc78!important;animation:erTake 1.5s ease-in-out infinite}',
+    '.er-btn.er-pass{background:linear-gradient(135deg,#b03030,#ff6060)!important;color:#2a0808!important;border-color:#ff5050!important;animation:erPass 1.5s ease-in-out infinite}',
+    '@keyframes erTake{0%,100%{box-shadow:0 0 6px rgba(76,220,120,.5)}50%{box-shadow:0 0 20px rgba(76,220,120,1),0 0 40px rgba(76,220,120,.6)}}',
+    '@keyframes erPass{0%,100%{box-shadow:0 0 20px rgba(255,80,80,1),0 0 40px rgba(255,80,80,.6)}50%{box-shadow:0 0 6px rgba(255,80,80,.5)}}',
+    '.er-dc{position:fixed;left:50%;top:50%;transform:translate(-50%,-50%);width:min(560px,88vw);z-index:12000;padding:28px 32px 24px;border-radius:20px;background:linear-gradient(160deg,#1a2a52,#0a1430);border:3px solid #f4d77a;box-shadow:0 20px 60px rgba(0,0,0,.75),0 0 50px rgba(244,215,122,.3);color:#f6efd8;text-align:center;animation:erdcIn .35s cubic-bezier(.2,.9,.3,1.2);cursor:pointer}',
+    '.er-dc.g{border-color:#5fe3a0;box-shadow:0 20px 60px rgba(0,0,0,.75),0 0 50px rgba(95,227,160,.4)}.er-dc.b{border-color:#ff7b6b;box-shadow:0 20px 60px rgba(0,0,0,.75),0 0 50px rgba(255,123,107,.4)}',
+    '.er-dc .tp{font:700 .72rem/1 "DM Sans",sans-serif;letter-spacing:.3em;text-transform:uppercase;color:#f4d77a;margin-bottom:10px}',
+    '.er-dc .t{font:800 1.9rem/1.15 Georgia,serif;color:#fff;margin-bottom:10px}',
+    '.er-dc .x{font:600 1.05rem/1.3 "DM Sans",sans-serif;color:#dfe7fb;margin-bottom:16px}',
+    '.er-dc .bd{display:inline-block;min-width:70px;padding:.1em .5em;border-radius:999px;font:900 2.6rem/1.1 Georgia,serif;background:#0a1531;border:3px solid #f4d77a;color:#f4d77a}',
+    '.er-dc.g .bd{color:#5fe3a0;border-color:#5fe3a0}.er-dc.b .bd{color:#ff7b6b;border-color:#ff7b6b}',
+    '.er-dc .bd.w{font-size:1.4rem}',
+    '.er-dc .hint{margin-top:14px;font:600 .72rem/1 "DM Sans",sans-serif;letter-spacing:.14em;text-transform:uppercase;color:#8e9bc4}',
+    '.er-dc.out{animation:erdcOut .3s ease-in forwards}',
+    '@keyframes erdcIn{from{opacity:0;transform:translate(-50%,-50%) scale(.6)}to{opacity:1;transform:translate(-50%,-50%) scale(1)}}',
+    '@keyframes erdcOut{to{opacity:0;transform:translate(-50%,-50%) scale(.9)}}','.er-row{display:flex;align-items:center;justify-content:space-between;gap:14px;width:var(--bw);min-height:60px;flex-wrap:wrap}','.er-row .er-st{text-align:left;flex:1;min-width:160px}',
     '.er-row .fl-bar{margin:0;gap:8px;flex:none}.er-row .fl-sd{min-width:0;padding:4px 14px;flex-direction:row;gap:8px;align-items:baseline}.er-row .fl-sd b{font-size:1.2rem}.er-row .fl-sd small{font-size:.66rem}',
     '.er-of{display:flex;align-items:center;gap:12px;flex:1;justify-content:flex-end;flex-wrap:wrap}.er-of .tx{flex:1;text-align:left;min-width:220px;color:#f6efd8;font:600 1rem/1.3 "DM Sans",sans-serif}.er-of .tx b{color:#f4d77a;font:700 1.2rem Georgia,serif}.er-of .tx b.g{color:#5fe3a0}.er-of .tx b.b{color:#ff7b6b}'
   ].join('\n');
@@ -1679,8 +1697,7 @@ function deck(el,m,n,x,y,face,gap){clear(el);const cs=[];for(let i=0;i<n;i++){co
       var ofr = null;
       function rowHTML() {
         var h = bar();
-        if (ofr && ofr.t === 'ask') h += '<div class="er-chip er-st">Eton Rules card? Good news or bad.</div><button class="er-btn er-go" onclick="apErCard(1)">Take the card</button><button class="er-btn" onclick="apErCard(0)">Pass</button>';
-        else if (ofr && ofr.t === 'card') h += '<div class="er-chip er-st"><b class="' + ofr.c[3] + '">' + esc(ofr.c[0]) + '</b> &middot; ' + esc(ofr.c[1]) + '</div><button class="er-btn er-go" onclick="apErCardOk()">OK</button>';
+        if (ofr && ofr.t === 'ask') h += '<div class="er-chip er-st er-st-ask">Eton Rules card? Good news or bad &mdash; take a chance?</div><button class="er-btn er-take" onclick="apErCard(1)">✓ Take the card</button><button class="er-btn er-pass" onclick="apErCard(0)">✗ Not this time</button>';
         else h += '<div class="er-chip er-st" id="er-st">' + esc(msg) + '</div><button class="er-btn er-how-b" onclick="apErHow(1)">How to play</button><button class="er-btn er-go" id="er-go" onclick="apErAsk()"' + (busy ? ' disabled' : '') + '>' + (P > 1 ? esc(nm(cur)) + ': ' : '') + 'Answer</button>';
         return h;
       }
@@ -1749,10 +1766,20 @@ function deck(el,m,n,x,y,face,gap){clear(el);const cs=[];for(let i=0;i<n;i++){co
         var me = cur; ofr = { t: 'ask' }; refresh();
         window.apErCard = function (t) {
           if (!ofr || ofr.t !== 'ask') return;
-          if (!t) { ofr = null; nextTurn(ag); return; }
-          var c = CARDS[Math.floor(Math.random() * CARDS.length)]; ofr = { t: 'card', c: c }; refresh(); sfx(c[3] === 'g' ? 'good' : 'bad');
-          window.apErCardOk = function () { if (!ofr || ofr.t !== 'card') return; ofr = null; eff(me, c[2], function (a2) { nextTurn(ag || a2); }); };
+          ofr = null; refresh();
+          if (!t) { msg = (P > 1 ? nm(me) + ' passed' : 'You passed') + ' on the card.'; refresh(); timers.push(setTimeout(function () { nextTurn(ag); }, 900)); return; }
+          var c = CARDS[Math.floor(Math.random() * CARDS.length)];
+          drawCardShow(c, function () { eff(me, c[2], function (a2) { nextTurn(ag || a2); }); });
         };
+      }
+      function drawCardShow(c, cb) {
+        sfx(c[3] === 'g' ? 'good' : 'bad');
+        var el = document.createElement('div'); el.className = 'er-dc ' + c[3];
+        var fx = c[2], big = typeof fx === 'number' ? (fx > 0 ? '+' + fx : '' + fx) : fx === 'again' ? '↻ Go again' : fx === 'miss' ? 'Miss a go' : fx === 'miss2' ? 'Miss 2 goes' : '';
+        el.innerHTML = '<div class="in"><div class="tp">Eton Rules</div><div class="t">' + esc(c[0]) + '</div><div class="x">' + esc(c[1]) + '</div>' + (big ? '<div class="bd' + (typeof fx === 'number' ? '' : ' w') + '">' + esc(big) + '</div>' : '') + '<div class="hint">Tap to carry on</div></div>';
+        ov.appendChild(el);
+        var closed = false, close = function () { if (closed) return; closed = true; el.classList.add('out'); timers.push(setTimeout(function () { if (el.parentNode) el.remove(); if (cb) cb(); }, 300)); };
+        el.onclick = close; timers.push(setTimeout(close, 4800));
       }
       function after(ag) { if (earned) { earned = false; offer(ag); } else nextTurn(ag); }
       function land(me) {
