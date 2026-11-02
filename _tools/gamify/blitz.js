@@ -1459,7 +1459,7 @@ function deck(el,m,n,x,y,face,gap){clear(el);const cs=[];for(let i=0;i<n;i++){co
     function pcN(s) { return PCS[picks[s]][0]; } function pcT(s) { return PCS[picks[s]][1]; } function pcL(s) { return PCS[picks[s]][2]; }
     // [name, kind, effect text, effect]   kind: '' normal, g good, b bad, f finish
     var SQ = [
-      ['Your House', 'f0', 'Start'], ['Keate\'s Lane'], ['Evans\'s'], ['Rowland\'s & Tap', 'g', 'Go again', 'again'], ['Don Beni', 'g', 'Supper at Don Beni: forward 3', 3], ['Budgens', 'g', 'Forward 4', 4],
+      ['Your House', 'f0', 'Start'], ['Keate\'s Lane'], ['Evans\'s'], ['Rowland\'s & Tap', 'g', 'Go again', 'again'], ['Don Beni', 'g', 'Fantastic trip to Don Beni: forward 3', 3], ['Budgens', 'g', 'Forward 4', 4],
       ['Farrer Theatre', 'g', 'Cast in the school play: go again', 'again'], ['The Wall Game', 'b', 'Stuck in the scrum: back 2', -2], ['Collect the post (School Office)', 'b', 'A job: back 1', -1], ['Cannon Yard', 'g', 'Fire the cannon: forward 3', 3], ['Welsh & Jefferies', 'g', 'Fitted for a Pop waistcoat: forward 2', 2], ['College Chapel', 'b', 'Miss a go', 'miss'],
       ['2 Days\' Close Gating', 'b', 'Worst: miss 2 goes', 'miss2'], ['School Yard'], ['Detention (Lower School)', 'b', 'Back 4', -4], ['Sign the Tardy Book (School Office)', 'b', 'Punishment: back 2', -2], ['School Library', 'g', 'Forward 2', 2], ['Burning Bush'],
       ['Three Show Ups in one day', 'g', 'Great news: forward 5', 5], ['Eton Fives', 'g', 'A good game of Fives: forward 2', 2], ['Missed 2nd music lesson in a row', 'b', 'Back 3', -3], ['Music School', 'g', 'Go again', 'again'], ['Boathouse', 'g', 'Out on the river: forward 3', 3], ['Dutchmans', 'b', 'The far fields: back 3', -3],
