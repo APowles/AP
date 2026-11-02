@@ -817,12 +817,12 @@ function deck(el,m,n,x,y,face,gap){clear(el);const cs=[];for(let i=0;i<n;i++){co
     '.er-pt{display:flex;gap:10px;justify-content:center;flex-wrap:wrap;margin:2px 0 4px}.er-chip{display:flex;align-items:center;gap:8px;padding:4px 14px 4px 8px;border-radius:14px;border:2px solid rgba(255,255,255,.18);background:rgba(8,16,40,.7);color:#f3ead0;font:700 .95rem "DM Sans",sans-serif;cursor:pointer}.er-chip img{height:46px}.er-chip.on{border-color:var(--sc);box-shadow:0 0 14px var(--sc)}',
     '.er-in{align-self:stretch;flex:1;min-height:0;display:flex;flex-direction:column;align-items:center;gap:8px;position:relative;--sh:min(52vh,560px);--fh:min(calc(var(--sh)*.82),calc((100vw - 56px)/8/.4))}',
     '.er-hw{border:2px solid #f4d77a!important;box-shadow:0 0 6px #f4d77a,0 0 16px rgba(244,215,122,.7),inset 0 0 8px rgba(244,215,122,.35);animation:erhw 1.8s ease-in-out infinite alternate}@keyframes erhw{from{box-shadow:0 0 4px #f4d77a,0 0 10px rgba(244,215,122,.5),inset 0 0 6px rgba(244,215,122,.25)}to{box-shadow:0 0 10px #fff2b0,0 0 26px rgba(244,215,122,.95),inset 0 0 12px rgba(244,215,122,.5)}}',
-    '.er-show{position:fixed;left:50%;top:53%;z-index:11500;height:min(88vh,1000px);aspect-ratio:.533;perspective:1500px;animation:ershowin 8.5s ease-in-out forwards;cursor:pointer}@keyframes ershowin{0%{opacity:0;transform:translate(-50%,-50%) scale(.3)}5%{opacity:1;transform:translate(-50%,-50%) scale(1)}92%{opacity:1;transform:translate(-50%,-50%) scale(1)}100%{opacity:0;transform:translate(-50%,-50%) scale(.55)}}',
+    '.er-show{position:fixed;left:50%;top:53%;z-index:11500;pointer-events:none;height:min(88vh,1000px);aspect-ratio:.533;perspective:1500px;animation:ershowin 7s ease-in-out forwards}@keyframes ershowin{0%{opacity:0;transform:translate(-50%,-50%) scale(.3)}6%{opacity:1;transform:translate(-50%,-50%) scale(1)}92%{opacity:1;transform:translate(-50%,-50%) scale(1)}100%{opacity:0;transform:translate(-50%,-50%) scale(.55)}}',
     '.er-show .au{position:absolute;inset:0;width:100%;height:100%;filter:brightness(0) invert(1) blur(2px) drop-shadow(0 0 28px var(--hc)) drop-shadow(0 0 70px var(--hc));opacity:.5}',
     '.er-show .rg{position:absolute;left:50%;bottom:-2%;width:150%;aspect-ratio:3.4;transform:translateX(-50%);border-radius:50%;border:3px solid var(--hc);box-shadow:0 0 30px var(--hc),inset 0 0 30px var(--hc);background:radial-gradient(ellipse,rgba(255,255,255,.4),transparent 70%)}',
     '.er-show .ro{position:absolute;inset:0;transform-style:preserve-3d;animation:ershowro 5s linear .3s both}@keyframes ershowro{from{transform:rotateY(0)}to{transform:rotateY(360deg)}}',
     '.er-show .er-mv{position:absolute;inset:0;width:100%;height:100%;--poster-color:transparent;background:transparent;filter:drop-shadow(0 0 18px var(--hc)) drop-shadow(0 0 40px var(--hc)) brightness(1.08) saturate(1.05)}',
-    '.er-show .er-face{position:absolute;inset:0;width:100%;height:100%;object-fit:contain;object-position:50% 100%;opacity:0;pointer-events:none;z-index:3;filter:drop-shadow(0 0 18px var(--hc)) drop-shadow(0 0 40px var(--hc)) brightness(1.08) saturate(1.05);animation:erFace 5s linear 1.2s infinite}',
+    '.er-show .er-face{position:absolute;inset:0;width:100%;height:100%;object-fit:contain;object-position:50% 100%;opacity:1;pointer-events:none;z-index:3;filter:drop-shadow(0 0 18px var(--hc)) drop-shadow(0 0 40px var(--hc)) brightness(1.08) saturate(1.05);animation:erFace 5s linear infinite}',
     '@keyframes erFace{0%,12%{opacity:1}24%,76%{opacity:0}88%,100%{opacity:1}}',
     '.er-show .ly{position:absolute;inset:0;width:100%;height:100%;backface-visibility:visible;-webkit-backface-visibility:visible;object-fit:contain}',
     '.er-show .ly.a0{transform:rotateY(0deg) translateZ(1px);animation:erOp0 5s linear .3s both}',
@@ -1709,14 +1709,14 @@ function deck(el,m,n,x,y,face,gap){clear(el);const cs=[];for(let i=0;i<n;i++){co
       loadMV(function () { });
     }
     window.apErShow = function (i) {
-      var o = document.querySelector('.er-show'); if (o) { if (o.__kill) o.__kill(); o.remove(); }
-      var el = document.createElement('div'); el.className = 'er-show'; el.style.cssText = '--hc:' + PCS[i][2] + ';--sl:' + SCN[i];
-      if (GLB_AVAIL[i]) glb3DShowcase(i, el);
-      else flat2DShowcase(i, el);
-      document.body.appendChild(el);
-      el.style.pointerEvents = 'auto';
-      el.addEventListener('click', function () { if (el.__kill) el.__kill(); if (el.parentNode) el.remove(); });
-      setTimeout(function () { if (el.__kill) el.__kill(); if (el.parentNode) el.remove(); }, 9000);
+      try {
+        var o = document.querySelector('.er-show'); if (o) { if (o.__kill) o.__kill(); o.remove(); }
+        var el = document.createElement('div'); el.className = 'er-show'; el.style.cssText = '--hc:' + PCS[i][2] + ';--sl:' + SCN[i] + ';pointer-events:none';
+        if (GLB_AVAIL[i]) glb3DShowcase(i, el);
+        else flat2DShowcase(i, el);
+        document.body.appendChild(el);
+        timers.push(setTimeout(function () { if (el.__kill) el.__kill(); if (el.parentNode) el.remove(); }, 7000));
+      } catch (e) { try { console.warn('er-show', e); } catch (e2) { } }
     };
     window.apErPick = function (i) {
       var P = CFG.erP, t = picks.slice(0, P).indexOf(i);
