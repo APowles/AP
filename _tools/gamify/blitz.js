@@ -1820,29 +1820,29 @@ function deck(el,m,n,x,y,face,gap){clear(el);const cs=[];for(let i=0;i<n;i++){co
       function after(ag) { if (earned) { earned = false; offer(ag); } else nextTurn(ag); }
       function land(me) {
         if (pos[me] >= LAST) { win(); return; }
-        var q = BD[pos[me]];
-        if (q[1] === 'f0') { after(false); return; }
-        if (q[1] === 'x') {
-          var outs = q[4], pick = outs[Math.floor(Math.random() * outs.length)];
-          q[1] = (typeof pick[1] === 'number' && pick[1] > 0) || pick[1] === 'again' ? 'g' : 'b';
-          q[2] = pick[0]; q[3] = pick[1]; q[4] = null;
+        var q0 = BD[pos[me]], q = q0;
+        if (q0[1] === 'f0') { after(false); return; }
+        if (q0[1] === 'x') {
+          var outs = q0[4], pick = outs[Math.floor(Math.random() * outs.length)];
+          var k = (typeof pick[1] === 'number' && pick[1] > 0) || pick[1] === 'again' ? 'g' : 'b';
+          q = [q0[0], k, pick[0], pick[1]];
         }
         var e = q[3];
-        popSq(pos[me]);
+        popSq(pos[me], q);
         if (e === undefined) { timers.push(setTimeout(function () { after(false); }, 2850)); return; }
         msg = (q[0] + ': ' + q[2] + '.'); refresh();
-        timers.push(setTimeout(function () { lcShow(pos[me], function () { eff(me, e, after); }); }, 2850));
+        timers.push(setTimeout(function () { lcShow(pos[me], function () { eff(me, e, after); }, q); }, 2850));
       }
-      function popSq(i) {
+      function popSq(i, qOv) {
         var all = document.querySelectorAll('#er-board .er-sq'), el = all[i]; if (!el) return; el.style.zIndex = 30;
-        if (!RV[i]) { RV[i] = 1; el.classList.remove('hid'); var kk = el.getAttribute('data-k'); if (kk) el.classList.add(kk); var q0 = BD[i]; el.setAttribute('title', q0[0] + (q0[2] ? ': ' + q0[2] : '')); }
+        if (!RV[i]) { RV[i] = 1; el.classList.remove('hid'); var kk = el.getAttribute('data-k'); if (kk) el.classList.add(kk); var q0 = qOv || BD[i]; el.setAttribute('title', q0[0] + (q0[2] ? ': ' + q0[2] : '')); }
         try { el.animate([{ transform: 'translate(-50%,-50%) scale(1)', filter: 'brightness(1)', offset: 0, easing: 'cubic-bezier(.2,.9,.3,1.2)' }, { transform: 'translate(-50%,-50%) scale(2.9)', filter: 'brightness(1.12) drop-shadow(0 0 18px rgba(255,236,160,.9))', offset: .2 }, { transform: 'translate(-50%,-50%) scale(2.9)', filter: 'brightness(1.12) drop-shadow(0 0 18px rgba(255,236,160,.9))', offset: .9, easing: 'ease-in' }, { transform: 'translate(-50%,-50%) scale(1)', filter: 'brightness(1)', offset: 1 }], { duration: 2800 }); } catch (e) { }
         timers.push(setTimeout(function () { el.style.zIndex = ''; }, 2850));
       }
       var lcDone = null;
-      function lcShow(i, cb) {
+      function lcShow(i, cb, qOv) {
         var bd = $('er-board'); if (!bd) { if (cb) cb(); return; } var old = $('er-lc'); if (old) old.remove();
-        var q = BD[i], full = q[0], ti = full, su = '', k = full.indexOf(': '); if (k > 0) { ti = full.slice(0, k); su = full.slice(k + 2); }
+        var q = qOv || BD[i], full = q[0], ti = full, su = '', k = full.indexOf(': '); if (k > 0) { ti = full.slice(0, k); su = full.slice(k + 2); }
         ti = ti.replace(/\s*\(.*\)\s*$/, function (m) { su = su || m.replace(/[()]/g, '').trim(); return ''; });
         var kd = q[1] === 'g' ? 'g' : q[1] === 'b' ? 'b' : '', e = q[3], fx = e != null ? fxOf(q) : '', big = typeof e === 'number' ? fx : e === 'again' ? '\u21BB Go again' : e === 'miss' ? 'Miss a go' : e === 'miss2' ? 'Miss 2 goes' : '';
         var bw = bd.getBoundingClientRect().width, c = PADS[i] || PADS[0], el = document.createElement('div'); el.id = 'er-lc'; el.className = 'er-lc ' + kd;
