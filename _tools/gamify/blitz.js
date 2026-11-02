@@ -1430,11 +1430,11 @@ function deck(el,m,n,x,y,face,gap){clear(el);const cs=[];for(let i=0;i<n;i++){co
     var COLN = ['Red', 'Yellow', 'Green', 'White'], TXC = ['#c0392b', '#a37b00', '#1f8a52', '#5b6788'], SCOL = ['#ff7b6b', '#f6d646', '#5fe3a0', '#e8eaf5'];
     // [name, kind, effect text, effect]   kind: '' normal, g good, b bad, f finish
     var SQ = [
-      ['Your House', 'f0', 'Start'], ['Keate\'s Lane'], ['Evans\'s'], ['Rowland\'s & Tap', 'g', 'Go again', 'again'], ['High Street'], ['Budgens', 'g', 'Forward 4', 4],
-      ['Barnes Pool'], ['Baldwin\'s Shore'], ['Collect the post (School Office)', 'b', 'A job: back 1', -1], ['Brewhouse'], ['Cloisters'], ['College Chapel', 'b', 'Miss a go', 'miss'],
+      ['Your House', 'f0', 'Start'], ['Keate\'s Lane'], ['Evans\'s'], ['Rowland\'s & Tap', 'g', 'Go again', 'again'], ['Don Beni', 'g', 'Supper at Don Beni: forward 3', 3], ['Budgens', 'g', 'Forward 4', 4],
+      ['Farrer Theatre', 'g', 'Cast in the school play: go again', 'again'], ['Baldwin\'s Shore'], ['Collect the post (School Office)', 'b', 'A job: back 1', -1], ['Brewhouse'], ['Cloisters'], ['College Chapel', 'b', 'Miss a go', 'miss'],
       ['2 Days\' Close Gating', 'b', 'Worst: miss 2 goes', 'miss2'], ['School Yard'], ['Detention (Lower School)', 'b', 'Back 4', -4], ['Sign the Tardy Book (School Office)', 'b', 'Punishment: back 2', -2], ['School Library', 'g', 'Forward 2', 2], ['Durnford'],
       ['Three Show Ups in one day', 'g', 'Great news: forward 5', 5], ['Carter'], ['Missed 2nd music lesson in a row', 'b', 'Back 3', -3], ['Music School', 'g', 'Go again', 'again'], ['Eton Wick Road'], ['South Meadow Lane'],
-      ['Lower Chapel'], ['Rain walk: Allington to Queen\'s', 'b', 'Long walk: back 2', -2], ['Lecture in Jafar Hall', 'b', 'Miss a go', 'miss'], ['Birley Schools', 'f', 'Finish']
+      ['Athens Pool', 'g', 'Swim at Athens: forward 3', 3], ['Rain walk: Allington to Queen\'s', 'b', 'Long walk: back 2', -2], ['Lecture in Jafar Hall', 'b', 'Miss a go', 'miss'], ['Birley Schools', 'f', 'Finish']
     ], LAST = SQ.length - 1, COLS = 7, ROWS = Math.ceil(SQ.length / COLS);
     function nm(s) { return pnGet(s, 'Team ' + (s + 1)); }
     function qOf(c) { var v = hvOf(c); return v.hl ? esc(v.hl[0]) + '<b class="hl">' + esc(v.hl[1]) + '</b>' + esc(v.hl[2]) : esc(c.q); }
