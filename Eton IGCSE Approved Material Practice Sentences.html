@@ -10915,18 +10915,52 @@ textarea.ms-in{min-height:7rem;resize:vertical}.ms-hint.ms-hint-sm{font-size:.78
     });
     apSpListen(); var i = document.getElementById('ms-in'); if (i) { i.addEventListener('input', function () { var v = i.value; if (/\.\s*$/.test(v)) i.value = v.replace(/\s*\.+\s*$/, ''); }); setTimeout(function () { try { i.focus(); } catch (e) { } }, 50); }  /* a full stop (e.g. from a Pencil tap) is never kept in the box */
   }
-  /* Approved Material: Spell it uses the same shortened sentences as the Spot Test (a third or half of a long sentence, cut at clause breaks); short sentences stay whole */
+  /* Approved Material: Spell it reads and checks only a shortened part of a long sentence (about a third to a half), cut at natural breaks in the target language alone, because the boy only hears and writes that language. Short sentences (under 14 words) and sentences with no clean cut stay whole. */
+  var SP_PHR = {
+    fr: ['comme', 'par exemple', 'notamment', 'tels que', 'telles que', 'y compris', 'surtout', 'parce que', 'car', 'puisque', 'lorsque', 'quand', 'alors que', 'tandis que', 'mais', 'afin de', 'afin que', 'pour que', 'ainsi que', 'même si', 'bien que', 'où', 'qui', 'dont'],
+    it: ['come', 'ad esempio', 'per esempio', 'tra cui', 'soprattutto', 'perché', 'poiché', 'quando', 'mentre', 'ma', 'affinché', 'anche se', 'sebbene', 'dove', 'che'],
+    es: ['como', 'por ejemplo', 'sobre todo', 'entre otros', 'porque', 'ya que', 'cuando', 'mientras', 'pero', 'para que', 'aunque', 'donde', 'que']
+  };
+  var SP_EX = { fr: ['comme', 'par exemple', 'notamment', 'tels que', 'telles que', 'y compris', 'surtout'], it: ['come', 'ad esempio', 'per esempio', 'tra cui', 'soprattutto'], es: ['como', 'por ejemplo', 'sobre todo', 'entre otros'] };
+  var SP_CL = { fr: ['mais', 'car', 'parce que', 'puisque', 'alors que', 'tandis que', 'lorsque', 'quand'], it: ['ma', 'perché', 'mentre', 'quando', 'poiché'], es: ['pero', 'porque', 'mientras', 'cuando', 'ya que'] };
+  function spEdgeOk(s, lg) {
+    var w = s.trim().split(/\s+/), a = w[0].toLowerCase().replace(/[^a-zà-ÿ']/g, ''), z = w[w.length - 1].toLowerCase().replace(/[^a-zà-ÿ']/g, '');
+    if (/'(re|s|m|ll|ve|d)$/.test(z)) return false; z = z.replace(/'/g, '');
+    return !((window.AM_FRAG_START || {})[lg] || {})[a] && !((window.AM_FRAG_END || {})[lg] || {})[z];
+  }
+  function spCut(T, lg) {
+    var tot = T.trim().split(/\s+/).length; if (tot < 14) return null;
+    var starts = [0], ends = [T.length], m, re = /[,;:.!?]\s+(?=\S)/g;   /* a part starts at the beginning or after punctuation; it may end at punctuation or just before a linking word */
+    while ((m = re.exec(T))) { starts.push(m.index + m[0].length); ends.push(m.index + m[0].length); }
+    (SP_PHR[lg] || []).forEach(function (ph) { var r = new RegExp('(^|[\\s,;:])(' + ph + ')(?=[\\s,;:.!?]|$)', 'gi'), x; while ((x = r.exec(T))) ends.push(x.index + x[1].length); });
+    ends = ends.sort(function (a, b) { return a - b; });
+    var exRe = new RegExp('(^|[\\s,;:(])(' + (SP_EX[lg] || ['@@']).join('|') + ')(?=[\\s,;:.!?)]|$)', 'i');   /* a part never includes the examples */
+    var clRe = new RegExp('(^|[\\s,;:])(' + (SP_CL[lg] || ['@@']).join('|') + ')(?=[\\s,;:.!?]|$)', 'i');
+    var tiers = [[], [], []];
+    for (var i = 0; i < starts.length; i++) for (var j = 0; j < ends.length; j++) {
+      if (ends[j] <= starts[i]) continue;
+      var b4 = T.slice(0, starts[i]).split(/[.!?]\s+/).pop(), mm = exRe.exec(b4);
+      if (mm && !clRe.test(b4.slice(mm.index + mm[0].length) + ' ' + T.slice(starts[i], starts[i] + 14))) continue;   /* nor anything from inside the list of examples (a new clause after the examples is fine) */
+      var seg = T.slice(starts[i], ends[j]).replace(/^[\s,;:.!?]+|[\s,;:.!?]+$/g, '');
+      var w = seg.split(/\s+/); if (w.length > 1 && ((window.AM_FRAG_START || {})[lg] || {})[w[0].toLowerCase()] && /^(et|ou|mais|car|e|o|ma|y|pero|porque|u)$/i.test(w[0])) { seg = w.slice(1).join(' '); }
+      if (!seg || /[.!?]\s+\S/.test(seg) || exRe.test(seg)) continue;
+      var n = seg.split(/\s+/).length, fr = n / tot; if (n < 4 || fr >= 0.67 || !spEdgeOk(seg, lg)) continue;
+      var tier = (fr >= 0.33 && fr <= 0.5) ? 0 : ((fr >= 0.27 && fr <= 0.56) ? 1 : ((fr >= 0.2 && fr <= 0.66) ? 2 : -1));
+      if (tier >= 0) tiers[tier].push(seg);
+    }
+    for (var k = 0; k < 3; k++) if (tiers[k].length) return tiers[k][Math.floor(Math.random() * tiers[k].length)];
+    return null;
+  }
   function spFrag(c) {
     c._sf = null;
     try {
-      if (typeof window.amFragCands !== 'function' || sp.L === 'en') return;
-      var cs = window.amFragCands(c, sp.L, 'en'); if (!cs || !cs.length) return;
-      var x = cs[Math.floor(Math.random() * cs.length)], t = plain(String(c[sp.L]).slice(x.s, x.e)).trim();
-      if (t) c._sf = { fr: t, en: plain(String(x.ans || '')).trim() };
+      if (sp.L === 'en') return;
+      var t = spCut(plain(String(c[sp.L])), sp.L);
+      if (t) c._sf = { fr: t, en: '' };
     } catch (e) { c._sf = null; }
   }
   function spTxt(c) { return c._sf ? c._sf.fr : plain(c[sp.L]); }
-  function spEn(c) { return c._sf && c._sf.en ? c._sf.en : plain(c.en); }
+  function spEn(c) { return c._sf ? 'Whole sentence: ' + plain(c.en) : plain(c.en); }
   window.apSpListen = function () { var c = sp.d[sp.i]; speak(spTxt(c), sp.L); };
   window.apSpHint = function () { var m = document.getElementById('ms-mean'); m.style.display = m.style.display === 'none' ? 'block' : 'none'; };
   function norm(s) { return plain(s).replace(/[’‘`]/g, "'").replace(/\s+([,.;:!?])/g, '$1').toLowerCase(); }
@@ -13482,4 +13516,4 @@ function deck(el,m,n,x,y,face,gap){clear(el);const cs=[];for(let i=0;i<n;i++){co
   if (document.readyState === 'complete') start(); else window.addEventListener('load', start);
 })();
 </script>
-<script id="ap-build">window.__apBuild="0b095400a1";</script>
+<script id="ap-build">window.__apBuild="de68141e34";</script>
