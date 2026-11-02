@@ -195,7 +195,7 @@ function deck(el,m,n,x,y,face,gap){clear(el);const cs=[];for(let i=0;i<n;i++){co
 })();
 /*SHX-END*/
   var ov = null, snd = true, AC = null, timers = [], PZ = false;
-  var CFG = { c4P: 2, snd: true, style: 'marimba', vol: 1, ticks: true, clock: 5, streak: 0, tm: 2, dice: 2, pairs: 20, cw: 20, lives: 3, accel: 11, start: 100, oddR: 10, oddS: 12, gN: 12, gS: 6, lW: 10, lG: 3, lT: 15, oddM: 0, ln: 25, rlSay: 1, pSay: 1, dN: 6, dL: 5, dT: 180, dSay: 1, dP: 1, cSay: 1, sSay: 1, mus: 'mix', musV: 0, mv: 1, fP: 1, fN: 24, fS: 0, fSay: 1 };
+  var CFG = { c4P: 2, erP: 2, snd: true, style: 'marimba', vol: 1, ticks: true, clock: 5, streak: 0, tm: 2, dice: 2, pairs: 20, cw: 20, lives: 3, accel: 11, start: 100, oddR: 10, oddS: 12, gN: 12, gS: 6, lW: 10, lG: 3, lT: 15, oddM: 0, ln: 25, rlSay: 1, pSay: 1, dN: 6, dL: 5, dT: 180, dSay: 1, dP: 1, cSay: 1, sSay: 1, mus: 'mix', musV: 0, mv: 1, fP: 1, fN: 24, fS: 0, fSay: 1 };
   try { var sv = JSON.parse(localStorage.getItem('apbz_cfg') || '{}'); for (var kk in sv) if (kk in CFG) CFG[kk] = sv[kk]; } catch (e) { }
   snd = CFG.snd;
   function saveCfg() { CFG.snd = snd; try { localStorage.setItem('apbz_cfg', JSON.stringify(CFG)); } catch (e) { } }
@@ -209,6 +209,7 @@ function deck(el,m,n,x,y,face,gap){clear(el);const cs=[];for(let i=0;i<n;i++){co
     ['deal', 'Deal it', 'Shuffle, deal, turn a card and say it. Get every card right, shuffle, get them right again. Solo or two players.'],
     ['flip', 'Flip it', 'Pick a number: the card turns over and comes to the middle with its question. Solo, or two to four teams with surprise cards.'],
     ['four', 'Four in a row', 'Two to four teams take turns: pick a column, answer the question, and a right answer drops your counter. First to line up four wins.'],
+    ['run', 'Eton Rules', 'A race round Eton. Answer, roll, and walk from your House to Birley Schools: Rowland\'s and Budgens help you on, Detention and the Chapel hold you back.'],
     ['roll', 'Roll it', 'Roll the dice: they decide how many words you blitz in one go.'],
     ['catch', 'Catch it', 'Words race across the screen, faster every catch. Tap the word, then its match.'],
     ['lane', 'Lane it', 'Four lanes, four words fall. Tap the right translation before it hits the line.'],
@@ -429,6 +430,7 @@ function deck(el,m,n,x,y,face,gap){clear(el);const cs=[];for(let i=0;i<n;i++){co
     clock: [['clock', 'Seconds per card', [5, 6, 7, 8, 9, 10], '', 1], ['cSay', 'Say each answer aloud when it turns over', [[1, 'On'], [0, 'Off']], '', 1]],
     streak: [['streak', 'Seconds per card', [[0, 'No timer'], 5, 8, 12], '', 1], ['sSay', 'Say each answer aloud when it turns over', [[1, 'On'], [0, 'Off']], '', 1]],
     deal: [['dN', 'Cards on the table', [4, 6, 8], '', 0], ['dL', 'Levels (solo)', [3, 5, 8], '', 0], ['dT', 'Race time (two players)', [[60, '1 min'], [120, '2 min'], [180, '3 min'], [300, '5 min']], '', 0], ['dSay', 'Say each answer aloud when it turns over', [[1, 'On'], [0, 'Off']], '', 1]],
+    run: [['fSay', 'Say each answer aloud when it turns over', [[1, 'On'], [0, 'Off']], '', 1]],
     four: [['fSay', 'Say each answer aloud when it turns over', [[1, 'On'], [0, 'Off']], '', 1]],
     flip: [['fSay', 'Say each answer aloud when it turns over', [[1, 'On'], [0, 'Off']], '', 1]],
     roll: [['dice', 'Dice', [[1, 'One die'], [2, 'Two dice']], '', 1], ['rlSay', 'Say each answer aloud when it turns over', [[1, 'On'], [0, 'Off']], '', 1]],
@@ -511,7 +513,7 @@ function deck(el,m,n,x,y,face,gap){clear(el);const cs=[];for(let i=0;i<n;i++){co
   function close() { stop(); musicStop(); PZ = false; var sp = $('bz-set'); if (sp) sp.remove(); if (ov) { ov.remove(); ov = null; } document.documentElement.style.overflow = ''; }
   window.apBlitz = function () {
     close(); ov = document.createElement('div'); ov.id = 'bz-ov'; ov.style.backgroundImage = 'url(' + BZ.stage + ')'; document.body.appendChild(ov);
-    if (!$('bz-css')) { var st = document.createElement('style'); st.id = 'bz-css'; st.textContent = CSS.replace('CARDFACE', BZ.cardface) + DLCSS + FLCSS + C4CSS; document.head.appendChild(st); }
+    if (!$('bz-css')) { var st = document.createElement('style'); st.id = 'bz-css'; st.textContent = CSS.replace('CARDFACE', BZ.cardface) + DLCSS + FLCSS + C4CSS + ERCSS; document.head.appendChild(st); }
     document.documentElement.style.overflow = 'hidden'; pickScreen();
   };
   function reasons(p) {
@@ -519,7 +521,7 @@ function deck(el,m,n,x,y,face,gap){clear(el);const cs=[];for(let i=0;i<n;i++){co
         if (Object.keys(secs).length < 2) r.odd = 'Needs two or more lists: choose more topics.'; else if (p.length < 6) r.odd = 'Needs a few more words.';
     var g = genderPool(p); if (target() === 'en' || g.length < 6) r.gender = 'Needs a list with nouns (le, la, un, une…).';
     if (p.length < 6) r.deal = 'Choose a list with more words.';
-    if (p.length < 4) { r.clock = r.streak = r.roll = r.pairs = r.letter = r.lane = r.flip = r.four = 'Choose a list with more words.'; }
+    if (p.length < 4) { r.clock = r.streak = r.roll = r.pairs = r.letter = r.lane = r.flip = r.four = r.run = 'Choose a list with more words.'; }
     var sp = shortOnly(p); if (sp.length < 8) r['catch'] = H.short ? 'Needs at least 8 short items (up to ' + H.short + ' words): choose more.' : 'Needs at least 8 words: choose more topics.'; if (sp.length < 4) r.lane = r.lane || 'Needs at least 4 short items: choose more.';
     return r;
   }
@@ -699,6 +701,25 @@ function deck(el,m,n,x,y,face,gap){clear(el);const cs=[];for(let i=0;i<n;i++){co
     '.pn-row{display:flex;gap:10px;justify-content:center;flex-wrap:wrap}.pn-in{width:150px;padding:10px 12px;border-radius:12px;border:2px solid var(--pc,#c9a84c);background:rgba(8,14,32,.7);color:#fff6dc;font:700 1rem "DM Sans",sans-serif;text-align:center;outline:none}.pn-in::placeholder{color:#8d97b3}',
     '.c4-q{width:min(760px,92vw);min-height:min(400px,68vh);border-radius:16px;border:5px solid #d9b95a;box-sizing:border-box;background:linear-gradient(160deg,#fbf7ea,#efe6c8);color:#14203f;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;padding:26px 34px;text-align:center;box-shadow:0 1px 0 #c9a84c,0 2px 0 #b8982f,0 3px 0 #a98a2c,0 4px 0 #9a7c27,0 5px 0 #8b6e22,0 6px 0 #7d6520,0 7px 0 #6e571b,0 8px 0 #604a17,0 9px 0 #523f14,0 10px 0 #453410,0 34px 60px rgba(0,0,0,.65)}',
     '.c4-q .sp{background:#eef2ff;border:1px solid #b7c0d8;border-radius:50%;width:38px;height:38px;cursor:pointer;vertical-align:middle}.c4-q .bz-big{background:linear-gradient(180deg,#1f3a78,#12234d);color:#f4e3a8;border-color:#c9a84c}'
+  ].join('\n');
+  var ERCSS = [
+    '.er-wrap{--cs:min(calc((100vh - 310px)/4),calc(92vw/7),136px);display:flex;flex-direction:column;align-items:center;gap:10px;margin:0 auto}',
+    '.er-st{color:#e9d28a;font:700 1.1rem "DM Sans",sans-serif;letter-spacing:.03em;min-height:1.5em;text-align:center}',
+    '.er-board{position:relative;width:calc(var(--cs)*7);height:calc(var(--cs)*4);margin:4px 0 6px}',
+    '.er-sq{position:absolute;width:var(--cs);height:var(--cs);padding:3px;box-sizing:border-box}',
+    '.er-sq>div{position:relative;height:100%;border-radius:12px;border:2px solid rgba(201,168,76,.5);background:linear-gradient(160deg,#1d2e5a,#0e1936);color:#f3ead0;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;font:700 calc(var(--cs)*.12)/1.15 "DM Sans",sans-serif;padding:calc(var(--cs)*.06);box-shadow:inset 0 1px 0 rgba(255,255,255,.13),0 4px 0 #060b1c}',
+    '.er-sq .n{position:absolute;left:7px;top:4px;font-size:calc(var(--cs)*.1);color:rgba(233,210,138,.75)}',
+    '.er-sq small{display:block;margin-top:3px;font-size:calc(var(--cs)*.095);letter-spacing:.04em;text-transform:uppercase;opacity:.95}',
+    '.er-sq.g>div{border-color:#6fe0a8;background:linear-gradient(160deg,#17493f,#0c2a2a)}.er-sq.g small{color:#9af0c4}',
+    '.er-sq.b>div{border-color:#ff8c78;background:linear-gradient(160deg,#4f1f2c,#2a1018)}.er-sq.b small{color:#ffb3a6}',
+    '.er-sq.f>div{border-color:#f4d77a;background:linear-gradient(160deg,#e8c565,#a8832b);color:#1a2744}.er-sq.f .n{color:#3a2c08}.er-sq.f small{color:#3a2c08}',
+    '.er-lay{position:absolute;inset:0;pointer-events:none}',
+    '.er-car{position:absolute;width:calc(var(--cs)*.27);height:calc(var(--cs)*.27);transition:left .26s ease-out,top .26s ease-out}',
+    '.er-car i{position:absolute;inset:0;border-radius:50%;background:radial-gradient(circle at 36% 30%,var(--l),var(--b) 55%,var(--k));box-shadow:0 3px 5px rgba(0,0,0,.55),inset 0 0 0 2px rgba(255,255,255,.2);display:flex;align-items:center;justify-content:center;font:900 calc(var(--cs)*.13) "DM Sans",sans-serif;color:rgba(0,0,0,.6)}',
+    '.er-car.jump{transition:left .7s cubic-bezier(.5,0,.2,1),top .7s cubic-bezier(.5,0,.2,1)}.er-car.on i{animation:erp .8s ease-in-out infinite alternate}@keyframes erp{from{transform:scale(1)}to{transform:scale(1.18)}}',
+    '.er-car.s0{--l:#ffb0a2;--b:#e23b2e;--k:#8f1a12}.er-car.s1{--l:#fff6b0;--b:#f2c418;--k:#a37b00}.er-car.s2{--l:#b9ffd8;--b:#23b26a;--k:#0d5a33}.er-car.s3{--l:#ffffff;--b:#dfe2ee;--k:#868ba6}',
+    '.er-die{position:fixed;left:50%;top:44%;transform:translate(-50%,-50%);width:120px;height:120px;border-radius:24px;background:linear-gradient(160deg,#fbf7ea,#e3d7ae);border:4px solid #d9b95a;color:#14203f;font:900 4.6rem Georgia,serif;display:flex;align-items:center;justify-content:center;box-shadow:0 12px 30px rgba(0,0,0,.6);z-index:9;pointer-events:none}',
+    '.er-go{margin-top:2px}'
   ].join('\n');
   var DLCSS = [
     '#bz-ov{--cb:url(icons/cardback_1.webp)}#bz-ov[data-dlr="2"]{--cb:url(icons/cardback_2.webp)}',
@@ -1405,6 +1426,112 @@ function deck(el,m,n,x,y,face,gap){clear(el);const cs=[];for(let i=0;i<n;i++){co
     intro();
   };
 
+  GAMES.run = function (p) {
+    var COLN = ['Red', 'Yellow', 'Green', 'White'], TXC = ['#c0392b', '#a37b00', '#1f8a52', '#5b6788'], SCOL = ['#ff7b6b', '#f6d646', '#5fe3a0', '#e8eaf5'];
+    // [name, kind, effect text, effect]   kind: '' normal, g good, b bad, f finish
+    var SQ = [
+      ['Your House', 'f0', 'Start'], ['Keate\'s Lane'], ['Evans\'s'], ['Rowland\'s & Tap', 'g', 'Go again', 'again'], ['High Street'], ['Budgens', 'g', 'Forward 4', 4],
+      ['Barnes Pool'], ['Baldwin\'s Shore'], ['Collect the post (School Office)', 'b', 'A job: back 1', -1], ['Brewhouse'], ['Cloisters'], ['College Chapel', 'b', 'Miss a go', 'miss'],
+      ['Porters\' Lodge'], ['School Yard'], ['Detention (Lower School)', 'b', 'Back 4', -4], ['Sign the Tardy Book (School Office)', 'b', 'Punishment: back 2', -2], ['School Library', 'g', 'Forward 2', 2], ['Durnford'],
+      ['Hawtrey'], ['Carter'], ['Bekynton'], ['Music School', 'g', 'Go again', 'again'], ['Eton Wick Road'], ['South Meadow Lane'],
+      ['Lower Chapel'], ['Rain walk: Allington to Queen\'s', 'b', 'Long walk: back 2', -2], ['Jafar Hall'], ['Birley Schools', 'f', 'Finish']
+    ], LAST = SQ.length - 1, COLS = 7, ROWS = Math.ceil(SQ.length / COLS);
+    function nm(s) { return pnGet(s, 'Team ' + (s + 1)); }
+    function qOf(c) { var v = hvOf(c); return v.hl ? esc(v.hl[0]) + '<b class="hl">' + esc(v.hl[1]) + '</b>' + esc(v.hl[2]) : esc(c.q); }
+    function sz(c) { var L = c.q.length; return L > 120 ? ' fl-xl' : L > 60 ? ' fl-lg' : ''; }
+    function xy(i) { var r = Math.floor(i / COLS), c = i % COLS; if (r % 2) c = COLS - 1 - c; return [c, ROWS - 1 - r]; }
+    function intro() {
+      var P = CFG.erP;
+      frame('Eton Rules', '<div class="bz-note">Race from your House to Birley Schools. On your go, answer a question: say it, reveal it, then mark yourself. A right answer rolls the die and you walk that many squares; Nearly moves you one; a Major error keeps you where you are. Rowland\'s, Budgens and the Library help you on. Detention, the Tardy Book, the Chapel and jobs hold you back. First to Birley Schools wins.</div>'
+        + '<div class="fl-opt"><span>Players</span><div class="bz-row">' + [[1, 'Solo'], [2, 'Two teams'], [3, 'Three teams'], [4, 'Four teams']].map(function (o) { return '<button class="bz-b' + (P === o[0] ? ' on' : '') + '" onclick="apErSet(' + o[0] + ')">' + o[1] + '</button>'; }).join('') + '</div></div>'
+        + (P > 1 ? pnBox(P, ['Team 1', 'Team 2', 'Team 3', 'Team 4'], SCOL) : '')
+        + '<div class="bz-row"><button class="bz-big go" onclick="apBzGo()">▶ Start</button></div>');
+      window.apBzGo = play;
+    }
+    window.apErSet = function (n) { CFG.erP = n; saveCfg(); intro(); };
+    function play() {
+      stop();
+      var P = CFG.erP, pos = [], skip = [], cur = 0, busy = false, deck = [], di = 0, qd = null, turns = 0, msg = '';
+      for (var s = 0; s < P; s++) { pos.push(0); skip.push(false); }
+      msg = P > 1 ? nm(0) + ', your go.' : 'Your go.';
+      function nextQ() { if (di >= deck.length) { deck = shuf(p); di = 0; } return deck[di++]; }
+      function bar() {
+        if (P === 1) return '<div class="fl-bar" id="er-bar"><div class="fl-sd on" style="--sc:' + SCOL[0] + '"><b>' + (pos[0]) + '</b><small>of ' + LAST + ' squares</small></div><div class="fl-sd fl-lf"><b>' + turns + '</b><small>turns</small></div></div>';
+        var h = ''; for (var s = 0; s < P; s++) h += '<div class="fl-sd' + (s === cur ? ' on' : '') + '" style="--sc:' + SCOL[s] + '"><b>' + esc(nm(s)) + '</b><small>' + COLN[s] + (s === cur ? ' · your go' : '') + '</small></div>';
+        return '<div class="fl-bar" id="er-bar">' + h + '</div>';
+      }
+      function board() {
+        var h = ''; SQ.forEach(function (q, i) {
+          var k = q[1] || '', c = xy(i), cls = k === 'g' ? 'g' : k === 'b' ? 'b' : (k === 'f' || k === 'f0') ? 'f' : '';
+          h += '<div class="er-sq ' + cls + '" style="left:calc(var(--cs)*' + c[0] + ');top:calc(var(--cs)*' + c[1] + ')"><div><span class="n">' + i + '</span>' + esc(q[0]) + (q[2] ? '<small>' + esc(q[2]) + '</small>' : '') + '</div></div>';
+        });
+        return h;
+      }
+      function carPos(s, i) { var c = xy(i), o = [[.08, .6], [.36, .6], [.64, .6], [.36, .36]][s]; return 'left:calc(var(--cs)*' + (c[0] + o[0]) + ');top:calc(var(--cs)*' + (c[1] + o[1]) + ')'; }
+      function cars() { var h = ''; for (var s = 0; s < P; s++) h += '<div class="er-car s' + s + (s === cur ? ' on' : '') + '" id="erc' + s + '" style="' + carPos(s, pos[s]) + '"><i>' + (P > 1 ? (s + 1) : '') + '</i></div>'; return h; }
+      function setCar(s, jump) { var e = $('erc' + s); if (!e) return; e.classList[jump ? 'add' : 'remove']('jump'); e.setAttribute('style', carPos(s, pos[s])); }
+      function refresh() {
+        var b = $('er-bar'); if (b) b.outerHTML = bar();
+        var st = $('er-st'); if (st) st.textContent = msg;
+        for (var s = 0; s < P; s++) { var e = $('erc' + s); if (e) e.classList[s === cur ? 'add' : 'remove']('on'); }
+        var g = $('er-go'); if (g) { g.disabled = busy; g.textContent = '🎲 ' + (P > 1 ? esc(nm(cur)) + ': ' : '') + 'answer to move'; }
+      }
+      try { if (BZ.bcard) { ov.style.setProperty('--fl-card', 'url(' + BZ.bcard + ')'); ov.classList.add('flc-img'); } } catch (e) { }
+      frame('Eton Rules', bar() + '<div class="er-wrap"><div class="er-st" id="er-st">' + esc(msg) + '</div><div class="er-board" id="er-board">' + board() + '<div class="er-lay" id="er-lay">' + cars() + '</div></div><div class="bz-row"><button class="bz-big go er-go" id="er-go" onclick="apErAsk()">🎲 ' + (P > 1 ? esc(nm(0)) + ': ' : '') + 'answer to move</button></div></div>');
+      function who() { return '<small class="fl-who"><span style="color:' + TXC[cur] + '">' + (P > 1 ? esc(nm(cur)) + ' · ' + COLN[cur] : 'Your go') + '</span> · square ' + pos[cur] + ' · ' + esc(H.names[dirs()[0]]) + '</small>'; }
+      function task(c, v) { return '<div class="fl-hl">' + (c.ask ? 'Answer the question in ' + esc(H.names[target()]) : (v.hl ? 'Translate only the bold part into ' : 'Translate into ') + esc(H.names[dirs()[1]])) + '</div>'; }
+      function backQ() { var v = hvOf(qd); return who() + '<div class="fl-q' + sz(qd) + '">' + qOf(qd) + '</div>' + task(qd, v) + '<div class="fl-hint">Say it, then reveal</div><button class="bz-big go" onclick="apErRev()">Reveal</button>'; }
+      function backA() { var v = hvOf(qd); return who() + '<div class="fl-qs">' + qOf(qd) + '</div><div class="fl-ans' + (String(v.a).length > 95 ? ' fl-lg' : '') + '">' + esc(v.a) + ' ' + SAYBTN(v.a) + '</div><div class="fl-m"><button class="fl-n" onclick="apErMk(0)">✗ Major error</button><button class="fl-nr" onclick="apErMk(2)">~ Nearly</button><button class="fl-y" onclick="apErMk(1)">✓ Got it</button></div>'; }
+      window.apErAsk = function () {
+        if (busy) return;
+        if (skip[cur]) { skip[cur] = false; msg = nm(cur) + ' misses this go.'; cur = (cur + 1) % P; msg += ' ' + (P > 1 ? nm(cur) + ', your go.' : ''); sfx('tick'); refresh(); return; }
+        busy = true; qd = nextQ(); sfx('whoosh'); refresh();
+        var st = document.createElement('div'); st.id = 'er-stage'; st.className = 'fl-stage'; st.innerHTML = '<div class="c4-q" id="er-q">' + backQ() + '</div>'; ov.appendChild(st);
+        try { $('er-q').animate([{ transform: 'translateY(80px) rotateX(38deg) scale(.88)', opacity: 0 }, { transform: 'none', opacity: 1 }], { duration: 520, easing: 'cubic-bezier(.2,.8,.2,1)' }); } catch (e) { }
+      };
+      window.apErRev = function () { var b = $('er-q'); if (!b || !qd) return; sfx('tick'); b.innerHTML = backA(); try { if (CFG.fSay) say(dirs()[1] === 'en' ? String(qd.q) : hvOf(qd).a); } catch (e) { } };
+      function nextTurn(again) {
+        if (!again) cur = (cur + 1) % P; busy = false;
+        msg = again ? (P > 1 ? nm(cur) + ' goes again.' : 'Go again.') : (P > 1 ? nm(cur) + ', your go.' : 'Your go.');
+        refresh();
+      }
+      function win() {
+        sfx('win'); msg = (P > 1 ? nm(cur) : 'You') + ' reached Birley Schools!'; refresh();
+        timers.push(setTimeout(function () { endScreen('Eton Rules', { big: esc(P > 1 ? nm(cur) : 'Birley Schools'), note: P > 1 ? 'wins the race to Birley Schools.' : 'You reached Birley Schools in ' + turns + ' turns.' }, play); }, 1800));
+      }
+      function walk(n) {
+        var me = cur;
+        (function step() {
+          if (n > 0 && pos[me] < LAST) { pos[me]++; n--; setCar(me); sfx('tick'); refresh(); timers.push(setTimeout(step, 300)); }
+          else land(me);
+        })();
+      }
+      function land(me) {
+        if (pos[me] >= LAST) { win(); return; }
+        var q = SQ[pos[me]], e = q[3];
+        if (e === undefined || q[1] === 'f0') { nextTurn(false); return; }
+        msg = (q[0] + ': ' + q[2] + '.'); refresh();
+        timers.push(setTimeout(function () {
+          if (e === 'again') { sfx('good'); nextTurn(true); }
+          else if (e === 'miss') { sfx('bad'); skip[me] = true; nextTurn(false); }
+          else { sfx(e > 0 ? 'whoosh' : 'bad'); pos[me] = Math.max(0, Math.min(LAST - 1, pos[me] + e)); setCar(me, true); refresh(); timers.push(setTimeout(function () { nextTurn(false); }, 900)); }
+        }, 900));
+      }
+      window.apErMk = function (m) {
+        var stg = $('er-stage'); if (!stg || !qd) return; try { speechSynthesis.cancel(); } catch (e) { }
+        stg.style.transition = 'opacity .22s'; stg.style.opacity = '0'; turns++;
+        timers.push(setTimeout(function () {
+          stg.remove();
+          if (m === 1) {
+            sfx('dice'); var d = Math.floor(Math.random() * 6) + 1, el = document.createElement('div'); el.className = 'er-die'; ov.appendChild(el); var k = 0;
+            (function roll() { if (k < 9) { el.textContent = Math.floor(Math.random() * 6) + 1; k++; timers.push(setTimeout(roll, 70 + k * 12)); } else { el.textContent = d; timers.push(setTimeout(function () { el.remove(); walk(d); }, 700)); } })();
+          } else if (m === 2) { sfx('tick'); walk(1); }
+          else { sfx('bad'); msg = 'No move this time.'; nextTurn(false); }
+        }, 240));
+      };
+    }
+    intro();
+  };
   GAMES.four = function (p) {
     var COLN = ['Red', 'Yellow', 'Green', 'White'], TXC = ['#c0392b', '#a37b00', '#1f8a52', '#5b6788'], SCOL = ['#ff7b6b', '#f6d646', '#5fe3a0', '#e8eaf5'];
     function nm(s) { return pnGet(s, 'Team ' + (s + 1)); }
