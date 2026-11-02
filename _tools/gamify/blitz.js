@@ -401,7 +401,7 @@ function deck(el,m,n,x,y,face,gap){clear(el);const cs=[];for(let i=0;i<n;i++){co
         mTone(f, t, Math.min(len * .98, sd * 8), .28, 'sine', .03);
         var c = hymQ(e[0] + 12); c[1].forEach(function (i) { var g = hz(60 + c[0] + i); mTone(g * 1.004, t, len * .98, .025, 'sawtooth', .8); mTone(g * .996, t, len * .98, .025, 'sawtooth', .8); });
       } else {
-        mCello(f / 2, t, len * .98, .2);
+        mCello(f / 2, t, len * .98, .025);
       }
     });
   }
