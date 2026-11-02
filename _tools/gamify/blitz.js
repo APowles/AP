@@ -208,6 +208,7 @@ function deck(el,m,n,x,y,face,gap){clear(el);const cs=[];for(let i=0;i<n;i++){co
     ['gender', 'Gender blitz', 'Masculine, feminine or plural? One tap per noun.'],
     ['deal', 'Deal it', 'Shuffle, deal, turn a card and say it. Get every card right, shuffle, get them right again. Solo or two players.'],
     ['flip', 'Flip it', 'Pick a number: the card turns over and comes to the middle with its question. Solo, or two to four sides with surprise cards.'],
+    ['four', 'Four in a row', 'Two sides take turns: pick a column, answer the question, and a right answer drops your counter. First to line up four wins.'],
     ['roll', 'Roll it', 'Roll the dice: they decide how many words you blitz in one go.'],
     ['catch', 'Catch it', 'Words race across the screen, faster every catch. Tap the word, then its match.'],
     ['lane', 'Lane it', 'Four lanes, four words fall. Tap the right translation before it hits the line.'],
@@ -400,6 +401,7 @@ function deck(el,m,n,x,y,face,gap){clear(el);const cs=[];for(let i=0;i<n;i++){co
     clock: [['clock', 'Seconds per card', [5, 6, 7, 8, 9, 10], '', 1], ['cSay', 'Say each answer aloud when it turns over', [[1, 'On'], [0, 'Off']], '', 1]],
     streak: [['streak', 'Seconds per card', [[0, 'No timer'], 5, 8, 12], '', 1], ['sSay', 'Say each answer aloud when it turns over', [[1, 'On'], [0, 'Off']], '', 1]],
     deal: [['dN', 'Cards on the table', [4, 6, 8], '', 0], ['dL', 'Levels (solo)', [3, 5, 8], '', 0], ['dT', 'Race time (two players)', [[60, '1 min'], [120, '2 min'], [180, '3 min'], [300, '5 min']], '', 0], ['dSay', 'Say each answer aloud when it turns over', [[1, 'On'], [0, 'Off']], '', 1]],
+    four: [['fSay', 'Say each answer aloud when it turns over', [[1, 'On'], [0, 'Off']], '', 1]],
     flip: [['fSay', 'Say each answer aloud when it turns over', [[1, 'On'], [0, 'Off']], '', 1]],
     roll: [['dice', 'Dice', [[1, 'One die'], [2, 'Two dice']], '', 1], ['rlSay', 'Say each answer aloud when it turns over', [[1, 'On'], [0, 'Off']], '', 1]],
     pairs: [['pairs', 'Words in the race', [10, 20, 30], '', 0], ['pSay', 'Say each answer aloud when it turns over', [[1, 'On'], [0, 'Off']], '', 1]],
@@ -463,7 +465,7 @@ function deck(el,m,n,x,y,face,gap){clear(el);const cs=[];for(let i=0;i<n;i++){co
   function close() { stop(); musicStop(); PZ = false; var sp = $('bz-set'); if (sp) sp.remove(); if (ov) { ov.remove(); ov = null; } document.documentElement.style.overflow = ''; }
   window.apBlitz = function () {
     close(); ov = document.createElement('div'); ov.id = 'bz-ov'; ov.style.backgroundImage = 'url(' + BZ.stage + ')'; document.body.appendChild(ov);
-    if (!$('bz-css')) { var st = document.createElement('style'); st.id = 'bz-css'; st.textContent = CSS.replace('CARDFACE', BZ.cardface) + DLCSS + FLCSS; document.head.appendChild(st); }
+    if (!$('bz-css')) { var st = document.createElement('style'); st.id = 'bz-css'; st.textContent = CSS.replace('CARDFACE', BZ.cardface) + DLCSS + FLCSS + C4CSS; document.head.appendChild(st); }
     document.documentElement.style.overflow = 'hidden'; pickScreen();
   };
   function reasons(p) {
@@ -471,7 +473,7 @@ function deck(el,m,n,x,y,face,gap){clear(el);const cs=[];for(let i=0;i<n;i++){co
         if (Object.keys(secs).length < 2) r.odd = 'Needs two or more lists: choose more topics.'; else if (p.length < 6) r.odd = 'Needs a few more words.';
     var g = genderPool(p); if (target() === 'en' || g.length < 6) r.gender = 'Needs a list with nouns (le, la, un, une…).';
     if (p.length < 6) r.deal = 'Choose a list with more words.';
-    if (p.length < 4) { r.clock = r.streak = r.roll = r.pairs = r.letter = r.lane = r.flip = 'Choose a list with more words.'; }
+    if (p.length < 4) { r.clock = r.streak = r.roll = r.pairs = r.letter = r.lane = r.flip = r.four = 'Choose a list with more words.'; }
     var sp = shortOnly(p); if (sp.length < 8) r['catch'] = H.short ? 'Needs at least 8 short items (up to ' + H.short + ' words): choose more.' : 'Needs at least 8 words: choose more topics.'; if (sp.length < 4) r.lane = r.lane || 'Needs at least 4 short items: choose more.';
     return r;
   }
@@ -598,18 +600,19 @@ function deck(el,m,n,x,y,face,gap){clear(el);const cs=[];for(let i=0;i<n;i++){co
     '.fl-sd.on{opacity:1;border-color:var(--sc);box-shadow:0 0 0 2px var(--sc),0 0 24px rgba(0,0,0,.45)}.fl-sd b{font:800 1.8rem Georgia,serif;color:var(--sc,#e9d28a);line-height:1.1}.fl-sd small{color:#c8d3ea;font-size:.74rem;letter-spacing:.07em;text-transform:uppercase}',
     '.fl-lf{--sc:#e9d28a;opacity:.85}',
     '.fl-grid{display:grid;gap:10px;width:min(1180px,97%);height:calc(100vh - 215px);margin:0 auto}',
-    '.fl-c{position:relative;border:2px solid rgba(201,168,76,.7);border-radius:16px;cursor:pointer;display:flex;align-items:center;justify-content:center;background:linear-gradient(170deg,#2a4a92,#12214d);box-shadow:inset 0 2px 0 rgba(255,255,255,.25),inset 0 -3px 0 rgba(0,0,0,.25),0 1px 0 #8f7425,0 2px 0 #7d6520,0 3px 0 #6b561b,0 4px 0 #5a4716,0 5px 0 #14234f,0 6px 0 #101c42,0 7px 0 #0c1635,0 8px 0 #070d22,0 14px 18px rgba(0,0,0,.5);transition:transform .12s,border-color .12s,box-shadow .12s;animation:flin .35s both;padding:0;min-height:0}',
-    '.fl-c.fl-b{background:linear-gradient(170deg,#1c3470,#0b1536)}',
-    '.fl-c b{font:900 clamp(1.4rem,4.4vw,3.6rem) "DM Sans",system-ui,sans-serif;color:#f4e3a8;text-shadow:0 3px 0 rgba(0,0,0,.45)}',
-    '.fl-c:hover:not([disabled]){transform:translateY(-4px) scale(1.02);border-color:#f0d27a}.fl-c:active:not([disabled]){transform:translateY(5px)}',
-    '.fl-c.ok{background:linear-gradient(170deg,#1f7a49,#124a2c);border-color:#bff0d2}.fl-c.bad{background:linear-gradient(170deg,#9a3025,#5a1a14);border-color:#ffc3bb}.fl-c.sur{background:linear-gradient(170deg,#8a6b1a,#4d3a0c);border-color:#f6d77a}',
+    '.fl-c{--b1:#14264f;--b2:#050a1c;--lt:rgba(222,182,74,.30);--fr:linear-gradient(145deg,#fff3b8,#e0b241 30%,#8a6416 58%,#f6dc83 80%,#b8892a);position:relative;border:4px solid transparent;border-radius:18px;cursor:pointer;display:flex;align-items:center;justify-content:center;background:linear-gradient(180deg,rgba(255,255,255,.2),rgba(255,255,255,0) 44%) padding-box,repeating-linear-gradient(45deg,transparent 0 9px,var(--lt) 9px 10.5px) padding-box,repeating-linear-gradient(-45deg,transparent 0 9px,var(--lt) 9px 10.5px) padding-box,linear-gradient(170deg,var(--b1),var(--b2)) padding-box,var(--fr) border-box;box-shadow:inset 0 0 18px rgba(0,0,0,.7),inset 0 2px 0 rgba(255,255,255,.28),0 1px 0 #9a7424,0 2px 0 #876318,0 3px 0 #75530f,0 4px 0 #634509,0 5px 0 #1a1204,0 6px 0 #140e03,0 7px 0 #0e0a02,0 8px 0 #080601,0 15px 20px rgba(0,0,0,.55);transition:transform .12s,filter .12s,box-shadow .12s;animation:flin .35s both;padding:0;min-height:0}',
+    '.fl-c.fl-b{--b1:#0d1a3b;--b2:#03060f}',
+    '.fl-c::before{content:"";position:absolute;left:18%;right:18%;top:22%;bottom:22%;border-radius:50%;background:radial-gradient(closest-side,rgba(3,7,20,.95) 55%,rgba(3,7,20,0));pointer-events:none}',
+    '.fl-c b{position:relative;z-index:1;font:900 clamp(1.4rem,4.4vw,3.6rem) \"DM Sans\",system-ui,sans-serif;background:linear-gradient(180deg,#fff6c9,#f0cd62 48%,#b0801f);-webkit-background-clip:text;background-clip:text;color:transparent;-webkit-text-fill-color:transparent;filter:drop-shadow(0 2px 0 rgba(0,0,0,.75)) drop-shadow(0 0 6px rgba(240,200,90,.35))}',
+    '.fl-c:hover:not([disabled]){transform:translateY(-4px) scale(1.02);filter:brightness(1.18)}.fl-c:active:not([disabled]){transform:translateY(5px)}',
+    '.fl-c.ok{--b1:#17713f;--b2:#06361d;--lt:rgba(170,255,205,.24);--fr:linear-gradient(145deg,#eafff1,#82e3a9 38%,#2c8a55 62%,#c9f5d8)}.fl-c.bad{--b1:#a3342a;--b2:#4a120d;--lt:rgba(255,190,180,.22);--fr:linear-gradient(145deg,#fff0ed,#ff9d90 38%,#a8382c 62%,#ffd2cb)}.fl-c.sur{--b1:#8c6a14;--b2:#3d2b07;--lt:rgba(255,236,150,.3);--fr:linear-gradient(145deg,#fffbd6,#ffe27a 38%,#b8892a 62%,#fff0a8)}',
     '.fl-c.ok::after,.fl-c.bad::after,.fl-c.sur::after{position:absolute;right:9px;top:3px;font-size:1.25rem;color:#fff}.fl-c.ok::after{content:"\\2713"}.fl-c.bad::after{content:"\\2717"}.fl-c.sur::after{content:"\\2605"}',
-    '.fl-c[disabled]{cursor:default;box-shadow:inset 0 2px 0 rgba(255,255,255,.12),0 2px 0 #070d22;transform:translateY(6px)}.fl-c.ok b,.fl-c.bad b,.fl-c.sur b{opacity:.4}',
+    '.fl-c[disabled]{cursor:default;box-shadow:inset 0 0 18px rgba(0,0,0,.7),0 2px 0 #1a1204;transform:translateY(6px);filter:none}.fl-c.ok b,.fl-c.bad b,.fl-c.sur b{opacity:.45}',
     '@keyframes flin{from{opacity:0;transform:translateY(14px) scale(.9)}to{opacity:1;transform:none}}',
     '.fl-stage{position:absolute;inset:0;z-index:8;display:flex;align-items:center;justify-content:center;background:rgba(4,8,20,.82);perspective:1500px}',
     '.fl-big{--fw:min(800px,92vw);--fh:min(560px,74vh);--ft:46px;width:var(--fw);height:var(--fh);position:relative}.fl-in{position:absolute;inset:0;transform-style:preserve-3d}.fl-sh{position:absolute;left:6%;right:6%;bottom:-34px;height:30px;border-radius:50%;background:rgba(0,0,0,.6);filter:blur(16px);transition:none}.fl-sd3{position:absolute;background:linear-gradient(90deg,#6b561b,#e9cf7a 25%,#a98a2c 55%,#7d6520);backface-visibility:hidden}.fl-sdl,.fl-sdr{top:16px;height:calc(100% - 32px);width:var(--ft);left:calc(50% - var(--ft)/2)}.fl-sdl{transform:rotateY(-90deg) translateZ(calc(var(--fw)/2))}.fl-sdr{transform:rotateY(90deg) translateZ(calc(var(--fw)/2))}.fl-sdt,.fl-sdb{left:16px;width:calc(100% - 32px);height:var(--ft);top:calc(50% - var(--ft)/2);background:linear-gradient(180deg,#e9cf7a,#a98a2c 50%,#6b561b)}.fl-sdt{transform:rotateX(90deg) translateZ(calc(var(--fh)/2))}.fl-sdb{transform:rotateX(-90deg) translateZ(calc(var(--fh)/2))}',
     '.fl-f,.fl-bk{position:absolute;inset:0;border-radius:16px;backface-visibility:hidden;-webkit-backface-visibility:hidden;border:5px solid #d9b95a;box-sizing:border-box}',
-    '.fl-f{transform:translateZ(calc(var(--ft)/2));display:flex;align-items:center;justify-content:center;background:linear-gradient(170deg,#2a4a92,#12214d)}.fl-f b{font:900 clamp(5rem,18vw,11rem) "DM Sans",system-ui,sans-serif;color:#f4e3a8;text-shadow:0 6px 0 rgba(0,0,0,.45)}',
+    '.fl-f{transform:translateZ(calc(var(--ft)/2));display:flex;align-items:center;justify-content:center;background:linear-gradient(180deg,rgba(255,255,255,.18),rgba(255,255,255,0) 44%),repeating-linear-gradient(45deg,transparent 0 16px,rgba(222,182,74,.3) 16px 18px),repeating-linear-gradient(-45deg,transparent 0 16px,rgba(222,182,74,.3) 16px 18px),linear-gradient(170deg,#14264f,#050a1c)}.fl-f b{font:900 clamp(5rem,18vw,11rem) "DM Sans",system-ui,sans-serif;background:linear-gradient(180deg,#fff6c9,#f0cd62 48%,#b0801f);-webkit-background-clip:text;background-clip:text;color:transparent;-webkit-text-fill-color:transparent;filter:drop-shadow(0 6px 0 rgba(0,0,0,.7));padding:0 .25em;border-radius:50%}',
     '.fl-bk{transform:rotateY(180deg) translateZ(calc(var(--ft)/2));background:linear-gradient(160deg,#fbf7ea,#efe6c8);color:#14203f;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;padding:22px 30px;text-align:center;overflow:auto}',
     '.fl-who{font-weight:800;letter-spacing:.12em;text-transform:uppercase;color:#7a5f14;font-size:.8rem}',
     '.fl-q{font:700 clamp(1.7rem,3.8vw,2.6rem)/1.25 Georgia,serif;color:#14203f}.fl-q.fl-lg{font-size:clamp(1.35rem,2.8vw,1.9rem)}.fl-q.fl-xl{font-size:clamp(1.1rem,2.2vw,1.45rem)}',
@@ -619,6 +622,27 @@ function deck(el,m,n,x,y,face,gap){clear(el);const cs=[];for(let i=0;i<n;i++){co
     '.fl-m{display:flex;gap:10px;justify-content:center;margin-top:6px}.fl-m button{font:800 1.1rem "DM Sans",sans-serif;padding:13px 18px;border-radius:12px;border:0;cursor:pointer;color:#fff;white-space:nowrap}.fl-y{background:#2e9e62}.fl-n{background:#c0392b}.fl-nr{background:#d9a62e;color:#2b2208!important}',
     '.fl-bk .bz-big{background:linear-gradient(180deg,#1f3a78,#12234d);color:#f4e3a8;border-color:#c9a84c}',
     '.fl-sur{display:flex;flex-direction:column;align-items:center;gap:6px}.fl-ic{font-size:clamp(4rem,10vw,6.5rem);line-height:1}.fl-sur h2{margin:0;font:800 clamp(1.8rem,4vw,2.8rem) Georgia,serif;color:#14203f}.fl-sur p{margin:0;font-size:1.2rem;color:#4a5570}'
+  ].join('\n');
+  var C4CSS = [
+    '.c4-wrap{--cs:min(calc((100vh - 290px)/6),calc(88vw/7),104px);display:flex;flex-direction:column;align-items:center;gap:8px;margin:0 auto}',
+    '.c4-st{color:#e9d28a;font:700 1.05rem "DM Sans",sans-serif;letter-spacing:.04em;min-height:1.4em}',
+    '.c4-cols{display:grid;grid-template-columns:repeat(7,var(--cs))}',
+    '.c4-cols button{margin:0 auto;width:calc(var(--cs)*.78);height:calc(var(--cs)*.56);border-radius:12px;border:2px solid #d9b95a;font:900 calc(var(--cs)*.38) "DM Sans",sans-serif;color:#f4e3a8;background:linear-gradient(170deg,#2a4a92,#12214d);box-shadow:inset 0 2px 0 rgba(255,255,255,.25),0 1px 0 #8f7425,0 2px 0 #7d6520,0 3px 0 #6b561b,0 4px 0 #5a4716,0 5px 0 #070d22,0 9px 12px rgba(0,0,0,.5);cursor:pointer;transition:transform .12s;padding:0;text-shadow:0 2px 0 rgba(0,0,0,.45)}',
+    '.c4-cols button:hover:not([disabled]){transform:translateY(-4px)}.c4-cols button:active:not([disabled]){transform:translateY(4px)}.c4-cols button[disabled]{opacity:.3;cursor:default}',
+    '.c4-board{position:relative;width:calc(var(--cs)*7);height:calc(var(--cs)*6);margin:6px 0 26px}',
+    '.c4-edge{position:absolute;inset:0;border-radius:20px;box-shadow:0 1px 0 #0f3aa0,0 2px 0 #0e3699,0 3px 0 #0d3291,0 4px 0 #0c2e8a,0 5px 0 #0b2a82,0 6px 0 #0a267a,0 7px 0 #092272,0 8px 0 #081f6a,0 9px 0 #071b62,0 10px 0 #06175a,0 11px 0 #051452,0 12px 0 #04104a,0 28px 36px rgba(0,0,0,.6)}',
+    '.c4-lay{position:absolute;inset:0}',
+    '.c4-face{position:absolute;inset:0;border-radius:20px;background:linear-gradient(155deg,#3a78ee,#1a49b5 55%,#12379a);-webkit-mask:radial-gradient(circle at 50% 50%,transparent 0 39%,#000 40.2%) 0 0/calc(100%/7) calc(100%/6) repeat;mask:radial-gradient(circle at 50% 50%,transparent 0 39%,#000 40.2%) 0 0/calc(100%/7) calc(100%/6) repeat}',
+    '.c4-rim{position:absolute;inset:0;border-radius:20px;pointer-events:none;background:radial-gradient(circle at 50% 50%,transparent 0 37.5%,rgba(4,16,60,.75) 39%,rgba(255,255,255,.28) 40.6%,transparent 43%) 0 0/calc(100%/7) calc(100%/6) repeat}',
+    '.c4-gloss{position:absolute;inset:0;border-radius:20px;pointer-events:none;box-shadow:inset 0 3px 0 rgba(255,255,255,.35),inset 0 -4px 0 rgba(0,0,0,.3)}',
+    '.c4-d{position:absolute;width:var(--cs);height:var(--cs);left:calc(var(--c)*var(--cs));top:calc(var(--r)*var(--cs))}',
+    '.c4-d i{position:absolute;inset:7%;border-radius:50%;background:radial-gradient(circle at 36% 30%,var(--l),var(--b) 52%,var(--k));box-shadow:inset 0 0 0 calc(var(--cs)*.06) rgba(255,255,255,.16),inset 0 calc(var(--cs)*-.05) calc(var(--cs)*.08) rgba(0,0,0,.4),0 0 0 2px rgba(0,0,0,.25)}',
+    '.c4-d i::after{content:"";position:absolute;inset:22%;border-radius:50%;border:calc(var(--cs)*.05) solid rgba(0,0,0,.18);box-shadow:0 1px 0 rgba(255,255,255,.3)}',
+    '.c4-d.s0{--l:#ffb0a2;--b:#e23b2e;--k:#8f1a12}.c4-d.s1{--l:#fff6b0;--b:#f2c418;--k:#a37b00}',
+    '.c4-d.w i{animation:c4w .7s ease-in-out infinite alternate}@keyframes c4w{from{filter:brightness(1);transform:scale(1)}to{filter:brightness(1.55);transform:scale(1.1)}}',
+    '.c4-sd0{--sc:#ff7b6b}.c4-sd1{--sc:#f6d646}',
+    '.c4-q{width:min(760px,92vw);min-height:min(400px,68vh);border-radius:16px;border:5px solid #d9b95a;box-sizing:border-box;background:linear-gradient(160deg,#fbf7ea,#efe6c8);color:#14203f;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;padding:26px 34px;text-align:center;box-shadow:0 1px 0 #c9a84c,0 2px 0 #b8982f,0 3px 0 #a98a2c,0 4px 0 #9a7c27,0 5px 0 #8b6e22,0 6px 0 #7d6520,0 7px 0 #6e571b,0 8px 0 #604a17,0 9px 0 #523f14,0 10px 0 #453410,0 34px 60px rgba(0,0,0,.65)}',
+    '.c4-q .sp{background:#eef2ff;border:1px solid #b7c0d8;border-radius:50%;width:38px;height:38px;cursor:pointer;vertical-align:middle}.c4-q .bz-big{background:linear-gradient(180deg,#1f3a78,#12234d);color:#f4e3a8;border-color:#c9a84c}'
   ].join('\n');
   var DLCSS = [
     '#bz-ov{--cb:url(icons/cardback_1.webp)}#bz-ov[data-dlr="2"]{--cb:url(icons/cardback_2.webp)}',
@@ -1290,6 +1314,84 @@ function deck(el,m,n,x,y,face,gap){clear(el);const cs=[];for(let i=0;i<n;i++){co
         if (sides === 1) return timers.push(setTimeout(function () { endScreen('Flip it', { big: ok + '/' + n, note: ok === n ? 'Every card.' : (n - ok) + ' to look at again.' }, play); }, 700));
         var mx = Math.max.apply(null, scores), win = scores.map(function (v, s) { return v === mx ? s + 1 : 0; }).filter(Boolean);
         timers.push(setTimeout(function () { endScreen('Flip it', { big: scores.join(' – '), note: win.length > 1 ? 'A draw.' : 'Side ' + win[0] + ' wins.' }, play); }, 700));
+      }
+    }
+    intro();
+  };
+
+  GAMES.four = function (p) {
+    var NAMES = ['Red', 'Yellow'];
+    function qOf(c) { var v = hvOf(c); return v.hl ? (v.hl[0].trim() ? '[…] ' : '') + (v.hl[2].trim() ? esc(v.hl[1].replace(/\s*…\s*$/, '')) + ' […]' : esc(v.hl[1])) : esc(c.q); }
+    function sz(c) { var L = c.q.length; return L > 120 ? ' fl-xl' : L > 60 ? ' fl-lg' : ''; }
+    function intro() {
+      frame('Four in a row', '<div class="bz-note">Two sides take turns. Choose a column and answer the question: say it, reveal it, then mark yourself. A right answer drops your counter; anything else passes the turn. First to line up four in a row, across, up or diagonally, wins.</div>'
+        + '<div class="bz-row"><button class="bz-big go" onclick="apBzGo()">▶ Start</button></div>');
+      window.apBzGo = play;
+    }
+    function play() {
+      stop();
+      var R = 6, C = 7, g = [], cur = 0, busy = false, pend = -1, deck = [], di = 0, cnt = 0, qd = null, msg = 'Red, choose a column.';
+      for (var r = 0; r < R; r++) { g.push([]); for (var c = 0; c < C; c++) g[r].push(-1); }
+      function nextQ() { if (di >= deck.length) { deck = shuf(p); di = 0; } return deck[di++]; }
+      function colFull(c) { return g[0][c] !== -1; }
+      function bar() {
+        return '<div class="fl-bar" id="c4-bar">' + [0, 1].map(function (s) { return '<div class="fl-sd c4-sd' + s + (s === cur ? ' on' : '') + '"><b>' + NAMES[s] + '</b><small>Side ' + (s + 1) + (s === cur ? ' · your go' : '') + '</small></div>'; }).join('') + '</div>';
+      }
+      function cols() { var h = ''; for (var c = 0; c < C; c++) h += '<button id="c4b' + c + '"' + (colFull(c) ? ' disabled' : '') + ' onclick="apC4Pick(' + c + ')">' + (c + 1) + '</button>'; return h; }
+      function refresh() {
+        var b = $('c4-bar'); if (b) b.outerHTML = bar();
+        var cc = $('c4-cols'); if (cc) cc.innerHTML = cols();
+        var st = $('c4-st'); if (st) st.textContent = msg;
+      }
+      frame('Four in a row', bar() + '<div class="c4-wrap"><div class="c4-st" id="c4-st">' + msg + '</div><div class="c4-cols" id="c4-cols">' + cols() + '</div><div class="c4-board" id="c4-board"><div class="c4-edge"></div><div class="c4-lay" id="c4-lay"></div><div class="c4-face"></div><div class="c4-rim"></div><div class="c4-gloss"></div></div></div>');
+      function who() { return '<small class="fl-who"><span style="color:' + (cur ? '#a37b00' : '#c0392b') + '">' + NAMES[cur] + ' · Side ' + (cur + 1) + '</span> · column ' + (pend + 1) + ' · ' + esc(H.names[dirs()[0]]) + '</small>'; }
+      function backQ() { var v = hvOf(qd); return who() + '<div class="fl-q' + sz(qd) + '">' + qOf(qd) + '</div>' + (v.hl ? '<div class="fl-hl">Translate only the highlighted part</div>' : '') + '<div class="fl-hint">Say it, then reveal</div><button class="bz-big go" onclick="apC4Rev()">Reveal</button>'; }
+      function backA() { var v = hvOf(qd); return who() + '<div class="fl-qs">' + qOf(qd) + '</div><div class="fl-ans' + (String(v.a).length > 95 ? ' fl-lg' : '') + '">' + esc(v.a) + ' ' + SAYBTN(v.a) + '</div><div class="fl-m"><button class="fl-n" onclick="apC4Mk(0)">✗ Major error</button><button class="fl-nr" onclick="apC4Mk(2)">~ Nearly</button><button class="fl-y" onclick="apC4Mk(1)">✓ Got it</button></div>'; }
+      window.apC4Pick = function (c) {
+        if (busy || colFull(c)) return; busy = true; pend = c; qd = nextQ(); sfx('whoosh');
+        var st = document.createElement('div'); st.id = 'c4-stage'; st.className = 'fl-stage';
+        st.innerHTML = '<div class="c4-q" id="c4-q">' + backQ() + '</div>'; ov.appendChild(st);
+        try { $('c4-q').animate([{ transform: 'translateY(80px) rotateX(38deg) scale(.88)', opacity: 0 }, { transform: 'none', opacity: 1 }], { duration: 520, easing: 'cubic-bezier(.2,.8,.2,1)' }); } catch (e) { }
+      };
+      window.apC4Rev = function () { var b = $('c4-q'); if (!b || !qd) return; sfx('tick'); b.innerHTML = backA(); try { if (CFG.fSay) say(dirs()[1] === 'en' ? String(qd.q) : hvOf(qd).a); } catch (e) { } };
+      window.apC4Mk = function (m) {
+        var stg = $('c4-stage'); if (!stg || !qd) return; var c = pend; stop0();
+        stg.style.transition = 'opacity .22s'; stg.style.opacity = '0';
+        timers.push(setTimeout(function () {
+          stg.remove();
+          if (m === 1) { sfx('good'); drop(c); }
+          else { sfx(m === 0 ? 'bad' : 'tick'); msg = 'No counter this time. ' + NAMES[1 - cur] + ', choose a column.'; cur = 1 - cur; busy = false; refresh(); }
+        }, 240));
+      };
+      function stop0() { try { speechSynthesis.cancel(); } catch (e) { } }
+      function winOf(r0, c0, s) {
+        var D = [[0, 1], [1, 0], [1, 1], [1, -1]];
+        for (var k = 0; k < 4; k++) {
+          var dr = D[k][0], dc = D[k][1], cells = [[r0, c0]], r, c;
+          for (r = r0 + dr, c = c0 + dc; r >= 0 && r < R && c >= 0 && c < C && g[r][c] === s; r += dr, c += dc) cells.push([r, c]);
+          for (r = r0 - dr, c = c0 - dc; r >= 0 && r < R && c >= 0 && c < C && g[r][c] === s; r -= dr, c -= dc) cells.push([r, c]);
+          if (cells.length >= 4) return cells;
+        }
+        return null;
+      }
+      function drop(c) {
+        var r = R - 1; while (r >= 0 && g[r][c] !== -1) r--; if (r < 0) { busy = false; return; }
+        g[r][c] = cur; cnt++;
+        var lay = $('c4-lay'), d = document.createElement('div'); d.className = 'c4-d s' + cur; d.id = 'c4d' + r + '_' + c; d.style.setProperty('--r', r); d.style.setProperty('--c', c); d.innerHTML = '<i></i>'; lay.appendChild(d);
+        var cs = d.offsetHeight || 80, h = (r + 1.4) * cs;
+        try { d.animate([{ transform: 'translateY(' + (-h) + 'px)', easing: 'cubic-bezier(.55,0,.95,.6)' }, { transform: 'translateY(0)', offset: .56 }, { transform: 'translateY(' + (-cs * .2) + 'px)', offset: .72, easing: 'ease-in' }, { transform: 'translateY(0)', offset: .86 }, { transform: 'translateY(' + (-cs * .05) + 'px)', offset: .94, easing: 'ease-in' }, { transform: 'translateY(0)' }], { duration: 760 + r * 40 }); } catch (e) { }
+        var me = cur, w = winOf(r, c, me);
+        timers.push(setTimeout(function () { sfx('tick'); }, 440 + r * 25));
+        timers.push(setTimeout(function () {
+          if (w) {
+            w.forEach(function (x) { var e = $('c4d' + x[0] + '_' + x[1]); if (e) e.classList.add('w'); });
+            msg = NAMES[me] + ' has four in a row!'; refresh(); sfx('win');
+            timers.push(setTimeout(function () { endScreen('Four in a row', { big: 'Side ' + (me + 1), note: NAMES[me] + ' wins with four in a row.' }, play); }, 2300));
+          } else if (cnt >= R * C) {
+            msg = 'The board is full.'; refresh();
+            timers.push(setTimeout(function () { endScreen('Four in a row', { big: 'A draw', note: 'The board is full.' }, play); }, 1200));
+          } else { cur = 1 - cur; msg = NAMES[cur] + ', choose a column.'; busy = false; refresh(); }
+        }, 900 + r * 40));
       }
     }
     intro();
