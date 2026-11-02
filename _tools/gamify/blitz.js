@@ -1,3 +1,9 @@
+    var PADS = [[249,231],[424,231],[601,231],[777,231],[957,231],[1137,231],[1318,231],[1339,442],[1151,442],[965,442],[766,442],[569,442],[381,442],[191,442],[202,664],[388,664],[574,664],[763,664],[955,664],[1141,664],[1324,664],[1329,886],[1138,886],[946,886],[757,886],[567,886],[377,886],[188,886]];
+    var ICO = { 'Your House': 'house', 'Keate\'s Lane': 'keates', 'Evans\'s': 'evans', 'Rowland\'s & Tap': 'rowlands', 'Don Beni': 'donbeni', 'Budgens': 'budgens', 'Farrer Theatre': 'farrer', 'Collect the post (School Office)': 'office', 'Cloisters': 'cloisters', 'College Chapel': 'chapel', '2 Days\' Close Gating': 'gating', 'School Yard': 'schoolyard', 'Detention (Lower School)': 'detention', 'Sign the Tardy Book (School Office)': 'office', 'School Library': 'library', 'Three Show Ups in one day': 'showups', 'Missed 2nd music lesson in a row': 'missed', 'Music School': 'music', 'Dutchmans': 'dutchmans', 'Athens Pool': 'athens', 'Rain walk: Allington to Queen\'s': 'rain', 'Lecture in Jafar Hall': 'jafar', 'Birley Schools': 'birley', 'Cannon Yard': 'cannon', 'Burning Bush': 'burningbush' };
+    var SHORT = { 'Collect the post (School Office)': 'Collect the post', 'Sign the Tardy Book (School Office)': 'Tardy Book', 'Detention (Lower School)': 'Detention', 'Three Show Ups in one day': 'Three Show Ups', 'Missed 2nd music lesson in a row': 'Missed lesson', 'Rain walk: Allington to Queen\'s': 'Rain walk', 'Lecture in Jafar Hall': 'Jafar lecture' };
+    function shortOf(n) { return SHORT[n] || n; }
+    function fxOf(q) { var e = q[3]; if (typeof e === 'number') return e > 0 ? '+' + e : '\u2212' + (-e); return e === 'again' ? '\u21BB' : e === 'miss' ? '\u23F8' : e === 'miss2' ? '\u23F8\u23F8' : ''; }
+    function padPos(i) { var c = PADS[i] || PADS[0]; return [c[0] / 15.36, c[1] / 10.24]; }
 
 (function () {
   var $ = function (id) { return document.getElementById(id); };
@@ -527,7 +533,7 @@ function deck(el,m,n,x,y,face,gap){clear(el);const cs=[];for(let i=0;i<n;i++){co
   }
   function pickScreen() {
     stop(); musicStop(); view = 'pick'; bgNow = null; if (ov) ov.removeAttribute('data-dlr'); var p = pool(), r = reasons(p);
-    frame('', '<div class="bz-note"><b>' + p.length + ' ' + (HC.noun || 'words') + '</b> ready. ' + esc(dirs()[0] === 'en' ? 'English → ' + H.names[dirs()[1]] : H.names[dirs()[0]] + ' → English') + '. Pick a round: it starts straight away.</div><div class="bz-grid">' + MODES.filter(function (m) { return !H.games || H.games.indexOf(m[0]) > -1; }).map(function (m) { var off = r[m[0]]; return '<button class="bz-m"' + (off ? ' disabled' : '') + ' onclick="apBzStart(\'' + m[0] + '\')"><img alt="" src="' + (BZ[m[0]] || 'icons/hx_cards.webp') + '"><b>' + m[1] + '</b><span>' + (off || m[2]) + '</span></button>'; }).join('') + '</div>');
+    frame('', '<div class="bz-note"><b>' + p.length + ' ' + (HC.noun || 'words') + '</b> ready. ' + esc(dirs()[0] === 'en' ? 'English → ' + H.names[dirs()[1]] : H.names[dirs()[0]] + ' → English') + '. Pick a round: it starts straight away.</div><div class="bz-grid">' + MODES.filter(function (m) { return !H.games || H.games.indexOf(m[0]) > -1; }).map(function (m) { var off = r[m[0]]; return '<button class="bz-m"' + (off ? ' disabled' : '') + ' onclick="apBzStart(\'' + m[0] + '\')"><img alt="" src="' + (BZ[m[0]] || ({ run: 'icons/gm_run.webp', four: 'icons/gm_four.webp' })[m[0]] || 'icons/hx_cards.webp') + '"><b>' + m[1] + '</b><span>' + (off || m[2]) + '</span></button>'; }).join('') + '</div>');
   }
   window.apBzStart = function (k) { stop(); bgNow = null; view = k; ctx(); sfx('go'); musicStart(true); GAMES[k](pool()); };
 
@@ -703,18 +709,18 @@ function deck(el,m,n,x,y,face,gap){clear(el);const cs=[];for(let i=0;i<n;i++){co
     '.c4-q .sp{background:#eef2ff;border:1px solid #b7c0d8;border-radius:50%;width:38px;height:38px;cursor:pointer;vertical-align:middle}.c4-q .bz-big{background:linear-gradient(180deg,#1f3a78,#12234d);color:#f4e3a8;border-color:#c9a84c}'
   ].join('\n');
   var ERCSS = [
-    '.er-wrap{--cs:min(calc((100vh - 310px)/4),calc(92vw/7),136px);display:flex;flex-direction:column;align-items:center;gap:10px;margin:0 auto}',
+    '.er-wrap{--bw:min(94vw,calc((100vh - 300px)*1.5),1180px);display:flex;flex-direction:column;align-items:center;gap:10px;margin:0 auto}',
     '.er-st{color:#e9d28a;font:700 1.1rem "DM Sans",sans-serif;letter-spacing:.03em;min-height:1.5em;text-align:center}',
-    '.er-board{position:relative;width:calc(var(--cs)*7);height:calc(var(--cs)*4);margin:4px 0 6px}',
-    '.er-sq{position:absolute;width:var(--cs);height:var(--cs);padding:3px;box-sizing:border-box}',
-    '.er-sq>div{position:relative;height:100%;border-radius:12px;border:2px solid rgba(201,168,76,.5);background:linear-gradient(160deg,#1d2e5a,#0e1936);color:#f3ead0;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;font:700 calc(var(--cs)*.12)/1.15 "DM Sans",sans-serif;padding:calc(var(--cs)*.06);box-shadow:inset 0 1px 0 rgba(255,255,255,.13),0 4px 0 #060b1c}',
-    '.er-sq .n{position:absolute;left:7px;top:4px;font-size:calc(var(--cs)*.1);color:rgba(233,210,138,.75)}',
-    '.er-sq small{display:block;margin-top:3px;font-size:calc(var(--cs)*.095);letter-spacing:.04em;text-transform:uppercase;opacity:.95}',
-    '.er-sq.g>div{border-color:#6fe0a8;background:linear-gradient(160deg,#17493f,#0c2a2a)}.er-sq.g small{color:#9af0c4}',
-    '.er-sq.b>div{border-color:#ff8c78;background:linear-gradient(160deg,#4f1f2c,#2a1018)}.er-sq.b small{color:#ffb3a6}',
-    '.er-sq.f>div{border-color:#f4d77a;background:linear-gradient(160deg,#e8c565,#a8832b);color:#1a2744}.er-sq.f .n{color:#3a2c08}.er-sq.f small{color:#3a2c08}',
+    '.er-board{position:relative;width:var(--bw);height:calc(var(--bw)*2/3);margin:4px 0 6px;border-radius:10px;background:#0e1936 var(--erb) center/100% 100% no-repeat;box-shadow:0 8px 24px rgba(0,0,0,.55)}',
+    '.er-sq{position:absolute;width:9.4%;aspect-ratio:1;transform:translate(-50%,-50%);border-radius:50%;display:flex;align-items:center;justify-content:center}',
+    '.er-sq::after{content:"";position:absolute;inset:-1%;border-radius:50%;border:calc(var(--bw)*.004) solid transparent;pointer-events:none}',
+    '.er-sq.g::after{border-color:#5fe3a0;box-shadow:0 0 calc(var(--bw)*.012) #5fe3a0}.er-sq.b::after{border-color:#ff7b6b;box-shadow:0 0 calc(var(--bw)*.012) #ff7b6b}.er-sq.f::after{border-color:#fff2b0;box-shadow:0 0 calc(var(--bw)*.016) #f4d77a}',
+    '.er-sq img{width:72%;height:72%;border-radius:22%;box-shadow:0 2px 6px rgba(0,0,0,.5)}',
+    '.er-sq .pn{display:none;position:absolute;inset:8%;align-items:center;justify-content:center;text-align:center;color:#14203f;font:800 calc(var(--bw)*.0125)/1.1 "DM Sans",sans-serif;text-shadow:0 1px 0 rgba(255,255,255,.5)}.er-sq.np .pn{display:flex}',
+    '.er-sq .fx{position:absolute;right:-6%;top:-6%;min-width:28%;padding:0 4%;height:28%;border-radius:999px;background:#14203f;border:2px solid #f4d77a;color:#f7e9b5;font:900 calc(var(--bw)*.0135)/1 "DM Sans",sans-serif;display:flex;align-items:center;justify-content:center;box-shadow:0 2px 4px rgba(0,0,0,.5);z-index:2}.er-sq.g .fx{background:#12503a;border-color:#5fe3a0}.er-sq.b .fx{background:#5a1c24;border-color:#ff7b6b}',
+    '.er-sq .cp{position:absolute;top:calc(100% + var(--bw)*.006);left:50%;transform:translateX(-50%);white-space:nowrap;padding:.12em .55em;border-radius:999px;background:rgba(8,16,40,.82);color:#f3ead0;font:700 max(10px,calc(var(--bw)*.0118))/1.25 "DM Sans",sans-serif;letter-spacing:.02em;z-index:1}.er-sq.np .cp{display:none}',
     '.er-lay{position:absolute;inset:0;pointer-events:none}',
-    '.er-car{position:absolute;width:calc(var(--cs)*.27);height:calc(var(--cs)*.27);transition:left .26s ease-out,top .26s ease-out}',
+    '.er-car{position:absolute;width:2.7%;aspect-ratio:1;transform:translate(-50%,-50%);z-index:3;transition:left .26s ease-out,top .26s ease-out}',
     '.er-car i{position:absolute;inset:0;border-radius:50%;background:radial-gradient(circle at 36% 30%,var(--l),var(--b) 55%,var(--k));box-shadow:0 3px 5px rgba(0,0,0,.55),inset 0 0 0 2px rgba(255,255,255,.2);display:flex;align-items:center;justify-content:center;font:900 calc(var(--cs)*.13) "DM Sans",sans-serif;color:rgba(0,0,0,.6)}',
     '.er-car.jump{transition:left .7s cubic-bezier(.5,0,.2,1),top .7s cubic-bezier(.5,0,.2,1)}.er-car.on i{animation:erp .8s ease-in-out infinite alternate}@keyframes erp{from{transform:scale(1)}to{transform:scale(1.18)}}',
     '.er-car.s0{--l:#ffb0a2;--b:#e23b2e;--k:#8f1a12}.er-car.s1{--l:#fff6b0;--b:#f2c418;--k:#a37b00}.er-car.s2{--l:#b9ffd8;--b:#23b26a;--k:#0d5a33}.er-car.s3{--l:#ffffff;--b:#dfe2ee;--k:#868ba6}',
@@ -1435,14 +1441,13 @@ function deck(el,m,n,x,y,face,gap){clear(el);const cs=[];for(let i=0;i<n;i++){co
       ['2 Days\' Close Gating', 'b', 'Worst: miss 2 goes', 'miss2'], ['School Yard'], ['Detention (Lower School)', 'b', 'Back 4', -4], ['Sign the Tardy Book (School Office)', 'b', 'Punishment: back 2', -2], ['School Library', 'g', 'Forward 2', 2], ['Durnford'],
       ['Three Show Ups in one day', 'g', 'Great news: forward 5', 5], ['Carter'], ['Missed 2nd music lesson in a row', 'b', 'Back 3', -3], ['Music School', 'g', 'Go again', 'again'], ['Eton Wick Road'], ['Dutchmans', 'b', 'The far fields: back 3', -3],
       ['Athens Pool', 'g', 'Swim at Athens: forward 3', 3], ['Rain walk: Allington to Queen\'s', 'b', 'Long walk: back 2', -2], ['Lecture in Jafar Hall', 'b', 'Miss a go', 'miss'], ['Birley Schools', 'f', 'Sent Up For Good!']
-    ], LAST = SQ.length - 1, COLS = 7, ROWS = Math.ceil(SQ.length / COLS);
+    ], LAST = SQ.length - 1;
     function nm(s) { return pnGet(s, 'Team ' + (s + 1)); }
     function qOf(c) { var v = hvOf(c); return v.hl ? esc(v.hl[0]) + '<b class="hl">' + esc(v.hl[1]) + '</b>' + esc(v.hl[2]) : esc(c.q); }
     function sz(c) { var L = c.q.length; return L > 120 ? ' fl-xl' : L > 60 ? ' fl-lg' : ''; }
-    function xy(i) { var r = Math.floor(i / COLS), c = i % COLS; if (r % 2) c = COLS - 1 - c; return [c, ROWS - 1 - r]; }
     function intro() {
       var P = CFG.erP;
-      frame('Eton Rules', '<div class="bz-note">Race from your House to Birley Schools. On your go, answer a question: say it, reveal it, then mark yourself. A right answer rolls the die and you walk that many squares; Nearly moves you one; a Major error keeps you where you are. Rowland\'s, Budgens and the Library help you on. A right answer also earns a chance to take an Eton Rules card, which can be good news or bad. Detention, the Tardy Book, the Chapel and jobs hold you back. First to Birley Schools wins.</div>'
+      frame('Eton Rules', '<div class="bz-note">Race from your House to Birley Schools. On your go, answer a question: say it, reveal it, then mark yourself. A right answer rolls the die and you walk that many squares; Nearly moves you one; a Major error keeps you where you are. Rowland\'s, Budgens and the Library help you on. A right answer also earns a chance to take an Eton Rules card, which can be good news or bad. Detention, the Tardy Book, the Chapel and jobs hold you back. First to reach Birley Schools is Sent Up For Good and wins.</div>'
         + '<div class="fl-opt"><span>Players</span><div class="bz-row">' + [[1, 'Solo'], [2, 'Two teams'], [3, 'Three teams'], [4, 'Four teams']].map(function (o) { return '<button class="bz-b' + (P === o[0] ? ' on' : '') + '" onclick="apErSet(' + o[0] + ')">' + o[1] + '</button>'; }).join('') + '</div></div>'
         + (P > 1 ? pnBox(P, ['Team 1', 'Team 2', 'Team 3', 'Team 4'], SCOL) : '')
         + '<div class="bz-row"><button class="bz-big go" onclick="apBzGo()">▶ Start</button></div>');
@@ -1462,12 +1467,14 @@ function deck(el,m,n,x,y,face,gap){clear(el);const cs=[];for(let i=0;i<n;i++){co
       }
       function board() {
         var h = ''; SQ.forEach(function (q, i) {
-          var k = q[1] || '', c = xy(i), cls = k === 'g' ? 'g' : k === 'b' ? 'b' : (k === 'f' || k === 'f0') ? 'f' : '';
-          h += '<div class="er-sq ' + cls + '" style="left:calc(var(--cs)*' + c[0] + ');top:calc(var(--cs)*' + c[1] + ')"><div><span class="n">' + i + '</span>' + esc(q[0]) + (q[2] ? '<small>' + esc(q[2]) + '</small>' : '') + '</div></div>';
+          var k = q[1] || '', c = padPos(i), cls = k === 'g' ? 'g' : k === 'b' ? 'b' : (k === 'f' || k === 'f0') ? 'f' : '', ic = ICO[q[0]], fx = q[3] != null ? fxOf(q) : '';
+          h += '<div class="er-sq ' + cls + (ic ? '' : ' np') + '" title="' + esc(q[0] + (q[2] ? ': ' + q[2] : '')) + '" style="left:' + c[0] + '%;top:' + c[1] + '%">'
+            + (ic ? '<img src="icons/er_' + ic + '.webp" alt="" onerror="this.parentNode.classList.add(\'np\');this.remove()">' : '')
+            + '<span class="pn">' + esc(shortOf(q[0])) + '</span>' + (fx ? '<span class="fx">' + fx + '</span>' : '') + '<span class="cp">' + esc(shortOf(q[0])) + '</span></div>';
         });
         return h;
       }
-      function carPos(s, i) { var c = xy(i), o = [[.08, .6], [.36, .6], [.64, .6], [.36, .36]][s]; return 'left:calc(var(--cs)*' + (c[0] + o[0]) + ');top:calc(var(--cs)*' + (c[1] + o[1]) + ')'; }
+      function carPos(s, i) { var c = PADS[i] || PADS[0], o = [[-50, 42], [-17, 62], [17, 62], [50, 42]][s]; return 'left:' + ((c[0] + o[0]) / 15.36) + '%;top:' + ((c[1] + o[1]) / 10.24) + '%'; }
       function cars() { var h = ''; for (var s = 0; s < P; s++) h += '<div class="er-car s' + s + (s === cur ? ' on' : '') + '" id="erc' + s + '" style="' + carPos(s, pos[s]) + '"><i>' + (P > 1 ? (s + 1) : '') + '</i></div>'; return h; }
       function setCar(s, jump) { var e = $('erc' + s); if (!e) return; e.classList[jump ? 'add' : 'remove']('jump'); e.setAttribute('style', carPos(s, pos[s])); }
       function refresh() {
@@ -1477,7 +1484,7 @@ function deck(el,m,n,x,y,face,gap){clear(el);const cs=[];for(let i=0;i<n;i++){co
         var g = $('er-go'); if (g) { g.disabled = busy; g.textContent = '🎲 ' + (P > 1 ? esc(nm(cur)) + ': ' : '') + 'answer to move'; }
       }
       try { if (BZ.bcard) { ov.style.setProperty('--fl-card', 'url(' + BZ.bcard + ')'); ov.classList.add('flc-img'); } } catch (e) { }
-      frame('Eton Rules', bar() + '<div class="er-wrap"><div class="er-st" id="er-st">' + esc(msg) + '</div><div class="er-board" id="er-board">' + board() + '<div class="er-lay" id="er-lay">' + cars() + '</div></div><div class="bz-row"><button class="bz-big go er-go" id="er-go" onclick="apErAsk()">🎲 ' + (P > 1 ? esc(nm(0)) + ': ' : '') + 'answer to move</button></div></div>');
+      frame('Eton Rules', bar() + '<div class="er-wrap"><div class="er-st" id="er-st">' + esc(msg) + '</div><div class="er-board" id="er-board" style="--erb:url(icons/er_board.webp)">' + board() + '<div class="er-lay" id="er-lay">' + cars() + '</div></div><div class="bz-row"><button class="bz-big go er-go" id="er-go" onclick="apErAsk()">🎲 ' + (P > 1 ? esc(nm(0)) + ': ' : '') + 'answer to move</button></div></div>');
       function who() { return '<small class="fl-who"><span style="color:' + TXC[cur] + '">' + (P > 1 ? esc(nm(cur)) + ' · ' + COLN[cur] : 'Your go') + '</span> · square ' + pos[cur] + ' · ' + esc(H.names[dirs()[0]]) + '</small>'; }
       function task(c, v) { return '<div class="fl-hl">' + (c.ask ? 'Answer the question in ' + esc(H.names[target()]) : (v.hl ? 'Translate only the bold part into ' : 'Translate into ') + esc(H.names[dirs()[1]])) + '</div>'; }
       function backQ() { var v = hvOf(qd); return who() + '<div class="fl-q' + sz(qd) + '">' + qOf(qd) + '</div>' + task(qd, v) + '<div class="fl-hint">Say it, then reveal</div><button class="bz-big go" onclick="apErRev()">Reveal</button>'; }
