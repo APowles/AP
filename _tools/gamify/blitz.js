@@ -349,6 +349,13 @@ function deck(el,m,n,x,y,face,gap){clear(el);const cs=[];for(let i=0;i<n;i++){co
     else if (k === 'lose') { note(55, 0, .6, .5); note(233, 0, .3, .34); note(196, .17, .35, .34); note(165, .34, .45, .34); note(110, .55, 1.1, .42); }
     else if (k === 'tick') { if (CFG.ticks) note(440, 0, .07, .09); }
     else if (k === 'thump') { note(120, 0, .12, .2); note(72, .01, .18, .2); }
+    else if (k === 'erstart') {
+      var c = ctx(); if (!c || !snd) return; var t0 = c.currentTime, v = .25 * CFG.vol;
+      // dramatic sci-fi hit: deep boom + rising chord + bright shimmer
+      var k2 = c.createOscillator(), kg = c.createGain(); k2.type = 'sine'; k2.frequency.setValueAtTime(140, t0); k2.frequency.exponentialRampToValueAtTime(42, t0 + .4); kg.gain.setValueAtTime(v * 1.2, t0); kg.gain.exponentialRampToValueAtTime(.0001, t0 + .5); k2.connect(kg); kg.connect(c.destination); k2.start(t0); k2.stop(t0 + .55);
+      [261.63, 329.63, 392, 523.25, 784].forEach(function (f, i) { var o = c.createOscillator(), g = c.createGain(); o.type = i < 3 ? 'triangle' : 'sine'; o.frequency.setValueAtTime(f, t0 + i * .04); g.gain.setValueAtTime(.0001, t0 + i * .04); g.gain.exponentialRampToValueAtTime(v * .7, t0 + i * .04 + .03); g.gain.exponentialRampToValueAtTime(.0001, t0 + 1.5); o.connect(g); g.connect(c.destination); o.start(t0 + i * .04); o.stop(t0 + 1.55); });
+      var sh = c.createOscillator(), shg = c.createGain(); sh.type = 'sawtooth'; sh.frequency.setValueAtTime(200, t0 + .1); sh.frequency.exponentialRampToValueAtTime(3200, t0 + .55); var shf = c.createBiquadFilter(); shf.type = 'bandpass'; shf.Q.value = 4; shf.frequency.setValueAtTime(600, t0 + .1); shf.frequency.exponentialRampToValueAtTime(4000, t0 + .55); shg.gain.setValueAtTime(.0001, t0 + .1); shg.gain.exponentialRampToValueAtTime(v * .9, t0 + .18); shg.gain.exponentialRampToValueAtTime(.0001, t0 + .9); sh.connect(shf); shf.connect(shg); shg.connect(c.destination); sh.start(t0 + .1); sh.stop(t0 + .95);
+    }
     else if (k === 'holoscan') {
       var c = ctx(); if (!c || !snd) return; var t0 = c.currentTime, v = .07 * CFG.vol, up = arguments[1] !== false;
       var o = c.createOscillator(), g = c.createGain(), fl = c.createBiquadFilter();
@@ -774,7 +781,7 @@ function deck(el,m,n,x,y,face,gap){clear(el);const cs=[];for(let i=0;i<n;i++){co
     '.er-sq .fx{position:absolute;right:-6%;top:-6%;min-width:28%;padding:0 4%;height:28%;border-radius:999px;background:#14203f;border:2px solid #f4d77a;color:#f7e9b5;font:900 calc(var(--bw)*.0135)/1 "DM Sans",sans-serif;display:flex;align-items:center;justify-content:center;box-shadow:0 2px 4px rgba(0,0,0,.5);z-index:2}.er-sq.g .fx{background:#12503a;border-color:#5fe3a0}.er-sq.b .fx{background:#5a1c24;border-color:#ff7b6b}',
     '.er-sq .cp{position:absolute;top:calc(100% + var(--bw)*.006);left:50%;transform:translateX(-50%);white-space:nowrap;padding:.12em .55em;border-radius:999px;background:rgba(8,16,40,.82);color:#f3ead0;font:700 max(10px,calc(var(--bw)*.0118))/1.25 "DM Sans",sans-serif;letter-spacing:.02em;z-index:1}.er-sq.np .cp{display:none}',
     '.er-lay{position:absolute;inset:0;pointer-events:none}',
-    '.er-sq .cr{display:none}.er-sq.hid .cr{display:block;width:64%;height:auto;border-radius:0;box-shadow:none;filter:drop-shadow(0 0 4px rgba(244,215,122,.8))}.er-sq.hid{background:radial-gradient(circle at 40% 35%,#24498f,#0a1740 75%);box-shadow:0 0 calc(var(--bw)*.012) rgba(244,215,122,.55),inset 0 0 calc(var(--bw)*.01) rgba(0,0,0,.6);outline:calc(var(--bw)*.0045) solid #d9b95a;outline-offset:calc(var(--bw)*-.0045)}.er-sq.hid>img:not(.cr),.er-sq.hid .fx,.er-sq.hid .cp,.er-sq.hid .pn{display:none!important}.er-sq.hid::after{display:none}',
+    '.er-sq .cr{display:none}.er-sq.hid .cr{display:block;width:52%;height:auto;border-radius:0;box-shadow:none;filter:brightness(.6) saturate(.75) drop-shadow(0 1px 2px rgba(0,0,0,.6));opacity:.78}.er-sq.hid{background:radial-gradient(circle at 40% 35%,#182546,#0a1024 75%);box-shadow:inset 0 0 calc(var(--bw)*.014) rgba(0,0,0,.75);outline:calc(var(--bw)*.003) solid rgba(201,168,76,.3);outline-offset:calc(var(--bw)*-.003);opacity:.82}.er-sq.hid>img:not(.cr),.er-sq.hid .fx,.er-sq.hid .cp,.er-sq.hid .pn{display:none!important}.er-sq.hid::after{display:none}',
     '.er-sq{cursor:pointer}',
     '.er-lc{position:absolute;left:50%;top:50%;width:calc(var(--bw)*.4);z-index:40;box-sizing:border-box;padding:calc(var(--bw)*.018) calc(var(--bw)*.022) calc(var(--bw)*.02);border-radius:calc(var(--bw)*.02);text-align:center;color:#f6efd8;background:linear-gradient(165deg,#14264f,#0a1531);border:calc(var(--bw)*.0045) solid #e6c15a;box-shadow:0 18px 50px rgba(0,0,0,.75),0 0 0 calc(var(--bw)*.003) rgba(0,0,0,.6);transform:translate(-50%,-50%);animation:erlc .55s cubic-bezier(.2,.9,.3,1.15);cursor:pointer;font-family:"DM Sans",sans-serif}',
     '.er-lc.g{border-color:#5fe3a0;box-shadow:0 18px 50px rgba(0,0,0,.75),0 0 calc(var(--bw)*.03) rgba(95,227,160,.55)}.er-lc.b{border-color:#ff7b6b;box-shadow:0 18px 50px rgba(0,0,0,.75),0 0 calc(var(--bw)*.03) rgba(255,123,107,.55)}',
@@ -833,8 +840,16 @@ function deck(el,m,n,x,y,face,gap){clear(el);const cs=[];for(let i=0;i<n;i++){co
     '.er-d3 .f{position:absolute;inset:0;box-sizing:border-box;border-radius:15%;background:linear-gradient(145deg,#fffdf6,#e0d5b4);display:grid;grid-template:repeat(3,1fr)/repeat(3,1fr);padding:14%;box-shadow:inset 0 0 calc(var(--S)*.12) rgba(0,0,0,.22);border:1px solid rgba(120,100,50,.35)}.er-d3 .f i{margin:10%;border-radius:50%;background:radial-gradient(circle at 35% 30%,#3a62c0,#081640);box-shadow:inset 0 -2px 3px rgba(0,0,0,.4)}.er-d3 .f i.o{background:none;box-shadow:none}',
     '.er-d3 .sh{position:absolute;left:calc(var(--S)*-.62);top:calc(var(--S)*.42);width:calc(var(--S)*1.24);height:calc(var(--S)*.3);border-radius:50%;background:rgba(0,0,0,.6);filter:blur(12px)}',
     '.er-full .bz-main{padding:0;gap:0;overflow:hidden;justify-content:flex-start}.er-full .er-wrap{--bw:min(100vw,calc((100vh - 58px)*1.5));gap:0;margin:0}.er-full .er-board{margin:0;border-radius:0;box-shadow:none}',
-    '.er-full .bz-top{padding:6px 14px;gap:10px}.er-full .bz-top h1{flex:none;font-size:1.05rem}.er-full .bz-top>.bz-b{padding:6px 12px;font-size:.85rem}.bz-top .er-row{flex:1;width:auto;min-height:0;flex-wrap:nowrap;gap:10px;min-width:0}.bz-top .er-row .er-st{font-size:.95rem;line-height:1.15;min-width:0}.bz-top .er-row .fl-sd{padding:3px 10px}.bz-top .er-row .fl-sd b{font-size:1.05rem}.bz-top .er-of .tx{min-width:0;font-size:.92rem;line-height:1.15}.bz-top .er-of .tx b{font-size:1.02rem}',
-    '.er-go{margin-top:0;flex:none;padding:8px 20px!important;font-size:1.05rem!important}','.er-row{display:flex;align-items:center;justify-content:space-between;gap:14px;width:var(--bw);min-height:60px;flex-wrap:wrap}','.er-row .er-st{text-align:left;flex:1;min-width:160px}',
+    '.er-full .bz-top{padding:0 14px;gap:8px;height:52px;align-items:center}.er-full .bz-top h1{flex:none;font-size:1.02rem;margin-right:4px}.er-full .bz-top>.bz-b{height:34px;padding:0 12px;font-size:.78rem;border-radius:10px;display:inline-flex;align-items:center}',
+    '.bz-top .er-row{flex:1;width:auto;min-height:0;height:34px;flex-wrap:nowrap;gap:8px;min-width:0;align-items:stretch}',
+    '.er-chip{display:inline-flex;align-items:center;gap:4px;height:34px;padding:0 12px;border-radius:10px;border:1.5px solid rgba(201,168,76,.45);background:rgba(8,14,32,.65);color:#f3ead0;font:600 .82rem/1 "DM Sans",sans-serif;white-space:nowrap;box-sizing:border-box}',
+    '.er-chip b{color:#f4d77a;font:800 1rem Georgia,serif}.er-chip small{color:#c8d3ea;font:700 .62rem/1 "DM Sans",sans-serif;letter-spacing:.08em;text-transform:uppercase}',
+    '.er-chip.er-sc.cur{border-color:var(--sc,#c9a84c);box-shadow:0 0 0 1px var(--sc,#c9a84c) inset,0 0 10px rgba(0,0,0,.25);background:rgba(8,14,32,.88)}',
+    '.er-chip.er-sc b{color:var(--sc,#f4d77a)}',
+    '.er-chip.er-st{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;color:#f3ead0;font:600 .9rem/1.1 "DM Sans",sans-serif;background:rgba(8,14,32,.4);border-color:rgba(201,168,76,.25)}.er-chip.er-st b.g{color:#5fe3a0}.er-chip.er-st b.b{color:#ff7b6b}',
+    '.er-btn{height:34px;padding:0 14px;border-radius:10px;border:1.5px solid rgba(201,168,76,.5);background:rgba(8,14,32,.65);color:#f3ead0;font:700 .82rem/1 "DM Sans",sans-serif;cursor:pointer;display:inline-flex;align-items:center;letter-spacing:.02em}.er-btn:hover{box-shadow:0 0 0 2px rgba(201,168,76,.3)}.er-btn[disabled]{opacity:.4;cursor:default}',
+    '.er-btn.er-go{background:linear-gradient(135deg,#c9a84c,#e3c571);color:#1a2744;border-color:#c9a84c;font-weight:800;text-transform:uppercase;letter-spacing:.06em;box-shadow:0 2px 6px rgba(0,0,0,.3)}.er-btn.er-go:hover{filter:brightness(1.08);box-shadow:0 2px 10px rgba(201,168,76,.5)}',
+    '.er-btn.er-how-b{color:#a8bff0;border-color:rgba(168,191,240,.4)}','.er-row{display:flex;align-items:center;justify-content:space-between;gap:14px;width:var(--bw);min-height:60px;flex-wrap:wrap}','.er-row .er-st{text-align:left;flex:1;min-width:160px}',
     '.er-row .fl-bar{margin:0;gap:8px;flex:none}.er-row .fl-sd{min-width:0;padding:4px 14px;flex-direction:row;gap:8px;align-items:baseline}.er-row .fl-sd b{font-size:1.2rem}.er-row .fl-sd small{font-size:.66rem}',
     '.er-of{display:flex;align-items:center;gap:12px;flex:1;justify-content:flex-end;flex-wrap:wrap}.er-of .tx{flex:1;text-align:left;min-width:220px;color:#f6efd8;font:600 1rem/1.3 "DM Sans",sans-serif}.er-of .tx b{color:#f4d77a;font:700 1.2rem Georgia,serif}.er-of .tx b.g{color:#5fe3a0}.er-of .tx b.b{color:#ff7b6b}'
   ].join('\n');
@@ -1631,16 +1646,16 @@ function deck(el,m,n,x,y,face,gap){clear(el);const cs=[];for(let i=0;i<n;i++){co
     window.apErHow = function (on) { var e = $('er-how'); if (e) e.classList.toggle('on', !!on); };
     window.apErSet = function (n) { CFG.erP = n; saveCfg(); intro(); };
     function play() {
-      stop(); holoStop();
+      stop(); holoStop(); sfx('erstart'); musicStart(true);
       var BD = shufBoard(); var sh0 = document.querySelector('.er-show'); if (sh0) sh0.remove();
       var P = CFG.erP, pos = [], skip = [], cur = 0, busy = false, deck = [], di = 0, qd = null, turns = 0, msg = '';
       for (var s = 0; s < P; s++) { pos.push(0); skip.push(0); }
       msg = P > 1 ? nm(0) + ', your go.' : 'Your go.';
       function nextQ() { if (di >= deck.length) { deck = shuf(p); di = 0; } return deck[di++]; }
       function bar() {
-        if (P === 1) return '<div class="fl-bar" id="er-bar"><div class="fl-sd on" style="--sc:' + pcL(0) + '"><b>' + (pos[0]) + '</b><small>of ' + LAST + ' squares</small></div><div class="fl-sd fl-lf"><b>' + turns + '</b><small>turns</small></div></div>';
-        var h = ''; for (var s = 0; s < P; s++) h += '<div class="fl-sd' + (s === cur ? ' on' : '') + '" style="--sc:' + pcL(s) + '"><b>' + esc(nm(s)) + '</b><small>' + pcN(s) + (s === cur ? ' · your go' : '') + '</small></div>';
-        return '<div class="fl-bar" id="er-bar">' + h + '</div>';
+        if (P === 1) return '<div class="er-chip er-sc" style="--sc:' + pcL(0) + '"><b>' + pos[0] + '</b>/' + LAST + '<small>squares</small></div>';
+        var h = ''; for (var s = 0; s < P; s++) h += '<div class="er-chip er-sc' + (s === cur ? ' cur' : '') + '" style="--sc:' + pcL(s) + '"><b>' + esc(nm(s)) + '</b> <small>' + pos[s] + '/' + LAST + '</small></div>';
+        return h;
       }
       function board() {
         var h = ''; BD.forEach(function (q, i) {
@@ -1664,9 +1679,9 @@ function deck(el,m,n,x,y,face,gap){clear(el);const cs=[];for(let i=0;i<n;i++){co
       var ofr = null;
       function rowHTML() {
         var h = bar();
-        if (ofr && ofr.t === 'ask') h += '<div class="er-of"><div class="tx"><b>Eton Rules card?</b> A chance: good news or bad.</div><button class="bz-big go er-go" onclick="apErCard(1)">Take the card</button><button class="bz-b" onclick="apErCard(0)">Not this time</button></div>';
-        else if (ofr && ofr.t === 'card') h += '<div class="er-of"><div class="tx"><b class="' + ofr.c[3] + '">' + esc(ofr.c[0]) + '</b> &middot; ' + esc(ofr.c[1]) + '</div><button class="bz-big go er-go" onclick="apErCardOk()">OK</button></div>';
-        else h += '<div class="er-st" id="er-st">' + esc(msg) + '</div><button class="bz-big go er-go" id="er-go" onclick="apErAsk()"' + (busy ? ' disabled' : '') + '>\uD83C\uDFB2 ' + (P > 1 ? esc(nm(cur)) + ': ' : '') + 'answer to move</button>';
+        if (ofr && ofr.t === 'ask') h += '<div class="er-chip er-st">Eton Rules card? Good news or bad.</div><button class="er-btn er-go" onclick="apErCard(1)">Take the card</button><button class="er-btn" onclick="apErCard(0)">Pass</button>';
+        else if (ofr && ofr.t === 'card') h += '<div class="er-chip er-st"><b class="' + ofr.c[3] + '">' + esc(ofr.c[0]) + '</b> &middot; ' + esc(ofr.c[1]) + '</div><button class="er-btn er-go" onclick="apErCardOk()">OK</button>';
+        else h += '<div class="er-chip er-st" id="er-st">' + esc(msg) + '</div><button class="er-btn er-how-b" onclick="apErHow(1)">How to play</button><button class="er-btn er-go" id="er-go" onclick="apErAsk()"' + (busy ? ' disabled' : '') + '>' + (P > 1 ? esc(nm(cur)) + ': ' : '') + 'Answer</button>';
         return h;
       }
       function refresh() {
@@ -1674,7 +1689,7 @@ function deck(el,m,n,x,y,face,gap){clear(el);const cs=[];for(let i=0;i<n;i++){co
         for (var s = 0; s < P; s++) { var e = $('erc' + s); if (e) e.classList[s === cur ? 'add' : 'remove']('on'); }
       }
       try { if (BZ.bcard) { ov.style.setProperty('--fl-card', 'url(' + BZ.bcard + ')'); ov.classList.add('flc-img'); } } catch (e) { }
-      frame('Eton Rules', '<div class="er-wrap"><div class="er-board" id="er-board" style="--erb:url(icons/er_board.webp)">' + board() + '<div class="er-lay" id="er-lay">' + cars() + '</div></div></div>');
+      frame('Eton Rules', '<div class="er-wrap"><div class="er-board" id="er-board" style="--erb:url(icons/er_board.webp)">' + board() + '<div class="er-lay" id="er-lay">' + cars() + '</div></div><div class="er-how" id="er-how" onclick="apErHow(0)"><div>Race from your House to Birley Schools. On your go, answer a question: say it, reveal it, then mark yourself. A right answer rolls the die and you walk that many squares; Nearly moves you one; a Major error keeps you where you are. The green squares help you on, the red ones hold you back. A right answer also earns a chance to take an Eton Rules card, which can be good news or bad. First to reach Birley Schools is Sent Up For Good and wins.<br><button class="er-btn er-go">Got it</button></div></div></div>');
       ov.classList.add('er-full'); ov.style.backgroundImage = 'linear-gradient(rgba(5,10,24,.8),rgba(5,10,24,.8)),url(icons/er_board.webp)';
       var tpb = ov.querySelector('.bz-top'); if (tpb) { var rw = document.createElement('div'); rw.id = 'er-row'; rw.className = 'er-row'; rw.innerHTML = rowHTML(); tpb.insertBefore(rw, tpb.children[2]); }
       function who() { return '<small class="fl-who"><span style="color:' + pcT(cur) + '">' + (P > 1 ? esc(nm(cur)) + ' · ' + pcN(cur) : 'Your go') + '</span> · square ' + pos[cur] + ' · ' + esc(H.names[dirs()[0]]) + '</small>'; }
