@@ -1442,7 +1442,7 @@ function deck(el,m,n,x,y,face,gap){clear(el);const cs=[];for(let i=0;i<n;i++){co
     function xy(i) { var r = Math.floor(i / COLS), c = i % COLS; if (r % 2) c = COLS - 1 - c; return [c, ROWS - 1 - r]; }
     function intro() {
       var P = CFG.erP;
-      frame('Eton Rules', '<div class="bz-note">Race from your House to Birley Schools. On your go, answer a question: say it, reveal it, then mark yourself. A right answer rolls the die and you walk that many squares; Nearly moves you one; a Major error keeps you where you are. Rowland\'s, Budgens and the Library help you on. Detention, the Tardy Book, the Chapel and jobs hold you back. First to Birley Schools wins.</div>'
+      frame('Eton Rules', '<div class="bz-note">Race from your House to Birley Schools. On your go, answer a question: say it, reveal it, then mark yourself. A right answer rolls the die and you walk that many squares; Nearly moves you one; a Major error keeps you where you are. Rowland\'s, Budgens and the Library help you on. A right answer also earns a chance to take an Eton Rules card, which can be good news or bad. Detention, the Tardy Book, the Chapel and jobs hold you back. First to Birley Schools wins.</div>'
         + '<div class="fl-opt"><span>Players</span><div class="bz-row">' + [[1, 'Solo'], [2, 'Two teams'], [3, 'Three teams'], [4, 'Four teams']].map(function (o) { return '<button class="bz-b' + (P === o[0] ? ' on' : '') + '" onclick="apErSet(' + o[0] + ')">' + o[1] + '</button>'; }).join('') + '</div></div>'
         + (P > 1 ? pnBox(P, ['Team 1', 'Team 2', 'Team 3', 'Team 4'], SCOL) : '')
         + '<div class="bz-row"><button class="bz-big go" onclick="apBzGo()">▶ Start</button></div>');
@@ -1506,16 +1506,36 @@ function deck(el,m,n,x,y,face,gap){clear(el);const cs=[];for(let i=0;i<n;i++){co
           else land(me);
         })();
       }
+      var earned = false;
+      var CARDS = [
+        ['Three Show Ups in one day', 'Great news: forward 5', 5, 'g'], ['Praised in School', 'Forward 3', 3, 'g'], ['Rowland\'s treat', 'Go again', 'again', 'g'], ['Top of the Div', 'Forward 4', 4, 'g'], ['Early finish to the day', 'Go again', 'again', 'g'],
+        ['Two days\' Close Gating', 'Worst: miss 2 goes', 'miss2', 'b'], ['Missed 2nd music lesson in a row', 'Back 3', -3, 'b'], ['Sign the Tardy Book', 'Back 2', -2, 'b'], ['Sent to collect the post', 'Back 1', -1, 'b'], ['Detention in the Lower School', 'Back 4', -4, 'b']
+      ];
+      function eff(me, e, done) {
+        if (e === 'again') { sfx('good'); done(true); }
+        else if (e === 'miss' || e === 'miss2') { sfx('bad'); skip[me] = e === 'miss2' ? 2 : 1; done(false); }
+        else { sfx(e > 0 ? 'whoosh' : 'bad'); pos[me] = Math.max(0, Math.min(LAST - 1, pos[me] + e)); setCar(me, true); refresh(); timers.push(setTimeout(function () { done(false); }, 900)); }
+      }
+      function offer(ag) {
+        var me = cur, st = document.createElement('div'); st.id = 'er-offer'; st.className = 'fl-stage';
+        st.innerHTML = '<div class="c4-q" id="er-oq"><div class="fl-q">Eton Rules card</div><div class="fl-hint">Right answer: you have earned a chance. The card could be good news or bad news.</div><div class="bz-row"><button class="bz-big go" onclick="apErCard(1)">Take the card</button><button class="bz-b" onclick="apErCard(0)">Not this time</button></div></div>';
+        ov.appendChild(st); sfx('whoosh');
+        window.apErCard = function (t) {
+          var o = $('er-offer'); if (!o) return;
+          if (!t) { o.remove(); nextTurn(ag); return; }
+          var c = CARDS[Math.floor(Math.random() * CARDS.length)];
+          $('er-oq').innerHTML = '<div class="fl-hint" style="font-weight:700;letter-spacing:.08em;text-transform:uppercase">Eton Rules</div><div class="fl-q" style="color:' + (c[3] === 'g' ? '#14683f' : '#9a2a1a') + '">' + esc(c[0]) + '</div><div class="fl-hl">' + esc(c[1]) + '</div><div class="bz-row"><button class="bz-big go" onclick="apErCardOk()">OK</button></div>';
+          sfx(c[3] === 'g' ? 'good' : 'bad');
+          window.apErCardOk = function () { var o2 = $('er-offer'); if (o2) o2.remove(); eff(me, c[2], function (a2) { nextTurn(ag || a2); }); };
+        };
+      }
+      function after(ag) { if (earned) { earned = false; offer(ag); } else nextTurn(ag); }
       function land(me) {
         if (pos[me] >= LAST) { win(); return; }
         var q = SQ[pos[me]], e = q[3];
-        if (e === undefined || q[1] === 'f0') { nextTurn(false); return; }
+        if (e === undefined || q[1] === 'f0') { after(false); return; }
         msg = (q[0] + ': ' + q[2] + '.'); refresh();
-        timers.push(setTimeout(function () {
-          if (e === 'again') { sfx('good'); nextTurn(true); }
-          else if (e === 'miss' || e === 'miss2') { sfx('bad'); skip[me] = e === 'miss2' ? 2 : 1; nextTurn(false); }
-          else { sfx(e > 0 ? 'whoosh' : 'bad'); pos[me] = Math.max(0, Math.min(LAST - 1, pos[me] + e)); setCar(me, true); refresh(); timers.push(setTimeout(function () { nextTurn(false); }, 900)); }
-        }, 900));
+        timers.push(setTimeout(function () { eff(me, e, after); }, 900));
       }
       window.apErMk = function (m) {
         var stg = $('er-stage'); if (!stg || !qd) return; try { speechSynthesis.cancel(); } catch (e) { }
@@ -1523,7 +1543,7 @@ function deck(el,m,n,x,y,face,gap){clear(el);const cs=[];for(let i=0;i<n;i++){co
         timers.push(setTimeout(function () {
           stg.remove();
           if (m === 1) {
-            sfx('dice'); var d = Math.floor(Math.random() * 6) + 1, el = document.createElement('div'); el.className = 'er-die'; ov.appendChild(el); var k = 0;
+            earned = true; sfx('dice'); var d = Math.floor(Math.random() * 6) + 1, el = document.createElement('div'); el.className = 'er-die'; ov.appendChild(el); var k = 0;
             (function roll() { if (k < 9) { el.textContent = Math.floor(Math.random() * 6) + 1; k++; timers.push(setTimeout(roll, 70 + k * 12)); } else { el.textContent = d; timers.push(setTimeout(function () { el.remove(); walk(d); }, 700)); } })();
           } else if (m === 2) { sfx('tick'); walk(1); }
           else { sfx('bad'); msg = 'No move this time.'; nextTurn(false); }
