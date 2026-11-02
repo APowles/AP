@@ -821,8 +821,7 @@ function deck(el,m,n,x,y,face,gap){clear(el);const cs=[];for(let i=0;i<n;i++){co
     '.er-show .au{position:absolute;inset:0;width:100%;height:100%;filter:brightness(0) invert(1) blur(2px) drop-shadow(0 0 28px var(--hc)) drop-shadow(0 0 70px var(--hc));opacity:.5}',
     '.er-show .rg{position:absolute;left:50%;bottom:-2%;width:150%;aspect-ratio:3.4;transform:translateX(-50%);border-radius:50%;border:3px solid var(--hc);box-shadow:0 0 30px var(--hc),inset 0 0 30px var(--hc);background:radial-gradient(ellipse,rgba(255,255,255,.4),transparent 70%)}',
     '.er-show .ro{position:absolute;inset:0;transform-style:preserve-3d;animation:ershowro 5s linear .3s both}@keyframes ershowro{from{transform:rotateY(0)}to{transform:rotateY(360deg)}}',
-    '.er-show .er-canvas{position:absolute;inset:0;filter:drop-shadow(0 0 18px var(--hc)) drop-shadow(0 0 40px var(--hc)) brightness(1.1) saturate(1.08)}',
-    '.er-show .er-canvas canvas{display:block;width:100%!important;height:100%!important}',
+    '.er-show .er-mv{position:absolute;inset:0;width:100%;height:100%;--poster-color:transparent;background:transparent;filter:drop-shadow(0 0 18px var(--hc)) drop-shadow(0 0 40px var(--hc)) brightness(1.08) saturate(1.05)}',
     '.er-show .ly{position:absolute;inset:0;width:100%;height:100%;backface-visibility:visible;-webkit-backface-visibility:visible;object-fit:contain}',
     '.er-show .ly.a0{transform:rotateY(0deg) translateZ(1px);animation:erOp0 5s linear .3s both}',
     '.er-show .ly.a1{transform:rotateY(-45deg) translateZ(1px);animation:erOp1 5s linear .3s both}',
@@ -1681,18 +1680,14 @@ function deck(el,m,n,x,y,face,gap){clear(el);const cs=[];for(let i=0;i<n;i++){co
     window.apErTurn = function (s) { pickTurn = s; intro(); };
     var GLB_AVAIL = { 0: 1, 1: 1, 2: 1, 3: 1, 4: 1, 5: 1, 6: 1, 7: 1 };
     var THREE_LOADING = false, THREE_READY = false, THREE_QUEUE = [];
-    function loadThree(cb) {
-      if (THREE_READY) { cb(); return; }
+    function loadMV(cb) {
+      if (window.customElements && customElements.get('model-viewer')) { cb(); return; }
       THREE_QUEUE.push(cb);
       if (THREE_LOADING) return;
       THREE_LOADING = true;
-      var s1 = document.createElement('script'); s1.src = 'https://cdn.jsdelivr.net/npm/three@0.149.0/build/three.min.js';
-      s1.onload = function () {
-        var s2 = document.createElement('script'); s2.src = 'https://cdn.jsdelivr.net/npm/three@0.149.0/examples/js/loaders/GLTFLoader.js';
-        s2.onload = function () { THREE_READY = true; THREE_QUEUE.forEach(function (f) { try { f(); } catch (e) { } }); THREE_QUEUE = []; };
-        document.head.appendChild(s2);
-      };
-      document.head.appendChild(s1);
+      var s = document.createElement('script'); s.type = 'module'; s.src = 'https://ajax.googleapis.com/ajax/libs/model-viewer/4.0.0/model-viewer.min.js';
+      s.onload = function () { var t0 = Date.now(); (function w() { if (customElements.get('model-viewer')) { THREE_QUEUE.forEach(function (f) { try { f(); } catch (e) { } }); THREE_QUEUE = []; } else if (Date.now() - t0 < 5000) setTimeout(w, 50); })(); };
+      document.head.appendChild(s);
     }
     function flat2DShowcase(i, el) {
       var fr = 'icons/er_p' + i + '.webp', bk = 'icons/er_p' + i + '_back.webp', sd = 'icons/er_p' + i + '_side.webp', fr34 = 'icons/er_p' + i + '_fr34.webp', br34 = 'icons/er_p' + i + '_br34.webp';
@@ -1708,48 +1703,8 @@ function deck(el,m,n,x,y,face,gap){clear(el);const cs=[];for(let i=0;i<n;i++){co
         '</div>';
     }
     function glb3DShowcase(i, el) {
-      var fr = 'icons/er_p' + i + '.webp';
-      el.innerHTML = '<img class="au" alt="" src="' + fr + '"><span class="rg"></span><div class="er-canvas"></div>';
-      var holder = el.querySelector('.er-canvas');
-      loadThree(function () {
-        var T = window.THREE; if (!T || !el.parentNode) return;
-        var w = holder.clientWidth || 300, h = holder.clientHeight || 700;
-        var scene = new T.Scene();
-        var cam = new T.PerspectiveCamera(28, w / h, 0.1, 100);
-        cam.position.set(0, 1.3, 3.6);
-        cam.lookAt(0, 1, 0);
-        var ren = new T.WebGLRenderer({ alpha: true, antialias: true });
-        ren.setPixelRatio(Math.min(window.devicePixelRatio, 2));
-        ren.setSize(w, h);
-        ren.setClearColor(0, 0);
-        holder.appendChild(ren.domElement);
-        scene.add(new T.AmbientLight(0xffffff, 0.6));
-        var k = new T.DirectionalLight(0xffffff, 1.1); k.position.set(2, 4, 3); scene.add(k);
-        var hc = PCS[i][2], hex = parseInt(hc.replace('#', ''), 16);
-        var rim = new T.DirectionalLight(hex, 1.6); rim.position.set(-2, 2, -3); scene.add(rim);
-        var fill = new T.DirectionalLight(hex, 0.6); fill.position.set(0, -1, 2); scene.add(fill);
-        var pivot = new T.Group(); scene.add(pivot);
-        var loader = new T.GLTFLoader();
-        loader.load('icons/er_p' + i + '.glb', function (gltf) {
-          var model = gltf.scene;
-          var box = new T.Box3().setFromObject(model);
-          var size = new T.Vector3(); box.getSize(size);
-          var cen = new T.Vector3(); box.getCenter(cen);
-          var scale = 2.0 / Math.max(size.y, 0.001);
-          model.scale.setScalar(scale);
-          model.position.set(-cen.x * scale, -box.min.y * scale, -cen.z * scale);
-          pivot.add(model);
-          var start = performance.now();
-          var alive = true; el.__kill = function () { alive = false; try { ren.dispose(); } catch (e) { } };
-          (function anim() {
-            if (!alive || !el.parentNode) return;
-            var t = (performance.now() - start) / 5000;
-            pivot.rotation.y = t * Math.PI * 2;
-            ren.render(scene, cam);
-            requestAnimationFrame(anim);
-          })();
-        }, undefined, function () { /* fail: fall back */ flat2DShowcase(i, el); });
-      });
+      el.innerHTML = '<span class="rg"></span><model-viewer class="er-mv" src="icons/er_p' + i + '.glb" auto-rotate rotation-per-second="72deg" camera-orbit="0deg 85deg 2.4m" field-of-view="25deg" interaction-prompt="none" disable-zoom disable-pan disable-tap exposure="1.1" shadow-intensity="0"></model-viewer>';
+      loadMV(function () { });
     }
     window.apErShow = function (i) {
       var o = document.querySelector('.er-show'); if (o) { if (o.__kill) o.__kill(); o.remove(); }
