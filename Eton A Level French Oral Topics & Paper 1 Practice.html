@@ -20366,16 +20366,23 @@ function deck(el,m,n,x,y,face,gap){clear(el);const cs=[];for(let i=0;i<n;i++){co
   var HYM = {"m":[[6,62,2.0],[8,66,2.0],[10,69,2.0],[12,71,6.0],[18,74,2.0],[20,71,2.0],[22,69,1.0],[23,67,1.0],[24,69,8.0],[32,71,2.0],[34,69,1.0],[35,67,1.0],[36,69,2.0],[38,66,2.0],[40,64,4.0],[44,62,4.0],[48,59,6.0],[54,62,2.0],[56,66,2.0],[58,69,2.0],[60,71,6.0],[66,74,2.0],[68,73,2.0],[70,71,1.0],[71,69,1.0],[72,71,6.0],[78,71,2.0],[80,73,2.0],[82,66,2.0],[84,69,2.0],[86,68,2.0],[88,66,4.0],[92,64,4.0],[96,69,6.0],[102,64,2.0],[104,64,2.0],[106,66,2.0],[108,67,6.0],[114,71,2.0],[116,69,3.0],[119,64,1.0],[120,67,6.0],[126,64,2.0],[128,67,2.0],[130,69,2.0],[132,71,6.0],[138,74,2.0],[140,72,2.0],[142,69,2.0],[144,71,6.0],[150,67,2.0],[152,71,2.0],[154,74,2.0],[156,76,3.0],[159,74,1.0],[160,73,4.0],[164,73,3.0],[167,71,1.0],[168,69,6.0],[174,69,2.0],[176,74,2.0],[178,71,2.0],[180,69,3.0],[183,71,1.0],[184,66,4.0],[188,64,4.0],[192,62,12.0]],"b":[[0,38,12],[12,47,4],[16,43,8],[24,42,4],[28,38,4],[32,43,4],[36,42,4],[40,47,8],[48,43,4],[52,38,8],[60,47,8],[68,45,4],[72,47,4],[76,44,4],[80,45,4],[84,47,4],[88,42,8],[96,38,4],[100,37,4],[104,39,4],[108,40,8],[116,45,4],[120,40,8],[128,37,4],[132,47,4],[136,38,4],[140,36,4],[144,43,8],[152,42,4],[156,40,8],[164,45,4],[168,38,4],[172,47,4],[176,43,4],[180,42,4],[184,43,4],[188,45,4],[192,38,12]],"T":204}, HYMAP = null;
   function hymMap() { if (HYMAP) return HYMAP; HYMAP = {}; HYM.m.forEach(function (e) { (HYMAP[e[0]] = HYMAP[e[0]] || []).push([e[1], e[2], 0]); }); HYM.b.forEach(function (e) { (HYMAP[e[0]] = HYMAP[e[0]] || []).push([e[1] - 12, e[2], 1]); }); return HYMAP; }
   function hymQ(m) { var pc = m % 12; if (pc === 1) pc = 9; else if (pc === 8) pc = 4; else if (pc === 3) pc = 11; return [pc, (pc === 4 || pc === 6 || pc === 11) ? [0, 3, 7] : [0, 4, 7]]; }
+  var HYCH = null;
+  function hymCh() { if (HYCH) return HYCH; var bs = HYM.b.slice().sort(function (x, y) { return x[0] - y[0]; }), k = 0, cur = null; HYCH = []; for (var i = 0; i < HYM.T; i++) { while (k < bs.length && bs[k][0] <= i) cur = bs[k++][1]; HYCH[i] = cur; } return HYCH; }
   function mHymn(step, t, sd) {
-    var s = step % 12, es = hymMap()[step % HYM.T];
-    if (s === 0) mKick(t, .38); if (s === 4 || s === 8) mNoise(t, .03, .05, 6500, 'highpass'); if (s === 8) mNoise(t + sd * .3, .02, .03, 6500, 'highpass');
+    var p = step % HYM.T, s = step % 12, es = hymMap()[p], rt = hymCh()[p], hz = function (m) { return 440 * Math.pow(2, (m - 69) / 12); };
+    if (s === 0) mKick(t, .26); if (s === 4 || s === 8) mNoise(t, .03, .025, 7500, 'highpass');
+    if (s % 3 === 0 && rt != null) { var q = hymQ(rt), iv = q[1], n = [iv[0], iv[1], iv[2], iv[1] + 12][(p / 3) % 4]; mTone(hz(72 + q[0] + n), t, .5, .04, 'sine', .01); }
     if (!es) return;
     es.forEach(function (e) {
-      var f = 440 * Math.pow(2, (e[0] - 69) / 12), len = e[1] * sd;
+      var f = hz(e[0]), len = e[1] * sd;
       if (e[2]) {
-        mTone(f, t, Math.min(len * .98, sd * 8), .34, 'sine', .02);
-        var q = hymQ(e[0]); q[1].forEach(function (iv) { mTone(440 * Math.pow(2, (48 + q[0] + iv - 69) / 12), t, len * .98, .075, 'triangle', .22); });
-      } else { mTone(f, t, Math.max(.75, len), .21, 'triangle', .012); mTone(f * 2, t, .45, .045, 'sine', .01); }
+        mTone(f, t, Math.min(len * .98, sd * 8), .28, 'sine', .03);
+        var c = hymQ(e[0] + 12); c[1].forEach(function (i) { var g = hz(60 + c[0] + i); mTone(g * 1.004, t, len * .98, .025, 'sawtooth', .8); mTone(g * .996, t, len * .98, .025, 'sawtooth', .8); });
+      } else {
+        var l = Math.max(1.2, len);
+        mTone(f, t, l, .06, 'triangle', .05); mTone(f, t, l, .015, 'sawtooth', .05); mTone(f * 2, t, .6, .015, 'sine', .03);
+        mTone(f, t + sd * 3, l, .02, 'triangle', .05); mTone(f, t + sd * 6, l, .009, 'triangle', .05);
+      }
     });
   }
   function mPlay(step, t, sd) {
@@ -20431,7 +20438,7 @@ function deck(el,m,n,x,y,face,gap){clear(el);const cs=[];for(let i=0;i<n;i++){co
   var musLvl = 0;
   function musicStart(fresh) {
     musicStop(); if (!snd || CFG.mus === 'off') return; var c = ctx(); if (!c) return;
-    if (CFG.mus === 'mix' && view === 'run') { curMus = 'hymn'; mBpm = 76; CH = CH0; } else if (CFG.mus === 'mix') { if (fresh || !curMus || curMus === 'mix') { var opts = ['pulse', 'ambient', 'groove', 'arp', 'lofi', 'disco', 'suspense', 'bounce'].filter(function (x) { return x !== curMus; }); curMus = opts[Math.floor(Math.random() * opts.length)]; var pi = Math.floor(Math.random() * PROGS.length); if (pi === lastProg) pi = (pi + 1) % PROGS.length; lastProg = pi; CH = PROGS[pi]; mBpm = [88, 96, 104, 112][Math.floor(Math.random() * 4)]; } } else { curMus = CFG.mus; CH = musLvl ? PROGS[musLvl % PROGS.length] : CH0; mBpm = curMus === 'hymn' ? 76 : 96 + 6 * (musLvl % 5); }
+    if (CFG.mus === 'mix' && view === 'run') { curMus = 'hymn'; mBpm = 42; CH = CH0; } else if (CFG.mus === 'mix') { if (fresh || !curMus || curMus === 'mix') { var opts = ['pulse', 'ambient', 'groove', 'arp', 'lofi', 'disco', 'suspense', 'bounce'].filter(function (x) { return x !== curMus; }); curMus = opts[Math.floor(Math.random() * opts.length)]; var pi = Math.floor(Math.random() * PROGS.length); if (pi === lastProg) pi = (pi + 1) % PROGS.length; lastProg = pi; CH = PROGS[pi]; mBpm = [88, 96, 104, 112][Math.floor(Math.random() * 4)]; } } else { curMus = CFG.mus; CH = musLvl ? PROGS[musLvl % PROGS.length] : CH0; mBpm = curMus === 'hymn' ? 42 : 96 + 6 * (musLvl % 5); }
     MG = c.createGain(); MG.gain.value = .5 * CFG.mv; var lp = c.createBiquadFilter(); lp.type = 'lowpass'; lp.frequency.value = 1500; MG.connect(lp); lp.connect(c.destination);
     mStep = 0; mNext = c.currentTime + .12; mTimer = setInterval(sched, 60); sched();
   }
@@ -22117,4 +22124,4 @@ function deck(el,m,n,x,y,face,gap){clear(el);const cs=[];for(let i=0;i<n;i++){co
   if (document.readyState === 'complete') start(); else window.addEventListener('load', start);
 })();
 </script>
-<script id="ap-build">window.__apBuild="ef22f1d562";</script>
+<script id="ap-build">window.__apBuild="20a32140e2";</script>
