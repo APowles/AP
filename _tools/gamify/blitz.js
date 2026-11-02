@@ -195,7 +195,7 @@ function deck(el,m,n,x,y,face,gap){clear(el);const cs=[];for(let i=0;i<n;i++){co
 })();
 /*SHX-END*/
   var ov = null, snd = true, AC = null, timers = [], PZ = false;
-  var CFG = { snd: true, style: 'marimba', vol: 1, ticks: true, clock: 5, streak: 0, tm: 2, dice: 2, pairs: 20, cw: 20, lives: 3, accel: 11, start: 100, oddR: 10, oddS: 12, gN: 12, gS: 6, lW: 10, lG: 3, lT: 15, oddM: 0, ln: 25, rlSay: 1, pSay: 1, dN: 6, dL: 5, dT: 180, dSay: 1, dP: 1, cSay: 1, sSay: 1, mus: 'mix', musV: 0, mv: 1 };
+  var CFG = { snd: true, style: 'marimba', vol: 1, ticks: true, clock: 5, streak: 0, tm: 2, dice: 2, pairs: 20, cw: 20, lives: 3, accel: 11, start: 100, oddR: 10, oddS: 12, gN: 12, gS: 6, lW: 10, lG: 3, lT: 15, oddM: 0, ln: 25, rlSay: 1, pSay: 1, dN: 6, dL: 5, dT: 180, dSay: 1, dP: 1, cSay: 1, sSay: 1, mus: 'mix', musV: 0, mv: 1, fP: 1, fN: 24, fS: 0, fSay: 1 };
   try { var sv = JSON.parse(localStorage.getItem('apbz_cfg') || '{}'); for (var kk in sv) if (kk in CFG) CFG[kk] = sv[kk]; } catch (e) { }
   snd = CFG.snd;
   function saveCfg() { CFG.snd = snd; try { localStorage.setItem('apbz_cfg', JSON.stringify(CFG)); } catch (e) { } }
@@ -207,6 +207,7 @@ function deck(el,m,n,x,y,face,gap){clear(el);const cs=[];for(let i=0;i<n;i++){co
     ['letter', 'Missing letter', 'Three or four letters missing from a long word. Type them in order, accents included.'],
     ['gender', 'Gender blitz', 'Masculine, feminine or plural? One tap per noun.'],
     ['deal', 'Deal it', 'Shuffle, deal, turn a card and say it. Get every card right, shuffle, get them right again. Solo or two players.'],
+    ['flip', 'Flip it', 'Pick a number: the card turns over and comes to the middle with its question. Solo, or two to four sides with surprise cards.'],
     ['roll', 'Roll it', 'Roll the dice: they decide how many words you blitz in one go.'],
     ['catch', 'Catch it', 'Words race across the screen, faster every catch. Tap the word, then its match.'],
     ['lane', 'Lane it', 'Four lanes, four words fall. Tap the right translation before it hits the line.'],
@@ -399,6 +400,7 @@ function deck(el,m,n,x,y,face,gap){clear(el);const cs=[];for(let i=0;i<n;i++){co
     clock: [['clock', 'Seconds per card', [5, 6, 7, 8, 9, 10], '', 1], ['cSay', 'Say each answer aloud when it turns over', [[1, 'On'], [0, 'Off']], '', 1]],
     streak: [['streak', 'Seconds per card', [[0, 'No timer'], 5, 8, 12], '', 1], ['sSay', 'Say each answer aloud when it turns over', [[1, 'On'], [0, 'Off']], '', 1]],
     deal: [['dN', 'Cards on the table', [4, 6, 8], '', 0], ['dL', 'Levels (solo)', [3, 5, 8], '', 0], ['dT', 'Race time (two players)', [[60, '1 min'], [120, '2 min'], [180, '3 min'], [300, '5 min']], '', 0], ['dSay', 'Say each answer aloud when it turns over', [[1, 'On'], [0, 'Off']], '', 1]],
+    flip: [['fSay', 'Say each answer aloud when it turns over', [[1, 'On'], [0, 'Off']], '', 1]],
     roll: [['dice', 'Dice', [[1, 'One die'], [2, 'Two dice']], '', 1], ['rlSay', 'Say each answer aloud when it turns over', [[1, 'On'], [0, 'Off']], '', 1]],
     pairs: [['pairs', 'Words in the race', [10, 20, 30], '', 0], ['pSay', 'Say each answer aloud when it turns over', [[1, 'On'], [0, 'Off']], '', 1]],
     lane: [['ln', 'Words in the round', [15, 25, 40], '', 0], ['lives', 'Lives', [1, 3, 5], '', 0], ['start', 'Starting speed', [[60, 'Gentle'], [100, 'Normal'], [140, 'Fast']], '', 1], ['accel', 'Speeding up', [[6, 'Slow'], [11, 'Normal'], [16, 'Brutal']], '', 1]],
@@ -461,7 +463,7 @@ function deck(el,m,n,x,y,face,gap){clear(el);const cs=[];for(let i=0;i<n;i++){co
   function close() { stop(); musicStop(); PZ = false; var sp = $('bz-set'); if (sp) sp.remove(); if (ov) { ov.remove(); ov = null; } document.documentElement.style.overflow = ''; }
   window.apBlitz = function () {
     close(); ov = document.createElement('div'); ov.id = 'bz-ov'; ov.style.backgroundImage = 'url(' + BZ.stage + ')'; document.body.appendChild(ov);
-    if (!$('bz-css')) { var st = document.createElement('style'); st.id = 'bz-css'; st.textContent = CSS.replace('CARDFACE', BZ.cardface) + DLCSS; document.head.appendChild(st); }
+    if (!$('bz-css')) { var st = document.createElement('style'); st.id = 'bz-css'; st.textContent = CSS.replace('CARDFACE', BZ.cardface) + DLCSS + FLCSS; document.head.appendChild(st); }
     document.documentElement.style.overflow = 'hidden'; pickScreen();
   };
   function reasons(p) {
@@ -469,7 +471,7 @@ function deck(el,m,n,x,y,face,gap){clear(el);const cs=[];for(let i=0;i<n;i++){co
         if (Object.keys(secs).length < 2) r.odd = 'Needs two or more lists: choose more topics.'; else if (p.length < 6) r.odd = 'Needs a few more words.';
     var g = genderPool(p); if (target() === 'en' || g.length < 6) r.gender = 'Needs a list with nouns (le, la, un, une…).';
     if (p.length < 6) r.deal = 'Choose a list with more words.';
-    if (p.length < 4) { r.clock = r.streak = r.roll = r.pairs = r.letter = r.lane = 'Choose a list with more words.'; }
+    if (p.length < 4) { r.clock = r.streak = r.roll = r.pairs = r.letter = r.lane = r.flip = 'Choose a list with more words.'; }
     var sp = shortOnly(p); if (sp.length < 8) r['catch'] = H.short ? 'Needs at least 8 short items (up to ' + H.short + ' words): choose more.' : 'Needs at least 8 words: choose more topics.'; if (sp.length < 4) r.lane = r.lane || 'Needs at least 4 short items: choose more.';
     return r;
   }
@@ -587,6 +589,37 @@ function deck(el,m,n,x,y,face,gap){clear(el);const cs=[];for(let i=0;i<n;i++){co
   };
 
   // ---------- Deal it: shuffle and deal (solo, or a two-player race for piles of cards)
+
+  var FLCSS = [
+    '#bz-ov .bz-top{position:relative;z-index:12}',
+    '.fl-opt{display:flex;flex-direction:column;align-items:center;gap:8px;margin:12px 0}.fl-opt>span{font-weight:700;color:#e9d28a;letter-spacing:.08em;text-transform:uppercase;font-size:.85rem}.fl-opt small{color:#c8d3ea;max-width:580px;text-align:center;line-height:1.4}',
+    '.fl-bar{display:flex;gap:12px;justify-content:center;align-items:stretch;margin:2px auto 10px}',
+    '.fl-sd{display:flex;flex-direction:column;align-items:center;min-width:110px;padding:6px 16px;border-radius:14px;background:rgba(8,14,32,.62);border:2px solid rgba(255,255,255,.16);opacity:.7;transition:opacity .2s,box-shadow .2s}',
+    '.fl-sd.on{opacity:1;border-color:var(--sc);box-shadow:0 0 0 2px var(--sc),0 0 24px rgba(0,0,0,.45)}.fl-sd b{font:800 1.8rem Georgia,serif;color:var(--sc,#e9d28a);line-height:1.1}.fl-sd small{color:#c8d3ea;font-size:.74rem;letter-spacing:.07em;text-transform:uppercase}',
+    '.fl-lf{--sc:#e9d28a;opacity:.85}',
+    '.fl-grid{display:grid;gap:10px;width:min(1180px,97%);height:calc(100vh - 215px);margin:0 auto}',
+    '.fl-c{position:relative;border:2px solid rgba(201,168,76,.7);border-radius:16px;cursor:pointer;display:flex;align-items:center;justify-content:center;background:linear-gradient(170deg,#2a4a92,#12214d);box-shadow:inset 0 2px 0 rgba(255,255,255,.2),0 5px 0 #070d22,0 9px 16px rgba(0,0,0,.4);transition:transform .12s,border-color .12s;animation:flin .35s both;padding:0;min-height:0}',
+    '.fl-c.fl-b{background:linear-gradient(170deg,#1c3470,#0b1536)}',
+    '.fl-c b{font:900 clamp(1.4rem,4.4vw,3.6rem) "DM Sans",system-ui,sans-serif;color:#f4e3a8;text-shadow:0 3px 0 rgba(0,0,0,.45)}',
+    '.fl-c:hover:not([disabled]){transform:translateY(-3px) scale(1.02);border-color:#f0d27a}',
+    '.fl-c.ok{background:linear-gradient(170deg,#1f7a49,#124a2c);border-color:#bff0d2}.fl-c.bad{background:linear-gradient(170deg,#9a3025,#5a1a14);border-color:#ffc3bb}.fl-c.sur{background:linear-gradient(170deg,#8a6b1a,#4d3a0c);border-color:#f6d77a}',
+    '.fl-c.ok::after,.fl-c.bad::after,.fl-c.sur::after{position:absolute;right:9px;top:3px;font-size:1.25rem;color:#fff}.fl-c.ok::after{content:"\\2713"}.fl-c.bad::after{content:"\\2717"}.fl-c.sur::after{content:"\\2605"}',
+    '.fl-c[disabled]{cursor:default;box-shadow:none;transform:none}.fl-c.ok b,.fl-c.bad b,.fl-c.sur b{opacity:.4}',
+    '@keyframes flin{from{opacity:0;transform:translateY(14px) scale(.9)}to{opacity:1;transform:none}}',
+    '.fl-stage{position:absolute;inset:0;z-index:8;display:flex;align-items:center;justify-content:center;background:rgba(4,8,20,.82);perspective:1500px}',
+    '.fl-big{width:min(800px,92vw);height:min(560px,74vh);position:relative}.fl-in{position:absolute;inset:0;transform-style:preserve-3d}',
+    '.fl-f,.fl-bk{position:absolute;inset:0;border-radius:26px;backface-visibility:hidden;-webkit-backface-visibility:hidden;border:4px solid #c9a84c;box-shadow:0 18px 50px rgba(0,0,0,.6)}',
+    '.fl-f{display:flex;align-items:center;justify-content:center;background:linear-gradient(170deg,#2a4a92,#12214d)}.fl-f b{font:900 clamp(5rem,18vw,11rem) "DM Sans",system-ui,sans-serif;color:#f4e3a8;text-shadow:0 6px 0 rgba(0,0,0,.45)}',
+    '.fl-bk{transform:rotateY(180deg);background:linear-gradient(160deg,#fbf7ea,#efe6c8);color:#14203f;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;padding:22px 30px;text-align:center;overflow:auto}',
+    '.fl-who{font-weight:800;letter-spacing:.12em;text-transform:uppercase;color:#7a5f14;font-size:.8rem}',
+    '.fl-q{font:700 clamp(1.7rem,3.8vw,2.6rem)/1.25 Georgia,serif;color:#14203f}.fl-q.fl-lg{font-size:clamp(1.35rem,2.8vw,1.9rem)}.fl-q.fl-xl{font-size:clamp(1.1rem,2.2vw,1.45rem)}',
+    '.fl-hl{font-size:.8rem;font-weight:700;color:#7a5f14;letter-spacing:.06em;text-transform:uppercase}.fl-hint{color:#5b6788;font-size:.95rem}',
+    '.fl-qs{font:600 1rem/1.3 Georgia,serif;color:#5b6788;max-width:92%}.fl-ans{font:700 clamp(1.5rem,3.2vw,2.3rem)/1.25 Georgia,serif;color:#0f5c35}.fl-ans.fl-lg{font-size:clamp(1.15rem,2.3vw,1.6rem)}',
+    '.fl-bk .sp{background:#eef2ff;border:1px solid #b7c0d8;border-radius:50%;width:38px;height:38px;cursor:pointer;vertical-align:middle}',
+    '.fl-m{display:flex;gap:10px;justify-content:center;margin-top:6px}.fl-m button{font:800 1.1rem "DM Sans",sans-serif;padding:13px 18px;border-radius:12px;border:0;cursor:pointer;color:#fff;white-space:nowrap}.fl-y{background:#2e9e62}.fl-n{background:#c0392b}.fl-nr{background:#d9a62e;color:#2b2208!important}',
+    '.fl-bk .bz-big{background:linear-gradient(180deg,#1f3a78,#12234d);color:#f4e3a8;border-color:#c9a84c}',
+    '.fl-sur{display:flex;flex-direction:column;align-items:center;gap:6px}.fl-ic{font-size:clamp(4rem,10vw,6.5rem);line-height:1}.fl-sur h2{margin:0;font:800 clamp(1.8rem,4vw,2.8rem) Georgia,serif;color:#14203f}.fl-sur p{margin:0;font-size:1.2rem;color:#4a5570}'
+  ].join('\n');
   var DLCSS = [
     '#bz-ov{--cb:url(icons/cardback_1.webp)}#bz-ov[data-dlr="2"]{--cb:url(icons/cardback_2.webp)}',
     '.dl-tab{position:relative;margin:4px auto 0;padding:clamp(18px,2.6vw,38px) clamp(20px,3.2vw,46px);border-radius:14px;background:#0f3d2e;box-shadow:0 8px 22px rgba(0,0,0,.55);width:min(1100px,96%)}',
@@ -1161,4 +1194,104 @@ function deck(el,m,n,x,y,face,gap){clear(el);const cs=[];for(let i=0;i<n;i++){co
     }
     round();
   };
+  // ---------- Flip it: numbered cards. Pick a number, the card turns over and comes to the middle with its question.
+  GAMES.flip = function (p) {
+    var SIDEC = ['#e9c75a', '#6fb4ff', '#ff8c78', '#6fe0a8'];
+    var SUR = [
+      ['first', '🚀', 'Jump to first place', 'You leap one point ahead of the leader.'],
+      ['last', '🕳️', 'Drop to last place', 'You fall one point below the lowest other side.'],
+      ['again', '🔁', 'Go again', 'Pick another card straight away.'],
+      ['double', '✨', 'Double points', 'Your next right answer scores two.'],
+      ['steal', '🧲', 'Steal a point', 'Take a point from the side in the lead.'],
+      ['swap', '🔀', 'Swap scores', 'Swap scores with the side in the lead.']
+    ];
+    function sizes() { var m = Math.min(48, p.length), a = [12, 24, 32, 48].filter(function (n) { return n <= m; }); return a.length ? a : [m]; }
+    function nCards() { var s = sizes(), n = s[0]; s.forEach(function (x) { if (x <= CFG.fN) n = x; }); return n; }
+    function qOf(c) { var v = hvOf(c); return v.hl ? (v.hl[0].trim() ? '[…] ' : '') + (v.hl[2].trim() ? esc(v.hl[1].replace(/\s*…\s*$/, '')) + ' […]' : esc(v.hl[1])) : esc(c.q); }
+    function btn(key, val, lab, on) { return '<button class="bz-b' + (on ? ' on' : '') + '" onclick="apFlSet(\'' + key + '\',' + val + ')">' + lab + '</button>'; }
+    function intro() {
+      var s = CFG.fP, n = nCards();
+      frame('Flip it', '<div class="bz-note">Pick a number. The card turns over and comes to the middle with its question. Say it, reveal it, then mark yourself.</div>'
+        + '<div class="fl-opt"><span>Players</span><div class="bz-row">' + [[1, 'Solo'], [2, 'Two sides'], [3, 'Three sides'], [4, 'Four sides']].map(function (o) { return btn('fP', o[0], o[1], s === o[0]); }).join('') + '</div></div>'
+        + '<div class="fl-opt"><span>Cards on the board</span><div class="bz-row">' + sizes().map(function (x) { return btn('fN', x, x, x === n); }).join('') + '</div></div>'
+        + (s > 1 ? '<div class="fl-opt"><span>Surprise cards</span><div class="bz-row">' + btn('fS', 1, 'On', CFG.fS) + btn('fS', 0, 'Off', !CFG.fS) + '</div><small>Some cards hide a bonus or a penalty instead of a question: jump to first place, drop to last place, go again, double points, steal a point, swap scores.</small></div>' : '')
+        + '<div class="bz-row"><button class="bz-big go" onclick="apBzGo()">▶ Deal the cards</button></div>');
+      window.apBzGo = play;
+    }
+    window.apFlSet = function (k, v) { CFG[k] = v; saveCfg(); intro(); };
+    function play() {
+      stop();
+      var n = nCards(), sides = CFG.fP, cols = n <= 12 ? 4 : n <= 24 ? 6 : 8, rows = Math.ceil(n / cols);
+      var cards = shuf(p).slice(0, n).map(function (c, i) { return { i: i, c: c, st: 0, sur: null }; });
+      if (sides > 1 && CFG.fS) { var sp = shuf(SUR); shuf(cards).slice(0, Math.max(1, Math.round(n / 6))).forEach(function (cd, j) { cd.sur = sp[j % sp.length]; }); }
+      var scores = [], dbl = [], cur = 0, busy = false, left = n, openI = -1, again = false, ok = 0, miss = 0;
+      for (var s = 0; s < sides; s++) { scores.push(0); dbl.push(false); }
+      function bar() {
+        var h = sides > 1 ? scores.map(function (v, s) { return '<div class="fl-sd' + (s === cur ? ' on' : '') + '" style="--sc:' + SIDEC[s] + '"><b>' + v + '</b><small>Side ' + (s + 1) + (dbl[s] ? ' · ×2' : '') + '</small></div>'; }).join('') : '<div class="fl-sd on" style="--sc:' + SIDEC[0] + '"><b>' + ok + '</b><small>got it</small></div>';
+        return '<div class="fl-bar" id="fl-bar">' + h + '<div class="fl-sd fl-lf"><b>' + left + '</b><small>cards left</small></div></div>';
+      }
+      frame('Flip it', bar() + '<div class="fl-grid" id="fl-grid" style="grid-template-columns:repeat(' + cols + ',1fr);grid-template-rows:repeat(' + rows + ',1fr)">' + cards.map(function (cd) { var r = Math.floor(cd.i / cols), c = cd.i % cols; return '<button class="fl-c fl-' + ((r + c) % 2 ? 'a' : 'b') + '" id="flc' + cd.i + '" style="animation-delay:' + (cd.i * 22) + 'ms" onclick="apFlPick(' + cd.i + ')"><b>' + (cd.i + 1) + '</b></button>'; }).join('') + '</div>');
+      function who(cd) { return '<small class="fl-who">Card ' + (cd.i + 1) + (sides > 1 ? ' · <span style="color:' + SIDEC[cur] + ';text-shadow:0 0 0 #000,0 1px 0 #14203f">Side ' + (cur + 1) + '</span>' : '') + ' · ' + esc(H.names[dirs()[0]]) + '</small>'; }
+      function sz(c) { var L = c.q.length; return L > 120 ? ' fl-xl' : L > 60 ? ' fl-lg' : ''; }
+      function backQ(cd) {
+        if (cd.sur) return '<div class="fl-sur"><div class="fl-ic">' + cd.sur[1] + '</div><h2>' + cd.sur[2] + '</h2><p>' + cd.sur[3] + '</p></div><button class="bz-big go" onclick="apFlSur()">OK</button>';
+        var v = hvOf(cd.c);
+        return who(cd) + '<div class="fl-q' + sz(cd.c) + '">' + qOf(cd.c) + '</div>' + (v.hl ? '<div class="fl-hl">Translate only the highlighted part</div>' : '') + '<div class="fl-hint">Say it, then reveal</div><button class="bz-big go" onclick="apFlRev()">Reveal</button>';
+      }
+      function backA(cd) {
+        var v = hvOf(cd.c);
+        return who(cd) + '<div class="fl-qs">' + qOf(cd.c) + '</div><div class="fl-ans' + (String(v.a).length > 95 ? ' fl-lg' : '') + '">' + esc(v.a) + ' ' + SAYBTN(v.a) + '</div><div class="fl-m"><button class="fl-n" onclick="apFlMk(0)">✗ Major error</button><button class="fl-nr" onclick="apFlMk(2)">~ Nearly</button><button class="fl-y" onclick="apFlMk(1)">✓ Got it</button></div>';
+      }
+      window.apFlPick = function (i) {
+        var cd = cards[i]; if (busy || cd.st) return; busy = true; openI = i; sfx('whoosh');
+        var el = $('flc' + i), r = el.getBoundingClientRect(), st = document.createElement('div'); st.id = 'fl-st'; st.className = 'fl-stage';
+        st.innerHTML = '<div class="fl-big" id="fl-big"><div class="fl-in" id="fl-in"><div class="fl-f"><b>' + (i + 1) + '</b></div><div class="fl-bk" id="fl-bk">' + backQ(cd) + '</div></div></div>';
+        ov.appendChild(st); var big = $('fl-big'), inn = $('fl-in'), br = big.getBoundingClientRect();
+        var dx = r.left + r.width / 2 - (br.left + br.width / 2), dy = r.top + r.height / 2 - (br.top + br.height / 2), sx = r.width / br.width, sy = r.height / br.height;
+        el.style.visibility = 'hidden';
+        var a1 = big.animate([{ transform: 'translate(' + dx + 'px,' + dy + 'px) scale(' + sx + ',' + sy + ')' }, { transform: 'none' }], { duration: 520, easing: 'cubic-bezier(.2,.8,.2,1)', fill: 'forwards' });
+        var a2 = inn.animate([{ transform: 'rotateY(0deg)' }, { transform: 'rotateY(180deg)' }], { duration: 620, easing: 'ease-in-out', fill: 'forwards' });
+        a2.onfinish = function () { inn.style.transform = 'rotateY(180deg)'; };
+        timers.push(setTimeout(function () { sfx('ok'); }, 380));
+      };
+      window.apFlRev = function () { var cd = cards[openI], b = $('fl-bk'); if (!cd || !b) return; sfx('tick'); b.innerHTML = backA(cd); try { if (CFG.fSay) say(dirs()[1] === 'en' ? String(cd.c.q) : hvOf(cd.c).a); } catch (e) { } };
+      function others(me) { return scores.map(function (v, s) { return s; }).filter(function (s) { return s !== me; }); }
+      window.apFlSur = function () {
+        var cd = cards[openI], t = cd.sur[0], me = cur, o = others(me), lead = o.reduce(function (a, s) { return scores[s] > scores[a] ? s : a; }, o[0]);
+        if (t === 'first') scores[me] = Math.max(scores[me], scores[lead] + 1);
+        else if (t === 'last') { var lo = Math.min.apply(null, o.map(function (s) { return scores[s]; })); scores[me] = Math.max(0, Math.min(scores[me], lo - 1)); }
+        else if (t === 'again') again = true;
+        else if (t === 'double') dbl[me] = true;
+        else if (t === 'steal') { if (scores[lead] > 0) { scores[lead]--; scores[me]++; } }
+        else if (t === 'swap') { if (scores[lead] > scores[me]) { var x = scores[me]; scores[me] = scores[lead]; scores[lead] = x; } }
+        cd.st = 3; left--; sfx(t === 'last' ? 'bad' : 'good'); settle(cd);
+      };
+      window.apFlMk = function (g) {
+        var cd = cards[openI]; if (!cd) return;
+        if (g === 1) { scores[cur] += dbl[cur] ? 2 : 1; dbl[cur] = false; ok++; cd.st = 1; left--; sfx('good'); }
+        else if (g === 0) { cd.st = 2; miss++; left--; sfx('bad'); }
+        else { sfx('tick'); }
+        settle(cd);
+      };
+      function settle(cd) {
+        var stg = $('fl-st'), el = $('flc' + cd.i);
+        function fin() {
+          if (stg) stg.remove(); busy = false; openI = -1;
+          if (el) { el.style.visibility = ''; el.className = 'fl-c ' + el.className.split(' ')[1] + (cd.st === 1 ? ' ok' : cd.st === 2 ? ' bad' : cd.st === 3 ? ' sur' : ''); if (cd.st) el.disabled = true; }
+          if (left <= 0) return finish();
+          if (sides > 1) { if (again) again = false; else cur = (cur + 1) % sides; }
+          var b = $('fl-bar'); if (b) b.outerHTML = bar();
+        }
+        if (stg) { stg.style.transition = 'opacity .25s'; stg.style.opacity = '0'; timers.push(setTimeout(fin, 260)); } else fin();
+      }
+      function finish() {
+        var b = $('fl-bar'); if (b) b.outerHTML = bar();
+        if (sides === 1) return timers.push(setTimeout(function () { endScreen('Flip it', { big: ok + '/' + n, note: ok === n ? 'Every card.' : (n - ok) + ' to look at again.' }, play); }, 700));
+        var mx = Math.max.apply(null, scores), win = scores.map(function (v, s) { return v === mx ? s + 1 : 0; }).filter(Boolean);
+        timers.push(setTimeout(function () { endScreen('Flip it', { big: scores.join(' – '), note: win.length > 1 ? 'A draw.' : 'Side ' + win[0] + ' wins.' }, play); }, 700));
+      }
+    }
+    intro();
+  };
+
 })();
