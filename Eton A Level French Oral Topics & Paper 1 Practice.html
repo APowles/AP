@@ -20810,7 +20810,8 @@ function deck(el,m,n,x,y,face,gap){clear(el);const cs=[];for(let i=0;i<n;i++){co
     '.er-show .au{position:absolute;inset:0;width:100%;height:100%;filter:brightness(0) invert(1) blur(2px) drop-shadow(0 0 28px var(--hc)) drop-shadow(0 0 70px var(--hc));opacity:.5}',
     '.er-show .rg{position:absolute;left:50%;bottom:-2%;width:150%;aspect-ratio:3.4;transform:translateX(-50%);border-radius:50%;border:3px solid var(--hc);box-shadow:0 0 30px var(--hc),inset 0 0 30px var(--hc);background:radial-gradient(ellipse,rgba(255,255,255,.4),transparent 70%)}',
     '.er-show .ro{position:absolute;inset:0;transform-style:preserve-3d;animation:ershowro 5s linear .3s both}@keyframes ershowro{from{transform:rotateY(0)}to{transform:rotateY(360deg)}}',
-    '.er-show .er-gl{position:absolute;inset:0;width:100%;height:100%;z-index:2;opacity:0;pointer-events:none;background:transparent;filter:drop-shadow(0 0 18px var(--hc)) drop-shadow(0 0 40px var(--hc)) brightness(1.08) saturate(1.05)}',
+    '.er-show .er-gl{position:absolute;inset:0;width:100%;height:100%;z-index:2;opacity:0;pointer-events:none;background:transparent;filter:drop-shadow(0 0 18px var(--hc)) drop-shadow(0 0 44px var(--hc)) brightness(1.06) saturate(1.05) blur(.3px)}',
+    '.er-show .er-sp{position:absolute;inset:0;width:100%;height:100%;z-index:4;opacity:0;pointer-events:none;background:transparent}',
     '.er-show .er-face{position:absolute;inset:0;width:100%;height:100%;object-fit:contain;object-position:50% 100%;opacity:1;pointer-events:none;z-index:3;filter:drop-shadow(0 0 18px var(--hc)) drop-shadow(0 0 40px var(--hc)) brightness(1.08) saturate(1.05)}',
     '.er-show .ly{position:absolute;inset:0;width:100%;height:100%;backface-visibility:visible;-webkit-backface-visibility:visible;object-fit:contain}',
     '.er-show .ly.a0{transform:rotateY(0deg) translateZ(1px);animation:erOp0 5s linear .3s both}',
@@ -21639,28 +21640,37 @@ function deck(el,m,n,x,y,face,gap){clear(el);const cs=[];for(let i=0;i<n;i++){co
     try {
       var cv = document.createElement('canvas'); cv.className = 'er-gl';
       var r = new THREE.WebGLRenderer({ canvas: cv, alpha: true, antialias: true });
-      r.setClearColor(0x000000, 0); r.outputEncoding = THREE.sRGBEncoding;
+      r.setClearColor(0x000000, 0); r.outputEncoding = THREE.LinearEncoding;
       ER3.sc = new THREE.Scene(); ER3.piv = new THREE.Group(); ER3.sc.add(ER3.piv);
       // fov 25 at 2.55: a height-1 figure projects to 94 % of the view, with the near edge of its base still inside the frame, as in the 2D pictures
       ER3.cam = new THREE.PerspectiveCamera(25, 0.533, 0.01, 100); ER3.cam.position.set(0, 0, 2.55); ER3.cam.lookAt(0, 0, 0);
       ER3.r = r; ER3.cv = cv; return r;
     } catch (e) { return null; }
   }
-  function er3Prep(o) {  // unlit textured look; centred at the origin and scaled to height 1, so every figure is framed exactly like its 2D picture
+  // Hologram look for the twirl ("beam me up"): the figure's own texture, cooled and tinted in its colour, with a soft edge glow,
+  // fine moving scan lines, a slow bright sweep and a faint flicker. The 2D picture covers the front, so only the turning model wears it.
+  var ER3_VS = 'varying vec2 vUv;varying vec3 vN;varying vec3 vV;varying float vY;void main(){vUv=uv;vec4 mv=modelViewMatrix*vec4(position,1.0);vN=normalize(normalMatrix*normal);vV=normalize(-mv.xyz);vY=(modelMatrix*vec4(position,1.0)).y;gl_Position=projectionMatrix*mv;}';
+  var ER3_FS = 'precision highp float;uniform sampler2D map;uniform vec3 tint;uniform float t;uniform float holo;varying vec2 vUv;varying vec3 vN;varying vec3 vV;varying float vY;'
+    + 'void main(){vec4 c=texture2D(map,vUv);float nv=abs(dot(normalize(vN),normalize(vV)));float fr=pow(1.0-nv,2.4);'
+    + 'float scan=0.5+0.5*sin(vY*150.0-t*5.0);float band=smoothstep(0.975,1.0,sin(vY*2.4+t*1.7));float flick=0.975+0.025*sin(t*41.0)*sin(t*13.0);'
+    + 'vec3 col=mix(c.rgb,c.rgb*vec3(0.78,0.92,1.12)+tint*0.2,0.55*holo);col+=tint*(fr*1.15+band*0.55)*holo;col*=(1.0-0.2*holo*scan)*flick;'
+    + 'float a=1.0-0.12*holo*scan;gl_FragColor=vec4(col,a);}';
+  function er3Prep(o) {  // hologram material; centred at the origin and scaled to height 1, so every figure is framed exactly like its 2D picture
+    var mats = [];
     o.traverse(function (n) {
       if (!n.isMesh) return;
+      try { if (n.geometry && !n.geometry.attributes.normal) n.geometry.computeVertexNormals(); } catch (e) { }
       var ms = Array.isArray(n.material) ? n.material : [n.material];
       var out = ms.map(function (m) {
-        var map = m && m.map || null; if (map) map.encoding = THREE.sRGBEncoding;
-        var b = new THREE.MeshBasicMaterial({ map: map, side: THREE.DoubleSide });
-        if (!map && m && m.color) b.color.copy(m.color); if (m && m.transparent) { b.transparent = true; b.opacity = m.opacity; }
+        var map = m && m.map || null;
+        var b = new THREE.ShaderMaterial({ uniforms: { map: { value: map }, tint: { value: new THREE.Color(0.6, 0.8, 1) }, t: { value: 0 }, holo: { value: 1 } }, vertexShader: ER3_VS, fragmentShader: ER3_FS, side: THREE.DoubleSide, transparent: true, depthWrite: true });
         try { if (m && m.dispose) m.dispose(); } catch (e) { }
-        return b;
+        mats.push(b); return b;
       });
       n.material = Array.isArray(n.material) ? out : out[0]; n.frustumCulled = false;
     });
     var bb = new THREE.Box3().setFromObject(o), sz = new THREE.Vector3(), c = new THREE.Vector3(); bb.getSize(sz); bb.getCenter(c);
-    var w = new THREE.Group(); o.position.sub(c); w.add(o); w.scale.setScalar(1 / (sz.y || 1)); return w;
+    var w = new THREE.Group(); o.position.sub(c); w.add(o); w.scale.setScalar(1 / (sz.y || 1)); w.__mats = mats; return w;
   }
   function er3Model(i, cb) {  // the figure's GLB, fetched once and kept; cb(object or null)
     var m = ER3.m[i] || (ER3.m[i] = { s: 0, o: null, q: [] });
@@ -21757,6 +21767,7 @@ function deck(el,m,n,x,y,face,gap){clear(el);const cs=[];for(let i=0;i<n;i++){co
       function kill() {
         st.dead = true; if (st.raf) cancelAnimationFrame(st.raf); st.raf = 0; if (st.tm) clearTimeout(st.tm); st.tm = 0;
         if (st.cv) { st.cv.style.opacity = '0'; if (st.cv.parentNode === el) el.removeChild(st.cv); st.cv = null; }
+        if (st.sp) { if (st.sp.parentNode === el) el.removeChild(st.sp); st.sp = null; }
         if (st.m && ER3.piv) ER3.piv.remove(st.m); st.m = null;
       }
       function flat(why) { if (st.dead) return; kill(); dbg.mode = 'flat:' + why; flat2DShowcase(i, el); el.__life(Math.max(ER_LIFE, Date.now() - el.__t0 + ER_LEAD + ER_SPIN + 300)); }
@@ -21769,6 +21780,25 @@ function deck(el,m,n,x,y,face,gap){clear(el);const cs=[];for(let i=0;i<n;i++){co
         while (ER3.piv.children.length) ER3.piv.remove(ER3.piv.children[0]);
         ER3.piv.rotation.y = 0; ER3.piv.add(obj); st.m = obj;
         var cv = ER3.cv; cv.style.opacity = '0'; el.appendChild(cv); st.cv = cv;
+        try { var tc = new THREE.Color(PCS[i][2]); (obj.__mats || []).forEach(function (m) { m.uniforms.tint.value.copy(tc); }); } catch (e) { }
+        // transporter motes: small lights in the figure's colour drifting up through the beam, drawn only while the model shows
+        var sp = document.createElement('canvas'); sp.className = 'er-sp'; el.appendChild(sp); st.sp = sp;
+        var motes = [], NM = 120; for (var k = 0; k < NM; k++) motes.push({ x: .5 + (Math.random() + Math.random() + Math.random() - 1.5) * .22, y: Math.random(), v: .05 + Math.random() * .14, r: .6 + Math.random() * 1.6, p: Math.random() * 6.283, f: 2 + Math.random() * 4 });
+        var hc = PCS[i][2], last = 0;
+        function drawMotes(now, k) {
+          var w = el.clientWidth, h = el.clientHeight, d = Math.min(window.devicePixelRatio || 1, 2); if (!w || !h) return;
+          if (sp.width !== Math.round(w * d) || sp.height !== Math.round(h * d)) { sp.width = Math.round(w * d); sp.height = Math.round(h * d); }
+          var g = sp.getContext('2d'); if (!g) return; var dt = last ? Math.min(.05, (now - last) / 1000) : 0; last = now; var ts = now / 1000;
+          g.setTransform(d, 0, 0, d, 0, 0); g.clearRect(0, 0, w, h); g.globalCompositeOperation = 'lighter';
+          for (var j = 0; j < NM; j++) {
+            var m = motes[j]; m.y -= m.v * dt; if (m.y < -.02) { m.y = 1.02; m.x = .5 + (Math.random() + Math.random() + Math.random() - 1.5) * .22; }
+            var a = k * (.25 + .75 * (.5 + .5 * Math.sin(m.p + ts * m.f))); if (a < .02) continue;
+            var x = m.x * w, y = m.y * h, rr = m.r * (w / 420);
+            g.globalAlpha = a * .9; g.fillStyle = hc; g.beginPath(); g.arc(x, y, rr * 2.2, 0, 6.283); g.fill();
+            g.globalAlpha = a; g.fillStyle = '#fff'; g.beginPath(); g.arc(x, y, rr * .9, 0, 6.283); g.fill();
+          }
+          g.globalAlpha = 1;
+        }
         st.ts = Math.max(Date.now(), el.__t0 + ER_LEAD);
         el.__life(Math.max(ER_LIFE, st.ts - el.__t0 + ER_SPIN + 600));
         function fit() {
@@ -21779,8 +21809,8 @@ function deck(el,m,n,x,y,face,gap){clear(el);const cs=[];for(let i=0;i<n;i++){co
           st.raf = 0; if (st.dead) return; if (!el.isConnected) { kill(); return; }
           var now = Date.now(), u = (now - st.ts) / ER_SPIN, yaw = 360 * ease(u), fo = u >= 1 ? 1 : fade(yaw);
           // draw only while the canvas can be seen (one warm-up frame first), so no GPU work piles up behind the picture
-          try { if (fo < 1 || !st.warm) { st.warm = 1; fit(); ER3.piv.rotation.y = yaw * Math.PI / 180; r.render(ER3.sc, ER3.cam); } } catch (e) { flat('render'); return; }
-          face.style.opacity = fo; cv.style.opacity = 1 - fo;
+          try { if (fo < 1 || !st.warm) { st.warm = 1; fit(); ER3.piv.rotation.y = yaw * Math.PI / 180; var tsec = (now - el.__t0) / 1000; (obj.__mats || []).forEach(function (m) { m.uniforms.t.value = tsec; }); r.render(ER3.sc, ER3.cam); drawMotes(now, 1 - fo); } } catch (e) { flat('render'); return; }
+          face.style.opacity = fo; cv.style.opacity = 1 - fo; sp.style.opacity = 1 - fo;
           dbg.yaw = yaw; dbg.faceOpacity = fo; dbg.canvasOpacity = 1 - fo; dbg.ms = now - el.__t0;
           if (u < 1) st.raf = requestAnimationFrame(loop); else dbg.mode = 'done';
         });
@@ -22509,4 +22539,4 @@ function deck(el,m,n,x,y,face,gap){clear(el);const cs=[];for(let i=0;i<n;i++){co
   if (document.readyState === 'complete') start(); else window.addEventListener('load', start);
 })();
 </script>
-<script id="ap-build">window.__apBuild="f9345f31a5";</script>
+<script id="ap-build">window.__apBuild="3df84a029f";</script>
