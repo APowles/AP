@@ -5,7 +5,7 @@
     phrases: function () { return getSelectedPhrases(); }, from: function () { return getLangFrom(); }, to: function () { return getLangTo(); },
     say: function (t, l) { speak(t, LANG_CODES[l]); }, get names() { return LANG_NAMES; }, get titles() { return (typeof SECTION_TITLES !== 'undefined' ? SECTION_TITLES : null); }, pics: true, games: null
   };
-  var HC = window.APBZ_HOSTCFG || {}; if (HC.games) H.games = HC.games; if ('pics' in HC) H.pics = HC.pics; H.short = HC.short || 0;
+  var HC = window.APBZ_HOSTCFG || {}; if (HC.games) H.games = HC.games; if ('pics' in HC) H.pics = HC.pics; H.short = HC.short || 0; H.frag = !!HC.frag;
   function shortOnly(p) { var seen = {}; return p.filter(function (x) { if (H.short && (x.q.split(/\s+/).length > H.short || x.a.split(/\s+/).length > H.short)) return false; if (seen[x.a]) return false; seen[x.a] = 1; return true; }); }
   var TOPIC_PIC_ON = {};
 /*SHX-BEGIN*/
@@ -472,7 +472,25 @@ function deck(el,m,n,x,y,face,gap){clear(el);const cs=[];for(let i=0;i<n;i++){co
   function clean(s) { return String(s == null ? '' : s).replace(/[*_]/g, '').trim(); }
   function dirs() { var f = H.from(), t = H.to(); if (f !== 'en' && t !== 'en') { f = 'en'; } return [f, t]; }
   function target() { var d = dirs(); return d[1] !== 'en' ? d[1] : d[0]; }
-  function pool() { var d = dirs(), f = d[0], t = d[1], out = []; H.phrases().forEach(function (p) { var q = clean(p[f]), a = clean(p[t]); if (p.ask) { q = clean(p.en); a = clean(p.fr); } if (q && a) out.push({ ask: p.ask ? 1 : 0, q: q, a: a, sec: p.sec, en: clean(p.en), tl: clean(p[target()]), hv: p.hv || null, hf: f, ht: t }); }); return out; }
+  // long sentences with matching clause breaks: offer a 'translate only the bold part' (about 5 to 14 words) in both languages
+  function fragOf(fr, en) {
+    function wc(x) { return x.trim().split(/\s+/).filter(Boolean).length; }
+    function cut(x) { var r = [0], re = /[,;:]\s+(?=\S)/g, m; while ((m = re.exec(x))) r.push(m.index + m[0].length); r.push(x.length); return r; }
+    function trim(x) { return x.replace(/^[\s,;:.!?]+|[\s,;:.!?]+$/g, ''); }
+    var tot = wc(fr); if (tot < 16 || wc(en) < 12) return null;
+    var ca = cut(fr), cb = cut(en); if (ca.length !== cb.length || ca.length < 3) return null;
+    var c = [];
+    for (var i = 0; i < ca.length - 1; i++) for (var j = i + 1; j < ca.length; j++) {
+      if (i === 0 && j === ca.length - 1) continue;
+      var a = trim(fr.slice(ca[i], ca[j])), b = trim(en.slice(cb[i], cb[j])), wa = wc(a), wb = wc(b), fr2 = wa / tot;
+      if (wa < 5 || wa > 14 || wb < 4 || wb > 18 || wa / wb < .5 || wa / wb > 2 || fr2 < .25 || fr2 > .75) continue;
+      if (/[.!?]\s+\S/.test(a) || fr.indexOf(a) < 0 || en.indexOf(b) < 0) continue;
+      c.push({ a: a, b: b, d: Math.abs(fr2 - .5) });
+    }
+    if (!c.length) return null; c.sort(function (x, y) { return x.d - y.d; });
+    var x = c[0], y = c[1] || c[0]; return { fr: [x.a, y.a], en: [x.b, y.b] };
+  }
+  function pool() { var d = dirs(), f = d[0], t = d[1], out = []; H.phrases().forEach(function (p) { var q = clean(p[f]), a = clean(p[t]); if (p.ask) { q = clean(p.en); a = clean(p.fr); } if (q && a) out.push({ ask: p.ask ? 1 : 0, q: q, a: a, sec: p.sec, en: clean(p.en), tl: clean(p[target()]), hv: p.hv || (H.frag && p.fr && p.en && !p.ask ? fragOf(clean(p.fr), clean(p.en)) : null), hf: f, ht: t }); }); return out; }
   function shuf(a) { a = a.slice(); for (var i = a.length - 1; i > 0; i--) { var j = Math.floor(Math.random() * (i + 1)), x = a[i]; a[i] = a[j]; a[j] = x; } return a; }
   function esc(s) { return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;'); }
   var stopHook = null;
@@ -648,7 +666,7 @@ function deck(el,m,n,x,y,face,gap){clear(el);const cs=[];for(let i=0;i<n;i++){co
     '.fl-bk{transform:rotateY(180deg) translateZ(calc(var(--ft)/2));background:linear-gradient(160deg,#fbf7ea,#efe6c8);color:#14203f;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;padding:22px 30px;text-align:center;overflow:auto}',
     '.fl-who{font-weight:800;letter-spacing:.12em;text-transform:uppercase;color:#7a5f14;font-size:.8rem}',
     '.fl-q{font:700 clamp(1.7rem,3.8vw,2.6rem)/1.25 Georgia,serif;color:#14203f}.fl-q.fl-lg{font-size:clamp(1.35rem,2.8vw,1.9rem)}.fl-q.fl-xl{font-size:clamp(1.1rem,2.2vw,1.45rem)}',
-    '.fl-hl{font-size:.8rem;font-weight:700;color:#7a5f14;letter-spacing:.06em;text-transform:uppercase}.fl-hint{color:#5b6788;font-size:.95rem}',
+    '.fl-q b.hl,.fl-qs b.hl,.c4-q b.hl{background:linear-gradient(180deg,rgba(246,223,154,.35),#f3d77f);color:#14203f;padding:0 .15em;border-radius:4px;font-weight:800}.fl-hl{font-size:.8rem;font-weight:700;color:#7a5f14;letter-spacing:.06em;text-transform:uppercase}.fl-hint{color:#5b6788;font-size:.95rem}',
     '.fl-qs{font:600 1rem/1.3 Georgia,serif;color:#5b6788;max-width:92%}.fl-ans{font:700 clamp(1.5rem,3.2vw,2.3rem)/1.25 Georgia,serif;color:#0f5c35}.fl-ans.fl-lg{font-size:clamp(1.15rem,2.3vw,1.6rem)}',
     '.fl-bk .sp{background:#eef2ff;border:1px solid #b7c0d8;border-radius:50%;width:38px;height:38px;cursor:pointer;vertical-align:middle}',
     '.fl-m{display:flex;gap:10px;justify-content:center;margin-top:6px}.fl-m button{--b1:#7b2430;--b2:#3f0c16;--fr:linear-gradient(150deg,#ffe3df,#e49a94 40%,#8a3a3a 62%,#f6c4bf);font:800 1.1rem "DM Sans",sans-serif;letter-spacing:.02em;padding:12px 20px;border-radius:14px;border:3px solid transparent;cursor:pointer;color:#fff6dc;text-shadow:0 2px 0 rgba(0,0,0,.55);white-space:nowrap;background:linear-gradient(180deg,rgba(255,255,255,.28),rgba(255,255,255,0) 50%) padding-box,linear-gradient(170deg,var(--b1),var(--b2)) padding-box,var(--fr) border-box;box-shadow:inset 0 0 12px rgba(0,0,0,.45),0 1px 0 var(--b1),0 2px 0 var(--b1),0 3px 0 var(--b2),0 4px 0 var(--b2),0 5px 0 #0b0704,0 10px 14px rgba(0,0,0,.45);transition:transform .1s,filter .1s}.fl-m button:hover{filter:brightness(1.15);transform:translateY(-2px)}.fl-m button:active{transform:translateY(4px);box-shadow:inset 0 0 12px rgba(0,0,0,.45),0 1px 0 #0b0704}.fl-m .fl-n{--b1:#7b2430;--b2:#3f0c16}.fl-m .fl-nr{--b1:#c26a12;--b2:#6a3206;--fr:linear-gradient(150deg,#ffe9c2,#f4b45e 40%,#a8570e 62%,#fcd8a0)}.fl-m .fl-y{--b1:#176b46;--b2:#073b26;--fr:linear-gradient(150deg,#e4fff0,#8fe3b2 40%,#2f8a5c 62%,#c4f3d9)}',
@@ -1269,7 +1287,7 @@ function deck(el,m,n,x,y,face,gap){clear(el);const cs=[];for(let i=0;i<n;i++){co
     ];
     function sizes() { var m = Math.min(48, p.length), a = [12, 24, 32, 48].filter(function (n) { return n <= m; }); return a.length ? a : [m]; }
     function nCards() { var s = sizes(), n = s[0]; s.forEach(function (x) { if (x <= CFG.fN) n = x; }); return n; }
-    function qOf(c) { var v = hvOf(c); return v.hl ? (v.hl[0].trim() ? '[…] ' : '') + (v.hl[2].trim() ? esc(v.hl[1].replace(/\s*…\s*$/, '')) + ' […]' : esc(v.hl[1])) : esc(c.q); }
+    function qOf(c) { var v = hvOf(c); return v.hl ? esc(v.hl[0]) + '<b class="hl">' + esc(v.hl[1]) + '</b>' + esc(v.hl[2]) : esc(c.q); }
     function btn(key, val, lab, on) { return '<button class="bz-b' + (on ? ' on' : '') + '" onclick="apFlSet(\'' + key + '\',' + val + ')">' + lab + '</button>'; }
     function intro() {
       var s = CFG.fP, n = nCards();
@@ -1302,7 +1320,7 @@ function deck(el,m,n,x,y,face,gap){clear(el);const cs=[];for(let i=0;i<n;i++){co
       function backQ(cd) {
         if (cd.sur) return '<div class="fl-sur"><div class="fl-ic">' + cd.sur[1] + '</div><h2>' + cd.sur[2] + '</h2><p>' + cd.sur[3] + '</p></div><button class="bz-big go" onclick="apFlSur()">OK</button>';
         var v = hvOf(cd.c), CARD = cd.c;
-        return who(cd) + '<div class="fl-q' + sz(cd.c) + '">' + qOf(cd.c) + '</div>' + '<div class="fl-hl">' + (CARD.ask ? 'Answer the question in ' + esc(H.names[target()]) : (v.hl ? 'Translate only the highlighted part into ' : 'Translate into ') + esc(H.names[dirs()[1]])) + '</div>' + '<div class="fl-hint">Say it, then reveal</div><button class="bz-big go" onclick="apFlRev()">Reveal</button>';
+        return who(cd) + '<div class="fl-q' + sz(cd.c) + '">' + qOf(cd.c) + '</div>' + '<div class="fl-hl">' + (CARD.ask ? 'Answer the question in ' + esc(H.names[target()]) : (v.hl ? 'Translate only the bold part into ' : 'Translate into ') + esc(H.names[dirs()[1]])) + '</div>' + '<div class="fl-hint">Say it, then reveal</div><button class="bz-big go" onclick="apFlRev()">Reveal</button>';
       }
       function backA(cd) {
         var v = hvOf(cd.c);
@@ -1390,7 +1408,7 @@ function deck(el,m,n,x,y,face,gap){clear(el);const cs=[];for(let i=0;i<n;i++){co
   GAMES.four = function (p) {
     var COLN = ['Red', 'Yellow', 'Green', 'White'], TXC = ['#c0392b', '#a37b00', '#1f8a52', '#5b6788'], SCOL = ['#ff7b6b', '#f6d646', '#5fe3a0', '#e8eaf5'];
     function nm(s) { return pnGet(s, 'Team ' + (s + 1)); }
-    function qOf(c) { var v = hvOf(c); return v.hl ? (v.hl[0].trim() ? '[…] ' : '') + (v.hl[2].trim() ? esc(v.hl[1].replace(/\s*…\s*$/, '')) + ' […]' : esc(v.hl[1])) : esc(c.q); }
+    function qOf(c) { var v = hvOf(c); return v.hl ? esc(v.hl[0]) + '<b class="hl">' + esc(v.hl[1]) + '</b>' + esc(v.hl[2]) : esc(c.q); }
     function sz(c) { var L = c.q.length; return L > 120 ? ' fl-xl' : L > 60 ? ' fl-lg' : ''; }
     function intro() {
       var P = CFG.c4P;
@@ -1420,7 +1438,7 @@ function deck(el,m,n,x,y,face,gap){clear(el);const cs=[];for(let i=0;i<n;i++){co
       try { if (BZ.bcard) { ov.style.setProperty('--fl-card', 'url(' + BZ.bcard + ')'); ov.classList.add('flc-img'); } } catch (e) { }
       frame('Four in a row', bar() + '<div class="c4-wrap"><div class="c4-st" id="c4-st">' + esc(msg) + '</div><div class="c4-cols" id="c4-cols">' + cols() + '</div><div class="c4-board" id="c4-board"><div class="c4-edge"></div><div class="c4-lay" id="c4-lay"></div><div class="c4-face"></div><div class="c4-rim"></div><div class="c4-gloss"></div></div></div>');
       function who() { return '<small class="fl-who"><span style="color:' + TXC[cur] + '">' + esc(nm(cur)) + ' · ' + COLN[cur] + '</span> · column ' + (pend + 1) + ' · ' + esc(H.names[dirs()[0]]) + '</small>'; }
-      function backQ() { var v = hvOf(qd), CARD = qd; return who() + '<div class="fl-q' + sz(qd) + '">' + qOf(qd) + '</div>' + '<div class="fl-hl">' + (CARD.ask ? 'Answer the question in ' + esc(H.names[target()]) : (v.hl ? 'Translate only the highlighted part into ' : 'Translate into ') + esc(H.names[dirs()[1]])) + '</div>' + '<div class="fl-hint">Say it, then reveal</div><button class="bz-big go" onclick="apC4Rev()">Reveal</button>'; }
+      function backQ() { var v = hvOf(qd), CARD = qd; return who() + '<div class="fl-q' + sz(qd) + '">' + qOf(qd) + '</div>' + '<div class="fl-hl">' + (CARD.ask ? 'Answer the question in ' + esc(H.names[target()]) : (v.hl ? 'Translate only the bold part into ' : 'Translate into ') + esc(H.names[dirs()[1]])) + '</div>' + '<div class="fl-hint">Say it, then reveal</div><button class="bz-big go" onclick="apC4Rev()">Reveal</button>'; }
       function backA() { var v = hvOf(qd); return who() + '<div class="fl-qs">' + qOf(qd) + '</div><div class="fl-ans' + (String(v.a).length > 95 ? ' fl-lg' : '') + '">' + esc(v.a) + ' ' + SAYBTN(v.a) + '</div><div class="fl-m"><button class="fl-n" onclick="apC4Mk(0)">✗ Major error</button><button class="fl-nr" onclick="apC4Mk(2)">~ Nearly</button><button class="fl-y" onclick="apC4Mk(1)">✓ Got it</button></div>'; }
       window.apC4Pick = function (c) {
         if (busy || colFull(c)) return; busy = true; pend = c; qd = nextQ(); sfx('whoosh');
