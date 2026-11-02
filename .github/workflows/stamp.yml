@@ -1,0 +1,38 @@
+name: Stamp build ids
+
+# Safety net: whatever is pushed (by any session or by hand), make sure every app page
+# carries a fresh build id and version.json matches, so the gold "AP has updated this app" strip always appears.
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'Eton *.html'
+      - 'AP All Languages - *.html'
+      - '_tools/version/**'
+
+permissions:
+  contents: write
+
+concurrency:
+  group: stamp-build-ids
+  cancel-in-progress: false
+
+jobs:
+  stamp:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Stamp pages
+        run: python3 -I _tools/version/stamp.py
+      - name: Commit stamps if anything changed
+        run: |
+          if [ -n "$(git status --porcelain)" ]; then
+            git config user.name "AP build stamp"
+            git config user.email "actions@users.noreply.github.com"
+            git add -A
+            git commit -m "Restamp (automatic)"
+            git pull --rebase origin main
+            git push
+          else
+            echo "Stamps already current"
+          fi
