@@ -13065,9 +13065,10 @@ textarea.ms-in{min-height:7rem;resize:vertical}.ms-hint.ms-hint-sm{font-size:.78
 })();
 </script>
 <script id="ap-newver-js">
-/* AP NEW VERSION: when a newer version of this page has been published, a slim gold strip at the very top (not floating) says so; one tap loads it. */
+/* AP NEW VERSION: when a newer version of this page has been published, a slim gold strip at the very top (not floating) says so; one tap loads it. It checks 2.5 s after opening, when the tab returns to view, and every 3 minutes while visible. */
 (function () {
-  if (window.__apNewVer) return; window.__apNewVer = 1;
+  /* keyed on the page's root element, so a page that rewrites itself (F Block Spanish) restarts the check */
+  if (window.__apNewVer === document.documentElement) return; window.__apNewVer = document.documentElement; try { clearInterval(window.__apNVT); } catch (e) { }
   if (!/^https?:$/.test(location.protocol)) return;
   var name = ''; try { name = decodeURIComponent(location.pathname.split('/').pop() || ''); } catch (e) { return; }
   if (!name) return;
@@ -13075,7 +13076,7 @@ textarea.ms-in{min-height:7rem;resize:vertical}.ms-hint.ms-hint-sm{font-size:.78
     if (document.getElementById('ap-newver')) return;
     var d = document.createElement('div'); d.id = 'ap-newver'; d.setAttribute('role', 'button'); d.tabIndex = 0;
     d.style.cssText = 'position:relative;background:#c9a84c;color:#1a2744;font:700 .95rem/1.3 "DM Sans",system-ui,-apple-system,sans-serif;text-align:center;padding:10px 14px;cursor:pointer;border-bottom:2px solid #1a2744';
-    d.textContent = '🔄 AP has updated this app. Tap here to get the latest, improved version.';
+    d.innerHTML = '<div>🔄 AP has updated this app. Tap here to get the latest version.</div><div style="font-weight:600;font-size:.8rem;margin-top:3px;opacity:.9">Finish any test or timed task first, then tap: reloading loses your work.</div>';
     function go() {
       d.textContent = 'Updating…';
       var done = false, fin = function () { if (!done) { done = true; location.reload(); } };
@@ -13092,8 +13093,8 @@ textarea.ms-in{min-height:7rem;resize:vertical}.ms-hint.ms-hint-sm{font-size:.78
       if (j[name] !== window.__apBuild) show(j[name]);
     }).catch(function () { });
   }
-  function start() { setTimeout(check, 2500); document.addEventListener('visibilitychange', function () { if (document.visibilityState === 'visible') setTimeout(check, 500); }); }
+  function start() { setTimeout(check, 2500); window.__apNVT = setInterval(function () { if (document.visibilityState === 'visible' && !document.getElementById('ap-newver')) check(); }, 180000); document.addEventListener('visibilitychange', function () { if (document.visibilityState === 'visible') setTimeout(check, 500); }); }
   if (document.readyState === 'complete') start(); else window.addEventListener('load', start);
 })();
 </script>
-<script id="ap-build">window.__apBuild="8e031e6388";</script>
+<script id="ap-build">window.__apBuild="7b6532787b";</script>
