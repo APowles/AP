@@ -1679,7 +1679,7 @@ function deck(el,m,n,x,y,face,gap){clear(el);const cs=[];for(let i=0;i<n;i++){co
       return h + '</div>' + start + '</div>';
     }
     window.apErTurn = function (s) { pickTurn = s; intro(); };
-    var GLB_AVAIL = { 7: 1 };
+    var GLB_AVAIL = { 0: 1, 4: 1, 6: 1, 7: 1 };
     var THREE_LOADING = false, THREE_READY = false, THREE_QUEUE = [];
     function loadThree(cb) {
       if (THREE_READY) { cb(); return; }
