@@ -1638,13 +1638,14 @@ function deck(el,m,n,x,y,face,gap){clear(el);const cs=[];for(let i=0;i<n;i++){co
     }
     return ER3.gl;
   }
+  function er3V() { try { return window.__apBuild ? '?v=' + window.__apBuild : ''; } catch (e) { return ''; } }  // the page's build id, read when needed (it is stamped after this script)
   function er3Lib(cb) {  // three.min.js then GLTFLoader.js (classic scripts, relative paths), fetched once; cb(ok)
     if (ER3.lib === 2) { cb(true); return; } if (ER3.lib === -1) { cb(false); return; }
     ER3.q.push(cb); if (ER3.lib === 1) return; ER3.lib = 1;
     function done(ok) { ER3.lib = ok ? 2 : -1; var q = ER3.q; ER3.q = []; q.forEach(function (f) { try { f(ok); } catch (e) { } }); }
     function add(src, next) { try { var s = document.createElement('script'); s.async = false; s.src = src; s.onload = next; s.onerror = function () { done(false); }; document.head.appendChild(s); } catch (e) { done(false); } }
-    function loader() { if (window.THREE && THREE.GLTFLoader) done(true); else add(ER3.base + 'GLTFLoader.js', function () { done(!!(window.THREE && THREE.GLTFLoader)); }); }
-    if (window.THREE && THREE.WebGLRenderer) loader(); else add(ER3.base + 'three.min.js', loader);
+    function loader() { if (window.THREE && THREE.GLTFLoader) done(true); else add(ER3.base + 'GLTFLoader.js' + er3V(), function () { done(!!(window.THREE && THREE.GLTFLoader)); }); }
+    if (window.THREE && THREE.WebGLRenderer) loader(); else add(ER3.base + 'three.min.js' + er3V(), loader);
   }
   function er3Renderer() {  // the one shared WebGL context, made on first need and reused for every showcase
     if (ER3.r) return ER3.r; if (!window.THREE || !THREE.WebGLRenderer) return null;
@@ -1681,7 +1682,7 @@ function deck(el,m,n,x,y,face,gap){clear(el);const cs=[];for(let i=0;i<n;i++){co
     function fin(o) { m.s = o ? 2 : -1; m.o = o; var q = m.q; m.q = []; q.forEach(function (f) { try { f(o); } catch (e) { } }); }
     er3Lib(function (ok) {
       if (!ok) { fin(null); return; }
-      try { if (!ER3.ldr) ER3.ldr = new THREE.GLTFLoader(); ER3.ldr.load('icons/er_p' + i + '.glb', function (g) { var o = null; try { o = er3Prep(g.scene); } catch (e) { o = null; } fin(o); }, undefined, function () { fin(null); }); }
+      try { if (!ER3.ldr) ER3.ldr = new THREE.GLTFLoader(); ER3.ldr.load('icons/er_p' + i + '.glb' + er3V(), function (g) { var o = null; try { o = er3Prep(g.scene); } catch (e) { o = null; } fin(o); }, undefined, function () { fin(null); }); }
       catch (e) { fin(null); }
     });
   }
@@ -1744,7 +1745,7 @@ function deck(el,m,n,x,y,face,gap){clear(el);const cs=[];for(let i=0;i<n;i++){co
     window.apErTurn = function (s) { pickTurn = s; intro(); };
     var GLB_AVAIL = { 0: 1, 1: 1, 2: 1, 3: 1, 4: 1, 5: 1, 6: 1, 7: 1 };
     function flat2DShowcase(i, el) {
-      var fr = 'icons/er_p' + i + '.webp', bk = 'icons/er_p' + i + '_back.webp', sd = 'icons/er_p' + i + '_side.webp', fr34 = 'icons/er_p' + i + '_fr34.webp', br34 = 'icons/er_p' + i + '_br34.webp';
+      var fr = 'icons/er_p' + i + '.webp', bk = fr, sd = fr, fr34 = fr, br34 = fr;  // rare fallback (no WebGL / model failed): the picture itself turns; the AI side/back pictures were not good enough to show
       el.innerHTML = '<img class="au" alt="" src="' + fr + '"><span class="rg"></span><div class="ro">' +
         '<img class="ly a0" alt="" src="' + fr + '">' +
         '<img class="ly a1" alt="" src="' + fr34 + '">' +
@@ -1758,7 +1759,7 @@ function deck(el,m,n,x,y,face,gap){clear(el);const cs=[];for(let i=0;i<n;i++){co
     }
     // 3D turntable: the 2D picture shows at once; when the model is ready it turns one full circle (5 s, eased) behind a crossfade
     // that keeps the picture on top whenever the figure faces the front. Slow (> 1.5 s), missing WebGL or a failed GLB: the flat 8-plane spin instead.
-    var ER_SPIN = 5000, ER_LEAD = 300, ER_WAIT = 4000, ER_LIFE = 6440, ER_FADE = 560;
+    var ER_SPIN = 5000, ER_LEAD = 300, ER_WAIT = 8000, ER_LIFE = 6440, ER_FADE = 560;
     function glb3DShowcase(i, el) {
       el.innerHTML = '<span class="rg"></span><img class="er-face" alt="" src="icons/er_p' + i + '.webp">';
       var face = el.querySelector('.er-face'), st = { dead: false, raf: 0, tm: 0, cv: null, m: null, ts: 0, w: 0, h: 0, dpr: 0 };
