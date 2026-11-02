@@ -1434,7 +1434,7 @@ function deck(el,m,n,x,y,face,gap){clear(el);const cs=[];for(let i=0;i<n;i++){co
       ['Barnes Pool'], ['Baldwin\'s Shore'], ['Collect the post (School Office)', 'b', 'A job: back 1', -1], ['Brewhouse'], ['Cloisters'], ['College Chapel', 'b', 'Miss a go', 'miss'],
       ['Porters\' Lodge'], ['School Yard'], ['Detention (Lower School)', 'b', 'Back 4', -4], ['Sign the Tardy Book (School Office)', 'b', 'Punishment: back 2', -2], ['School Library', 'g', 'Forward 2', 2], ['Durnford'],
       ['Hawtrey'], ['Carter'], ['Bekynton'], ['Music School', 'g', 'Go again', 'again'], ['Eton Wick Road'], ['South Meadow Lane'],
-      ['Lower Chapel'], ['Rain walk: Allington to Queen\'s', 'b', 'Long walk: back 2', -2], ['Jafar Hall'], ['Birley Schools', 'f', 'Finish']
+      ['Lower Chapel'], ['Rain walk: Allington to Queen\'s', 'b', 'Long walk: back 2', -2], ['Lecture in Jafar Hall', 'b', 'Miss a go', 'miss'], ['Birley Schools', 'f', 'Finish']
     ], LAST = SQ.length - 1, COLS = 7, ROWS = Math.ceil(SQ.length / COLS);
     function nm(s) { return pnGet(s, 'Team ' + (s + 1)); }
     function qOf(c) { var v = hvOf(c); return v.hl ? esc(v.hl[0]) + '<b class="hl">' + esc(v.hl[1]) + '</b>' + esc(v.hl[2]) : esc(c.q); }
