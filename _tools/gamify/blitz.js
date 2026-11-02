@@ -361,7 +361,7 @@ function deck(el,m,n,x,y,face,gap){clear(el);const cs=[];for(let i=0;i<n;i++){co
   // ---------- background music (made in the browser: low, soft, no files)
   var MG = null, mTimer = null, mStep = 0, mNext = 0, mRate = 1;
   var curMus = null;
-  var MUS = [['off', 'Off'], ['mix', 'Shuffle (new each game)'], ['pulse', 'Pulse'], ['ambient', 'Ambient'], ['groove', 'Groove'], ['arp', 'Arpeggio'], ['lofi', 'Lo-fi'], ['disco', 'Disco'], ['suspense', 'Suspense'], ['bounce', 'Bounce']];
+  var MUS = [['off', 'Off'], ['mix', 'Shuffle (new each game)'], ['hymn', 'Hymn (Jerusalem)'], ['pulse', 'Pulse'], ['ambient', 'Ambient'], ['groove', 'Groove'], ['arp', 'Arpeggio'], ['lofi', 'Lo-fi'], ['disco', 'Disco'], ['suspense', 'Suspense'], ['bounce', 'Bounce']];
   var CH0 = [[73.42, [1, 1.189, 1.498]], [58.27, [1, 1.26, 1.498]], [87.31, [1, 1.26, 1.498]], [65.41, [1, 1.26, 1.498]]];
   var CH = CH0, mBpm = 96, lastProg = 0, PROGS = [CH0, [[55, [1, 1.189, 1.498]], [43.65, [1, 1.26, 1.498]], [65.41, [1, 1.26, 1.498]], [49, [1, 1.26, 1.498]]], [[82.41, [1, 1.189, 1.498]], [65.41, [1, 1.26, 1.498]], [98, [1, 1.26, 1.498]], [73.42, [1, 1.26, 1.498]]], [[98, [1, 1.189, 1.498]], [77.78, [1, 1.26, 1.498]], [58.27, [1, 1.26, 1.498]], [87.31, [1, 1.26, 1.498]]]];   // Dm  Bb  F  C
   function mTone(f, t, len, vol, type, att) {
@@ -376,8 +376,20 @@ function deck(el,m,n,x,y,face,gap){clear(el);const cs=[];for(let i=0;i<n;i++){co
     var c = AC; if (!c || !MG) return; var n = Math.floor(c.sampleRate * len), b = c.createBuffer(1, n, c.sampleRate), d = b.getChannelData(0); for (var i = 0; i < n; i++) d[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / n, 2);
     var s = c.createBufferSource(); s.buffer = b; var f = c.createBiquadFilter(); f.type = type || 'bandpass'; f.frequency.value = freq; var g = c.createGain(); g.gain.value = vol; s.connect(f); f.connect(g); g.connect(MG); s.start(t);
   }
+  var HYM = {"m":[[6,62,2.0],[8,66,2.0],[10,69,2.0],[12,71,6.0],[18,74,2.0],[20,71,2.0],[22,69,1.0],[23,67,1.0],[24,69,8.0],[32,71,2.0],[34,69,1.0],[35,67,1.0],[36,69,2.0],[38,66,2.0],[40,64,4.0],[44,62,4.0],[48,59,6.0],[54,62,2.0],[56,66,2.0],[58,69,2.0],[60,71,6.0],[66,74,2.0],[68,73,2.0],[70,71,1.0],[71,69,1.0],[72,71,6.0],[78,71,2.0],[80,73,2.0],[82,66,2.0],[84,69,2.0],[86,68,2.0],[88,66,4.0],[92,64,4.0],[96,69,6.0],[102,64,2.0],[104,64,2.0],[106,66,2.0],[108,67,6.0],[114,71,2.0],[116,69,3.0],[119,64,1.0],[120,67,6.0],[126,64,2.0],[128,67,2.0],[130,69,2.0],[132,71,6.0],[138,74,2.0],[140,72,2.0],[142,69,2.0],[144,71,6.0],[150,67,2.0],[152,71,2.0],[154,74,2.0],[156,76,3.0],[159,74,1.0],[160,73,4.0],[164,73,3.0],[167,71,1.0],[168,69,6.0],[174,69,2.0],[176,74,2.0],[178,71,2.0],[180,69,3.0],[183,71,1.0],[184,66,4.0],[188,64,4.0],[192,62,12.0]],"b":[[0,38,12],[12,47,4],[16,43,8],[24,42,4],[28,38,4],[32,43,4],[36,42,4],[40,47,8],[48,43,4],[52,38,8],[60,47,8],[68,45,4],[72,47,4],[76,44,4],[80,45,4],[84,47,4],[88,42,8],[96,38,4],[100,37,4],[104,39,4],[108,40,8],[116,45,4],[120,40,8],[128,37,4],[132,47,4],[136,38,4],[140,36,4],[144,43,8],[152,42,4],[156,40,8],[164,45,4],[168,38,4],[172,47,4],[176,43,4],[180,42,4],[184,43,4],[188,45,4],[192,38,12]],"T":204}, HYMAP = null;
+  function hymMap() { if (HYMAP) return HYMAP; HYMAP = {}; HYM.m.forEach(function (e) { (HYMAP[e[0]] = HYMAP[e[0]] || []).push([e[1], e[2], 0]); }); HYM.b.forEach(function (e) { (HYMAP[e[0]] = HYMAP[e[0]] || []).push([e[1] - 12, e[2], 1]); }); return HYMAP; }
+  function mOrg(f, t, len, vol) {
+    var c = AC; if (!c || !MG) return; var g = c.createGain(), end = t + len;
+    g.gain.setValueAtTime(.0001, t); g.gain.exponentialRampToValueAtTime(vol, t + .09); g.gain.setValueAtTime(vol, Math.max(t + .1, end - .12)); g.gain.exponentialRampToValueAtTime(.0001, end + .18); g.connect(MG);
+    [[1, 'sine', 1], [2, 'sine', .38], [3, 'sine', .14], [.5, 'triangle', .3]].forEach(function (p) { var o = c.createOscillator(), h = c.createGain(); o.type = p[1]; o.frequency.value = f * p[0]; h.gain.value = p[2]; o.connect(h); h.connect(g); o.start(t); o.stop(end + .25); });
+  }
+  function mHymn(step, t, sd) {
+    var es = hymMap()[step % HYM.T]; if (!es) return;
+    es.forEach(function (e) { var f = 440 * Math.pow(2, (e[0] - 69) / 12); mOrg(f, t, Math.max(.25, e[1] * sd * .96), e[2] ? .2 : .17); if (!e[2] && e[1] > 3) mOrg(f / 2, t, e[1] * sd * .96, .07); });
+  }
   function mPlay(step, t, sd) {
     var bar = Math.floor(step / 16) % 4, s = step % 16, root = CH[bar][0], iv = CH[bar][1], st = curMus || CFG.mus;
+    if (st === 'hymn') { mHymn(step, t, sd); return; }
     if (st === 'pulse') {
       if (s % 4 === 0) mKick(t, .55);
       if (s % 4 === 2) mNoise(t, .05, .12, 5200, 'highpass');
@@ -428,7 +440,7 @@ function deck(el,m,n,x,y,face,gap){clear(el);const cs=[];for(let i=0;i<n;i++){co
   var musLvl = 0;
   function musicStart(fresh) {
     musicStop(); if (!snd || CFG.mus === 'off') return; var c = ctx(); if (!c) return;
-    if (CFG.mus === 'mix') { if (fresh || !curMus || curMus === 'mix') { var opts = ['pulse', 'ambient', 'groove', 'arp', 'lofi', 'disco', 'suspense', 'bounce'].filter(function (x) { return x !== curMus; }); curMus = opts[Math.floor(Math.random() * opts.length)]; var pi = Math.floor(Math.random() * PROGS.length); if (pi === lastProg) pi = (pi + 1) % PROGS.length; lastProg = pi; CH = PROGS[pi]; mBpm = [88, 96, 104, 112][Math.floor(Math.random() * 4)]; } } else { curMus = CFG.mus; CH = musLvl ? PROGS[musLvl % PROGS.length] : CH0; mBpm = 96 + 6 * (musLvl % 5); }
+    if (CFG.mus === 'mix' && view === 'run') { curMus = 'hymn'; mBpm = 72; CH = CH0; } else if (CFG.mus === 'mix') { if (fresh || !curMus || curMus === 'mix') { var opts = ['pulse', 'ambient', 'groove', 'arp', 'lofi', 'disco', 'suspense', 'bounce'].filter(function (x) { return x !== curMus; }); curMus = opts[Math.floor(Math.random() * opts.length)]; var pi = Math.floor(Math.random() * PROGS.length); if (pi === lastProg) pi = (pi + 1) % PROGS.length; lastProg = pi; CH = PROGS[pi]; mBpm = [88, 96, 104, 112][Math.floor(Math.random() * 4)]; } } else { curMus = CFG.mus; CH = musLvl ? PROGS[musLvl % PROGS.length] : CH0; mBpm = curMus === 'hymn' ? 72 : 96 + 6 * (musLvl % 5); }
     MG = c.createGain(); MG.gain.value = .5 * CFG.mv; var lp = c.createBiquadFilter(); lp.type = 'lowpass'; lp.frequency.value = 1500; MG.connect(lp); lp.connect(c.destination);
     mStep = 0; mNext = c.currentTime + .12; mTimer = setInterval(sched, 60); sched();
   }
