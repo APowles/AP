@@ -820,6 +820,10 @@ function deck(el,m,n,x,y,face,gap){clear(el);const cs=[];for(let i=0;i<n;i++){co
     '.er-stg::after{content:"";position:absolute;inset:0;background:radial-gradient(ellipse 60% 55% at 50% 92%,rgba(90,190,255,.30),transparent 70%);pointer-events:none}',
     '.er-hp{position:relative;z-index:1;flex:0 0 calc(var(--fh)*.42);height:100%;border:0;background:none;cursor:pointer;display:flex;flex-direction:column;align-items:center;justify-content:flex-end;padding:0;perspective:760px;--hc:#7fd6ff;color:#dff3ff;font:700 .8rem "DM Sans",sans-serif}',
     '.er-hp.sel,.er-hp.tk{--hc:var(--sc)}',
+    '.er-hp .hoop{position:absolute;left:-10%;right:-10%;height:7%;z-index:2;pointer-events:none;mix-blend-mode:screen;animation:erHoop 7.5s ease-in-out infinite alternate;animation-delay:var(--d);border-radius:50%;background:radial-gradient(ellipse 70% 50% at 50% 50%,var(--sl) 0%,var(--sl) 25%,transparent 70%);filter:blur(2px);box-shadow:0 0 24px var(--sl),0 0 48px var(--sl),inset 0 0 12px rgba(255,255,255,.4);opacity:.9}',
+    '.er-hp .hoop.h2{opacity:.55;animation-delay:calc(var(--d) + .25s);filter:blur(5px);height:9%}',
+    '.er-hp .hoop.h3{opacity:.3;animation-delay:calc(var(--d) + .5s);filter:blur(9px);height:11%}',
+    '@keyframes erHoop{from{top:88%;transform:scaleX(.75) scaleY(.6)}to{top:3%;transform:scaleX(1.1) scaleY(1.1)}}',
     '.er-hp .pd{position:absolute;bottom:20px;left:4%;right:4%;height:30px;z-index:1}.er-hp .pd i{position:absolute;inset:0;border-radius:50%;border:2px solid var(--hc);box-shadow:0 0 16px var(--hc),inset 0 0 16px var(--hc);background:radial-gradient(ellipse,rgba(255,255,255,.35),transparent 70%)}.er-hp .pd i+i{animation:erring 2.6s ease-out infinite;animation-delay:var(--d);background:none}',
     '@keyframes erring{from{transform:scale(1);opacity:.9}to{transform:scale(1.55,1.9);opacity:0}}',
     '.er-hp .bm{position:absolute;z-index:1;bottom:34px;left:12%;right:12%;height:calc(var(--fh)*1.04);background:var(--hc);clip-path:polygon(6% 100%,94% 100%,100% 0,0 0);-webkit-mask-image:linear-gradient(to top,rgba(0,0,0,.5),transparent);mask-image:linear-gradient(to top,rgba(0,0,0,.5),transparent);filter:blur(7px);opacity:.55;mix-blend-mode:screen;pointer-events:none}',
@@ -1608,14 +1612,14 @@ function deck(el,m,n,x,y,face,gap){clear(el);const cs=[];for(let i=0;i<n;i++){co
     function qOf(c) { var v = hvOf(c); return v.hl ? esc(v.hl[0]) + '<b class="hl">' + esc(v.hl[1]) + '</b>' + esc(v.hl[2]) : esc(c.q); }
     function sz(c) { var L = c.q.length; return L > 120 ? ' fl-xl' : L > 60 ? ' fl-lg' : ''; }
     var holoT = null;
-    function holoStart() { holoStop(); if (!snd) return; var up = true; function tick() { try { sfx('holoscan', up); } catch (e) { } up = !up; } tick(); holoT = setInterval(tick, 5000); }
+    function holoStart() { holoStop(); }
     function holoStop() { if (holoT) { clearInterval(holoT); holoT = null; } } window.__erHoloStop = function () { if (holoT) { clearInterval(holoT); holoT = null; } };
     function pickHTML(P, start) {
       if (pickTurn >= P) pickTurn = 0;
       var h = '<div class="er-stg">';
       for (var i = 0; i < PCS.length; i++) {
         var who = picks.slice(0, P).indexOf(i), cls = who === pickTurn ? ' sel' : who > -1 ? ' tk' : '';
-        h += '<button class="er-hp' + cls + '" onclick="apErPick(' + i + ')" style="--sc:' + PCS[i][2] + ';--d:' + (i * -0.7) + 's;--sl:' + SCN[i] + ';--im:url(icons/er_p' + i + '.webp)"><span class="bm"></span><span class="pd"><i></i><i></i></span><span class="fl"><span class="fg"><img alt="" src="icons/er_p' + i + '.webp"><span class="sn"></span></span></span><small>' + (who > -1 && P > 1 ? esc(nm(who)) : PCS[i][0]) + '</small></button>';
+        h += '<button class="er-hp' + cls + '" onclick="apErPick(' + i + ')" style="--sc:' + PCS[i][2] + ';--d:' + (i * -0.7) + 's;--sl:' + SCN[i] + ';--im:url(icons/er_p' + i + '.webp)"><span class="hoop h1"></span><span class="hoop h2"></span><span class="hoop h3"></span><span class="bm"></span><span class="pd"><i></i><i></i></span><span class="fl"><span class="fg"><img alt="" src="icons/er_p' + i + '.webp"><span class="sn"></span></span></span><small>' + (who > -1 && P > 1 ? esc(nm(who)) : PCS[i][0]) + '</small></button>';
       }
       h += '</div><div class="er-ft"><div class="er-pt">';
       for (var s = 0; s < P; s++) h += '<button class="er-chip' + (s === pickTurn ? ' on' : '') + '" onclick="apErTurn(' + s + ')" style="--sc:' + pcL(s) + '"><img alt="" src="icons/er_p' + picks[s] + '.webp"><b>' + esc(P > 1 ? nm(s) + ': choosing' : 'Tap a figure to choose your player') + '</b></button>';
