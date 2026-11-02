@@ -854,6 +854,11 @@ function deck(el,m,n,x,y,face,gap){clear(el);const cs=[];for(let i=0;i<n;i++){co
     '.er-chip b{color:#f4d77a;font:800 1rem Georgia,serif}.er-chip small{color:#c8d3ea;font:700 .62rem/1 "DM Sans",sans-serif;letter-spacing:.08em;text-transform:uppercase}',
     '.er-chip.er-sc.cur{border-color:var(--sc,#c9a84c);box-shadow:0 0 0 1px var(--sc,#c9a84c) inset,0 0 10px rgba(0,0,0,.25);background:rgba(8,14,32,.88)}',
     '.er-chip.er-sc b{color:var(--sc,#f4d77a)}',
+    '.er-turn{position:fixed;left:50%;top:34%;transform:translate(-50%,-50%);z-index:11700;pointer-events:none;animation:erTurnIn .35s cubic-bezier(.2,.9,.3,1.4),erTurnOut .4s ease-in 1.6s forwards}',
+    '.er-turn .in{padding:22px 56px;border-radius:999px;background:rgba(5,10,24,.88);border:4px solid var(--tc,#f4d77a);box-shadow:0 0 40px var(--tc,#f4d77a),inset 0 0 24px rgba(255,255,255,.08);font:900 2.4rem/1 Georgia,serif;color:var(--tc,#fff);letter-spacing:.02em;text-shadow:0 2px 8px rgba(0,0,0,.8);text-transform:uppercase;animation:erTurnPulse 1.3s ease-in-out infinite}',
+    '@keyframes erTurnIn{from{opacity:0;transform:translate(-50%,-50%) scale(.5)}to{opacity:1;transform:translate(-50%,-50%) scale(1)}}',
+    '@keyframes erTurnOut{to{opacity:0;transform:translate(-50%,-50%) scale(1.12)}}',
+    '@keyframes erTurnPulse{50%{box-shadow:0 0 70px var(--tc,#f4d77a),inset 0 0 24px rgba(255,255,255,.14)}}',
     '.er-chip.er-st{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;color:#f3ead0;font:600 .9rem/1.1 "DM Sans",sans-serif;background:rgba(8,14,32,.4);border-color:rgba(201,168,76,.25)}.er-chip.er-st b.g{color:#5fe3a0}.er-chip.er-st b.b{color:#ff7b6b}',
     '.er-btn{height:34px;padding:0 14px;border-radius:10px;border:1.5px solid rgba(201,168,76,.5);background:rgba(8,14,32,.65);color:#f3ead0;font:700 .82rem/1 "DM Sans",sans-serif;cursor:pointer;display:inline-flex;align-items:center;letter-spacing:.02em}.er-btn:hover{box-shadow:0 0 0 2px rgba(201,168,76,.3)}.er-btn[disabled]{opacity:.4;cursor:default}',
     '.er-btn.er-go{background:linear-gradient(135deg,#c9a84c,#e3c571);color:#1a2744;border-color:#c9a84c;font-weight:800;text-transform:uppercase;letter-spacing:.06em;box-shadow:0 2px 6px rgba(0,0,0,.3)}.er-btn.er-go:hover{filter:brightness(1.08);box-shadow:0 2px 10px rgba(201,168,76,.5)}',
@@ -1764,10 +1769,20 @@ function deck(el,m,n,x,y,face,gap){clear(el);const cs=[];for(let i=0;i<n;i++){co
         timers.push(setTimeout(function () { el.remove(); fn(); }, 2850));
       }
       window.apErRev = function () { var b = $('er-q'); if (!b || !qd) return; sfx('tick'); b.innerHTML = backA(); try { if (CFG.fSay) say(dirs()[1] === 'en' ? String(qd.q) : hvOf(qd).a); } catch (e) { } };
+      function turnFlash(txt, col) {
+        if (P < 2) return;
+        var old = document.querySelector('.er-turn'); if (old) old.remove();
+        var el = document.createElement('div'); el.className = 'er-turn'; el.style.setProperty('--tc', col);
+        el.innerHTML = '<div class="in">' + esc(txt) + '</div>';
+        ov.appendChild(el);
+        try { sfx('ok'); } catch (e) { }
+        timers.push(setTimeout(function () { if (el.parentNode) el.remove(); }, 2000));
+      }
       function nextTurn(again) {
         if (!again) cur = (cur + 1) % P; busy = false;
         msg = again ? (P > 1 ? nm(cur) + ' goes again.' : 'Go again.') : (P > 1 ? nm(cur) + ', your go.' : 'Your go.');
         refresh();
+        if (P > 1) turnFlash(nm(cur) + (again ? ': go again!' : ' to answer'), pcL(cur));
       }
       function win() {
         sfx('win'); msg = (P > 1 ? nm(cur) : 'You') + ' reached Birley Schools: Sent Up For Good!'; refresh();
