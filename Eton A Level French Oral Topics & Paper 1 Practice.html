@@ -16692,6 +16692,23 @@ const useSet=k=>[k.use,...(k.uses_extra||[])];
 const ORDS={};
 function ovoPerm(n){let a=[];for(let i=0;i<n;i++)a.push(i);let p=shuffle(a),t=0;while(n>1&&p.every((v,i)=>v===i)&&t++<20)p=shuffle(a);return p}
 function ovoSt(k){const n=(k.picture||[]).length;let o=ORDS[k.n];if(!o||o.len!==n){o=ORDS[k.n]={len:n,round:'order',placed:0,wrong:-1,perm:ovoPerm(n),clue:new Array(n).fill(0),rev:new Array(n).fill(0)}}return o}
+/* Tell the story: Avant is on screen from the start; each press of Continue the story adds the next part (its English gist), and tapping a part shows or hides its French */
+const OVC={};
+function ovcN(k){const n=OVC[k.n];return n==null?1:n}
+function ovContinue(){const k=ktr();OVC[k.n]=Math.min(k.picture.length,ovcN(k)+1);render()}
+function ovShowAll(){const k=ktr(),a=ovState('s',k.n,k.picture.length);OVC[k.n]=k.picture.length;a.fill(2);render()}
+function ovStart(){const k=ktr(),a=ovState('s',k.n,k.picture.length);OVC[k.n]=1;a.fill(0);render()}
+function ovFlip(i){const k=ktr(),a=ovState('s',k.n,k.picture.length);a[i]=a[i]===2?0:2;render()}
+function ovStory(k,hideQ){
+  const bs=k.picture||[];
+  if(!bs.length||!bs.every(x=>x.g))return ovPanel(k,'s',hideQ);
+  const a=ovState('s',k.n,bs.length),c=Math.min(ovcN(k),bs.length);
+  const cards=bs.slice(0,c).map((b,i)=>{
+    const fr=a[i]===2;
+    const body=(OVEN?`<div class="ov-g${fr?' ov-g2':''}">${esc(b.g)}</div>`:'')+(fr?`<div class="ov-full">${LN(b)}</div><span class="ov-h">Tap to hide the French</span>`:`<span class="ov-h">Say it in French, then tap to check</span>`);
+    return `<div class="ov-b s${fr?2:1}" role="button" tabindex="0" onclick="if(!event.target.closest('.spk,.song'))ovFlip(${i})" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();ovFlip(${i})}">${ovBadge(b,i)}${body}</div>`}).join('');
+  return `<div class="ov">${hideQ?'':`<div class="ov-q">${k.hook?LN(k.hook):''}</div>`}<div class="ov-l">Say each part in French, then tap it to check. Press <b>Continue the story</b> for the next part. Switch <b>English gist</b> off for a harder go.</div><div class="ov-ctl"><button class="btn" onclick="ovShowAll()">🇫🇷 Show all French</button><button class="btn" onclick="ovStart()">↺ Start again</button><button class="btn" onclick="ovEn(${!OVEN})">🇬🇧 English gist: ${OVEN?'On':'Off'}</button></div>${cards}${c<bs.length?`<div class="ov-ctl" style="margin-top:12px"><button class="btn pri" onclick="ovContinue()">▶ Continue the story</button></div>`:''}</div>`;
+}
 function ovSet(m){S.ovm=m;render()}
 function ovNext(){const k=ktr(),a=ovState('s',k.n,k.picture.length),i=a.findIndex(v=>!v);if(i>=0){a[i]=1;render()}}
 function ovAll(on){const k=ktr(),a=ovState('s',k.n,k.picture.length);k.picture.forEach((b,i)=>{a[i]=on?((b.cl&&b.cl.fr)||b.g?2:1):0});render()}
@@ -16730,16 +16747,16 @@ function sOv(k){
   const m=S.ovm||'tell',bs=k.picture||[];
   const tabs=[['tell','Tell the story'],['read','Read & listen'],['order','Put in order']].map(t=>`<button class="tg${m===t[0]?' on':''}" onclick="ovSet('${t[0]}')">${t[1]}</button>`).join('');
   const o=ovoSt(k);
-  const act=m==='tell'?`<button class="btn" onclick="ovNext()">▶ Next part</button><button class="btn" onclick="ovAll(true)">👁 Reveal all</button><button class="btn" onclick="ovAll(false)">🙈 Hide all</button>`
+  const story=m==='tell'&&bs.length>0&&bs.every(x=>x.g);const act=m==='tell'?(story?'':`<button class="btn" onclick="ovNext()">▶ Next part</button><button class="btn" onclick="ovAll(true)">👁 Reveal all</button><button class="btn" onclick="ovAll(false)">🙈 Hide all</button>`)
     :m==='order'?(o.round==='gaps'?`<button class="btn" onclick="ovgReset()">↺ Start again</button>`:`<button class="btn" onclick="ovoShuffle()">🔀 Shuffle</button>`):'';
   let body;
   if(m==='read'){
     body=`<div class="ov">${k.hook?`<div class="ov-q">${LN(k.hook)}</div>`:''}<div class="ov-l">Les parties, dans l'ordre. The parts, in order.</div>${bs.map((b,i)=>`<div class="ov-b s2 rd">${ovBadge(b,i)}<div class="ov-full">${LN(b)}</div></div>`).join('')}</div>`;
   }else if(m==='order')body=ovoView(k);
-  else body=ovPanel(k,'s',false);
+  else body=ovStory(k,false);
   const I=(typeof ILLUS!=='undefined')&&ILLUS[k.n];
   const pic=I?`<div class="mc-img fc-pic" style="--ar:${(I.w/I.h).toFixed(4)};cursor:zoom-in" onclick="fsOpen(${k.n})" title="Click for full screen"><img src="${I.src}" alt="${esc(I.alt_en||'')}"></div>`:'';
-  return `<div class="sub-tabs ovx">${tabs}<span class="ovx-r">${act}</span></div>${pic&&m==='read'?`<div class="fc-ovg" style="align-items:center">${pic}<div><div class="ov"><div class="ov-q">${k.hook?LN(k.hook):''}</div></div></div></div><div class="ov-l" style="margin:14px 0 8px">Les parties, dans l'ordre. The parts, in order.</div><div class="ov-two">${bs.map((b,i)=>`<div class="ov-b s2 rd">${ovBadge(b,i)}<div class="ov-full">${LN(b)}</div></div>`).join('')}</div>`:pic&&m==='tell'?`<div class="fc-ovg" style="align-items:center">${pic}<div><div class="ov"><div class="ov-q">${k.hook?LN(k.hook):''}</div></div></div></div><div style="margin-top:14px">${ovPanel(k,'s',true)}</div>`:pic?`<div class="fc-ovg">${pic}<div>${body}</div></div>`:body}`;
+  return `<div class="sub-tabs ovx">${tabs}<span class="ovx-r">${act}</span></div>${pic&&m==='read'?`<div class="fc-ovg" style="align-items:center">${pic}<div><div class="ov"><div class="ov-q">${k.hook?LN(k.hook):''}</div></div></div></div><div class="ov-l" style="margin:14px 0 8px">Les parties, dans l'ordre. The parts, in order.</div><div class="ov-two">${bs.map((b,i)=>`<div class="ov-b s2 rd">${ovBadge(b,i)}<div class="ov-full">${LN(b)}</div></div>`).join('')}</div>`:pic&&m==='tell'?`<div class="fc-ovg" style="align-items:center">${pic}<div><div class="ov"><div class="ov-q">${k.hook?LN(k.hook):''}</div></div></div></div><div style="margin-top:14px">${ovStory(k,true)}</div>`:pic?`<div class="fc-ovg">${pic}<div>${body}</div></div>`:body}`;
 }
 function ovSkel(k){
   const bs=k.picture||[];if(!bs.length)return '';
