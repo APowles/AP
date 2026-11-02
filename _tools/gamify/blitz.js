@@ -861,7 +861,7 @@ function deck(el,m,n,x,y,face,gap){clear(el);const cs=[];for(let i=0;i<n;i++){co
     '.er-off .x{font:600 1.1rem/1.35 "DM Sans",sans-serif;color:#dfe7fb;margin-bottom:26px}',
     '.er-off .x b.g{color:#5fe3a0}.er-off .x b.b{color:#ff7b6b}',
     '.er-off .bts{display:flex;gap:14px;justify-content:center;flex-wrap:wrap}',
-    '.er-off .er-off-b{height:52px;min-width:200px;font-size:1rem;border-radius:12px}'
+    '.er-off .er-off-b{height:52px;min-width:200px;font-size:1rem;border-radius:12px}',
     '.er-st-ask{color:#f6efd8;font-weight:700;background:rgba(8,14,32,.75)!important;border-color:rgba(244,215,122,.5)!important}',
     '.er-btn.er-take,.er-btn.er-pass{min-width:160px;justify-content:center;font-size:.88rem;font-weight:800;text-transform:uppercase;letter-spacing:.06em}',
     '.er-btn.er-take{background:linear-gradient(135deg,#2a8f54,#4cdc78)!important;color:#06240e!important;border-color:#4cdc78!important;animation:erTake 1.5s ease-in-out infinite}',
