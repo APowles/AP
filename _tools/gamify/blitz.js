@@ -195,7 +195,7 @@ function deck(el,m,n,x,y,face,gap){clear(el);const cs=[];for(let i=0;i<n;i++){co
 })();
 /*SHX-END*/
   var ov = null, snd = true, AC = null, timers = [], PZ = false;
-  var CFG = { snd: true, style: 'marimba', vol: 1, ticks: true, clock: 5, streak: 0, tm: 2, dice: 2, pairs: 20, cw: 20, lives: 3, accel: 11, start: 100, oddR: 10, oddS: 12, gN: 12, gS: 6, lW: 10, lG: 3, lT: 15, oddM: 0, ln: 25, rlSay: 1, pSay: 1, dN: 6, dL: 5, dT: 180, dSay: 1, dP: 1, cSay: 1, sSay: 1, mus: 'mix', musV: 0, mv: 1, fP: 1, fN: 24, fS: 0, fSay: 1 };
+  var CFG = { c4P: 2, snd: true, style: 'marimba', vol: 1, ticks: true, clock: 5, streak: 0, tm: 2, dice: 2, pairs: 20, cw: 20, lives: 3, accel: 11, start: 100, oddR: 10, oddS: 12, gN: 12, gS: 6, lW: 10, lG: 3, lT: 15, oddM: 0, ln: 25, rlSay: 1, pSay: 1, dN: 6, dL: 5, dT: 180, dSay: 1, dP: 1, cSay: 1, sSay: 1, mus: 'mix', musV: 0, mv: 1, fP: 1, fN: 24, fS: 0, fSay: 1 };
   try { var sv = JSON.parse(localStorage.getItem('apbz_cfg') || '{}'); for (var kk in sv) if (kk in CFG) CFG[kk] = sv[kk]; } catch (e) { }
   snd = CFG.snd;
   function saveCfg() { CFG.snd = snd; try { localStorage.setItem('apbz_cfg', JSON.stringify(CFG)); } catch (e) { } }
@@ -584,10 +584,10 @@ function deck(el,m,n,x,y,face,gap){clear(el);const cs=[];for(let i=0;i<n;i++){co
       ov.classList.add(team === 0 ? 'pt-n' : 'pt-g');
     }
     window.apBzShow = function () { var cd0 = $('bz-card'), was = !cd0 || cd0.classList.contains('bz-back'); reveal(); if (!was && CFG.pSay && !deck[i].__s) { try { var c1 = deck[i]; c1.__s = 1; say(dirs()[1] === 'en' ? String(c1.q).replace(/<[^>]*>/g, '') : hvOf(c1).a); } catch (e) { } } };
-    window.apBzGo = function () { show(); };
+    window.apBzGo = function () { names = [esc(pnGet(0, 'Blue')), esc(pnGet(1, 'Gold'))]; show(); };
     window.apBzMark = function (g) { if (g === 2) { sfx('tick'); deck.splice(Math.min(deck.length, i + 3), 0, deck[i]); team = 1 - team; i++; show(); return; } sfx(g ? 'ok' : 'bad'); if (g) sc[team]++; team = 1 - team; i++; show(); };
     function fin() { var w = sc[0] === sc[1] ? 'A draw' : (sc[0] > sc[1] ? names[0] : names[1]) + ' wins'; endScreen('Pairs race', { big: sc[0] + ' – ' + sc[1], note: w + '.' }, function () { GAMES.pairs(pool()); }); }
-    frame('Pairs race', '<div class="bz-note"><b>Two players, one screen.</b> Sit side by side: <b>Blue</b> and <b>Gold</b>. A word appears and the player whose turn it is says the answer out loud. Press <b>Show answer</b>: the other player checks it and presses <b>Got it</b> (a point) or <b>Major error</b> (no point). Then it is the other player\'s turn. After ' + deck.length + ' words, the higher score wins.</div><button class="bz-big go" onclick="apBzGo()">▶ Start</button>');
+    frame('Pairs race', '<div class="bz-note"><b>Two players, one screen.</b> Sit side by side. A word appears and the player whose turn it is says the answer out loud. Press <b>Show answer</b>: the other player checks it and presses <b>Got it</b> (a point) or <b>Major error</b> (no point). Then it is the other player\'s turn. After ' + deck.length + ' words, the higher score wins.</div>' + pnBox(2, ['Blue', 'Gold'], ['#4f8cff', '#f0d27a']) + '<button class="bz-big go" onclick="apBzGo()">▶ Start</button>');
   };
 
   // ---------- Deal it: shuffle and deal (solo, or a two-player race for piles of cards)
@@ -614,7 +614,7 @@ function deck(el,m,n,x,y,face,gap){clear(el);const cs=[];for(let i=0;i<n;i++){co
     '.fl-c[disabled]{cursor:default;box-shadow:inset 0 0 18px rgba(0,0,0,.7),0 2px 0 #1a1204;transform:translateY(6px);filter:none}.fl-c.ok b,.fl-c.bad b,.fl-c.sur b{opacity:.45}',
     '@keyframes flin{from{opacity:0;transform:translateY(14px) scale(.9)}to{opacity:1;transform:none}}',
     '.fl-stage{position:absolute;inset:0;z-index:8;display:flex;align-items:center;justify-content:center;background:rgba(4,8,20,.82);perspective:1500px}',
-    '.fl-big{--fw:min(800px,92vw);--fh:min(560px,74vh);--ft:46px;width:var(--fw);height:var(--fh);position:relative}.fl-in{position:absolute;inset:0;transform-style:preserve-3d}.fl-sh{position:absolute;left:6%;right:6%;bottom:-34px;height:30px;border-radius:50%;background:rgba(0,0,0,.6);filter:blur(16px);transition:none}.fl-sd3{position:absolute;background:linear-gradient(90deg,#6b561b,#e9cf7a 25%,#a98a2c 55%,#7d6520);backface-visibility:hidden}.fl-sdl,.fl-sdr{top:16px;height:calc(100% - 32px);width:var(--ft);left:calc(50% - var(--ft)/2)}.fl-sdl{transform:rotateY(-90deg) translateZ(calc(var(--fw)/2))}.fl-sdr{transform:rotateY(90deg) translateZ(calc(var(--fw)/2))}.fl-sdt,.fl-sdb{left:16px;width:calc(100% - 32px);height:var(--ft);top:calc(50% - var(--ft)/2);background:linear-gradient(180deg,#e9cf7a,#a98a2c 50%,#6b561b)}.fl-sdt{transform:rotateX(90deg) translateZ(calc(var(--fh)/2))}.fl-sdb{transform:rotateX(-90deg) translateZ(calc(var(--fh)/2))}',
+    '.fl-big{--fw:min(800px,92vw);--fh:min(560px,74vh);--ft:60px;width:var(--fw);height:var(--fh);position:relative}.fl-in{position:absolute;inset:0;transform-style:preserve-3d}.fl-sh{position:absolute;left:6%;right:6%;bottom:-34px;height:30px;border-radius:50%;background:rgba(0,0,0,.6);filter:blur(16px);transition:none}.fl-sd3{position:absolute;background:linear-gradient(90deg,#6b561b,#e9cf7a 25%,#a98a2c 55%,#7d6520);backface-visibility:hidden}.fl-sdl,.fl-sdr{top:16px;height:calc(100% - 32px);width:var(--ft);left:calc(50% - var(--ft)/2)}.fl-sdl{transform:rotateY(-90deg) translateZ(calc(var(--fw)/2))}.fl-sdr{transform:rotateY(90deg) translateZ(calc(var(--fw)/2))}.fl-sdt,.fl-sdb{left:16px;width:calc(100% - 32px);height:var(--ft);top:calc(50% - var(--ft)/2);background:linear-gradient(180deg,#e9cf7a,#a98a2c 50%,#6b561b)}.fl-sdt{transform:rotateX(90deg) translateZ(calc(var(--fh)/2))}.fl-sdb{transform:rotateX(-90deg) translateZ(calc(var(--fh)/2))}',
     '.fl-f,.fl-bk{position:absolute;inset:0;border-radius:16px;backface-visibility:hidden;-webkit-backface-visibility:hidden;border:5px solid #d9b95a;box-sizing:border-box}',
     '.fl-f{transform:translateZ(calc(var(--ft)/2));display:flex;align-items:center;justify-content:center;background:linear-gradient(180deg,rgba(255,255,255,.18),rgba(255,255,255,0) 44%),repeating-linear-gradient(45deg,transparent 0 16px,rgba(222,182,74,.3) 16px 18px),repeating-linear-gradient(-45deg,transparent 0 16px,rgba(222,182,74,.3) 16px 18px),linear-gradient(170deg,#14264f,#050a1c)}.fl-f b{font:900 clamp(5rem,18vw,11rem) "DM Sans",system-ui,sans-serif;background:linear-gradient(180deg,#fff6c9,#f0cd62 48%,#b0801f);-webkit-background-clip:text;background-clip:text;color:transparent;-webkit-text-fill-color:transparent;filter:drop-shadow(0 6px 0 rgba(0,0,0,.7));padding:0 .25em;border-radius:50%}',
     '.fl-bk{transform:rotateY(180deg) translateZ(calc(var(--ft)/2));background:linear-gradient(160deg,#fbf7ea,#efe6c8);color:#14203f;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;padding:22px 30px;text-align:center;overflow:auto}',
@@ -627,6 +627,11 @@ function deck(el,m,n,x,y,face,gap){clear(el);const cs=[];for(let i=0;i<n;i++){co
     '.fl-bk .bz-big{background:linear-gradient(180deg,#1f3a78,#12234d);color:#f4e3a8;border-color:#c9a84c}',
     '.fl-sur{display:flex;flex-direction:column;align-items:center;gap:6px}.fl-ic{font-size:clamp(4rem,10vw,6.5rem);line-height:1}.fl-sur h2{margin:0;font:800 clamp(1.8rem,4vw,2.8rem) Georgia,serif;color:#14203f}.fl-sur p{margin:0;font-size:1.2rem;color:#4a5570}'
   ].join('\n');
+  var PNM = [];
+  function pnLoad() { try { var q = sessionStorage.getItem('apbz_pn'); if (q) { var a = JSON.parse(q); if (a && a.length) PNM = a; } } catch (e) { } }
+  function pnGet(i, def) { pnLoad(); var v = String(PNM[i] || '').trim(); return v || def; }
+  window.apPnSet = function (i, v) { pnLoad(); PNM[i] = String(v).slice(0, 14); try { sessionStorage.setItem('apbz_pn', JSON.stringify(PNM)); } catch (e) { } };
+  function pnBox(n, defs, cols) { pnLoad(); var h = ''; for (var i = 0; i < n; i++) h += '<input class="pn-in" maxlength="14" autocomplete="off" autocapitalize="words" placeholder="' + esc(defs[i]) + '" value="' + esc(PNM[i] || '') + '" style="--pc:' + cols[i] + '" oninput="apPnSet(' + i + ',this.value)">'; return '<div class="fl-opt"><span>Type your names</span><div class="pn-row">' + h + '</div><small>Optional. The names are kept until you close the app or change them.</small></div>'; }
   var C4CSS = [
     '.c4-wrap{--cs:min(calc((100vh - 290px)/6),calc(88vw/7),104px);display:flex;flex-direction:column;align-items:center;gap:8px;margin:0 auto}',
     '.c4-st{color:#e9d28a;font:700 1.05rem "DM Sans",sans-serif;letter-spacing:.04em;min-height:1.4em}',
@@ -644,7 +649,8 @@ function deck(el,m,n,x,y,face,gap){clear(el);const cs=[];for(let i=0;i<n;i++){co
     '.c4-d i::after{content:"";position:absolute;inset:22%;border-radius:50%;border:calc(var(--cs)*.05) solid rgba(0,0,0,.18);box-shadow:0 1px 0 rgba(255,255,255,.3)}',
     '.c4-d.s0{--l:#ffb0a2;--b:#e23b2e;--k:#8f1a12}.c4-d.s1{--l:#fff6b0;--b:#f2c418;--k:#a37b00}',
     '.c4-d.w i{animation:c4w .7s ease-in-out infinite alternate}@keyframes c4w{from{filter:brightness(1);transform:scale(1)}to{filter:brightness(1.55);transform:scale(1.1)}}',
-    '.c4-sd0{--sc:#ff7b6b}.c4-sd1{--sc:#f6d646}',
+    '.c4-d.s2{--l:#b9ffd8;--b:#23b26a;--k:#0d5a33}.c4-d.s3{--l:#ffffff;--b:#dfe2ee;--k:#868ba6}',
+    '.pn-row{display:flex;gap:10px;justify-content:center;flex-wrap:wrap}.pn-in{width:150px;padding:10px 12px;border-radius:12px;border:2px solid var(--pc,#c9a84c);background:rgba(8,14,32,.7);color:#fff6dc;font:700 1rem "DM Sans",sans-serif;text-align:center;outline:none}.pn-in::placeholder{color:#8d97b3}',
     '.c4-q{width:min(760px,92vw);min-height:min(400px,68vh);border-radius:16px;border:5px solid #d9b95a;box-sizing:border-box;background:linear-gradient(160deg,#fbf7ea,#efe6c8);color:#14203f;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;padding:26px 34px;text-align:center;box-shadow:0 1px 0 #c9a84c,0 2px 0 #b8982f,0 3px 0 #a98a2c,0 4px 0 #9a7c27,0 5px 0 #8b6e22,0 6px 0 #7d6520,0 7px 0 #6e571b,0 8px 0 #604a17,0 9px 0 #523f14,0 10px 0 #453410,0 34px 60px rgba(0,0,0,.65)}',
     '.c4-q .sp{background:#eef2ff;border:1px solid #b7c0d8;border-radius:50%;width:38px;height:38px;cursor:pointer;vertical-align:middle}.c4-q .bz-big{background:linear-gradient(180deg,#1f3a78,#12234d);color:#f4e3a8;border-color:#c9a84c}'
   ].join('\n');
@@ -813,7 +819,7 @@ function deck(el,m,n,x,y,face,gap){clear(el);const cs=[];for(let i=0;i<n;i++){co
   GAMES.deal = function (p) {
     if (!dlBackOrig) { dlBackOrig = window.apBzBack; window.apBzBack = function () { if (dlSub && view === 'deal') { var f = dlSub; dlSub = null; try { speechSynthesis.cancel(); } catch (e) { } f(); } else dlBackOrig(); }; }
     dlSub = null; if (ov) ov.removeAttribute('data-dlr');
-    frame('Deal it', '<div class="bz-note"><b>Shuffle. Deal. Turn a card. Say it.</b><br><b>Solo:</b> turn each card and say it. Right: it is secure. Nearly: the card goes back and all the cards shuffle, so you must find it again. Major error: it goes back in the pack and a new card is dealt. When every card is secure the round is over and the clock stops. Round two shuffles them again and you must beat your own time. At the end of each level you drill the cards you missed until every one is right.<br><b>Two players:</b> take turns to say a card; the other player checks. Get it right and you win the card for your pile. Biggest pile when the time is up wins.</div><div class="bz-row"><button class="bz-big go" onclick="apDlMode(1)">🃏 Solo</button><button class="bz-big go" onclick="apDlMode(2)">🃏 Two players</button></div>');
+    frame('Deal it', '<div class="bz-note"><b>Shuffle. Deal. Turn a card. Say it.</b><br><b>Solo:</b> turn each card and say it. Right: it is secure. Nearly: the card goes back and all the cards shuffle, so you must find it again. Major error: it goes back in the pack and a new card is dealt. When every card is secure the round is over and the clock stops. Round two shuffles them again and you must beat your own time. At the end of each level you drill the cards you missed until every one is right.<br><b>Two players:</b> take turns to say a card; the other player checks. Get it right and you win the card for your pile. Biggest pile when the time is up wins.</div><div class="bz-row"><button class="bz-big go" onclick="apDlMode(1)">🃏 Solo</button><button class="bz-big go" onclick="apDlMode(2)">🃏 Two players</button></div>' + pnBox(2, ['Blue', 'Gold'], ['#4f8cff', '#f0d27a']));
     window.apDlMode = function (m) { CFG.dP = m; saveCfg(); sfx('go'); (m === 1 ? dealSolo : dealRace)(p); };
   };
 
@@ -954,7 +960,7 @@ function deck(el,m,n,x,y,face,gap){clear(el);const cs=[];for(let i=0;i<n;i++){co
   }
 
   function dealRace(p0) {
-    var pl = dlUniq(p0), N = Math.min(CFG.dN, pl.length), pack = shuf(pl), slots = [], piles = [[], []], land = [-1, -1], team = 0, names = ['Blue', 'Gold'], left = CFG.dT, cur = -1, said = false, over = false, cue = H.names[dirs()[0]];
+    var pl = dlUniq(p0), N = Math.min(CFG.dN, pl.length), pack = shuf(pl), slots = [], piles = [[], []], land = [-1, -1], team = 0, names = [esc(pnGet(0, 'Blue')), esc(pnGet(1, 'Gold'))], left = CFG.dT, cur = -1, said = false, over = false, cue = H.names[dirs()[0]];
     for (var i = 0; i < N; i++) slots.push({ c: pack.shift(), fresh: true });
     function clk() { var s = Math.max(0, Math.ceil(left)); return Math.floor(s / 60) + ':' + ('0' + (s % 60)).slice(-2); }
     function pcol(t, act) { var n = piles[t].length, landing = land[t] === n && n > 0; if (landing) land[t] = -1; return dlPileHTML(t, names[t], n, act, landing); }
@@ -1242,6 +1248,7 @@ function deck(el,m,n,x,y,face,gap){clear(el);const cs=[];for(let i=0;i<n;i++){co
       frame('Flip it', '<div class="bz-note">Pick a number. The card turns over and comes to the middle with its question. Say it, reveal it, then mark yourself.</div>'
         + '<div class="fl-opt"><span>Players</span><div class="bz-row">' + [[1, 'Solo'], [2, 'Two sides'], [3, 'Three sides'], [4, 'Four sides']].map(function (o) { return btn('fP', o[0], o[1], s === o[0]); }).join('') + '</div></div>'
         + '<div class="fl-opt"><span>Cards on the board</span><div class="bz-row">' + sizes().map(function (x) { return btn('fN', x, x, x === n); }).join('') + '</div></div>'
+        + (s > 1 ? pnBox(s, ['Side 1', 'Side 2', 'Side 3', 'Side 4'], SIDEC) : '')
         + (s > 1 ? '<div class="fl-opt"><span>Surprise cards</span><div class="bz-row">' + btn('fS', 1, 'On', CFG.fS) + btn('fS', 0, 'Off', !CFG.fS) + '</div><small>Some cards hide a bonus or a penalty instead of a question: jump to first place, drop to last place, go again, double points, steal a point, swap scores.</small></div>' : '')
         + '<div class="bz-row"><button class="bz-big go" onclick="apBzGo()">▶ Deal the cards</button></div>');
       window.apBzGo = play;
@@ -1255,13 +1262,14 @@ function deck(el,m,n,x,y,face,gap){clear(el);const cs=[];for(let i=0;i<n;i++){co
       var ret = null, scores = [], dbl = [], cur = 0, busy = false, left = n, openI = -1, again = false, ok = 0, miss = 0;
       for (var s = 0; s < sides; s++) { scores.push(0); dbl.push(false); }
       function bar() {
-        var h = sides > 1 ? scores.map(function (v, s) { return '<div class="fl-sd' + (s === cur ? ' on' : '') + '" style="--sc:' + SIDEC[s] + '"><b>' + v + '</b><small>Side ' + (s + 1) + (dbl[s] ? ' · ×2' : '') + '</small></div>'; }).join('') : '<div class="fl-sd on" style="--sc:' + SIDEC[0] + '"><b>' + ok + '</b><small>got it</small></div>';
+        var h = sides > 1 ? scores.map(function (v, s) { return '<div class="fl-sd' + (s === cur ? ' on' : '') + '" style="--sc:' + SIDEC[s] + '"><b>' + v + '</b><small>' + esc(pnGet(s, 'Side ' + (s + 1))) + (dbl[s] ? ' · ×2' : '') + '</small></div>'; }).join('') : '<div class="fl-sd on" style="--sc:' + SIDEC[0] + '"><b>' + ok + '</b><small>got it</small></div>';
         return '<div class="fl-bar" id="fl-bar">' + h + '<div class="fl-sd fl-lf"><b>' + left + '</b><small>cards left</small></div></div>';
       }
       frame('Flip it', bar() + '<div class="fl-grid" id="fl-grid" style="grid-template-columns:repeat(' + cols + ',1fr);grid-template-rows:repeat(' + rows + ',1fr)">' + cards.map(function (cd) { var r = Math.floor(cd.i / cols), c = cd.i % cols; return '<button class="fl-c fl-' + ((r + c) % 2 ? 'a' : 'b') + '" id="flc' + cd.i + '" style="animation-delay:' + (cd.i * 22) + 'ms" onclick="apFlPick(' + cd.i + ')"><b>' + (cd.i + 1) + '</b></button>'; }).join('') + '</div>');
       try { if (BZ.bcard) { ov.style.setProperty('--fl-card', 'url(' + BZ.bcard + ')'); ov.classList.add('flc-img'); } } catch (e) { }
+      for (var rr = 0; rr < rows; rr++) (function (rr) { timers.push(setTimeout(function () { sfx('whoosh'); }, 60 + rr * cols * 22)); })(rr);
       try { if (BZ.bframe && BZ.btile) { ov.style.setProperty('--fl-frame', 'url(' + BZ.bframe + ')'); ov.style.setProperty('--fl-tile', 'url(' + BZ.btile + ')'); var gg = $('fl-grid'); if (gg) gg.classList.add('fl-img'); } } catch (e) { }
-      function who(cd) { return '<small class="fl-who">Card ' + (cd.i + 1) + (sides > 1 ? ' · <span style="color:' + SIDEC[cur] + ';text-shadow:0 0 0 #000,0 1px 0 #14203f">Side ' + (cur + 1) + '</span>' : '') + ' · ' + esc(H.names[dirs()[0]]) + '</small>'; }
+      function who(cd) { return '<small class="fl-who">Card ' + (cd.i + 1) + (sides > 1 ? ' · <span style="color:' + SIDEC[cur] + ';text-shadow:0 0 0 #000,0 1px 0 #14203f">' + esc(pnGet(cur, 'Side ' + (cur + 1))) + '</span>' : '') + ' · ' + esc(H.names[dirs()[0]]) + '</small>'; }
       function sz(c) { var L = c.q.length; return L > 120 ? ' fl-xl' : L > 60 ? ' fl-lg' : ''; }
       function backQ(cd) {
         if (cd.sur) return '<div class="fl-sur"><div class="fl-ic">' + cd.sur[1] + '</div><h2>' + cd.sur[2] + '</h2><p>' + cd.sur[3] + '</p></div><button class="bz-big go" onclick="apFlSur()">OK</button>';
@@ -1280,9 +1288,9 @@ function deck(el,m,n,x,y,face,gap){clear(el);const cs=[];for(let i=0;i<n;i++){co
         var dx = r.left + r.width / 2 - (br.left + br.width / 2), dy = r.top + r.height / 2 - (br.top + br.height / 2), sx = r.width / br.width, sy = r.height / br.height;
         el.style.visibility = 'hidden'; ret = { dx: dx, dy: dy, sx: sx, sy: sy };
         var a1 = big.animate([{ transform: 'translate(' + dx + 'px,' + dy + 'px) scale(' + sx + ',' + sy + ')' }, { transform: 'none' }], { duration: 520, easing: 'cubic-bezier(.2,.8,.2,1)', fill: 'forwards' });
-        var a2 = inn.animate([{ transform: 'translateZ(0) rotateX(0deg) rotateY(0deg)' }, { transform: 'translateZ(150px) rotateX(-16deg) rotateY(62deg)', offset: .38 }, { transform: 'translateZ(230px) rotateX(-20deg) rotateY(118deg)', offset: .62 }, { transform: 'translateZ(0) rotateX(0deg) rotateY(180deg)' }], { duration: 1100, easing: 'ease-in-out', fill: 'forwards' });
+        var a2 = inn.animate([{ transform: 'translateZ(0) rotateX(0deg) rotateY(0deg)' }, { transform: 'translateZ(150px) rotateX(-16deg) rotateY(62deg)', offset: .38 }, { transform: 'translateZ(230px) rotateX(-20deg) rotateY(118deg)', offset: .62 }, { transform: 'translateZ(0) rotateX(-6deg) rotateY(168deg)' }], { duration: 1100, easing: 'ease-in-out', fill: 'forwards' });
         try { $('fl-sh').animate([{ opacity: 1, transform: 'scaleX(1)' }, { opacity: .35, transform: 'scaleX(.55)', offset: .5 }, { opacity: 1, transform: 'scaleX(1)' }], { duration: 1100, easing: 'ease-in-out' }); } catch (e) { }
-        a2.onfinish = function () { inn.style.transform = 'rotateY(180deg)'; };
+        a2.onfinish = function () { inn.style.transform = 'rotateX(-6deg) rotateY(168deg)'; };
         timers.push(setTimeout(function () { sfx('ok'); }, 800));
       };
       window.apFlRev = function () { var cd = cards[openI], b = $('fl-bk'); if (!cd || !b) return; sfx('tick'); b.innerHTML = backA(cd); try { if (CFG.fSay) say(dirs()[1] === 'en' ? String(cd.c.q) : hvOf(cd.c).a); } catch (e) { } };
@@ -1304,6 +1312,21 @@ function deck(el,m,n,x,y,face,gap){clear(el);const cs=[];for(let i=0;i<n;i++){co
         else { sfx('tick'); }
         settle(cd);
       };
+      var pos = cards.map(function (c) { return c.i; });
+      function shuffleBoard(cd) {
+        var live = cards.filter(function (c) { return c.st === 0; }); if (live.length < 2) return;
+        var els = {}; cards.forEach(function (c) { els[c.i] = $('flc' + c.i); });
+        var old = {}; live.forEach(function (c) { var r = els[c.i].getBoundingClientRect(); old[c.i] = [r.left, r.top]; });
+        var slots = live.map(function (c) { return pos[c.i]; }), ns, tries = 0;
+        do { ns = shuf(slots.slice()); tries++; } while (tries < 12 && (ns[live.indexOf(cd)] === pos[cd.i] || ns.filter(function (v, k) { return v !== slots[k]; }).length < Math.min(live.length, 4)));
+        live.forEach(function (c, k) { pos[c.i] = ns[k]; els[c.i].style.order = ns[k]; els[c.i].style.zIndex = 5; });
+        busy = true; sfx('whoosh');
+        live.forEach(function (c) {
+          var e = els[c.i], r = e.getBoundingClientRect(), dx = old[c.i][0] - r.left, dy = old[c.i][1] - r.top; if (!dx && !dy) { e.style.zIndex = ''; return; }
+          try { e.animate([{ transform: 'translate(' + dx + 'px,' + dy + 'px) rotate(' + ((Math.random() - .5) * 40) + 'deg) scale(1.08)' }, { transform: 'translate(' + (-dx * .06) + 'px,' + (-dy * .06) + 'px) rotate(0deg) scale(1.04)', offset: .7 }, { transform: 'none' }], { duration: 900 + Math.random() * 350, delay: Math.random() * 220, easing: 'cubic-bezier(.3,.9,.3,1)' }); } catch (x) { }
+        });
+        timers.push(setTimeout(function () { live.forEach(function (c) { els[c.i].style.zIndex = ''; }); busy = false; }, 1600));
+      }
       function settle(cd) {
         var stg = $('fl-st'), el = $('flc' + cd.i);
         function fin() {
@@ -1312,10 +1335,11 @@ function deck(el,m,n,x,y,face,gap){clear(el);const cs=[];for(let i=0;i<n;i++){co
           if (left <= 0) return finish();
           if (sides > 1) { if (again) again = false; else cur = (cur + 1) % sides; }
           var b = $('fl-bar'); if (b) b.outerHTML = bar();
+          if (cd.st === 0) shuffleBoard(cd);
         }
         if (stg && cd.st === 0 && ret && $('fl-big')) {
           var bg = $('fl-big'), inn = $('fl-in'); stg.style.transition = 'background .5s'; stg.style.background = 'rgba(4,8,20,0)'; sfx('whoosh');
-          try { inn.animate([{ transform: 'translateZ(0) rotateX(0deg) rotateY(180deg)' }, { transform: 'translateZ(160px) rotateX(-14deg) rotateY(90deg)', offset: .5 }, { transform: 'translateZ(0) rotateX(0deg) rotateY(0deg)' }], { duration: 700, easing: 'ease-in-out', fill: 'forwards' });
+          try { inn.animate([{ transform: 'translateZ(0) rotateX(-6deg) rotateY(168deg)' }, { transform: 'translateZ(160px) rotateX(-14deg) rotateY(90deg)', offset: .5 }, { transform: 'translateZ(0) rotateX(0deg) rotateY(0deg)' }], { duration: 700, easing: 'ease-in-out', fill: 'forwards' });
             bg.animate([{ transform: 'none' }, { transform: 'translate(' + ret.dx + 'px,' + ret.dy + 'px) scale(' + ret.sx + ',' + ret.sy + ')' }], { duration: 700, easing: 'cubic-bezier(.5,0,.2,1)', fill: 'forwards' }); } catch (e) { }
           timers.push(setTimeout(fin, 720));
         } else if (stg) { stg.style.transition = 'opacity .25s'; stg.style.opacity = '0'; timers.push(setTimeout(fin, 260)); } else fin();
@@ -1324,29 +1348,35 @@ function deck(el,m,n,x,y,face,gap){clear(el);const cs=[];for(let i=0;i<n;i++){co
         var b = $('fl-bar'); if (b) b.outerHTML = bar();
         if (sides === 1) return timers.push(setTimeout(function () { endScreen('Flip it', { big: ok + '/' + n, note: ok === n ? 'Every card.' : (n - ok) + ' to look at again.' }, play); }, 700));
         var mx = Math.max.apply(null, scores), win = scores.map(function (v, s) { return v === mx ? s + 1 : 0; }).filter(Boolean);
-        timers.push(setTimeout(function () { endScreen('Flip it', { big: scores.join(' – '), note: win.length > 1 ? 'A draw.' : 'Side ' + win[0] + ' wins.' }, play); }, 700));
+        timers.push(setTimeout(function () { endScreen('Flip it', { big: scores.join(' – '), note: win.length > 1 ? 'A draw.' : esc(pnGet(win[0] - 1, 'Side ' + win[0])) + ' wins.' }, play); }, 700));
       }
     }
     intro();
   };
 
   GAMES.four = function (p) {
-    var NAMES = ['Red', 'Yellow'];
+    var COLN = ['Red', 'Yellow', 'Green', 'White'], TXC = ['#c0392b', '#a37b00', '#1f8a52', '#5b6788'], SCOL = ['#ff7b6b', '#f6d646', '#5fe3a0', '#e8eaf5'];
+    function nm(s) { return pnGet(s, COLN[s]); }
     function qOf(c) { var v = hvOf(c); return v.hl ? (v.hl[0].trim() ? '[…] ' : '') + (v.hl[2].trim() ? esc(v.hl[1].replace(/\s*…\s*$/, '')) + ' […]' : esc(v.hl[1])) : esc(c.q); }
     function sz(c) { var L = c.q.length; return L > 120 ? ' fl-xl' : L > 60 ? ' fl-lg' : ''; }
     function intro() {
-      frame('Four in a row', '<div class="bz-note">Two sides take turns. Choose a column and answer the question: say it, reveal it, then mark yourself. A right answer drops your counter; anything else passes the turn. First to line up four in a row, across, up or diagonally, wins.</div>'
+      var P = CFG.c4P;
+      frame('Four in a row', '<div class="bz-note">Two to four players take turns. Choose a column and answer the question: say it, reveal it, then mark yourself. A right answer drops your counter; anything else passes the turn. First to line up four in a row, across, up or diagonally, wins.</div>'
+        + '<div class="fl-opt"><span>Players</span><div class="bz-row">' + [2, 3, 4].map(function (n) { return '<button class="bz-b' + (P === n ? ' on' : '') + '" onclick="apC4Set(' + n + ')">' + n + ' players</button>'; }).join('') + '</div></div>'
+        + pnBox(P, COLN, SCOL)
         + '<div class="bz-row"><button class="bz-big go" onclick="apBzGo()">▶ Start</button></div>');
       window.apBzGo = play;
     }
+    window.apC4Set = function (n) { CFG.c4P = n; saveCfg(); intro(); };
     function play() {
       stop();
-      var R = 6, C = 7, g = [], cur = 0, busy = false, pend = -1, deck = [], di = 0, cnt = 0, qd = null, msg = 'Red, choose a column.';
+      var R = 6, C = 7, P = CFG.c4P, g = [], cur = 0, busy = false, pend = -1, deck = [], di = 0, cnt = 0, qd = null, msg = nm(0) + ', choose a column.';
       for (var r = 0; r < R; r++) { g.push([]); for (var c = 0; c < C; c++) g[r].push(-1); }
       function nextQ() { if (di >= deck.length) { deck = shuf(p); di = 0; } return deck[di++]; }
       function colFull(c) { return g[0][c] !== -1; }
       function bar() {
-        return '<div class="fl-bar" id="c4-bar">' + [0, 1].map(function (s) { return '<div class="fl-sd c4-sd' + s + (s === cur ? ' on' : '') + '"><b>' + NAMES[s] + '</b><small>Side ' + (s + 1) + (s === cur ? ' · your go' : '') + '</small></div>'; }).join('') + '</div>';
+        var h = ''; for (var s = 0; s < P; s++) h += '<div class="fl-sd' + (s === cur ? ' on' : '') + '" style="--sc:' + SCOL[s] + '"><b>' + esc(nm(s)) + '</b><small>' + COLN[s] + (s === cur ? ' · your go' : '') + '</small></div>';
+        return '<div class="fl-bar" id="c4-bar">' + h + '</div>';
       }
       function cols() { var h = ''; for (var c = 0; c < C; c++) h += '<button id="c4b' + c + '"' + (colFull(c) ? ' disabled' : '') + ' onclick="apC4Pick(' + c + ')">' + (c + 1) + '</button>'; return h; }
       function refresh() {
@@ -1355,8 +1385,8 @@ function deck(el,m,n,x,y,face,gap){clear(el);const cs=[];for(let i=0;i<n;i++){co
         var st = $('c4-st'); if (st) st.textContent = msg;
       }
       try { if (BZ.bcard) { ov.style.setProperty('--fl-card', 'url(' + BZ.bcard + ')'); ov.classList.add('flc-img'); } } catch (e) { }
-      frame('Four in a row', bar() + '<div class="c4-wrap"><div class="c4-st" id="c4-st">' + msg + '</div><div class="c4-cols" id="c4-cols">' + cols() + '</div><div class="c4-board" id="c4-board"><div class="c4-edge"></div><div class="c4-lay" id="c4-lay"></div><div class="c4-face"></div><div class="c4-rim"></div><div class="c4-gloss"></div></div></div>');
-      function who() { return '<small class="fl-who"><span style="color:' + (cur ? '#a37b00' : '#c0392b') + '">' + NAMES[cur] + ' · Side ' + (cur + 1) + '</span> · column ' + (pend + 1) + ' · ' + esc(H.names[dirs()[0]]) + '</small>'; }
+      frame('Four in a row', bar() + '<div class="c4-wrap"><div class="c4-st" id="c4-st">' + esc(msg) + '</div><div class="c4-cols" id="c4-cols">' + cols() + '</div><div class="c4-board" id="c4-board"><div class="c4-edge"></div><div class="c4-lay" id="c4-lay"></div><div class="c4-face"></div><div class="c4-rim"></div><div class="c4-gloss"></div></div></div>');
+      function who() { return '<small class="fl-who"><span style="color:' + TXC[cur] + '">' + esc(nm(cur)) + ' · ' + COLN[cur] + '</span> · column ' + (pend + 1) + ' · ' + esc(H.names[dirs()[0]]) + '</small>'; }
       function backQ() { var v = hvOf(qd); return who() + '<div class="fl-q' + sz(qd) + '">' + qOf(qd) + '</div>' + (v.hl ? '<div class="fl-hl">Translate only the highlighted part</div>' : '') + '<div class="fl-hint">Say it, then reveal</div><button class="bz-big go" onclick="apC4Rev()">Reveal</button>'; }
       function backA() { var v = hvOf(qd); return who() + '<div class="fl-qs">' + qOf(qd) + '</div><div class="fl-ans' + (String(v.a).length > 95 ? ' fl-lg' : '') + '">' + esc(v.a) + ' ' + SAYBTN(v.a) + '</div><div class="fl-m"><button class="fl-n" onclick="apC4Mk(0)">✗ Major error</button><button class="fl-nr" onclick="apC4Mk(2)">~ Nearly</button><button class="fl-y" onclick="apC4Mk(1)">✓ Got it</button></div>'; }
       window.apC4Pick = function (c) {
@@ -1367,15 +1397,14 @@ function deck(el,m,n,x,y,face,gap){clear(el);const cs=[];for(let i=0;i<n;i++){co
       };
       window.apC4Rev = function () { var b = $('c4-q'); if (!b || !qd) return; sfx('tick'); b.innerHTML = backA(); try { if (CFG.fSay) say(dirs()[1] === 'en' ? String(qd.q) : hvOf(qd).a); } catch (e) { } };
       window.apC4Mk = function (m) {
-        var stg = $('c4-stage'); if (!stg || !qd) return; var c = pend; stop0();
+        var stg = $('c4-stage'); if (!stg || !qd) return; var c = pend; try { speechSynthesis.cancel(); } catch (e) { }
         stg.style.transition = 'opacity .22s'; stg.style.opacity = '0';
         timers.push(setTimeout(function () {
           stg.remove();
           if (m === 1) { sfx('good'); drop(c); }
-          else { sfx(m === 0 ? 'bad' : 'tick'); msg = 'No counter this time. ' + NAMES[1 - cur] + ', choose a column.'; cur = 1 - cur; busy = false; refresh(); }
+          else { sfx(m === 0 ? 'bad' : 'tick'); cur = (cur + 1) % P; msg = 'No counter this time. ' + nm(cur) + ', choose a column.'; busy = false; refresh(); }
         }, 240));
       };
-      function stop0() { try { speechSynthesis.cancel(); } catch (e) { } }
       function winOf(r0, c0, s) {
         var D = [[0, 1], [1, 0], [1, 1], [1, -1]];
         for (var k = 0; k < 4; k++) {
@@ -1397,12 +1426,12 @@ function deck(el,m,n,x,y,face,gap){clear(el);const cs=[];for(let i=0;i<n;i++){co
         timers.push(setTimeout(function () {
           if (w) {
             w.forEach(function (x) { var e = $('c4d' + x[0] + '_' + x[1]); if (e) e.classList.add('w'); });
-            msg = NAMES[me] + ' has four in a row!'; refresh(); sfx('win');
-            timers.push(setTimeout(function () { endScreen('Four in a row', { big: 'Side ' + (me + 1), note: NAMES[me] + ' wins with four in a row.' }, play); }, 2300));
+            msg = nm(me) + ' has four in a row!'; refresh(); sfx('win');
+            timers.push(setTimeout(function () { endScreen('Four in a row', { big: esc(nm(me)), note: 'wins with four in a row (' + COLN[me] + ').' }, play); }, 2300));
           } else if (cnt >= R * C) {
             msg = 'The board is full.'; refresh();
             timers.push(setTimeout(function () { endScreen('Four in a row', { big: 'A draw', note: 'The board is full.' }, play); }, 1200));
-          } else { cur = 1 - cur; msg = NAMES[cur] + ', choose a column.'; busy = false; refresh(); }
+          } else { cur = (cur + 1) % P; msg = nm(cur) + ', choose a column.'; busy = false; refresh(); }
         }, 900 + r * 40));
       }
     }
