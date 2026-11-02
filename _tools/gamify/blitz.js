@@ -720,10 +720,18 @@ function deck(el,m,n,x,y,face,gap){clear(el);const cs=[];for(let i=0;i<n;i++){co
     '.er-sq .fx{position:absolute;right:-6%;top:-6%;min-width:28%;padding:0 4%;height:28%;border-radius:999px;background:#14203f;border:2px solid #f4d77a;color:#f7e9b5;font:900 calc(var(--bw)*.0135)/1 "DM Sans",sans-serif;display:flex;align-items:center;justify-content:center;box-shadow:0 2px 4px rgba(0,0,0,.5);z-index:2}.er-sq.g .fx{background:#12503a;border-color:#5fe3a0}.er-sq.b .fx{background:#5a1c24;border-color:#ff7b6b}',
     '.er-sq .cp{position:absolute;top:calc(100% + var(--bw)*.006);left:50%;transform:translateX(-50%);white-space:nowrap;padding:.12em .55em;border-radius:999px;background:rgba(8,16,40,.82);color:#f3ead0;font:700 max(10px,calc(var(--bw)*.0118))/1.25 "DM Sans",sans-serif;letter-spacing:.02em;z-index:1}.er-sq.np .cp{display:none}',
     '.er-lay{position:absolute;inset:0;pointer-events:none}',
-    '.er-car{position:absolute;width:2.7%;aspect-ratio:1;transform:translate(-50%,-50%);z-index:3;transition:left .26s ease-out,top .26s ease-out}',
-    '.er-car i{position:absolute;inset:0;border-radius:50%;background:radial-gradient(circle at 36% 30%,var(--l),var(--b) 55%,var(--k));box-shadow:0 3px 5px rgba(0,0,0,.55),inset 0 0 0 2px rgba(255,255,255,.2);display:flex;align-items:center;justify-content:center;font:900 calc(var(--cs)*.13) "DM Sans",sans-serif;color:rgba(0,0,0,.6)}',
-    '.er-car.jump{transition:left .7s cubic-bezier(.5,0,.2,1),top .7s cubic-bezier(.5,0,.2,1)}.er-car.on i{animation:erp .8s ease-in-out infinite alternate}@keyframes erp{from{transform:scale(1)}to{transform:scale(1.18)}}',
-    '.er-car.s0{--l:#ffb0a2;--b:#e23b2e;--k:#8f1a12}.er-car.s1{--l:#fff6b0;--b:#f2c418;--k:#a37b00}.er-car.s2{--l:#b9ffd8;--b:#23b26a;--k:#0d5a33}.er-car.s3{--l:#ffffff;--b:#dfe2ee;--k:#868ba6}',
+        '.er-car{position:absolute;width:2.9%;transform:translate(-50%,-100%);z-index:3;transition:left .26s ease-out,top .26s ease-out}',
+    '.er-car img{display:block;width:100%;height:auto;filter:drop-shadow(0 3px 3px rgba(0,0,0,.65))}',
+    '.er-car.jump{transition:left .7s cubic-bezier(.5,0,.2,1),top .7s cubic-bezier(.5,0,.2,1)}.er-car.on{z-index:4}.er-car.on img{filter:drop-shadow(0 0 7px var(--g)) drop-shadow(0 0 3px var(--g));animation:erbob .7s ease-in-out infinite alternate}@keyframes erbob{from{transform:translateY(0)}to{transform:translateY(-6%)}}',
+    '.er-pt{display:flex;gap:10px;justify-content:center;flex-wrap:wrap;margin:2px 0 4px}.er-chip{display:flex;align-items:center;gap:8px;padding:4px 14px 4px 8px;border-radius:14px;border:2px solid rgba(255,255,255,.18);background:rgba(8,16,40,.7);color:#f3ead0;font:700 .95rem "DM Sans",sans-serif;cursor:pointer}.er-chip img{height:46px}.er-chip.on{border-color:var(--sc);box-shadow:0 0 14px var(--sc)}',
+    '.er-holo{display:flex;gap:6px;justify-content:center;flex-wrap:wrap;max-width:1100px;margin:6px auto 4px}',
+    '.er-hp{position:relative;width:118px;height:196px;border:0;background:none;cursor:pointer;perspective:520px;color:#cfeaff;font:700 .78rem "DM Sans",sans-serif;display:flex;flex-direction:column;align-items:center;justify-content:flex-end;padding:0}',
+    '.er-hp img{position:relative;z-index:1;height:150px;width:auto;margin-bottom:4px;animation:erspin 6s linear infinite;animation-delay:var(--d);filter:drop-shadow(0 0 10px rgba(110,200,255,.75)) saturate(1.05) brightness(1.08)}',
+    '@keyframes erspin{from{transform:rotateY(0)}to{transform:rotateY(360deg)}}',
+    '.er-hp .hb{position:absolute;left:4%;right:4%;bottom:20px;height:34px;border-radius:50%;background:radial-gradient(ellipse at center,rgba(120,210,255,.55),rgba(120,210,255,0) 70%);box-shadow:0 0 22px rgba(120,210,255,.35)}',
+    '.er-hp::after{content:"";position:absolute;left:8%;right:8%;top:6px;bottom:24px;background:repeating-linear-gradient(0deg,rgba(140,210,255,.10) 0 2px,transparent 2px 5px);pointer-events:none;border-radius:10px;z-index:2}',
+    '.er-hp small{position:relative;z-index:3;padding:1px 9px;border-radius:999px;background:rgba(8,16,40,.8);border:1px solid rgba(160,215,255,.4)}',
+    '.er-hp:hover img{filter:drop-shadow(0 0 14px rgba(150,225,255,.95)) brightness(1.15)}.er-hp.sel img{filter:drop-shadow(0 0 14px var(--sc)) drop-shadow(0 0 5px var(--sc))}.er-hp.sel small{border-color:var(--sc);color:#fff}.er-hp.tk{opacity:.5}.er-hp.sel{opacity:1}',
     '.er-die{position:fixed;left:50%;top:44%;transform:translate(-50%,-50%);width:120px;height:120px;border-radius:24px;background:linear-gradient(160deg,#fbf7ea,#e3d7ae);border:4px solid #d9b95a;color:#14203f;font:900 4.6rem Georgia,serif;display:flex;align-items:center;justify-content:center;box-shadow:0 12px 30px rgba(0,0,0,.6);z-index:9;pointer-events:none}',
     '.er-go{margin-top:0;flex:none}','.er-row{display:flex;align-items:center;justify-content:space-between;gap:18px;width:var(--bw)}','.er-row .er-st{text-align:left;flex:1}'
   ].join('\n');
@@ -1433,7 +1441,8 @@ function deck(el,m,n,x,y,face,gap){clear(el);const cs=[];for(let i=0;i<n;i++){co
   };
 
   GAMES.run = function (p) {
-    var COLN = ['Red', 'Yellow', 'Green', 'White'], TXC = ['#c0392b', '#a37b00', '#1f8a52', '#5b6788'], SCOL = ['#ff7b6b', '#f6d646', '#5fe3a0', '#e8eaf5'];
+    var PCS = [['Red', '#c0392b', '#ff7b6b'], ['Blue', '#1f5fbf', '#7fb2ff'], ['Purple', '#7a3fa0', '#c9a0e8'], ['Green', '#1f8a52', '#5fe3a0'], ['Gold', '#a37b00', '#f6d646'], ['White', '#5b6788', '#e8eaf5'], ['Sky blue', '#2c7bb8', '#9fd0f5'], ['Burgundy', '#8a1f3a', '#e07a96']], picks = [0, 1, 2, 3], pickTurn = 0;
+    function pcN(s) { return PCS[picks[s]][0]; } function pcT(s) { return PCS[picks[s]][1]; } function pcL(s) { return PCS[picks[s]][2]; }
     // [name, kind, effect text, effect]   kind: '' normal, g good, b bad, f finish
     var SQ = [
       ['Your House', 'f0', 'Start'], ['Keate\'s Lane'], ['Evans\'s'], ['Rowland\'s & Tap', 'g', 'Go again', 'again'], ['Don Beni', 'g', 'Supper at Don Beni: forward 3', 3], ['Budgens', 'g', 'Forward 4', 4],
@@ -1445,28 +1454,53 @@ function deck(el,m,n,x,y,face,gap){clear(el);const cs=[];for(let i=0;i<n;i++){co
     function nm(s) { return pnGet(s, 'Team ' + (s + 1)); }
     function qOf(c) { var v = hvOf(c); return v.hl ? esc(v.hl[0]) + '<b class="hl">' + esc(v.hl[1]) + '</b>' + esc(v.hl[2]) : esc(c.q); }
     function sz(c) { var L = c.q.length; return L > 120 ? ' fl-xl' : L > 60 ? ' fl-lg' : ''; }
+    function pickHTML(P) {
+      if (pickTurn >= P) pickTurn = 0;
+      var h = '<div class="fl-opt"><span>Choose your player' + (P > 1 ? 's' : '') + '</span></div><div class="er-pt">';
+      for (var s = 0; s < P; s++) h += '<button class="er-chip' + (s === pickTurn ? ' on' : '') + '" onclick="apErTurn(' + s + ')" style="--sc:' + pcL(s) + '"><img alt="" src="icons/er_p' + picks[s] + '.webp"><b>' + esc(P > 1 ? nm(s) : 'You') + '</b></button>';
+      h += '</div><div class="er-holo">';
+      for (var i = 0; i < PCS.length; i++) {
+        var who = picks.slice(0, P).indexOf(i), cls = who === pickTurn ? ' sel' : who > -1 ? ' tk' : '';
+        h += '<button class="er-hp' + cls + '" onclick="apErPick(' + i + ')" style="--sc:' + PCS[i][2] + ';--d:' + (i * -0.7) + 's"><span class="hb"></span><img alt="" src="icons/er_p' + i + '.webp"><small>' + (who > -1 && P > 1 ? esc(nm(who)) : PCS[i][0]) + '</small></button>';
+      }
+      return h + '</div>';
+    }
+    window.apErTurn = function (s) { pickTurn = s; intro(); };
+    window.apErPick = function (i) {
+      var P = CFG.erP, t = picks.slice(0, P).indexOf(i);
+      if (t > -1 && t !== pickTurn) { picks[t] = picks[pickTurn]; }
+      picks[pickTurn] = i; pickTurn = (pickTurn + 1) % P; intro();
+    };
+    function shufBoard() {
+      function ok(m) { if (m[0][1] === 'b') return false; var run = 0; for (var i = 0; i < m.length; i++) { run = m[i][1] === 'b' ? run + 1 : 0; if (run > 2) return false; } return true; }
+      var mid = SQ.slice(1, -1), m = mid;
+      for (var t = 0; t < 300; t++) { var c = shuf(mid.slice()); if (ok(c)) { m = c; break; } }
+      return [SQ[0]].concat(m, [SQ[SQ.length - 1]]);
+    }
     function intro() {
       var P = CFG.erP;
       frame('Eton Rules', '<div class="bz-note">Race from your House to Birley Schools. On your go, answer a question: say it, reveal it, then mark yourself. A right answer rolls the die and you walk that many squares; Nearly moves you one; a Major error keeps you where you are. Rowland\'s, Budgens and the Library help you on. A right answer also earns a chance to take an Eton Rules card, which can be good news or bad. Detention, the Tardy Book, the Chapel and jobs hold you back. First to reach Birley Schools is Sent Up For Good and wins.</div>'
         + '<div class="fl-opt"><span>Players</span><div class="bz-row">' + [[1, 'Solo'], [2, 'Two teams'], [3, 'Three teams'], [4, 'Four teams']].map(function (o) { return '<button class="bz-b' + (P === o[0] ? ' on' : '') + '" onclick="apErSet(' + o[0] + ')">' + o[1] + '</button>'; }).join('') + '</div></div>'
-        + (P > 1 ? pnBox(P, ['Team 1', 'Team 2', 'Team 3', 'Team 4'], SCOL) : '')
+        + (P > 1 ? pnBox(P, ['Team 1', 'Team 2', 'Team 3', 'Team 4'], [0, 1, 2, 3].map(pcL)) : '')
+        + pickHTML(P)
         + '<div class="bz-row"><button class="bz-big go" onclick="apBzGo()">▶ Start</button></div>');
       window.apBzGo = play;
     }
     window.apErSet = function (n) { CFG.erP = n; saveCfg(); intro(); };
     function play() {
       stop();
+      var BD = shufBoard();
       var P = CFG.erP, pos = [], skip = [], cur = 0, busy = false, deck = [], di = 0, qd = null, turns = 0, msg = '';
       for (var s = 0; s < P; s++) { pos.push(0); skip.push(0); }
       msg = P > 1 ? nm(0) + ', your go.' : 'Your go.';
       function nextQ() { if (di >= deck.length) { deck = shuf(p); di = 0; } return deck[di++]; }
       function bar() {
-        if (P === 1) return '<div class="fl-bar" id="er-bar"><div class="fl-sd on" style="--sc:' + SCOL[0] + '"><b>' + (pos[0]) + '</b><small>of ' + LAST + ' squares</small></div><div class="fl-sd fl-lf"><b>' + turns + '</b><small>turns</small></div></div>';
-        var h = ''; for (var s = 0; s < P; s++) h += '<div class="fl-sd' + (s === cur ? ' on' : '') + '" style="--sc:' + SCOL[s] + '"><b>' + esc(nm(s)) + '</b><small>' + COLN[s] + (s === cur ? ' · your go' : '') + '</small></div>';
+        if (P === 1) return '<div class="fl-bar" id="er-bar"><div class="fl-sd on" style="--sc:' + pcL(0) + '"><b>' + (pos[0]) + '</b><small>of ' + LAST + ' squares</small></div><div class="fl-sd fl-lf"><b>' + turns + '</b><small>turns</small></div></div>';
+        var h = ''; for (var s = 0; s < P; s++) h += '<div class="fl-sd' + (s === cur ? ' on' : '') + '" style="--sc:' + pcL(s) + '"><b>' + esc(nm(s)) + '</b><small>' + pcN(s) + (s === cur ? ' · your go' : '') + '</small></div>';
         return '<div class="fl-bar" id="er-bar">' + h + '</div>';
       }
       function board() {
-        var h = ''; SQ.forEach(function (q, i) {
+        var h = ''; BD.forEach(function (q, i) {
           var k = q[1] || '', c = padPos(i), cls = k === 'g' ? 'g' : k === 'b' ? 'b' : (k === 'f' || k === 'f0') ? 'f' : '', ic = ICO[q[0]], fx = q[3] != null ? fxOf(q) : '';
           h += '<div class="er-sq ' + cls + (ic ? '' : ' np') + '" title="' + esc(q[0] + (q[2] ? ': ' + q[2] : '')) + '" style="left:' + c[0] + '%;top:' + c[1] + '%">'
             + (ic ? '<img src="icons/er_' + ic + '.webp" alt="" onerror="this.parentNode.classList.add(\'np\');this.remove()">' : '')
@@ -1474,8 +1508,8 @@ function deck(el,m,n,x,y,face,gap){clear(el);const cs=[];for(let i=0;i<n;i++){co
         });
         return h;
       }
-      function carPos(s, i) { var c = PADS[i] || PADS[0], o = [[-50, 42], [-17, 62], [17, 62], [50, 42]][s]; return 'left:' + ((c[0] + o[0]) / 15.36) + '%;top:' + ((c[1] + o[1]) / 10.24) + '%'; }
-      function cars() { var h = ''; for (var s = 0; s < P; s++) h += '<div class="er-car s' + s + (s === cur ? ' on' : '') + '" id="erc' + s + '" style="' + carPos(s, pos[s]) + '"><i>' + (P > 1 ? (s + 1) : '') + '</i></div>'; return h; }
+      function carPos(s, i) { var c = PADS[i] || PADS[0], o = [[-54, 74], [-18, 80], [18, 80], [54, 74]][s]; return 'left:' + ((c[0] + o[0]) / 15.36) + '%;top:' + ((c[1] + o[1]) / 10.24) + '%'; }
+      function cars() { var h = ''; for (var s = 0; s < P; s++) h += '<div class="er-car' + (s === cur ? ' on' : '') + '" id="erc' + s + '" style="' + carPos(s, pos[s]) + ';--g:' + pcL(s) + '"><img alt="" src="icons/er_p' + picks[s] + '.webp"></div>'; return h; }
       function setCar(s, jump) { var e = $('erc' + s); if (!e) return; e.classList[jump ? 'add' : 'remove']('jump'); e.setAttribute('style', carPos(s, pos[s])); }
       function refresh() {
         var b = $('er-bar'); if (b) b.outerHTML = bar();
@@ -1485,7 +1519,7 @@ function deck(el,m,n,x,y,face,gap){clear(el);const cs=[];for(let i=0;i<n;i++){co
       }
       try { if (BZ.bcard) { ov.style.setProperty('--fl-card', 'url(' + BZ.bcard + ')'); ov.classList.add('flc-img'); } } catch (e) { }
       frame('Eton Rules', bar() + '<div class="er-wrap"><div class="er-board" id="er-board" style="--erb:url(icons/er_board.webp)">' + board() + '<div class="er-lay" id="er-lay">' + cars() + '</div></div><div class="er-row"><div class="er-st" id="er-st">' + esc(msg) + '</div><button class="bz-big go er-go" id="er-go" onclick="apErAsk()">🎲 ' + (P > 1 ? esc(nm(0)) + ': ' : '') + 'answer to move</button></div></div>');
-      function who() { return '<small class="fl-who"><span style="color:' + TXC[cur] + '">' + (P > 1 ? esc(nm(cur)) + ' · ' + COLN[cur] : 'Your go') + '</span> · square ' + pos[cur] + ' · ' + esc(H.names[dirs()[0]]) + '</small>'; }
+      function who() { return '<small class="fl-who"><span style="color:' + pcT(cur) + '">' + (P > 1 ? esc(nm(cur)) + ' · ' + pcN(cur) : 'Your go') + '</span> · square ' + pos[cur] + ' · ' + esc(H.names[dirs()[0]]) + '</small>'; }
       function task(c, v) { return '<div class="fl-hl">' + (c.ask ? 'Answer the question in ' + esc(H.names[target()]) : (v.hl ? 'Translate only the bold part into ' : 'Translate into ') + esc(H.names[dirs()[1]])) + '</div>'; }
       function backQ() { var v = hvOf(qd); return who() + '<div class="fl-q' + sz(qd) + '">' + qOf(qd) + '</div>' + task(qd, v) + '<div class="fl-hint">Say it, then reveal</div><button class="bz-big go" onclick="apErRev()">Reveal</button>'; }
       function backA() { var v = hvOf(qd); return who() + '<div class="fl-qs">' + qOf(qd) + '</div><div class="fl-ans' + (String(v.a).length > 95 ? ' fl-lg' : '') + '">' + esc(v.a) + ' ' + SAYBTN(v.a) + '</div><div class="fl-m"><button class="fl-n" onclick="apErMk(0)">✗ Major error</button><button class="fl-nr" onclick="apErMk(2)">~ Nearly</button><button class="fl-y" onclick="apErMk(1)">✓ Got it</button></div>'; }
@@ -1539,7 +1573,7 @@ function deck(el,m,n,x,y,face,gap){clear(el);const cs=[];for(let i=0;i<n;i++){co
       function after(ag) { if (earned) { earned = false; offer(ag); } else nextTurn(ag); }
       function land(me) {
         if (pos[me] >= LAST) { win(); return; }
-        var q = SQ[pos[me]], e = q[3];
+        var q = BD[pos[me]], e = q[3];
         if (e === undefined || q[1] === 'f0') { after(false); return; }
         msg = (q[0] + ': ' + q[2] + '.'); refresh();
         timers.push(setTimeout(function () { eff(me, e, after); }, 900));
