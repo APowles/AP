@@ -5199,8 +5199,13 @@ function restart(){
   renderIntro();
 }
 
+function apStudioPractise(ns,label){
+  _singleKTR = null; window.__keepStudioNs = 1; _studioNs = ns.map(Number); _studioLabel = label || (ns.length + ' KTRs');
+  try { renderIntro(); } catch (e) { }
+  window.scrollTo(0, 0);
+}
 function renderIntro(){
-  _studioNs = null;
+  if (window.__keepStudioNs) window.__keepStudioNs = 0; else _studioNs = null;
   var f = getLangFrom(), t = getLangTo();
   var filtered = getFiltered();
   var poolSize = filtered.length * modeMult(currentMode);
@@ -16202,10 +16207,10 @@ function hmNums(kind){return SUBS.filter(s=>kind==='t'?HMSEL.t.has(s.theme):HMSE
 function hmTog(kind,id){const q=HMSEL[kind];q.has(id)?q.delete(id):q.add(id);render()}
 function hmAll(kind){const q=HMSEL[kind],ids=hmIds(kind);if(ids.every(i=>q.has(i)))q.clear();else ids.forEach(i=>q.add(i));render()}
 function hmGo(kind,act){const ns=hmNums(kind),q=HMSEL[kind];if(!ns.length)return;const lab=ns.length+' KTRs';
-  if(act==='wheel')openMachine(ns);else if(act==='speed')openSpeed(ns);else if(act==='deal'){FC.ths=new Set(q);openCards()}else if(act==='spot')openSpot(ns,lab);else if(act==='paper')openPaper(ns,lab)}
+  if(act==='practise'){const th=[...new Set(SUBS.filter(x=>ns.indexOf(x.ktrs[0].n)>=0||x.ktrs.some(k=>ns.indexOf(k.n)>=0)).map(x=>x.theme))];try{window.parent.apStudioPractise(ns,kind==='t'?(q.size===4?'All themes':'Thème'+(q.size>1?'s ':' ')+[...q].sort().join(', ')):'Sous-thème'+(q.size>1?'s ':' ')+[...q].sort().join(', '))}catch(e){}}else if(act==='wheel')openMachine(ns);else if(act==='speed')openSpeed(ns);else if(act==='deal'){FC.ths=new Set(q);openCards()}else if(act==='spot')openSpot(ns,lab);else if(act==='paper')openPaper(ns,lab)}
 function hmBar(kind){
   const q=HMSEL[kind],ids=hmIds(kind),all=ids.every(i=>q.has(i)),n=hmNums(kind).length,k=q.size,w=kind==='t'?'thème':'sous-thème';
-  const acts=n?`<span class="hm-sh"><b>${k} ${w}${k>1?'s':''} · ${n} KTRs</b></span><button class="spbtn pri" onclick="hmGo('${kind}','wheel')">🎡 Spin the wheel</button>${kind==='t'?`<button class="spbtn pri" onclick="hmGo('t','deal')">🃏 Shuffle and deal</button>`:''}<button class="spbtn pri" onclick="hmGo('${kind}','speed')">⚡ Speed</button>${spotHost()?`<button class="spbtn" onclick="hmGo('${kind}','spot')">✍ Spot test</button><button class="spbtn" onclick="hmGo('${kind}','paper')">🖨 Paper test</button>`:''}`:`<span class="hm-sh">Tick one, several or all, then choose how to practise them together. Or tap a picture to open it.</span>`;
+  const acts=n?`<span class="hm-sh"><b>${k} ${w}${k>1?'s':''} · ${n} KTRs</b></span><button class="spbtn pri" onclick="hmGo('${kind}','practise')">▶ Practise these</button><button class="spbtn pri" onclick="hmGo('${kind}','wheel')">🎡 Spin the wheel</button>${kind==='t'?`<button class="spbtn pri" onclick="hmGo('t','deal')">🃏 Shuffle and deal</button>`:''}<button class="spbtn pri" onclick="hmGo('${kind}','speed')">⚡ Speed</button>${spotHost()?`<button class="spbtn" onclick="hmGo('${kind}','spot')">✍ Spot test</button><button class="spbtn" onclick="hmGo('${kind}','paper')">🖨 Paper test</button>`:''}`:`<span class="hm-sh">Tick one, several or all, then choose how to practise them together. Or tap a picture to open it.</span>`;
   return `<div class="hm-sel"><button class="spbtn" onclick="hmAll('${kind}')">${all?'☐ Untick all':'☑ Tick all'}</button>${acts}</div>`;
 }
 function vHmThemes(){
@@ -19137,6 +19142,7 @@ textarea.ms-in{min-height:7rem;resize:vertical}.ms-hint.ms-hint-sm{font-size:.78
     var pool = pill ? parseInt(pill.textContent, 10) || 0 : 0, ktrs = note ? note.textContent.trim() : '';
     if (!ok) { if (pill) pill.style.display = 'none'; if (note) note.style.display = 'none'; }
     var lab = sel && sel.selectedIndex >= 0 && sel.options[sel.selectedIndex] ? sel.options[sel.selectedIndex].text.replace(/ \(\d+ KTRs\)$/, '') : '';
+    if (typeof _studioNs !== 'undefined' && _studioNs && _studioLabel) lab = _studioLabel;
     if (typeof _singleKTR !== 'undefined' && _singleKTR !== null) lab = 'KTR ' + _singleKTR;
     var usable = ok && pool > 0;
     var setDet = document.createElement('details'); setDet.className = 'ms-opts'; setDet.open = setOpen; setDet.addEventListener('toggle', function () { setOpen = setDet.open; });
@@ -20152,12 +20158,12 @@ function deck(el,m,n,x,y,face,gap){clear(el);const cs=[];for(let i=0;i<n;i++){co
     ['letter', 'Missing letter', 'Three or four letters missing from a long word. Type them in order, accents included.'],
     ['gender', 'Gender blitz', 'Masculine, feminine or plural? One tap per noun.'],
     ['deal', 'Deal it', 'Shuffle, deal, turn a card and say it. Get every card right, shuffle, get them right again. Solo or two players.'],
-    ['flip', 'Flip it', 'Pick a number: the card turns over and comes to the middle with its question. Solo, or two to four sides with surprise cards.'],
-    ['four', 'Four in a row', 'Two sides take turns: pick a column, answer the question, and a right answer drops your counter. First to line up four wins.'],
+    ['flip', 'Flip it', 'Pick a number: the card turns over and comes to the middle with its question. Solo, or two to four teams with surprise cards.'],
+    ['four', 'Four in a row', 'Two to four teams take turns: pick a column, answer the question, and a right answer drops your counter. First to line up four wins.'],
     ['roll', 'Roll it', 'Roll the dice: they decide how many words you blitz in one go.'],
     ['catch', 'Catch it', 'Words race across the screen, faster every catch. Tap the word, then its match.'],
     ['lane', 'Lane it', 'Four lanes, four words fall. Tap the right translation before it hits the line.'],
-    ['pairs', 'Pairs race', 'Two sides, same words, take turns. First to the end wins.']
+    ['pairs', 'Pairs race', 'Two teams, same words, take turns. First to the end wins.']
   ];
   var CSS = '#bz-ov{position:fixed;inset:0;z-index:11000;color:#f4efe0;font-family:"DM Sans","Inter",system-ui,sans-serif;background:#0b1226 center/cover no-repeat;display:flex;flex-direction:column;overflow:hidden}'
     + '#bz-ov *{box-sizing:border-box}'
@@ -20292,7 +20298,7 @@ function deck(el,m,n,x,y,face,gap){clear(el);const cs=[];for(let i=0;i<n;i++){co
   // ---------- background music (made in the browser: low, soft, no files)
   var MG = null, mTimer = null, mStep = 0, mNext = 0, mRate = 1;
   var curMus = null;
-  var MUS = [['off', 'Off'], ['mix', 'Shuffle (new each game)'], ['pulse', 'Pulse'], ['ambient', 'Ambient'], ['groove', 'Groove']];
+  var MUS = [['off', 'Off'], ['mix', 'Shuffle (new each game)'], ['pulse', 'Pulse'], ['ambient', 'Ambient'], ['groove', 'Groove'], ['arp', 'Arpeggio'], ['lofi', 'Lo-fi'], ['disco', 'Disco'], ['suspense', 'Suspense'], ['bounce', 'Bounce']];
   var CH0 = [[73.42, [1, 1.189, 1.498]], [58.27, [1, 1.26, 1.498]], [87.31, [1, 1.26, 1.498]], [65.41, [1, 1.26, 1.498]]];
   var CH = CH0, mBpm = 96, lastProg = 0, PROGS = [CH0, [[55, [1, 1.189, 1.498]], [43.65, [1, 1.26, 1.498]], [65.41, [1, 1.26, 1.498]], [49, [1, 1.26, 1.498]]], [[82.41, [1, 1.189, 1.498]], [65.41, [1, 1.26, 1.498]], [98, [1, 1.26, 1.498]], [73.42, [1, 1.26, 1.498]]], [[98, [1, 1.189, 1.498]], [77.78, [1, 1.26, 1.498]], [58.27, [1, 1.26, 1.498]], [87.31, [1, 1.26, 1.498]]]];   // Dm  Bb  F  C
   function mTone(f, t, len, vol, type, att) {
@@ -20322,6 +20328,34 @@ function deck(el,m,n,x,y,face,gap){clear(el);const cs=[];for(let i=0;i<n;i++){co
       if (s % 2 === 1) mNoise(t, .03, .07, 6000, 'highpass');
       if ([0, 2, 3, 6, 7, 10, 11, 14].indexOf(s) >= 0) mTone(root * ((s === 7 || s === 14) ? 2 : 1), t, sd * 1.8, .32, 'sine', .008);
       if (s % 2 === 0) { var k = (s / 2 + bar) % 3; mTone(root * 4 * iv[k], t, sd * 2.2, .1, 'triangle', .006); }
+    } else if (st === 'arp') {
+      if (s === 0) mTone(root, t, sd * 15, .26, 'sine', .05);
+      var an = [0, 1, 2, 1][s % 4], ao = s % 8 < 4 ? 4 : 8; mTone(root * ao * iv[an === 3 ? 0 : an], t, sd * 1.6, .11, 'triangle', .005);
+      if (s % 8 === 4) mNoise(t, .04, .05, 7000, 'highpass');
+    } else if (st === 'lofi') {
+      var sw = (s % 2 === 1) ? sd * .35 : 0;
+      if (s === 0 || s === 10) mKick(t, .45);
+      if (s === 8) mNoise(t, .14, .16, 1100, 'bandpass');
+      if (s % 2 === 0) mNoise(t + sw, .025, .05, 6500, 'highpass');
+      if (s === 0 || s === 6) iv.forEach(function (r) { mTone(root * 2 * r, t + sw, sd * 5, .09, 'sine', .02); mTone(root * 4 * r, t + sw, sd * 4, .04, 'triangle', .02); });
+      if (s === 0 || s === 11) mTone(root, t, sd * 4, .3, 'sine', .01);
+    } else if (st === 'disco') {
+      if (s % 4 === 0) mKick(t, .55);
+      if (s % 4 === 2) mNoise(t, .06, .14, 7000, 'highpass');
+      if (s === 4 || s === 12) mNoise(t, .1, .16, 1800, 'bandpass');
+      if (s % 2 === 1) mTone(root * (s % 4 === 1 ? 2 : 4), t, sd * 1.2, .2, 'sine', .006);
+      if (s % 4 === 2) mTone(root * 4 * iv[2], t, sd * 1.4, .07, 'triangle', .006);
+    } else if (st === 'suspense') {
+      if (s === 0 || s === 3) mKick(t, s === 0 ? .5 : .32);
+      if (s === 0) mTone(root, t, sd * 16, .24, 'sine', .3);
+      if (s === 8 && bar % 2 === 0) mTone(root * 4 * iv[1], t, sd * 4, .06, 'sine', .02);
+      if (s === 12 && bar === 3) mTone(root * 8, t, sd * 3, .05, 'triangle', .01);
+      if (s % 4 === 2) mNoise(t, .03, .04, 4200, 'highpass');
+    } else if (st === 'bounce') {
+      if (s % 8 === 0) mKick(t, .55);
+      if (s % 8 === 4) mNoise(t, .09, .18, 1600, 'bandpass');
+      if (s % 2 === 0) mTone(root * ((s % 4 === 0) ? 1 : 2), t, sd * 1.2, .3, 'sine', .006);
+      if ([2, 6, 10, 13, 15].indexOf(s) >= 0) mTone(root * 4 * iv[(s + bar) % 3], t, sd * 1.3, .1, 'triangle', .005);
     }
   }
   function sched() {
@@ -20331,7 +20365,7 @@ function deck(el,m,n,x,y,face,gap){clear(el);const cs=[];for(let i=0;i<n;i++){co
   var musLvl = 0;
   function musicStart(fresh) {
     musicStop(); if (!snd || CFG.mus === 'off') return; var c = ctx(); if (!c) return;
-    if (CFG.mus === 'mix') { if (fresh || !curMus || curMus === 'mix') { var opts = ['pulse', 'ambient', 'groove'].filter(function (x) { return x !== curMus; }); curMus = opts[Math.floor(Math.random() * opts.length)]; var pi = Math.floor(Math.random() * PROGS.length); if (pi === lastProg) pi = (pi + 1) % PROGS.length; lastProg = pi; CH = PROGS[pi]; mBpm = [88, 96, 104, 112][Math.floor(Math.random() * 4)]; } } else { curMus = CFG.mus; CH = musLvl ? PROGS[musLvl % PROGS.length] : CH0; mBpm = 96 + 6 * (musLvl % 5); }
+    if (CFG.mus === 'mix') { if (fresh || !curMus || curMus === 'mix') { var opts = ['pulse', 'ambient', 'groove', 'arp', 'lofi', 'disco', 'suspense', 'bounce'].filter(function (x) { return x !== curMus; }); curMus = opts[Math.floor(Math.random() * opts.length)]; var pi = Math.floor(Math.random() * PROGS.length); if (pi === lastProg) pi = (pi + 1) % PROGS.length; lastProg = pi; CH = PROGS[pi]; mBpm = [88, 96, 104, 112][Math.floor(Math.random() * 4)]; } } else { curMus = CFG.mus; CH = musLvl ? PROGS[musLvl % PROGS.length] : CH0; mBpm = 96 + 6 * (musLvl % 5); }
     MG = c.createGain(); MG.gain.value = .5 * CFG.mv; var lp = c.createBiquadFilter(); lp.type = 'lowpass'; lp.frequency.value = 1500; MG.connect(lp); lp.connect(c.destination);
     mStep = 0; mNext = c.currentTime + .12; mTimer = setInterval(sched, 60); sched();
   }
@@ -20521,7 +20555,7 @@ function deck(el,m,n,x,y,face,gap){clear(el);const cs=[];for(let i=0;i<n;i++){co
     }; go();
   };
   GAMES.pairs = function (p) {
-    var deck = shuf(p).slice(0, Math.min(CFG.pairs, p.length - (p.length % 2))), team = 0, sc = [0, 0], names = ['Blue', 'Gold'], i = 0;
+    var deck = shuf(p).slice(0, Math.min(CFG.pairs, p.length - (p.length % 2))), team = 0, sc = [0, 0], names = ['Team 1', 'Team 2'], i = 0;
     function show() {
       stop(); if (i >= deck.length) return fin(); var c = deck[i];
       var tc = team === 0 ? '#4f8cff' : '#f0d27a', tg = team === 0 ? '' : ' g';
@@ -20529,10 +20563,10 @@ function deck(el,m,n,x,y,face,gap){clear(el);const cs=[];for(let i=0;i<n;i++){co
       ov.classList.add(team === 0 ? 'pt-n' : 'pt-g');
     }
     window.apBzShow = function () { var cd0 = $('bz-card'), was = !cd0 || cd0.classList.contains('bz-back'); reveal(); if (!was && CFG.pSay && !deck[i].__s) { try { var c1 = deck[i]; c1.__s = 1; say(dirs()[1] === 'en' ? String(c1.q).replace(/<[^>]*>/g, '') : hvOf(c1).a); } catch (e) { } } };
-    window.apBzGo = function () { names = [esc(pnGet(0, 'Blue')), esc(pnGet(1, 'Gold'))]; show(); };
+    window.apBzGo = function () { names = [esc(pnGet(0, 'Team 1')), esc(pnGet(1, 'Team 2'))]; show(); };
     window.apBzMark = function (g) { if (g === 2) { sfx('tick'); deck.splice(Math.min(deck.length, i + 3), 0, deck[i]); team = 1 - team; i++; show(); return; } sfx(g ? 'ok' : 'bad'); if (g) sc[team]++; team = 1 - team; i++; show(); };
     function fin() { var w = sc[0] === sc[1] ? 'A draw' : (sc[0] > sc[1] ? names[0] : names[1]) + ' wins'; endScreen('Pairs race', { big: sc[0] + ' – ' + sc[1], note: w + '.' }, function () { GAMES.pairs(pool()); }); }
-    frame('Pairs race', '<div class="bz-note"><b>Two players, one screen.</b> Sit side by side. A word appears and the player whose turn it is says the answer out loud. Press <b>Show answer</b>: the other player checks it and presses <b>Got it</b> (a point) or <b>Major error</b> (no point). Then it is the other player\'s turn. After ' + deck.length + ' words, the higher score wins.</div>' + pnBox(2, ['Blue', 'Gold'], ['#4f8cff', '#f0d27a']) + '<button class="bz-big go" onclick="apBzGo()">▶ Start</button>');
+    frame('Pairs race', '<div class="bz-note"><b>Two players, one screen.</b> Sit side by side. A word appears and the player whose turn it is says the answer out loud. Press <b>Show answer</b>: the other player checks it and presses <b>Got it</b> (a point) or <b>Major error</b> (no point). Then it is the other player\'s turn. After ' + deck.length + ' words, the higher score wins.</div>' + pnBox(2, ['Team 1', 'Team 2'], ['#4f8cff', '#f0d27a']) + '<button class="bz-big go" onclick="apBzGo()">▶ Start</button>');
   };
 
   // ---------- Deal it: shuffle and deal (solo, or a two-player race for piles of cards)
@@ -20764,7 +20798,7 @@ function deck(el,m,n,x,y,face,gap){clear(el);const cs=[];for(let i=0;i<n;i++){co
   GAMES.deal = function (p) {
     if (!dlBackOrig) { dlBackOrig = window.apBzBack; window.apBzBack = function () { if (dlSub && view === 'deal') { var f = dlSub; dlSub = null; try { speechSynthesis.cancel(); } catch (e) { } f(); } else dlBackOrig(); }; }
     dlSub = null; if (ov) ov.removeAttribute('data-dlr');
-    frame('Deal it', '<div class="bz-note"><b>Shuffle. Deal. Turn a card. Say it.</b><br><b>Solo:</b> turn each card and say it. Right: it is secure. Nearly: the card goes back and all the cards shuffle, so you must find it again. Major error: it goes back in the pack and a new card is dealt. When every card is secure the round is over and the clock stops. Round two shuffles them again and you must beat your own time. At the end of each level you drill the cards you missed until every one is right.<br><b>Two players:</b> take turns to say a card; the other player checks. Get it right and you win the card for your pile. Biggest pile when the time is up wins.</div><div class="bz-row"><button class="bz-big go" onclick="apDlMode(1)">🃏 Solo</button><button class="bz-big go" onclick="apDlMode(2)">🃏 Two players</button></div>' + pnBox(2, ['Blue', 'Gold'], ['#4f8cff', '#f0d27a']));
+    frame('Deal it', '<div class="bz-note"><b>Shuffle. Deal. Turn a card. Say it.</b><br><b>Solo:</b> turn each card and say it. Right: it is secure. Nearly: the card goes back and all the cards shuffle, so you must find it again. Major error: it goes back in the pack and a new card is dealt. When every card is secure the round is over and the clock stops. Round two shuffles them again and you must beat your own time. At the end of each level you drill the cards you missed until every one is right.<br><b>Two players:</b> take turns to say a card; the other player checks. Get it right and you win the card for your pile. Biggest pile when the time is up wins.</div><div class="bz-row"><button class="bz-big go" onclick="apDlMode(1)">🃏 Solo</button><button class="bz-big go" onclick="apDlMode(2)">🃏 Two players</button></div>' + pnBox(2, ['Team 1', 'Team 2'], ['#4f8cff', '#f0d27a']));
     window.apDlMode = function (m) { CFG.dP = m; saveCfg(); sfx('go'); (m === 1 ? dealSolo : dealRace)(p); };
   };
 
@@ -20905,7 +20939,7 @@ function deck(el,m,n,x,y,face,gap){clear(el);const cs=[];for(let i=0;i<n;i++){co
   }
 
   function dealRace(p0) {
-    var pl = dlUniq(p0), N = Math.min(CFG.dN, pl.length), pack = shuf(pl), slots = [], piles = [[], []], land = [-1, -1], team = 0, names = [esc(pnGet(0, 'Blue')), esc(pnGet(1, 'Gold'))], left = CFG.dT, cur = -1, said = false, over = false, cue = H.names[dirs()[0]];
+    var pl = dlUniq(p0), N = Math.min(CFG.dN, pl.length), pack = shuf(pl), slots = [], piles = [[], []], land = [-1, -1], team = 0, names = [esc(pnGet(0, 'Team 1')), esc(pnGet(1, 'Team 2'))], left = CFG.dT, cur = -1, said = false, over = false, cue = H.names[dirs()[0]];
     for (var i = 0; i < N; i++) slots.push({ c: pack.shift(), fresh: true });
     function clk() { var s = Math.max(0, Math.ceil(left)); return Math.floor(s / 60) + ':' + ('0' + (s % 60)).slice(-2); }
     function pcol(t, act) { var n = piles[t].length, landing = land[t] === n && n > 0; if (landing) land[t] = -1; return dlPileHTML(t, names[t], n, act, landing); }
@@ -21178,11 +21212,11 @@ function deck(el,m,n,x,y,face,gap){clear(el);const cs=[];for(let i=0;i<n;i++){co
     var SIDEC = ['#e9c75a', '#6fb4ff', '#ff8c78', '#6fe0a8'];
     var SUR = [
       ['first', '🚀', 'Jump to first place', 'You leap one point ahead of the leader.'],
-      ['last', '🕳️', 'Drop to last place', 'You fall one point below the lowest other side.'],
+      ['last', '🕳️', 'Drop to last place', 'You fall one point below the lowest other team.'],
       ['again', '🔁', 'Go again', 'Pick another card straight away.'],
       ['double', '✨', 'Double points', 'Your next right answer scores two.'],
-      ['steal', '🧲', 'Steal a point', 'Take a point from the side in the lead.'],
-      ['swap', '🔀', 'Swap scores', 'Swap scores with the side in the lead.']
+      ['steal', '🧲', 'Steal a point', 'Take a point from the team in the lead.'],
+      ['swap', '🔀', 'Swap scores', 'Swap scores with the team in the lead.']
     ];
     function sizes() { var m = Math.min(48, p.length), a = [12, 24, 32, 48].filter(function (n) { return n <= m; }); return a.length ? a : [m]; }
     function nCards() { var s = sizes(), n = s[0]; s.forEach(function (x) { if (x <= CFG.fN) n = x; }); return n; }
@@ -21191,9 +21225,9 @@ function deck(el,m,n,x,y,face,gap){clear(el);const cs=[];for(let i=0;i<n;i++){co
     function intro() {
       var s = CFG.fP, n = nCards();
       frame('Flip it', '<div class="bz-note">Pick a number. The card turns over and comes to the middle with its question. Say it, reveal it, then mark yourself.</div>'
-        + '<div class="fl-opt"><span>Players</span><div class="bz-row">' + [[1, 'Solo'], [2, 'Two sides'], [3, 'Three sides'], [4, 'Four sides']].map(function (o) { return btn('fP', o[0], o[1], s === o[0]); }).join('') + '</div></div>'
+        + '<div class="fl-opt"><span>Players</span><div class="bz-row">' + [[1, 'Solo'], [2, 'Two teams'], [3, 'Three teams'], [4, 'Four teams']].map(function (o) { return btn('fP', o[0], o[1], s === o[0]); }).join('') + '</div></div>'
         + '<div class="fl-opt"><span>Cards on the board</span><div class="bz-row">' + sizes().map(function (x) { return btn('fN', x, x, x === n); }).join('') + '</div></div>'
-        + (s > 1 ? pnBox(s, ['Side 1', 'Side 2', 'Side 3', 'Side 4'], SIDEC) : '')
+        + (s > 1 ? pnBox(s, ['Team 1', 'Team 2', 'Team 3', 'Team 4'], SIDEC) : '')
         + (s > 1 ? '<div class="fl-opt"><span>Surprise cards</span><div class="bz-row">' + btn('fS', 1, 'On', CFG.fS) + btn('fS', 0, 'Off', !CFG.fS) + '</div><small>Some cards hide a bonus or a penalty instead of a question: jump to first place, drop to last place, go again, double points, steal a point, swap scores.</small></div>' : '')
         + '<div class="bz-row"><button class="bz-big go" onclick="apBzGo()">▶ Deal the cards</button></div>');
       window.apBzGo = play;
@@ -21207,14 +21241,14 @@ function deck(el,m,n,x,y,face,gap){clear(el);const cs=[];for(let i=0;i<n;i++){co
       var ret = null, scores = [], dbl = [], cur = 0, busy = false, left = n, openI = -1, again = false, ok = 0, miss = 0;
       for (var s = 0; s < sides; s++) { scores.push(0); dbl.push(false); }
       function bar() {
-        var h = sides > 1 ? scores.map(function (v, s) { return '<div class="fl-sd' + (s === cur ? ' on' : '') + '" style="--sc:' + SIDEC[s] + '"><b>' + v + '</b><small>' + esc(pnGet(s, 'Side ' + (s + 1))) + (dbl[s] ? ' · ×2' : '') + '</small></div>'; }).join('') : '<div class="fl-sd on" style="--sc:' + SIDEC[0] + '"><b>' + ok + '</b><small>got it</small></div>';
+        var h = sides > 1 ? scores.map(function (v, s) { return '<div class="fl-sd' + (s === cur ? ' on' : '') + '" style="--sc:' + SIDEC[s] + '"><b>' + v + '</b><small>' + esc(pnGet(s, 'Team ' + (s + 1))) + (dbl[s] ? ' · ×2' : '') + '</small></div>'; }).join('') : '<div class="fl-sd on" style="--sc:' + SIDEC[0] + '"><b>' + ok + '</b><small>got it</small></div>';
         return '<div class="fl-bar" id="fl-bar">' + h + '<div class="fl-sd fl-lf"><b>' + left + '</b><small>cards left</small></div></div>';
       }
       frame('Flip it', bar() + '<div class="fl-grid" id="fl-grid" style="grid-template-columns:repeat(' + cols + ',1fr);grid-template-rows:repeat(' + rows + ',1fr)">' + cards.map(function (cd) { var r = Math.floor(cd.i / cols), c = cd.i % cols; return '<button class="fl-c fl-' + ((r + c) % 2 ? 'a' : 'b') + '" id="flc' + cd.i + '" style="animation-delay:' + (cd.i * 22) + 'ms" onclick="apFlPick(' + cd.i + ')"><b>' + (cd.i + 1) + '</b></button>'; }).join('') + '</div>');
       try { if (BZ.bcard) { ov.style.setProperty('--fl-card', 'url(' + BZ.bcard + ')'); ov.classList.add('flc-img'); } } catch (e) { }
       for (var rr = 0; rr < rows; rr++) (function (rr) { timers.push(setTimeout(function () { sfx('whoosh'); }, 60 + rr * cols * 22)); })(rr);
       try { if (BZ.bframe && BZ.btile) { ov.style.setProperty('--fl-frame', 'url(' + BZ.bframe + ')'); ov.style.setProperty('--fl-tile', 'url(' + BZ.btile + ')'); var gg = $('fl-grid'); if (gg) gg.classList.add('fl-img'); } } catch (e) { }
-      function who(cd) { return '<small class="fl-who">Card ' + (cd.i + 1) + (sides > 1 ? ' · <span style="color:' + SIDEC[cur] + ';text-shadow:0 0 0 #000,0 1px 0 #14203f">' + esc(pnGet(cur, 'Side ' + (cur + 1))) + '</span>' : '') + ' · ' + esc(H.names[dirs()[0]]) + '</small>'; }
+      function who(cd) { return '<small class="fl-who">Card ' + (pos[cd.i] + 1) + (sides > 1 ? ' · <span style="color:' + SIDEC[cur] + ';text-shadow:0 0 0 #000,0 1px 0 #14203f">' + esc(pnGet(cur, 'Team ' + (cur + 1))) + '</span>' : '') + ' · ' + esc(H.names[dirs()[0]]) + '</small>'; }
       function sz(c) { var L = c.q.length; return L > 120 ? ' fl-xl' : L > 60 ? ' fl-lg' : ''; }
       function backQ(cd) {
         if (cd.sur) return '<div class="fl-sur"><div class="fl-ic">' + cd.sur[1] + '</div><h2>' + cd.sur[2] + '</h2><p>' + cd.sur[3] + '</p></div><button class="bz-big go" onclick="apFlSur()">OK</button>';
@@ -21228,7 +21262,7 @@ function deck(el,m,n,x,y,face,gap){clear(el);const cs=[];for(let i=0;i<n;i++){co
       window.apFlPick = function (i) {
         var cd = cards[i]; if (busy || cd.st) return; busy = true; openI = i; sfx('whoosh');
         var el = $('flc' + i), r = el.getBoundingClientRect(), st = document.createElement('div'); st.id = 'fl-st'; st.className = 'fl-stage';
-        st.innerHTML = '<div class="fl-big" id="fl-big"><div class="fl-sh" id="fl-sh"></div><div class="fl-in" id="fl-in"><i class="fl-sd3 fl-sdl"></i><i class="fl-sd3 fl-sdr"></i><i class="fl-sd3 fl-sdt"></i><i class="fl-sd3 fl-sdb"></i><div class="fl-f"><b>' + (i + 1) + '</b></div><div class="fl-bk" id="fl-bk">' + backQ(cd) + '</div></div></div>';
+        st.innerHTML = '<div class="fl-big" id="fl-big"><div class="fl-sh" id="fl-sh"></div><div class="fl-in" id="fl-in"><i class="fl-sd3 fl-sdl"></i><i class="fl-sd3 fl-sdr"></i><i class="fl-sd3 fl-sdt"></i><i class="fl-sd3 fl-sdb"></i><div class="fl-f"><b>' + (pos[i] + 1) + '</b></div><div class="fl-bk" id="fl-bk">' + backQ(cd) + '</div></div></div>';
         ov.appendChild(st); var big = $('fl-big'), inn = $('fl-in'), br = big.getBoundingClientRect();
         var dx = r.left + r.width / 2 - (br.left + br.width / 2), dy = r.top + r.height / 2 - (br.top + br.height / 2), sx = r.width / br.width, sy = r.height / br.height;
         el.style.visibility = 'hidden'; ret = { dx: dx, dy: dy, sx: sx, sy: sy };
@@ -21258,19 +21292,24 @@ function deck(el,m,n,x,y,face,gap){clear(el);const cs=[];for(let i=0;i<n;i++){co
         settle(cd);
       };
       var pos = cards.map(function (c) { return c.i; });
+      cards.forEach(function (c) { var e = $('flc' + c.i); if (e) e.style.order = c.i; });
       function shuffleBoard(cd) {
-        var live = cards.filter(function (c) { return c.st === 0; }); if (live.length < 2) return;
-        var els = {}; cards.forEach(function (c) { els[c.i] = $('flc' + c.i); });
-        var old = {}; live.forEach(function (c) { var r = els[c.i].getBoundingClientRect(); old[c.i] = [r.left, r.top]; });
-        var slots = live.map(function (c) { return pos[c.i]; }), ns, tries = 0;
-        do { ns = shuf(slots.slice()); tries++; } while (tries < 12 && (ns[live.indexOf(cd)] === pos[cd.i] || ns.filter(function (v, k) { return v !== slots[k]; }).length < Math.min(live.length, 4)));
-        live.forEach(function (c, k) { pos[c.i] = ns[k]; els[c.i].style.order = ns[k]; els[c.i].style.zIndex = 5; });
-        busy = true; sfx('whoosh');
-        live.forEach(function (c) {
-          var e = els[c.i], r = e.getBoundingClientRect(), dx = old[c.i][0] - r.left, dy = old[c.i][1] - r.top; if (!dx && !dy) { e.style.zIndex = ''; return; }
-          try { e.animate([{ transform: 'translate(' + dx + 'px,' + dy + 'px) rotate(' + ((Math.random() - .5) * 40) + 'deg) scale(1.08)' }, { transform: 'translate(' + (-dx * .06) + 'px,' + (-dy * .06) + 'px) rotate(0deg) scale(1.04)', offset: .7 }, { transform: 'none' }], { duration: 900 + Math.random() * 350, delay: Math.random() * 220, easing: 'cubic-bezier(.3,.9,.3,1)' }); } catch (x) { }
+        var live = cards.filter(function (c) { return c.st === 0; });
+        if (live.length < 2) { busy = false; return; }
+        var others = shuf(live.filter(function (c) { return c !== cd; })).slice(0, 4), X = [cd].concat(others);
+        var els = {}; X.forEach(function (c) { els[c.i] = $('flc' + c.i); });
+        var old = {}; X.forEach(function (c) { var r = els[c.i].getBoundingClientRect(); old[c.i] = [r.left, r.top]; });
+        var slots = X.map(function (c) { return pos[c.i]; }), k = 1 + Math.floor(Math.random() * (X.length - 1));
+        X.forEach(function (c, n) { pos[c.i] = slots[(n + k) % X.length]; els[c.i].style.order = pos[c.i]; els[c.i].style.zIndex = 5; });
+        sfx('whoosh');
+        X.forEach(function (c) {
+          var e = els[c.i], r = e.getBoundingClientRect(), dx = old[c.i][0] - r.left, dy = old[c.i][1] - r.top;
+          try { e.animate([{ transform: 'translate(' + dx + 'px,' + dy + 'px) scale(1.12) rotate(' + ((Math.random() - .5) * 16) + 'deg)' }, { transform: 'translate(' + (dx * .35) + 'px,' + (dy * .35 - 22) + 'px) scale(1.18)', offset: .45 }, { transform: 'none' }], { duration: 1100, delay: Math.random() * 160, easing: 'cubic-bezier(.4,.1,.2,1)' }); } catch (x) { }
         });
-        timers.push(setTimeout(function () { live.forEach(function (c) { els[c.i].style.zIndex = ''; }); busy = false; }, 1600));
+        timers.push(setTimeout(function () {
+          X.forEach(function (c) { var e = els[c.i], b = e.querySelector('b'), sl = pos[c.i]; e.style.zIndex = ''; if (b) { b.textContent = sl + 1; try { b.animate([{ transform: 'scale(1.5)', filter: 'brightness(1.6)' }, { transform: 'none', filter: 'none' }], { duration: 420, easing: 'ease-out' }); } catch (x) { } } e.className = e.className.replace(/ fl-[ab]\b/, ' fl-' + ((Math.floor(sl / cols) + sl % cols) % 2 ? 'a' : 'b')); });
+          sfx('tick'); busy = false;
+        }, 1400));
       }
       function settle(cd) {
         var stg = $('fl-st'), el = $('flc' + cd.i);
@@ -21280,7 +21319,7 @@ function deck(el,m,n,x,y,face,gap){clear(el);const cs=[];for(let i=0;i<n;i++){co
           if (left <= 0) return finish();
           if (sides > 1) { if (again) again = false; else cur = (cur + 1) % sides; }
           var b = $('fl-bar'); if (b) b.outerHTML = bar();
-          if (cd.st === 0) shuffleBoard(cd);
+          if (cd.st === 0) { busy = true; timers.push(setTimeout(function () { shuffleBoard(cd); }, 500)); }
         }
         if (stg && cd.st === 0 && ret && $('fl-big')) {
           var bg = $('fl-big'), inn = $('fl-in'); stg.style.transition = 'background .5s'; stg.style.background = 'rgba(4,8,20,0)'; sfx('whoosh');
@@ -21293,7 +21332,7 @@ function deck(el,m,n,x,y,face,gap){clear(el);const cs=[];for(let i=0;i<n;i++){co
         var b = $('fl-bar'); if (b) b.outerHTML = bar();
         if (sides === 1) return timers.push(setTimeout(function () { endScreen('Flip it', { big: ok + '/' + n, note: ok === n ? 'Every card.' : (n - ok) + ' to look at again.' }, play); }, 700));
         var mx = Math.max.apply(null, scores), win = scores.map(function (v, s) { return v === mx ? s + 1 : 0; }).filter(Boolean);
-        timers.push(setTimeout(function () { endScreen('Flip it', { big: scores.join(' – '), note: win.length > 1 ? 'A draw.' : esc(pnGet(win[0] - 1, 'Side ' + win[0])) + ' wins.' }, play); }, 700));
+        timers.push(setTimeout(function () { endScreen('Flip it', { big: scores.join(' – '), note: win.length > 1 ? 'A draw.' : esc(pnGet(win[0] - 1, 'Team ' + win[0])) + ' wins.' }, play); }, 700));
       }
     }
     intro();
@@ -21301,14 +21340,14 @@ function deck(el,m,n,x,y,face,gap){clear(el);const cs=[];for(let i=0;i<n;i++){co
 
   GAMES.four = function (p) {
     var COLN = ['Red', 'Yellow', 'Green', 'White'], TXC = ['#c0392b', '#a37b00', '#1f8a52', '#5b6788'], SCOL = ['#ff7b6b', '#f6d646', '#5fe3a0', '#e8eaf5'];
-    function nm(s) { return pnGet(s, COLN[s]); }
+    function nm(s) { return pnGet(s, 'Team ' + (s + 1)); }
     function qOf(c) { var v = hvOf(c); return v.hl ? (v.hl[0].trim() ? '[…] ' : '') + (v.hl[2].trim() ? esc(v.hl[1].replace(/\s*…\s*$/, '')) + ' […]' : esc(v.hl[1])) : esc(c.q); }
     function sz(c) { var L = c.q.length; return L > 120 ? ' fl-xl' : L > 60 ? ' fl-lg' : ''; }
     function intro() {
       var P = CFG.c4P;
-      frame('Four in a row', '<div class="bz-note">Two to four players take turns. Choose a column and answer the question: say it, reveal it, then mark yourself. A right answer drops your counter; anything else passes the turn. First to line up four in a row, across, up or diagonally, wins.</div>'
-        + '<div class="fl-opt"><span>Players</span><div class="bz-row">' + [2, 3, 4].map(function (n) { return '<button class="bz-b' + (P === n ? ' on' : '') + '" onclick="apC4Set(' + n + ')">' + n + ' players</button>'; }).join('') + '</div></div>'
-        + pnBox(P, COLN, SCOL)
+      frame('Four in a row', '<div class="bz-note">Two to four teams take turns. Choose a column and answer the question: say it, reveal it, then mark yourself. A right answer drops your counter; anything else passes the turn. First to line up four in a row, across, up or diagonally, wins.</div>'
+        + '<div class="fl-opt"><span>Players</span><div class="bz-row">' + [2, 3, 4].map(function (n) { return '<button class="bz-b' + (P === n ? ' on' : '') + '" onclick="apC4Set(' + n + ')">' + n + ' teams</button>'; }).join('') + '</div></div>'
+        + pnBox(P, ['Team 1', 'Team 2', 'Team 3', 'Team 4'], SCOL)
         + '<div class="bz-row"><button class="bz-big go" onclick="apBzGo()">▶ Start</button></div>');
       window.apBzGo = play;
     }
@@ -21754,4 +21793,4 @@ function deck(el,m,n,x,y,face,gap){clear(el);const cs=[];for(let i=0;i<n;i++){co
   if (document.readyState === 'complete') start(); else window.addEventListener('load', start);
 })();
 </script>
-<script id="ap-build">window.__apBuild="7963cc4121";</script>
+<script id="ap-build">window.__apBuild="4ae50abd8f";</script>
