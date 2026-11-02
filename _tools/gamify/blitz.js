@@ -1826,8 +1826,8 @@ function deck(el,m,n,x,y,face,gap){clear(el);const cs=[];for(let i=0;i<n;i++){co
           if (m === 1) {
             earned = true; sfx('dice'); var d = Math.floor(Math.random() * 6) + 1;
             die3(d, function () { walk(d); });
-          } else if (m === 2) { sfx('tick'); walk(1); }
-          else { sfx('bad'); msg = 'No move this time.'; nextTurn(false); }
+          } else if (m === 2) { sfx('good'); msg = (P > 1 ? nm(cur) : 'You') + ' got it nearly — move forward 1 square.'; refresh(); timers.push(setTimeout(function () { walk(1); }, 1100)); }
+          else { sfx('bad'); msg = (P > 1 ? nm(cur) : 'You') + ' got it wrong — no move this time.'; refresh(); timers.push(setTimeout(function () { nextTurn(false); }, 1400)); }
         }, 240));
       };
     }
