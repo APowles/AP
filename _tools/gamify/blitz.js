@@ -9,7 +9,7 @@
         '10-minute queue at Bekynton': 'Bekynton queue', 'iPad dies in an important test': 'iPad dies', 'Dress-offenced by a member of Pop': 'Dress offence', 'Caught cheating in a test': 'Caught cheating', 'Off Games for several days': 'Off Games', 'Freak beagling accident': 'Beagling accident', 'On crutches for 2 weeks': 'On crutches', '30-minute punishment for insubordination': 'Insubordination', 'Dropped from the first team': 'Dropped', 'Lower Master\'s Bill for poor behaviour': 'Master\'s Bill', 'Moved down a set in Maths': 'Moved down', 'Worst bedroom for next year': 'Worst bedroom', 'Missed the Founder\'s Feast through illness': 'Missed Feast', 'Collar too tight (can\'t be bothered to replace it)': 'Tight collar', 'Parents can\'t come to the House Play': 'Empty seat', 'Senior League in the rain': 'Senior League', 'Missed Chapel: given a Detention': 'Chapel Detention' };
       for (var k in I) ICO[k] = I[k]; for (var k2 in S) SHORT[k2] = S[k2];
     })();
-    function fxOf(q) { var e = q[3]; if (typeof e === 'number') return e > 0 ? '+' + e : '\u2212' + (-e); return e === 'again' ? '\u21BB' : e === 'miss' ? '\u23F8' : e === 'miss2' ? '\u23F8\u23F8' : ''; }
+    function fxOf(q) { if (q[1] === 'x') return '?'; var e = q[3]; if (typeof e === 'number') return e > 0 ? '+' + e : '\u2212' + (-e); return e === 'again' ? '\u21BB' : e === 'miss' ? '\u23F8' : e === 'miss2' ? '\u23F8\u23F8' : ''; }
     function padPos(i) { var c = PADS[i] || PADS[0]; return [c[0] / 15.36, c[1] / 10.24]; }
 
 (function () {
