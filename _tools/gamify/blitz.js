@@ -2227,8 +2227,8 @@ function deck(el,m,n,x,y,face,gap){clear(el);const cs=[];for(let i=0;i<n;i++){co
         bt.onclick = function () {
           var old = $('er-tkp'); if (old) { old.remove(); return; }
           var pn = document.createElement('div'); pn.id = 'er-tkp';
-          var opts = [['+1 square', function (q) { return 1; }], ['+3 squares', function (q) { return 3; }], ['Next line', function (q) { return (Math.floor(q / 7) + 1) * 7 - q; }], ['Last line', function (q) { return q < 35 ? 35 - q : 0; }], ['Straight to Birley', function (q) { return LAST - q; }], ['Next Eton Rules card', function (q) { return nextKind('c', q); }], ['Next Ups and Downs', function (q) { return nextKind('x', q); }]];
-          function nextKind(k, q) { for (var i = q + 1; i <= LAST; i++) if (BD[i] && BD[i][1] === k) return i - q; return 0; }
+          var opts = [['+1 square', function (q) { return 1; }], ['+3 squares', function (q) { return 3; }], ['Next line', function (q) { return (Math.floor(q / 7) + 1) * 7 - q; }], ['Last line', function (q) { return q < 35 ? 35 - q : 0; }], ['Straight to Birley', function (q) { return LAST - q; }], ['Next Eton Rules card', function (q) { return nextKind('c', q); }], ['Next Up or Down square', function (q) { return nextKind('gb', q); }], ['Next Ups and Downs ?', function (q) { return nextKind('x', q); }]];
+          function nextKind(k, q) { for (var i = q + 1; i <= LAST; i++) if (BD[i] && BD[i][1] && k.indexOf(BD[i][1]) >= 0) return i - q; return 0; }
           pn.innerHTML = '<b>Teacher: move this team on</b>' + opts.map(function (o, i) { return '<button class="bz-b" data-i="' + i + '">' + o[0] + '</button>'; }).join('');
           pn.onclick = function (ev) {
             var t = ev.target; if (!t || !t.getAttribute || t.getAttribute('data-i') === null) return;
