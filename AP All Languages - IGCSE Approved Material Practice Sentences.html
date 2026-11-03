@@ -13035,13 +13035,18 @@ function deck(el,m,n,x,y,face,gap){clear(el);const cs=[];for(let i=0;i<n;i++){co
     ov.style.backgroundImage = bgNow ? 'linear-gradient(rgba(8,14,32,.66),rgba(8,14,32,.66)),url(pictures/' + bgNow + '.jpg)' : 'url(' + BZ.stage + ')';
     ov.innerHTML = '<div class="bz-top"><button class="bz-b" onclick="apBzBack()">← Back</button><h1>Gamify it' + (title ? ' <em>· ' + esc(title) + '</em>' : '') + '</h1><button class="bz-b" onclick="apBzSet()">⚙ Settings</button><button class="bz-b' + (snd ? ' on' : '') + '" id="bz-snd" onclick="apBzSnd()">🔊 Sound ' + (snd ? 'on' : 'off') + '</button></div><div class="bz-main">' + body + '</div>';
   }
-  window.apBzSnd = function () { snd = !snd; saveCfg(); sndBtn(); if (!snd) musicStop(); else if (view !== 'pick') musicStart(); if ($('bz-set')) panel(); };
+  window.apBzSnd = function () { snd = !snd; saveCfg(); sndBtn(); if (!snd) musicStop(); else { ctx(); sfx('ok'); if (view !== 'pick') musicStart(); } if ($('bz-set')) panel(); };
   window.apBzBack = function () { stop(); try { if (window.__erHoloStop) __erHoloStop(); } catch (e) { } if (view === 'pick') close(); else pickScreen(); };
   function close() { stop(); musicStop(); PZ = false; try { if (window.__erHoloStop) __erHoloStop(); } catch (e) { } var sp = $('bz-set'); if (sp) sp.remove(); if (ov) { ov.remove(); ov = null; } document.documentElement.style.overflow = ''; }
   window.apBlitz = function () {
     close(); ov = document.createElement('div'); ov.id = 'bz-ov'; ov.style.backgroundImage = 'url(' + BZ.stage + ')'; document.body.appendChild(ov);
     if (!$('bz-css')) { var st = document.createElement('style'); st.id = 'bz-css'; st.textContent = CSS.replace('CARDFACE', BZ.cardface) + DLCSS + FLCSS + C4CSS + ERCSS; document.head.appendChild(st); }
-    document.documentElement.style.overflow = 'hidden'; pickScreen();
+    document.documentElement.style.overflow = 'hidden';
+    // Unlock iOS AudioContext on the very first tap inside the overlay.
+    // iOS suspends AudioContext until a direct user-gesture interaction; this one-shot listener fires
+    // immediately on first touchstart (inside the gesture boundary) and resumes it.
+    ov.addEventListener('touchstart', function _iosUnlock() { ov.removeEventListener('touchstart', _iosUnlock); try { var c = ctx(); if (c && c.state !== 'running') c.resume(); } catch(e){} }, { once: true, passive: true });
+    pickScreen();
   };
   function reasons(p) {
     var r = {}, secs = {}; p.forEach(function (x) { secs[x.sec] = 1; });
@@ -14898,4 +14903,4 @@ function deck(el,m,n,x,y,face,gap){clear(el);const cs=[];for(let i=0;i<n;i++){co
   if (document.readyState === 'complete') start(); else window.addEventListener('load', start);
 })();
 </script>
-<script id="ap-build">window.__apBuild="678e7c32d8";</script>
+<script id="ap-build">window.__apBuild="60ceeb5778";</script>
