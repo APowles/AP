@@ -2135,6 +2135,19 @@ function deck(el,m,n,x,y,face,gap){clear(el);const cs=[];for(let i=0;i<n;i++){co
         timers.push(setTimeout(topH, 60)); timers.push(setTimeout(topH, 400));
       })();
       var tpb = ov.querySelector('.bz-top'); if (tpb) { var rw = document.createElement('div'); rw.id = 'er-row'; rw.className = 'er-row'; rw.innerHTML = rowHTML(); tpb.insertBefore(rw, tpb.children[2]); }
+      (function () {   // peeking: drag (or scroll the wheel) to look further down the map without moving; a few seconds after letting go the view glides back to the counter. Nothing is revealed: squares stay covered until someone lands on them.
+        var vp = $('er-vp'), bd = $('er-board'); if (!vp || !bd) return;
+        var drag = false, moved = false, y0 = 0, off0 = 0, back = 0;
+        vp.style.touchAction = 'none';
+        function curOff() { var m = /translateY\(-?([\d.]+)%\)/.exec(bd.style.transform || ''); return m ? +m[1] / 100 * MAPH : 0; }
+        function setOff(o) { o = Math.max(0, Math.min(MAPH - 1024, o)); bd.style.transition = 'none'; bd.style.transform = 'translateY(-' + (o / MAPH * 100) + '%)'; return o; }
+        function later() { clearTimeout(back); back = setTimeout(function () { bd.style.transition = ''; cam(camY); }, 3500); timers.push(back); }
+        vp.addEventListener('pointerdown', function (e) { drag = true; moved = false; y0 = e.clientY; off0 = curOff(); clearTimeout(back); });
+        window.addEventListener('pointermove', function (e) { if (!drag) return; if (!moved && Math.abs(e.clientY - y0) < 8) return; moved = true; setOff(off0 - (e.clientY - y0) * 1024 / vp.clientHeight); });
+        function up() { if (!drag) return; drag = false; if (moved) later(); }
+        window.addEventListener('pointerup', up); window.addEventListener('pointercancel', up);
+        vp.addEventListener('wheel', function (e) { e.preventDefault(); setOff(curOff() + e.deltaY * 1024 / vp.clientHeight); later(); }, { passive: false });
+      })();
       (function () {   // teacher's door (only with the teacher key on this device): the crest in the banner opens a short list that walks the current team on without a question, so the whole game, the last line and the finish can be seen
         var key = false; try { key = !!localStorage.getItem('apTeacherKey'); } catch (e) { }
         if (!key || !tpb) return;
