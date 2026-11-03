@@ -581,7 +581,7 @@ function deck(el,m,n,x,y,face,gap){clear(el);const cs=[];for(let i=0;i<n;i++){co
   }
   window.addEventListener('apaudio-renew', function () { try { if (FIN.want && FIN.src) { FIN.src = null; FIN.g = null; finPlay(); } } catch (e) { } });
   // Eton Rules background music: a looping recorded track (Mixkit, 'Driving Ambition'), played through the shared sound engine
-  var DRV = { bufs: {}, loading: {}, want: null, key: null, src: null, g: null }, DRVF = { hymn: 'sounds/er_music.mp3?v=1', er2: 'sounds/er_music2.mp3?v=1', er3: 'sounds/er_music3.mp3?v=1' };
+  var DRV = { bufs: {}, loading: {}, want: null, key: null, src: null, g: null }, DRVF = { hymn: 'sounds/er_music.mp3?v=2', er2: 'sounds/er_music2.mp3?v=2', er3: 'sounds/er_music3.mp3?v=2' };
   function drvLoad(k) {
     if (DRV.bufs[k] || DRV.loading[k]) return; DRV.loading[k] = true;
     try {
@@ -736,7 +736,7 @@ function deck(el,m,n,x,y,face,gap){clear(el);const cs=[];for(let i=0;i<n;i++){co
     stop(); musicStop(); view = 'pick'; bgNow = null; if (ov) ov.removeAttribute('data-dlr'); var p = pool(), r = reasons(p);
     frame('', '<div class="bz-note"><b>' + p.length + ' ' + (HC.noun || 'words') + '</b> ready. ' + esc(dirs()[0] === 'en' ? 'English → ' + H.names[dirs()[1]] : H.names[dirs()[0]] + ' → English') + '. Pick a round: it starts straight away.</div><div class="bz-grid">' + MODES.filter(function (m) { return !H.games || H.games.indexOf(m[0]) > -1; }).map(function (m) { var off = r[m[0]]; return '<button class="bz-m"' + (off ? ' disabled' : '') + ' onclick="apBzStart(\'' + m[0] + '\')"><img alt="" src="' + (BZ[m[0]] || ({ run: 'icons/gm_run.webp', four: 'icons/gm_four.webp' })[m[0]] || 'icons/hx_cards.webp') + '"><b>' + m[1] + '</b><span>' + (off || m[2]) + '</span></button>'; }).join('') + '</div>');
   }
-  window.apBzStart = function (k) { stop(); bgNow = null; view = k; ctx(); sfx('go'); window.__erHold = (k === 'run' && snd) ? 1 : 0; if (k === 'run') CFG.musRun = 'hymn'; musicStart(true); GAMES[k](pool(/^(catch|lane)$/.test(k))); };   // Catch it and Lane it only pair words up (recognition), so a Recognition word is just an ordinary word there
+  window.apBzStart = function (k) { stop(); bgNow = null; view = k; ctx(); sfx('go'); window.__erHold = (k === 'run' && snd) ? 1 : 0; if (k === 'run') { CFG.musRun = 'hymn'; CFG.erSay = 1; } musicStart(true); GAMES[k](pool(/^(catch|lane)$/.test(k))); };   // Catch it and Lane it only pair words up (recognition), so a Recognition word is just an ordinary word there
 
   // ---------- helpers for self-marked card games
   function card(q, a, extra, hl) { var n = String(q || '').length + String(a || '').length, z = n > 130 ? ' bz-xl' : n > 60 ? ' bz-lg' : '', qh = hl ? esc(hl[0]) + '<b class="hl">' + esc(hl[1]) + '</b>' + esc(hl[2]) + '<span class="hln">Translate only the highlighted part</span>' : esc(q); return '<div class="bz-card' + z + '" id="bz-card"><small>' + esc(extra || '') + '</small><div>' + qh + '</div><div class="ans" id="bz-ans" style="visibility:hidden">' + esc(a) + ' ' + SAYBTN(a) + '</div></div>'; }
@@ -1906,7 +1906,7 @@ function deck(el,m,n,x,y,face,gap){clear(el);const cs=[];for(let i=0;i<n;i++){co
     function howText() { return '<b>The race</b><br>From your House to Birley Schools. First there wins.<br><br>'
       + '<b>Your go</b><br>Answer the question: say it, press Reveal, mark yourself.<br>'
       + '\u2713 <b>Got it</b> \u2014 rolls the die (1\u20133), walk that many squares<br>'
-      + '~ <b>Nearly</b> \u2014 forward one square<br>'
+      + '~ <b>Nearly</b> \u2014 an in-between question first, then the same card again; get both right and move forward one square<br>'
       + '\u2717 <b>Major error</b> \u2014 no move<br><br>'
       + '<b>The board</b><br>Squares are hidden until someone lands on them.<br>'
       + '<span style="color:#5fe3a0">\u25CF</span> Green = good &nbsp; <span style="color:#ff7b6b">\u25CF</span> Red = bad &nbsp; <span style="color:#c9a0e8">\u25CF</span> Purple = fate (re\u2011rolled for each boy) &nbsp; <span style="color:#9fd0ff">\u25CF</span> Blue = Eton Rules card<br><br>'
@@ -2304,7 +2304,7 @@ function deck(el,m,n,x,y,face,gap){clear(el);const cs=[];for(let i=0;i<n;i++){co
           else land(me);
         })();
       }
-      var earned = false, bonusQ = false, bonusAg = false;
+      var earned = false, bonusQ = false, bonusAg = false, nrStep = 0, nrCard = null;   // nrStep: a Nearly sends the boy through an in-between question (1) then the same card again (2)
       // Each themed card has two possible outcomes (one good, one bad): a draw picks one at random
       var CARDS = [
         // 22 Eton Rules cards, each with 2 good and 2 bad outcomes (the game picks one at random)
@@ -2413,15 +2413,29 @@ function deck(el,m,n,x,y,face,gap){clear(el);const cs=[];for(let i=0;i<n;i++){co
         };
       }
       function after(ag) { nextTurn(ag); }
+      function bqGlow() {   // special questions (a bonus question, a Nearly retry): the card pulses with two glowing colours so it stands out
+        if (!document.getElementById('er-bqcss')) { var cs = document.createElement('style'); cs.id = 'er-bqcss'; cs.textContent = '#er-q.er-bqg{border-radius:22px;animation:erBqg 1.5s ease-in-out infinite}@keyframes erBqg{0%,100%{box-shadow:0 0 14px 3px #f4d77a,0 0 38px 10px rgba(244,215,122,.45),0 0 0 3px rgba(244,215,122,.9)}50%{box-shadow:0 0 14px 3px #5dff95,0 0 44px 14px rgba(93,255,149,.5),0 0 0 3px rgba(93,255,149,.9)}}#er-stage .er-bq{animation:erBqb 1.5s ease-in-out infinite}@keyframes erBqb{0%,100%{border-color:#f4d77a}50%{border-color:#5dff95}}'; document.head.appendChild(cs); }
+        try { $('er-q').classList.add('er-bqg'); } catch (e) { }
+      }
+      function nrAsk(card, banner, note, flash) {   // a Nearly: the in-between question, then the Nearly card again
+        busy = true; msg = note; refresh();
+        if (P > 1) turnFlash(flash, pcL(cur), 1600, true);
+        timers.push(setTimeout(function () {
+            qd = card || nextQ(); sfx('whoosh'); refresh(); setTimeout(bqGlow, 60);
+            var st = document.createElement('div'); st.id = 'er-stage'; st.className = 'fl-stage';
+            st.innerHTML = '<div class="er-bq" style="position:absolute;top:10px;left:50%;transform:translateX(-50%);z-index:3;background:rgba(12,21,48,.92);color:#eafff0;border:2px solid #5dff95;border-radius:999px;padding:8px 18px;font-weight:800;font-size:1.05rem;white-space:nowrap">' + banner + '</div><div class="c4-q" id="er-q">' + backQ() + '</div>'; ov.appendChild(st);
+            try { $('er-q').animate([{ transform: 'translateY(80px) rotateX(38deg) scale(.88)', opacity: 0 }, { transform: 'none', opacity: 1 }], { duration: 520, easing: 'cubic-bezier(.2,.8,.2,1)' }); } catch (e) { }
+          }, 2400));
+      }
       function bonusAsk() {   // landed on an Eton Rules card square: one bonus question; right (Got it) earns the card to take or leave
         bonusQ = true; busy = true; msg = (P > 1 ? nm(cur) + ': bonus question! Get it right to win an Eton Rules card.' : 'Bonus question! Get it right to win an Eton Rules card.'); refresh();
-        if (P > 1) turnFlash('Bonus question', pcL(cur), 1600, true);
+        if (P > 1) turnFlash('Bonus question', pcL(cur), 2800, true);
         timers.push(setTimeout(function () {
-            qd = nextQ(); sfx('whoosh'); refresh();
+            qd = nextQ(); sfx('whoosh'); refresh(); setTimeout(bqGlow, 60);
             var st = document.createElement('div'); st.id = 'er-stage'; st.className = 'fl-stage';
             st.innerHTML = '<div class="er-bq" style="position:absolute;top:10px;left:50%;transform:translateX(-50%);z-index:3;background:rgba(12,21,48,.92);color:#eafff0;border:2px solid #5dff95;border-radius:999px;padding:8px 18px;font-weight:800;font-size:1.05rem;white-space:nowrap">Bonus question: get it right for an Eton Rules card</div><div class="c4-q" id="er-q">' + backQ() + '</div>'; ov.appendChild(st);
             try { $('er-q').animate([{ transform: 'translateY(80px) rotateX(38deg) scale(.88)', opacity: 0 }, { transform: 'none', opacity: 1 }], { duration: 520, easing: 'cubic-bezier(.2,.8,.2,1)' }); } catch (e) { }
-          }, 1700));
+          }, 2900));
       }
       function land(me, chained, cont) {
         var fin = cont || after;
@@ -2482,11 +2496,11 @@ function deck(el,m,n,x,y,face,gap){clear(el);const cs=[];for(let i=0;i<n;i++){co
         var fin = false, lcAutoT = null;
         function close() { if (fin) return; fin = true; if (lcAutoT) { clearTimeout(lcAutoT); lcAutoT = null; } lcDone = null; el.classList.add('out'); bg.classList.add('out'); setTimeout(function () { el.remove(); bg.remove(); }, 300); if (cb) cb(); }
         el.onclick = close; bg.onclick = close; document.body.appendChild(bg); document.body.appendChild(el); lcDone = close; sfx('tick');
-        if (cb) { lcAutoT = setTimeout(close, big ? 4000 : 2500); }
+        if (cb) { lcAutoT = setTimeout(close, q[1] === 'c' ? 6500 : big ? 4000 : 2500); }
       }
       window.apErSq = function (i) { if (busy || $('er-lc') || $('er-stage') || !RV[i]) return; lcShow(i, null); };
       window.apErMk = function (m) {
-        var stg = $('er-stage'); if (!stg || !qd) return; qd = null; stg.style.pointerEvents = 'none'; try { speechSynthesis.cancel(); } catch (e) { }
+        var stg = $('er-stage'); if (!stg || !qd) return; var qWas = qd; qd = null; stg.style.pointerEvents = 'none'; try { speechSynthesis.cancel(); } catch (e) { }
         stg.style.transition = 'opacity .22s'; stg.style.opacity = '0'; turns++;
         timers.push(setTimeout(function () {
           stg.remove();
@@ -2496,12 +2510,23 @@ function deck(el,m,n,x,y,face,gap){clear(el);const cs=[];for(let i=0;i<n;i++){co
             else { sfx(m === 2 ? 'ok' : 'bad'); msg = (P > 1 ? nm(cur) : 'You') + (m === 2 ? ' nearly had the bonus question: no card this time.' : ' missed the bonus question: no card this time.'); refresh(); timers.push(setTimeout(function () { nextTurn(bag); }, 1800)); }
             return;
           }
+          if (nrStep === 1) {   // the in-between question after a Nearly: right, and the Nearly card comes back
+            if (m === 1) { sfx('good'); nrStep = 2; nrAsk(nrCard, 'Now the card you nearly had: get it right to move on', (P > 1 ? nm(cur) : 'You') + ' got the in-between question: now the Nearly card again.', 'Nearly card again'); }
+            else { nrStep = 0; nrCard = null; sfx('bad'); msg = (P > 1 ? nm(cur) : 'You') + ' missed the in-between question: no move this time.'; refresh(); turnFlash('No move', pcL(cur), 0, true); timers.push(setTimeout(function () { nextTurn(false); }, 2100)); }
+            return;
+          }
+          if (nrStep === 2) {   // the Nearly card asked again: right, and the boy moves on as a Nearly always did
+            nrStep = 0; nrCard = null;
+            if (m === 1) { sfx('good'); msg = (P > 1 ? nm(cur) : 'You') + ' got it this time: forward 1 square.'; refresh(); turnFlash('Got it: forward 1', pcL(cur), 0, true); timers.push(setTimeout(function () { walk(1); }, 1500)); }
+            else { sfx('bad'); msg = (P > 1 ? nm(cur) : 'You') + ' missed it again: no move this time.'; refresh(); turnFlash('No move', pcL(cur), 0, true); timers.push(setTimeout(function () { nextTurn(false); }, 2100)); }
+            return;
+          }
+          if (m === 2) { nrCard = qWas; nrStep = 1; sfx('ok'); nrAsk(null, 'Nearly: answer this one first, then the card comes back', (P > 1 ? nm(cur) : 'You') + ' got it nearly: an in-between question first, then the same card again. Get both right to move on.', 'Nearly: another question first'); return; }
           if (m === 1) {
             sfx('dice'); var d = Math.floor(Math.random() * 3) + 1;
             timers.push(setTimeout(function () { msg = (P > 1 ? nm(cur) : 'You') + ' rolled a ' + d + '.'; refresh(); }, 1750));
             die3(d, function () { walk(d); });
-          } else if (m === 2) { sfx('good'); msg = (P > 1 ? nm(cur) : 'You') + ' got it nearly — move forward 1 square.'; refresh(); turnFlash('Nearly: forward 1', pcL(cur), 0, true); timers.push(setTimeout(function () { walk(1); }, 1500)); }
-          else { sfx('bad'); msg = (P > 1 ? nm(cur) : 'You') + ' got it wrong — no move this time.'; refresh(); turnFlash('Major error: no move', pcL(cur), 0, true); timers.push(setTimeout(function () { nextTurn(false); }, 2100)); }
+          } else { sfx('bad'); msg = (P > 1 ? nm(cur) : 'You') + ' got it wrong — no move this time.'; refresh(); turnFlash('Major error: no move', pcL(cur), 0, true); timers.push(setTimeout(function () { nextTurn(false); }, 2100)); }
         }, 240));
       };
     }
