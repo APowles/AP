@@ -971,6 +971,7 @@ function deck(el,m,n,x,y,face,gap){clear(el);const cs=[];for(let i=0;i<n;i++){co
     '.er-d3 .sh{position:absolute;left:calc(var(--S)*-.62);top:calc(var(--S)*.42);width:calc(var(--S)*1.24);height:calc(var(--S)*.3);border-radius:50%;background:rgba(0,0,0,.6);filter:blur(12px)}',
     '.er-full .bz-main{padding:0;gap:0;overflow:hidden;justify-content:flex-start}.er-full .er-wrap{--bw:min(100vw,calc((100vh - var(--toph,64px))*1.5));gap:0;margin:0}.er-full .er-vp{margin:0;border-radius:0;box-shadow:none}',
     '.er-full .bz-top{padding:5px 12px;gap:8px;row-gap:6px;height:auto;min-height:60px;flex-wrap:wrap;align-items:center}.er-full .bz-top h1{flex:none;font-size:1.02rem;margin-right:2px}.er-full .bz-top>.bz-b{height:44px;padding:0 13px;font-size:.95rem;border-radius:12px;display:inline-flex;align-items:center;white-space:nowrap}.er-full .bz-top>.bz-b.on{background:rgba(8,14,32,.6);color:#e9d28a;border-color:rgba(201,168,76,.7)}@media (max-width:1199px){.er-full .bz-top h1{display:none}}',
+    '.er-tk{border-color:#e0584c !important;padding:0 8px !important}.er-tk img{height:34px;width:auto;display:block}#er-tkp{position:absolute;right:12px;top:72px;z-index:40;display:flex;flex-direction:column;gap:8px;padding:12px 14px;border:2px solid #e0584c;border-radius:12px;background:rgba(20,8,10,.94);color:#f3ead0;font:600 .95rem "DM Sans",sans-serif}#er-tkp b{color:#ff9a90;margin-bottom:2px}#er-tkp .bz-b{border-color:#e0584c}',
     '.bz-top .er-row{flex:1;width:auto;min-height:0;height:auto;flex-wrap:wrap;gap:8px;min-width:0;align-items:center}',
     '.bz-top .er-chip{display:inline-flex;align-items:center;gap:8px;height:48px;padding:0 13px;border-radius:12px;border:1.5px solid rgba(201,168,76,.45);background:rgba(8,14,32,.65);color:#f3ead0;font:600 1.1rem/1 "DM Sans",sans-serif;white-space:nowrap;box-sizing:border-box}.bz-top .er-chip b{font-size:1.1rem}.bz-top .er-chip.er-sc small{color:#fff;font:800 1.4rem/1 "DM Sans",sans-serif;letter-spacing:0;text-transform:none}',
     '.er-chip b{color:#f4d77a;font:800 1rem Georgia,serif}.er-chip small{color:#c8d3ea;font:700 .62rem/1 "DM Sans",sans-serif;letter-spacing:.08em;text-transform:uppercase}',
@@ -2134,6 +2135,26 @@ function deck(el,m,n,x,y,face,gap){clear(el);const cs=[];for(let i=0;i<n;i++){co
         timers.push(setTimeout(topH, 60)); timers.push(setTimeout(topH, 400));
       })();
       var tpb = ov.querySelector('.bz-top'); if (tpb) { var rw = document.createElement('div'); rw.id = 'er-row'; rw.className = 'er-row'; rw.innerHTML = rowHTML(); tpb.insertBefore(rw, tpb.children[2]); }
+      (function () {   // teacher's door (only with the teacher key on this device): the crest in the banner opens a short list that walks the current team on without a question, so the whole game, the last line and the finish can be seen
+        var key = false; try { key = !!localStorage.getItem('apTeacherKey'); } catch (e) { }
+        if (!key || !tpb) return;
+        var cr = ''; try { var a0 = document.querySelector('.aph-avatar'); if (a0 && a0.src) cr = a0.src; } catch (e) { }
+        var bt = document.createElement('button'); bt.className = 'bz-b er-tk'; bt.id = 'er-tk'; bt.title = 'Teacher: move on without a question';
+        bt.innerHTML = cr ? '<img alt="" src="' + cr + '">' : 'AP'; tpb.appendChild(bt);
+        bt.onclick = function () {
+          var old = $('er-tkp'); if (old) { old.remove(); return; }
+          var pn = document.createElement('div'); pn.id = 'er-tkp';
+          var opts = [['+1 square', function (q) { return 1; }], ['+3 squares', function (q) { return 3; }], ['Next line', function (q) { return (Math.floor(q / 7) + 1) * 7 - q; }], ['Last line', function (q) { return q < 35 ? 35 - q : 0; }], ['Straight to Birley', function (q) { return LAST - q; }]];
+          pn.innerHTML = '<b>Teacher: move this team on</b>' + opts.map(function (o, i) { return '<button class="bz-b" data-i="' + i + '">' + o[0] + '</button>'; }).join('');
+          pn.onclick = function (ev) {
+            var t = ev.target; if (!t || !t.getAttribute || t.getAttribute('data-i') === null) return;
+            if (busy || $('er-stage') || $('er-lc')) { msg = 'Finish the question first, then move on.'; refresh(); return; }
+            var n = opts[+t.getAttribute('data-i')][1](pos[cur]); if (n < 1) return;
+            pn.remove(); busy = true; walk(n);
+          };
+          ov.appendChild(pn);
+        };
+      })();
       if (P > 1) timers.push(setTimeout(function () { turnFlash(nm(0) + ' to answer', pcL(0)); }, 900));
       function who() { return '<small class="fl-who"><span style="color:' + pcT(cur) + '">' + (P > 1 ? esc(nm(cur)) + ' · ' + pcN(cur) : 'Your go') + '</span> · square ' + pos[cur] + ' · ' + esc(H.names[dirs()[0]]) + '</small>'; }
       function task(c, v) { return '<div class="fl-hl">' + (c.ask ? 'Answer the question in ' + esc(H.names[target()]) : (v.hl ? 'Translate only the bold part into ' : 'Translate into ') + esc(H.names[dirs()[1]])) + '</div>'; }
