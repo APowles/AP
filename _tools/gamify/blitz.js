@@ -799,7 +799,7 @@ function deck(el,m,n,x,y,face,gap){clear(el);const cs=[];for(let i=0;i<n;i++){co
   function pnLoad() { try { var q = sessionStorage.getItem('apbz_pn'); if (q) { var a = JSON.parse(q); if (a && a.length) PNM = a; } } catch (e) { } }
   function pnGet(i, def) { pnLoad(); var v = String(PNM[i] || '').trim(); return v || def; }
   window.apPnSet = function (i, v) { pnLoad(); PNM[i] = String(v).slice(0, 14); try { sessionStorage.setItem('apbz_pn', JSON.stringify(PNM)); } catch (e) { } };
-  function pnBox(n, defs, cols) { pnLoad(); var h = ''; for (var i = 0; i < n; i++) h += '<input class="pn-in" maxlength="14" autocomplete="off" autocapitalize="words" placeholder="' + esc(defs[i]) + '" value="' + esc(PNM[i] || '') + '" style="--pc:' + cols[i] + '" oninput="apPnSet(' + i + ',this.value)">'; return '<div class="fl-opt"><span>Type your names</span><div class="pn-row">' + h + '</div><small>Optional. The names are kept until you close the app or change them.</small></div>'; }
+  function pnBox(n, defs, cols) { pnLoad(); var h = ''; for (var i = 0; i < n; i++) h += '<input class="pn-in" maxlength="14" autocomplete="off" autocapitalize="words" placeholder="' + esc(defs[i]) + '" value="' + esc(PNM[i] || '') + '" style="--pc:' + cols[i] + '" oninput="apPnSet(' + i + ',this.value)">'; return '<div class="fl-opt"><span>✎ Type your names here:</span><div class="pn-row">' + h + '</div><small>Optional. The names are kept until you close the app or change them.</small></div>'; }
   var C4CSS = [
     '.c4-wrap{--cs:min(calc((100vh - 290px)/6),calc(88vw/7),104px);display:flex;flex-direction:column;align-items:center;gap:8px;margin:0 auto}',
     '.c4-st{color:#e9d28a;font:700 1.05rem "DM Sans",sans-serif;letter-spacing:.04em;min-height:1.4em}',
@@ -886,7 +886,7 @@ function deck(el,m,n,x,y,face,gap){clear(el);const cs=[];for(let i=0;i<n;i++){co
     '@keyframes erOp6{0%,71%{opacity:0}75%{opacity:1}79%{opacity:0}100%{opacity:0}}',
     '@keyframes erOp7{0%,83%{opacity:0}87.5%{opacity:1}91%{opacity:0}100%{opacity:0}}',
     '.er-hd{display:flex;align-items:center;gap:14px;font:700 1.2rem "Playfair Display",Georgia,serif;color:#f4d77a;text-shadow:0 2px 6px #000}.er-hd .bz-b{padding:5px 14px;font-size:.85rem}',
-    '.er-ctl{display:flex;flex-wrap:wrap;gap:6px 16px;align-items:center;justify-content:center}.er-ctl .bz-b{padding:10px 18px;min-height:44px}.er-ctl .fl-opt{margin:0;flex-direction:row}.er-ctl .fl-opt>span,.er-ctl .fl-opt small{display:none}.er-ctl .pn-in{width:132px;min-height:44px;padding:8px 10px;font-size:.9rem}',
+    '.er-ctl{display:flex;flex-wrap:wrap;gap:6px 16px;align-items:center;justify-content:center}.er-ctl .bz-b{padding:10px 18px;min-height:44px}.er-ctl .fl-opt{margin:0;flex-direction:row}.er-ctl .fl-opt small{display:none}.er-ctl .fl-opt{flex-wrap:wrap;justify-content:center}.er-ctl .fl-opt>span{display:block;font-weight:800;color:#f4d77a;font-size:1rem}.er-ctl .pn-in{width:150px;min-height:44px;padding:8px 10px;font-size:.88rem}',
     '.er-stg{position:relative;flex:none;width:min(1340px,100%);height:var(--sh);display:flex;align-items:flex-end;justify-content:center;margin-top:2px}',
     '.er-stg::before{content:"";position:absolute;left:-3%;right:-3%;bottom:6px;height:38%;background:repeating-linear-gradient(90deg,rgba(130,215,255,.26) 0 1px,transparent 1px 70px),repeating-linear-gradient(0deg,rgba(130,215,255,.26) 0 1px,transparent 1px 26px);transform:perspective(420px) rotateX(64deg);transform-origin:50% 100%;-webkit-mask-image:linear-gradient(to top,#000 30%,transparent);mask-image:linear-gradient(to top,#000 30%,transparent);pointer-events:none}',
     '.er-stg::after{content:"";position:absolute;inset:0;background:radial-gradient(ellipse 60% 55% at 50% 92%,rgba(90,190,255,.30),transparent 70%);pointer-events:none}',
@@ -1986,7 +1986,7 @@ function deck(el,m,n,x,y,face,gap){clear(el);const cs=[];for(let i=0;i<n;i++){co
       var P = CFG.erP; try { erShowKill(); } catch (e) { }  // er3Preload removed: GLB files not deployed, preload caused ~30s freeze
       frame('Eton Rules', '<div class="er-in"><div class="er-hd"><span>Race from your House to Birley Schools!</span><button class="bz-b er-hw" onclick="apErHow(1)">Click for how to play</button></div>'
         + '<div class="er-ctl"><div class="bz-row">' + [[1, 'Solo'], [2, 'Two teams'], [3, 'Three teams'], [4, 'Four teams']].map(function (o) { return '<button class="bz-b' + (P === o[0] ? ' on' : '') + '" onclick="apErSet(' + o[0] + ')">' + o[1] + '</button>'; }).join('') + '</div>'
-        + (P > 1 ? pnBox(P, ['Team 1', 'Team 2', 'Team 3', 'Team 4'], [0, 1, 2, 3].map(pcL)) : '') + '</div>'
+        + (P > 1 ? pnBox(P, ['Team 1: type name', 'Team 2: type name', 'Team 3: type name', 'Team 4: type name'], [0, 1, 2, 3].map(pcL)) : '') + '</div>'
         + pickHTML(P, '<button class="bz-big go" onclick="apBzGo()">▶ Start</button>')
         + '<div class="er-how" id="er-how" onclick="apErHow(0)"><div>' + howText() + '<br><button class="bz-b">Got it</button></div></div></div>');
       window.apBzGo = play;
