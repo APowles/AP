@@ -21957,6 +21957,23 @@ function deck(el,m,n,x,y,face,gap){clear(el);const cs=[];for(let i=0;i<n;i++){co
       }
       for (var t2 = 0; !m && t2 < 400; t2++) { var d2 = pick(); if (d2) m = shuf(d2.c.concat(plains(d2.names, 40 - d2.c.length))); }
       if (!m) { var ff3 = draw(fates(), 2), nf = {}, nx = function (q) { return !nf[q[0]]; }; ff3.forEach(function (q) { nf[q[0]] = 1; }); var g3 = draw(PGOOD.filter(nx), 5), b3 = draw(PBAD.filter(nx), 5); g3.concat(b3).forEach(function (q) { nf[q[0]] = 1; }); var c3 = cards(); m = shuf(g3.concat(b3, ff3, c3, plains(nf, 40 - g3.length - b3.length - ff3.length - c3.length))); }
+      // lay the squares out line by line (the map is six rows of seven): every line gets two good/bad/fate squares and, except the first line, one Eton Rules card; the rest are quiet. The order within a line is random.
+      (function () {
+        var g = [], b = [], x = [], c = [], pl = [];
+        m.forEach(function (q) { var k = q[1]; if (k === 'g') g.push(q); else if (k === 'b') b.push(q); else if (k === 'x') x.push(q); else if (k === 'c') c.push(q); else pl.push(q); });
+        if (m.length !== 40 || g.length !== 5 || b.length !== 5 || x.length !== 2 || c.length !== 5) return;
+        var sizes = [6, 7, 7, 7, 7, 6], fl = Math.floor(Math.random() * 6), out = [], ln, k2;
+        g = shuf(g); b = shuf(b); x = shuf(x); c = shuf(c); pl = shuf(pl);
+        for (ln = 0; ln < 6; ln++) {
+          var line = ln === fl ? [x.pop(), x.pop()] : [g.pop(), b.pop()];
+          if (ln > 0) line.push(c.pop());
+          while (line.length < sizes[ln]) line.push(pl.pop());
+          line = shuf(line);
+          if (ln === 0) { for (k2 = 0; k2 < 20 && line[0][1] === 'b'; k2++) line = shuf(line); }
+          out = out.concat(line);
+        }
+        if (out.length === 40 && out.every(Boolean)) m = out;
+      })();
       return [SQ[0]].concat(m, [SQ[1]]);
     }
     function intro() {
@@ -22575,4 +22592,4 @@ function deck(el,m,n,x,y,face,gap){clear(el);const cs=[];for(let i=0;i<n;i++){co
   if (document.readyState === 'complete') start(); else window.addEventListener('load', start);
 })();
 </script>
-<script id="ap-build">window.__apBuild="d691049b45";</script>
+<script id="ap-build">window.__apBuild="928f578191";</script>
