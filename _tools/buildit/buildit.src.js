@@ -70,7 +70,7 @@
   }
   var BCH = [[43, 59, 62, 66], [38, 57, 62, 66]], BMEL = [66, null, 69, null, 66, 64, null, 62, null, 59, null, null];
   function bMusic() {
-    if (BM || !snd()) return; var c = bAc(); if (!c || c.state !== 'running' || !bx()) return;
+    if (BM || !snd()) return; var c = bAc(); if (!c) return; if (c.state !== 'running') { if (document.getElementById('bi-ov') && (bMusic.__r = (bMusic.__r || 0) + 1) <= 10) setTimeout(bMusic, 400); return; } bMusic.__r = 0; if (!bx()) return;
     var mg = c.createGain(), ms = c.createGain(); mg.gain.value = 0.4; ms.gain.value = 0.4; mg.connect(BS.dry); mg.connect(ms); ms.connect(BS.wet);
     var sp = 60 / 66, step = 0, next = c.currentTime + 0.6;
     function sched(s, t) {

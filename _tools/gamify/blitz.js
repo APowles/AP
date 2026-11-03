@@ -413,7 +413,7 @@ function deck(el,m,n,x,y,face,gap){clear(el);const cs=[];for(let i=0;i<n;i++){co
     else if (k === 'go') { note(370, 0, .45); }
     else if (k === 'end') { note(110, 0, 1.1, .26); note(165, .22, 1, .2); }
     else if (k === 'whoosh') { var c = ctx(); if (!c || !snd) return; var n = Math.floor(c.sampleRate * .3), b = c.createBuffer(1, n, c.sampleRate), d = b.getChannelData(0); for (var i = 0; i < n; i++) d[i] = (Math.random() * 2 - 1) * Math.sin(Math.PI * i / n); var s = c.createBufferSource(); s.buffer = b; var fl = c.createBiquadFilter(); fl.type = 'bandpass'; fl.Q.value = 1.4; fl.frequency.setValueAtTime(260, c.currentTime); fl.frequency.exponentialRampToValueAtTime(1500, c.currentTime + .2); var g = c.createGain(); g.gain.value = .5 * CFG.vol; s.connect(fl); fl.connect(g); g.connect(c.destination); s.start(); }
-    else if (k === 'dice') { if (!snd) return; try { var au = new Audio(DICE_SND); au.volume = Math.min(1, .9 * CFG.vol); au.onended = au.onpause = function () { try { if (AC && AC.state !== 'running') AC.resume(); } catch (e) { } }; var pr = au.play(); if (pr && pr.catch) pr.catch(function () { diceSynth(); }); return; } catch (e) { } diceSynth(); }
+    else if (k === 'dice') { if (!snd) return; try { if (window.__apAudio && __apAudio.clip(DICE_SND, Math.min(1, .9 * CFG.vol))) return; } catch (e) { } try { var au = new Audio(DICE_SND); au.volume = Math.min(1, .9 * CFG.vol); au.onended = au.onpause = function () { try { if (AC && AC.state !== 'running') AC.resume(); } catch (e) { } }; var pr = au.play(); if (pr && pr.catch) pr.catch(function () { diceSynth(); }); return; } catch (e) { } diceSynth(); }
   }
   function diceSynth() {
     { var c = ctx(); if (!c || !snd) return; for (var i = 0; i < 12; i++) (function (i) { var t = c.currentTime + i * .06 + Math.random() * .02, b = c.createBuffer(1, 800, c.sampleRate), d = b.getChannelData(0); for (var j = 0; j < 800; j++) d[j] = (Math.random() * 2 - 1) * Math.exp(-j / 120); var s = c.createBufferSource(); s.buffer = b; var g = c.createGain(); g.gain.value = .25 * CFG.vol; s.connect(g); g.connect(c.destination); s.start(t); })(i); }
@@ -619,7 +619,7 @@ function deck(el,m,n,x,y,face,gap){clear(el);const cs=[];for(let i=0;i<n;i++){co
   window.apBzSnd = function () { snd = !snd; saveCfg(); sndBtn(); if (!snd) musicStop(); else { ctx(); sfx('ok'); if (view !== 'pick') musicStart(); } if ($('bz-set')) panel(); };
   window.apBzBack = function () { stop(); try { if (window.__erHoloStop) __erHoloStop(); } catch (e) { } if (view === 'pick') close(); else pickScreen(); };
   function close() { stop(); musicStop(); PZ = false; try { if (window.__erHoloStop) __erHoloStop(); } catch (e) { } var sp = $('bz-set'); if (sp) sp.remove(); if (ov) { ov.remove(); ov = null; } document.documentElement.style.overflow = ''; }
-  window.apBlitz = function () {
+  window.apBlitz = function () { try { if (window.__apAudio) __apAudio.prep(DICE_SND); } catch (e) { }
     close(); ov = document.createElement('div'); ov.id = 'bz-ov'; ov.style.backgroundImage = 'url(' + BZ.stage + ')'; document.body.appendChild(ov);
     if (!$('bz-css')) { var st = document.createElement('style'); st.id = 'bz-css'; st.textContent = CSS.replace('CARDFACE', BZ.cardface) + DLCSS + FLCSS + C4CSS + ERCSS; document.head.appendChild(st); }
     document.documentElement.style.overflow = 'hidden';
@@ -1043,7 +1043,7 @@ function deck(el,m,n,x,y,face,gap){clear(el);const cs=[];for(let i=0;i<n;i++){co
     var S = window.APBZ_DEAL_SND; if (!snd || !S || !S[k]) return;
     try {
       if (!_dU[k]) { var b = atob(S[k]), u = new Uint8Array(b.length); for (var i = 0; i < b.length; i++) u[i] = b.charCodeAt(i); _dU[k] = URL.createObjectURL(new Blob([u], { type: 'audio/mpeg' })); }
-      var a = new Audio(_dU[k]); a.volume = Math.min(1, .7 * CFG.vol * (v == null ? 1 : Math.min(1.3, v * 1.25))); var pr = a.play(); if (pr && pr.catch) pr.catch(function () { });
+      var vv = Math.min(1, .7 * CFG.vol * (v == null ? 1 : Math.min(1.3, v * 1.25))); if (window.__apAudio && __apAudio.clip(_dU[k], vv)) return; var a = new Audio(_dU[k]); a.volume = vv; var pr = a.play(); if (pr && pr.catch) pr.catch(function () { });
     } catch (e) { }
   }
   function dTm(fn, ms) { var t = setTimeout(fn, ms); timers.push(t); return t; }

@@ -11,3 +11,17 @@ Before every commit that changes any of those pages, from the repo root run:
 then commit the changed pages and `version.json` together. Do this even for a one-word change. Git hooks are not copied when the repo is cloned, so nothing does this for you in a fresh session.
 
 A GitHub Action (`.github/workflows/stamp.yml`) also restamps after every push as a safety net, but do not rely on it: restamp yourself first.
+
+## Sound on the iPad (Prisma first): one shared audio engine on every page
+
+Every game page carries `<script id="ap-audiofix">` first in `<head>` (source: `_tools/audio/audiofix.js`). It makes every
+`new AudioContext()` in the page return ONE shared context, resumes it inside every tap, re-wakes it after the iPad interrupts it,
+sets `navigator.audioSession.type = 'playback'`, plays dice/deal clips through Web Audio, and shows a small "Tap here for sound"
+chip only if sound is still blocked. Add `#sounddebug` to a page address for a status line and a test beep.
+
+After changing `audiofix.js`, or after anything that rebuilds a page (Gamify inject, F Block build), run from the repo root:
+
+    python3 -I _tools/audio/inject.py          # idempotent; --dry to preview; --sources keeps blitz.js / buildit.src.js patched
+    python3 -I _tools/version/stamp.py
+
+It also patches the two F Block payloads (`fb-vocab`, `fb-verbs`) that the router writes into the page. Never use `rollout.sh`.
