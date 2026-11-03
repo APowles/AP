@@ -11309,6 +11309,8 @@ function deck(el,m,n,x,y,face,gap){clear(el);const cs=[];for(let i=0;i<n;i++){co
     '.er-chip.er-sc b{color:var(--sc,#f4d77a)}',
     '.er-turn{position:fixed;left:50%;top:34%;transform:translate(-50%,-50%);z-index:11700;pointer-events:none;width:max-content;max-width:94vw;text-align:center;animation:erTurnIn .35s cubic-bezier(.2,.9,.3,1.4),erTurnOut .4s ease-in 1.6s forwards}',
     '.er-turn .in{padding:clamp(18px,1.7vw,32px) clamp(40px,3.6vw,72px);border-radius:999px;background:rgba(5,10,24,.88);border:4px solid var(--tc,#f4d77a);box-shadow:0 0 40px var(--tc,#f4d77a),inset 0 0 24px rgba(255,255,255,.08);font:900 clamp(2.4rem,4vw,4.5rem)/1.1 Georgia,serif;color:var(--tc,#fff);letter-spacing:.02em;text-shadow:0 2px 8px rgba(0,0,0,.8);text-transform:uppercase;animation:erTurnPulse 1.3s ease-in-out infinite}',
+    '.er-turn.ask{pointer-events:auto;cursor:pointer;animation:erTurnIn .35s cubic-bezier(.2,.9,.3,1.4)}',
+    '.er-turn.ask .in{font-size:clamp(1.8rem,3vw,3.4rem)}',
     '@keyframes erTurnIn{from{opacity:0;transform:translate(-50%,-50%) scale(.5)}to{opacity:1;transform:translate(-50%,-50%) scale(1)}}',
     '@keyframes erTurnOut{to{opacity:0;transform:translate(-50%,-50%) scale(1.12)}}',
     '@keyframes erTurnPulse{50%{box-shadow:0 0 70px var(--tc,#f4d77a),inset 0 0 24px rgba(255,255,255,.14)}}',
@@ -12447,7 +12449,7 @@ function deck(el,m,n,x,y,face,gap){clear(el);const cs=[];for(let i=0;i<n;i++){co
       var ofr = null;
       function rowHTML() {
         var h = bar();
-        h += '<div class="er-chip er-st" id="er-st"><span>' + esc(msg) + '</span></div><button class="er-btn er-how-b" onclick="apErHow(1)">How to play</button><button class="er-btn er-go" id="er-go" onclick="apErAsk()"' + (busy || (ofr && ofr.t === 'ask') ? ' disabled' : '') + '>' + (P > 1 ? esc(nm(cur)) + ': tap here for your question' : 'Tap here for your question') + '</button>';
+        h += '<div class="er-chip er-st" id="er-st"><span>' + esc(msg) + '</span></div><button class="er-btn er-how-b" onclick="apErHow(1)">How to play</button>' + (P > 1 ? '' : '<button class="er-btn er-go" id="er-go" onclick="apErAsk()"' + (busy || (ofr && ofr.t === 'ask') ? ' disabled' : '') + '>Tap here for your question</button>');
         return h;
       }
       function refresh() {
@@ -12487,7 +12489,8 @@ function deck(el,m,n,x,y,face,gap){clear(el);const cs=[];for(let i=0;i<n;i++){co
         bt.onclick = function () {
           var old = $('er-tkp'); if (old) { old.remove(); return; }
           var pn = document.createElement('div'); pn.id = 'er-tkp';
-          var opts = [['+1 square', function (q) { return 1; }], ['+3 squares', function (q) { return 3; }], ['Next line', function (q) { return (Math.floor(q / 7) + 1) * 7 - q; }], ['Last line', function (q) { return q < 35 ? 35 - q : 0; }], ['Straight to Birley', function (q) { return LAST - q; }]];
+          var opts = [['+1 square', function (q) { return 1; }], ['+3 squares', function (q) { return 3; }], ['Next line', function (q) { return (Math.floor(q / 7) + 1) * 7 - q; }], ['Last line', function (q) { return q < 35 ? 35 - q : 0; }], ['Straight to Birley', function (q) { return LAST - q; }], ['Next Eton Rules card', function (q) { return nextKind('c', q); }], ['Next Ups and Downs', function (q) { return nextKind('x', q); }]];
+          function nextKind(k, q) { for (var i = q + 1; i <= LAST; i++) if (BD[i] && BD[i][1] === k) return i - q; return 0; }
           pn.innerHTML = '<b>Teacher: move this team on</b>' + opts.map(function (o, i) { return '<button class="bz-b" data-i="' + i + '">' + o[0] + '</button>'; }).join('');
           pn.onclick = function (ev) {
             var t = ev.target; if (!t || !t.getAttribute || t.getAttribute('data-i') === null) return;
@@ -12498,14 +12501,14 @@ function deck(el,m,n,x,y,face,gap){clear(el);const cs=[];for(let i=0;i<n;i++){co
           ov.appendChild(pn);
         };
       })();
-      if (P > 1) timers.push(setTimeout(function () { turnFlash(nm(0) + ' to answer', pcL(0)); }, 900));
+      if (P > 1) timers.push(setTimeout(function () { askFlash(nm(0) + ': click here for your question', pcL(0)); }, 900));
       function who() { return '<small class="fl-who"><span style="color:' + pcT(cur) + '">' + (P > 1 ? esc(nm(cur)) + ' · ' + pcN(cur) : 'Your go') + '</span> · square ' + pos[cur] + ' · ' + esc(H.names[dirs()[0]]) + '</small>'; }
       function task(c, v) { return '<div class="fl-hl">' + (c.ask ? 'Answer the question in ' + esc(H.names[target()]) : (v.hl ? 'Translate only the bold part into ' : 'Translate into ') + esc(H.names[dirs()[1]])) + '</div>'; }
       function backQ() { var v = hvOf(qd); return who() + '<div class="fl-q' + sz(qd) + '">' + qOf(qd) + '</div>' + task(qd, v) + '<div class="fl-hint">Say it, then reveal</div><button class="bz-big go" onclick="apErRev()">Reveal</button>'; }
       function backA() { var v = hvOf(qd); return who() + '<div class="fl-qs">' + qOf(qd) + '</div><div class="fl-ans' + (String(v.a).length > 95 ? ' fl-lg' : '') + '">' + esc(v.a) + ' ' + SAYBTN(v.a) + '</div><div class="fl-m"><button class="fl-n" onclick="apErMk(0)">✗ Major error</button><button class="fl-nr" onclick="apErMk(2)">~ Nearly</button><button class="fl-y" onclick="apErMk(1)">✓ Got it</button></div>'; }
       window.apErAsk = function () {
         if (busy) return; if (lcDone) lcDone();
-        busy = true; qd = nextQ(); sfx('whoosh'); refresh();
+        busy = true; qd = nextQ(); sfx('whoosh'); refresh(); try { var ak = document.querySelector('.er-turn.ask'); if (ak) ak.remove(); } catch (e) { }
         var st = document.createElement('div'); st.id = 'er-stage'; st.className = 'fl-stage'; st.innerHTML = '<div class="c4-q" id="er-q">' + backQ() + '</div>'; ov.appendChild(st);
         try { $('er-q').animate([{ transform: 'translateY(80px) rotateX(38deg) scale(.88)', opacity: 0 }, { transform: 'none', opacity: 1 }], { duration: 520, easing: 'cubic-bezier(.2,.8,.2,1)' }); } catch (e) { }
       };
@@ -12534,6 +12537,12 @@ function deck(el,m,n,x,y,face,gap){clear(el);const cs=[];for(let i=0;i<n;i++){co
         if (!quiet) { try { sfx('ok'); } catch (e) { } }
         timers.push(setTimeout(function () { if (el.parentNode) el.remove(); }, ms || 2000));
       }
+      function askFlash(txt, col) {   // multi-team: the central call-out IS the button for the question; it stays until tapped
+        turnFlash(txt, col, 0, false); var el = document.querySelector('.er-turn'); if (!el) return;
+        el.classList.add('ask'); el.style.animationDelay = ''; if (el.__t) clearTimeout(el.__t);
+        try { clearTimeout(timers.pop()); } catch (e) { }
+        el.onclick = function () { try { window.apErAsk(); } catch (e) { } };
+      }
       function nextTurn(again) {
         if (!again) cur = (cur + 1) % P; busy = false;
         if (!again && skip[cur] > 0) {   // a missed go: say so, flash it, then move on after a moment
@@ -12544,7 +12553,7 @@ function deck(el,m,n,x,y,face,gap){clear(el);const cs=[];for(let i=0;i<n;i++){co
         cam(PADS[pos[cur]][1]);
         msg = again ? (P > 1 ? nm(cur) + ' goes again.' : 'Go again.') : (P > 1 ? nm(cur) + ', your go.' : 'Your go.');
         refresh();
-        if (P > 1) turnFlash(nm(cur) + (again ? ': go again!' : ' to answer'), pcL(cur));
+        if (P > 1) askFlash(nm(cur) + (again ? ': go again! Click here for your question' : ': click here for your question'), pcL(cur));
       }
       function win() {
         cam(PADS[LAST][1]); msg = (P > 1 ? nm(cur) : 'You') + ' reached Birley Schools: Sent Up For Good!'; refresh();
@@ -13085,4 +13094,4 @@ function deck(el,m,n,x,y,face,gap){clear(el);const cs=[];for(let i=0;i<n;i++){co
   if (document.readyState === 'complete') start(); else window.addEventListener('load', start);
 })();
 </script>
-<script id="ap-build">window.__apBuild="ab6ebfbee4";window.__apVer=150;(function(){var N=window.__apVer;function put(){try{var h=document.querySelector('header.aph-header');if(!h||document.getElementById('ap-ver'))return;var s=document.createElement('span');s.id='ap-ver';s.textContent='v'+N;s.style.cssText='position:absolute;right:10px;bottom:4px;font:600 11px/1 system-ui,sans-serif;color:#c9a84c;opacity:.8;pointer-events:none;letter-spacing:.04em;z-index:2';if(getComputedStyle(h).position==='static')h.style.position='relative';h.appendChild(s)}catch(e){}}put();document.addEventListener('DOMContentLoaded',put);window.addEventListener('load',put);setInterval(put,2000)})();</script>
+<script id="ap-build">window.__apBuild="d09a8831b0";window.__apVer=151;(function(){var N=window.__apVer;function put(){try{var h=document.querySelector('header.aph-header');if(!h||document.getElementById('ap-ver'))return;var s=document.createElement('span');s.id='ap-ver';s.textContent='v'+N;s.style.cssText='position:absolute;right:10px;bottom:4px;font:600 11px/1 system-ui,sans-serif;color:#c9a84c;opacity:.8;pointer-events:none;letter-spacing:.04em;z-index:2';if(getComputedStyle(h).position==='static')h.style.position='relative';h.appendChild(s)}catch(e){}}put();document.addEventListener('DOMContentLoaded',put);window.addEventListener('load',put);setInterval(put,2000)})();</script>
