@@ -22141,6 +22141,7 @@ function deck(el,m,n,x,y,face,gap){clear(el);const cs=[];for(let i=0;i<n;i++){co
         var k = (typeof pick[1] === 'number' && pick[1] > 0) || pick[1] === 'again' ? 'g' : 'b';
         return [themed[0], pick[0], pick[1], k];
       }
+      var QUIET = ['A quick loo break.', 'A quick drink at the water fountain.', 'You stop to tie a shoelace.', 'You pause to brush down your tailcoat.', 'A friend stops you for a quick chat.', 'You catch your breath on your way to your next school.', 'You stop to read the notice board.'];
       function eff(me, e, done, chained) {
         if (typeof e === 'number' && e > 3) e = 3;
         if (e === 'again') { sfx('good'); done(true); }
@@ -22149,7 +22150,11 @@ function deck(el,m,n,x,y,face,gap){clear(el);const cs=[];for(let i=0;i<n;i++){co
           var from = pos[me], tgt = Math.max(0, Math.min(LAST - 1, pos[me] + e));
           (function mv() {
             if (pos[me] === tgt) {
-              popSq(pos[me]); if (e !== 0) { msg = 'You were moved by a card, so this square does nothing.'; refresh(); } setTimeout(function () { done(false); }, POP + 50);
+              var hid = e !== 0 && !RV[tgt] && /^[gbx]$/.test(BD[tgt][1] || '');   // moved onto a square nobody has uncovered yet: it stays covered and is just a quiet moment this time; the real square waits for whoever lands on it properly
+              popSq(pos[me], hid);
+              if (hid) { msg = QUIET[Math.floor(Math.random() * QUIET.length)] + ' Nothing happens here this time.'; refresh(); }
+              else if (e !== 0) { msg = 'You were moved by a card, so this square does nothing.'; refresh(); }
+              setTimeout(function () { done(false); }, POP + 50);
               return;
             }
             erTrail(pos[me], pcL(me)); pos[me] += pos[me] < tgt ? 1 : -1; setCar(me); sfx('thump'); refresh(); setTimeout(mv, 600);
@@ -22256,9 +22261,9 @@ function deck(el,m,n,x,y,face,gap){clear(el);const cs=[];for(let i=0;i<n;i++){co
         }, POP + 50);
       }
       var POP = 1300;
-      function popSq(i) {
+      function popSq(i, keep) {
         var all = document.querySelectorAll('#er-board .er-sq'), el = all[i]; if (!el) return; el.style.zIndex = 30;
-        if (!RV[i]) { RV[i] = 1; el.classList.remove('hid'); var kk = el.getAttribute('data-k'); if (kk) el.classList.add(kk); var q0 = BD[i]; el.setAttribute('title', q0[0] + (q0[2] ? ': ' + q0[2] : '')); }
+        if (!RV[i] && !keep) { RV[i] = 1; el.classList.remove('hid'); var kk = el.getAttribute('data-k'); if (kk) el.classList.add(kk); var q0 = BD[i]; el.setAttribute('title', q0[0] + (q0[2] ? ': ' + q0[2] : '')); }
         try { el.animate([{ transform: 'translate(-50%,-50%) scale(1)', offset: 0, easing: 'cubic-bezier(.2,.9,.3,1.2)' }, { transform: 'translate(-50%,-50%) scale(1.6)', offset: .3 }, { transform: 'translate(-50%,-50%) scale(1.6)', offset: .75, easing: 'ease-in' }, { transform: 'translate(-50%,-50%) scale(1)', offset: 1 }], { duration: POP }); } catch (e) { }   // a pulse that stays on screen: the landing card is what you read
         timers.push(setTimeout(function () { el.style.zIndex = ''; }, POP + 50));
       }
@@ -22390,7 +22395,7 @@ function deck(el,m,n,x,y,face,gap){clear(el);const cs=[];for(let i=0;i<n;i++){co
           } catch (e) { }
         }, ARR);
       } catch (e) { }
-      T2(function () { bye(false); }, ARR + 4800);
+      T2(function () { bye(false); }, ARR + 7800);
       el.onclick = function () { bye(true); };
     }; window.apErSplash(false);
   };
@@ -22569,4 +22574,4 @@ function deck(el,m,n,x,y,face,gap){clear(el);const cs=[];for(let i=0;i<n;i++){co
   if (document.readyState === 'complete') start(); else window.addEventListener('load', start);
 })();
 </script>
-<script id="ap-build">window.__apBuild="797756fde6";</script>
+<script id="ap-build">window.__apBuild="c17e08550b";</script>
