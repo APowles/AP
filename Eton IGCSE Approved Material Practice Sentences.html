@@ -13966,7 +13966,7 @@ function deck(el,m,n,x,y,face,gap){clear(el);const cs=[];for(let i=0;i<n;i++){co
     function pcN(s) { return PCS[picks[s]][0]; } function pcT(s) { return PCS[picks[s]][1]; } function pcL(s) { return PCS[picks[s]][2]; }
     // [name, kind, effect text, effect]   kind: '' normal, g good, b bad, f finish
     var SQ = [['Your House', 'f0', 'Start'], ['Birley Schools', 'f', 'Sent Up For Good!']], LAST = 27;
-    var PLAIN = [['Keate\'s Lane'], ['Evans\'s'], ['School Yard'], ['Burning Bush']];
+    var PLAIN = [['Keate\'s Lane'], ['Evans\'s'], ['School Yard'], ['Burning Bush'], ['High Street'], ['Baldwin\'s Shore'], ['Luxmoore\'s Garden'], ['Slough Road']];
     var PGOOD = [
       ['Rowland\'s & Tap', 'g', 'Go again', 'again'], ['Don Beni', 'g', 'Fantastic trip to Don Beni: forward 2', 2], ['Budgens', 'g', 'Forward 2', 2], ['Farrer Theatre', 'g', 'Cast in the school play: go again', 'again'],
       ['Cannon Yard', 'g', 'Fire the cannon: forward 2', 2], ['Welsh & Jefferies', 'g', 'Fitted for a Pop waistcoat: forward 2', 2], ['School Library', 'g', 'Forward 1', 1], ['Three Show Ups in one day', 'g', 'Great news: forward 3', 3],
@@ -14154,7 +14154,7 @@ function deck(el,m,n,x,y,face,gap){clear(el);const cs=[];for(let i=0;i<n;i++){co
       // draw from both pools together so linked squares never share a board; a name may appear only once
       // (College Chapel and the House Play role are both pool squares and fate squares), so names are counted
       function pick() {
-        var ff = draw(fates(), 2), gg = draw(PGOOD, 11), bb = draw(PBAD, 9), names = {};
+        var ff = draw(fates(), 2), gg = draw(PGOOD, 9), bb = draw(PBAD, 7), names = {};
         gg.concat(bb, ff).forEach(function (q) { names[q[0]] = (names[q[0]] || 0) + 1; });
         if (Object.keys(names).some(function (n) { return names[n] > 1; })) return null;
         return { c: gg.concat(bb, ff), names: names };
@@ -14166,7 +14166,7 @@ function deck(el,m,n,x,y,face,gap){clear(el);const cs=[];for(let i=0;i<n;i++){co
         var c = shuf(d.c.concat(PLAIN)); if (ok(c)) { m = c; break; }
       }
       for (var t2 = 0; !m && t2 < 400; t2++) { var d2 = pick(); if (d2) m = shuf(d2.c.concat(PLAIN)); }
-      if (!m) { var ff3 = draw(fates(), 2), nf = {}, nx = function (q) { return !nf[q[0]]; }; ff3.forEach(function (q) { nf[q[0]] = 1; }); m = shuf(draw(PGOOD.filter(nx), 11).concat(draw(PBAD.filter(nx), 9), ff3, PLAIN)); }
+      if (!m) { var ff3 = draw(fates(), 2), nf = {}, nx = function (q) { return !nf[q[0]]; }; ff3.forEach(function (q) { nf[q[0]] = 1; }); m = shuf(draw(PGOOD.filter(nx), 9).concat(draw(PBAD.filter(nx), 7), ff3, PLAIN)); }
       return [SQ[0]].concat(m, [SQ[1]]);
     }
     function intro() {
@@ -14410,8 +14410,19 @@ function deck(el,m,n,x,y,face,gap){clear(el);const cs=[];for(let i=0;i<n;i++){co
       function popSq(i) {
         var all = document.querySelectorAll('#er-board .er-sq'), el = all[i]; if (!el) return; el.style.zIndex = 30;
         if (!RV[i]) { RV[i] = 1; el.classList.remove('hid'); var kk = el.getAttribute('data-k'); if (kk) el.classList.add(kk); var q0 = BD[i]; el.setAttribute('title', q0[0] + (q0[2] ? ': ' + q0[2] : '')); }
-        try { el.animate([{ transform: 'translate(-50%,-50%) scale(1)', filter: 'brightness(1)', offset: 0, easing: 'cubic-bezier(.2,.9,.3,1.2)' }, { transform: 'translate(-50%,-50%) scale(3.8)', filter: 'brightness(1.15) drop-shadow(0 0 24px rgba(255,236,160,.9))', offset: .18 }, { transform: 'translate(-50%,-50%) scale(3.8)', filter: 'brightness(1.12) drop-shadow(0 0 18px rgba(255,236,160,.9))', offset: .9, easing: 'ease-in' }, { transform: 'translate(-50%,-50%) scale(1)', filter: 'brightness(1)', offset: 1 }], { duration: 2800 }); } catch (e) { }
-        timers.push(setTimeout(function () { el.style.zIndex = ''; }, 2850));
+        try {
+          // Adjust transform-origin so the pop-expand stays within the viewport.
+          // The square is centred at its left/top position; at scale 3.8 it grows ~1.4× its width in each direction.
+          // Check whether that would overflow any edge and anchor toward the safe side.
+          var r = el.getBoundingClientRect(), sw = r.width, sh = r.height, sc = 3.8;
+          var cx = r.left + sw / 2, cy = r.top + sh / 2;
+          var grow = sw * (sc - 1) / 2;  // pixels the expansion adds on each side
+          var ox = cx < grow ? 'left' : cx + grow > window.innerWidth ? 'right' : 'center';
+          var oy = cy < grow ? 'top' : cy + grow > window.innerHeight ? 'bottom' : 'center';
+          el.style.transformOrigin = ox + ' ' + oy;
+          el.animate([{ transform: 'translate(-50%,-50%) scale(1)', filter: 'brightness(1)', offset: 0, easing: 'cubic-bezier(.2,.9,.3,1.2)' }, { transform: 'translate(-50%,-50%) scale(3.8)', filter: 'brightness(1.15) drop-shadow(0 0 24px rgba(255,236,160,.9))', offset: .18 }, { transform: 'translate(-50%,-50%) scale(3.8)', filter: 'brightness(1.12) drop-shadow(0 0 18px rgba(255,236,160,.9))', offset: .9, easing: 'ease-in' }, { transform: 'translate(-50%,-50%) scale(1)', filter: 'brightness(1)', offset: 1 }], { duration: 2800 });
+        } catch (e) { }
+        timers.push(setTimeout(function () { el.style.zIndex = ''; el.style.transformOrigin = ''; }, 2850));
       }
       var lcDone = null;
       function lcShow(i, cb, qOv) {
@@ -14693,4 +14704,4 @@ function deck(el,m,n,x,y,face,gap){clear(el);const cs=[];for(let i=0;i<n;i++){co
   if (document.readyState === 'complete') start(); else window.addEventListener('load', start);
 })();
 </script>
-<script id="ap-build">window.__apBuild="215cbdddc7";</script>
+<script id="ap-build">window.__apBuild="8b1487fc43";</script>
