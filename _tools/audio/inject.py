@@ -26,6 +26,12 @@ PAIRS = [   # (name, old, new) for the engines embedded in the apps
  ('blitz prep clips',
   "window.apBlitz = function () {",
   "window.apBlitz = function () { try { if (window.__apAudio) __apAudio.prep(DICE_SND); } catch (e) { }"),
+ ('blitz ctx follows shared context',
+  "function ctx() { if (!AC) {",
+  "function ctx() { try { if (window.__apAudio && __apAudio.ctx && AC && AC !== __apAudio.ctx) AC = __apAudio.ctx; } catch (e) { } if (!AC) {"),
+ ('matchfx ctx follows shared context',
+  "function ac() {\n    try {\n      if (!ctx) {",
+  "function ac() {\n    try {\n      if (ctx && window.__apAudio && __apAudio.ctx && ctx !== __apAudio.ctx) ctx = window.__apCtx = __apAudio.ctx;\n      if (!ctx) {"),
  ('buildit music retry',
   "if (BM || !snd()) return; var c = bAc(); if (!c || c.state !== 'running' || !bx()) return;",
   "if (BM || !snd()) return; var c = bAc(); if (!c) return; if (c.state !== 'running') { if (document.getElementById('bi-ov') && (bMusic.__r = (bMusic.__r || 0) + 1) <= 10) setTimeout(bMusic, 400); return; } bMusic.__r = 0; if (!bx()) return;"),
@@ -39,7 +45,7 @@ def put(s, esc=False):
     return s[:m.end()] + '\n' + (BLOCK_ESC if esc else BLOCK) + s[m.end():], True
 
 if '--sources' in sys.argv:   # keep the same patches in the engine source files
-    for sf in ('_tools/gamify/blitz.js', '_tools/buildit/buildit.src.js'):
+    for sf in ('_tools/gamify/blitz.js', '_tools/buildit/buildit.src.js', '_tools/setup-layout/matchfx/matchfx.js'):
         t = open(sf, encoding='utf-8').read(); o2 = t
         for name, old, new in PAIRS:
             if new not in t and t.count(old): t = t.replace(old, new); print(sf, name)

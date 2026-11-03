@@ -8,6 +8,7 @@
   // one shared audio context for the whole page (Safari allows only a few; some apps already make one)
   function ac() {
     try {
+      if (ctx && window.__apAudio && __apAudio.ctx && ctx !== __apAudio.ctx) ctx = window.__apCtx = __apAudio.ctx;
       if (!ctx) { var C = window.AudioContext || window.webkitAudioContext; ctx = window.__apCtx || window.__amCtx || (C ? new C() : null); if (ctx) window.__apCtx = ctx; }
       if (ctx && ctx.state !== 'running') { var p = ctx.resume(); if (p && p.catch) p.catch(function () { }); }
     } catch (e) { ctx = null; }

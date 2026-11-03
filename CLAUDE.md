@@ -16,8 +16,8 @@ A GitHub Action (`.github/workflows/stamp.yml`) also restamps after every push a
 
 Every game page carries `<script id="ap-audiofix">` first in `<head>` (source: `_tools/audio/audiofix.js`). It makes every
 `new AudioContext()` in the page return ONE shared context, resumes it inside every tap, re-wakes it after the iPad interrupts it,
-sets `navigator.audioSession.type = 'playback'`, plays dice/deal clips through Web Audio, and shows a small "Tap here for sound"
-chip only if sound is still blocked. Add `#sounddebug` to a page address for a status line and a test beep.
+sets `navigator.audioSession.type = 'playback'`, plays dice/deal clips through Web Audio, and shows a large bottom-centre "Sound has stopped: tap here" chip only
+if sound is still blocked or the clock is frozen (the tap builds a fresh shared context; engines follow it). Add `#sounddebug` to a page address for a status line and a test beep.
 
 After changing `audiofix.js`, or after anything that rebuilds a page (Gamify inject, F Block build), run from the repo root:
 

@@ -17,16 +17,17 @@
     var Real = W.AudioContext || W.webkitAudioContext;
     G.Real = Real;
     if (Real && !Real.__apShim) {
+      G.make = function () {
+        var c = null;
+        try { c = new Real(); } catch (e) { try { c = new Real(); } catch (e2) { c = null; } }
+        if (!c) throw new Error('AudioContext unavailable');
+        try { c.close = function () { return Promise.resolve(); }; } catch (e) { }   // nobody may shut the shared context
+        try { if (c.addEventListener) c.addEventListener('statechange', function () { if (c.state !== 'running' && c === G.ctx) { try { var p = c.resume(); if (p && p.catch) p.catch(noop); } catch (e) { } } }); } catch (e) { }
+        return c;
+      };
       var Shim = function () {
         G.made++;
-        if (!G.ctx || G.ctx.state === 'closed') {
-          var c = null;
-          try { c = new Real(); } catch (e) { try { c = new Real(); } catch (e2) { c = null; } }
-          if (!c) throw new Error('AudioContext unavailable');
-          try { c.close = function () { return Promise.resolve(); }; } catch (e) { }   // nobody may shut the shared context
-          try { if (c.addEventListener) c.addEventListener('statechange', function () { if (c.state !== 'running') { try { var p = c.resume(); if (p && p.catch) p.catch(noop); } catch (e) { } } }); } catch (e) { }
-          G.ctx = c;
-        }
+        if (!G.ctx || G.ctx.state === 'closed') G.ctx = G.make();
         return G.ctx;
       };
       Shim.prototype = Real.prototype; Shim.__apShim = 1;
@@ -73,20 +74,48 @@
       try { var P = W.parent; if (P && P !== W && P.__apAudio && P.__apAudio.kick) P.__apAudio.kick(); } catch (e) { }   // frames: wake the page's context too
       setTimeout(G.check, 1300);
     };
+    // 'running' is not proof of sound: after a long stall the iPad can leave a context that says running while its clock is frozen
+    G.frozen = function () {
+      var c = G.ctx; if (!c || c.state !== 'running') return false;
+      var now = performance.now(), ct = c.currentTime, L = G.lastT;
+      if (!L || L.c !== c) { G.lastT = { at: now, ct: ct, c: c }; return false; }
+      if (now - L.at < 700) return false;
+      G.lastT = { at: now, ct: ct, c: c };
+      return (ct - L.ct) < ((now - L.at) / 1000) * 0.25;
+    };
     G.check = function () {
       var c = G.ctx;
-      if (!c || c.state === 'running') { G.hideChip(); return; }
+      if (!c) { G.hideChip(); return; }
+      if (c.state === 'running' && !G.frozen()) { G.hideChip(); G.bad = 0; return; }
       G.resume();
-      if (G.made > 0) G.showChip();   // only when something in the page has asked for sound
+      if (c.state === 'running') { G.bad = (G.bad || 0) + 1; if (G.bad < 2) { setTimeout(G.check, 900); return; } }
+      if (G.made > 0 && G.kicks > 0) G.showChip();   // only when something in the page has asked for sound and the page has been tapped
+    };
+    // tapped the chip (shown only when the sound is really dead): build a fresh context that every engine follows
+    G.recover = function () {   // runs inside the tap on the chip: a new context is only allowed to start inside a tap, so build it right now
+      G.renew(); G.kick();
+      setTimeout(G.check, 800);
+    };
+    G.renew = function () {
+      try {
+        var old = G.ctx, c = G.make(); G.ctx = c; G.renewed = (G.renewed || 0) + 1; G.lastT = null; G.bad = 0;
+        try { W.__apCtx = c; } catch (e) { }
+        try { if (W.__amCtx) W.__amCtx = c; } catch (e) { }
+        try { var p = c.resume(); if (p && p.catch) p.catch(noop); } catch (e) { }
+        try { var b = c.createBuffer(1, 1, 22050), s = c.createBufferSource(); s.buffer = b; s.connect(c.destination); s.start(0); } catch (e) { }
+        if (old) { try { G.Real.prototype.close.call(old); } catch (e) { } }
+        G.buf = {};   // decoded clips belong to the old context
+        try { W.dispatchEvent(new Event('apaudio-renew')); } catch (e) { }
+      } catch (e) { }
     };
     G.showChip = function () {
       try {
         if (G.chip && G.chip.isConnected) return;
         if (!document.body) return;
         var b = document.createElement('div'); b.id = 'ap-sound-chip'; b.setAttribute('role', 'button');
-        b.textContent = '🔇 Tap here for sound';
-        b.style.cssText = 'position:fixed;left:10px;bottom:10px;z-index:2147483600;background:#0b1a3b;color:#f0d27a;border:1px solid #c9a84c;border-radius:999px;padding:9px 14px;font:600 14px/1 system-ui,-apple-system,sans-serif;box-shadow:0 2px 10px rgba(0,0,0,.45);cursor:pointer;-webkit-tap-highlight-color:transparent';
-        b.addEventListener('click', function () { G.kick(); G.beep(); setTimeout(G.check, 400); });
+        b.textContent = '🔇 Sound has stopped: tap here to turn it back on';
+        b.style.cssText = 'position:fixed;left:50%;bottom:14px;transform:translateX(-50%);z-index:2147483600;max-width:92vw;text-align:center;background:#0b1a3b;color:#f0d27a;border:2px solid #f0d27a;border-radius:999px;padding:14px 22px;font:700 18px/1.2 system-ui,-apple-system,sans-serif;box-shadow:0 4px 18px rgba(0,0,0,.6);cursor:pointer;-webkit-tap-highlight-color:transparent';
+        b.addEventListener('click', function () { G.recover(); G.beep(); });
         document.body.appendChild(b); G.chip = b;
       } catch (e) { }
     };
@@ -128,6 +157,10 @@
       } catch (x) { return false; }
     };
 
+    G.watch = function () {
+      try { if (document.visibilityState === 'hidden' || !G.kicks || !G.ctx) return; G.check(); } catch (e) { }
+    };
+    setInterval(function () { G.watch(); }, 2500);
     G.wake = function () {
       try {
         if (document.visibilityState === 'hidden') { if (G.loop && !G.loop.paused) G.loop.pause(); return; }

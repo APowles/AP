@@ -19,16 +19,17 @@
     var Real = W.AudioContext || W.webkitAudioContext;
     G.Real = Real;
     if (Real && !Real.__apShim) {
+      G.make = function () {
+        var c = null;
+        try { c = new Real(); } catch (e) { try { c = new Real(); } catch (e2) { c = null; } }
+        if (!c) throw new Error('AudioContext unavailable');
+        try { c.close = function () { return Promise.resolve(); }; } catch (e) { }   // nobody may shut the shared context
+        try { if (c.addEventListener) c.addEventListener('statechange', function () { if (c.state !== 'running' && c === G.ctx) { try { var p = c.resume(); if (p && p.catch) p.catch(noop); } catch (e) { } } }); } catch (e) { }
+        return c;
+      };
       var Shim = function () {
         G.made++;
-        if (!G.ctx || G.ctx.state === 'closed') {
-          var c = null;
-          try { c = new Real(); } catch (e) { try { c = new Real(); } catch (e2) { c = null; } }
-          if (!c) throw new Error('AudioContext unavailable');
-          try { c.close = function () { return Promise.resolve(); }; } catch (e) { }   // nobody may shut the shared context
-          try { if (c.addEventListener) c.addEventListener('statechange', function () { if (c.state !== 'running') { try { var p = c.resume(); if (p && p.catch) p.catch(noop); } catch (e) { } } }); } catch (e) { }
-          G.ctx = c;
-        }
+        if (!G.ctx || G.ctx.state === 'closed') G.ctx = G.make();
         return G.ctx;
       };
       Shim.prototype = Real.prototype; Shim.__apShim = 1;
@@ -75,20 +76,48 @@
       try { var P = W.parent; if (P && P !== W && P.__apAudio && P.__apAudio.kick) P.__apAudio.kick(); } catch (e) { }   // frames: wake the page's context too
       setTimeout(G.check, 1300);
     };
+    // 'running' is not proof of sound: after a long stall the iPad can leave a context that says running while its clock is frozen
+    G.frozen = function () {
+      var c = G.ctx; if (!c || c.state !== 'running') return false;
+      var now = performance.now(), ct = c.currentTime, L = G.lastT;
+      if (!L || L.c !== c) { G.lastT = { at: now, ct: ct, c: c }; return false; }
+      if (now - L.at < 700) return false;
+      G.lastT = { at: now, ct: ct, c: c };
+      return (ct - L.ct) < ((now - L.at) / 1000) * 0.25;
+    };
     G.check = function () {
       var c = G.ctx;
-      if (!c || c.state === 'running') { G.hideChip(); return; }
+      if (!c) { G.hideChip(); return; }
+      if (c.state === 'running' && !G.frozen()) { G.hideChip(); G.bad = 0; return; }
       G.resume();
-      if (G.made > 0) G.showChip();   // only when something in the page has asked for sound
+      if (c.state === 'running') { G.bad = (G.bad || 0) + 1; if (G.bad < 2) { setTimeout(G.check, 900); return; } }
+      if (G.made > 0 && G.kicks > 0) G.showChip();   // only when something in the page has asked for sound and the page has been tapped
+    };
+    // tapped the chip (shown only when the sound is really dead): build a fresh context that every engine follows
+    G.recover = function () {   // runs inside the tap on the chip: a new context is only allowed to start inside a tap, so build it right now
+      G.renew(); G.kick();
+      setTimeout(G.check, 800);
+    };
+    G.renew = function () {
+      try {
+        var old = G.ctx, c = G.make(); G.ctx = c; G.renewed = (G.renewed || 0) + 1; G.lastT = null; G.bad = 0;
+        try { W.__apCtx = c; } catch (e) { }
+        try { if (W.__amCtx) W.__amCtx = c; } catch (e) { }
+        try { var p = c.resume(); if (p && p.catch) p.catch(noop); } catch (e) { }
+        try { var b = c.createBuffer(1, 1, 22050), s = c.createBufferSource(); s.buffer = b; s.connect(c.destination); s.start(0); } catch (e) { }
+        if (old) { try { G.Real.prototype.close.call(old); } catch (e) { } }
+        G.buf = {};   // decoded clips belong to the old context
+        try { W.dispatchEvent(new Event('apaudio-renew')); } catch (e) { }
+      } catch (e) { }
     };
     G.showChip = function () {
       try {
         if (G.chip && G.chip.isConnected) return;
         if (!document.body) return;
         var b = document.createElement('div'); b.id = 'ap-sound-chip'; b.setAttribute('role', 'button');
-        b.textContent = '🔇 Tap here for sound';
-        b.style.cssText = 'position:fixed;left:10px;bottom:10px;z-index:2147483600;background:#0b1a3b;color:#f0d27a;border:1px solid #c9a84c;border-radius:999px;padding:9px 14px;font:600 14px/1 system-ui,-apple-system,sans-serif;box-shadow:0 2px 10px rgba(0,0,0,.45);cursor:pointer;-webkit-tap-highlight-color:transparent';
-        b.addEventListener('click', function () { G.kick(); G.beep(); setTimeout(G.check, 400); });
+        b.textContent = '🔇 Sound has stopped: tap here to turn it back on';
+        b.style.cssText = 'position:fixed;left:50%;bottom:14px;transform:translateX(-50%);z-index:2147483600;max-width:92vw;text-align:center;background:#0b1a3b;color:#f0d27a;border:2px solid #f0d27a;border-radius:999px;padding:14px 22px;font:700 18px/1.2 system-ui,-apple-system,sans-serif;box-shadow:0 4px 18px rgba(0,0,0,.6);cursor:pointer;-webkit-tap-highlight-color:transparent';
+        b.addEventListener('click', function () { G.recover(); G.beep(); });
         document.body.appendChild(b); G.chip = b;
       } catch (e) { }
     };
@@ -130,6 +159,10 @@
       } catch (x) { return false; }
     };
 
+    G.watch = function () {
+      try { if (document.visibilityState === 'hidden' || !G.kicks || !G.ctx) return; G.check(); } catch (e) { }
+    };
+    setInterval(function () { G.watch(); }, 2500);
     G.wake = function () {
       try {
         if (document.visibilityState === 'hidden') { if (G.loop && !G.loop.paused) G.loop.pause(); return; }
@@ -8150,6 +8183,7 @@ textarea.ms-in{min-height:7rem;resize:vertical}.ms-hint.ms-hint-sm{font-size:.78
   // one shared audio context for the whole page (Safari allows only a few; some apps already make one)
   function ac() {
     try {
+      if (ctx && window.__apAudio && __apAudio.ctx && ctx !== __apAudio.ctx) ctx = window.__apCtx = __apAudio.ctx;
       if (!ctx) { var C = window.AudioContext || window.webkitAudioContext; ctx = window.__apCtx || window.__amCtx || (C ? new C() : null); if (ctx) window.__apCtx = ctx; }
       if (ctx && ctx.state !== 'running') { var p = ctx.resume(); if (p && p.catch) p.catch(function () { }); }
     } catch (e) { ctx = null; }
@@ -9620,7 +9654,7 @@ function deck(el,m,n,x,y,face,gap){clear(el);const cs=[];for(let i=0;i<n;i++){co
   function dieHTML(n, rolling) { var h = '<div class="bz-die' + (rolling ? ' roll' : '') + '">'; for (var i = 0; i < 9; i++) h += '<i class="' + ((DICE[n] || []).indexOf(i) >= 0 ? '' : 'o') + '"></i>'; return h + '</div>'; }
 
   // ---------- sound (quiet, bell-like; one switch in the bar)
-  function ctx() { if (!AC) { try { AC = new (window.AudioContext || window.webkitAudioContext)(); if (AC.addEventListener) AC.addEventListener('statechange', function () { if (AC.state !== 'running') try { AC.resume(); } catch (e) { } }); } catch (e) { } } if (AC && AC.state !== 'running') { try { AC.resume(); } catch (e) { } } return AC; }
+  function ctx() { try { if (window.__apAudio && __apAudio.ctx && AC && AC !== __apAudio.ctx) AC = __apAudio.ctx; } catch (e) { } if (!AC) { try { AC = new (window.AudioContext || window.webkitAudioContext)(); if (AC.addEventListener) AC.addEventListener('statechange', function () { if (AC.state !== 'running') try { AC.resume(); } catch (e) { } }); } catch (e) { } } if (AC && AC.state !== 'running') { try { AC.resume(); } catch (e) { } } return AC; }
   // after the dice clip (a plain audio element) iPads can leave the Web Audio sound switched off: wake it again on the next touch and when the clip ends
   ['pointerdown', 'touchstart', 'click'].forEach(function (ev) { document.addEventListener(ev, function () { if (AC && AC.state !== 'running') { try { AC.resume(); } catch (e) { } } }, true); });
   var TOPIC_PIC_ALL = {"A1.2":1,"A1.8":7,"A1.9":8,"A2.3":15,"A2.4":12,"A2.8":17,"A3.2":18,"A3.8":24,"A4.3":28,"A4.5":30,"A4.6":27,"B1.10":44,"B1.3":37,"B1.4":38,"B1.6":39,"B1.8":41,"B2.2":45,"B2.4":48,"B2.7":50,"B2.8":52,"B3.1":54,"B3.2":55,"B4.2":57,"B4.8":62,"B5.3":66,"B5.4":67,"B5.5":69,"B5.8":71,"C1.4":98,"C1.5":76,"C1.6":77,"C1.7":78,"C1.8":79,"C1.9":80,"C2.2":81,"C2.6":84,"C2.7":85,"C2.8":86,"C3.2":95,"C4.1":98,"C4.4":103,"C5.1":108,"D1.2":118,"D1.5":122,"D1.6":120,"D2.3":131,"E1.1":145}, bgNow = null;
@@ -10169,8 +10203,13 @@ function deck(el,m,n,x,y,face,gap){clear(el);const cs=[];for(let i=0;i<n;i++){co
     '.er-show{position:fixed;left:50%;top:53%;z-index:11500;pointer-events:none;height:min(88vh,1000px);aspect-ratio:.533;transform:translate(-50%,-50%);animation:ershowin .45s ease-out both}@keyframes ershowin{from{opacity:0;transform:translate(-50%,-50%) scale(.3)}to{opacity:1;transform:translate(-50%,-50%) scale(1)}}',
     '.er-show.out{animation:ershowout .56s ease-in forwards}@keyframes ershowout{from{opacity:1;transform:translate(-50%,-50%) scale(1)}to{opacity:0;transform:translate(-50%,-50%) scale(.55)}}',
     '.er-show *{pointer-events:none}',
-    '.er-show .au{position:absolute;inset:0;width:100%;height:100%;filter:brightness(0) invert(1);opacity:.28}',
-    '.er-show .rg{position:absolute;left:50%;bottom:-2%;width:150%;aspect-ratio:3.4;transform:translateX(-50%);border-radius:50%;border:3px solid var(--hc);box-shadow:0 0 30px var(--hc),inset 0 0 30px var(--hc);background:radial-gradient(ellipse,rgba(255,255,255,.4),transparent 70%)}',
+    '.er-show .bm2{position:absolute;left:6%;right:6%;top:0;bottom:3%;background:linear-gradient(to top,var(--hc),transparent 88%);opacity:.3;clip-path:polygon(10% 100%,90% 100%,100% 0,0 0)}',
+    '.er-show .sc{position:absolute;inset:0;overflow:hidden;-webkit-mask-size:100% 100%;mask-size:100% 100%;-webkit-mask-repeat:no-repeat;mask-repeat:no-repeat;pointer-events:none}.er-show .sc::after{content:"";position:absolute;inset:0;background:repeating-linear-gradient(0deg,transparent 0 3px,var(--sl) 3px 4px);opacity:.28}',
+    '.er-show .sc i{position:absolute;left:0;right:0;top:0;height:22%;background:linear-gradient(to bottom,transparent,var(--sl) 55%,transparent);opacity:.9;animation:ershsc 2.4s ease-in-out infinite alternate;will-change:transform}@keyframes ershsc{from{transform:translateY(-20%)}to{transform:translateY(420%)}}',
+    '.er-show .hp{position:absolute;left:-12%;right:-12%;top:0;height:3%;border-radius:50%;border:2px solid var(--sl);background:radial-gradient(ellipse,rgba(255,255,255,.28),transparent 72%);opacity:.9;animation:ershp 3.1s ease-in-out infinite alternate;will-change:transform}.er-show .hp.h2{animation-duration:3.8s;animation-delay:-1.1s;opacity:.55}.er-show .hp.h3{animation-duration:4.6s;animation-delay:-2.3s;opacity:.35}@keyframes ershp{from{transform:translateY(3100%)}to{transform:translateY(-80%)}}',
+    '.er-show .sd{position:absolute;inset:0;overflow:hidden;pointer-events:none}.er-show .sd i{position:absolute;bottom:4%;left:var(--x);width:2px;height:12%;background:linear-gradient(to top,transparent,var(--sl));opacity:0;animation:ershd var(--du,2.4s) linear infinite;animation-delay:var(--dl,0s);will-change:transform,opacity}@keyframes ershd{0%{opacity:0;transform:translateY(0)}15%{opacity:.9}100%{opacity:0;transform:translateY(-700%)}}',
+    '.er-showing .er-hp{opacity:0 !important;transition:opacity .2s}.er-showing .er-hp *,.er-showing .er-hp *::before,.er-showing .er-hp *::after{animation-play-state:paused !important}',
+    '.er-show .rg{position:absolute;left:50%;bottom:-2%;width:150%;aspect-ratio:3.4;transform:translateX(-50%);border-radius:50%;border:3px solid var(--hc);box-shadow:0 0 16px var(--hc);background:radial-gradient(ellipse,rgba(255,255,255,.4),transparent 70%)}',
     '.er-show .ro{position:absolute;inset:0;animation:ershowro 5s ease-in-out .3s both}@keyframes ershowro{0%{transform:scale(1)}50%{transform:scale(1.045)}100%{transform:scale(1)}}',
     '.er-show .er-gl{position:absolute;inset:0;width:100%;height:100%;z-index:2;opacity:0;pointer-events:none;background:transparent;filter:drop-shadow(0 0 18px var(--hc)) drop-shadow(0 0 44px var(--hc)) brightness(1.06) saturate(1.05) blur(.3px)}',
     '.er-show .er-sp{position:absolute;inset:0;width:100%;height:100%;z-index:4;opacity:0;pointer-events:none;background:transparent}',
@@ -10191,30 +10230,35 @@ function deck(el,m,n,x,y,face,gap){clear(el);const cs=[];for(let i=0;i<n;i++){co
     '.er-stg::after{content:"";position:absolute;inset:0;background:radial-gradient(ellipse 60% 55% at 50% 92%,rgba(90,190,255,.30),transparent 70%);pointer-events:none}',
     '.er-hp{position:relative;z-index:1;flex:0 0 calc(var(--fh)*.42);height:100%;border:0;background:none;cursor:pointer;display:flex;flex-direction:column;align-items:center;justify-content:flex-end;padding:0;perspective:760px;--hc:#7fd6ff;color:#dff3ff;font:700 .8rem "DM Sans",sans-serif;touch-action:manipulation;-webkit-tap-highlight-color:transparent}',
     '.er-hp.sel,.er-hp.tk{--hc:var(--sc)}',
-    '.er-hp .hoop{position:absolute;left:-15%;right:-15%;height:1.6%;z-index:9;pointer-events:none;border-radius:50%;background:var(--sl);box-shadow:0 0 10px var(--sl),0 0 28px var(--sl),0 0 60px var(--sl);opacity:.75;filter:blur(.5px);animation:erHoop var(--ht,8s) ease-in-out infinite alternate;animation-delay:var(--d)}',
-    '.er-hp .hoop.h2{opacity:.4;height:3%;filter:blur(4px);box-shadow:0 0 24px var(--sl),0 0 48px var(--sl);animation:erHoop var(--ht,8s) ease-in-out infinite alternate;animation-delay:calc(var(--d) + .4s);z-index:8}',
-    '.er-hp .hoop.h3{opacity:.22;height:5%;filter:blur(10px);box-shadow:0 0 28px var(--sl),0 0 60px var(--sl);animation:erHoop var(--ht,8s) ease-in-out infinite alternate;animation-delay:calc(var(--d) + .9s);z-index:7}',
-    '.er-hp .hoop.h4{opacity:.15;height:7%;filter:blur(16px);box-shadow:0 0 36px var(--sl);animation:erHoop var(--ht,8s) ease-in-out infinite alternate;animation-delay:calc(var(--d) + 1.4s);z-index:6}',
+    '.er-hp .hoop{position:absolute;left:-15%;right:-15%;height:1.6%;z-index:9;pointer-events:none;border-radius:50%;background:var(--sl);box-shadow:0 0 10px var(--sl),0 0 20px var(--sl);opacity:.75;animation:erHoop var(--ht,8s) ease-in-out infinite alternate;animation-delay:var(--d)}',
+    '.er-hp .hoop.h2{opacity:.4;height:3%;background:linear-gradient(to bottom,transparent,var(--sl),transparent);box-shadow:none;animation:erHoop var(--ht,8s) ease-in-out infinite alternate;animation-delay:calc(var(--d) + .4s);z-index:8}',
+    '.er-hp .hoop.h3{opacity:.22;height:5%;background:linear-gradient(to bottom,transparent,var(--sl),transparent);box-shadow:none;animation:erHoop var(--ht,8s) ease-in-out infinite alternate;animation-delay:calc(var(--d) + .9s);z-index:7}',
+    '.er-hp .hoop.h4{opacity:.15;height:7%;background:linear-gradient(to bottom,transparent,var(--sl),transparent);box-shadow:none;animation:erHoop var(--ht,8s) ease-in-out infinite alternate;animation-delay:calc(var(--d) + 1.4s);z-index:6}',
     '.er-hp .shards{position:absolute;left:0;right:0;top:0;bottom:0;pointer-events:none;z-index:8;overflow:hidden}',
-    '.er-hp .shards i{position:absolute;left:calc(10% + var(--l) * 80%);width:2px;height:14%;background:linear-gradient(to bottom,var(--sl),transparent);opacity:0;filter:blur(1px);animation:erShard var(--st,3.6s) linear infinite;animation-delay:var(--sd,0s)}',
+    '.er-hp .shards i{position:absolute;left:calc(10% + var(--l) * 80%);width:2px;height:14%;background:linear-gradient(to bottom,var(--sl),transparent);opacity:0;animation:erShard var(--st,3.6s) linear infinite;animation-delay:var(--sd,0s)}',
     '@keyframes erHoop{from{top:94%}to{top:-2%}}',
     '@keyframes erShard{0%{opacity:0;top:var(--sy1,20%);transform:scaleY(.4)}10%{opacity:.9}50%{opacity:.6}100%{opacity:0;top:var(--sy2,90%);transform:scaleY(1.4)}}',
     '.er-hp .pd{position:absolute;bottom:20px;left:4%;right:4%;height:30px;z-index:1}.er-hp .pd i{position:absolute;inset:0;border-radius:50%;border:2px solid var(--hc);box-shadow:0 0 16px var(--hc),inset 0 0 16px var(--hc);background:radial-gradient(ellipse,rgba(255,255,255,.35),transparent 70%)}.er-hp .pd i+i{animation:erring 2.6s ease-out infinite;animation-delay:var(--d);background:none}',
     '@keyframes erring{from{transform:scale(1);opacity:.9}to{transform:scale(1.55,1.9);opacity:0}}',
-    '.er-hp .bm{position:absolute;z-index:1;bottom:34px;left:12%;right:12%;height:calc(var(--fh)*1.04);background:var(--hc);clip-path:polygon(6% 100%,94% 100%,100% 0,0 0);-webkit-mask-image:linear-gradient(to top,rgba(0,0,0,.5),transparent);mask-image:linear-gradient(to top,rgba(0,0,0,.5),transparent);filter:blur(7px);opacity:.55;mix-blend-mode:screen;pointer-events:none}',
+    '.er-hp .bm{position:absolute;z-index:1;bottom:34px;left:12%;right:12%;height:calc(var(--fh)*1.04);background:var(--hc);clip-path:polygon(6% 100%,94% 100%,100% 0,0 0);-webkit-mask-image:linear-gradient(to top,rgba(0,0,0,.5),transparent);mask-image:linear-gradient(to top,rgba(0,0,0,.5),transparent);opacity:.5;pointer-events:none}',
     '.er-hp .fl{position:relative;z-index:2;margin-bottom:30px;transform-style:preserve-3d;animation:ersway 6.5s ease-in-out infinite alternate;animation-delay:var(--d)}',
     '@keyframes ersway{from{transform:rotateY(-24deg)}to{transform:rotateY(24deg)}}',
-    '.er-hp .fg{display:block;position:relative;animation:erfloat 2.8s ease-in-out infinite alternate;animation-delay:var(--d);filter:drop-shadow(0 0 3px #fff) drop-shadow(0 0 12px var(--hc)) drop-shadow(0 0 30px var(--hc)) brightness(1.18) saturate(1.12)}',
+    '.er-hp .fg{display:block;position:relative;animation:erfloat 2.8s ease-in-out infinite alternate;animation-delay:var(--d);filter:drop-shadow(0 0 3px #fff) drop-shadow(0 0 14px var(--hc))}',
     '@keyframes erfloat{from{transform:translateY(0)}to{transform:translateY(-9px)}}',
     '.er-hp .fg img{display:block;height:var(--fh);width:auto;animation:erflk 6s linear infinite;animation-delay:var(--d)}',
     '@keyframes erflk{0%,44%,56%,100%{opacity:1}46%{opacity:.72}48%{opacity:1}50%{opacity:.84}52%{opacity:1}}',
-    '.er-hp .sn,.er-hp .sn::after,.er-car .sn,.er-car .sn::after{position:absolute;inset:0;-webkit-mask-image:var(--im);mask-image:var(--im);-webkit-mask-size:100% 100%;mask-size:100% 100%;pointer-events:none}.er-hp .sn,.er-car .sn{background:linear-gradient(0deg,transparent 40%,var(--sl) 50%,transparent 60%);background-size:100% 300%;animation:erscan 5s ease-in-out infinite alternate;mix-blend-mode:screen;filter:brightness(1.3)}.er-hp .sn{animation-delay:var(--d)}.er-hp .sn::after,.er-car .sn::after{content:"";background:repeating-linear-gradient(0deg,transparent 0 3px,var(--sl) 3px 4px);opacity:.3}',
+    '.er-hp .sn,.er-hp .sn::after,.er-car .sn,.er-car .sn::after{position:absolute;inset:0;-webkit-mask-image:var(--im);mask-image:var(--im);-webkit-mask-size:100% 100%;mask-size:100% 100%;pointer-events:none}.er-hp .sn,.er-car .sn{background:linear-gradient(0deg,transparent 40%,var(--sl) 50%,transparent 60%);background-size:100% 300%;animation:erscan 5s ease-in-out infinite alternate}.er-hp .sn{animation-delay:var(--d)}.er-hp .sn::after,.er-car .sn::after{content:"";background:repeating-linear-gradient(0deg,transparent 0 3px,var(--sl) 3px 4px);opacity:.3}',
     '@keyframes erscan{from{background-position:0 0,0 0%}to{background-position:0 0,0 100%}}',
     '.er-hp small{position:relative;z-index:3;padding:2px 10px;border-radius:999px;background:rgba(8,16,40,.85);border:1px solid var(--hc);color:#e8f6ff;box-shadow:0 0 8px var(--hc)}',
-    '.er-hp:hover .fg,.er-hp.sel .fg{filter:drop-shadow(0 0 4px #fff) drop-shadow(0 0 20px var(--hc)) drop-shadow(0 0 48px var(--hc)) brightness(1.32) saturate(1.15)}.er-hp.sel .fl{scale:1.1}.er-hp.sel .bm{opacity:.85}.er-hp.sel small{color:#fff;font-size:.88rem}.er-hp.tk{opacity:.62}.er-hp.sel{opacity:1}',
-    /* Pause all heavy animations on avatars that are idle — only the selected/hovered one plays.
-       This is the main fix for the severe iPad lag: 8×8 GPU animations simultaneously are too much for Prisma. */
-    '.er-hp:not(.sel):not(:hover) .hoop,.er-hp:not(.sel):not(:hover) .shards i,.er-hp:not(.sel):not(:hover) .pd i+i,.er-hp:not(.sel):not(:hover) .fg,.er-hp:not(.sel):not(:hover) .fg img,.er-hp:not(.sel):not(:hover) .fl,.er-hp:not(.sel):not(:hover) .sn{animation-play-state:paused}',
+    '.er-hp:hover .fg,.er-hp.sel .fg{filter:drop-shadow(0 0 4px #fff) drop-shadow(0 0 22px var(--hc))}.er-hp.sel .fl{scale:1.1}.er-hp.sel .bm{opacity:.85}.er-hp.sel small{color:#fff;font-size:.88rem}.er-hp.tk{opacity:.62}.er-hp.sel{opacity:1}',
+    /* LEAN pick row (iPad): every figure just bobs on its podium (transform only, no filters, no 3D, no shadows).
+       The chosen figure's podium and body rise, and ONE light sweep runs up it, once. */
+    '.er-hp{perspective:none}.er-hp .hoop,.er-hp .shards,.er-hp .bm,.er-hp .pd i+i,.er-hp .sn::after{display:none !important}',
+    '.er-hp .pd{transition:transform .28s ease-out}.er-hp .pd i{box-shadow:none;background:rgba(255,255,255,.14)}',
+    '.er-hp .fl{transform-style:flat;animation:none;transition:transform .28s ease-out}.er-hp .fg,.er-hp:hover .fg,.er-hp.sel .fg{filter:none;will-change:transform}.er-hp .fg img{animation:none}',
+    '.er-hp small{box-shadow:none}',
+    '.er-hp .sn{display:none}.er-hp.sel .sn{display:block;background-size:100% 300%;animation:erscan 1.5s ease-out 1 both}',
+    '.er-hp.sel .pd,.er-hp.sel .fl{transform:translateY(-14px)}.er-hp.sel .pd i{border-color:var(--sc)}',
     '.er-ft{display:flex;align-items:center;justify-content:center;gap:22px;flex-wrap:wrap;margin-top:-4px}.er-ft .er-pt{margin:0}',
     '.er-how{position:absolute;inset:-12px -24px;display:none;align-items:center;justify-content:center;background:rgba(4,8,20,.84);z-index:20}.er-how.on{display:flex}.er-how>div{max-width:720px;padding:28px 36px;background:#0b1530;border:2px solid #c9a84c;border-radius:16px;color:#dfe7fb;font:500 1.05rem/1.65 "DM Sans",sans-serif;text-align:left}.er-how>div b{color:#f4d77a;font-weight:800;font-size:1.15em}.er-how>div em{font-style:italic;color:#f4d77a}.er-how .bz-b{margin-top:18px}',
     '.er-d3{position:fixed;left:50%;top:50%;width:0;height:0;z-index:45;pointer-events:none;perspective:1000px}.er-d3 .jp,.er-d3 .cb{position:absolute;width:var(--S);height:var(--S);transform-style:preserve-3d}.er-d3 .jp{left:calc(var(--S)/-2);top:calc(var(--S)/-2)}.er-d3 .cb{left:0;top:0}',
@@ -11046,6 +11090,7 @@ function deck(el,m,n,x,y,face,gap){clear(el);const cs=[];for(let i=0;i<n;i++){co
   }
 
   GAMES.run = function (p) {
+    try { if (!window.__erPre) { window.__erPre = []; for (var q = 0; q < 8; q++) { var pi = new Image(); pi.src = 'icons/er_p' + q + '.webp'; window.__erPre.push(pi); } } } catch (e) { }
     var PCS = [['Red', '#c0392b', '#ff7b6b'], ['Blue', '#1f5fbf', '#7fb2ff'], ['Purple', '#7a3fa0', '#c9a0e8'], ['Green', '#1f8a52', '#5fe3a0'], ['Gold', '#a37b00', '#f6d646'], ['White', '#5b6788', '#e8eaf5'], ['Sky blue', '#2c7bb8', '#9fd0f5'], ['Burgundy', '#8a1f3a', '#e07a96']], picks = [0, 1, 2, 3], picked = {}, pickTurn = 0, SCN = ['#ff2a4d', '#2f7bff', '#b45cff', '#18f0a0', '#ffd400', '#00e5ff', '#38c8ff', '#ff3fd0'];
     function pcN(s) { return PCS[picks[s]][0]; } function pcT(s) { return PCS[picks[s]][1]; } function pcL(s) { return PCS[picks[s]][2]; }
     // [name, kind, effect text, effect]   kind: '' normal, g good, b bad, f finish
@@ -11120,8 +11165,10 @@ function deck(el,m,n,x,y,face,gap){clear(el);const cs=[];for(let i=0;i<n;i++){co
     window.apErTurn = function (s) { pickTurn = s; pickRefresh(CFG.erP); };
     var GLB_AVAIL = {};  // GLB model files not deployed; keep empty so 3D path is never attempted
     function flat2DShowcase(i, el) {
-      // flat 2D showcase only (no 3D transforms: rotateY / preserve-3d crashed the Prisma browser on iPads): the picture appears large and breathes gently
-      el.innerHTML = '<img class="au" alt="" src="icons/er_p' + i + '.webp"><span class="rg"></span><div class="ro"><img class="ly a0" alt="" src="icons/er_p' + i + '.webp"></div>';
+      // flat 2D only (3D transforms crashed Prisma on iPads). The Star Trek transporter look is built from moving and fading layers only: no blur, no blend, no big shadows.
+      var im = 'icons/er_p' + i + '.webp', h = '', k;
+      for (k = 0; k < 8; k++) h += '<i style="--x:' + (14 + k * 10) + '%;--dl:' + ((k * 0.37) % 2.4).toFixed(2) + 's;--du:' + (2 + (k % 3) * 0.5) + 's"></i>';
+      el.innerHTML = '<div class="bm2"></div><span class="rg"></span><div class="ro"><img class="ly a0" alt="" src="' + im + '"><div class="sc" style="-webkit-mask-image:url(' + im + ');mask-image:url(' + im + ')"><i></i></div></div><b class="hp h1"></b><b class="hp h2"></b><b class="hp h3"></b><div class="sd">' + h + '</div>';
     }
     // 3D turntable: the 2D picture shows at once; when the model is ready it turns one full circle (5 s, eased) behind a crossfade
     // that keeps the picture on top whenever the figure faces the front. Slow (> 1.5 s), missing WebGL or a failed GLB: the flat 8-plane spin instead.
@@ -11185,7 +11232,7 @@ function deck(el,m,n,x,y,face,gap){clear(el);const cs=[];for(let i=0;i<n;i++){co
         });
       });
     }
-    function erKillEl(el) { try { if (el.__tm1) clearTimeout(el.__tm1); if (el.__tm2) clearTimeout(el.__tm2); if (el.__kill) el.__kill(); } catch (e) { } if (el.parentNode) el.parentNode.removeChild(el); }
+    function erKillEl(el) { try { if (el.__tm1) clearTimeout(el.__tm1); if (el.__tm2) clearTimeout(el.__tm2); if (el.__kill) el.__kill(); } catch (e) { } try { document.body.classList.remove('er-showing'); } catch (e) { } if (el.parentNode) el.parentNode.removeChild(el); }
     function erShowKill() { var o = document.querySelector('.er-show'); if (o) erKillEl(o); }
     window.apErShow = function (i) {
       var el = null;
@@ -11196,11 +11243,11 @@ function deck(el,m,n,x,y,face,gap){clear(el);const cs=[];for(let i=0;i<n;i++){co
         el.__life = function (ms) {  // the showcase fades out from t0 + ms and is gone ER_FADE later
           el.__lifeSet = 1; if (el.__tm1) clearTimeout(el.__tm1); if (el.__tm2) clearTimeout(el.__tm2);
           var left = Math.max(0, el.__t0 + ms - Date.now());
-          el.__tm1 = setTimeout(function () { el.classList.add('out'); }, left);
+          el.__tm1 = setTimeout(function () { el.classList.add('out'); try { document.body.classList.remove('er-showing'); } catch (e) { } }, left);
           el.__tm2 = setTimeout(function () { erKillEl(el); }, left + ER_FADE);
         };
         document.body.appendChild(el);
-        flat2DShowcase(i, el);  // show immediately; 3D upgrade below if available
+        try { document.body.classList.add('er-showing'); } catch (e) { } flat2DShowcase(i, el);  // show immediately; 3D upgrade below if available
         el.__life(ER_LIFE);
         if (GLB_AVAIL[i] && er3GlOK()) glb3DShowcase(i, el);
       } catch (e) {
@@ -11779,4 +11826,4 @@ function deck(el,m,n,x,y,face,gap){clear(el);const cs=[];for(let i=0;i<n;i++){co
   if (document.readyState === 'complete') start(); else window.addEventListener('load', start);
 })();
 </script>
-<script id="ap-build">window.__apBuild="68e18b075d";</script>
+<script id="ap-build">window.__apBuild="9254f122a8";</script>
