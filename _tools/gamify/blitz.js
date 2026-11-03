@@ -2067,7 +2067,7 @@ function deck(el,m,n,x,y,face,gap){clear(el);const cs=[];for(let i=0;i<n;i++){co
               else { popSq(pos[me]); timers.push(setTimeout(function () { done(false); }, 2850)); }
               return;
             }
-            pos[me] += pos[me] < tgt ? 1 : -1; setCar(me); sfx('thump'); refresh(); timers.push(setTimeout(mv, 600));
+            erTrail(pos[me], pcL(me)); pos[me] += pos[me] < tgt ? 1 : -1; setCar(me); sfx('thump'); refresh(); timers.push(setTimeout(mv, 600));
           })();
         }
       }
