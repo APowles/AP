@@ -20599,7 +20599,7 @@ function deck(el,m,n,x,y,face,gap){clear(el);const cs=[];for(let i=0;i<n;i++){co
     window.apErSet = function (n) { CFG.erP = n; picked = {}; saveCfg(); intro(); };
     function play() {
       stop(); sfx('erstart'); musicStart(true);
-      var BD = shufBoard(); for (var bt = 0; bt < 6 && BD.length !== PADS.length; bt++) BD = shufBoard(); var LAST = Math.min(BD.length, PADS.length) - 1, LC = {}; picked = {}; erShowKill();   // LC: how many times each square has been landed on
+      var BD = shufBoard(); for (var bt = 0; bt < 6 && BD.length !== PADS.length; bt++) BD = shufBoard(); var LAST = Math.min(BD.length, PADS.length) - 1, LC = {}, FR = {}; picked = {}; erShowKill();   // LC: how many times each square has been landed on
       var P = CFG.erP, pos = [], skip = [], cur = 0, busy = false, deck = [], di = 0, qd = null, turns = 0, msg = '';
       for (var s = 0; s < P; s++) { pos.push(0); skip.push(0); }
       msg = P > 1 ? nm(0) + ', your go.' : 'Your go.';
@@ -20961,7 +20961,7 @@ function deck(el,m,n,x,y,face,gap){clear(el);const cs=[];for(let i=0;i<n;i++){co
           try { sfx('fate'); } catch (e) { }
           var outs = q0[4], pick = outs[Math.floor(Math.random() * outs.length)];
           var k = (typeof pick[1] === 'number' && pick[1] > 0) || pick[1] === 'again' ? 'g' : 'b';
-          q = [q0[0], k, pick[0], pick[1]];
+          q = [q0[0], k, pick[0], pick[1]]; FR[pos[me]] = q;   // the square remembers what fate decided
         }
         var e = q[3];
         popSq(pos[me]);
@@ -20997,7 +20997,7 @@ function deck(el,m,n,x,y,face,gap){clear(el);const cs=[];for(let i=0;i<n;i++){co
         el.onclick = close; bg.onclick = close; document.body.appendChild(bg); document.body.appendChild(el); lcDone = close; sfx('tick');
         if (cb) { lcAutoT = setTimeout(close, q[1] === 'c' ? 6500 : big ? 4000 : 2500); }
       }
-      window.apErSq = function (i) { if (busy || $('er-lc') || $('er-stage') || !RV[i]) return; lcShow(i, null); };
+      window.apErSq = function (i) { if (busy || $('er-lc') || $('er-stage') || !RV[i]) return; lcShow(i, null, FR[i] || (BD[i][1] === 'x' ? [BD[i][0], 'x', 'Fate: decided by chance when a team lands here. It can be good or bad.'] : undefined)); };
       window.apErMk = function (m) {
         var stg = $('er-stage'); if (!stg || !qd) return; var qWas = qd; qd = null; stg.style.pointerEvents = 'none'; try { speechSynthesis.cancel(); } catch (e) { }
         stg.style.transition = 'opacity .22s'; stg.style.opacity = '0'; turns++;
@@ -21585,4 +21585,4 @@ function deck(el,m,n,x,y,face,gap){clear(el);const cs=[];for(let i=0;i<n;i++){co
   if (document.readyState === 'complete') start(); else window.addEventListener('load', start);
 })();
 </script>
-<script id="ap-build">window.__apBuild="03c77493f8";</script>
+<script id="ap-build">window.__apBuild="29aedec28e";</script>
