@@ -943,7 +943,7 @@ function deck(el,m,n,x,y,face,gap){clear(el);const cs=[];for(let i=0;i<n;i++){co
     '.er-sq .fx{position:absolute;right:-6%;top:-6%;min-width:28%;padding:0 4%;height:28%;border-radius:999px;background:#14203f;border:2px solid #f4d77a;color:#f7e9b5;font:900 calc(var(--bw)*.0135)/1 "DM Sans",sans-serif;display:flex;align-items:center;justify-content:center;box-shadow:0 2px 4px rgba(0,0,0,.5);z-index:2}.er-sq.g .fx{background:#12503a;border-color:#5fe3a0}.er-sq.b .fx{background:#5a1c24;border-color:#ff7b6b}',
     '.er-sq .cp{position:absolute;top:calc(100% + var(--bw)*.006);left:50%;transform:translateX(-50%);white-space:nowrap;padding:.12em .55em;border-radius:999px;background:rgba(8,16,40,.82);color:#f3ead0;font:700 max(10px,calc(var(--bw)*.0118))/1.25 "DM Sans",sans-serif;letter-spacing:.02em;z-index:1}.er-sq.np .cp{display:none}',
     '.er-lay{position:absolute;inset:0;pointer-events:none}',
-    '.er-sq.c .cr{display:block;width:50%;height:auto;border-radius:0;box-shadow:none;filter:drop-shadow(0 1px 2px rgba(0,0,0,.6))}.er-sq.c .pn,.er-sq.c .cp{display:none}.er-sq.c::after{border-color:#9fd0ff;box-shadow:0 0 calc(var(--bw)*.014) #9fd0ff}.er-sq.c .fx{left:50%;right:auto;top:auto;bottom:-16%;transform:translateX(-50%);white-space:nowrap;background:#16355e;border-color:#9fd0ff;color:#e6f3ff;padding:0 7%;font-size:calc(var(--bw)*.0105);height:24%}',
+    '.er-sq.c .cr{display:block;width:50%;height:auto;border-radius:0;box-shadow:none;filter:drop-shadow(0 1px 2px rgba(0,0,0,.6))}.er-sq.c .pn,.er-sq.c .cp{display:none}.er-sq.c::after{border-color:#ffd76a;box-shadow:0 0 calc(var(--bw)*.014) #ffd76a}.er-sq.c .fx{left:50%;right:auto;top:auto;bottom:-16%;transform:translateX(-50%);white-space:nowrap;background:#4a3508;border-color:#ffd76a;color:#fff3c8;padding:0 7%;font-size:calc(var(--bw)*.0105);height:24%}',
     '.er-sq .cr{display:none}.er-sq.hid .cr{display:block;width:52%;height:auto;border-radius:0;box-shadow:none;filter:brightness(.6) saturate(.75) drop-shadow(0 1px 2px rgba(0,0,0,.6));opacity:.78}.er-sq.hid{background:radial-gradient(circle at 40% 35%,#182546,#0a1024 75%);box-shadow:inset 0 0 calc(var(--bw)*.014) rgba(0,0,0,.75);outline:calc(var(--bw)*.003) solid rgba(201,168,76,.3);outline-offset:calc(var(--bw)*-.003);opacity:.82}.er-sq.hid>img:not(.cr),.er-sq.hid .fx,.er-sq.hid .cp,.er-sq.hid .pn{display:none!important}.er-sq.hid::after{display:none}',
     '.er-sq{cursor:pointer}',
     '.er-lc{position:fixed;left:50%;top:50%;width:min(520px,88vw);z-index:12000;box-sizing:border-box;padding:24px 28px 20px;border-radius:18px;text-align:center;color:#f6efd8;background:linear-gradient(165deg,#14264f,#0a1531);border:3px solid #e6c15a;box-shadow:0 18px 50px rgba(0,0,0,.75),0 0 60px rgba(230,193,90,.25);transform:translate(-50%,-50%);animation:erlc .55s cubic-bezier(.2,.9,.3,1.15);cursor:pointer;font-family:"DM Sans",sans-serif}',
@@ -958,6 +958,8 @@ function deck(el,m,n,x,y,face,gap){clear(el);const cs=[];for(let i=0;i<n;i++){co
     '.er-lc .bd{display:inline-block;min-width:calc(var(--bw)*.1);padding:.05em .45em;border-radius:999px;font:800 calc(var(--bw)*.05)/1.15 "DM Sans",sans-serif;background:#0a1531;border:calc(var(--bw)*.0038) solid #f4d77a;color:#f4d77a}',
     '.er-lc.g .bd{color:#5fe3a0;border-color:#5fe3a0}.er-lc.b .bd{color:#ff7b6b;border-color:#ff7b6b}',
     '.er-lc .bd.w{font-size:calc(var(--bw)*.03)}',
+    '.er-lc.c{background:linear-gradient(165deg,#4a3508,#1c1405 70%);border-color:#ffd76a;overflow:hidden;animation:erlc .55s cubic-bezier(.2,.9,.3,1.15),erCg 1.7s ease-in-out .6s infinite}@keyframes erCg{0%,100%{box-shadow:0 18px 50px rgba(0,0,0,.75),0 0 30px 6px rgba(255,215,106,.45)}50%{box-shadow:0 18px 50px rgba(0,0,0,.75),0 0 70px 20px rgba(255,215,106,.85)}}.er-lc.c::after{content:"";position:absolute;inset:0;background:linear-gradient(105deg,transparent 35%,rgba(255,240,180,.35) 50%,transparent 65%);transform:translateX(-120%);animation:erSh 2.4s ease-in-out .8s infinite;pointer-events:none}@keyframes erSh{to{transform:translateX(120%)}}.er-lc.c img.crs{width:calc(var(--bw)*.11);height:auto;border-radius:0;box-shadow:none;filter:drop-shadow(0 3px 8px rgba(0,0,0,.7))}.er-lc.c .t{letter-spacing:.14em;text-transform:uppercase;color:#ffe39a}.er-lc.c.out{animation:erlco .3s ease-in forwards}',
+    '.er-lc.er-ef{width:min(600px,92vw);max-height:94vh;padding:18px 24px 16px;overflow:hidden;background:linear-gradient(165deg,#1b2350,#0a1030);animation:erlc .55s cubic-bezier(.2,.9,.3,1.15),erEf 1.1s ease-in-out .6s infinite}@keyframes erEf{0%,100%{border-color:#5fe3a0;box-shadow:0 18px 50px rgba(0,0,0,.75),0 0 40px 8px rgba(95,227,160,.55)}50%{border-color:#ff7b6b;box-shadow:0 18px 50px rgba(0,0,0,.75),0 0 40px 8px rgba(255,123,107,.55)}}.er-lc.er-ef.g,.er-lc.er-ef.b{animation:erlc .3s ease-out}.er-lc.er-ef.out{animation:erlco .3s ease-in forwards}.er-ef .ef-top{font:800 calc(var(--bw)*.0125)/1 "DM Sans",sans-serif;letter-spacing:.16em;text-transform:uppercase;color:#cdd7f2;margin-bottom:8px}.er-lc.er-ef img{width:min(34vh,52vw);height:min(34vh,52vw);margin:0 auto 8px;border-radius:18px}.er-lc.er-ef .t{font-size:clamp(1.5rem,calc(var(--bw)*.034),2.4rem)}.er-ef .ef-q{font:800 clamp(1.4rem,3vw,2.2rem)/1.1 Georgia,serif;color:#fff;margin-top:6px;animation:efP .7s ease-in-out infinite}@keyframes efP{50%{opacity:.35}}.er-ef .ef-r{display:none}.er-ef.rv .ef-q{display:none}.er-ef.rv .ef-r{display:block;animation:efR .55s cubic-bezier(.2,.9,.3,1.3)}@keyframes efR{from{opacity:0;transform:scale(.4)}to{opacity:1;transform:none}}.er-ef .ef-h{font:800 clamp(2.6rem,9vw,4.6rem)/1 "DM Sans",sans-serif;letter-spacing:.04em}.er-ef.g .ef-h{color:#5fe3a0;text-shadow:0 0 30px rgba(95,227,160,.7)}.er-ef.b .ef-h{color:#ff7b6b;text-shadow:0 0 30px rgba(255,123,107,.7)}.er-ef .ef-s{font:600 clamp(1rem,2.2vw,1.35rem)/1.3 "DM Sans",sans-serif;color:#f6efd8;margin:6px 0}.er-ef .er-lc-b{visibility:hidden}.er-ef.rv .er-lc-b{visibility:visible}',
     '.er-lc .er-lc-b{margin-top:calc(var(--bw)*.014);height:auto;min-height:44px;padding:0 calc(var(--bw)*.026);font-size:max(1rem,calc(var(--bw)*.016));border-radius:999px;color:#f4d77a;border-color:rgba(244,215,122,.65);background:rgba(8,14,32,.85);letter-spacing:.04em;justify-content:center}.er-lc .er-lc-b:hover{box-shadow:0 0 0 2px rgba(244,215,122,.35)}.er-lc-bg{position:fixed;inset:0;z-index:11990;background:rgba(5,10,24,.58);cursor:pointer;animation:erdcBg .3s ease-out both}.er-lc-bg.out{animation:erdcBgO .3s ease-in forwards}',
     '.er-car{position:absolute;transform:translate(-50%,-100%);z-index:3;transition:left .6s ease-in-out,top .6s ease-in-out;pointer-events:none;opacity:.9}.er-car.on{z-index:4;opacity:1}',
     '.er-car .rg{position:absolute;left:50%;bottom:-3%;width:190%;aspect-ratio:3.4;transform:translateX(-50%);border-radius:50%;border:max(1.5px,calc(var(--bw)*.002)) solid var(--g);box-shadow:0 0 calc(var(--bw)*.01) var(--g),inset 0 0 calc(var(--bw)*.01) var(--g);background:radial-gradient(ellipse,rgba(255,255,255,.35),transparent 70%)}',
@@ -1930,7 +1932,7 @@ function deck(el,m,n,x,y,face,gap){clear(el);const cs=[];for(let i=0;i<n;i++){co
       + '~ <b>Nearly</b> \u2014 an in-between question first, then the same card again; get both right and move forward one square<br>'
       + '\u2717 <b>Major error</b> \u2014 no move<br><br>'
       + '<b>The board</b><br>Squares are hidden until someone lands on them.<br>'
-      + '<span style="color:#5fe3a0">\u25CF</span> Green = good &nbsp; <span style="color:#ff7b6b">\u25CF</span> Red = bad &nbsp; <span style="color:#c9a0e8">\u25CF</span> Purple = fate (re\u2011rolled for each boy) &nbsp; <span style="color:#9fd0ff">\u25CF</span> Blue = Eton Rules card<br><br>'
+      + '<span style="color:#5fe3a0">\u25CF</span> Green = good &nbsp; <span style="color:#ff7b6b">\u25CF</span> Red = bad &nbsp; <span style="color:#c9a0e8">\u25CF</span> Purple = Eton Life: Ups and Downs (it could go either way) &nbsp; <span style="color:#ffd76a">\u25CF</span> Gold = Eton Rules card<br><br>'
       + '<b>Eton Rules squares</b><br>The blue squares marked <span style="color:#9fd0ff">ETON RULES CARD</span> are the only way to win a card. Land on one and you get a bonus question: answer it right (Got it) and you may take an Eton Rules card or pass. Good news or bad \u2014 no card repeats until the pack is used.<br><br>'
       + '<b>Winning</b><br>Only a roll or a Nearly can take you into Birley Schools.<br>The first to arrive is <em>Sent Up For Good</em>.'; }
     window.__erHoloStop = function () { try { erShowKill(); } catch (e) { } };
@@ -2069,7 +2071,7 @@ function deck(el,m,n,x,y,face,gap){clear(el);const cs=[];for(let i=0;i<n;i++){co
           return out.length >= n;
         }); return out;
       }
-      function fates() { return PFATE.map(function (f) { return [f[0], 'x', 'Fate — good or bad!', 0, f[1]]; }); }
+      function fates() { return PFATE.map(function (f) { return [f[0], 'x', 'Eton Life: Ups and Downs!', 0, f[1]]; }); }
       // draw from both pools together so linked squares never share a board; a name may appear only once
       // (College Chapel and the House Play role are both pool squares and fate squares), so names are counted
       function pick() {
@@ -2492,7 +2494,7 @@ function deck(el,m,n,x,y,face,gap){clear(el);const cs=[];for(let i=0;i<n;i++){co
         msg = (q[0] + ': ' + q[2] + '.'); refresh();
         // show the landing card, then walk the effect — dedicated timer (not in timers[]) so stop() cannot kill it
         setTimeout(function () {
-          try { lcShow(pos[me], function () { try { eff(me, e, fin, chained); } catch (ex) { console.warn('eff err', ex); fin(false); } }, q); }
+          try { (q0[1] === 'x' ? lcFate : lcShow)(pos[me], function () { try { eff(me, e, fin, chained); } catch (ex) { console.warn('eff err', ex); fin(false); } }, q); }
           catch (ex) { console.warn('lcShow err', ex); try { eff(me, e, fin, chained); } catch (ex2) { fin(false); } }
         }, POP + 50);
       }
@@ -2504,23 +2506,40 @@ function deck(el,m,n,x,y,face,gap){clear(el);const cs=[];for(let i=0;i<n;i++){co
         timers.push(setTimeout(function () { el.style.zIndex = ''; }, POP + 50));
       }
       var lcDone = null;
+      function lcFate(i, q, cb, still) {   // an "Eton Life: Ups and Downs!" square: the picture, a moment of suspense (heartbeats), then a big UP or DOWN
+        var bd = $('er-board'); if (!bd) { if (cb) cb(); return; } var old = $('er-lc'); if (old) old.remove(); var oldBg = $('er-lcbg'); if (oldBg) oldBg.remove();
+        var full = q[0], ic = ICO[full], good = q[1] === 'g', e = q[3];
+        var big = typeof e === 'number' ? fxOf(q) : e === 'again' ? '↻ Go again' : e === 'miss' ? 'Miss a go' : e === 'miss2' ? 'Miss 2 goes' : '';
+        var el = document.createElement('div'); el.id = 'er-lc'; el.className = 'er-lc er-ef';
+        el.innerHTML = '<div class="ef-top">Eton Life: Ups and Downs!</div>' + (ic ? '<img alt="" src="icons/er_' + ic + '.webp">' : '') + '<div class="t">' + esc(full) + '</div><div class="ef-q">How did it go?</div>'
+          + '<div class="ef-r"><div class="ef-h">' + (good ? '▲ UP!' : '▼ DOWN!') + '</div><div class="ef-s">' + esc(q[2] || '') + '</div>' + (big ? '<div class="bd">' + esc(big) + '</div>' : '') + '</div>'
+          + '<button class="er-btn er-lc-b">' + (cb ? 'Carry on ▶' : 'Close') + '</button>';
+        var bg = document.createElement('div'); bg.id = 'er-lcbg'; bg.className = 'er-lc-bg';
+        var fin = false, shown = false, tm = [];
+        function reveal(quiet) { if (shown || fin) return; shown = true; tm.forEach(clearTimeout); el.classList.add('rv'); el.classList.add(good ? 'g' : 'b'); if (!quiet) { try { sfx(good ? 'cgood' : 'cbad'); } catch (x) { } } }
+        function close() { if (fin) return; fin = true; tm.forEach(clearTimeout); lcDone = null; el.classList.add('out'); bg.classList.add('out'); setTimeout(function () { el.remove(); bg.remove(); }, 300); if (cb) cb(); }
+        function tap() { if (!shown) reveal(); else close(); }
+        el.onclick = tap; bg.onclick = tap; document.body.appendChild(bg); document.body.appendChild(el); lcDone = function () { shown = true; close(); };
+        if (still) reveal(true);
+        else { try { sfx('whoosh'); } catch (x) { } [350, 1150, 1950].forEach(function (ms) { tm.push(setTimeout(function () { try { sfx('beat'); } catch (x) { } }, ms)); }); tm.push(setTimeout(function () { reveal(); }, 2900)); }
+      }
       function lcShow(i, cb, qOv) {
         var bd = $('er-board'); if (!bd) { if (cb) cb(); return; } var old = $('er-lc'); if (old) old.remove(); var oldBg = $('er-lcbg'); if (oldBg) oldBg.remove();
         var q = qOv || BD[i], full = q[0], ti = full, su = '', k = full.indexOf(': '); if (k > 0) { ti = full.slice(0, k); su = full.slice(k + 2); }
         ti = ti.replace(/\s*\(.*\)\s*$/, function (m) { su = su || m.replace(/[()]/g, '').trim(); return ''; });
-        var kd = q[1] === 'g' ? 'g' : q[1] === 'b' ? 'b' : '', e = q[3], fx = e != null ? fxOf(q) : '', big = typeof e === 'number' ? fx : e === 'again' ? '\u21BB Go again' : e === 'miss' ? 'Miss a go' : e === 'miss2' ? 'Miss 2 goes' : '';
+        var kd = q[1] === 'g' ? 'g' : q[1] === 'b' ? 'b' : q[1] === 'c' ? 'c' : '', e = q[3], fx = e != null ? fxOf(q) : '', big = typeof e === 'number' ? fx : e === 'again' ? '\u21BB Go again' : e === 'miss' ? 'Miss a go' : e === 'miss2' ? 'Miss 2 goes' : '';
         var el = document.createElement('div'); el.id = 'er-lc'; el.className = 'er-lc ' + kd;
         if (!cb) { try { var sqr = document.querySelectorAll('#er-board .er-sq')[i].getBoundingClientRect(); el.style.setProperty('--dx', (sqr.left + sqr.width / 2 - innerWidth / 2) + 'px'); el.style.setProperty('--dy', (sqr.top + sqr.height / 2 - innerHeight / 2) + 'px'); } catch (ex) { } }
         var ic = ICO[q[0]];
-        el.innerHTML = (ic ? '<img alt="" src="icons/er_' + ic + '.webp">' : '') + '<div class="t">' + esc(ti) + '</div>' + (su ? '<div class="u">' + esc(su) + '</div>' : '')
-          + '<div class="x">' + esc(q[2] || (q[1] === 'f0' ? 'Where every boy begins.' : 'A quiet corner of Eton. Nothing happens here.')) + '</div>' + (big ? '<div class="bd' + (typeof e === 'number' ? '' : ' w') + '">' + esc(big) + '</div>' : '') + '<button class="er-btn er-lc-b">' + (cb ? 'Carry on \u25B6' : 'Close') + '</button>';
+        el.innerHTML = (q[1] === 'c' && CREST() ? '<img class="crs" alt="" src="' + CREST() + '">' : ic ? '<img alt="" src="icons/er_' + ic + '.webp">' : '') + '<div class="t">' + esc(ti) + '</div>' + (su ? '<div class="u">' + esc(su) + '</div>' : '')
+          + '<div class="x">' + esc(q[1] === 'c' ? 'Answer a bonus question. Get it right and you may win an Eton Rules card.' : q[2] || (q[1] === 'f0' ? 'Where every boy begins.' : 'A quiet corner of Eton. Nothing happens here.')) + '</div>' + (big ? '<div class="bd' + (typeof e === 'number' ? '' : ' w') + '">' + esc(big) + '</div>' : '') + '<button class="er-btn er-lc-b">' + (cb ? (q[1] === 'c' ? 'Bonus question \u25B6' : 'Carry on \u25B6') : 'Close') + '</button>';
         var bg = document.createElement('div'); bg.id = 'er-lcbg'; bg.className = 'er-lc-bg';
         var fin = false, lcAutoT = null;
         function close() { if (fin) return; fin = true; if (lcAutoT) { clearTimeout(lcAutoT); lcAutoT = null; } lcDone = null; el.classList.add('out'); bg.classList.add('out'); setTimeout(function () { el.remove(); bg.remove(); }, 300); if (cb) cb(); }
         el.onclick = close; bg.onclick = close; document.body.appendChild(bg); document.body.appendChild(el); lcDone = close; sfx('tick');
-        if (cb) { lcAutoT = setTimeout(close, q[1] === 'c' ? 6500 : big ? 4000 : 2500); }
+        if (cb && q[1] !== 'c') { lcAutoT = setTimeout(close, big ? 4000 : 2500); }   // an Eton Rules card square waits until it is tapped
       }
-      window.apErSq = function (i) { if (busy || $('er-lc') || $('er-stage') || !RV[i]) return; lcShow(i, null, FR[i] || (BD[i][1] === 'x' ? [BD[i][0], 'x', 'Fate: decided by chance when a team lands here. It can be good or bad.'] : undefined)); };
+      window.apErSq = function (i) { if (busy || $('er-lc') || $('er-stage') || !RV[i]) return; if (FR[i]) lcFate(i, FR[i], null, true); else lcShow(i, null); };
       window.apErMk = function (m) {
         var stg = $('er-stage'); if (!stg || !qd) return; var qWas = qd; qd = null; stg.style.pointerEvents = 'none'; try { speechSynthesis.cancel(); } catch (e) { }
         stg.style.transition = 'opacity .22s'; stg.style.opacity = '0'; turns++;
