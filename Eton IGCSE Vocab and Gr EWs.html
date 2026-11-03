@@ -20498,8 +20498,49 @@ function deck(el,m,n,x,y,face,gap){clear(el);const cs=[];for(let i=0;i<n;i++){co
   }
   var musLvl = 0;
   function musSel() { return view === 'run' ? CFG.musRun : CFG.mus; }   // Eton Rules keeps its own music setting (Jerusalem by default)
+  // Eton Rules, last line of the map: the hymn gives way to a looping orchestral piece (played through the shared sound engine, so it needs no tap of its own); it goes back to the hymn if every team drops off the last line
+  var FIN = { buf: null, loading: false, want: false, src: null, g: null };
+  function finLoad() {
+    if (FIN.buf || FIN.loading) return; FIN.loading = true;
+    try {
+      fetch('sounds/er_final.mp3').then(function (r) { return r.arrayBuffer(); }).then(function (ab) {
+        var c = ctx(); if (!c) { FIN.loading = false; return; }
+        var ok = function (b) { FIN.buf = b; FIN.loading = false; if (FIN.want) finPlay(); }, no = function () { FIN.loading = false; };
+        var pr = c.decodeAudioData(ab, ok, no); if (pr && pr.catch) pr.catch(no);
+      }).catch(function () { FIN.loading = false; });
+    } catch (e) { FIN.loading = false; }
+  }
+  function finPlay() {
+    if (!FIN.want || FIN.src || !FIN.buf || !snd) return;
+    try {
+      var c = ctx(); if (!c) return;
+      var g = c.createGain(); g.gain.value = 0; g.connect(c.destination);
+      var sr = c.createBufferSource(); sr.buffer = FIN.buf; sr.loop = true; sr.connect(g); sr.start(0);
+      g.gain.setTargetAtTime(.5 * (CFG.mv || 1), c.currentTime, .5); FIN.src = sr; FIN.g = g;
+    } catch (e) { FIN.src = null; }
+  }
+  function finKill(fade) {
+    var sr = FIN.src, g = FIN.g; FIN.src = null; FIN.g = null;
+    if (!sr) return;
+    try { if (fade && g) g.gain.setTargetAtTime(0, AC.currentTime, .3); } catch (e) { }
+    setTimeout(function () { try { sr.stop(); } catch (e) { } try { sr.disconnect(); if (g) g.disconnect(); } catch (e) { } }, fade ? 1400 : 0);
+  }
+  function finSet(on) {
+    if (on === FIN.want) return; FIN.want = on;
+    if (on) {
+      if (!snd) { FIN.want = false; return; }
+      window.__erFin = 1;
+      try { if (MG && AC) MG.gain.setTargetAtTime(0, AC.currentTime, .4); } catch (e) { }
+      setTimeout(function () { if (FIN.want) musicStop(); }, 1600);
+      finLoad(); finPlay();
+    } else {
+      window.__erFin = 0; finKill(true);
+      try { if (view === 'run') musicStart(true); } catch (e) { }
+    }
+  }
+  window.addEventListener('apaudio-renew', function () { try { if (FIN.want && FIN.src) { FIN.src = null; FIN.g = null; finPlay(); } } catch (e) { } });
   function musicStart(fresh) {
-    musicStop(); if (window.__erHold) return;   // the Eton Rules splash has its own music; the hymn waits until it ends
+    musicStop(); if (window.__erHold || window.__erFin) return;   // the Eton Rules splash has its own music; the hymn waits until it ends
  var ms = musSel(), mu = (ms === 'hymn' && view !== 'run') ? 'mix' : ms; if (!snd || mu === 'off') return; var c = ctx(); if (!c) return;
     if (mu === 'mix' && view === 'run') { curMus = 'hymn'; mBpm = 42; CH = CH0; } else if (mu === 'mix') { if (fresh || !curMus || curMus === 'mix') { var opts = ['pulse', 'ambient', 'groove', 'arp', 'lofi', 'disco', 'suspense', 'bounce'].filter(function (x) { return x !== curMus; }); curMus = opts[Math.floor(Math.random() * opts.length)]; var pi = Math.floor(Math.random() * PROGS.length); if (pi === lastProg) pi = (pi + 1) % PROGS.length; lastProg = pi; CH = PROGS[pi]; mBpm = [88, 96, 104, 112][Math.floor(Math.random() * 4)]; } } else { curMus = mu; CH = musLvl ? PROGS[musLvl % PROGS.length] : CH0; mBpm = curMus === 'hymn' ? 42 : 96 + 6 * (musLvl % 5); }
     MG = c.createGain(); MG.gain.value = (curMus === 'hymn' ? .2 : .5) * CFG.mv; var lp = c.createBiquadFilter(); lp.type = 'lowpass'; lp.frequency.value = 1500; MG.connect(lp); lp.connect(c.destination);
@@ -20586,7 +20627,7 @@ function deck(el,m,n,x,y,face,gap){clear(el);const cs=[];for(let i=0;i<n;i++){co
   function shuf(a) { a = a.slice(); for (var i = a.length - 1; i > 0; i--) { var j = Math.floor(Math.random() * (i + 1)), x = a[i]; a[i] = a[j]; a[j] = x; } return a; }
   function esc(s) { return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;'); }
   var stopHook = null;
-  function stop() { timers.forEach(function (t) { clearInterval(t); clearTimeout(t); }); timers = []; if (stopHook) { var h = stopHook; stopHook = null; h(); } try { speechSynthesis.cancel(); } catch (e) { } }
+  function stop() { try { FIN.want = false; window.__erFin = 0; finKill(false); } catch (e) { } timers.forEach(function (t) { clearInterval(t); clearTimeout(t); }); timers = []; if (stopHook) { var h = stopHook; stopHook = null; h(); } try { speechSynthesis.cancel(); } catch (e) { } }
   function say(text) { try { H.say(text, target()); } catch (e) { } }
   var SAYBTN = function (txt) { return '<button class="sp" onclick="apBzSay(this.getAttribute(\'data-t\'))" data-t="' + esc(txt).replace(/"/g, '&quot;') + '" aria-label="Hear it">🔊</button>'; };
   window.apBzSay = function (t) { say(t); };
@@ -22020,7 +22061,13 @@ function deck(el,m,n,x,y,face,gap){clear(el);const cs=[];for(let i=0;i<n;i++){co
         else bd.style.transform = 'translateY(-' + (off / MAPH * 100) + '%)';
       }
       var camY = 0;
+      function lineCheck() {   // last line of the map (squares 35 to 41): any team on it brings in the finale music and the 'within sight' flash
+        var any = false; for (var q = 0; q < P; q++) if (pos[q] >= 35) any = true;
+        if (any && !FIN.want) { finSet(true); if (FIN.want) turnFlash('Birley Schools is within sight!', '#f4d77a', 3400, true); }
+        else if (!any && FIN.want) finSet(false);
+      }
       function setCar(s) {
+        try { lineCheck(); } catch (e0) { }
         var e = $('erc' + s); if (!e) return; var xy = carXY(s, pos[s]);
         e.style.left = xy[0]; e.style.top = xy[1]; if (s === cur) cam(PADS[pos[s]][1]); e.classList.remove('hop'); void e.offsetWidth; e.classList.add('hop'); timers.push(setTimeout(function () { e.classList.remove('hop'); }, 640));
       }
@@ -22592,4 +22639,4 @@ function deck(el,m,n,x,y,face,gap){clear(el);const cs=[];for(let i=0;i<n;i++){co
   if (document.readyState === 'complete') start(); else window.addEventListener('load', start);
 })();
 </script>
-<script id="ap-build">window.__apBuild="928f578191";</script>
+<script id="ap-build">window.__apBuild="ac00a96d40";</script>
