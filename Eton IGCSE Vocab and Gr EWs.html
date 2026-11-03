@@ -22180,8 +22180,38 @@ function deck(el,m,n,x,y,face,gap){clear(el);const cs=[];for(let i=0;i<n;i++){co
       }
       function win() {
         cam(PADS[LAST][1]); msg = (P > 1 ? nm(cur) : 'You') + ' reached Birley Schools: Sent Up For Good!'; refresh();
-        turnFlash(P > 1 ? nm(cur) + ' wins!' : 'You win!', pcL(cur), 4400);
-        timers.push(setTimeout(function () { endScreen('Eton Rules', { big: esc(P > 1 ? nm(cur) : 'Birley Schools'), note: '<b class="er-wn">' + (P > 1 ? 'wins: first to Birley Schools' : 'Sent Up For Good! You reached Birley Schools in ' + turns + ' turns.') + '</b>' }, play); }, 4500));
+        try { erFinale(P > 1 ? nm(cur) : 'You', pcL(cur)); } catch (e) { turnFlash(P > 1 ? nm(cur) + ' wins!' : 'You win!', pcL(cur), 4400); }
+        timers.push(setTimeout(function () { endScreen('Eton Rules', { big: esc(P > 1 ? nm(cur) : 'Birley Schools'), note: '<b class="er-wn">' + (P > 1 ? 'wins: first to Birley Schools' : 'Sent Up For Good! You reached Birley Schools in ' + turns + ' turns.') + '</b>' }, play); }, 9800));
+      }
+      function erFinale(who, col) {   // arrival at Birley Schools: the map dims, Birley glows and rings with light, the boy leaps for joy, 'Sent Up For Good!' is spelled out in gold (opacity and transform only)
+        var W = innerWidth, H = innerHeight, old = document.getElementById('er-fin'); if (old) old.remove();
+        var st = document.getElementById('er-fin-css'); if (!st) { st = document.createElement('style'); st.id = 'er-fin-css'; document.head.appendChild(st); }
+        st.textContent = '#er-fin{position:absolute;inset:0;z-index:80;overflow:hidden;pointer-events:none}#er-fin .fb{position:absolute;inset:0;background:radial-gradient(ellipse at 60% 50%,rgba(30,50,110,.7),rgba(3,6,18,.96));opacity:0;animation:erfIn 1s ease-out forwards}@keyframes erfIn{to{opacity:1}}'
+          + '#er-fin .hl{position:absolute;border-radius:50%;background:radial-gradient(circle,rgba(255,232,150,.95),rgba(244,215,122,.35) 42%,rgba(244,215,122,0) 70%);opacity:0;animation:erfHl 2.6s ease-in-out .5s infinite alternate}@keyframes erfHl{from{opacity:.55;transform:scale(.85)}to{opacity:1;transform:scale(1.08)}}'
+          + '#er-fin .bi{position:absolute;opacity:0;animation:erfBi 1s cubic-bezier(.2,.9,.3,1.2) .5s forwards}@keyframes erfBi{from{opacity:0;transform:scale(.4)}to{opacity:1;transform:scale(1)}}#er-fin .bi img{display:block;width:100%;height:auto;filter:drop-shadow(0 8px 18px rgba(0,0,0,.8))}'
+          + '#er-fin .rr{position:absolute;border-radius:50%;border:4px solid #f4d77a;opacity:0}@keyframes erfRg{0%{opacity:.95;transform:scale(.4)}100%{opacity:0;transform:scale(4.2)}}'
+          + '#er-fin .cl{position:absolute;overflow:hidden}#er-fin .cl img{display:block;height:100%;width:auto;max-width:none;filter:drop-shadow(0 6px 10px rgba(0,0,0,.7))}'
+          + '#er-fin .tt{position:absolute;left:0;right:0;top:9%;text-align:center}#er-fin .tt b{display:block;font:700 clamp(2.2rem,9vmin,5.6rem)/1.05 "Cormorant Garamond",Georgia,serif;letter-spacing:.08em;color:#f4d77a;text-transform:uppercase;text-shadow:0 3px 0 #7d6520,0 0 30px rgba(244,215,122,.55),0 6px 24px rgba(0,0,0,.95)}#er-fin .tt b i{display:inline-block;font-style:normal;opacity:0;animation:erfLt .5s ease-out forwards}@keyframes erfLt{from{opacity:0;transform:translateY(22px) scale(1.25)}to{opacity:1;transform:none}}'
+          + '#er-fin .tt span{display:block;margin-top:2vmin;font:700 clamp(1.4rem,5vmin,3rem) "DM Sans",sans-serif;color:var(--wc);text-shadow:0 2px 12px #000,0 0 22px rgba(0,0,0,.9);opacity:0;animation:erfLt .8s ease-out 2.2s forwards}';
+        var pI = Math.round(Math.min(H * .36, W * .3)), bx = W * .64, by = H * .56, cH = Math.round(Math.min(H * .5, W * .36)), cW = Math.round(cH * 264 / 384), fx = W * .3, fy = H * .86, h = '', k;
+        h += '<div class="fb"></div><div class="hl" style="left:' + Math.round(bx - pI * 1.3) + 'px;top:' + Math.round(by - pI * 1.3) + 'px;width:' + Math.round(pI * 2.6) + 'px;height:' + Math.round(pI * 2.6) + 'px"></div>';
+        for (k = 0; k < 4; k++) h += '<div class="rr" style="left:' + Math.round(bx - pI / 2) + 'px;top:' + Math.round(by - pI / 2) + 'px;width:' + pI + 'px;height:' + pI + 'px;animation:erfRg 2s ease-out ' + (700 + k * 600) + 'ms infinite"></div>';
+        h += '<div class="bi" style="left:' + Math.round(bx - pI / 2) + 'px;top:' + Math.round(by - pI / 2) + 'px;width:' + pI + 'px"><img alt="" src="icons/er_birley.webp"></div>';
+        h += '<div class="cl" id="erf-cl" style="left:' + Math.round(fx - cW / 2) + 'px;top:' + Math.round(fy - cH) + 'px;width:' + cW + 'px;height:' + cH + 'px;opacity:0"><img alt="" src="icons/er_cel.webp" style="width:' + (cW * 4) + 'px"></div>';
+        h += '<div class="tt" style="--wc:' + col + '"><b>' + 'Sent Up For Good!'.split('').map(function (ch, i) { return ch === ' ' ? '<i>&nbsp;</i>' : '<i style="animation-delay:' + (900 + i * 70) + 'ms">' + ch + '</i>'; }).join('') + '</b><span>' + esc(who) + (who === 'You' ? ' reached Birley Schools' : ' wins!') + '</span></div>';
+        var el = document.createElement('div'); el.id = 'er-fin'; el.innerHTML = h; ov.appendChild(el);
+        try { sfx('win'); } catch (e) { }
+        try { if (FIN.g && AC) FIN.g.gain.setTargetAtTime(.8 * (CFG.mv || 1), AC.currentTime, .6); } catch (e) { }   // the finale music swells
+        timers.push(setTimeout(function () {
+          try {
+            var cl = document.getElementById('erf-cl'), im = cl.querySelector('img'); cl.style.opacity = '1';
+            var seq = [[0, 0], [1, -.5], [2, -.62], [3, 0], [0, 0], [1, -.55], [2, -.68], [3, 0], [0, 0], [1, -.6], [2, -.72], [3, 0]], tms = [0, 340, 780, 1370, 1950, 2290, 2750, 3330, 3900, 4240, 4700, 5300], DUR = 6600, fk = [], yk = [];
+            seq.forEach(function (q, i) { var o = tms[i] / DUR; fk.push({ offset: o, transform: 'translateX(' + (-q[0] * 25) + '%)', easing: 'step-end' }); yk.push({ offset: o, transform: 'translateY(' + Math.round(q[1] * cH * .7) + 'px)', easing: 'ease-out' }); });
+            fk.push({ offset: 1, transform: 'translateX(-75%)' }); yk.push({ offset: 1, transform: 'translateY(0)' });
+            im.animate(fk, { duration: DUR, fill: 'forwards' }); cl.animate(yk, { duration: DUR, fill: 'forwards' });
+          } catch (e) { }
+        }, 900));
+        timers.push(setTimeout(function () { try { finSet(false); } catch (e) { } }, 8800));   // hymn comes back as the end screen arrives
       }
       function walk(n) {
         var me = cur;
@@ -22660,4 +22690,4 @@ function deck(el,m,n,x,y,face,gap){clear(el);const cs=[];for(let i=0;i<n;i++){co
   if (document.readyState === 'complete') start(); else window.addEventListener('load', start);
 })();
 </script>
-<script id="ap-build">window.__apBuild="a7ff717ee3";</script>
+<script id="ap-build">window.__apBuild="5a5299b286";</script>
