@@ -427,7 +427,7 @@ function deck(el,m,n,x,y,face,gap){clear(el);const cs=[];for(let i=0;i<n;i++){co
   // ---------- background music (made in the browser: low, soft, no files)
   var MG = null, mTimer = null, mStep = 0, mNext = 0, mRate = 1;
   var curMus = null;
-  var MUS = [['off', 'Off'], ['mix', 'Shuffle (new each game)'], ['hymn', 'Jerusalem (Eton Rules theme)'], ['pulse', 'Pulse'], ['ambient', 'Ambient'], ['groove', 'Groove'], ['arp', 'Arpeggio'], ['lofi', 'Lo-fi'], ['disco', 'Disco'], ['suspense', 'Suspense'], ['bounce', 'Bounce']];
+  var MUS = [['off', 'Off'], ['mix', 'Shuffle (new each game)'], ['hymn', 'Driving Ambition (Eton Rules theme)'], ['pulse', 'Pulse'], ['ambient', 'Ambient'], ['groove', 'Groove'], ['arp', 'Arpeggio'], ['lofi', 'Lo-fi'], ['disco', 'Disco'], ['suspense', 'Suspense'], ['bounce', 'Bounce']];
   var CH0 = [[73.42, [1, 1.189, 1.498]], [58.27, [1, 1.26, 1.498]], [87.31, [1, 1.26, 1.498]], [65.41, [1, 1.26, 1.498]]];
   var CH = CH0, mBpm = 96, lastProg = 0, PROGS = [CH0, [[55, [1, 1.189, 1.498]], [43.65, [1, 1.26, 1.498]], [65.41, [1, 1.26, 1.498]], [49, [1, 1.26, 1.498]]], [[82.41, [1, 1.189, 1.498]], [65.41, [1, 1.26, 1.498]], [98, [1, 1.26, 1.498]], [73.42, [1, 1.26, 1.498]]], [[98, [1, 1.189, 1.498]], [77.78, [1, 1.26, 1.498]], [58.27, [1, 1.26, 1.498]], [87.31, [1, 1.26, 1.498]]]];   // Dm  Bb  F  C
   function mTone(f, t, len, vol, type, att) {
@@ -580,15 +580,43 @@ function deck(el,m,n,x,y,face,gap){clear(el);const cs=[];for(let i=0;i<n;i++){co
     }
   }
   window.addEventListener('apaudio-renew', function () { try { if (FIN.want && FIN.src) { FIN.src = null; FIN.g = null; finPlay(); } } catch (e) { } });
+  // Eton Rules background music: a looping recorded track (Mixkit, 'Driving Ambition'), played through the shared sound engine
+  var DRV = { buf: null, loading: false, want: false, src: null, g: null };
+  function drvLoad() {
+    if (DRV.buf || DRV.loading) return; DRV.loading = true;
+    try {
+      fetch('sounds/er_music.mp3?v=1').then(function (r) { return r.arrayBuffer(); }).then(function (ab) {
+        var c = ctx(); if (!c) { DRV.loading = false; return; }
+        var ok = function (b) { DRV.buf = b; DRV.loading = false; if (DRV.want) drvPlay(); }, no = function () { DRV.loading = false; };
+        var pr = c.decodeAudioData(ab, ok, no); if (pr && pr.catch) pr.catch(no);
+      }).catch(function () { DRV.loading = false; });
+    } catch (e) { DRV.loading = false; }
+  }
+  function drvPlay() {
+    if (!DRV.want || DRV.src || !DRV.buf || !snd) return;
+    try {
+      var c = ctx(); if (!c) return;
+      var g = c.createGain(); g.gain.value = 0; g.connect(c.destination);
+      var sr = c.createBufferSource(); sr.buffer = DRV.buf; sr.loop = true; sr.connect(g); sr.start(0);
+      g.gain.setTargetAtTime(.3 * (CFG.mv || 1), c.currentTime, .6); DRV.src = sr; DRV.g = g;
+    } catch (e) { DRV.src = null; }
+  }
+  function drvStop() {
+    DRV.want = false; var sr = DRV.src, g = DRV.g; DRV.src = null; DRV.g = null;
+    try { if (g && AC) g.gain.setTargetAtTime(0, AC.currentTime, .15); } catch (e) { }
+    setTimeout(function () { try { if (sr) sr.stop(); } catch (e) { } try { if (g) g.disconnect(); } catch (e) { } }, 700);
+  }
   function musicStart(fresh) {
     musicStop(); if (window.__erHold || window.__erFin) return;   // the Eton Rules splash has its own music; the hymn waits until it ends
  var ms = musSel(), mu = (ms === 'hymn' && view !== 'run') ? 'mix' : ms; if (!snd || mu === 'off') return; var c = ctx(); if (!c) return;
+    if (view === 'run' && (mu === 'hymn' || mu === 'mix')) { DRV.want = true; if (DRV.buf) drvPlay(); else drvLoad(); return; }
     if (mu === 'mix' && view === 'run') { curMus = 'hymn'; mBpm = 42; CH = CH0; } else if (mu === 'mix') { if (fresh || !curMus || curMus === 'mix') { var opts = ['pulse', 'ambient', 'groove', 'arp', 'lofi', 'disco', 'suspense', 'bounce'].filter(function (x) { return x !== curMus; }); curMus = opts[Math.floor(Math.random() * opts.length)]; var pi = Math.floor(Math.random() * PROGS.length); if (pi === lastProg) pi = (pi + 1) % PROGS.length; lastProg = pi; CH = PROGS[pi]; mBpm = [88, 96, 104, 112][Math.floor(Math.random() * 4)]; } } else { curMus = mu; CH = musLvl ? PROGS[musLvl % PROGS.length] : CH0; mBpm = curMus === 'hymn' ? 42 : 96 + 6 * (musLvl % 5); }
     MG = c.createGain(); MG.gain.value = (curMus === 'hymn' ? .2 : .5) * CFG.mv; var lp = c.createBiquadFilter(); lp.type = 'lowpass'; lp.frequency.value = 1500; MG.connect(lp); lp.connect(c.destination);
     mStep = 0; mNext = c.currentTime + .12; mTimer = setInterval(sched, 60); sched();
   }
   window.addEventListener('apaudio-renew', function () { try { if (MG) musicStart(false); } catch (e) { } });   // sound was reset: carry the music on over the new context
   function musicStop() {
+    try { drvStop(); } catch (e) { }
     if (mTimer) { clearInterval(mTimer); mTimer = null; }
     if (MG) { var g = MG; try { g.gain.setTargetAtTime(0, AC.currentTime, .12); } catch (e) { } setTimeout(function () { try { g.disconnect(); } catch (e) { } }, 600); MG = null; }
     mRate = 1;
