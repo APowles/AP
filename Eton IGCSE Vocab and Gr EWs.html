@@ -21960,7 +21960,7 @@ function deck(el,m,n,x,y,face,gap){clear(el);const cs=[];for(let i=0;i<n;i++){co
     }
     function intro() {
       var P = CFG.erP; try { erShowKill(); } catch (e) { }  // er3Preload removed: GLB files not deployed, preload caused ~30s freeze
-      frame('Eton Rules', '<div class="er-in"><div class="er-hd"><span>Race from your House to Birley Schools!</span><button class="bz-b er-hw" onclick="apErHow(1)">Click for how to play</button></div>'
+      frame('Eton Rules', '<div class="er-in"><div class="er-hd"><span>Race from your House to Birley Schools!</span><button class="bz-b er-hw" onclick="apErHow(1)">Click for how to play</button><button class="bz-b er-hw" onclick="apErSplash(true)">▶ Replay splash</button></div>'
         + '<div class="er-ctl"><div class="bz-row">' + [[1, 'Solo'], [2, 'Two teams'], [3, 'Three teams'], [4, 'Four teams']].map(function (o) { return '<button class="bz-b' + (P === o[0] ? ' on' : '') + '" onclick="apErSet(' + o[0] + ')">' + o[1] + '</button>'; }).join('') + '</div>'
         + (P > 1 ? pnBox(P, ['Team 1: type name', 'Team 2: type name', 'Team 3: type name', 'Team 4: type name'], [0, 1, 2, 3].map(pcL)) : '') + '</div>'
         + pickHTML(P, '<button class="bz-big go" onclick="apBzGo()">▶ Start</button>')
@@ -22301,11 +22301,11 @@ function deck(el,m,n,x,y,face,gap){clear(el);const cs=[];for(let i=0;i<n;i++){co
       };
     }
     intro();
-    (function () {   // opening splash: the crest bursts into light over dimmed turning rings of Eton pictures; one of the figures runs out of Your House, zigzags across the screen leaving a gold trail, and arrives at Birley Schools, which glows and rings with light while the figure leaps; then the title is spelled out in gold, a flash and zoom (tap to skip). Only opacity and transform are animated, so it stays light on the iPad.
-      var now = Date.now(); if (window.__erSplashAt && now - window.__erSplashAt < 120000) { window.__erHold = 0; return; } window.__erSplashAt = now;
+    window.apErSplash = function (force) {   // opening splash: the crest bursts into light over dimmed turning rings of Eton pictures; one of the figures runs out of Your House, zigzags across the screen leaving a gold trail, and arrives at Birley Schools, which glows and rings with light while the figure leaps; then the title is spelled out in gold, a flash and zoom (tap to skip). Only opacity and transform are animated, so it stays light on the iPad.
+      var now = Date.now(); if (!force && window.__erSplashAt && now - window.__erSplashAt < 120000) { window.__erHold = 0; return; } window.__erSplashAt = now; if (force) { window.__erHold = snd ? 1 : 0; musicStop(); }
       if (!ov || document.getElementById('er-splash')) { window.__erHold = 0; return; }
       var NAMES = 'applause athens beagling bedroom bekynton bill boathouse budgens burningbush cannon chapel cheating chemprac chronicle cloisters collar crutches debating detention donbeni dressoff dropped dutchmans ecce emptyseat evans farrer feast fives francophone frenchoral gating gotaway hccomp hcshout housematch houseplayrole houseshout housetie ipad jafar keates library litter match maths missed missedchapel music offgames office oralexam parenttours polo popchoir punishment rain rowlands schoolyard seniorrain showuplang showups societyidea societymeeting tutorial wall welsh'.split(' ');
-      var RUN0 = 1300, RUND = 3100, ARR = RUN0 + RUND;   // the figure leaves at 1.3 s, runs for 3.1 s, arrives at 4.4 s
+      var RUN0 = 1500, RUND = 4800, ARR = RUN0 + RUND;   // the figure leaves at 1.5 s, runs for 4.8 s, arrives at 6.3 s
       var old = document.getElementById('er-splash-css'); if (old) old.remove();
       var cs = document.createElement('style'); cs.id = 'er-splash-css';
       cs.textContent = '#er-splash{position:absolute;inset:0;z-index:60;overflow:hidden;cursor:pointer;background:#040817;transition:opacity .7s}#er-splash.out{opacity:0;pointer-events:none}'
@@ -22320,7 +22320,7 @@ function deck(el,m,n,x,y,face,gap){clear(el);const cs=[];for(let i=0;i<n;i++){co
         + '#er-splash .jn{position:absolute;inset:0;z-index:5;pointer-events:none}'
         + '#er-splash .pl{position:absolute;text-align:center;opacity:0;animation:ersPop .6s cubic-bezier(.2,.9,.3,1.2) forwards}@keyframes ersPop{from{opacity:0;transform:scale(.3)}to{opacity:1;transform:none}}#er-splash .pl img{display:block;width:100%;height:auto;filter:drop-shadow(0 6px 14px rgba(0,0,0,.85))}#er-splash .pl em{display:block;margin-top:2px;font:700 clamp(.8rem,2.2vmin,1.2rem) "DM Sans",sans-serif;font-style:normal;color:#f4d77a;letter-spacing:.08em;text-transform:uppercase;text-shadow:0 2px 8px #000}'
         + '#er-splash .dt{position:absolute;border-radius:50%;background:#f4d77a;box-shadow:0 0 10px #f4d77a;opacity:0;animation:ersDt .5s ease-out forwards}@keyframes ersDt{from{opacity:0;transform:scale(.2)}to{opacity:.9;transform:scale(1)}}'
-        + '#er-splash .av{position:absolute;left:0;top:0;width:0;height:0;opacity:0}#er-splash .av .bd,#er-splash .av .cl{position:absolute;overflow:hidden}#er-splash .av .cl{display:none}#er-splash .av .bd img,#er-splash .av .cl img{display:block;height:100%;width:auto;max-width:none;filter:drop-shadow(0 6px 10px rgba(0,0,0,.7))}#er-splash .av .bd img{animation:ersRn .72s steps(8) infinite}@keyframes ersRn{to{transform:translateX(-100%)}}#er-splash .av .sh{position:absolute;border-radius:50%;background:rgba(0,0,0,.45)}'
+        + '#er-splash .av{position:absolute;left:0;top:0;width:0;height:0;opacity:0}#er-splash .av .bd,#er-splash .av .cl{position:absolute;overflow:hidden}#er-splash .av .cl{display:none}#er-splash .av .bd img,#er-splash .av .cl img{display:block;height:100%;width:auto;max-width:none;filter:drop-shadow(0 6px 10px rgba(0,0,0,.7))}#er-splash .av .bd img{animation:ersRn .9s steps(8) infinite}@keyframes ersRn{to{transform:translateX(-100%)}}#er-splash .av .sh{position:absolute;border-radius:50%;background:rgba(0,0,0,.45)}'
         + '#er-splash .hl{position:absolute;border-radius:50%;opacity:0;background:radial-gradient(circle,rgba(255,232,150,.9),rgba(244,215,122,.35) 40%,rgba(244,215,122,0) 70%)}#er-splash .hr{position:absolute;border-radius:50%;border:4px solid #f4d77a;opacity:0}'
         + '#er-splash .tt{position:absolute;left:50%;top:50%;margin-top:9vmin;transform:translate(-50%,-50%);z-index:6;text-align:center;white-space:nowrap;width:max-content;max-width:90vw}#er-splash .tt img{display:block;height:min(11vmin,84px);width:auto;margin:0 auto 1.4vmin;opacity:0;animation:ersLt .6s ease-out ' + (ARR + 200) + 'ms forwards}'
         + '#er-splash .tt b{display:block;font:700 clamp(2.4rem,10vmin,6rem)/1 "Cormorant Garamond",Georgia,serif;letter-spacing:.1em;color:#f4d77a;text-transform:uppercase;text-shadow:0 3px 0 #7d6520,0 0 30px rgba(244,215,122,.55),0 6px 24px rgba(0,0,0,.95)}#er-splash .tt b i{display:inline-block;font-style:normal;opacity:0;animation:ersLt .5s ease-out forwards}@keyframes ersLt{from{opacity:0;transform:translateY(22px) scale(1.25)}to{opacity:1;transform:none}}'
@@ -22381,7 +22381,7 @@ function deck(el,m,n,x,y,face,gap){clear(el);const cs=[];for(let i=0;i<n;i++){co
         T2(function () {   // arrival: stop the run, three leaps; Birley pulses and glows
           try {
             var bd = av.querySelector('#ers-bd'), cl = av.querySelector('#ers-cl'), st = cl.querySelector('img'); bd.style.display = 'none'; cl.style.display = 'block';
-            var seq = [[0, 0], [1, -.5], [2, -.62], [3, 0], [0, 0], [1, -.55], [2, -.68], [3, 0]], tms = [0, 260, 600, 1050, 1500, 1700, 2050, 2500], DUR = 3300, fk = [], yk = [];   // crouch, leap, arms wide, land fists up; twice
+            var seq = [[0, 0], [1, -.5], [2, -.62], [3, 0], [0, 0], [1, -.55], [2, -.68], [3, 0]], tms = [0, 340, 780, 1370, 1950, 2210, 2670, 3250], DUR = 4300, fk = [], yk = [];   // crouch, leap, arms wide, land fists up; twice
             seq.forEach(function (q, i) { var o = tms[i] / DUR; fk.push({ offset: o, transform: 'translateX(' + (-q[0] * 25) + '%)', easing: 'step-end' }); yk.push({ offset: o, transform: 'translateY(' + Math.round(q[1] * aH) + 'px)', easing: 'ease-out' }); });
             fk.push({ offset: 1, transform: 'translateX(-75%)' }); yk.push({ offset: 1, transform: 'translateY(0)' });
             st.animate(fk, { duration: DUR, fill: 'forwards' }); cl.animate(yk, { duration: DUR, fill: 'forwards' });
@@ -22390,9 +22390,9 @@ function deck(el,m,n,x,y,face,gap){clear(el);const cs=[];for(let i=0;i<n;i++){co
           } catch (e) { }
         }, ARR);
       } catch (e) { }
-      T2(function () { bye(false); }, ARR + 3600);
+      T2(function () { bye(false); }, ARR + 4800);
       el.onclick = function () { bye(true); };
-    })();
+    }; window.apErSplash(false);
   };
   GAMES.four = function (p) {
     var COLN = ['Red', 'Yellow', 'Green', 'White'], TXC = ['#c0392b', '#a37b00', '#1f8a52', '#5b6788'], SCOL = ['#ff7b6b', '#f6d646', '#5fe3a0', '#e8eaf5'];
@@ -22569,4 +22569,4 @@ function deck(el,m,n,x,y,face,gap){clear(el);const cs=[];for(let i=0;i<n;i++){co
   if (document.readyState === 'complete') start(); else window.addEventListener('load', start);
 })();
 </script>
-<script id="ap-build">window.__apBuild="6b453fd56b";</script>
+<script id="ap-build">window.__apBuild="11df1b431c";</script>
