@@ -13261,7 +13261,7 @@ function deck(el,m,n,x,y,face,gap){clear(el);const cs=[];for(let i=0;i<n;i++){co
   // ---------- background music (made in the browser: low, soft, no files)
   var MG = null, mTimer = null, mStep = 0, mNext = 0, mRate = 1;
   var curMus = null;
-  var MUS = [['off', 'Off'], ['mix', 'Shuffle (new each game)'], ['hymn', 'Driving Ambition (Eton Rules theme)'], ['pulse', 'Pulse'], ['ambient', 'Ambient'], ['groove', 'Groove'], ['arp', 'Arpeggio'], ['lofi', 'Lo-fi'], ['disco', 'Disco'], ['suspense', 'Suspense'], ['bounce', 'Bounce']];
+  var MUS = [['off', 'Off'], ['mix', 'Shuffle (new each game)'], ['hymn', 'Driving Ambition (Eton Rules theme)'], ['er2', 'Fright Night (Eton Rules)'], ['er3', "I Won't Surrender (Eton Rules)"], ['pulse', 'Pulse'], ['ambient', 'Ambient'], ['groove', 'Groove'], ['arp', 'Arpeggio'], ['lofi', 'Lo-fi'], ['disco', 'Disco'], ['suspense', 'Suspense'], ['bounce', 'Bounce']];
   var CH0 = [[73.42, [1, 1.189, 1.498]], [58.27, [1, 1.26, 1.498]], [87.31, [1, 1.26, 1.498]], [65.41, [1, 1.26, 1.498]]];
   var CH = CH0, mBpm = 96, lastProg = 0, PROGS = [CH0, [[55, [1, 1.189, 1.498]], [43.65, [1, 1.26, 1.498]], [65.41, [1, 1.26, 1.498]], [49, [1, 1.26, 1.498]]], [[82.41, [1, 1.189, 1.498]], [65.41, [1, 1.26, 1.498]], [98, [1, 1.26, 1.498]], [73.42, [1, 1.26, 1.498]]], [[98, [1, 1.189, 1.498]], [77.78, [1, 1.26, 1.498]], [58.27, [1, 1.26, 1.498]], [87.31, [1, 1.26, 1.498]]]];   // Dm  Bb  F  C
   function mTone(f, t, len, vol, type, att) {
@@ -13415,35 +13415,36 @@ function deck(el,m,n,x,y,face,gap){clear(el);const cs=[];for(let i=0;i<n;i++){co
   }
   window.addEventListener('apaudio-renew', function () { try { if (FIN.want && FIN.src) { FIN.src = null; FIN.g = null; finPlay(); } } catch (e) { } });
   // Eton Rules background music: a looping recorded track (Mixkit, 'Driving Ambition'), played through the shared sound engine
-  var DRV = { buf: null, loading: false, want: false, src: null, g: null };
-  function drvLoad() {
-    if (DRV.buf || DRV.loading) return; DRV.loading = true;
+  var DRV = { bufs: {}, loading: {}, want: null, key: null, src: null, g: null }, DRVF = { hymn: 'sounds/er_music.mp3?v=1', er2: 'sounds/er_music2.mp3?v=1', er3: 'sounds/er_music3.mp3?v=1' };
+  function drvLoad(k) {
+    if (DRV.bufs[k] || DRV.loading[k]) return; DRV.loading[k] = true;
     try {
-      fetch('sounds/er_music.mp3?v=1').then(function (r) { return r.arrayBuffer(); }).then(function (ab) {
-        var c = ctx(); if (!c) { DRV.loading = false; return; }
-        var ok = function (b) { DRV.buf = b; DRV.loading = false; if (DRV.want) drvPlay(); }, no = function () { DRV.loading = false; };
+      fetch(DRVF[k]).then(function (r) { return r.arrayBuffer(); }).then(function (ab) {
+        var c = ctx(); if (!c) { DRV.loading[k] = false; return; }
+        var ok = function (b) { DRV.bufs[k] = b; DRV.loading[k] = false; if (DRV.want === k) drvPlay(); }, no = function () { DRV.loading[k] = false; };
         var pr = c.decodeAudioData(ab, ok, no); if (pr && pr.catch) pr.catch(no);
-      }).catch(function () { DRV.loading = false; });
-    } catch (e) { DRV.loading = false; }
+      }).catch(function () { DRV.loading[k] = false; });
+    } catch (e) { DRV.loading[k] = false; }
   }
   function drvPlay() {
-    if (!DRV.want || DRV.src || !DRV.buf || !snd) return;
+    var k = DRV.want; if (!k || DRV.src || !DRV.bufs[k] || !snd) return;
     try {
       var c = ctx(); if (!c) return;
       var g = c.createGain(); g.gain.value = 0; g.connect(c.destination);
-      var sr = c.createBufferSource(); sr.buffer = DRV.buf; sr.loop = true; sr.connect(g); sr.start(0);
-      g.gain.setTargetAtTime(.3 * (CFG.mv || 1), c.currentTime, .6); DRV.src = sr; DRV.g = g;
+      var sr = c.createBufferSource(); sr.buffer = DRV.bufs[k]; sr.loop = true; sr.connect(g); sr.start(0);
+      g.gain.setTargetAtTime(.3 * (CFG.mv || 1), c.currentTime, .6); DRV.src = sr; DRV.g = g; DRV.key = k;
     } catch (e) { DRV.src = null; }
   }
+  function drvStart(k) { DRV.want = k; if (DRV.bufs[k]) drvPlay(); else drvLoad(k); }
   function drvStop() {
-    DRV.want = false; var sr = DRV.src, g = DRV.g; DRV.src = null; DRV.g = null;
+    DRV.want = null; var sr = DRV.src, g = DRV.g; DRV.src = null; DRV.g = null;
     try { if (g && AC) g.gain.setTargetAtTime(0, AC.currentTime, .15); } catch (e) { }
     setTimeout(function () { try { if (sr) sr.stop(); } catch (e) { } try { if (g) g.disconnect(); } catch (e) { } }, 700);
   }
   function musicStart(fresh) {
     musicStop(); if (window.__erHold || window.__erFin) return;   // the Eton Rules splash has its own music; the hymn waits until it ends
- var ms = musSel(), mu = (ms === 'hymn' && view !== 'run') ? 'mix' : ms; if (!snd || mu === 'off') return; var c = ctx(); if (!c) return;
-    if (view === 'run' && (mu === 'hymn' || mu === 'mix')) { DRV.want = true; if (DRV.buf) drvPlay(); else drvLoad(); return; }
+ var ms = musSel(), mu = ((ms === 'hymn' || ms === 'er2' || ms === 'er3') && view !== 'run') ? 'mix' : ms; if (!snd || mu === 'off') return; var c = ctx(); if (!c) return;
+    if (view === 'run' && (mu === 'hymn' || mu === 'er2' || mu === 'er3' || mu === 'mix')) { drvStart(mu === 'mix' ? 'hymn' : mu); return; }
     if (mu === 'mix' && view === 'run') { curMus = 'hymn'; mBpm = 42; CH = CH0; } else if (mu === 'mix') { if (fresh || !curMus || curMus === 'mix') { var opts = ['pulse', 'ambient', 'groove', 'arp', 'lofi', 'disco', 'suspense', 'bounce'].filter(function (x) { return x !== curMus; }); curMus = opts[Math.floor(Math.random() * opts.length)]; var pi = Math.floor(Math.random() * PROGS.length); if (pi === lastProg) pi = (pi + 1) % PROGS.length; lastProg = pi; CH = PROGS[pi]; mBpm = [88, 96, 104, 112][Math.floor(Math.random() * 4)]; } } else { curMus = mu; CH = musLvl ? PROGS[musLvl % PROGS.length] : CH0; mBpm = curMus === 'hymn' ? 42 : 96 + 6 * (musLvl % 5); }
     MG = c.createGain(); MG.gain.value = (curMus === 'hymn' ? .2 : .5) * CFG.mv; var lp = c.createBiquadFilter(); lp.type = 'lowpass'; lp.frequency.value = 1500; MG.connect(lp); lp.connect(c.destination);
     mStep = 0; mNext = c.currentTime + .12; mTimer = setInterval(sched, 60); sched();
@@ -13485,8 +13486,8 @@ function deck(el,m,n,x,y,face,gap){clear(el);const cs=[];for(let i=0;i<n;i++){co
     h += '<h3>Sound</h3><div class="bz-row" style="justify-content:flex-start"><button class="bz-b' + (snd ? ' on' : '') + '" onclick="apBzSndOpt(1)">On</button><button class="bz-b' + (!snd ? ' on' : '') + '" onclick="apBzSndOpt(0)">Off</button></div>';
     h += '<div class="bz-sl">Style (tap to hear it)</div><div class="bz-row" style="justify-content:flex-start">' + STYLES.map(function (s) { return '<button class="bz-b' + (CFG.style === s[0] ? ' on' : '') + '" onclick="apBzStyle(\'' + s[0] + '\')">' + s[1] + '</button>'; }).join('') + '</div>';
     h += '<div class="bz-sl">Volume</div><div class="bz-row" style="justify-content:flex-start">' + [[.5, 'Low'], [1, 'Medium'], [1.7, 'High']].map(function (o) { return '<button class="bz-b' + (CFG.vol === o[0] ? ' on' : '') + '" onclick="apBzVol(' + o[0] + ')">' + o[1] + '</button>'; }).join('') + '</div>';
-    var ms = musSel(), msel = (ms === 'hymn' && view !== 'run') ? 'mix' : ms;
-    h += '<h3>Background music</h3><div class="bz-row" style="justify-content:flex-start">' + MUS.filter(function (m) { return m[0] !== 'hymn' || view === 'run'; }).map(function (m) { return '<button class="bz-b' + (msel === m[0] ? ' on' : '') + '" onclick="apBzMus(\'' + m[0] + '\')">' + m[1] + '</button>'; }).join('') + '</div><div class="bz-sl">Music volume</div><div class="bz-row" style="justify-content:flex-start">' + [[.6, 'Low'], [1, 'Medium'], [1.6, 'High']].map(function (o) { return '<button class="bz-b' + (CFG.mv === o[0] ? ' on' : '') + '" onclick="apBzMV(' + o[0] + ')">' + o[1] + '</button>'; }).join('') + '</div>';
+    var ms = musSel(), msel = ((ms === 'hymn' || ms === 'er2' || ms === 'er3') && view !== 'run') ? 'mix' : ms;
+    h += '<h3>Background music</h3><div class="bz-row" style="justify-content:flex-start">' + MUS.filter(function (m) { return (m[0] !== 'hymn' && m[0] !== 'er2' && m[0] !== 'er3') || view === 'run'; }).map(function (m) { return '<button class="bz-b' + (msel === m[0] ? ' on' : '') + '" onclick="apBzMus(\'' + m[0] + '\')">' + m[1] + '</button>'; }).join('') + '</div><div class="bz-sl">Music volume</div><div class="bz-row" style="justify-content:flex-start">' + [[.6, 'Low'], [1, 'Medium'], [1.6, 'High']].map(function (o) { return '<button class="bz-b' + (CFG.mv === o[0] ? ' on' : '') + '" onclick="apBzMV(' + o[0] + ')">' + o[1] + '</button>'; }).join('') + '</div>';
     h += '<div class="bz-sl">Countdown ticks</div><div class="bz-row" style="justify-content:flex-start"><button class="bz-b' + (CFG.ticks ? ' on' : '') + '" onclick="apBzCfg(\'ticks\',true)">On</button><button class="bz-b' + (!CFG.ticks ? ' on' : '') + '" onclick="apBzCfg(\'ticks\',false)">Off</button></div>';
     h += '<div class="bz-row" style="margin-top:16px"><button class="bz-big" onclick="apBzSetDone()">Done</button></div></div>'; el.innerHTML = h;
   }
@@ -15678,4 +15679,4 @@ function deck(el,m,n,x,y,face,gap){clear(el);const cs=[];for(let i=0;i<n;i++){co
   if (document.readyState === 'complete') start(); else window.addEventListener('load', start);
 })();
 </script>
-<script id="ap-build">window.__apBuild="4a5d559aa4";</script>
+<script id="ap-build">window.__apBuild="e874500c28";</script>
