@@ -524,7 +524,8 @@ function deck(el,m,n,x,y,face,gap){clear(el);const cs=[];for(let i=0;i<n;i++){co
   var musLvl = 0;
   function musSel() { return view === 'run' ? CFG.musRun : CFG.mus; }   // Eton Rules keeps its own music setting (Jerusalem by default)
   function musicStart(fresh) {
-    musicStop(); var ms = musSel(), mu = (ms === 'hymn' && view !== 'run') ? 'mix' : ms; if (!snd || mu === 'off') return; var c = ctx(); if (!c) return;
+    musicStop(); if (window.__erHold) return;   // the Eton Rules splash has its own music; the hymn waits until it ends
+ var ms = musSel(), mu = (ms === 'hymn' && view !== 'run') ? 'mix' : ms; if (!snd || mu === 'off') return; var c = ctx(); if (!c) return;
     if (mu === 'mix' && view === 'run') { curMus = 'hymn'; mBpm = 42; CH = CH0; } else if (mu === 'mix') { if (fresh || !curMus || curMus === 'mix') { var opts = ['pulse', 'ambient', 'groove', 'arp', 'lofi', 'disco', 'suspense', 'bounce'].filter(function (x) { return x !== curMus; }); curMus = opts[Math.floor(Math.random() * opts.length)]; var pi = Math.floor(Math.random() * PROGS.length); if (pi === lastProg) pi = (pi + 1) % PROGS.length; lastProg = pi; CH = PROGS[pi]; mBpm = [88, 96, 104, 112][Math.floor(Math.random() * 4)]; } } else { curMus = mu; CH = musLvl ? PROGS[musLvl % PROGS.length] : CH0; mBpm = curMus === 'hymn' ? 42 : 96 + 6 * (musLvl % 5); }
     MG = c.createGain(); MG.gain.value = (curMus === 'hymn' ? .2 : .5) * CFG.mv; var lp = c.createBiquadFilter(); lp.type = 'lowpass'; lp.frequency.value = 1500; MG.connect(lp); lp.connect(c.destination);
     mStep = 0; mNext = c.currentTime + .12; mTimer = setInterval(sched, 60); sched();
@@ -649,7 +650,7 @@ function deck(el,m,n,x,y,face,gap){clear(el);const cs=[];for(let i=0;i<n;i++){co
     stop(); musicStop(); view = 'pick'; bgNow = null; if (ov) ov.removeAttribute('data-dlr'); var p = pool(), r = reasons(p);
     frame('', '<div class="bz-note"><b>' + p.length + ' ' + (HC.noun || 'words') + '</b> ready. ' + esc(dirs()[0] === 'en' ? 'English → ' + H.names[dirs()[1]] : H.names[dirs()[0]] + ' → English') + '. Pick a round: it starts straight away.</div><div class="bz-grid">' + MODES.filter(function (m) { return !H.games || H.games.indexOf(m[0]) > -1; }).map(function (m) { var off = r[m[0]]; return '<button class="bz-m"' + (off ? ' disabled' : '') + ' onclick="apBzStart(\'' + m[0] + '\')"><img alt="" src="' + (BZ[m[0]] || ({ run: 'icons/gm_run.webp', four: 'icons/gm_four.webp' })[m[0]] || 'icons/hx_cards.webp') + '"><b>' + m[1] + '</b><span>' + (off || m[2]) + '</span></button>'; }).join('') + '</div>');
   }
-  window.apBzStart = function (k) { stop(); bgNow = null; view = k; ctx(); sfx('go'); musicStart(true); GAMES[k](pool(/^(catch|lane)$/.test(k))); };   // Catch it and Lane it only pair words up (recognition), so a Recognition word is just an ordinary word there
+  window.apBzStart = function (k) { stop(); bgNow = null; view = k; ctx(); sfx('go'); window.__erHold = (k === 'run' && snd) ? 1 : 0; musicStart(true); GAMES[k](pool(/^(catch|lane)$/.test(k))); };   // Catch it and Lane it only pair words up (recognition), so a Recognition word is just an ordinary word there
 
   // ---------- helpers for self-marked card games
   function card(q, a, extra, hl) { var n = String(q || '').length + String(a || '').length, z = n > 130 ? ' bz-xl' : n > 60 ? ' bz-lg' : '', qh = hl ? esc(hl[0]) + '<b class="hl">' + esc(hl[1]) + '</b>' + esc(hl[2]) + '<span class="hln">Translate only the highlighted part</span>' : esc(q); return '<div class="bz-card' + z + '" id="bz-card"><small>' + esc(extra || '') + '</small><div>' + qh + '</div><div class="ans" id="bz-ans" style="visibility:hidden">' + esc(a) + ' ' + SAYBTN(a) + '</div></div>'; }
@@ -2326,8 +2327,8 @@ function deck(el,m,n,x,y,face,gap){clear(el);const cs=[];for(let i=0;i<n;i++){co
     }
     intro();
     (function () {   // opening splash: the crest bursts into light over dimmed turning rings of Eton pictures; one of the figures runs out of Your House, zigzags across the screen leaving a gold trail, and arrives at Birley Schools, which glows and rings with light while the figure leaps; then the title is spelled out in gold, a flash and zoom (tap to skip). Only opacity and transform are animated, so it stays light on the iPad.
-      var now = Date.now(); if (window.__erSplashAt && now - window.__erSplashAt < 120000) return; window.__erSplashAt = now;
-      if (!ov || document.getElementById('er-splash')) return;
+      var now = Date.now(); if (window.__erSplashAt && now - window.__erSplashAt < 120000) { window.__erHold = 0; return; } window.__erSplashAt = now;
+      if (!ov || document.getElementById('er-splash')) { window.__erHold = 0; return; }
       var NAMES = 'applause athens beagling bedroom bekynton bill boathouse budgens burningbush cannon chapel cheating chemprac chronicle cloisters collar crutches debating detention donbeni dressoff dropped dutchmans ecce emptyseat evans farrer feast fives francophone frenchoral gating gotaway hccomp hcshout housematch houseplayrole houseshout housetie ipad jafar keates library litter match maths missed missedchapel music offgames office oralexam parenttours polo popchoir punishment rain rowlands schoolyard seniorrain showuplang showups societyidea societymeeting tutorial wall welsh'.split(' ');
       var RUN0 = 1300, RUND = 3100, ARR = RUN0 + RUND;   // the figure leaves at 1.3 s, runs for 3.1 s, arrives at 4.4 s
       var old = document.getElementById('er-splash-css'); if (old) old.remove();
@@ -2344,11 +2345,11 @@ function deck(el,m,n,x,y,face,gap){clear(el);const cs=[];for(let i=0;i<n;i++){co
         + '#er-splash .jn{position:absolute;inset:0;z-index:5;pointer-events:none}'
         + '#er-splash .pl{position:absolute;text-align:center;opacity:0;animation:ersPop .6s cubic-bezier(.2,.9,.3,1.2) forwards}@keyframes ersPop{from{opacity:0;transform:scale(.3)}to{opacity:1;transform:none}}#er-splash .pl img{display:block;width:100%;height:auto;filter:drop-shadow(0 6px 14px rgba(0,0,0,.85))}#er-splash .pl em{display:block;margin-top:2px;font:700 clamp(.8rem,2.2vmin,1.2rem) "DM Sans",sans-serif;font-style:normal;color:#f4d77a;letter-spacing:.08em;text-transform:uppercase;text-shadow:0 2px 8px #000}'
         + '#er-splash .dt{position:absolute;border-radius:50%;background:#f4d77a;box-shadow:0 0 10px #f4d77a;opacity:0;animation:ersDt .5s ease-out forwards}@keyframes ersDt{from{opacity:0;transform:scale(.2)}to{opacity:.9;transform:scale(1)}}'
-        + '#er-splash .av{position:absolute;left:0;top:0;width:0;height:0;opacity:0}#er-splash .av .bd{position:absolute;transform-origin:50% 100%;animation:ersRun .3s ease-in-out infinite}@keyframes ersRun{0%,100%{transform:translateY(0) rotate(-6deg)}50%{transform:translateY(-12%) rotate(6deg)}}#er-splash .av .sh{position:absolute;border-radius:50%;background:rgba(0,0,0,.45)}'
+        + '#er-splash .av{position:absolute;left:0;top:0;width:0;height:0;opacity:0}#er-splash .av .bd,#er-splash .av .cl{position:absolute;overflow:hidden}#er-splash .av .cl{display:none}#er-splash .av .bd img,#er-splash .av .cl img{display:block;height:100%;width:auto;max-width:none;filter:drop-shadow(0 6px 10px rgba(0,0,0,.7))}#er-splash .av .bd img{animation:ersRn .72s steps(8) infinite}@keyframes ersRn{to{transform:translateX(-100%)}}#er-splash .av .sh{position:absolute;border-radius:50%;background:rgba(0,0,0,.45)}'
         + '#er-splash .hl{position:absolute;border-radius:50%;opacity:0;background:radial-gradient(circle,rgba(255,232,150,.9),rgba(244,215,122,.35) 40%,rgba(244,215,122,0) 70%)}#er-splash .hr{position:absolute;border-radius:50%;border:4px solid #f4d77a;opacity:0}'
-        + '#er-splash .tt{position:absolute;left:50%;top:50%;margin-top:9vmin;transform:translate(-50%,-50%);z-index:6;text-align:center;white-space:nowrap}#er-splash .tt img{display:block;height:min(11vmin,84px);width:auto;margin:0 auto 1.4vmin;opacity:0;animation:ersLt .6s ease-out ' + (ARR + 200) + 'ms forwards}'
+        + '#er-splash .tt{position:absolute;left:50%;top:50%;margin-top:9vmin;transform:translate(-50%,-50%);z-index:6;text-align:center;white-space:nowrap;width:max-content;max-width:90vw}#er-splash .tt img{display:block;height:min(11vmin,84px);width:auto;margin:0 auto 1.4vmin;opacity:0;animation:ersLt .6s ease-out ' + (ARR + 200) + 'ms forwards}'
         + '#er-splash .tt b{display:block;font:700 clamp(2.4rem,10vmin,6rem)/1 "Cormorant Garamond",Georgia,serif;letter-spacing:.1em;color:#f4d77a;text-transform:uppercase;text-shadow:0 3px 0 #7d6520,0 0 30px rgba(244,215,122,.55),0 6px 24px rgba(0,0,0,.95)}#er-splash .tt b i{display:inline-block;font-style:normal;opacity:0;animation:ersLt .5s ease-out forwards}@keyframes ersLt{from{opacity:0;transform:translateY(22px) scale(1.25)}to{opacity:1;transform:none}}'
-        + '#er-splash .tt span{display:block;margin-top:1.6vmin;font:600 clamp(1rem,3.2vmin,1.8rem) "DM Sans",sans-serif;color:#fff6dc;text-shadow:0 2px 10px #000,0 0 18px rgba(0,0,0,.9);opacity:0;animation:ersLt .8s ease-out ' + (ARR + 1300) + 'ms forwards}'
+        + '#er-splash .tt span{display:block;white-space:normal;max-width:80vw;margin-left:auto;margin-right:auto;margin-top:1.6vmin;font:600 clamp(1rem,3.2vmin,1.8rem) "DM Sans",sans-serif;color:#fff6dc;text-shadow:0 2px 10px #000,0 0 18px rgba(0,0,0,.9);opacity:0;animation:ersLt .8s ease-out ' + (ARR + 1300) + 'ms forwards}'
         + '#er-splash .fl{position:absolute;inset:0;background:#fff4c8;opacity:0;z-index:9;pointer-events:none}#er-splash .fl.go{animation:ersFl .9s ease-out forwards}@keyframes ersFl{0%{opacity:0}25%{opacity:.85}100%{opacity:0}}';
       document.head.appendChild(cs);
       var W = innerWidth, H = innerHeight, sz = Math.round(Math.min(W, H) / 6.6), gap = sz * 1.1, K = Math.min(5, Math.max(2, Math.ceil((Math.hypot(W, H) / 2 - sz / 2) / gap)));
@@ -2373,16 +2374,19 @@ function deck(el,m,n,x,y,face,gap){clear(el);const cs=[];for(let i=0;i<n;i++){co
         for (dj = 0; dj < nD; dj++) { var f0 = (dj + .5) / nD, px = P[a1 - 1][0] + (P[a1][0] - P[a1 - 1][0]) * f0, py = P[a1 - 1][1] + (P[a1][1] - P[a1 - 1][1]) * f0, tm0 = RUN0 + ((acc + sl * f0) / tot) * RUND; jn += '<div class="dt" style="left:' + Math.round(px - dotR) + 'px;top:' + Math.round(py - dotR) + 'px;width:' + dotR * 2 + 'px;height:' + dotR * 2 + 'px;animation-delay:' + Math.round(tm0) + 'ms"></div>'; }
         acc += sl;
       }
-      var avN = Math.floor(Math.random() * 8), aH = Math.round(H * .21), aW = Math.round(aH * 256 / 480);
-      jn += '<div class="av" id="ers-av"><div class="sh" style="left:' + Math.round(-aW * .4) + 'px;top:' + Math.round(-aH * .05) + 'px;width:' + Math.round(aW * .8) + 'px;height:' + Math.round(aH * .1) + 'px"></div><img class="bd" alt="" src="icons/er_p' + avN + '.webp" style="left:' + Math.round(-aW / 2) + 'px;top:' + (-aH) + 'px;width:' + aW + 'px;height:' + aH + 'px"></div>';
+      var aH = Math.round(H * .27), aW = Math.round(aH * 205 / 304), cH = Math.round(aH * 1.3), cW = Math.round(cH * 264 / 384);   // run strip: 8 frames of 205x304; celebration strip: 4 frames of 264x384
+      jn += '<div class="av" id="ers-av"><div class="sh" style="left:' + Math.round(-aW * .42) + 'px;top:' + Math.round(-aH * .04) + 'px;width:' + Math.round(aW * .84) + 'px;height:' + Math.round(aH * .09) + 'px"></div>'
+        + '<div class="bd" id="ers-bd" style="left:' + Math.round(-aW / 2) + 'px;top:' + (-aH) + 'px;width:' + aW + 'px;height:' + aH + 'px"><img alt="" src="icons/er_run.webp" style="width:' + (aW * 8) + 'px"></div>'
+        + '<div class="cl" id="ers-cl" style="left:' + Math.round(-cW / 2) + 'px;top:' + (-cH) + 'px;width:' + cW + 'px;height:' + cH + 'px"><img alt="" src="icons/er_cel.webp" style="width:' + (cW * 4) + 'px"></div></div>';
       var cr = '', cr2 = ''; try { var a = document.querySelector('.aph-avatar'); if (a && a.src) { cr = '<div class="cw"><img alt="" src="' + a.src + '"></div>'; cr2 = '<img alt="" src="' + a.src + '">'; } } catch (e) { }
       var title = 'Eton Rules'.split('').map(function (ch, i) { return ch === ' ' ? '<i>&nbsp;</i>' : '<i style="animation-delay:' + (ARR + 450 + i * 90) + 'ms">' + ch + '</i>'; }).join('');
       var el = document.createElement('div'); el.id = 'er-splash';
-      el.innerHTML = '<div class="in"><div class="sp"></div>' + h + '<div class="vg"></div><div class="rg"></div>' + cr + '<div class="jn">' + jn + '</div><div class="tt">' + cr2 + '<b>' + title + '</b><span>Race from your House to Birley Schools!</span></div></div><div class="fl"></div>';
+      el.innerHTML = '<div class="in"><div class="sp"></div>' + h + '<div class="vg"></div><div class="rg"></div>' + cr + '<div class="jn">' + jn + '</div><div class="tt">' + cr2 + '<b>' + title + '</b><span>Get yourself to Birley Schools, through all the ups and downs of Eton life</span></div></div><div class="fl"></div>';
       ov.appendChild(el);
-      var gone = false, tm = [];
+      var gone = false, tm = [], au = null;
+      try { if (snd) { au = new Audio('sounds/er_splash.mp3'); au.volume = .75; var pr = au.play(); if (pr && pr.catch) pr.catch(function () { au = null; window.__erHold = 0; try { if (view === 'run') musicStart(true); } catch (e) { } }); } } catch (e) { au = null; }
       function T2(fn, ms) { tm.push(setTimeout(fn, ms)); }
-      function bye(fast) { if (gone) return; gone = true; tm.forEach(clearTimeout); var fl = el.querySelector('.fl'); if (fl && !fast) fl.classList.add('go'); el.classList.add('out'); setTimeout(function () { if (el.parentNode) el.remove(); }, 900); }
+      function bye(fast) { if (gone) return; gone = true; tm.forEach(clearTimeout); window.__erHold = 0; try { if (au) { var a0 = au, v0 = a0.volume, n0 = 0, fi = setInterval(function () { n0++; try { a0.volume = Math.max(0, v0 * (1 - n0 / 10)); } catch (e) { } if (n0 >= 10) { clearInterval(fi); try { a0.pause(); } catch (e) { } } }, 60); } if (view === 'run') musicStart(true); } catch (e) { } var fl = el.querySelector('.fl'); if (fl && !fast) fl.classList.add('go'); el.classList.add('out'); setTimeout(function () { if (el.parentNode) el.remove(); }, 900); }
       // the run: one WAAPI animation moves the figure through the waypoints (turning to face the way it runs); the hop and lean are the CSS 'ersRun' on the body
       try {
         var av = el.querySelector('#ers-av'), kf = [], cum = 0, dirPrev = 1, dirNow;
@@ -2401,12 +2405,14 @@ function deck(el,m,n,x,y,face,gap){clear(el);const cs=[];for(let i=0;i<n;i++){co
         }, RUN0);
         T2(function () {   // arrival: stop the run, three leaps; Birley pulses and glows
           try {
-            var bd = av.querySelector('.bd'); bd.style.animation = 'none';
-            bd.animate([{ transform: 'translateY(0) scale(1,1)' }, { transform: 'translateY(0) scale(1.08,.9)', offset: .12 }, { transform: 'translateY(-' + Math.round(aH * .45) + 'px) scale(.95,1.06)', offset: .5 }, { transform: 'translateY(0) scale(1.08,.9)', offset: .88 }, { transform: 'translateY(0) scale(1,1)' }], { duration: 560, iterations: 3, easing: 'ease-in-out' });
+            var bd = av.querySelector('#ers-bd'), cl = av.querySelector('#ers-cl'), st = cl.querySelector('img'); bd.style.display = 'none'; cl.style.display = 'block';
+            var seq = [[0, 0], [1, -.5], [2, -.62], [3, 0], [0, 0], [1, -.55], [2, -.68], [3, 0]], tms = [0, 260, 600, 1050, 1500, 1700, 2050, 2500], DUR = 3300, fk = [], yk = [];   // crouch, leap, arms wide, land fists up; twice
+            seq.forEach(function (q, i) { var o = tms[i] / DUR; fk.push({ offset: o, transform: 'translateX(' + (-q[0] * 25) + '%)', easing: 'step-end' }); yk.push({ offset: o, transform: 'translateY(' + Math.round(q[1] * aH) + 'px)', easing: 'ease-out' }); });
+            fk.push({ offset: 1, transform: 'translateX(-75%)' }); yk.push({ offset: 1, transform: 'translateY(0)' });
+            st.animate(fk, { duration: DUR, fill: 'forwards' }); cl.animate(yk, { duration: DUR, fill: 'forwards' });
             var bi = el.querySelector('#ers-bi'); bi.animate([{ transform: 'scale(1)' }, { transform: 'scale(1.3)', offset: .35 }, { transform: 'scale(1.12)' }], { duration: 900, easing: 'ease-out', fill: 'forwards' });
             var hl = el.querySelector('#ers-hl'); hl.animate([{ opacity: 0, transform: 'scale(.4)' }, { opacity: 1, transform: 'scale(1)', offset: .3 }, { opacity: .55, transform: 'scale(1.08)' }], { duration: 1300, fill: 'forwards', easing: 'ease-out' });
           } catch (e) { }
-          try { sfx('win'); } catch (e) { }   // one celebratory jingle on arrival (the first tap has already woken the sound)
         }, ARR);
       } catch (e) { }
       T2(function () { bye(false); }, ARR + 3600);
