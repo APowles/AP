@@ -1416,6 +1416,7 @@ function deck(el,m,n,x,y,face,gap){clear(el);const cs=[];for(let i=0;i<n;i++){co
   // Eton Rules, last line of the map: the hymn gives way to a looping orchestral piece (played through the shared sound engine, so it needs no tap of its own); it goes back to the hymn if every team drops off the last line
   var FIN = { buf: null, loading: false, want: false, src: null, g: null };
   function finLoad() {
+    try { yayLoad(); } catch (e) { }
     if (FIN.buf || FIN.loading) return; FIN.loading = true;
     try {
       fetch('sounds/er_final.mp3').then(function (r) { return r.arrayBuffer(); }).then(function (ab) {
@@ -1424,6 +1425,21 @@ function deck(el,m,n,x,y,face,gap){clear(el);const cs=[];for(let i=0;i<n;i++){co
         var pr = c.decodeAudioData(ab, ok, no); if (pr && pr.catch) pr.catch(no);
       }).catch(function () { FIN.loading = false; });
     } catch (e) { FIN.loading = false; }
+  }
+  var YAY = { buf: null, loading: false, want: false };   // the cheer when a team reaches Birley Schools (shared sound engine; loaded early, played once)
+  function yayLoad() {
+    if (YAY.buf || YAY.loading) return; YAY.loading = true;
+    try {
+      fetch('sounds/er_yay.mp3').then(function (r) { return r.arrayBuffer(); }).then(function (ab) {
+        var c = ctx(); if (!c) { YAY.loading = false; return; }
+        var ok = function (b) { YAY.buf = b; YAY.loading = false; if (YAY.want) yayPlay(); }, no = function () { YAY.loading = false; };
+        var pr = c.decodeAudioData(ab, ok, no); if (pr && pr.catch) pr.catch(no);
+      }).catch(function () { YAY.loading = false; });
+    } catch (e) { YAY.loading = false; }
+  }
+  function yayPlay() {
+    YAY.want = false; if (!snd || !YAY.buf) return;
+    try { var c = ctx(); if (!c) return; var g = c.createGain(); g.gain.value = .8 * (CFG.sv || 1); g.connect(c.destination); var sr = c.createBufferSource(); sr.buffer = YAY.buf; sr.connect(g); sr.start(0); } catch (e) { }
   }
   function finPlay() {
     if (!FIN.want || FIN.src || !FIN.buf || !snd) return;
@@ -3129,6 +3145,7 @@ function deck(el,m,n,x,y,face,gap){clear(el);const cs=[];for(let i=0;i<n;i++){co
         h += '<div class="tt" style="--wc:' + col + '"><b>' + 'Sent Up For Good!'.split('').map(function (ch, i) { return ch === ' ' ? '<i>&nbsp;</i>' : '<i style="animation-delay:' + (900 + i * 70) + 'ms">' + ch + '</i>'; }).join('') + '</b><span>' + esc(who) + (who === 'You' ? ' reached Birley Schools' : ' wins!') + '</span></div>';
         var el = document.createElement('div'); el.id = 'er-fin'; el.innerHTML = h; ov.appendChild(el);
         try { sfx('win'); } catch (e) { }
+        try { YAY.want = true; if (YAY.buf) yayPlay(); else yayLoad(); } catch (e) { }
         try { if (FIN.g && AC) FIN.g.gain.setTargetAtTime(.8 * (CFG.mv || 1), AC.currentTime, .6); } catch (e) { }   // the finale music swells
         timers.push(setTimeout(function () {
           try {
@@ -14816,4 +14833,4 @@ textarea.ms-in{min-height:7rem;resize:vertical}.ms-hint.ms-hint-sm{font-size:.78
   if (document.readyState === 'complete') start(); else window.addEventListener('load', start);
 })();
 </script>
-<script id="ap-build">window.__apBuild="e880eb3adc";</script>
+<script id="ap-build">window.__apBuild="f9a5543c0c";</script>
