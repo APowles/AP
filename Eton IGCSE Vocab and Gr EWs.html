@@ -22069,7 +22069,7 @@ function deck(el,m,n,x,y,face,gap){clear(el);const cs=[];for(let i=0;i<n;i++){co
         if (Object.keys(names).some(function (n) { return names[n] > 1; })) return null;
         return { c: gg.concat(bb, ff, cards()), names: names };
       }
-      function cards() { var a = []; for (var i = 0; i < 5; i++) a.push(['Eton Rules card', 'c', 'Land here, answer a bonus question, and you may win an Eton Rules card.']); return a; }
+      function cards() { var a = []; for (var i = 0; i < 6; i++) a.push(['Eton Rules card', 'c', 'Land here, answer a bonus question, and you may win an Eton Rules card.']); return a; }
       function plains(names, n) {   // quiet squares: places not already on the board, each once
         var seen = {}, out = []; shuf(PLAIN.concat(PXTRA)).forEach(function (q) { if (out.length < n && !names[q[0]] && !seen[q[0]]) { seen[q[0]] = 1; out.push(q); } }); return out;
       }
@@ -22081,16 +22081,16 @@ function deck(el,m,n,x,y,face,gap){clear(el);const cs=[];for(let i=0;i<n;i++){co
       }
       for (var t2 = 0; !m && t2 < 400; t2++) { var d2 = pick(); if (d2) m = shuf(d2.c.concat(plains(d2.names, 40 - d2.c.length))); }
       if (!m) { var ff3 = draw(fates(), 2), nf = {}, nx = function (q) { return !nf[q[0]]; }; ff3.forEach(function (q) { nf[q[0]] = 1; }); var g3 = draw(PGOOD.filter(nx), 5), b3 = draw(PBAD.filter(nx), 5); g3.concat(b3).forEach(function (q) { nf[q[0]] = 1; }); var c3 = cards(); m = shuf(g3.concat(b3, ff3, c3, plains(nf, 40 - g3.length - b3.length - ff3.length - c3.length))); }
-      // lay the squares out line by line (the map is six rows of seven): every line gets two good/bad/fate squares and, except the first line, one Eton Rules card; the rest are quiet. The order within a line is random.
+      // lay the squares out line by line (the map is six rows of seven): every line gets two good/bad/fate squares and one Eton Rules card; the rest are quiet. The order within a line is random.
       (function () {
         var g = [], b = [], x = [], c = [], pl = [];
         m.forEach(function (q) { var k = q[1]; if (k === 'g') g.push(q); else if (k === 'b') b.push(q); else if (k === 'x') x.push(q); else if (k === 'c') c.push(q); else pl.push(q); });
-        if (m.length !== 40 || g.length !== 5 || b.length !== 5 || x.length !== 2 || c.length !== 5) return;
+        if (m.length !== 40 || g.length !== 5 || b.length !== 5 || x.length !== 2 || c.length !== 6) return;
         var sizes = [6, 7, 7, 7, 7, 6], fl = Math.floor(Math.random() * 6), out = [], ln, k2;
         g = shuf(g); b = shuf(b); x = shuf(x); c = shuf(c); pl = shuf(pl);
         for (ln = 0; ln < 6; ln++) {
           var line = ln === fl ? [x.pop(), x.pop()] : [g.pop(), b.pop()];
-          if (ln > 0) line.push(c.pop());
+          line.push(c.pop());
           while (line.length < sizes[ln]) line.push(pl.pop());
           line = shuf(line);
           if (ln === 0) { for (k2 = 0; k2 < 20 && line[0][1] === 'b'; k2++) line = shuf(line); }
@@ -22215,13 +22215,13 @@ function deck(el,m,n,x,y,face,gap){clear(el);const cs=[];for(let i=0;i<n;i++){co
         bt.onclick = function () {
           var old = $('er-tkp'); if (old) { old.remove(); return; }
           var pn = document.createElement('div'); pn.id = 'er-tkp';
-          var opts = [['+1 square', function (q) { return 1; }], ['+3 squares', function (q) { return 3; }], ['Next line', function (q) { return (Math.floor(q / 7) + 1) * 7 - q; }], ['Last line', function (q) { return q < 35 ? 35 - q : 0; }], ['Straight to Birley', function (q) { return LAST - q; }], ['Next Eton Rules card', function (q) { return nextKind('c', q); }], ['Next Up or Down square', function (q) { return nextKind('gb', q); }], ['Next Ups and Downs ?', function (q) { return nextKind('x', q); }]];
+          var opts = [['+1 square', function (q) { return 1; }], ['+3 squares', function (q) { return 3; }], ['Next line', function (q) { return (Math.floor(q / 7) + 1) * 7 - q; }], ['Last line', function (q) { return q < 35 ? 35 - q : 0; }], ['Straight to Birley', function (q) { return LAST - q; }], ['Next Eton Rules card', function (q) { return nextKind('c', q); }], ['Next Up or Down square', function (q) { return nextKind('gb', q); }], ['Next Ups and Downs ?', function (q) { return nextKind('x', q); }], ['Show the end scene', function (q) { return -1; }]];
           function nextKind(k, q) { for (var i = q + 1; i <= LAST; i++) if (BD[i] && BD[i][1] && k.indexOf(BD[i][1]) >= 0) return i - q; return 0; }
           pn.innerHTML = '<b>Teacher: move this team on</b>' + opts.map(function (o, i) { return '<button class="bz-b" data-i="' + i + '">' + o[0] + '</button>'; }).join('');
           pn.onclick = function (ev) {
             var t = ev.target; if (!t || !t.getAttribute || t.getAttribute('data-i') === null) return;
             if (busy || $('er-stage') || $('er-lc')) { msg = 'Finish the question first, then move on.'; refresh(); return; }
-            var n = opts[+t.getAttribute('data-i')][1](pos[cur]); if (n < 1) return;
+            var n = opts[+t.getAttribute('data-i')][1](pos[cur]); if (n === -1) { pn.remove(); busy = true; win(); return; } if (n < 1) return;   // 'Show the end scene': the Birley Schools finale and the winning screen, straight away
             pn.remove(); busy = true; walk(n);
           };
           ov.appendChild(pn);
@@ -22837,4 +22837,4 @@ function deck(el,m,n,x,y,face,gap){clear(el);const cs=[];for(let i=0;i<n;i++){co
   if (document.readyState === 'complete') start(); else window.addEventListener('load', start);
 })();
 </script>
-<script id="ap-build">window.__apBuild="d5a73b58d5";window.__apVer=156;(function(){var N=window.__apVer;function put(){try{var h=document.querySelector('header.aph-header');if(!h||document.getElementById('ap-ver'))return;var s=document.createElement('span');s.id='ap-ver';s.textContent='v'+N;s.style.cssText='position:absolute;right:10px;bottom:4px;font:600 11px/1 system-ui,sans-serif;color:#c9a84c;opacity:.8;pointer-events:none;letter-spacing:.04em;z-index:2';if(getComputedStyle(h).position==='static')h.style.position='relative';h.appendChild(s)}catch(e){}}put();document.addEventListener('DOMContentLoaded',put);window.addEventListener('load',put);setInterval(put,2000)})();</script>
+<script id="ap-build">window.__apBuild="89cc2af602";window.__apVer=158;(function(){var N=window.__apVer;function put(){try{var h=document.querySelector('header.aph-header');if(!h||document.getElementById('ap-ver'))return;var s=document.createElement('span');s.id='ap-ver';s.textContent='v'+N;s.style.cssText='position:absolute;right:10px;bottom:4px;font:600 11px/1 system-ui,sans-serif;color:#c9a84c;opacity:.8;pointer-events:none;letter-spacing:.04em;z-index:2';if(getComputedStyle(h).position==='static')h.style.position='relative';h.appendChild(s)}catch(e){}}put();document.addEventListener('DOMContentLoaded',put);window.addEventListener('load',put);setInterval(put,2000)})();</script>
