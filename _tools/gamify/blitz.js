@@ -540,7 +540,7 @@ function deck(el,m,n,x,y,face,gap){clear(el);const cs=[];for(let i=0;i<n;i++){co
   function yayLoad() {
     if (YAY.buf || YAY.loading) return; YAY.loading = true;
     try {
-      fetch('sounds/er_yay.mp3').then(function (r) { return r.arrayBuffer(); }).then(function (ab) {
+      fetch('sounds/er_yay.mp3?v=3').then(function (r) { return r.arrayBuffer(); }).then(function (ab) {
         var c = ctx(); if (!c) { YAY.loading = false; return; }
         var ok = function (b) { YAY.buf = b; YAY.loading = false; if (YAY.want) yayPlay(); }, no = function () { YAY.loading = false; };
         var pr = c.decodeAudioData(ab, ok, no); if (pr && pr.catch) pr.catch(no);
@@ -2535,7 +2535,7 @@ function deck(el,m,n,x,y,face,gap){clear(el);const cs=[];for(let i=0;i<n;i++){co
       el.innerHTML = '<div class="in"><div class="sp"></div>' + h + '<div class="vg"></div><div class="rg"></div>' + cr + '<div class="jn">' + jn + '</div><div class="tt">' + cr2 + '<b>' + title + '</b><span>Get yourself to Birley Schools,<br>through all the <strong class="up">&#9650; UPS</strong> and <strong class="dn">DOWNS &#9660;</strong> of Eton life</span></div></div><div class="fl"></div>';
       ov.appendChild(el);
       var gone = false, tm = [], au = null;
-      try { if (snd) { au = new Audio('sounds/er_splash.mp3'); au.volume = .75; var pr = au.play(); if (pr && pr.catch) pr.catch(function () { au = null; window.__erHold = 0; try { if (view === 'run') musicStart(true); } catch (e) { } }); } } catch (e) { au = null; }
+      try { if (snd) { au = new Audio('sounds/er_splash.mp3?v=3'); au.volume = .75; var pr = au.play(); if (pr && pr.catch) pr.catch(function () { au = null; window.__erHold = 0; try { if (view === 'run') musicStart(true); } catch (e) { } }); } } catch (e) { au = null; }
       function T2(fn, ms) { tm.push(setTimeout(fn, ms)); }
       function bye(fast) { if (gone) return; gone = true; tm.forEach(clearTimeout); window.__erHold = 0; try { if (au) { var a0 = au, v0 = a0.volume, n0 = 0, fi = setInterval(function () { n0++; try { a0.volume = Math.max(0, v0 * (1 - n0 / 10)); } catch (e) { } if (n0 >= 10) { clearInterval(fi); try { a0.pause(); } catch (e) { } } }, 60); } if (view === 'run') musicStart(true); } catch (e) { } var fl = el.querySelector('.fl'); if (fl && !fast) fl.classList.add('go'); el.classList.add('out'); setTimeout(function () { if (el.parentNode) el.remove(); }, 900); }
       // the run: one WAAPI animation moves the figure through the waypoints (turning to face the way it runs); the hop and lean are the CSS 'ersRun' on the body
