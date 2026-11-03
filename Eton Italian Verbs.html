@@ -11963,8 +11963,8 @@ function deck(el,m,n,x,y,face,gap){clear(el);const cs=[];for(let i=0;i<n;i++){co
     };
     window.apErPick = function (i) {
       var P = CFG.erP, t = picks.indexOf(i);
-      if (t > -1 && t !== pickTurn) { picks[t] = picks[pickTurn]; }
-      picks[pickTurn] = i; pickTurn = (pickTurn + 1) % P; pickRefresh(P); sfx('holoact', i); window.apErShow(i);
+      if (t > -1 && t !== pickTurn) return;
+      picks[pickTurn] = i; pickRefresh(P); sfx('holoact', i); window.apErShow(i);
     };
     function shufBoard() {
       function ok(m) { if (m[0][1] === 'b') return false; var run = 0; for (var i = 0; i < m.length; i++) { run = m[i][1] === 'b' ? run + 1 : 0; if (run > 2) return false; } return true; }
@@ -12214,7 +12214,7 @@ function deck(el,m,n,x,y,face,gap){clear(el);const cs=[];for(let i=0;i<n;i++){co
       function popSq(i) {
         var all = document.querySelectorAll('#er-board .er-sq'), el = all[i]; if (!el) return; el.style.zIndex = 30;
         if (!RV[i]) { RV[i] = 1; el.classList.remove('hid'); var kk = el.getAttribute('data-k'); if (kk) el.classList.add(kk); var q0 = BD[i]; el.setAttribute('title', q0[0] + (q0[2] ? ': ' + q0[2] : '')); }
-        try { el.animate([{ transform: 'translate(-50%,-50%) scale(1)', filter: 'brightness(1)', offset: 0, easing: 'cubic-bezier(.2,.9,.3,1.2)' }, { transform: 'translate(-50%,-50%) scale(2.9)', filter: 'brightness(1.12) drop-shadow(0 0 18px rgba(255,236,160,.9))', offset: .2 }, { transform: 'translate(-50%,-50%) scale(2.9)', filter: 'brightness(1.12) drop-shadow(0 0 18px rgba(255,236,160,.9))', offset: .9, easing: 'ease-in' }, { transform: 'translate(-50%,-50%) scale(1)', filter: 'brightness(1)', offset: 1 }], { duration: 2800 }); } catch (e) { }
+        try { el.animate([{ transform: 'translate(-50%,-50%) scale(1)', filter: 'brightness(1)', offset: 0, easing: 'cubic-bezier(.2,.9,.3,1.2)' }, { transform: 'translate(-50%,-50%) scale(3.8)', filter: 'brightness(1.15) drop-shadow(0 0 24px rgba(255,236,160,.9))', offset: .18 }, { transform: 'translate(-50%,-50%) scale(3.8)', filter: 'brightness(1.12) drop-shadow(0 0 18px rgba(255,236,160,.9))', offset: .9, easing: 'ease-in' }, { transform: 'translate(-50%,-50%) scale(1)', filter: 'brightness(1)', offset: 1 }], { duration: 2800 }); } catch (e) { }
         timers.push(setTimeout(function () { el.style.zIndex = ''; }, 2850));
       }
       var lcDone = null;
@@ -12226,7 +12226,7 @@ function deck(el,m,n,x,y,face,gap){clear(el);const cs=[];for(let i=0;i<n;i++){co
         var bw = bd.getBoundingClientRect().width, c = PADS[i] || PADS[0], el = document.createElement('div'); el.id = 'er-lc'; el.className = 'er-lc ' + kd;
         el.style.setProperty('--dx', ((c[0] / 1536 - .5) * bw) + 'px'); el.style.setProperty('--dy', ((c[1] / 1024 - .5) * bw * 2 / 3) + 'px');
         var ic = ICO[q[0]];
-        el.innerHTML = (ic ? '<img alt="" src="icons/er_' + ic + '.webp">' : '') + '<div class="t">' + esc(ti) + '</div>' + (su ? '<div class="u">' + esc(su) + '</div>' : '')
+        el.innerHTML = (ic ? '<img alt="" src="icons/er_' + ic + '.webp" style="max-width:min(120px,28%);margin-bottom:8px">' : '') + '<div class="t">' + esc(ti) + '</div>' + (su ? '<div class="u">' + esc(su) + '</div>' : '')
           + '<div class="x">' + esc(q[2] || (q[1] === 'f0' ? 'Where every boy begins.' : 'A quiet corner of Eton. Nothing happens here.')) + '</div>' + (big ? '<div class="bd' + (typeof e === 'number' ? '' : ' w') + '">' + esc(big) + '</div>' : '') + '<button class="er-btn er-lc-b">' + (cb ? 'Carry on \u25B6' : 'Close') + '</button>';
         var bg = document.createElement('div'); bg.id = 'er-lcbg'; bg.className = 'er-lc-bg';
         var fin = false; function close() { if (fin) return; fin = true; lcDone = null; el.classList.add('out'); bg.classList.add('out'); setTimeout(function () { el.remove(); bg.remove(); }, 300); if (cb) cb(); }
