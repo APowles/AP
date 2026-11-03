@@ -13960,7 +13960,7 @@ function deck(el,m,n,x,y,face,gap){clear(el);const cs=[];for(let i=0;i<n;i++){co
               else { popSq(pos[me]); timers.push(setTimeout(function () { done(false); }, 2850)); }
               return;
             }
-            pos[me] += pos[me] < tgt ? 1 : -1; setCar(me); sfx('thump'); refresh(); timers.push(setTimeout(mv, 600));
+            erTrail(pos[me], pcL(me)); pos[me] += pos[me] < tgt ? 1 : -1; setCar(me); sfx('thump'); refresh(); timers.push(setTimeout(mv, 600));
           })();
         }
       }
@@ -14135,192 +14135,6 @@ function deck(el,m,n,x,y,face,gap){clear(el);const cs=[];for(let i=0;i<n;i++){co
   };
 
 })();
-⟦/script>
-<script id="ap-liaison">
-/* AP LIAISON v1: obligatory liaison in inverted questions, said by every French voice.
-   Voices drop the t of "fait-il", "dit-on", "sont-ils" and the z of "allez-y". This respells them for the voice only
-   (Covid -> covide, fait-il -> fait-til, dit-on -> dit-ton, vont-elles -> vont-telles, allez-y -> allez-zy, parlez-en -> parlez-zen).
-   Also keeps Match silent unless Voice is switched on (here because this script runs before the apps' own code).
-   Wraps speechSynthesis.speak, so every app and pop-out page gets it; the text on screen never changes. */
-(function () {
-  if (window.__apLiaison) return; window.__apLiaison = 1;
-  var L = 'A-Za-z\\u00C0-\\u00FF';
-  var reT = new RegExp('(^|[^' + L + '\\-\'\\u2019])([' + L + ']*[' + L + '][td])-(ils?|elles?|on)(?![' + L + '])', 'g');
-  var reZ = new RegExp('(^|[^' + L + '\\-\'\\u2019])([' + L + ']*[' + L + '][sz])-(y|en)(?![' + L + '\\-])', 'g');
-  function fix(t) {
-    t = String(t);
-    t = t.replace(reT, function (m, pre, v, p) { return pre + v + '-' + (/^ils?$/i.test(p) ? 't' + p.replace(/s$/i, '') : /^elles?$/i.test(p) ? 't' + p : 't' + p); });
-    t = t.replace(reZ, function (m, pre, v, p) { return pre + v + '-z' + p; });
-    t = t.replace(/(^|[^A-Za-z\u00C0-\u00FF])covid(?![A-Za-z\u00C0-\u00FF])/gi, '$1covide');   // voices drop the final d of Covid
-    return t;
-  }
-  window.apLiaisonFix = fix;
-  // English voices say "live" to rhyme with "give" before these nouns; the adjective rhymes with "five"
-  function enFix(t) { return String(t).replace(/P[ée]tain/gi, 'Pay-tan').replace(/\b(I|we|they|you|he|she|have|has|had|I've|we've|they've|you've|I'd|we'd|they'd|you'd|he's|she's) read(?= (?:in|on|about|that|an|a|the|it|them|this|these|those|some|several|many|one)\b)/gi, '$1 red').replace(/\blive(?=[ -](?:broadcast|stream|tv\b|television|coverage|music|event|performance|show|concert|news|audience|debate|sport|football|match|report|feed|video|radio|interview|commentary|reporting|transmission))/gi, 'lyve'); }
-  try {
-    var P = window.SpeechSynthesis && window.SpeechSynthesis.prototype; if (!P || P.__apLia) return; P.__apLia = 1;
-    var orig = P.speak;
-    P.speak = function (u) {
-      try { if (document.querySelector('.ms-ov .ms-grid') && localStorage.getItem('ap_match_tts') !== 'on') return; } catch (e) { }   // Match is silent unless the boy switches Voice on
-      try { if (u && !u.__apLia && /^fr/i.test(u.lang || (u.voice && u.voice.lang) || '')) { u.__apLia = 1; var n = fix(u.text); if (n !== u.text) u.text = n; } else if (u && !u.__apEn && /^en/i.test(u.lang || (u.voice && u.voice.lang) || '')) { u.__apEn = 1; var e2 = enFix(u.text); if (e2 !== u.text) u.text = e2; } } catch (e) { }
-      return orig.call(this, u);
-    };
-  } catch (e) { }
-})();
-</script>
-<script id="ap-voice">
-/* ===== AP VOICE v1 — shared voice picker, iPad/Prisma unlock and 🔊 Voice check (identical in every AP app) ===== */
-(function (W) {
-  if (W.AP_VOICE) return;
-  var S = W.speechSynthesis || null;
-  var NOVELTY = /^(Eddy|Flo|Grandma|Grandpa|Reed|Rocko|Sandy|Shelley|Albert|Bad News|Bahh|Bells|Boing|Bubbles|Cellos|Good News|Jester|Organ|Superstar|Trinoids|Whisper|Wobble|Zarvox|Fred|Junior|Kathy|Ralph)\b/i;
-  var NOVELTY_ID = /com\.apple\.eloquence\./i;   // Apple Eloquence voices (Eddy, Flo, Grandma… in every language)
-  var REGION = { fr: 'fr-FR', es: 'es-ES', it: 'it-IT', en: 'en-GB', de: 'de-DE' };
-  // Good voices per language, best first, by platform family
-  var APPLE = { fr: ['Thomas', 'Amélie', 'Amelie', 'Audrey', 'Aurélie', 'Marie'], es: ['Mónica', 'Monica', 'Jorge', 'Marisol', 'Paulina', 'Juan', 'Diego', 'Francisca', 'Angélica', 'Isabela'],
-                it: ['Alice', 'Luca', 'Federica', 'Paola', 'Emma'], en: ['Daniel', 'Serena', 'Kate', 'Oliver', 'Arthur', 'Martha', 'Stephanie', 'Jamie', 'Samantha'], de: ['Anna', 'Markus', 'Petra', 'Yannick'] };
-  var MS_DESKTOP = { fr: ['Hortense', 'Julie', 'Paul'], es: ['Helena', 'Laura', 'Pablo'], it: ['Elsa', 'Cosimo'], en: ['Hazel', 'George', 'Susan'], de: ['Hedda', 'Katja', 'Stefan'] };
-  var voices = [];
-  function load() { try { voices = (S && S.getVoices()) || []; } catch (e) { voices = []; } return voices; }
-  if (S) { load(); try { S.addEventListener('voiceschanged', load); } catch (e) { } }
-  function base(l) { return String(l || '').toLowerCase().split(/[-_]/)[0]; }
-  function lname(v) { return String(v && v.name || ''); }
-  function novelty(v) { return NOVELTY.test(lname(v)) || NOVELTY_ID.test(String(v && v.voiceURI || '')); }
-  function usable() { if (!voices.length) load(); return voices.filter(function (v) { return !novelty(v) && !/multilingual/i.test(lname(v)); }); }
-  function tierOf(v) {
-    var n = lname(v);
-    if (/online \(natural\)|neural/i.test(n)) return 'natural';
-    if (/\((enhanced|premium)\)|enhanced|premium/i.test(n) || /premium|enhanced/i.test(String(v.voiceURI || ''))) return 'enhanced';
-    if (/^google/i.test(n)) return 'google';
-    if (/^microsoft/i.test(n)) return 'desktop';
-    return 'basic';
-  }
-  function hasName(v, list) { var n = lname(v); for (var i = 0; i < list.length; i++) if (n.indexOf(list[i]) >= 0) return i; return -1; }
-  // pick(lang, {names:[preferred names, app's own order], gender:'female'|'male', exclude:[names]})
-  var PREFS = {}, DEFPREF = { fr: ['Henri', 'Remy', 'Thomas'], es: ['Alvaro', 'Jorge'], it: ['Diego', 'Luca'], en: ['Ryan', 'George', 'Daniel'] };   // most AP apps prefer these   // each app's preferred names per language, remembered from its own calls (used by the Voice check)
-  function pick(lang, o) {
-    o = o || {}; var b = base(lang), reg = REGION[b] || lang;
-    if (o.names && o.names.length && !PREFS[b]) PREFS[b] = o.names;
-    var L = usable().filter(function (v) { return base(v.lang) === b; });
-    if (o.exclude && o.exclude.length) { var L2 = L.filter(function (v) { return hasName(v, o.exclude) < 0; }); if (L2.length) L = L2; }
-    if (!L.length) return null;
-    var pref = (o.names && o.names.length) ? o.names : (DEFPREF[b] || []), apple = APPLE[b] || [], ms = MS_DESKTOP[b] || [];
-    var rank = { natural: 0, enhanced: 1, google: 2, desktop: 3, basic: 4 };
-    function score(v) {
-      var t = tierOf(v), s = rank[t] * 1000;
-      var pn = hasName(v, pref); s += pn >= 0 ? pn : 200;                      // app's own preferred names first within a tier
-      if (t === 'enhanced' || t === 'basic') { var an = hasName(v, apple); s += an >= 0 ? an : 100; }
-      if (t === 'desktop') { var mn = hasName(v, ms); s += mn >= 0 ? mn : 100; }
-      if (String(v.lang).replace('_', '-').toLowerCase() !== reg.toLowerCase()) s += 50;   // home region first (es-ES, fr-FR…)
-      if (v.localService === false && t === 'basic') s += 10;
-      return s;
-    }
-    return L.slice().sort(function (a, c) { return score(a) - score(c); })[0] || null;
-  }
-  function quality(v) { if (!v) return 'none'; var t = tierOf(v); return t === 'natural' || t === 'enhanced' || t === 'google' ? 'good' : t === 'desktop' ? 'ok' : 'basic'; }
-  // iPad / Prisma: speech only starts after a tap — prime it on the first touch or click
-  var unlocked = false;
-  function unlock() {
-    if (unlocked || !S) return; unlocked = true; load();
-    try { var u = new SpeechSynthesisUtterance(' '); u.volume = 0; u.rate = 1; S.speak(u); } catch (e) { }
-  }
-  ['pointerdown', 'touchend', 'keydown', 'click'].forEach(function (ev) { try { W.addEventListener(ev, unlock, { once: true, capture: true }); } catch (e) { } });
-  function platform() {
-    var ua = navigator.userAgent || '', ipad = /iPad|iPhone|iPod/.test(ua) || (/Macintosh/.test(ua) && navigator.maxTouchPoints > 1);
-    return ipad ? 'ipad' : /Mac OS X/.test(ua) ? 'mac' : /Windows/.test(ua) ? 'windows' : /CrOS/.test(ua) ? 'chromebook' : 'other';
-  }
-  var NAMES = { fr: 'French', es: 'Spanish', it: 'Italian', en: 'English', de: 'German' };
-  var SAMPLE = { fr: 'Bonjour, je m’appelle Thomas et j’aime apprendre le français.', es: 'Hola, en mi opinión es muy importante aprender idiomas.', it: 'Ciao, secondo me è molto importante imparare le lingue.', en: 'Hello, this is the English voice.', de: 'Hallo, ich lerne gern Deutsch.' };
-  function advice(b, v, plat) {
-    var q = quality(v), name = NAMES[b] || b;
-    if (q === 'good') return '';
-    var seen = {}, better = (APPLE[b] || []).filter(function (n) { var k = n.normalize('NFD').replace(/[\u0300-\u036f]/g, ''); if (seen[k]) return false; seen[k] = 1; return true; }).slice(0, 2).join(' or ');
-    if (plat === 'ipad' || plat === 'mac') return (v ? 'This is a basic voice. ' : 'No ' + name + ' voice found. ') + 'For a much better one: Settings → Accessibility → Spoken Content → Voices → ' + name + ' → download ' + better + ' (Enhanced). Then reload this page.';
-    if (plat === 'windows') return (v ? 'This is a basic Windows voice. ' : 'No ' + name + ' voice on this computer. ') + 'Best: open this app in Microsoft Edge. Otherwise ask IT to add the ' + name + ' speech pack (Settings → Time & language → Speech).';
-    return v ? 'This is a basic voice; another browser or device may sound better.' : 'No ' + name + ' voice on this device.';
-  }
-  function say(text, lang, rate) {
-    if (!S) return; try { S.cancel(); } catch (e) { }
-    var u = new SpeechSynthesisUtterance(text), b = base(lang); u.lang = REGION[b] || lang;
-    var nm = PREFS[b] || (typeof W._apvNames === 'function' ? W._apvNames(b) : DEFPREF[b]), v = pick(lang, nm ? { names: nm } : {}); if (v) u.voice = v; u.rate = rate || (b === 'es' ? 0.75 : 0.9); S.speak(u);
-  }
-  // 🔊 Voice check panel (house style)
-  function check(langs) {
-    langs = (langs && langs.length ? langs : ['fr', 'es', 'it']).map(base);
-    var old = document.getElementById('apv-check'); if (old) old.remove();
-    var plat = platform(), d = document.createElement('div'); d.id = 'apv-check';
-    d.setAttribute('role', 'dialog'); d.setAttribute('aria-label', 'Voice check');
-    d.style.cssText = 'position:fixed;inset:0;z-index:20000;background:rgba(15,23,42,.55);display:flex;align-items:flex-start;justify-content:center;padding:6vh 16px;overflow:auto;font-family:"DM Sans",system-ui,-apple-system,"Segoe UI",sans-serif';
-    function row(b) {
-      var nm = PREFS[b] || (typeof W._apvNames === 'function' ? W._apvNames(b) : DEFPREF[b]), v = pick(b, nm ? { names: nm } : {}), q = quality(v), col = q === 'good' ? '#2e7d52' : q === 'ok' ? '#b8922a' : '#c0392b', bg = q === 'good' ? '#eaf5ef' : q === 'ok' ? '#fdf6e3' : '#fdecea';
-      var lbl = q === 'good' ? 'Good' : q === 'ok' ? 'OK' : q === 'none' ? 'Missing' : 'Basic', adv = advice(b, v, plat);
-      return '<div style="border:1px solid #e2e6f0;border-radius:10px;padding:12px 14px;display:grid;gap:6px">'
-        + '<div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap"><b style="font-size:1rem;color:#1a2744;min-width:70px">' + (NAMES[b] || b) + '</b>'
-        + '<span style="font-size:.9rem;color:#4a5a7a;flex:1;min-width:0">' + (v ? v.name.replace(/</g, '&lt;') + ' · ' + v.lang : 'no voice') + '</span>'
-        + '<span style="font-size:.75rem;font-weight:800;letter-spacing:.06em;text-transform:uppercase;color:' + col + ';background:' + bg + ';border-radius:6px;padding:2px 8px">' + lbl + '</span>'
-        + '<button type="button" data-apv-test="' + b + '" style="font:700 .9rem inherit;font-family:inherit;border:1.5px solid #e2e6f0;background:#fff;color:#1a2744;border-radius:8px;padding:6px 12px;cursor:pointer"' + (v ? '' : ' disabled') + '>▶ Test</button></div>'
-        + (adv ? '<div style="font-size:.85rem;color:#4a5a7a;line-height:1.45">' + adv + '</div>' : '') + '</div>';
-    }
-    d.innerHTML = '<div style="background:#fff;border-radius:14px;box-shadow:0 10px 40px rgba(0,0,0,.25);max-width:560px;width:100%;padding:20px;display:grid;gap:12px">'
-      + '<div style="display:flex;align-items:center;gap:10px"><div style="font:700 1.35rem \'Playfair Display\',Georgia,serif;color:#1a2744;flex:1">🔊 Voice check</div>'
-      + '<button type="button" data-apv-close style="font:700 .9rem inherit;font-family:inherit;border:1.5px solid #e2e6f0;background:#fff;color:#1a2744;border-radius:8px;padding:6px 12px;cursor:pointer">✕ Close</button></div>'
-      + '<div style="font-size:.9rem;color:#4a5a7a;line-height:1.45">The voice this app uses on this ' + (plat === 'ipad' ? 'iPad' : 'device') + ' for each language. Press ▶ Test to hear it.</div>'
-      + (S ? langs.map(row).join('') : '<div style="color:#c0392b">This browser has no speech at all.</div>')
-      + '</div>';
-    d.addEventListener('click', function (e) {
-      var t = e.target.closest ? e.target.closest('[data-apv-test],[data-apv-close]') : null;
-      if (e.target === d || (t && t.hasAttribute('data-apv-close'))) { try { S && S.cancel(); } catch (x) { } d.remove(); return; }
-      if (t && t.hasAttribute('data-apv-test')) { var b = t.getAttribute('data-apv-test'); say(SAMPLE[b] || 'Test', b); }
-    });
-    document.body.appendChild(d);
-    if (!voices.length && S && !check._retried) { check._retried = true; setTimeout(function () { if (document.getElementById('apv-check')) check(langs); }, 800); }   // voices still loading: try once more
-  }
-  // Speech-only pronunciation fixes (the text on screen is untouched). Same length as the original where possible, so
-  // word highlighting (karaoke) stays in step. Add more pairs here as Andrew spots them.
-  var FIXES = { fr: [
-    [/\b([Aa])lzheimer\b/g, '$1lzailmeur'],   // « maladie d'Alzheimer »: said « alz-ail-meur » (the French way, with the glide), never the German-sounding « alts-haï-mer »
-    [/\bjean(s?)\b/g, 'djine$1'],   // « un jean », « une veste en jean »: said « djine », never like the name Jean (capital J is left alone)
-    [/\b([Mm])aths\b/g, '$1atte'],   // « les maths »: said « mat », never « maths » read letter by letter
-    [/\b([Tt])ransports en commun\b/g, '$1ransport zan commun'],
-    [/\b([Pp]our) tous(?!\s+(?:les|ces|mes|tes|ses|nos|vos|leurs|mon|ton|son|le|la|l['’]|ceux|celles|nous|vous|eux)\b)(?![A-Za-z\u00C0-\u00FF'’-])/g, '$1 touss'],   // « le mariage pour tous »: said « tousse » (the s of the pronoun tous is sounded), never « tou »; « pour tous les élèves » is untouched
-    [/\b([Pp])arcoursup\b/g, '$1arcours-supe'],   // « Parcoursup »: said « par-cours-sup » with the final u-p sounded (« supe »), never « soup »
-    [/\bES\b/g, 'é esse'],   // « L, ES et S » (Bac): ES said « é esse »
-    [/\bV[ée]l['’]?\s+d['’]Hiv\b/g, 'Vel d’Yves'],   // « le Vél’ d’Hiv »: said « vel d’Yves » (the final v sounded), never « H-I-V » or « d’hiv » with a silent end
-    // verb sentir/ressentir/pressentir/consentir, je/tu form: final s is silent (je me sens = « je me sent »); the noun « le sens » is untouched
-    [/\b(je|tu|ne|me|te|m['’]y|t['’]y|m['’]en|t['’]en|j['’]y|j['’]en)(\s+)((?:res|pres|con)?sen)s\b/gi, '$1$2$3t']
-  ], en: [
-    // the grammar slot INF (I'm planning to INF) is said as the word « inf », never spelt out « I, N, F »
-    [/\bINF\b/g, 'inff'], [/^(\s*)inf(\s*)$/i, '$1inff$2']   // also when « inf » is spoken on its own, as in the Structures cards
-  ] };
-  // every language: a slash between words (portugués/portuguesa, il/elle) is spoken as a short pause, never « barra / slash »
-  var FIXES_ALL = [[/([A-Za-zÀ-ÖØ-öø-ÿ’'.)])\s*\/\s*(?=[A-Za-zÀ-ÖØ-öø-ÿ(¿¡])/g, '$1, ']];
-    // ---- grammar placeholders (INF, ADJ, SUBJ, NOUN, X, Y, VERB…) are spoken as the label itself, respelt for each voice (approved 1 Nov 2026) ----
-  var PH_SPOKEN = {
-    fr: { INF: 'innf', ADJ: 'adj', SUBJ: 'seubdje', NOUN: 'naoune', NOUNS: 'naounes', TIME: 'taïme', X: 'ixe', Y: 'i grec', VERBE: 'verbe', VERBANT: 'verbant', VERBAIS: 'verbais', VERBAIT: 'verbait', VERBERAI: 'verberai', 'VERBÉ': 'verbé', INDIC: 'inndic', IMP: 'immp' },
-    it: { INF: 'innf', ADJ: 'edge', SUBJ: 'sabdge', NOUN: 'naun', NOUNS: 'nauns', TIME: 'taim', X: 'ics', Y: 'ipsilon', VERBO: 'verbo', VERBANDO: 'verbando', VERBATO: 'verbato', VERBARE: 'verbare', VERBAVO: 'verbavo', VERBAVA: 'verbava' },
-    es: { INF: 'hinf', ADJ: 'ach', SUBJ: 'sabch', NOUN: 'naun', NOUNS: 'nauns', TIME: 'taim', X: 'equis', Y: 'i griega', VERBO: 'verbo', VERBANDO: 'verbando', 'VERBÉ': 'verbé', VERBAR: 'verbar', VERBABA: 'verbaba', PP: 'pi pi', FUT: 'fiúch', COND: 'cónd', PERF: 'perf', PLUP: 'plúp', PRES: 'pres', INDIC: 'índic', IMP: 'yimp' },
-    en: { INF: 'inff', ADJ: 'adge', SUBJ: 'subj', NOUN: 'noun', NOUNS: 'nouns', TIME: 'time', X: 'ecks', Y: 'why', VERB: 'verb', VERBING: 'verbing', VERBED: 'verbed', FUT: 'fewch', PREP: 'prep', PP: 'pee pee' }
-  };
-  var PH_ALL = { PJRP: 'peuh djerp', ANPQ: 'anne peuh kweuh' };
-  function phFix(text, lang) {
-    var b = String(lang || '').toLowerCase().split(/[-_]/)[0], T = PH_SPOKEN[b];
-    if (!T) return text;
-    var hasX = new RegExp('(^|[^A-Za-zÀ-ÿ])X(?![A-Za-zÀ-ÿ])').test(text);
-    return text.replace(/(^|[^A-Za-zÀ-ÿ])([A-ZÀ-Þ]{1,9})(?![A-Za-zÀ-ÿ])/g, function (m, pre, w) {
-      var r = PH_ALL[w];
-      if (r == null && Object.prototype.hasOwnProperty.call(T, w)) r = T[w];
-      if (r == null && w.length > 4 && w.indexOf('VERB') === 0) r = w.toLowerCase();   // any other VERB… slot is spoken as a plain word
-      if (r != null && w === 'Y' && (b === 'fr' || b === 'es') && !hasX) r = null;      // « Y a-t-il… », « Y no puedo… » are real words
-      return r == null ? m : pre + r;
-    });
-  }
-  function fixText(text, lang) { if (!text) return text; text = String(text); text = phFix(text, lang); var i; for (i = 0; i < FIXES_ALL.length; i++) text = text.replace(FIXES_ALL[i][0], FIXES_ALL[i][1]); var L = FIXES[base(lang)]; if (!L) return text; for (i = 0; i < L.length; i++) text = text.replace(L[i][0], L[i][1]); return text; }
-  if (S && !S.__apFix) {
-    try { var _speak = S.speak.bind(S); S.speak = function (u) { try { if (u && u.text) { var l = u.lang || (u.voice && u.voice.lang) || ''; u.text = fixText(u.text, l); } } catch (e) { } return _speak(u); }; S.__apFix = true; } catch (e) { }
-  }
-  W.AP_VOICE = { fixes: FIXES, fixText: fixText, prefs: PREFS, pick: pick, quality: quality, isNovelty: novelty, usable: usable, load: load, unlock: unlock, check: check, platform: platform, tier: tierOf, region: function (l) { return REGION[base(l)] || l; } };
-})(window);
-/* ===== END AP VOICE ===== */
 ⟦/script>
 <script id="ap-sp">
 /* ===== AP SPEED & PAUSES v1 (identical in every AP app that has it) =====
@@ -26206,7 +26020,7 @@ function deck(el,m,n,x,y,face,gap){clear(el);const cs=[];for(let i=0;i<n;i++){co
               else { popSq(pos[me]); timers.push(setTimeout(function () { done(false); }, 2850)); }
               return;
             }
-            pos[me] += pos[me] < tgt ? 1 : -1; setCar(me); sfx('thump'); refresh(); timers.push(setTimeout(mv, 600));
+            erTrail(pos[me], pcL(me)); pos[me] += pos[me] < tgt ? 1 : -1; setCar(me); sfx('thump'); refresh(); timers.push(setTimeout(mv, 600));
           })();
         }
       }
@@ -26447,4 +26261,4 @@ function deck(el,m,n,x,y,face,gap){clear(el);const cs=[];for(let i=0;i<n;i++){co
   if (document.readyState === 'complete') start(); else window.addEventListener('load', start);
 })();
 </script>
-<script id="ap-build">window.__apBuild="04b47302ad";</script>
+<script id="ap-build">window.__apBuild="4f216e5274";</script>
