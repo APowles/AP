@@ -25,3 +25,7 @@ After changing `audiofix.js`, or after anything that rebuilds a page (Gamify inj
     python3 -I _tools/version/stamp.py
 
 It also patches the two F Block payloads (`fb-vocab`, `fb-verbs`) that the router writes into the page. Never use `rollout.sh`.
+
+## F Block Spanish: two stand-alone files, never rebuilt from other files
+
+`Eton F Block Spanish.html` (boys and colleagues: all F Block vocab, only the 100 core verbs) and `AP F Block Spanish.html` (the same plus every verb, the extra tenses and the E Block trials tile; AP only) are edited directly. The old twins (`Eton F Spanish Vocab.html`, `Eton Spanish Verbs.html`) were deleted on 3 Nov 2026 and `_tools/fblock/build.py` is disabled. Never rebuild either file from other pages, and never put the full verb list into the Eton file (it must hold 309 verb entries). Any change to one file goes into the other in the same piece of work. The old addresses `AP F Spanish Vocab.html` and `AP Spanish Verbs.html` are redirect stubs to the Eton file.

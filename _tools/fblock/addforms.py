@@ -1,4 +1,5 @@
 # adds the missing Present / Preterite / Future entries for the 100 core verbs to the private Verbs file (the public file is built from it)
+raise SystemExit("STOP: Eton F Block Spanish.html and AP F Block Spanish.html are edited directly now. The two private twin files were deleted on 3 Nov 2026; never rebuild F Block from other files.")
 import re, json
 F = 'Eton Spanish Verbs.html'
 s = open(F, encoding='utf-8').read()

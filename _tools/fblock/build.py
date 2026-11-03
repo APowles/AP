@@ -7,6 +7,7 @@ The new file is a small front page (the router) that holds two complete apps as 
   Verbs and Grammar          <- Eton Spanish Verbs.html, stripped to the 100 Core Verbs, the F Block tenses
                                 (Infinitives, Present, Preterite, Future) and the F Block Trials sets.
 Nothing in the two source files is changed by this script; run it again after any F Block change to them."""
+raise SystemExit("STOP: Eton F Block Spanish.html and AP F Block Spanish.html are edited directly now. The two private twin files were deleted on 3 Nov 2026; never rebuild F Block from other files.")
 import re, json, sys, os, base64
 
 ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..'))
