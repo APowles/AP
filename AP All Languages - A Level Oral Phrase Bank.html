@@ -10523,17 +10523,18 @@ function deck(el,m,n,x,y,face,gap){clear(el);const cs=[];for(let i=0;i<n;i++){co
     else if (k === 'holoact') {
       // Star Trek transporter: rising sparkle shimmer, crystalline chord, materialization burst — full volume, ~5 s to match the twirl
       var c = ctx(); if (!c || !snd) return; var t0 = c.currentTime, v = .6 * CFG.vol;
+      var pi = (arguments[1] || 0), pShift = 1 + pi * .06;
       // 1. Rising shimmer: filtered noise sweeping up then back down
       var buf = c.createBuffer(1, c.sampleRate * 6, c.sampleRate), d = buf.getChannelData(0);
       for (var j = 0; j < buf.length; j++) d[j] = (Math.random() * 2 - 1);
       var ns = c.createBufferSource(); ns.buffer = buf;
       var nf = c.createBiquadFilter(); nf.type = 'bandpass'; nf.Q.value = 3;
-      nf.frequency.setValueAtTime(800, t0); nf.frequency.exponentialRampToValueAtTime(6000, t0 + 2); nf.frequency.exponentialRampToValueAtTime(3000, t0 + 4); nf.frequency.exponentialRampToValueAtTime(1200, t0 + 5.2);
+      nf.frequency.setValueAtTime(800 * pShift, t0); nf.frequency.exponentialRampToValueAtTime(6000 * pShift, t0 + 2); nf.frequency.exponentialRampToValueAtTime(3000, t0 + 4); nf.frequency.exponentialRampToValueAtTime(1200, t0 + 5.2);
       var ng = c.createGain();
       ng.gain.setValueAtTime(.0001, t0); ng.gain.exponentialRampToValueAtTime(v * .45, t0 + .6); ng.gain.setValueAtTime(v * .45, t0 + 3.8); ng.gain.exponentialRampToValueAtTime(.0001, t0 + 5.3);
       ns.connect(nf); nf.connect(ng); ng.connect(c.destination); ns.start(t0); ns.stop(t0 + 5.4);
       // 2. Crystalline chord: several high sine tones fading in and out (the transporter "ring")
-      [1318, 1760, 2217, 2960, 3520].forEach(function (f, i) {
+      [1318, 1760, 2217, 2960, 3520].map(function (x) { return x * pShift; }).forEach(function (f, i) {
         var o = c.createOscillator(), g = c.createGain(); o.type = 'sine'; o.frequency.value = f;
         g.gain.setValueAtTime(.0001, t0 + .1 + i * .08); g.gain.exponentialRampToValueAtTime(v * .18, t0 + .4 + i * .08);
         g.gain.setValueAtTime(v * .18, t0 + 3.6); g.gain.exponentialRampToValueAtTime(.0001, t0 + 5);
@@ -10541,7 +10542,7 @@ function deck(el,m,n,x,y,face,gap){clear(el);const cs=[];for(let i=0;i<n;i++){co
       });
       // 3. Low materialization hum (the deep rumble that builds and fades)
       var h1 = c.createOscillator(), h2 = c.createOscillator(), hg = c.createGain();
-      h1.type = 'sine'; h2.type = 'sine'; h1.frequency.value = 65; h2.frequency.value = 98;
+      h1.type = 'sine'; h2.type = 'sine'; h1.frequency.value = 65 * pShift; h2.frequency.value = 98 * pShift;
       hg.gain.setValueAtTime(.0001, t0); hg.gain.exponentialRampToValueAtTime(v * .55, t0 + .5);
       hg.gain.setValueAtTime(v * .55, t0 + 3.5); hg.gain.exponentialRampToValueAtTime(.0001, t0 + 5.2);
       h1.connect(hg); h2.connect(hg); hg.connect(c.destination); h1.start(t0); h2.start(t0); h1.stop(t0 + 5.3); h2.stop(t0 + 5.3);
@@ -10549,7 +10550,7 @@ function deck(el,m,n,x,y,face,gap){clear(el);const cs=[];for(let i=0;i<n;i++){co
       for (var sp = 0; sp < 18; sp++) {
         (function (t) {
           var o = c.createOscillator(), g = c.createGain();
-          o.type = 'sine'; o.frequency.value = 2400 + Math.random() * 2800;
+          o.type = 'sine'; o.frequency.value = (2400 + Math.random() * 2800) * pShift;
           g.gain.setValueAtTime(.0001, t); g.gain.exponentialRampToValueAtTime(v * (.08 + Math.random() * .12), t + .01);
           g.gain.exponentialRampToValueAtTime(.0001, t + .06 + Math.random() * .04);
           o.connect(g); g.connect(c.destination); o.start(t); o.stop(t + .12);
@@ -11058,7 +11059,7 @@ function deck(el,m,n,x,y,face,gap){clear(el);const cs=[];for(let i=0;i<n;i++){co
     '.er-hp small{position:relative;z-index:3;padding:2px 10px;border-radius:999px;background:rgba(8,16,40,.85);border:1px solid var(--hc);color:#e8f6ff;box-shadow:0 0 8px var(--hc)}',
     '.er-hp:hover .fg,.er-hp.sel .fg{filter:drop-shadow(0 0 4px #fff) drop-shadow(0 0 20px var(--hc)) drop-shadow(0 0 48px var(--hc)) brightness(1.32) saturate(1.15)}.er-hp.sel .fl{scale:1.1}.er-hp.sel .bm{opacity:.85}.er-hp.sel small{color:#fff;font-size:.88rem}.er-hp.tk{opacity:.62}.er-hp.sel{opacity:1}',
     '.er-ft{display:flex;align-items:center;justify-content:center;gap:22px;flex-wrap:wrap;margin-top:-4px}.er-ft .er-pt{margin:0}',
-    '.er-how{position:absolute;inset:-12px -24px;display:none;align-items:center;justify-content:center;background:rgba(4,8,20,.84);z-index:20}.er-how.on{display:flex}.er-how>div{max-width:640px;padding:22px 28px;background:#0b1530;border:2px solid #c9a84c;border-radius:16px;color:#dfe7fb;font:500 1.02rem/1.5 "DM Sans",sans-serif;text-align:left}.er-how .bz-b{margin-top:14px}',
+    '.er-how{position:absolute;inset:-12px -24px;display:none;align-items:center;justify-content:center;background:rgba(4,8,20,.84);z-index:20}.er-how.on{display:flex}.er-how>div{max-width:720px;padding:28px 36px;background:#0b1530;border:2px solid #c9a84c;border-radius:16px;color:#dfe7fb;font:500 1.05rem/1.65 "DM Sans",sans-serif;text-align:left}.er-how>div b{color:#f4d77a;font-weight:800;font-size:1.15em}.er-how>div em{font-style:italic;color:#f4d77a}.er-how .bz-b{margin-top:18px}',
     '.er-d3{position:fixed;left:50%;top:50%;width:0;height:0;z-index:45;pointer-events:none;perspective:1000px}.er-d3 .jp,.er-d3 .cb{position:absolute;width:var(--S);height:var(--S);transform-style:preserve-3d}.er-d3 .jp{left:calc(var(--S)/-2);top:calc(var(--S)/-2)}.er-d3 .cb{left:0;top:0}',
     '.er-d3 .f{position:absolute;inset:0;box-sizing:border-box;border-radius:15%;background:linear-gradient(145deg,#fffdf6,#e0d5b4);display:grid;grid-template:repeat(3,1fr)/repeat(3,1fr);padding:14%;box-shadow:inset 0 0 calc(var(--S)*.12) rgba(0,0,0,.22);border:1px solid rgba(120,100,50,.35)}.er-d3 .f i{margin:10%;border-radius:50%;background:radial-gradient(circle at 35% 30%,#3a62c0,#081640);box-shadow:inset 0 -2px 3px rgba(0,0,0,.4)}.er-d3 .f i.o{background:none;box-shadow:none}',
     '.er-d3 .sh{position:absolute;left:calc(var(--S)*-.62);top:calc(var(--S)*.42);width:calc(var(--S)*1.24);height:calc(var(--S)*.3);border-radius:50%;background:rgba(0,0,0,.6);filter:blur(12px)}',
@@ -11924,7 +11925,15 @@ function deck(el,m,n,x,y,face,gap){clear(el);const cs=[];for(let i=0;i<n;i++){co
     function nm(s) { return pnGet(s, 'Team ' + (s + 1)); }
     function qOf(c) { var v = hvOf(c); return v.hl ? esc(v.hl[0]) + '<b class="hl">' + esc(v.hl[1]) + '</b>' + esc(v.hl[2]) : esc(c.q); }
     function sz(c) { var L = c.q.length; return L > 120 ? ' fl-xl' : L > 60 ? ' fl-lg' : ''; }
-    function howText() { return 'Race from your House to Birley Schools. On your go, answer the question: say it, press Reveal, then mark yourself. Got it rolls the die (1–3) and you walk that many squares; Nearly moves you one square; Major error means no move. Every square is hidden under the crest until someone lands on it. Green squares help you on and red squares hold you back; the purple-ringed fate squares are good or bad, and the outcome is rolled again for each boy who lands there. A square you are sent to also counts, but only once. Some squares make you miss a go or go again. After a right answer you can take an Eton Rules card or pass: it may be good news or bad, and no card comes round again until the whole pack has been used. Only a roll of the die or a Nearly can take you into Birley Schools. Tap any revealed square to read it again. The first to Birley Schools is Sent Up For Good.'; }
+    function howText() { return '<b>The race</b><br>From your House to Birley Schools. First there wins.<br><br>'
+      + '<b>Your go</b><br>Answer the question: say it, press Reveal, mark yourself.<br>'
+      + '\u2713 <b>Got it</b> \u2014 rolls the die (1\u20133), walk that many squares<br>'
+      + '~ <b>Nearly</b> \u2014 forward one square<br>'
+      + '\u2717 <b>Major error</b> \u2014 no move<br><br>'
+      + '<b>The board</b><br>Squares are hidden until someone lands on them.<br>'
+      + '<span style="color:#5fe3a0">\u25CF</span> Green = good &nbsp; <span style="color:#ff7b6b">\u25CF</span> Red = bad &nbsp; <span style="color:#c9a0e8">\u25CF</span> Purple = fate (re\u2011rolled for each boy)<br><br>'
+      + '<b>Eton Rules cards</b><br>After a right answer, take a card or pass. Good news or bad \u2014 no card repeats until the pack is used.<br><br>'
+      + '<b>Winning</b><br>Only a roll or a Nearly can take you into Birley Schools.<br>The first to arrive is <em>Sent Up For Good</em>.'; }
     window.__erHoloStop = function () { try { erShowKill(); } catch (e) { } };
     function pickHTML(P, start) {
       if (pickTurn >= P) pickTurn = 0;
@@ -12054,7 +12063,7 @@ function deck(el,m,n,x,y,face,gap){clear(el);const cs=[];for(let i=0;i<n;i++){co
     window.apErPick = function (i) {
       var P = CFG.erP, t = picks.indexOf(i);
       if (t > -1 && t !== pickTurn) { picks[t] = picks[pickTurn]; }
-      picks[pickTurn] = i; pickTurn = (pickTurn + 1) % P; pickRefresh(P); sfx('holoact'); window.apErShow(i);
+      picks[pickTurn] = i; pickTurn = (pickTurn + 1) % P; pickRefresh(P); sfx('holoact', i); window.apErShow(i);
     };
     function shufBoard() {
       function ok(m) { if (m[0][1] === 'b') return false; var run = 0; for (var i = 0; i < m.length; i++) { run = m[i][1] === 'b' ? run + 1 : 0; if (run > 2) return false; } return true; }
@@ -12250,10 +12259,7 @@ function deck(el,m,n,x,y,face,gap){clear(el);const cs=[];for(let i=0;i<n;i++){co
           var from = pos[me], tgt = Math.max(0, Math.min(LAST - 1, pos[me] + e));
           (function mv() {
             if (pos[me] === tgt) {
-              // the square you are sent to counts too, but only once: a chained effect never makes a third hop
-              var q = BD[pos[me]];
-              if (!chained && tgt !== from && (q[3] !== undefined || q[1] === 'x')) land(me, true, done);
-              else { popSq(pos[me]); timers.push(setTimeout(function () { done(false); }, 2850)); }
+              popSq(pos[me]); timers.push(setTimeout(function () { done(false); }, 2850));
               return;
             }
             erTrail(pos[me], pcL(me)); pos[me] += pos[me] < tgt ? 1 : -1; setCar(me); sfx('thump'); refresh(); timers.push(setTimeout(mv, 600));
