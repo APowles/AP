@@ -22313,19 +22313,42 @@ function deck(el,m,n,x,y,face,gap){clear(el);const cs=[];for(let i=0;i<n;i++){co
       };
     }
     intro();
-    (function () {   // opening splash: every Eton icon pops in over the title, then it fades into the picking screen (tap to skip)
+    (function () {   // opening splash: crest and light, every Eton icon flies out from the centre into a wall, the title is spelled out in gold, then a flash and zoom into the picking screen (tap to skip). Only opacity and transform are animated, so it stays light on the iPad.
       var now = Date.now(); if (window.__erSplashAt && now - window.__erSplashAt < 120000) return; window.__erSplashAt = now;
       if (!ov || document.getElementById('er-splash')) return;
       var NAMES = 'applause athens beagling bedroom bekynton bill birley boathouse budgens burningbush cannon chapel cheating chemprac chronicle cloisters collar crutches debating detention donbeni dressoff dropped dutchmans ecce emptyseat evans farrer feast fives francophone frenchoral gating gotaway hccomp hcshout house housematch houseplayrole houseshout housetie ipad jafar keates library litter match maths missed missedchapel music offgames office oralexam parenttours polo popchoir punishment rain rowlands schoolyard seniorrain showuplang showups societyidea societymeeting tutorial wall welsh'.split(' ');
-      if (!document.getElementById('er-splash-css')) { var cs = document.createElement('style'); cs.id = 'er-splash-css'; cs.textContent = '#er-splash{position:absolute;inset:0;z-index:60;display:flex;flex-wrap:wrap;align-content:center;justify-content:center;background:radial-gradient(ellipse at 50% 40%,#13244d,#050a1a 80%);overflow:hidden;cursor:pointer;transition:opacity .6s}#er-splash.out{opacity:0;pointer-events:none}#er-splash .t{opacity:0;border-radius:12%;border:2px solid rgba(201,168,76,.55);box-sizing:border-box;animation:ersIn .55s ease-out forwards}@keyframes ersIn{from{opacity:0;transform:scale(.55)}to{opacity:1;transform:none}}#er-splash .tt{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);text-align:center;padding:26px 44px;border-radius:22px;background:rgba(6,11,28,.86);border:2px solid #c9a84c;box-shadow:0 0 60px rgba(0,0,0,.8);opacity:0;animation:ersTT .8s ease-out .5s forwards}@keyframes ersTT{from{opacity:0;transform:translate(-50%,-46%)}to{opacity:1;transform:translate(-50%,-50%)}}#er-splash .tt b{display:block;font:700 clamp(2.2rem,7vw,4.4rem)/1.05 "Cormorant Garamond",Georgia,serif;letter-spacing:.08em;color:#f4d77a;text-transform:uppercase}#er-splash .tt span{display:block;margin-top:10px;font:600 clamp(1rem,2.4vw,1.5rem) "DM Sans",sans-serif;color:#e9ecf7}#er-splash .tt img{width:84px;height:auto;margin-bottom:10px}'; document.head.appendChild(cs); }
-      var list = shuf(NAMES.slice()), W = innerWidth, H = innerHeight, n = list.length, cols = Math.ceil(Math.sqrt(n * W / H)), rows = Math.ceil(n / cols), sz = Math.floor(Math.min(W / cols, H / rows)) - 4;
-      var el = document.createElement('div'), h = ''; el.id = 'er-splash';
-      list.forEach(function (nm0) { h += '<img class="t" alt="" src="icons/er_' + nm0 + '.webp" style="width:' + sz + 'px;height:' + sz + 'px;margin:2px;animation-delay:' + Math.floor(Math.random() * 3200) + 'ms" onerror="this.remove()">'; });
-      var cr = ''; try { var a = document.querySelector('.aph-avatar'); if (a && a.src) cr = '<img alt="" src="' + a.src + '">'; } catch (e) { }
-      el.innerHTML = h + '<div class="tt">' + cr + '<b>Eton Rules</b><span>Race from your House to Birley Schools!</span></div>';
+      var old = document.getElementById('er-splash-css'); if (old) old.remove();
+      var cs = document.createElement('style'); cs.id = 'er-splash-css';
+      cs.textContent = '#er-splash{position:absolute;inset:0;z-index:60;overflow:hidden;cursor:pointer;background:#040817;transition:opacity .7s}#er-splash.out{opacity:0;pointer-events:none}'
+        + '#er-splash .in{position:absolute;inset:0;transform-origin:50% 50%}#er-splash.out .in{transform:scale(1.18);transition:transform .8s ease-in}'
+        + '#er-splash .sp{position:absolute;left:50%;top:50%;width:140vmax;height:140vmax;margin:-70vmax 0 0 -70vmax;background:radial-gradient(circle,rgba(244,215,122,.34),rgba(40,70,150,.22) 30%,rgba(4,8,23,0) 62%);opacity:0;animation:ersSp 1.6s ease-out .1s forwards}@keyframes ersSp{to{opacity:1}}'
+        + '#er-splash .t{position:absolute;border-radius:12%;border:2px solid rgba(201,168,76,.6);box-sizing:border-box;opacity:0;animation:ersFly .9s cubic-bezier(.2,.8,.25,1) forwards}@keyframes ersFly{0%{opacity:0;transform:translate(var(--dx),var(--dy)) scale(.15) rotate(-14deg)}35%{opacity:1}100%{opacity:1;transform:none}}'
+        + '#er-splash .cw{position:absolute;left:50%;top:50%;width:min(24vmin,170px);margin:calc(min(24vmin,170px)/-2) 0 0 calc(min(24vmin,170px)/-2);opacity:0;animation:ersCr 1.2s cubic-bezier(.2,.9,.3,1.1) .2s forwards,ersCrOut .35s ease-in 1.75s forwards;z-index:3}@keyframes ersCrOut{to{opacity:0;transform:scale(.8)}}@keyframes ersCr{from{opacity:0;transform:scale(.2) translateY(30px)}to{opacity:1;transform:none}}#er-splash .cw img{width:100%;height:auto;display:block;filter:drop-shadow(0 4px 14px rgba(0,0,0,.7))}'
+        + '#er-splash .rg{position:absolute;left:50%;top:50%;width:30vmin;height:30vmin;margin:-15vmin 0 0 -15vmin;border-radius:50%;border:3px solid #f4d77a;opacity:0;z-index:2;animation:ersRg 1.5s ease-out forwards}@keyframes ersRg{0%{opacity:.95;transform:scale(.3)}100%{opacity:0;transform:scale(5)}}'
+        + '#er-splash .tt{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);z-index:4;text-align:center;padding:3.2vmin 5vmin 3vmin;border-radius:24px;background:rgba(5,9,24,.88);border:2px solid #c9a84c;opacity:0;overflow:hidden;animation:ersTP .7s ease-out 1.9s forwards;white-space:nowrap}@keyframes ersTP{from{opacity:0;transform:translate(-50%,-44%) scale(.9)}to{opacity:1;transform:translate(-50%,-50%)}}'
+        + '#er-splash .tt img{display:block;height:min(11vmin,84px);width:auto;margin:0 auto 1.2vmin}#er-splash .tt b{display:block;font:700 clamp(2.4rem,9vmin,5.4rem)/1 "Cormorant Garamond",Georgia,serif;letter-spacing:.1em;color:#f4d77a;text-transform:uppercase;text-shadow:0 2px 0 #7d6520,0 0 24px rgba(244,215,122,.5)}#er-splash .tt b i{display:inline-block;font-style:normal;opacity:0;animation:ersLt .5s ease-out forwards}@keyframes ersLt{from{opacity:0;transform:translateY(22px) scale(1.25)}to{opacity:1;transform:none}}'
+        + '#er-splash .tt span{display:block;margin-top:1.4vmin;font:600 clamp(1rem,3vmin,1.7rem) "DM Sans",sans-serif;color:#e9ecf7;opacity:0;animation:ersLt .8s ease-out 3.4s forwards}'
+        + '#er-splash .sh{position:absolute;top:0;bottom:0;left:0;width:40%;background:linear-gradient(100deg,transparent,rgba(255,244,200,.55),transparent);transform:translateX(-120%);animation:ersSh 1s ease-in-out 3.1s forwards}@keyframes ersSh{to{transform:translateX(300%)}}'
+        + '#er-splash .fl{position:absolute;inset:0;background:#fff4c8;opacity:0;z-index:9;pointer-events:none}#er-splash .fl.go{animation:ersFl .9s ease-out forwards}@keyframes ersFl{0%{opacity:0}25%{opacity:.85}100%{opacity:0}}';
+      document.head.appendChild(cs);
+      var W = innerWidth, H = innerHeight, n = NAMES.length, cols = Math.ceil(Math.sqrt(n * W / H)), rows = Math.ceil(n / cols), sz = Math.floor(Math.min(W / cols, H / rows)) - 4;
+      var gx = (W - cols * (sz + 4)) / 2, gy = (H - rows * (sz + 4)) / 2, spots = [], r, c;
+      for (r = 0; r < rows; r++) for (c = 0; c < cols; c++) spots.push({ x: gx + c * (sz + 4) + 2, y: gy + r * (sz + 4) + 2 });
+      spots = spots.slice(0, n);
+      var mid = { x: W / 2, y: H / 2 }; spots.forEach(function (p) { p.d = Math.hypot(p.x + sz / 2 - mid.x, p.y + sz / 2 - mid.y); }); var md = 0; spots.forEach(function (p) { if (p.d > md) md = p.d; });
+      spots.sort(function (a, b) { return a.d - b.d; }); var list = shuf(NAMES.slice()), h = '';
+      spots.forEach(function (p, k) { h += '<img class="t" alt="" src="icons/er_' + list[k] + '.webp" style="left:' + p.x + 'px;top:' + p.y + 'px;width:' + sz + 'px;height:' + sz + 'px;--dx:' + Math.round(mid.x - p.x - sz / 2) + 'px;--dy:' + Math.round(mid.y - p.y - sz / 2) + 'px;animation-delay:' + Math.round(500 + (p.d / md) * 1700 + Math.random() * 160) + 'ms" onerror="this.remove()">'; });
+      var cr = ''; try { var a = document.querySelector('.aph-avatar'); if (a && a.src) cr = '<div class="cw"><img alt="" src="' + a.src + '"></div>'; } catch (e) { }
+      var title = 'Eton Rules'.split('').map(function (ch, k) { return ch === ' ' ? '<i>&nbsp;</i>' : '<i style="animation-delay:' + (2150 + k * 90) + 'ms">' + ch + '</i>'; }).join('');
+      var el = document.createElement('div'); el.id = 'er-splash';
+      var cr2 = cr ? cr.replace('<div class="cw">', '').replace('</div>', '') : ''; el.innerHTML = '<div class="in"><div class="sp"></div>' + h + '<div class="rg"></div>' + cr + '<div class="tt">' + cr2 + '<b>' + title + '</b><span>Race from your House to Birley Schools!</span><div class="sh"></div></div></div><div class="fl"></div>';
       ov.appendChild(el);
-      var gone = false; function bye() { if (gone) return; gone = true; el.classList.add('out'); setTimeout(function () { if (el.parentNode) el.remove(); }, 700); }
-      el.onclick = bye; setTimeout(bye, 5200);
+      var gone = false, tm = [];
+      function T(fn, ms) { tm.push(setTimeout(fn, ms)); }
+      function bye(fast) { if (gone) return; gone = true; tm.forEach(clearTimeout); var fl = el.querySelector('.fl'); if (fl && !fast) fl.classList.add('go'); el.classList.add('out'); setTimeout(function () { if (el.parentNode) el.remove(); }, 900); }
+      T(function () { try { sfx('cgood'); } catch (e) { } }, 2150);   // one soft chime as the title appears (after the first tap has woken the sound)
+      T(function () { bye(false); }, 6200);
+      el.onclick = function () { bye(true); };
     })();
   };
   GAMES.four = function (p) {
@@ -22503,4 +22526,4 @@ function deck(el,m,n,x,y,face,gap){clear(el);const cs=[];for(let i=0;i<n;i++){co
   if (document.readyState === 'complete') start(); else window.addEventListener('load', start);
 })();
 </script>
-<script id="ap-build">window.__apBuild="0184a49297";</script>
+<script id="ap-build">window.__apBuild="d9232450c1";</script>
