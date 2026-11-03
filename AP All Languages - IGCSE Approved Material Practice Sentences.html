@@ -14800,7 +14800,7 @@ function deck(el,m,n,x,y,face,gap){clear(el);const cs=[];for(let i=0;i<n;i++){co
     window.apErSet = function (n) { CFG.erP = n; picked = {}; saveCfg(); intro(); };
     function play() {
       stop(); sfx('erstart'); musicStart(true);
-      var BD = shufBoard(); picked = {}; erShowKill();
+      var BD = shufBoard(), LC = {}; picked = {}; erShowKill();   // LC: how many times each square has been landed on
       var P = CFG.erP, pos = [], skip = [], cur = 0, busy = false, deck = [], di = 0, qd = null, turns = 0, msg = '';
       for (var s = 0; s < P; s++) { pos.push(0); skip.push(0); }
       msg = P > 1 ? nm(0) + ', your go.' : 'Your go.';
@@ -15034,6 +15034,18 @@ function deck(el,m,n,x,y,face,gap){clear(el);const cs=[];for(let i=0;i<n;i++){co
         if (pos[me] >= LAST) { popSq(LAST); win(); return; }
         var q0 = BD[pos[me]], q = q0;
         if (q0[1] === 'f0') { fin(false); return; }
+        if (q0[1] === 'g' || q0[1] === 'b' || q0[1] === 'x') {
+          var si = pos[me];
+          if ((LC[si] || 0) >= 2) {   // landed on twice already: the effect is used up and the square goes quiet
+            var txt = q0[1] === 'b' ? 'The trouble here has passed. Nothing happens now.' : 'The luck here has run out. Nothing happens now.';
+            q = [q0[0], 'p', txt]; BD[si] = q;
+            try { var sqe = document.querySelectorAll('#er-board .er-sq')[si]; if (sqe) { sqe.classList.remove('g', 'b', 'x'); sqe.setAttribute('data-k', ''); var fxe = sqe.querySelector('.fx'); if (fxe) fxe.remove(); sqe.setAttribute('title', q0[0] + ': ' + txt); } } catch (ex) { }
+            popSq(si); msg = q0[0] + ': ' + txt; refresh();
+            setTimeout(function () { try { lcShow(si, function () { fin(false); }, q); } catch (ex) { fin(false); } }, POP + 50);
+            return;
+          }
+          LC[si] = (LC[si] || 0) + 1;
+        }
         if (q0[1] === 'x') {
           var outs = q0[4], pick = outs[Math.floor(Math.random() * outs.length)];
           var k = (typeof pick[1] === 'number' && pick[1] > 0) || pick[1] === 'again' ? 'g' : 'b';
@@ -15336,4 +15348,4 @@ function deck(el,m,n,x,y,face,gap){clear(el);const cs=[];for(let i=0;i<n;i++){co
   if (document.readyState === 'complete') start(); else window.addEventListener('load', start);
 })();
 </script>
-<script id="ap-build">window.__apBuild="877c4981b9";</script>
+<script id="ap-build">window.__apBuild="011140a393";</script>
