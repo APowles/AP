@@ -2325,6 +2325,20 @@ function deck(el,m,n,x,y,face,gap){clear(el);const cs=[];for(let i=0;i<n;i++){co
       };
     }
     intro();
+    (function () {   // opening splash: every Eton icon pops in over the title, then it fades into the picking screen (tap to skip)
+      var now = Date.now(); if (window.__erSplashAt && now - window.__erSplashAt < 120000) return; window.__erSplashAt = now;
+      if (!ov || document.getElementById('er-splash')) return;
+      var NAMES = 'applause athens beagling bedroom bekynton bill birley boathouse budgens burningbush cannon chapel cheating chemprac chronicle cloisters collar crutches debating detention donbeni dressoff dropped dutchmans ecce emptyseat evans farrer feast fives francophone frenchoral gating gotaway hccomp hcshout house housematch houseplayrole houseshout housetie ipad jafar keates library litter match maths missed missedchapel music offgames office oralexam parenttours polo popchoir punishment rain rowlands schoolyard seniorrain showuplang showups societyidea societymeeting tutorial wall welsh'.split(' ');
+      if (!document.getElementById('er-splash-css')) { var cs = document.createElement('style'); cs.id = 'er-splash-css'; cs.textContent = '#er-splash{position:absolute;inset:0;z-index:60;display:flex;flex-wrap:wrap;align-content:center;justify-content:center;background:radial-gradient(ellipse at 50% 40%,#13244d,#050a1a 80%);overflow:hidden;cursor:pointer;transition:opacity .6s}#er-splash.out{opacity:0;pointer-events:none}#er-splash .t{opacity:0;border-radius:12%;border:2px solid rgba(201,168,76,.55);box-sizing:border-box;animation:ersIn .55s ease-out forwards}@keyframes ersIn{from{opacity:0;transform:scale(.55)}to{opacity:1;transform:none}}#er-splash .tt{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);text-align:center;padding:26px 44px;border-radius:22px;background:rgba(6,11,28,.86);border:2px solid #c9a84c;box-shadow:0 0 60px rgba(0,0,0,.8);opacity:0;animation:ersTT .8s ease-out .5s forwards}@keyframes ersTT{from{opacity:0;transform:translate(-50%,-46%)}to{opacity:1;transform:translate(-50%,-50%)}}#er-splash .tt b{display:block;font:700 clamp(2.2rem,7vw,4.4rem)/1.05 "Cormorant Garamond",Georgia,serif;letter-spacing:.08em;color:#f4d77a;text-transform:uppercase}#er-splash .tt span{display:block;margin-top:10px;font:600 clamp(1rem,2.4vw,1.5rem) "DM Sans",sans-serif;color:#e9ecf7}#er-splash .tt img{width:84px;height:auto;margin-bottom:10px}'; document.head.appendChild(cs); }
+      var list = shuf(NAMES.slice()), W = innerWidth, H = innerHeight, n = list.length, cols = Math.ceil(Math.sqrt(n * W / H)), rows = Math.ceil(n / cols), sz = Math.floor(Math.min(W / cols, H / rows)) - 4;
+      var el = document.createElement('div'), h = ''; el.id = 'er-splash';
+      list.forEach(function (nm0) { h += '<img class="t" alt="" src="icons/er_' + nm0 + '.webp" style="width:' + sz + 'px;height:' + sz + 'px;margin:2px;animation-delay:' + Math.floor(Math.random() * 3200) + 'ms" onerror="this.remove()">'; });
+      var cr = ''; try { var a = document.querySelector('.aph-avatar'); if (a && a.src) cr = '<img alt="" src="' + a.src + '">'; } catch (e) { }
+      el.innerHTML = h + '<div class="tt">' + cr + '<b>Eton Rules</b><span>Race from your House to Birley Schools!</span></div>';
+      ov.appendChild(el);
+      var gone = false; function bye() { if (gone) return; gone = true; el.classList.add('out'); setTimeout(function () { if (el.parentNode) el.remove(); }, 700); }
+      el.onclick = bye; setTimeout(bye, 5200);
+    })();
   };
   GAMES.four = function (p) {
     var COLN = ['Red', 'Yellow', 'Green', 'White'], TXC = ['#c0392b', '#a37b00', '#1f8a52', '#5b6788'], SCOL = ['#ff7b6b', '#f6d646', '#5fe3a0', '#e8eaf5'];
