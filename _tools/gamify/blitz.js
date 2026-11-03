@@ -1,4 +1,5 @@
-    var PADS = [[249,231],[424,231],[601,231],[777,231],[957,231],[1137,231],[1318,231],[1339,442],[1151,442],[965,442],[766,442],[569,442],[381,442],[191,442],[202,664],[388,664],[574,664],[763,664],[955,664],[1141,664],[1324,664],[1329,886],[1138,886],[946,886],[757,886],[567,886],[377,886],[188,886]];
+    var MAPW = 1536, MAPH = 2872;   // the tall campus map (three painted screens joined); PADS are pixel centres on it
+    var PADS = [[247,303],[424,303],[609,303],[791,303],[975,303],[1161,303],[1346,304],[1363,673],[1172,674],[979,674],[784,674],[591,673],[400,674],[206,674],[221,1246],[407,1246],[592,1245],[779,1244],[965,1244],[1145,1244],[1335,1244],[1335,1621],[1149,1622],[964,1622],[777,1621],[592,1621],[406,1622],[218,1622],[221,2199],[406,2203],[592,2199],[778,2200],[962,2199],[1151,2199],[1335,2199],[1335,2581],[1148,2582],[963,2581],[778,2581],[589,2581],[405,2581],[217,2581]];
     var ICO = { 'Your House': 'house', 'Keate\'s Lane': 'keates', 'Evans\'s': 'evans', 'Rowland\'s & Tap': 'rowlands', 'Don Beni': 'donbeni', 'Budgens': 'budgens', 'Farrer Theatre': 'farrer', 'Collect the post (School Office)': 'office', 'Cloisters': 'cloisters', 'College Chapel': 'chapel', '2 Days\' Close Gating': 'gating', 'School Yard': 'schoolyard', 'Detention (Lower School)': 'detention', 'Sign the Tardy Book (School Office)': 'office', 'School Library': 'library', 'Three Show Ups in one day': 'showups', 'Missed 2nd music lesson in a row': 'missed', 'Music School': 'music', 'Dutchmans': 'dutchmans', 'Athens Pool': 'athens', 'Rain walk: Allington to Queen\'s': 'rain', 'Lecture in Jafar Hall': 'jafar', 'Birley Schools': 'birley', 'Cannon Yard': 'cannon', 'Burning Bush': 'burningbush', 'Welsh & Jefferies': 'welsh', 'The Wall Game': 'wall', 'Eton Fives': 'fives', 'Boathouse': 'boathouse', 'Chemistry Practical': 'chemprac', 'House match': 'housematch', 'Oral exam': 'oralexam', 'Debating Society': 'debating' };
     var SHORT = { 'Collect the post (School Office)': 'Collect the post', 'Sign the Tardy Book (School Office)': 'Tardy Book', 'Detention (Lower School)': 'Detention', 'Three Show Ups in one day': 'Three Show Ups', 'Missed 2nd music lesson in a row': 'Missed lesson', 'Rain walk: Allington to Queen\'s': 'Rain walk', 'Lecture in Jafar Hall': 'Jafar lecture' };
     function shortOf(n) { return SHORT[n] || n; }
@@ -10,7 +11,7 @@
       for (var k in I) ICO[k] = I[k]; for (var k2 in S) SHORT[k2] = S[k2];
     })();
     function fxOf(q) { if (q[1] === 'x') return '?'; var e = q[3]; if (typeof e === 'number') return e > 0 ? '+' + e : '\u2212' + (-e); return e === 'again' ? '\u21BB' : e === 'miss' ? '\u23F8' : e === 'miss2' ? '\u23F8\u23F8' : ''; }
-    function padPos(i) { var c = PADS[i] || PADS[0]; return [c[0] / 15.36, c[1] / 10.24]; }
+    function padPos(i) { var c = PADS[i] || PADS[0]; return [c[0] / (MAPW / 100), c[1] / (MAPH / 100)]; }
 
 (function () {
   var $ = function (id) { return document.getElementById(id); };
@@ -823,7 +824,8 @@ function deck(el,m,n,x,y,face,gap){clear(el);const cs=[];for(let i=0;i<n;i++){co
   var ERCSS = [
     '.er-wrap{--bw:min(98vw,calc((100vh - 164px)*1.5),1800px);display:flex;flex-direction:column;align-items:center;gap:10px;margin:0 auto}',
     '.er-st{color:#e9d28a;font:700 1.1rem "DM Sans",sans-serif;letter-spacing:.03em;min-height:1.5em;text-align:center}',
-    '.er-board{position:relative;width:var(--bw);height:calc(var(--bw)*2/3);margin:4px 0 6px;border-radius:10px;background:#0e1936 var(--erb) center/100% 100% no-repeat;box-shadow:0 8px 24px rgba(0,0,0,.55)}',
+    '.er-vp{position:relative;width:var(--bw);height:calc(var(--bw)*2/3);margin:4px 0 6px;border-radius:10px;overflow:hidden;box-shadow:0 8px 24px rgba(0,0,0,.55);background:#0e1936}',
+    '.er-board{position:absolute;left:0;top:0;width:100%;height:calc(var(--bw)*1.8698);background:#0e1936 var(--erb) center/100% 100% no-repeat;transition:transform 1.1s cubic-bezier(.45,.05,.25,1);will-change:transform}',
     '.er-sq{position:absolute;width:9.4%;aspect-ratio:1;transform:translate(-50%,-50%);border-radius:50%;display:flex;align-items:center;justify-content:center}',
     '.er-sq::after{content:"";position:absolute;inset:-1%;border-radius:50%;border:calc(var(--bw)*.004) solid transparent;pointer-events:none}',
     '.er-sq.g::after{border-color:#5fe3a0;box-shadow:0 0 calc(var(--bw)*.012) #5fe3a0}.er-sq.b::after{border-color:#ff7b6b;box-shadow:0 0 calc(var(--bw)*.012) #ff7b6b}.er-sq.f::after{border-color:#fff2b0;box-shadow:0 0 calc(var(--bw)*.016) #f4d77a}.er-sq.x::after{border-color:#c9a0e8;box-shadow:0 0 calc(var(--bw)*.012) #c9a0e8;animation:erFateR 2s ease-in-out infinite alternate}@keyframes erFateR{from{box-shadow:0 0 calc(var(--bw)*.012) #c9a0e8}to{box-shadow:0 0 calc(var(--bw)*.022) #c9a0e8,0 0 calc(var(--bw)*.03) rgba(201,160,232,.5)}}',
@@ -922,7 +924,7 @@ function deck(el,m,n,x,y,face,gap){clear(el);const cs=[];for(let i=0;i<n;i++){co
     '.er-d3{position:fixed;left:50%;top:50%;width:0;height:0;z-index:45;pointer-events:none;perspective:1000px}.er-d3 .jp,.er-d3 .cb{position:absolute;width:var(--S);height:var(--S);transform-style:preserve-3d}.er-d3 .jp{left:calc(var(--S)/-2);top:calc(var(--S)/-2)}.er-d3 .cb{left:0;top:0}',
     '.er-d3 .f{position:absolute;inset:0;box-sizing:border-box;border-radius:15%;background:linear-gradient(145deg,#fffdf6,#e0d5b4);display:grid;grid-template:repeat(3,1fr)/repeat(3,1fr);padding:14%;box-shadow:inset 0 0 calc(var(--S)*.12) rgba(0,0,0,.22);border:1px solid rgba(120,100,50,.35)}.er-d3 .f i{margin:10%;border-radius:50%;background:radial-gradient(circle at 35% 30%,#3a62c0,#081640);box-shadow:inset 0 -2px 3px rgba(0,0,0,.4)}.er-d3 .f i.o{background:none;box-shadow:none}',
     '.er-d3 .sh{position:absolute;left:calc(var(--S)*-.62);top:calc(var(--S)*.42);width:calc(var(--S)*1.24);height:calc(var(--S)*.3);border-radius:50%;background:rgba(0,0,0,.6);filter:blur(12px)}',
-    '.er-full .bz-main{padding:0;gap:0;overflow:hidden;justify-content:flex-start}.er-full .er-wrap{--bw:min(100vw,calc((100vh - var(--toph,64px))*1.5));gap:0;margin:0}.er-full .er-board{margin:0;border-radius:0;box-shadow:none}',
+    '.er-full .bz-main{padding:0;gap:0;overflow:hidden;justify-content:flex-start}.er-full .er-wrap{--bw:min(100vw,calc((100vh - var(--toph,64px))*1.5));gap:0;margin:0}.er-full .er-vp{margin:0;border-radius:0;box-shadow:none}',
     '.er-full .bz-top{padding:5px 12px;gap:8px;row-gap:6px;height:auto;min-height:60px;flex-wrap:wrap;align-items:center}.er-full .bz-top h1{flex:none;font-size:1.02rem;margin-right:2px}.er-full .bz-top>.bz-b{height:44px;padding:0 13px;font-size:.95rem;border-radius:12px;display:inline-flex;align-items:center;white-space:nowrap}.er-full .bz-top>.bz-b.on{background:rgba(8,14,32,.6);color:#e9d28a;border-color:rgba(201,168,76,.7)}@media (max-width:1199px){.er-full .bz-top h1{display:none}}',
     '.bz-top .er-row{flex:1;width:auto;min-height:0;height:auto;flex-wrap:wrap;gap:8px;min-width:0;align-items:center}',
     '.bz-top .er-chip{display:inline-flex;align-items:center;gap:8px;height:48px;padding:0 13px;border-radius:12px;border:1.5px solid rgba(201,168,76,.45);background:rgba(8,14,32,.65);color:#f3ead0;font:600 1.1rem/1 "DM Sans",sans-serif;white-space:nowrap;box-sizing:border-box}.bz-top .er-chip b{font-size:1.1rem}.bz-top .er-chip.er-sc small{color:#fff;font:800 1.4rem/1 "DM Sans",sans-serif;letter-spacing:0;text-transform:none}',
@@ -1958,7 +1960,7 @@ function deck(el,m,n,x,y,face,gap){clear(el);const cs=[];for(let i=0;i<n;i++){co
       // draw from both pools together so linked squares never share a board; a name may appear only once
       // (College Chapel and the House Play role are both pool squares and fate squares), so names are counted
       function pick() {
-        var ff = draw(fates(), 2), gg = draw(PGOOD, 9), bb = draw(PBAD, 7), names = {};
+        var ff = draw(fates(), 4), gg = draw(PGOOD, 16), bb = draw(PBAD, 12), names = {};
         gg.concat(bb, ff).forEach(function (q) { names[q[0]] = (names[q[0]] || 0) + 1; });
         if (Object.keys(names).some(function (n) { return names[n] > 1; })) return null;
         return { c: gg.concat(bb, ff), names: names };
@@ -1970,7 +1972,7 @@ function deck(el,m,n,x,y,face,gap){clear(el);const cs=[];for(let i=0;i<n;i++){co
         var c = shuf(d.c.concat(PLAIN)); if (ok(c)) { m = c; break; }
       }
       for (var t2 = 0; !m && t2 < 400; t2++) { var d2 = pick(); if (d2) m = shuf(d2.c.concat(PLAIN)); }
-      if (!m) { var ff3 = draw(fates(), 2), nf = {}, nx = function (q) { return !nf[q[0]]; }; ff3.forEach(function (q) { nf[q[0]] = 1; }); m = shuf(draw(PGOOD.filter(nx), 9).concat(draw(PBAD.filter(nx), 7), ff3, PLAIN)); }
+      if (!m) { var ff3 = draw(fates(), 4), nf = {}, nx = function (q) { return !nf[q[0]]; }; ff3.forEach(function (q) { nf[q[0]] = 1; }); m = shuf(draw(PGOOD.filter(nx), 16).concat(draw(PBAD.filter(nx), 12), ff3, PLAIN)); }
       return [SQ[0]].concat(m, [SQ[1]]);
     }
     function intro() {
@@ -1986,7 +1988,7 @@ function deck(el,m,n,x,y,face,gap){clear(el);const cs=[];for(let i=0;i<n;i++){co
     window.apErSet = function (n) { CFG.erP = n; picked = {}; saveCfg(); intro(); };
     function play() {
       stop(); sfx('erstart'); musicStart(true);
-      var BD = shufBoard(), LC = {}; picked = {}; erShowKill();   // LC: how many times each square has been landed on
+      var BD = shufBoard(); for (var bt = 0; bt < 6 && BD.length !== PADS.length; bt++) BD = shufBoard(); var LAST = Math.min(BD.length, PADS.length) - 1, LC = {}; picked = {}; erShowKill();   // LC: how many times each square has been landed on
       var P = CFG.erP, pos = [], skip = [], cur = 0, busy = false, deck = [], di = 0, qd = null, turns = 0, msg = '';
       for (var s = 0; s < P; s++) { pos.push(0); skip.push(0); }
       msg = P > 1 ? nm(0) + ', your go.' : 'Your go.';
@@ -2007,18 +2009,25 @@ function deck(el,m,n,x,y,face,gap){clear(el);const cs=[];for(let i=0;i<n;i++){co
       }
       var RV = { 0: 1 }; RV[LAST] = 1;
       function CREST() { try { var a = document.querySelector('.aph-avatar'); if (a && a.src) return a.src; } catch (e) { } return ''; }
-      function carXY(s, i) { var c = PADS[i] || PADS[0], X = P === 1 ? [0] : P === 2 ? [-30, 30] : P === 3 ? [-42, 0, 42] : [-54, -18, 18, 54], Y = P === 1 ? 66 : (s % 2 ? 72 : 66); return [((c[0] + X[s]) / 15.36) + '%', ((c[1] + Y) / 10.24) + '%']; }
+      function carXY(s, i) { var c = PADS[i] || PADS[0], X = P === 1 ? [0] : P === 2 ? [-30, 30] : P === 3 ? [-42, 0, 42] : [-54, -18, 18, 54], Y = P === 1 ? 66 : (s % 2 ? 72 : 66); return [((c[0] + X[s]) / (MAPW / 100)) + '%', ((c[1] + Y) / (MAPH / 100)) + '%']; }
       function carW() { return P === 1 ? 5.7 : P === 2 ? 5.4 : 4.6; }
       function cars() { var h = ''; for (var s = 0; s < P; s++) { var xy = carXY(s, pos[s]), im = 'icons/er_p' + picks[s] + '.webp'; h += '<div class="er-car' + (s === cur ? ' on' : '') + '" id="erc' + s + '" style="left:' + xy[0] + ';top:' + xy[1] + ';width:' + carW() + '%;--g:' + pcL(s) + ';--sl:' + SCN[picks[s]] + ';--im:url(' + im + ')"><span class="rg"></span><span class="fg"><img alt="" src="' + im + '"><span class="sn"></span></span></div>'; } return h; }
+      function cam(y, quick) {   // the view follows the counter: slide the tall map so map-y sits mid-screen (one screen is 1024 map px tall)
+        var bd = $('er-board'); if (!bd) return;
+        var off = Math.max(0, Math.min(MAPH - 1024, y - 512)); camY = y;
+        if (quick) { bd.style.transition = 'none'; bd.style.transform = 'translateY(-' + (off / MAPH * 100) + '%)'; void bd.offsetWidth; bd.style.transition = ''; }
+        else bd.style.transform = 'translateY(-' + (off / MAPH * 100) + '%)';
+      }
+      var camY = 0;
       function setCar(s) {
         var e = $('erc' + s); if (!e) return; var xy = carXY(s, pos[s]);
-        e.style.left = xy[0]; e.style.top = xy[1]; e.classList.remove('hop'); void e.offsetWidth; e.classList.add('hop'); timers.push(setTimeout(function () { e.classList.remove('hop'); }, 640));
+        e.style.left = xy[0]; e.style.top = xy[1]; if (s === cur) cam(PADS[pos[s]][1]); e.classList.remove('hop'); void e.offsetWidth; e.classList.add('hop'); timers.push(setTimeout(function () { e.classList.remove('hop'); }, 640));
       }
       function erTrail(sqIdx, col) {
         try {
           var bd = $('er-board'); if (!bd) return;
           var br = bd.getBoundingClientRect(), c = PADS[sqIdx] || PADS[0];
-          var cx = br.left + (c[0] / 1536) * br.width, cy = br.top + (c[1] / 1024) * br.height;
+          var cx = br.left + (c[0] / 1536) * br.width, cy = br.top + (c[1] / MAPH) * br.height;
           for (var i = 0; i < 8; i++) {
             var sp = document.createElement('div');
             sp.style.cssText = 'position:fixed;width:9px;height:9px;border-radius:50%;pointer-events:none;z-index:12000;'
@@ -2042,7 +2051,7 @@ function deck(el,m,n,x,y,face,gap){clear(el);const cs=[];for(let i=0;i<n;i++){co
         for (var s = 0; s < P; s++) { var e = $('erc' + s); if (e) e.classList[s === cur ? 'add' : 'remove']('on'); }
       }
       try { if (BZ.bcard) { ov.style.setProperty('--fl-card', 'url(' + BZ.bcard + ')'); ov.classList.add('flc-img'); } } catch (e) { }
-      frame('Eton Rules', '<div class="er-wrap"><div class="er-board" id="er-board" style="--erb:url(icons/er_board.webp)">' + board() + '<div class="er-lay" id="er-lay">' + cars() + '</div></div><div class="er-how" id="er-how" onclick="apErHow(0)"><div>' + howText() + '<br><button class="er-btn er-go">Got it</button></div></div></div>');
+      frame('Eton Rules', '<div class="er-wrap"><div class="er-vp" id="er-vp"><div class="er-board" id="er-board" style="--erb:url(icons/er_board_tall.webp)">' + board() + '<div class="er-lay" id="er-lay">' + cars() + '</div></div></div><div class="er-how" id="er-how" onclick="apErHow(0)"><div>' + howText() + '<br><button class="er-btn er-go">Got it</button></div></div></div>');
       ov.classList.add('er-full'); ov.style.backgroundImage = 'linear-gradient(rgba(5,10,24,.8),rgba(5,10,24,.8)),url(icons/er_board.webp)';
       (function () {   // the board is sized from the banner's real height (two lines on an iPad with four teams), not a fixed 58px
         var t = ov.querySelector('.bz-top'); if (!t) return;
@@ -2091,16 +2100,17 @@ function deck(el,m,n,x,y,face,gap){clear(el);const cs=[];for(let i=0;i<n;i++){co
       function nextTurn(again) {
         if (!again) cur = (cur + 1) % P; busy = false;
         if (!again && skip[cur] > 0) {   // a missed go: say so, flash it, then move on after a moment
-          skip[cur]--; busy = true; msg = P > 1 ? nm(cur) + ' misses this go.' : 'You miss this go.'; refresh();
+          skip[cur]--; busy = true; cam(PADS[pos[cur]][1]); msg = P > 1 ? nm(cur) + ' misses this go.' : 'You miss this go.'; refresh();
           if (P > 1) turnFlash(nm(cur) + ' misses a go', pcL(cur)); else sfx('bad');
           timers.push(setTimeout(function () { nextTurn(false); }, P > 1 ? 2100 : 1400)); return;
         }
+        cam(PADS[pos[cur]][1]);
         msg = again ? (P > 1 ? nm(cur) + ' goes again.' : 'Go again.') : (P > 1 ? nm(cur) + ', your go.' : 'Your go.');
         refresh();
         if (P > 1) turnFlash(nm(cur) + (again ? ': go again!' : ' to answer'), pcL(cur));
       }
       function win() {
-        msg = (P > 1 ? nm(cur) : 'You') + ' reached Birley Schools: Sent Up For Good!'; refresh();
+        cam(PADS[LAST][1]); msg = (P > 1 ? nm(cur) : 'You') + ' reached Birley Schools: Sent Up For Good!'; refresh();
         turnFlash(P > 1 ? nm(cur) + ' wins!' : 'You win!', pcL(cur), 4400);
         timers.push(setTimeout(function () { endScreen('Eton Rules', { big: esc(P > 1 ? nm(cur) : 'Birley Schools'), note: '<b class="er-wn">' + (P > 1 ? 'wins: first to Birley Schools' : 'Sent Up For Good! You reached Birley Schools in ' + turns + ' turns.') + '</b>' }, play); }, 4500));
       }
@@ -2261,7 +2271,7 @@ function deck(el,m,n,x,y,face,gap){clear(el);const cs=[];for(let i=0;i<n;i++){co
         ti = ti.replace(/\s*\(.*\)\s*$/, function (m) { su = su || m.replace(/[()]/g, '').trim(); return ''; });
         var kd = q[1] === 'g' ? 'g' : q[1] === 'b' ? 'b' : '', e = q[3], fx = e != null ? fxOf(q) : '', big = typeof e === 'number' ? fx : e === 'again' ? '\u21BB Go again' : e === 'miss' ? 'Miss a go' : e === 'miss2' ? 'Miss 2 goes' : '';
         var el = document.createElement('div'); el.id = 'er-lc'; el.className = 'er-lc ' + kd;
-        if (!cb) { var bw = bd.getBoundingClientRect().width, c = PADS[i] || PADS[0]; el.style.setProperty('--dx', ((c[0] / 1536 - .5) * bw) + 'px'); el.style.setProperty('--dy', ((c[1] / 1024 - .5) * bw * 2 / 3) + 'px'); }
+        if (!cb) { try { var sqr = document.querySelectorAll('#er-board .er-sq')[i].getBoundingClientRect(); el.style.setProperty('--dx', (sqr.left + sqr.width / 2 - innerWidth / 2) + 'px'); el.style.setProperty('--dy', (sqr.top + sqr.height / 2 - innerHeight / 2) + 'px'); } catch (ex) { } }
         var ic = ICO[q[0]];
         el.innerHTML = (ic ? '<img alt="" src="icons/er_' + ic + '.webp">' : '') + '<div class="t">' + esc(ti) + '</div>' + (su ? '<div class="u">' + esc(su) + '</div>' : '')
           + '<div class="x">' + esc(q[2] || (q[1] === 'f0' ? 'Where every boy begins.' : 'A quiet corner of Eton. Nothing happens here.')) + '</div>' + (big ? '<div class="bd' + (typeof e === 'number' ? '' : ' w') + '">' + esc(big) + '</div>' : '') + '<button class="er-btn er-lc-b">' + (cb ? 'Carry on \u25B6' : 'Close') + '</button>';
