@@ -1780,6 +1780,7 @@ function deck(el,m,n,x,y,face,gap){clear(el);const cs=[];for(let i=0;i<n;i++){co
     function pcN(s) { return PCS[picks[s]][0]; } function pcT(s) { return PCS[picks[s]][1]; } function pcL(s) { return PCS[picks[s]][2]; }
     // [name, kind, effect text, effect]   kind: '' normal, g good, b bad, f finish
     var SQ = [['Your House', 'f0', 'Start'], ['Birley Schools', 'f', 'Sent Up For Good!']], LAST = 27;
+    var PXTRA = [['Agar\'s Plough'], ['Mesopotamia'], ['Weston\'s Yard'], ['Fellows\' Eyot'], ['Lupton\'s Tower'], ['Upper School'], ['Lower School'], ['Brewhouse Yard'], ['Eton Square'], ['Cloisters'], ['School Library'], ['Dutchmans'], ['Athens Pool'], ['Lecture in Jafar Hall'], ['Music School'], ['Cannon Yard'], ['Welsh & Jefferies'], ['Boathouse'], ['Eton Fives'], ['Don Beni'], ['Budgens'], ['Farrer Theatre'], ['Rowland\'s & Tap']];   // more quiet places: most squares are just squares
     var PLAIN = [['Keate\'s Lane'], ['Evans\'s'], ['School Yard'], ['Burning Bush'], ['High Street'], ['Baldwin\'s Shore'], ['Luxmoore\'s Garden'], ['Slough Road']];
     var PGOOD = [
       ['Rowland\'s & Tap', 'g', 'Go again', 'again'], ['Don Beni', 'g', 'Fantastic trip to Don Beni: forward 2', 2], ['Budgens', 'g', 'Forward 2', 2], ['Farrer Theatre', 'g', 'Cast in the school play: go again', 'again'],
@@ -1961,19 +1962,22 @@ function deck(el,m,n,x,y,face,gap){clear(el);const cs=[];for(let i=0;i<n;i++){co
       // draw from both pools together so linked squares never share a board; a name may appear only once
       // (College Chapel and the House Play role are both pool squares and fate squares), so names are counted
       function pick() {
-        var ff = draw(fates(), 4), gg = draw(PGOOD, 16), bb = draw(PBAD, 12), names = {};
+        var ff = draw(fates(), 2), gg = draw(PGOOD, 5), bb = draw(PBAD, 5), names = {};
         gg.concat(bb, ff).forEach(function (q) { names[q[0]] = (names[q[0]] || 0) + 1; });
         if (Object.keys(names).some(function (n) { return names[n] > 1; })) return null;
         return { c: gg.concat(bb, ff), names: names };
+      }
+      function plains(names, n) {   // quiet squares: places not already on the board, each once
+        var seen = {}, out = []; shuf(PLAIN.concat(PXTRA)).forEach(function (q) { if (out.length < n && !names[q[0]] && !seen[q[0]]) { seen[q[0]] = 1; out.push(q); } }); return out;
       }
       var m = null;
       for (var t = 0; t < 400; t++) {
         var d = pick(); if (!d) continue;
         if (PGRP.some(function (grp) { return grp.filter(function (x) { return d.names[x]; }).length > 1; })) continue;
-        var c = shuf(d.c.concat(PLAIN)); if (ok(c)) { m = c; break; }
+        var c = shuf(d.c.concat(plains(d.names, 40 - d.c.length))); if (ok(c)) { m = c; break; }
       }
-      for (var t2 = 0; !m && t2 < 400; t2++) { var d2 = pick(); if (d2) m = shuf(d2.c.concat(PLAIN)); }
-      if (!m) { var ff3 = draw(fates(), 4), nf = {}, nx = function (q) { return !nf[q[0]]; }; ff3.forEach(function (q) { nf[q[0]] = 1; }); m = shuf(draw(PGOOD.filter(nx), 16).concat(draw(PBAD.filter(nx), 12), ff3, PLAIN)); }
+      for (var t2 = 0; !m && t2 < 400; t2++) { var d2 = pick(); if (d2) m = shuf(d2.c.concat(plains(d2.names, 40 - d2.c.length))); }
+      if (!m) { var ff3 = draw(fates(), 2), nf = {}, nx = function (q) { return !nf[q[0]]; }; ff3.forEach(function (q) { nf[q[0]] = 1; }); var g3 = draw(PGOOD.filter(nx), 5), b3 = draw(PBAD.filter(nx), 5); g3.concat(b3).forEach(function (q) { nf[q[0]] = 1; }); m = shuf(g3.concat(b3, ff3, plains(nf, 40 - g3.length - b3.length - ff3.length))); }
       return [SQ[0]].concat(m, [SQ[1]]);
     }
     function intro() {
@@ -2122,7 +2126,7 @@ function deck(el,m,n,x,y,face,gap){clear(el);const cs=[];for(let i=0;i<n;i++){co
           else land(me);
         })();
       }
-      var earned = false;
+      var earned = false, bonusQ = false, bonusAg = false;
       // Each themed card has two possible outcomes (one good, one bad): a draw picks one at random
       var CARDS = [
         // 22 Eton Rules cards, each with 2 good and 2 bad outcomes (the game picks one at random)
@@ -2225,7 +2229,19 @@ function deck(el,m,n,x,y,face,gap){clear(el);const cs=[];for(let i=0;i<n;i++){co
           flip(function () { s2(); });
         };
       }
-      function after(ag) { if (earned) { earned = false; msg = (P > 1 ? nm(cur) + ', you' : 'You') + ' may take an Eton Rules card.'; refresh(); timers.push(setTimeout(function () { offer(ag); }, 1400)); } else nextTurn(ag); }
+      function after(ag) {
+        if (earned) {   // a right answer earns one BONUS QUESTION; only a right answer to that may take an Eton Rules card
+          earned = false; bonusQ = true; bonusAg = ag; var who = P > 1 ? nm(cur) : 'You';
+          msg = who + (P > 1 ? ': bonus question! Get it right to earn an Eton Rules card.' : ' have a bonus question! Get it right to earn an Eton Rules card.'); refresh();
+          if (P > 1) turnFlash('Bonus question', pcL(cur), 1600, true);
+          timers.push(setTimeout(function () {
+            qd = nextQ(); sfx('whoosh'); refresh();
+            var st = document.createElement('div'); st.id = 'er-stage'; st.className = 'fl-stage';
+            st.innerHTML = '<div class="er-bq" style="position:absolute;top:10px;left:50%;transform:translateX(-50%);z-index:3;background:rgba(12,21,48,.92);color:#eafff0;border:2px solid #5dff95;border-radius:999px;padding:8px 18px;font-weight:800;font-size:1.05rem;white-space:nowrap">Bonus question: get it right for an Eton Rules card</div><div class="c4-q" id="er-q">' + backQ() + '</div>'; ov.appendChild(st);
+            try { $('er-q').animate([{ transform: 'translateY(80px) rotateX(38deg) scale(.88)', opacity: 0 }, { transform: 'none', opacity: 1 }], { duration: 520, easing: 'cubic-bezier(.2,.8,.2,1)' }); } catch (e) { }
+          }, 1700));
+        } else nextTurn(ag);
+      }
       function land(me, chained, cont) {
         var fin = cont || after;
         if (pos[me] >= LAST) { popSq(LAST); win(); return; }
@@ -2288,6 +2304,12 @@ function deck(el,m,n,x,y,face,gap){clear(el);const cs=[];for(let i=0;i<n;i++){co
         stg.style.transition = 'opacity .22s'; stg.style.opacity = '0'; turns++;
         timers.push(setTimeout(function () {
           stg.remove();
+          if (bonusQ) {
+            bonusQ = false; var bag = bonusAg;
+            if (m === 1) { sfx('good'); msg = (P > 1 ? nm(cur) : 'You') + ' got the bonus question: take an Eton Rules card if you dare.'; refresh(); timers.push(setTimeout(function () { offer(bag); }, 900)); }
+            else { sfx(m === 2 ? 'ok' : 'bad'); msg = (P > 1 ? nm(cur) : 'You') + (m === 2 ? ' nearly had the bonus question: no card this time.' : ' missed the bonus question: no card this time.'); refresh(); timers.push(setTimeout(function () { nextTurn(bag); }, 1800)); }
+            return;
+          }
           if (m === 1) {
             earned = true; sfx('dice'); var d = Math.floor(Math.random() * 3) + 1;
             timers.push(setTimeout(function () { msg = (P > 1 ? nm(cur) : 'You') + ' rolled a ' + d + '.'; refresh(); }, 1750));
