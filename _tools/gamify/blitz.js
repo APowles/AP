@@ -835,6 +835,7 @@ function deck(el,m,n,x,y,face,gap){clear(el);const cs=[];for(let i=0;i<n;i++){co
     '.er-sq .fx{position:absolute;right:-6%;top:-6%;min-width:28%;padding:0 4%;height:28%;border-radius:999px;background:#14203f;border:2px solid #f4d77a;color:#f7e9b5;font:900 calc(var(--bw)*.0135)/1 "DM Sans",sans-serif;display:flex;align-items:center;justify-content:center;box-shadow:0 2px 4px rgba(0,0,0,.5);z-index:2}.er-sq.g .fx{background:#12503a;border-color:#5fe3a0}.er-sq.b .fx{background:#5a1c24;border-color:#ff7b6b}',
     '.er-sq .cp{position:absolute;top:calc(100% + var(--bw)*.006);left:50%;transform:translateX(-50%);white-space:nowrap;padding:.12em .55em;border-radius:999px;background:rgba(8,16,40,.82);color:#f3ead0;font:700 max(10px,calc(var(--bw)*.0118))/1.25 "DM Sans",sans-serif;letter-spacing:.02em;z-index:1}.er-sq.np .cp{display:none}',
     '.er-lay{position:absolute;inset:0;pointer-events:none}',
+    '.er-sq.c .cr{display:block;width:50%;height:auto;border-radius:0;box-shadow:none;filter:drop-shadow(0 1px 2px rgba(0,0,0,.6))}.er-sq.c .pn,.er-sq.c .cp{display:none}.er-sq.c::after{border-color:#9fd0ff;box-shadow:0 0 calc(var(--bw)*.014) #9fd0ff}.er-sq.c .fx{left:50%;right:auto;top:auto;bottom:-16%;transform:translateX(-50%);white-space:nowrap;background:#16355e;border-color:#9fd0ff;color:#e6f3ff;padding:0 7%;font-size:calc(var(--bw)*.0105);height:24%}',
     '.er-sq .cr{display:none}.er-sq.hid .cr{display:block;width:52%;height:auto;border-radius:0;box-shadow:none;filter:brightness(.6) saturate(.75) drop-shadow(0 1px 2px rgba(0,0,0,.6));opacity:.78}.er-sq.hid{background:radial-gradient(circle at 40% 35%,#182546,#0a1024 75%);box-shadow:inset 0 0 calc(var(--bw)*.014) rgba(0,0,0,.75);outline:calc(var(--bw)*.003) solid rgba(201,168,76,.3);outline-offset:calc(var(--bw)*-.003);opacity:.82}.er-sq.hid>img:not(.cr),.er-sq.hid .fx,.er-sq.hid .cp,.er-sq.hid .pn{display:none!important}.er-sq.hid::after{display:none}',
     '.er-sq{cursor:pointer}',
     '.er-lc{position:fixed;left:50%;top:50%;width:min(520px,88vw);z-index:12000;box-sizing:border-box;padding:24px 28px 20px;border-radius:18px;text-align:center;color:#f6efd8;background:linear-gradient(165deg,#14264f,#0a1531);border:3px solid #e6c15a;box-shadow:0 18px 50px rgba(0,0,0,.75),0 0 60px rgba(230,193,90,.25);transform:translate(-50%,-50%);animation:erlc .55s cubic-bezier(.2,.9,.3,1.15);cursor:pointer;font-family:"DM Sans",sans-serif}',
@@ -1819,8 +1820,8 @@ function deck(el,m,n,x,y,face,gap){clear(el);const cs=[];for(let i=0;i<n;i++){co
       + '~ <b>Nearly</b> \u2014 forward one square<br>'
       + '\u2717 <b>Major error</b> \u2014 no move<br><br>'
       + '<b>The board</b><br>Squares are hidden until someone lands on them.<br>'
-      + '<span style="color:#5fe3a0">\u25CF</span> Green = good &nbsp; <span style="color:#ff7b6b">\u25CF</span> Red = bad &nbsp; <span style="color:#c9a0e8">\u25CF</span> Purple = fate (re\u2011rolled for each boy)<br><br>'
-      + '<b>Eton Rules cards</b><br>After a right answer, take a card or pass. Good news or bad \u2014 no card repeats until the pack is used.<br><br>'
+      + '<span style="color:#5fe3a0">\u25CF</span> Green = good &nbsp; <span style="color:#ff7b6b">\u25CF</span> Red = bad &nbsp; <span style="color:#c9a0e8">\u25CF</span> Purple = fate (re\u2011rolled for each boy) &nbsp; <span style="color:#9fd0ff">\u25CF</span> Blue = Eton Rules card<br><br>'
+      + '<b>Eton Rules squares</b><br>The blue squares marked <span style="color:#9fd0ff">ETON RULES CARD</span> are the only way to win a card. Land on one and you get a bonus question: answer it right (Got it) and you may take an Eton Rules card or pass. Good news or bad \u2014 no card repeats until the pack is used.<br><br>'
       + '<b>Winning</b><br>Only a roll or a Nearly can take you into Birley Schools.<br>The first to arrive is <em>Sent Up For Good</em>.'; }
     window.__erHoloStop = function () { try { erShowKill(); } catch (e) { } };
     function pickHTML(P, start) {
@@ -1965,8 +1966,9 @@ function deck(el,m,n,x,y,face,gap){clear(el);const cs=[];for(let i=0;i<n;i++){co
         var ff = draw(fates(), 2), gg = draw(PGOOD, 5), bb = draw(PBAD, 5), names = {};
         gg.concat(bb, ff).forEach(function (q) { names[q[0]] = (names[q[0]] || 0) + 1; });
         if (Object.keys(names).some(function (n) { return names[n] > 1; })) return null;
-        return { c: gg.concat(bb, ff), names: names };
+        return { c: gg.concat(bb, ff, cards()), names: names };
       }
+      function cards() { var a = []; for (var i = 0; i < 5; i++) a.push(['Eton Rules card', 'c', 'Land here, answer a bonus question, and you may win an Eton Rules card.']); return a; }
       function plains(names, n) {   // quiet squares: places not already on the board, each once
         var seen = {}, out = []; shuf(PLAIN.concat(PXTRA)).forEach(function (q) { if (out.length < n && !names[q[0]] && !seen[q[0]]) { seen[q[0]] = 1; out.push(q); } }); return out;
       }
@@ -1977,7 +1979,7 @@ function deck(el,m,n,x,y,face,gap){clear(el);const cs=[];for(let i=0;i<n;i++){co
         var c = shuf(d.c.concat(plains(d.names, 40 - d.c.length))); if (ok(c)) { m = c; break; }
       }
       for (var t2 = 0; !m && t2 < 400; t2++) { var d2 = pick(); if (d2) m = shuf(d2.c.concat(plains(d2.names, 40 - d2.c.length))); }
-      if (!m) { var ff3 = draw(fates(), 2), nf = {}, nx = function (q) { return !nf[q[0]]; }; ff3.forEach(function (q) { nf[q[0]] = 1; }); var g3 = draw(PGOOD.filter(nx), 5), b3 = draw(PBAD.filter(nx), 5); g3.concat(b3).forEach(function (q) { nf[q[0]] = 1; }); m = shuf(g3.concat(b3, ff3, plains(nf, 40 - g3.length - b3.length - ff3.length))); }
+      if (!m) { var ff3 = draw(fates(), 2), nf = {}, nx = function (q) { return !nf[q[0]]; }; ff3.forEach(function (q) { nf[q[0]] = 1; }); var g3 = draw(PGOOD.filter(nx), 5), b3 = draw(PBAD.filter(nx), 5); g3.concat(b3).forEach(function (q) { nf[q[0]] = 1; }); var c3 = cards(); m = shuf(g3.concat(b3, ff3, c3, plains(nf, 40 - g3.length - b3.length - ff3.length - c3.length))); }
       return [SQ[0]].concat(m, [SQ[1]]);
     }
     function intro() {
@@ -2005,14 +2007,14 @@ function deck(el,m,n,x,y,face,gap){clear(el);const cs=[];for(let i=0;i<n;i++){co
       }
       function board() {
         var h = ''; BD.forEach(function (q, i) {
-          var k = q[1] || '', c = padPos(i), cls = k === 'g' ? 'g' : k === 'b' ? 'b' : k === 'x' ? 'x' : (k === 'f' || k === 'f0') ? 'f' : '', ic = ICO[q[0]], fx = q[3] != null ? fxOf(q) : '', hid = !RV[i];
+          var k = q[1] || '', c = padPos(i), cls = k === 'g' ? 'g' : k === 'b' ? 'b' : k === 'x' ? 'x' : k === 'c' ? 'c' : (k === 'f' || k === 'f0') ? 'f' : '', ic = ICO[q[0]], fx = k === 'c' ? 'ETON RULES CARD' : q[3] != null ? fxOf(q) : '', hid = !RV[i];
           h += '<div class="er-sq ' + (hid ? 'hid' : cls) + (ic ? '' : ' np') + '" data-k="' + cls + '" onclick="apErSq(' + i + ')"' + (hid ? '' : ' title="' + esc(q[0] + (q[2] ? ': ' + q[2] : '')) + '"') + ' style="left:' + c[0] + '%;top:' + c[1] + '%"><img class="cr" alt="" src="' + CREST() + '">'
             + (ic ? '<img src="icons/er_' + ic + '.webp" alt="" onerror="this.parentNode.classList.add(\'np\');this.remove()">' : '')
             + '<span class="pn">' + esc(shortOf(q[0])) + '</span>' + (fx ? '<span class="fx">' + fx + '</span>' : '') + '<span class="cp">' + esc(shortOf(q[0])) + '</span></div>';
         });
         return h;
       }
-      var RV = { 0: 1 }; RV[LAST] = 1;
+      var RV = { 0: 1 }; RV[LAST] = 1; BD.forEach(function (q, i) { if (q[1] === 'c') RV[i] = 1; });   // Eton Rules card squares are marked from the start
       function CREST() { try { var a = document.querySelector('.aph-avatar'); if (a && a.src) return a.src; } catch (e) { } return ''; }
       function carXY(s, i) { var c = PADS[i] || PADS[0], X = P === 1 ? [0] : P === 2 ? [-30, 30] : P === 3 ? [-42, 0, 42] : [-54, -18, 18, 54], Y = P === 1 ? 66 : (s % 2 ? 72 : 66); return [((c[0] + X[s]) / (MAPW / 100)) + '%', ((c[1] + Y) / (MAPH / 100)) + '%']; }
       function carW() { return P === 1 ? 5.7 : P === 2 ? 5.4 : 4.6; }
@@ -2229,24 +2231,27 @@ function deck(el,m,n,x,y,face,gap){clear(el);const cs=[];for(let i=0;i<n;i++){co
           flip(function () { s2(); });
         };
       }
-      function after(ag) {
-        if (earned) {   // a right answer earns one BONUS QUESTION; only a right answer to that may take an Eton Rules card
-          earned = false; bonusQ = true; bonusAg = ag; var who = P > 1 ? nm(cur) : 'You';
-          msg = who + (P > 1 ? ': bonus question! Get it right to earn an Eton Rules card.' : ' have a bonus question! Get it right to earn an Eton Rules card.'); refresh();
-          if (P > 1) turnFlash('Bonus question', pcL(cur), 1600, true);
-          timers.push(setTimeout(function () {
+      function after(ag) { nextTurn(ag); }
+      function bonusAsk() {   // landed on an Eton Rules card square: one bonus question; right (Got it) earns the card to take or leave
+        bonusQ = true; busy = true; msg = (P > 1 ? nm(cur) + ': bonus question! Get it right to win an Eton Rules card.' : 'Bonus question! Get it right to win an Eton Rules card.'); refresh();
+        if (P > 1) turnFlash('Bonus question', pcL(cur), 1600, true);
+        timers.push(setTimeout(function () {
             qd = nextQ(); sfx('whoosh'); refresh();
             var st = document.createElement('div'); st.id = 'er-stage'; st.className = 'fl-stage';
             st.innerHTML = '<div class="er-bq" style="position:absolute;top:10px;left:50%;transform:translateX(-50%);z-index:3;background:rgba(12,21,48,.92);color:#eafff0;border:2px solid #5dff95;border-radius:999px;padding:8px 18px;font-weight:800;font-size:1.05rem;white-space:nowrap">Bonus question: get it right for an Eton Rules card</div><div class="c4-q" id="er-q">' + backQ() + '</div>'; ov.appendChild(st);
             try { $('er-q').animate([{ transform: 'translateY(80px) rotateX(38deg) scale(.88)', opacity: 0 }, { transform: 'none', opacity: 1 }], { duration: 520, easing: 'cubic-bezier(.2,.8,.2,1)' }); } catch (e) { }
           }, 1700));
-        } else nextTurn(ag);
       }
       function land(me, chained, cont) {
         var fin = cont || after;
         if (pos[me] >= LAST) { popSq(LAST); win(); return; }
         var q0 = BD[pos[me]], q = q0;
         if (q0[1] === 'f0') { fin(false); return; }
+        if (q0[1] === 'c') {
+          popSq(pos[me]); msg = 'Eton Rules square: answer a bonus question to win a card.'; refresh();
+          setTimeout(function () { try { lcShow(pos[me], function () { bonusAsk(); }, q0); } catch (ex) { bonusAsk(); } }, POP + 50);
+          return;
+        }
         if (q0[1] === 'g' || q0[1] === 'b' || q0[1] === 'x') {
           var si = pos[me];
           if ((LC[si] || 0) >= 2) {   // landed on twice already: the effect is used up and the square goes quiet
@@ -2305,13 +2310,13 @@ function deck(el,m,n,x,y,face,gap){clear(el);const cs=[];for(let i=0;i<n;i++){co
         timers.push(setTimeout(function () {
           stg.remove();
           if (bonusQ) {
-            bonusQ = false; var bag = bonusAg;
+            bonusQ = false; var bag = false;
             if (m === 1) { sfx('good'); msg = (P > 1 ? nm(cur) : 'You') + ' got the bonus question: take an Eton Rules card if you dare.'; refresh(); timers.push(setTimeout(function () { offer(bag); }, 900)); }
             else { sfx(m === 2 ? 'ok' : 'bad'); msg = (P > 1 ? nm(cur) : 'You') + (m === 2 ? ' nearly had the bonus question: no card this time.' : ' missed the bonus question: no card this time.'); refresh(); timers.push(setTimeout(function () { nextTurn(bag); }, 1800)); }
             return;
           }
           if (m === 1) {
-            earned = true; sfx('dice'); var d = Math.floor(Math.random() * 3) + 1;
+            sfx('dice'); var d = Math.floor(Math.random() * 3) + 1;
             timers.push(setTimeout(function () { msg = (P > 1 ? nm(cur) : 'You') + ' rolled a ' + d + '.'; refresh(); }, 1750));
             die3(d, function () { walk(d); });
           } else if (m === 2) { sfx('good'); msg = (P > 1 ? nm(cur) : 'You') + ' got it nearly — move forward 1 square.'; refresh(); turnFlash('Nearly: forward 1', pcL(cur), 0, true); timers.push(setTimeout(function () { walk(1); }, 1500)); }
