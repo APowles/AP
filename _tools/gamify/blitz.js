@@ -1962,7 +1962,7 @@ function deck(el,m,n,x,y,face,gap){clear(el);const cs=[];for(let i=0;i<n;i++){co
     }
     function frLbl() { return CFG.erFr ? 'Cards in English' : 'Cards in ' + (H.names[target()] || 'French'); }
     function frBtn(cls) { return ERX[target()] ? '<button class="' + cls + ' er-frb" onclick="apErFr()">' + esc(frLbl()) + '</button>' : ''; }
-    window.apErFr = function () { CFG.erFr = !CFG.erFr; try { saveCfg(); } catch (e) { } [].forEach.call(document.querySelectorAll('.er-frb'), function (b) { b.textContent = frLbl(); }); try { if (window.__erRel) window.__erRel(); } catch (e) { } try { var st = document.querySelector('#er-st span'); if (st) st.textContent = LM(st.textContent); } catch (e) { } };
+    window.apErFr = function () { CFG.erFr = !CFG.erFr; try { saveCfg(); } catch (e) { } [].forEach.call(document.querySelectorAll('.er-frb'), function (b) { b.textContent = frLbl(); }); try { if (window.__erRefresh) window.__erRefresh(); else if (window.__erRel) window.__erRel(); } catch (e) { } };
     function qOf(c) { var v = hvOf(c); return v.hl ? esc(v.hl[0]) + '<b class="hl">' + esc(v.hl[1]) + '</b>' + esc(v.hl[2]) : esc(c.q); }
     function sz(c) { var L = c.q.length; return L > 120 ? ' fl-xl' : L > 60 ? ' fl-lg' : ''; }
     function howText() { return '<b>The race</b><br>From your House to Birley Schools. First there wins.<br><br>'
@@ -2173,6 +2173,7 @@ function deck(el,m,n,x,y,face,gap){clear(el);const cs=[];for(let i=0;i<n;i++){co
         var h = ''; for (var s = 0; s < P; s++) h += '<div class="er-chip er-sc' + (s === cur ? ' cur' : '') + '" style="--sc:' + pcL(s) + '"><b>' + esc(nm(s)) + '</b> <small>' + pos[s] + '</small></div>';
         return h;
       }
+      window.__erRefresh = function () { try { refresh(); } catch (e) { } try { var f = document.querySelector('.er-turn'), en = f && f.getAttribute('data-en'), n = f && f.querySelector('.in'); if (n && en) n.textContent = LM(en); } catch (e) { } try { window.__erRel(); } catch (e) { } };   // the language button: everything on screen changes at once, even mid-turn
       window.__erRel = function () { try { var els = document.querySelectorAll('#er-board .er-sq'); BD.forEach(function (q, i) { var e = els[i]; if (!e) return; var a = e.querySelector('.pn'), c = e.querySelector('.cp'); if (a) a.textContent = sqLbl(q[0]); if (c) c.textContent = sqLbl(q[0]); }); } catch (e) { } };   // the language button also relabels the squares already on the board
       function board() {
         var h = ''; BD.forEach(function (q, i) {
@@ -2308,7 +2309,7 @@ function deck(el,m,n,x,y,face,gap){clear(el);const cs=[];for(let i=0;i<n;i++){co
       function turnFlash(txt, col, ms, quiet) {   // a big central flash in the team colour; ms = how long it stays (2 s unless told otherwise)
         var old = document.querySelector('.er-turn'); if (old) old.remove();
         var el = document.createElement('div'); el.className = 'er-turn'; el.style.setProperty('--tc', col);
-        el.innerHTML = '<div class="in">' + esc(LM(txt)) + '</div>';
+        el.innerHTML = '<div class="in">' + esc(LM(txt)) + '</div>'; el.setAttribute('data-en', txt);
         if (ms) el.style.animationDelay = '0s,' + (ms - 400) + 'ms';
         ov.appendChild(el);
         if (!quiet) { try { if (!(snd && window.__apAudio && __apAudio.clip(RIGHT_SND, .175 * CFG.vol))) sfx('ok'); } catch (e) { } }   // the team call-out ping, at half its old volume
