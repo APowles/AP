@@ -2619,7 +2619,7 @@ function deck(el,m,n,x,y,face,gap){clear(el);const cs=[];for(let i=0;i<n;i++){co
         var bg = document.createElement('div'); bg.id = 'er-lcbg'; bg.className = 'er-lc-bg';
         var fin = false, lcAutoT = null;
         function close() { if (fin) return; fin = true; erHush(); if (lcAutoT) { clearTimeout(lcAutoT); lcAutoT = null; } lcDone = null; el.classList.add('out'); bg.classList.add('out'); setTimeout(function () { el.remove(); bg.remove(); }, 300); if (cb) cb(); }
-        el.onclick = close; bg.onclick = close; document.body.appendChild(bg); document.body.appendChild(el); lcDone = close; sfx('tick'); if (q[1] === 'g' || q[1] === 'b') erTalk(erJoin(L(q[0] || ''), L(q[2] || '')) + (big && /[a-z]/i.test(big) && L(q[2] || '').toLowerCase().indexOf(L(big).toLowerCase()) < 0 ? '. ' + L(big) : ''));
+        el.onclick = close; bg.onclick = close; document.body.appendChild(bg); document.body.appendChild(el); lcDone = close; sfx(q[1] === 'c' ? 'card' : 'tick'); if (q[1] === 'g' || q[1] === 'b') erTalk(erJoin(L(q[0] || ''), L(q[2] || '')) + (big && /[a-z]/i.test(big) && L(q[2] || '').toLowerCase().indexOf(L(big).toLowerCase()) < 0 ? '. ' + L(big) : ''));
         if (cb && q[1] !== 'c') { lcAutoT = setTimeout(close, big ? 4000 : 2500); }   // an Eton Rules card square waits until it is tapped
       }
       window.apErSq = function (i) { if (busy || $('er-lc') || $('er-stage') || !RV[i]) return; if (FR[i]) lcFate(i, FR[i], null, true); else lcShow(i, null); };
