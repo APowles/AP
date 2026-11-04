@@ -22171,6 +22171,7 @@ function deck(el,m,n,x,y,face,gap){clear(el);const cs=[];for(let i=0;i<n;i++){co
       return L(s);
     }
     function sqLbl(n) { var t = CFG.erFr ? LM(n) : n; return t !== n ? t : shortOf(n); }
+    function erJoin(a, b) { a = String(a || ''); b = String(b || ''); if (!a || !b) return a || b; var x = a.toLowerCase(), y = b.toLowerCase(); return (x.indexOf(y) >= 0 || y.indexOf(x) >= 0) ? (a.length > b.length ? a : b) : a + '. ' + b; }
     function erTalk(txt) {   // Ups and Downs squares and Eton Rules cards are read aloud in the language of the cards; tapping the card (or any close) stops it at once
       try { if (!snd || CFG.erAuto === 0 || !txt) return; var fr = !!(CFG.erFr && ERX[target()]); try { speechSynthesis.cancel(); } catch (e) { } var t = String(txt).replace(/[\u25B2\u25BC\u21BB\u2713\u2717]/g, '').replace(/\s+/g, ' ').trim(); if (/[a-zA-Z\u00C0-\u00FF]/.test(t)) setTimeout(function () { try { if (fr) H.say(t, target()); else { var u = new SpeechSynthesisUtterance(t); u.lang = 'en-GB'; u.rate = .95; var vs = speechSynthesis.getVoices(), v = vs.filter(function (x) { return /^en[-_]GB/i.test(x.lang); })[0] || vs.filter(function (x) { return /^en/i.test(x.lang); })[0]; if (v) u.voice = v; speechSynthesis.speak(u); } } catch (e) { } }, 250); } catch (e) { }
     }
@@ -22793,7 +22794,7 @@ function deck(el,m,n,x,y,face,gap){clear(el);const cs=[];for(let i=0;i<n;i++){co
           + '<button class="er-btn er-lc-b">' + esc(L(cb ? 'Carry on ▶' : 'Close')) + '</button>';
         var bg = document.createElement('div'); bg.id = 'er-lcbg'; bg.className = 'er-lc-bg';
         var fin = false, shown = false, tm = [];
-        function reveal(quiet) { if (shown || fin) return; shown = true; tm.forEach(clearTimeout); el.classList.add('rv'); el.classList.add(good ? 'g' : 'b'); erTalk(L(q[2] || full) + (big && /[a-z]/i.test(big) && L(q[2] || full).toLowerCase().indexOf(L(big).toLowerCase()) < 0 ? '. ' + L(big) : '')); if (!quiet) { try { sfx(good ? 'cgood' : 'cbad'); } catch (x) { } } }
+        function reveal(quiet) { if (shown || fin) return; shown = true; tm.forEach(clearTimeout); el.classList.add('rv'); el.classList.add(good ? 'g' : 'b'); erTalk(erJoin(L(q[0] || ''), L(q[2] || full)) + (big && /[a-z]/i.test(big) && L(q[2] || full).toLowerCase().indexOf(L(big).toLowerCase()) < 0 ? '. ' + L(big) : '')); if (!quiet) { try { sfx(good ? 'cgood' : 'cbad'); } catch (x) { } } }
         function close() { if (fin) return; fin = true; erHush(); tm.forEach(clearTimeout); lcDone = null; el.classList.add('out'); bg.classList.add('out'); setTimeout(function () { el.remove(); bg.remove(); }, 300); if (cb) cb(); }
         function tap() { if (!shown) reveal(); else close(); }
         el.onclick = tap; bg.onclick = tap; document.body.appendChild(bg); document.body.appendChild(el); lcDone = function () { shown = true; close(); };
@@ -22813,7 +22814,7 @@ function deck(el,m,n,x,y,face,gap){clear(el);const cs=[];for(let i=0;i<n;i++){co
         var bg = document.createElement('div'); bg.id = 'er-lcbg'; bg.className = 'er-lc-bg';
         var fin = false, lcAutoT = null;
         function close() { if (fin) return; fin = true; erHush(); if (lcAutoT) { clearTimeout(lcAutoT); lcAutoT = null; } lcDone = null; el.classList.add('out'); bg.classList.add('out'); setTimeout(function () { el.remove(); bg.remove(); }, 300); if (cb) cb(); }
-        el.onclick = close; bg.onclick = close; document.body.appendChild(bg); document.body.appendChild(el); lcDone = close; sfx('tick'); if (q[1] === 'g' || q[1] === 'b') erTalk(L(q[2] || '') + (big && /[a-z]/i.test(big) && L(q[2] || '').toLowerCase().indexOf(L(big).toLowerCase()) < 0 ? '. ' + L(big) : ''));
+        el.onclick = close; bg.onclick = close; document.body.appendChild(bg); document.body.appendChild(el); lcDone = close; sfx('tick'); if (q[1] === 'g' || q[1] === 'b') erTalk(erJoin(L(q[0] || ''), L(q[2] || '')) + (big && /[a-z]/i.test(big) && L(q[2] || '').toLowerCase().indexOf(L(big).toLowerCase()) < 0 ? '. ' + L(big) : ''));
         if (cb && q[1] !== 'c') { lcAutoT = setTimeout(close, big ? 4000 : 2500); }   // an Eton Rules card square waits until it is tapped
       }
       window.apErSq = function (i) { if (busy || $('er-lc') || $('er-stage') || !RV[i]) return; if (FR[i]) lcFate(i, FR[i], null, true); else lcShow(i, null); };
@@ -23401,4 +23402,4 @@ function deck(el,m,n,x,y,face,gap){clear(el);const cs=[];for(let i=0;i<n;i++){co
   if (document.readyState === 'complete') start(); else window.addEventListener('load', start);
 })();
 </script>
-<script id="ap-build">window.__apBuild="cce847af0b";window.__apVer=163;(function(){var N=window.__apVer;function put(){try{var h=document.querySelector('header.aph-header');if(!h||document.getElementById('ap-ver'))return;var s=document.createElement('span');s.id='ap-ver';s.textContent='v'+N;s.style.cssText='position:absolute;right:10px;bottom:4px;font:600 11px/1 system-ui,sans-serif;color:#c9a84c;opacity:.8;pointer-events:none;letter-spacing:.04em;z-index:2';if(getComputedStyle(h).position==='static')h.style.position='relative';h.appendChild(s)}catch(e){}}put();document.addEventListener('DOMContentLoaded',put);window.addEventListener('load',put);setInterval(put,2000)})();</script>
+<script id="ap-build">window.__apBuild="ca7335d64a";window.__apVer=164;(function(){var N=window.__apVer;function put(){try{var h=document.querySelector('header.aph-header');if(!h||document.getElementById('ap-ver'))return;var s=document.createElement('span');s.id='ap-ver';s.textContent='v'+N;s.style.cssText='position:absolute;right:10px;bottom:4px;font:600 11px/1 system-ui,sans-serif;color:#c9a84c;opacity:.8;pointer-events:none;letter-spacing:.04em;z-index:2';if(getComputedStyle(h).position==='static')h.style.position='relative';h.appendChild(s)}catch(e){}}put();document.addEventListener('DOMContentLoaded',put);window.addEventListener('load',put);setInterval(put,2000)})();</script>
