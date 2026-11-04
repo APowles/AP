@@ -619,7 +619,7 @@ function deck(el,m,n,x,y,face,gap){clear(el);const cs=[];for(let i=0;i<n;i++){co
       var c = ctx(); if (!c) return;
       var g = c.createGain(); g.gain.value = 0; g.connect(c.destination);
       var sr = c.createBufferSource(); sr.buffer = DRV.bufs[k]; sr.loop = true; sr.connect(g); sr.start(0);
-      g.gain.setTargetAtTime(.035 * (CFG.mv || 1), c.currentTime, .6); DRV.src = sr; DRV.g = g; DRV.key = k;
+      g.gain.setTargetAtTime(.07 * (CFG.mv || 1), c.currentTime, .6); DRV.src = sr; DRV.g = g; DRV.key = k;
     } catch (e) { DRV.src = null; }
   }
   function drvStart(k) { DRV.want = k; if (DRV.bufs[k]) drvPlay(); else drvLoad(k); }
