@@ -68913,7 +68913,7 @@ function deck(el,m,n,x,y,face,gap){clear(el);const cs=[];for(let i=0;i<n;i++){co
     stop(); musicStop(); view = 'pick'; bgNow = null; if (ov) ov.removeAttribute('data-dlr'); var p = pool(), r = reasons(p);
     frame('', '<div class="bz-note"><b>' + p.length + ' ' + (HC.noun || 'words') + '</b> ready. ' + esc(dirs()[0] === 'en' ? 'English → ' + H.names[dirs()[1]] : H.names[dirs()[0]] + ' → English') + '. Pick a round: it starts straight away.</div><div class="bz-grid">' + MODES.filter(function (m) { return !H.games || H.games.indexOf(m[0]) > -1; }).map(function (m) { var off = r[m[0]]; return '<button class="bz-m"' + (off ? ' disabled' : '') + ' onclick="apBzStart(\'' + m[0] + '\')"><img alt="" src="' + (BZ[m[0]] || ({ run: 'icons/gm_run.webp', four: 'icons/gm_four.webp' })[m[0]] || 'icons/hx_cards.webp') + '"><b>' + m[1] + '</b><span>' + (off || m[2]) + '</span></button>'; }).join('') + '</div>');
   }
-  window.apBzStart = function (k) { stop(); bgNow = null; view = k; ctx(); sfx('go'); window.__erHold = (k === 'run' && snd) ? 1 : 0; if (k === 'run') { CFG.musRun = 'hymn'; CFG.erSay = 1; } musicStart(true); GAMES[k](pool(/^(catch|lane)$/.test(k))); };   // Catch it and Lane it only pair words up (recognition), so a Recognition word is just an ordinary word there
+  window.apBzStart = function (k) { stop(); bgNow = null; view = k; ctx(); sfx('go'); window.__erHold = (k === 'run' && snd) ? 1 : 0; if (k === 'run') { CFG.musRun = 'hymn'; CFG.erSay = 1; window.__erFresh = 1; } musicStart(true); GAMES[k](pool(/^(catch|lane)$/.test(k))); };   // Catch it and Lane it only pair words up (recognition), so a Recognition word is just an ordinary word there
 
   // ---------- helpers for self-marked card games
   function card(q, a, extra, hl) { var n = String(q || '').length + String(a || '').length, z = n > 130 ? ' bz-xl' : n > 60 ? ' bz-lg' : '', qh = hl ? esc(hl[0]) + '<b class="hl">' + esc(hl[1]) + '</b>' + esc(hl[2]) + '<span class="hln">Translate only the highlighted part</span>' : esc(q); return '<div class="bz-card' + z + '" id="bz-card"><small>' + esc(extra || '') + '</small><div>' + qh + '</div><div class="ans" id="bz-ans" style="visibility:hidden">' + esc(a) + ' ' + SAYBTN(a) + '</div></div>'; }
@@ -70046,7 +70046,7 @@ function deck(el,m,n,x,y,face,gap){clear(el);const cs=[];for(let i=0;i<n;i++){co
   }
 
   GAMES.run = function (p) {
-    try { if (!window.__erPre) { window.__erPre = []; for (var q = 0; q < 8; q++) { var pi = new Image(); pi.src = 'icons/er_p' + q + '.webp'; window.__erPre.push(pi); } } } catch (e) { }
+    try { if (!window.__erPre) { window.__erPre = []; for (var q = 0; q < 8; q++) { var pi = new Image(); pi.src = 'icons/er_p' + q + '.webp'; window.__erPre.push(pi); var ph = new Image(); ph.src = 'icons/er_p' + q + '_hd.webp'; window.__erPre.push(ph); } } } catch (e) { }
     var PCS = [['Red', '#c0392b', '#ff7b6b'], ['Blue', '#1f5fbf', '#7fb2ff'], ['Purple', '#7a3fa0', '#c9a0e8'], ['Green', '#1f8a52', '#5fe3a0'], ['Gold', '#a37b00', '#f6d646'], ['White', '#5b6788', '#e8eaf5'], ['Sky blue', '#2c7bb8', '#9fd0f5'], ['Burgundy', '#8a1f3a', '#e07a96']], picks = [0, 1, 2, 3], picked = {}, pickTurn = 0, SCN = ['#ff2a4d', '#2f7bff', '#b45cff', '#18f0a0', '#ffd400', '#00e5ff', '#38c8ff', '#ff3fd0'];
     function pcN(s) { return PCS[picks[s]][0]; } function pcT(s) { return PCS[picks[s]][1]; } function pcL(s) { return PCS[picks[s]][2]; }
     // [name, kind, effect text, effect]   kind: '' normal, g good, b bad, f finish
@@ -70118,6 +70118,7 @@ function deck(el,m,n,x,y,face,gap){clear(el);const cs=[];for(let i=0;i<n;i++){co
     }
     function frLbl() { return CFG.erFr ? 'Cards in English' : 'Cards in ' + (H.names[target()] || 'French'); }
     function frBtn(cls) { return ERX[target()] ? '<button class="' + cls + ' er-frb" onclick="apErFr()">' + esc(frLbl()) + '</button>' : ''; }
+    try { if (window.__erFresh) { window.__erFresh = 0; CFG.erFr = !!ERX[target()]; } } catch (e) { }   // a new Eton Rules game starts with the cards in the language being practised (French, Italian or Spanish); the button switches back to English
     window.apErFr = function () { CFG.erFr = !CFG.erFr; try { saveCfg(); } catch (e) { } [].forEach.call(document.querySelectorAll('.er-frb'), function (b) { b.textContent = frLbl(); }); try { if (window.__erRefresh) window.__erRefresh(); else if (window.__erRel) window.__erRel(); } catch (e) { } };
     function qOf(c) { var v = hvOf(c); return v.hl ? esc(v.hl[0]) + '<b class="hl">' + esc(v.hl[1]) + '</b>' + esc(v.hl[2]) : esc(c.q); }
     function sz(c) { var L = c.q.length; return L > 120 ? ' fl-xl' : L > 60 ? ' fl-lg' : ''; }
@@ -70160,7 +70161,7 @@ function deck(el,m,n,x,y,face,gap){clear(el);const cs=[];for(let i=0;i<n;i++){co
     var GLB_AVAIL = {};  // GLB model files not deployed; keep empty so 3D path is never attempted
     function flat2DShowcase(i, el) {
       // flat 2D only (3D transforms crashed Prisma on iPads). The Star Trek transporter look is built from moving and fading layers only: no blur, no blend, no big shadows.
-      var im = 'icons/er_p' + i + '.webp', h = '', k;
+      var im = 'icons/er_p' + i + '_hd.webp', h = '', k;
       for (k = 0; k < 8; k++) h += '<i style="--x:' + (14 + k * 10) + '%;--dl:' + ((k * 0.37) % 2.4).toFixed(2) + 's;--du:' + (2 + (k % 3) * 0.5) + 's"></i>';
       el.innerHTML = '<div class="bm2"></div><span class="rg"></span><div class="ro"><img class="ly a0" alt="" src="' + im + '"><div class="sc" style="-webkit-mask-image:url(' + im + ');mask-image:url(' + im + ')"><i></i></div></div><b class="hp h1"></b><b class="hp h2"></b><b class="hp h3"></b><b class="hp h4"></b><b class="hp h5"></b><b class="hp h6"></b><div class="sd">' + h + '</div>';
     }
@@ -70168,7 +70169,7 @@ function deck(el,m,n,x,y,face,gap){clear(el);const cs=[];for(let i=0;i<n;i++){co
     // that keeps the picture on top whenever the figure faces the front. Slow (> 1.5 s), missing WebGL or a failed GLB: the flat 8-plane spin instead.
     var ER_SPIN = 5000, ER_LEAD = 300, ER_WAIT = 8000, ER_LIFE = 6440, ER_FADE = 560;
     function glb3DShowcase(i, el) {
-      el.innerHTML = '<span class="rg"></span><img class="er-face" alt="" src="icons/er_p' + i + '.webp">';
+      el.innerHTML = '<span class="rg"></span><img class="er-face" alt="" src="icons/er_p' + i + '_hd.webp">';
       var face = el.querySelector('.er-face'), st = { dead: false, raf: 0, tm: 0, cv: null, m: null, ts: 0, w: 0, h: 0, dpr: 0 };
       var dbg = window.__erDbg = { fig: i, mode: 'loading', loaded: false, yaw: 0, faceOpacity: 1, canvasOpacity: 0, ms: 0 };
       face.style.opacity = '1';
@@ -71116,4 +71117,4 @@ function deck(el,m,n,x,y,face,gap){clear(el);const cs=[];for(let i=0;i<n;i++){co
   if (document.readyState === 'complete') start(); else window.addEventListener('load', start);
 })();
 </script>
-<script id="ap-build">window.__apBuild="77be455d10";window.__apVer=159;(function(){var N=window.__apVer;function put(){try{var h=document.querySelector('header.aph-header');if(!h||document.getElementById('ap-ver'))return;var s=document.createElement('span');s.id='ap-ver';s.textContent='v'+N;s.style.cssText='position:absolute;right:10px;bottom:4px;font:600 11px/1 system-ui,sans-serif;color:#c9a84c;opacity:.8;pointer-events:none;letter-spacing:.04em;z-index:2';if(getComputedStyle(h).position==='static')h.style.position='relative';h.appendChild(s)}catch(e){}}put();document.addEventListener('DOMContentLoaded',put);window.addEventListener('load',put);setInterval(put,2000)})();</script>
+<script id="ap-build">window.__apBuild="8a138eb173";window.__apVer=160;(function(){var N=window.__apVer;function put(){try{var h=document.querySelector('header.aph-header');if(!h||document.getElementById('ap-ver'))return;var s=document.createElement('span');s.id='ap-ver';s.textContent='v'+N;s.style.cssText='position:absolute;right:10px;bottom:4px;font:600 11px/1 system-ui,sans-serif;color:#c9a84c;opacity:.8;pointer-events:none;letter-spacing:.04em;z-index:2';if(getComputedStyle(h).position==='static')h.style.position='relative';h.appendChild(s)}catch(e){}}put();document.addEventListener('DOMContentLoaded',put);window.addEventListener('load',put);setInterval(put,2000)})();</script>
