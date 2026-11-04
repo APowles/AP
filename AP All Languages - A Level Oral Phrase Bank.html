@@ -11094,10 +11094,10 @@ function deck(el,m,n,x,y,face,gap){clear(el);const cs=[];for(let i=0;i<n;i++){co
   function frame(title, body, back) {
     ov.classList.remove('pt-n', 'pt-g', 'er-full');
     ov.style.backgroundImage = bgNow ? 'linear-gradient(rgba(8,14,32,.66),rgba(8,14,32,.66)),url(pictures/' + bgNow + '.jpg)' : 'url(' + BZ.stage + ')';
-    ov.innerHTML = '<div class="bz-top"><button class="bz-b" onclick="apBzBack()">← Back</button><h1>Gamify it' + (title ? ' <em>· ' + esc(title) + '</em>' : '') + '</h1><button class="bz-b" onclick="apBzSet()">⚙ Settings</button><button class="bz-b' + (snd ? ' on' : '') + '" id="bz-snd" onclick="apBzSnd()">🔊 Sound ' + (snd ? 'on' : 'off') + '</button></div><div class="bz-main">' + body + '</div>';
+    ov.innerHTML = '<div class="bz-top"><button class="bz-b" onclick="apBzBack()">← Back</button><h1>Gamify it' + (title ? ' <em>· ' + esc(title) + '</em>' : '') + '</h1><button class="bz-b" onclick="apBzSet()">⚙ Settings</button><button class="bz-b' + (snd ? ' on' : '') + '" id="bz-snd" onclick="apBzSnd()">🔊 Sound ' + (snd ? 'on' : 'off') + '</button></div><div class="bz-main">' + body + '</div>'; wrongHdr();
   }
   window.apBzSnd = function () { snd = !snd; saveCfg(); sndBtn(); if (!snd) musicStop(); else { ctx(); sfx('ok'); if (view !== 'pick') musicStart(); } if ($('bz-set')) panel(); };
-  window.apBzBack = function () { stop(); try { if (window.__erHoloStop) __erHoloStop(); } catch (e) { } if (view === 'pick') close(); else pickScreen(); };
+  window.apBzBack = function () { if (WRONGS.length && view !== 'pick' && !wrongSkip && !$('bz-again') && !$('bz-wl') && !$('bz-bkq')) { wrongLeaveAsk(); return; } stop(); try { if (window.__erHoloStop) __erHoloStop(); } catch (e) { } if (view === 'pick') close(); else { wrongReset(); pickScreen(); } };
   function close() { stop(); musicStop(); PZ = false; try { if (window.__erHoloStop) __erHoloStop(); } catch (e) { } var sp = $('bz-set'); if (sp) sp.remove(); if (ov) { ov.remove(); ov = null; } document.documentElement.style.overflow = ''; }
   window.apBlitz = function () { try { if (window.__apAudio) __apAudio.prep(DICE_SND); } catch (e) { } try { if (window.__apAudio) __apAudio.prep(CLICK_SND); } catch (e) { } try { if (window.__apAudio) __apAudio.prep(BONUS_SND); } catch (e) { } try { if (window.__apAudio) __apAudio.prep(LIFE_SND); } catch (e) { } try { if (window.__apAudio) __apAudio.prep(BUZZ_SND); } catch (e) { } try { if (window.__apAudio) __apAudio.prep(RIGHT_SND); } catch (e) { } try { if (window.__apAudio) __apAudio.prep(WIN_SND); } catch (e) { } try { if (window.__apAudio) __apAudio.prep(CROWD_SND); } catch (e) { } try { if (window.__apAudio) __apAudio.prep(FAIRY_SND); } catch (e) { } try { if (window.__apAudio) __apAudio.prep(ARCADE_SND); } catch (e) { } try { if (window.__apAudio) __apAudio.prep(OVER_SND); } catch (e) { } try { if (window.__apAudio) __apAudio.prep(WARN_SND); } catch (e) { }
     close(); ov = document.createElement('div'); ov.id = 'bz-ov'; ov.style.backgroundImage = 'url(' + BZ.stage + ')'; document.body.appendChild(ov);
@@ -11142,13 +11142,30 @@ function deck(el,m,n,x,y,face,gap){clear(el);const cs=[];for(let i=0;i<n;i++){co
   }
   // the record of everything got wrong or Nearly in the current round (every game feeds it; the end screen offers it as a list that can be copied)
   var WRONGS = [];
-  function wrongReset() { WRONGS.length = 0; }
+  function wrongReset() { WRONGS.length = 0; wrongHdr(); }
+  var wrongSkip = 0;
+  // a small "Mistakes (N)" button in the header during any game, so the list can be taken away even from a game left early
+  function wrongHdr() {
+    try {
+      var t = ov && ov.querySelector('.bz-top'); if (!t) return; var b = $('bz-wh');
+      if (!WRONGS.length) { if (b) b.remove(); return; }
+      if (!b) { b = document.createElement('button'); b.className = 'bz-b'; b.id = 'bz-wh'; b.onclick = function () { window.apBzWrong(); }; t.insertBefore(b, $('bz-snd') || null); }
+      b.textContent = '📋 Mistakes (' + WRONGS.length + ')';
+    } catch (e) { }
+  }
+  function wrongLeaveAsk() {
+    if (!ov || $('bz-bkq')) return; var d = document.createElement('div'); d.className = 'bz-wl'; d.id = 'bz-bkq';
+    d.innerHTML = '<div class="bz-wl-in" style="justify-content:center;align-items:center;text-align:center"><h2>You have ' + WRONGS.length + (WRONGS.length === 1 ? ' thing' : ' things') + ' to look at</h2><div class="bz-wl-sub">See the list first, so you can copy it before you leave?</div><div class="bz-row"><button class="bz-wbtn" onclick="apBzLeaveSee()">📋 See the list</button><button class="bz-b" onclick="apBzLeave()">Leave anyway</button></div></div>';
+    ov.appendChild(d);
+  }
+  window.apBzLeaveSee = function () { var q = $('bz-bkq'); if (q) q.remove(); window.apBzWrong(); };
+  window.apBzLeave = function () { var q = $('bz-bkq'); if (q) q.remove(); wrongSkip = 1; try { window.apBzBack(); } finally { wrongSkip = 0; } };
   function wPlain(s) { return String(s == null ? '' : s).replace(/<[^>]*>/g, '').replace(/\s+/g, ' ').trim(); }
   function wrongAdd(c, kind) {
     try {
       if (!c) return; var q = wPlain(c.q != null && c.q !== '' ? c.q : c.en), a = wPlain(c.a != null && c.a !== '' ? c.a : (c.tl || c.full)); if (!q && !a) return; kind = kind || 'Wrong';
       for (var i = 0; i < WRONGS.length; i++) if (WRONGS[i].q === q && WRONGS[i].a === a) { if (kind === 'Wrong') WRONGS[i].k = 'Wrong'; WRONGS[i].n++; return; }
-      WRONGS.push({ q: q, a: a, k: kind, n: 1 });
+      WRONGS.push({ q: q, a: a, k: kind, n: 1 }); wrongHdr();
     } catch (e) { }
   }
   function wrongSorted() { return WRONGS.filter(function (x) { return x.k === 'Wrong'; }).concat(WRONGS.filter(function (x) { return x.k !== 'Wrong'; })); }
@@ -13365,4 +13382,4 @@ function deck(el,m,n,x,y,face,gap){clear(el);const cs=[];for(let i=0;i<n;i++){co
   if (document.readyState === 'complete') start(); else window.addEventListener('load', start);
 })();
 </script>
-<script id="ap-build">window.__apBuild="e7091223ae";window.__apVer=167;(function(){var N=window.__apVer;function put(){try{var h=document.querySelector('header.aph-header');if(!h||document.getElementById('ap-ver'))return;var s=document.createElement('span');s.id='ap-ver';s.textContent='v'+N;s.style.cssText='position:absolute;right:10px;bottom:4px;font:600 11px/1 system-ui,sans-serif;color:#c9a84c;opacity:.8;pointer-events:none;letter-spacing:.04em;z-index:2';if(getComputedStyle(h).position==='static')h.style.position='relative';h.appendChild(s)}catch(e){}}put();document.addEventListener('DOMContentLoaded',put);window.addEventListener('load',put);setInterval(put,2000)})();</script>
+<script id="ap-build">window.__apBuild="21f6adbb44";window.__apVer=168;(function(){var N=window.__apVer;function put(){try{var h=document.querySelector('header.aph-header');if(!h||document.getElementById('ap-ver'))return;var s=document.createElement('span');s.id='ap-ver';s.textContent='v'+N;s.style.cssText='position:absolute;right:10px;bottom:4px;font:600 11px/1 system-ui,sans-serif;color:#c9a84c;opacity:.8;pointer-events:none;letter-spacing:.04em;z-index:2';if(getComputedStyle(h).position==='static')h.style.position='relative';h.appendChild(s)}catch(e){}}put();document.addEventListener('DOMContentLoaded',put);window.addEventListener('load',put);setInterval(put,2000)})();</script>
