@@ -879,6 +879,7 @@ body{min-height:100vh}
 .rl-tl{font:500 clamp(1.08rem,.9rem + .5vw,1.4rem)/1.5 var(--aph-body);color:var(--text);overflow-wrap:break-word}
 .rl-en{display:none;font-size:clamp(.9375rem,.85rem + .3vw,1.125rem);line-height:1.45;color:var(--text2);font-style:italic;margin-top:3px}
 .rl-show-en .rl-en{display:block}
+.rl-set{display:flex;gap:8px;flex-wrap:wrap;margin:0 0 12px}.rl-set .aph-btn.on{background:var(--navy);color:var(--gold2);border-color:var(--gold)}
 .rl-en-only .rl-tl,.rl-en-only .rl-q{display:none}
 .rl-en-only .rl-en{display:block;font:500 clamp(1.08rem,.9rem + .5vw,1.4rem)/1.5 var(--aph-body);font-style:normal;color:var(--text);margin-top:0}
 .rl-en-only .rl-q-en{font-weight:700;color:var(--navy);font-size:clamp(1.1rem,.95rem + .5vw,1.35rem)}
@@ -2499,7 +2500,7 @@ function aphBack() {
 }
 
 /* ===== END AP HOUSE STYLE helpers ===== */
-try { aphBackInit(document.getElementById('drillContainer'), '.intro-card', { up: function () { amToHub(); }, hide: function () { return (typeof amHub !== 'undefined' && amHub) || !!document.querySelector('#drillContainer .intro-card'); } }); } catch (e) {}
+try { aphBackInit(document.getElementById('drillContainer'), '.intro-card', { up: function () { amToHub(); }, hide: function () { if (window.__amRlReturn && amSet === 'ps' && document.querySelector('#drillContainer .intro-card')) return false; return (typeof amHub !== 'undefined' && amHub) || !!document.querySelector('#drillContainer .intro-card'); } }); } catch (e) {}
 aphWatchHome(document.getElementById('drillContainer'), '.aph-no-home');
 </script>
 <style id="apmp-style">
@@ -5469,6 +5470,7 @@ function populateSubsectionSelect() {
 
 var amHub = true;   // true = show the 'What would you like to practise?' mode cards
 function amToHub() {
+  window.__amRlReturn = null;
   amHub = true; clearAMTestOutput(); if (typeof rlStop === 'function') rlStop(); window.scrollTo(0, 0); renderIntro();
 }
 function amOpenMode(k) { amHub = false; amSwitchSet(k); window.scrollTo(0, 0); }
@@ -7415,10 +7417,38 @@ function amMatchPS(section, q) {
   });
   return bs >= 0.5 ? best.subsection_en : null;
 }
+// switch between the Approved Material and its Practice Sentences without leaving Read & listen: the same topics (matched by title), straight into the right view
+function amCounterpart(D, section, q) {
+  var best = null, bs = 0;
+  D.forEach(function (d) {
+    if (d.section_en !== section) return;
+    var s = normTopic(d.subsection_en).toLowerCase() === normTopic(q).toLowerCase() ? 2 : amTitleSim(q, d.subsection_en);
+    if (s > bs) { bs = s; best = d; }
+  });
+  return bs >= 0.5 ? best.subsection_en : null;
+}
+function rlSwapSet(k) {
+  if (k === amSet) return;
+  var L = _rl.lang, pairs = _rl.topics.map(function (t) { return [t.section_en, t.subsection_en]; });
+  rlStop(); window.__amRlReturn = null;
+  amSwitchSet(k);
+  var D = DATA(), out = [];
+  pairs.forEach(function (p) { var hit = amCounterpart(D, p[0], p[1]); if (hit && out.indexOf(hit) < 0) out.push(hit); });
+  if (!out.length) { renderIntro(); return; }
+  if (L && L !== 'en') { fromLang = 'en'; toLang = L; try { amFixLangs(); mixNormalise(); } catch (e) {} }
+  currentSection = '__MULTI__'; currentSubsection = 'all'; amMultiTopics = out;
+  startReadListen();
+}
+function rlChangeTopics() { rlStop(); renderIntro(); window.scrollTo(0, 0); }
+window.aphBackHook = function () {   // one step back from the Practice Sentences set-up (reached from Read & listen) = the Approved Material Read & listen you came from
+  if (window.__amRlReturn && amSet === 'ps' && document.querySelector('#drillContainer .intro-card')) { window.__amRlReturn = null; amSwitchSet('am'); startReadListen(); return true; }
+  return false;
+};
 function amTestYourself(ti) {
   var t = _rl.topics[ti]; if (!t) return;
   var sub = amMatchPS(t.section_en, t.subsection_en) || 'all';
   amLinkNote = { section: t.section_en, sub: sub, q: t.subsection_en };
+  window.__amRlReturn = true;   // Back from the Practice Sentences set-up returns to this Read & listen
   amSwitchSet('ps', { section: t.section_en, sub: sub });
   window.scrollTo(0, 0);
 }
@@ -7458,7 +7488,7 @@ function startReadListen() {
   if (timerInterval) clearInterval(timerInterval);
   isLeisureMode = false;
   _rl.topics = topics; _rl.lang = rlLang(); _rl.cur = -1;
-  _rl.showEn = false; _rl.enOnly = false; _rl.listen = 'tl'; _rl.prev = null;   // every time Read & listen opens: the language being studied only, heard in that language
+  _rl.enOnly = (amSet === 'ps'); _rl.showEn = _rl.enOnly; _rl.listen = 'tl'; _rl.prev = null;   // Approved Material: see and hear the language studied; Practice Sentences (testing yourself): see the English only, hear the language studied   // every time Read & listen opens: the language being studied only, heard in that language
   _rl.list = [];
   topics.forEach(function (t, ti) { (t['phrases_' + _rl.lang] || []).forEach(function (s, bi) { _rl.list.push({ ti: ti, bi: bi, text: s, en: (t['phrases_en_' + _rl.lang] || t.phrases_en || [])[bi] || '' }); }); });
   renderReadListen();
@@ -7482,7 +7512,7 @@ function renderReadListen() {
       + '<button type="button" class="rl-say" onclick="rlSayQ(' + ti + ')" aria-label="Listen to the question" title="Listen to the question">&#128266;</button></div>'
       + '<div class="rl-q-en" lang="en">' + amEsc(t['subsection_en_' + L] || t.subsection_en) + '</div>'
       + '<ol class="rl-list">' + items + '</ol>'
-      + '<button type="button" class="aph-btn aph-btn-block rl-test" onclick="amTestYourself(' + ti + ')">&#9997;&#65039; Test yourself on the practice sentences</button>'
+      + (amSet === 'am' ? '<button type="button" class="aph-btn aph-btn-block rl-test" onclick="rlSwapSet(\'ps\')">&#9997;&#65039; Test yourself on the practice sentences</button>' : '<button type="button" class="aph-btn aph-btn-block rl-test" onclick="rlSwapSet(\'am\')">&#128214; Back to the Approved Material</button>')
       + '</section>';
   }).join('');
   document.getElementById('drillContainer').innerHTML =
@@ -7493,22 +7523,28 @@ function renderReadListen() {
     + '<button type="button" class="aph-dbar-btn rl-main" id="rl-play" onclick="rlPlayPause()">&#9654; Play all</button>'
     + '<button type="button" class="aph-dbar-btn" onclick="rlGo(_rl.cur - 1)" aria-label="Previous sentence" title="Previous sentence">&#9198;</button>'
     + '<button type="button" class="aph-dbar-btn" onclick="rlGo(_rl.cur + 1)" aria-label="Next sentence" title="Next sentence">&#9197;</button>'
-    + '<span class="rl-lis" role="group" aria-label="Hear it in"><span class="rl-lis-l">&#128266; Hear it in</span>'
+    + '<span class="rl-lis" role="group" aria-label="What you see"><span class="rl-lis-l">&#128065; You see</span>'
+    + '<button type="button" class="aph-dbar-btn' + (!_rl.showEn && !_rl.enOnly ? ' on' : '') + '" id="rl-see-tl" onclick="rlSetSee(\'tl\')" aria-pressed="' + (!_rl.showEn && !_rl.enOnly) + '">' + flags[L] + ' ' + AM_LANG_NAMES[L] + '</button>'
+    + '<button type="button" class="aph-dbar-btn' + (_rl.showEn && !_rl.enOnly ? ' on' : '') + '" id="rl-see-both" onclick="rlSetSee(\'both\')" aria-pressed="' + (_rl.showEn && !_rl.enOnly) + '">' + flags[L] + ' + ' + flags.en + ' Both</button>'
+    + '<button type="button" class="aph-dbar-btn' + (_rl.enOnly ? ' on' : '') + '" id="rl-see-en" onclick="rlSetSee(\'en\')" aria-pressed="' + _rl.enOnly + '">' + flags.en + ' English</button></span>'
+    + '<span class="rl-lis" role="group" aria-label="What you hear"><span class="rl-lis-l">&#128266; You hear</span>'
     + '<button type="button" class="aph-dbar-btn' + (_rl.listen === 'tl' ? ' on' : '') + '" id="rl-lis-tl" onclick="rlSetListen(\'tl\')" aria-pressed="' + (_rl.listen === 'tl') + '">' + flags[L] + ' ' + AM_LANG_NAMES[L] + '</button>'
     + '<button type="button" class="aph-dbar-btn' + (_rl.listen === 'en' ? ' on' : '') + '" id="rl-lis-en" onclick="rlSetListen(\'en\')" aria-pressed="' + (_rl.listen === 'en') + '">' + flags.en + ' English</button></span>'
-    + '<button type="button" class="aph-dbar-btn' + (_rl.showEn ? ' on' : '') + '" id="rl-en-btn" onclick="rlToggleEn()" aria-pressed="' + _rl.showEn + '">' + flags.en + ' Show English</button>'
-    + '<button type="button" class="aph-dbar-btn' + (_rl.enOnly ? ' on' : '') + '" id="rl-eo-btn" onclick="rlEnOnly()" aria-pressed="' + _rl.enOnly + '" title="Show only the English and hear only the English">' + flags.en + ' English only</button>'
     + '</span></div>'
     + '<div class="aph-progress"><div id="rl-prog" style="width:0%"></div></div>'
     + '<div class="rl-wrap' + (_rl.showEn ? ' rl-show-en' : '') + (_rl.enOnly ? ' rl-en-only' : '') + '" id="rl-wrap">'
-    + '<div class="rl-head"><h2 class="aph-h">&#128214; Read &amp; listen</h2>'
+    + '<div class="rl-head"><div class="rl-set" role="group" aria-label="Which set to read and hear">'
+    + '<button type="button" class="aph-btn aph-btn-sm' + (amSet === 'am' ? ' on' : '') + '" onclick="rlSwapSet(\'am\')" aria-pressed="' + (amSet === 'am') + '">&#128214; Approved Material</button>'
+    + '<button type="button" class="aph-btn aph-btn-sm' + (amSet === 'ps' ? ' on' : '') + '" onclick="rlSwapSet(\'ps\')" aria-pressed="' + (amSet === 'ps') + '">&#9997;&#65039; Practice Sentences</button>'
+    + '<button type="button" class="aph-btn aph-btn-sm" onclick="rlChangeTopics()">&#128218; Change topics</button></div>'
+    + '<h2 class="aph-h">&#128214; Read &amp; listen</h2>'
     + '<p class="am-sub">' + amEsc(label) + ' &middot; ' + nT + ' question' + (nT === 1 ? '' : 's') + ' &middot; ' + nB + ' sentences &middot; ' + flags[L] + ' ' + AM_LANG_NAMES[L] + '</p>'
     + '<div class="lz-panel rl-panel"><div class="lz-pace"><span class="lz-pace-l">Thinking time · seconds</span>'
     + '<button class="aph-step" onclick="rlPace(-1)" aria-label="Shorter gap between sentences" title="Shorter gap">&#8722;</button>'
     + '<span class="aph-step-val" id="rl-pace-v">' + _lzPaceSecs + 's</span>'
     + '<button class="aph-step" onclick="rlPace(1)" aria-label="Longer gap between sentences" title="Longer gap">+</button>'
     + '<button class="aph-btn aph-btn-sm" onclick="rlPrint()">&#128424; Print / PDF</button></div>'
-    + '<div class="lz-hint">▶ Play all reads one sentence at a time, then waits the Pace gap so you can repeat it. Tap a sentence to hear just that one. Use <b>Hear it in</b> to listen in English instead.</div></div></div>'
+    + '<div class="lz-hint">▶ Play all reads one sentence at a time, then waits the Pace gap so you can repeat it. Tap a sentence to hear just that one. Use <b>You see</b> and <b>You hear</b> at the top to change what is shown and what is read aloud.</div></div></div>'
     + body
     + '<div class="aph-keys rl-keys"><span><span class="aph-key">Space</span>play / pause</span><span><span class="aph-key">&#8592;</span><span class="aph-key">&#8594;</span>previous / next sentence</span></div>'
     + '</div>';
@@ -7563,12 +7599,17 @@ function rlSayQ(ti) { var t = _rl.topics[ti]; if (!t) return; if (_rl.playing) {
 // 🔊 Hear it in: 🇫🇷/🇮🇹/🇪🇸 (the language being studied) or 🇬🇧 English. Switching while Play all is running carries on from the same sentence in the new language.
 function rlSetListen(m) {
   m = m === 'en' ? 'en' : 'tl';
-  if (m === 'tl' && _rl.enOnly) rlEnOnlyOff(true);   // choosing to hear the studied language ends English only
   if (_rl.listen === m) return;
   _rl.listen = m;
   [['rl-lis-tl', 'tl'], ['rl-lis-en', 'en']].forEach(function (p) { var b = document.getElementById(p[0]); if (b) { b.classList.toggle('on', _rl.listen === p[1]); b.setAttribute('aria-pressed', _rl.listen === p[1]); } });
   try { window.speechSynthesis && window.speechSynthesis.cancel(); } catch (e) {}
   if (_rl.playing && !_rl.paused && _rl.cur >= 0) rlStep(_rl.cur);
+}
+// 👁 You see: the language being studied only, both together, or English only. Independent of what you hear.
+function rlSetSee(m) {
+  _rl.enOnly = (m === 'en'); _rl.showEn = (m === 'both' || m === 'en'); _rl.prev = null;
+  var w = document.getElementById('rl-wrap'); if (w) { w.classList.toggle('rl-en-only', _rl.enOnly); w.classList.toggle('rl-show-en', _rl.showEn); }
+  [['rl-see-tl', 'tl'], ['rl-see-both', 'both'], ['rl-see-en', 'en']].forEach(function (p) { var b = document.getElementById(p[0]); if (b) { b.classList.toggle('on', m === p[1]); b.setAttribute('aria-pressed', m === p[1]); } });
 }
 // 🇬🇧 English only: show ONLY the English and hear ONLY the English; pressing it again puts back what was set before.
 function rlEnOnlyView() {
@@ -15900,4 +15941,4 @@ function deck(el,m,n,x,y,face,gap){clear(el);const cs=[];for(let i=0;i<n;i++){co
   if (document.readyState === 'complete') start(); else window.addEventListener('load', start);
 })();
 </script>
-<script id="ap-build">window.__apBuild="db4bb003f5";window.__apVer=173;(function(){var N=window.__apVer;function put(){try{var h=document.querySelector('header.aph-header');if(!h||document.getElementById('ap-ver'))return;var s=document.createElement('span');s.id='ap-ver';s.textContent='v'+N;s.style.cssText='position:absolute;right:10px;bottom:4px;font:600 11px/1 system-ui,sans-serif;color:#c9a84c;opacity:.8;pointer-events:none;letter-spacing:.04em;z-index:2';if(getComputedStyle(h).position==='static')h.style.position='relative';h.appendChild(s)}catch(e){}}put();document.addEventListener('DOMContentLoaded',put);window.addEventListener('load',put);setInterval(put,2000)})();</script>
+<script id="ap-build">window.__apBuild="51e0c4be0a";window.__apVer=174;(function(){var N=window.__apVer;function put(){try{var h=document.querySelector('header.aph-header');if(!h||document.getElementById('ap-ver'))return;var s=document.createElement('span');s.id='ap-ver';s.textContent='v'+N;s.style.cssText='position:absolute;right:10px;bottom:4px;font:600 11px/1 system-ui,sans-serif;color:#c9a84c;opacity:.8;pointer-events:none;letter-spacing:.04em;z-index:2';if(getComputedStyle(h).position==='static')h.style.position='relative';h.appendChild(s)}catch(e){}}put();document.addEventListener('DOMContentLoaded',put);window.addEventListener('load',put);setInterval(put,2000)})();</script>
