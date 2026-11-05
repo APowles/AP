@@ -15496,10 +15496,11 @@ function go(v,sub,k){
   if(v==='home')S.ret=null;
   if(v!=='cards'&&typeof fcStop==='function')fcStop();
   if(v!=='machine')mcFs(false);
-  S.view=v;if(sub!=null)S.sub=sub;if(k!=null){S.k=k;S.stage='o';S.ovm='tell';S.step=0;S.mode='deck';S.trail=[];S.drill='recall';S.uq=0;initDrills()}
+  S.view=v;if(sub!=null)S.sub=sub;if(k!=null){S.k=k;S.stage='o';S.ovm='read';S.step=0;S.mode='deck';S.trail=[];S.drill='recall';S.uq=0;initDrills()}
   if(v==='sub')S.story=1;
   render();window.scrollTo(0,0);
   if(v==='sub')svAuto(0);
+  if(v==='ktr'&&k!=null){try{ktrIntro(ktr())}catch(e){}}
 }
 function crumb(){
   let c='';
@@ -17621,6 +17622,23 @@ function ovStory(k,hideQ){
   }
   return `<div class="ov">${hideQ?'':`<div class="ov-ql">Question:</div><div class="ov-q">${k.hook?LN(k.hook):''}</div>`}<div class="ov-l">Say each part in French, then tap it to check. Press <b>Continue the story</b> for the next part. Switch <b>English gist</b> off for a harder go.</div><div class="ov-ctl"><button class="btn" onclick="ovShowAll()">🇫🇷 Show all French</button><button class="btn" onclick="ovStart()">↺ Start again</button><button class="btn" onclick="ovEn(${!OVEN})">🇬🇧 English gist: ${OVEN?'On':'Off'}</button></div>${cards}${ans}${c<tot?`<div class="ov-ctl" style="margin-top:12px"><button class="btn pri ov-go" onclick="ovContinue()">▶ Continue the story</button></div>`:''}</div>`;
 }
+/* Gentle exposure: full-screen picture, fades to watercolour, the hook question holds for 2 s, then morphs into the page (once per KTR per visit) */
+function ktrIntro(k){
+  const I=(typeof ILLUS!=='undefined')&&ILLUS[k.n];if(!I||!k.hook)return;
+  window.__introSeen=window.__introSeen||{};if(window.__introSeen[k.n])return;window.__introSeen[k.n]=1;
+  const old=document.getElementById('ktr-intro');if(old)old.remove();
+  if(!document.getElementById('ktr-intro-css')){const st=document.createElement('style');st.id='ktr-intro-css';st.textContent='#ktr-intro{position:fixed;inset:0;z-index:20000;background:#f4efe3;opacity:1;transition:opacity 1s ease;cursor:pointer;overflow:hidden}#ktr-intro.out{opacity:0}#ktr-intro .im{position:absolute;inset:0;background-size:cover;background-position:center;transition:filter 1.6s ease,opacity 1.6s ease,transform 6s ease;transform:scale(1.04)}#ktr-intro.go .im{transform:scale(1)}#ktr-intro .wc{filter:blur(3px) saturate(.55) contrast(.85) brightness(1.12) sepia(.18);opacity:0}#ktr-intro.wash .wc{opacity:1}#ktr-intro.wash .im.pic{opacity:0}#ktr-intro .vl{position:absolute;inset:0;background:radial-gradient(ellipse at center,rgba(250,246,234,.78),rgba(244,239,227,.55));opacity:0;transition:opacity 1.2s ease}#ktr-intro.q .vl{opacity:1}#ktr-intro .qt{position:absolute;left:50%;top:50%;transform:translate(-50%,-46%);width:min(900px,86vw);text-align:center;opacity:0;transition:opacity .9s ease,transform .9s ease;font:700 clamp(24px,4vw,44px)/1.3 Georgia,serif;color:#14284b}#ktr-intro.q .qt{opacity:1;transform:translate(-50%,-50%)}#ktr-intro .qt small{display:block;margin-top:14px;font:italic 500 clamp(15px,2vw,22px)/1.4 system-ui,sans-serif;color:#5d6578}#ktr-intro .sk{position:absolute;right:18px;bottom:16px;font:700 14px system-ui,sans-serif;color:#fff;background:rgba(20,40,75,.7);border-radius:16px;padding:6px 14px}';document.head.appendChild(st)}
+  const o=document.createElement('div');o.id='ktr-intro';
+  o.innerHTML='<div class="im pic" style="background-image:url('+I.src+')"></div><div class="im wc" style="background-image:url('+I.src+')"></div><div class="vl"></div><div class="qt">'+esc(k.hook.fr||'')+(k.hook.en?'<small>'+esc(k.hook.en)+'</small>':'')+'</div><span class="sk">Skip ›</span>';
+  document.body.appendChild(o);
+  let done=false;const T=[];
+  const end=()=>{if(done)return;done=true;T.forEach(clearTimeout);o.classList.add('out');setTimeout(()=>o.remove(),1100)};
+  o.onclick=end;
+  requestAnimationFrame(()=>requestAnimationFrame(()=>o.classList.add('go')));
+  T.push(setTimeout(()=>o.classList.add('wash'),2800));
+  T.push(setTimeout(()=>o.classList.add('q'),4600));
+  T.push(setTimeout(end,4600+900+2000));
+}
 function ovSet(m){S.ovm=m;render()}
 function ovNext(){const k=ktr(),a=ovState('s',k.n,k.picture.length),i=a.findIndex(v=>!v);if(i>=0){a[i]=1;render()}}
 function ovAll(on){const k=ktr(),a=ovState('s',k.n,k.picture.length);k.picture.forEach((b,i)=>{a[i]=on?((b.cl&&b.cl.fr)||b.g?2:1):0});render()}
@@ -17657,7 +17675,7 @@ function ovoView(k){
 function sOv(k){
   mark(k.n,'o');
   const m=S.ovm||'tell',bs=k.picture||[];
-  const tabs=[['tell','Tell the story'],['read','Read & listen'],['order','Put in order']].map(t=>`<button class="tg${m===t[0]?' on':''}" onclick="ovSet('${t[0]}')">${t[1]}</button>`).join('');
+  const tabs=[['read','Read & listen'],['tell','Tell the story'],['order','Put in order']].map(t=>`<button class="tg${m===t[0]?' on':''}" onclick="ovSet('${t[0]}')">${t[1]}</button>`).join('');
   const o=ovoSt(k);
   const story=m==='tell'&&bs.length>0&&bs.every(x=>x.g);const act=m==='tell'?(story?'':`<button class="btn" onclick="ovNext()">▶ Next part</button><button class="btn" onclick="ovAll(true)">👁 Reveal all</button><button class="btn" onclick="ovAll(false)">🙈 Hide all</button>`)
     :m==='order'?(o.round==='gaps'?`<button class="btn" onclick="ovgReset()">↺ Start again</button>`:`<button class="btn" onclick="ovoShuffle()">🔀 Shuffle</button>`):'';
@@ -24095,4 +24113,4 @@ function deck(el,m,n,x,y,face,gap){clear(el);const cs=[];for(let i=0;i<n;i++){co
   if (document.readyState === 'complete') start(); else window.addEventListener('load', start);
 })();
 </script>
-<script id="ap-build">window.__apBuild="3a2f1fab5c";window.__apVer=288;(function(){var N=window.__apVer;function put(){try{var h=document.querySelector('header.aph-header');if(!h||document.getElementById('ap-ver'))return;var s=document.createElement('span');s.id='ap-ver';s.textContent='v'+N;s.style.cssText='position:absolute;right:10px;bottom:4px;font:600 11px/1 system-ui,sans-serif;color:#c9a84c;opacity:.8;pointer-events:none;letter-spacing:.04em;z-index:2';if(getComputedStyle(h).position==='static')h.style.position='relative';h.appendChild(s)}catch(e){}}put();document.addEventListener('DOMContentLoaded',put);window.addEventListener('load',put);setInterval(put,2000)})();</script>
+<script id="ap-build">window.__apBuild="53926e911b";window.__apVer=289;(function(){var N=window.__apVer;function put(){try{var h=document.querySelector('header.aph-header');if(!h||document.getElementById('ap-ver'))return;var s=document.createElement('span');s.id='ap-ver';s.textContent='v'+N;s.style.cssText='position:absolute;right:10px;bottom:4px;font:600 11px/1 system-ui,sans-serif;color:#c9a84c;opacity:.8;pointer-events:none;letter-spacing:.04em;z-index:2';if(getComputedStyle(h).position==='static')h.style.position='relative';h.appendChild(s)}catch(e){}}put();document.addEventListener('DOMContentLoaded',put);window.addEventListener('load',put);setInterval(put,2000)})();</script>
