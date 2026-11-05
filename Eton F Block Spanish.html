@@ -3862,7 +3862,7 @@ function buildPool() {
 
   // Add infinitive cards if selected — always show ALL verbs (regularity doesn't apply to infinitives)
   let infCards = [];
-  if (selectedTenses.has('INFINITIVE')) infCards = spInfDrillCards();
+  if (selectedTenses.has('INFINITIVE') && mode !== 'full') infCards = spInfDrillCards();   // an infinitive has no six persons, so Full (6 forms) never asks one
 
   if (mode === 'full') return [...verbPool, ...infCards];
   const personFilter = _personFilter;
@@ -7379,7 +7379,7 @@ function hmOpen(door) {
   renderIntro();
 }
 function hmLand() { goHub(); }
-function hmMode(m) { if (m === 'sentences' && selectedTenses.size === 1 && selectedTenses.has('INFINITIVE') && HMC.curSet() !== HMC.sets[2][0]) selectedTenses = new Set(['PRESENT']); introSetMode(m); }
+function hmMode(m) { if (m === 'full' && selectedTenses.size === 1 && selectedTenses.has('INFINITIVE')) selectedTenses = new Set(['PRESENT']); if (m === 'sentences' && selectedTenses.size === 1 && selectedTenses.has('INFINITIVE') && HMC.curSet() !== HMC.sets[2][0]) selectedTenses = new Set(['PRESENT']); introSetMode(m); }
 function hmToggle(k) { if (k === 'vlist') hmVList = !hmVList; else if (k === 'more') hmMore = !hmMore; else if (k === 'tenses') hmTenseMore = !hmTenseMore; renderIntro(); }
 function hmTest() { HMC.test(); }
 function hmPaperSpot() { HMC.paperSpot(); }
@@ -8075,7 +8075,7 @@ textarea.ms-in.ms-in-big{min-height:8.5rem;font-size:1.4rem;margin:6px 0}
   var TNAME = { PRESENT: 'Present', PRETERITE: 'Preterite', IMPERFECT: 'Imperfect', PERFECT: 'Perfect', FUTURE: 'Future', COND: 'Conditional', PRESENT_SUBJ: 'Pres. Subj.', IMP_SUBJ: 'Imp. Subj.', INFINITIVE: 'Infinitives', SET: 'Set structure' };
   function msIsMy() { return msMy && apHome === 'setup'; }
   function verbsChosen() { return msMy || (msDoor === 'core' ? (hmTrialOn() || msCore.size > 0) : msDoor === 'all' ? msSetPick : false); }
-  function tensesOK() { return mode === 'inf' || selectedTenses.size > 0; }
+  function tensesOK() { return mode === 'inf' || Array.from(selectedTenses).some(function (t) { return !(mode === 'full' && t === 'INFINITIVE'); }); }   // Full (6 forms) has no infinitive cards, so an Infinitives-only choice does not count there
   function kindKey(m) { for (var i = 0; i < KINDS.length; i++) if (KINDS[i][0] === m) return KINDS[i][3]; return 's'; }
 
   // ---- personalised set: keys, lookup
@@ -8277,6 +8277,13 @@ textarea.ms-in.ms-in-big{min-height:8.5rem;font-size:1.4rem;margin:6px 0}
     ['ms-leis', 'leis', 'Leisure Mode', 'Listening: press play and let it wash over you or multitask.', 'startLeisureMode()'],
     ['ms-test', 'test', 'Test', 'Short boxed questions on the iPad with Apple Pencil, or on paper. You mark it yourself.', 'msSpot()']
   ];
+  function msTenseRow(ts) {   // the tense chips; under Full (6 forms) the Infinitives chip is dimmed, because an infinitive has no six persons
+    var full = mode === 'full', pool = ts.filter(function (t) { return !(full && t.k === 'INFINITIVE'); });
+    return chip(pool.every(function (t) { return selectedTenses.has(t.k); }), 'selectAllTenses()', 'All') + ts.map(function (t) {
+      if (full && t.k === 'INFINITIVE') return chip(false, 'return false', t.l, ' disabled aria-disabled="true" style="opacity:.35;cursor:not-allowed;text-decoration:line-through"');
+      return chip(selectedTenses.has(t.k), "msTense('" + t.k + "')", t.l);
+    }).join('') + '</div>' + (full && ts.some(function (t) { return t.k === 'INFINITIVE'; }) ? '<div class="hm-note">Infinitives are greyed out here: Full (6 forms) asks for the six persons, and an infinitive has none.</div>' : '');
+  }
   function chip(on, oc, label, extra) { return '<button class="aph-chip' + (on ? ' on' : '') + '"' + (extra || '') + ' onclick="' + oc + '">' + label + '</button>'; }
 
   function selText() {
@@ -8286,7 +8293,7 @@ textarea.ms-in.ms-in-big{min-height:8.5rem;font-size:1.4rem;margin:6px 0}
     else {
       if (msDoor === 'core') parts.push(hmTrialOn() ? TR_NAME[trSet] + (mode === 'exer' ? (xqRuleOn() ? ' · as in Trials' : ' · any verb, any exercise') : '') : (msCore.size === 4 ? 'all 100 Core Verbs' : GRP.filter(function (g) { return msCore.has(g[0]); }).map(function (g) { return g[1]; }).join(' + ')));
       else parts.push(SETS.filter(function (s) { return s[0] === verbSetFilter; }).map(function (s) { return s[1]; })[0] || '');
-      if (mode !== 'inf') parts.push(HMC.tenses.map(function (t) { return t[0]; }).filter(function (k) { return selectedTenses.has(k); }).map(function (k) { return HMC.tn[k] || k; }).join(', '));
+      if (mode !== 'inf') parts.push(HMC.tenses.map(function (t) { return t[0]; }).filter(function (k) { return selectedTenses.has(k) && !(mode === 'full' && k === 'INFINITIVE'); }).map(function (k) { return HMC.tn[k] || k; }).join(', '));
     }
     return parts.filter(Boolean).join(' · ');
   }
@@ -8329,7 +8336,7 @@ textarea.ms-in.ms-in-big{min-height:8.5rem;font-size:1.4rem;margin:6px 0}
           if (mode === 'inf') h += '<div class="hm-note">Infinitives only: you see the English and give the ' + HMC.lang + ' infinitive, so tenses are not needed.</div>';
           else {
             var ts = HMC.tenses.map(function (t, i) { return { k: t[0], l: (i < HMC.steps ? (i + 1) + '. ' : '') + t[1] }; });
-            h += '<div class="aph-row">' + chip(ts.every(function (t) { return selectedTenses.has(t.k); }), 'selectAllTenses()', 'All') + ts.map(function (t) { return chip(selectedTenses.has(t.k), "msTense('" + t.k + "')", t.l); }).join('') + '</div>';
+            h += '<div class="aph-row">' + msTenseRow(ts);
           }
         } else {
           h += '<div class="aph-label">Which Trials set</div><div class="hm-trgrid">' + Object.keys(TR_NAME).map(function (k) { return '<button class="hm-trbtn' + (trSet === k ? ' on' : '') + '" onclick="msTrial(\'' + k + '\')">' + (trSet === k ? '&#10003; ' : '') + TR_NAME[k] + '</button>'; }).join('') + '</div>'
@@ -8362,7 +8369,7 @@ textarea.ms-in.ms-in-big{min-height:8.5rem;font-size:1.4rem;margin:6px 0}
       if (mode === 'inf') h += '<div class="hm-note">Infinitives only: you see the English and give the ' + HMC.lang + ' infinitive, so tenses are not needed.</div>';
       else {
         var ta = HMC.tenses.map(function (t) { return { k: t[0], l: t[1] }; });
-        h += '<div class="aph-row">' + chip(ta.every(function (t) { return selectedTenses.has(t.k); }), 'selectAllTenses()', 'All') + ta.map(function (t) { return chip(selectedTenses.has(t.k), "msTense('" + t.k + "')", t.l); }).join('') + '</div>';
+        h += '<div class="aph-row">' + msTenseRow(ta);
       }
     }
     h += '<div class="ms-or">' + (my ? 'You are practising your own tricky cards.' : 'Or practise your own tricky cards:') + '</div>' + myBox(my);
@@ -28239,4 +28246,4 @@ function deck(el,m,n,x,y,face,gap){clear(el);const cs=[];for(let i=0;i<n;i++){co
   if (document.readyState === 'complete') start(); else window.addEventListener('load', start);
 })();
 </script>
-<script id="ap-build">window.__apBuild="733812f16b";window.__apVer=172;(function(){var N=window.__apVer;function put(){try{var h=document.querySelector('header.aph-header');if(!h||document.getElementById('ap-ver'))return;var s=document.createElement('span');s.id='ap-ver';s.textContent='v'+N;s.style.cssText='position:absolute;right:10px;bottom:4px;font:600 11px/1 system-ui,sans-serif;color:#c9a84c;opacity:.8;pointer-events:none;letter-spacing:.04em;z-index:2';if(getComputedStyle(h).position==='static')h.style.position='relative';h.appendChild(s)}catch(e){}}put();document.addEventListener('DOMContentLoaded',put);window.addEventListener('load',put);setInterval(put,2000)})();</script>
+<script id="ap-build">window.__apBuild="e3e1ca8e44";window.__apVer=173;(function(){var N=window.__apVer;function put(){try{var h=document.querySelector('header.aph-header');if(!h||document.getElementById('ap-ver'))return;var s=document.createElement('span');s.id='ap-ver';s.textContent='v'+N;s.style.cssText='position:absolute;right:10px;bottom:4px;font:600 11px/1 system-ui,sans-serif;color:#c9a84c;opacity:.8;pointer-events:none;letter-spacing:.04em;z-index:2';if(getComputedStyle(h).position==='static')h.style.position='relative';h.appendChild(s)}catch(e){}}put();document.addEventListener('DOMContentLoaded',put);window.addEventListener('load',put);setInterval(put,2000)})();</script>
