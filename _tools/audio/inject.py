@@ -12,8 +12,8 @@ JS = open('_tools/audio/audiofix.js', encoding='utf-8').read().strip()
 assert '</script' not in JS.lower(), 'audiofix.js must not contain a closing script tag'
 BLOCK = '<script id="ap-audiofix">\n' + JS + '\n</script>\n'
 BLOCK_ESC = BLOCK.replace('</script>', '⟦/script>')            # inside text/plain payloads the closer is written as the marker
-OLD = re.compile(r'\n?<script id="ap-audiofix">(?:(?!\u27e6/script>).)*?</script>\n?', re.S)   # never runs on into an escaped payload block
-OLD_ESC = re.compile(r'\n?<script id="ap-audiofix">.*?\u27e6/script>\n?', re.S)
+OLD = re.compile(r'\n?<script id="ap-audiofix">(?:(?!\u27e6/script>|<\\/script>).)*?</script>\n?', re.S)   # never runs on into an escaped payload block
+OLD_ESC = re.compile(r'\n?<script id="ap-audiofix">.*?(?:\u27e6/script>|<\\/script>)\n?', re.S)
 HEAD = re.compile(r'<head[^>]*>', re.I)
 
 PAIRS = [   # (name, old, new) for the engines embedded in the apps
@@ -40,12 +40,15 @@ PAIRS = [   # (name, old, new) for the engines embedded in the apps
   "if (BM || !snd()) return; var c = bAc(); if (!c) return; if (c.state !== 'running') { if (document.getElementById('bi-ov') && (bMusic.__r = (bMusic.__r || 0) + 1) <= 10) setTimeout(bMusic, 400); return; } bMusic.__r = 0; if (!bx()) return;"),
 ]
 
-def put(s, esc=False):
+def put(s, esc=False, plain=False):
     """insert/refresh the block after the first <head> of this document text; returns (new, inserted?)"""
     s = (OLD_ESC if esc else OLD).sub('', s)
     m = HEAD.search(s)
     if not m: return s, False
-    return s[:m.end()] + '\n' + (BLOCK_ESC if esc else BLOCK) + s[m.end():], True
+    blk = BLOCK
+    if esc:   # payloads that the page decodes with <\/script> (the Approved Material studio) must not get the marker form
+        blk = BLOCK.replace('</script>', '<\\/script>') if plain else BLOCK_ESC
+    return s[:m.end()] + '\n' + blk + s[m.end():], True
 
 if '--sources' in sys.argv:   # keep the same patches in the engine source files
     for sf in ('_tools/gamify/blitz.js', '_tools/buildit/buildit.src.js', '_tools/setup-layout/matchfx/matchfx.js'):
@@ -69,7 +72,7 @@ for f in sorted(glob.glob('*.html')):
     for m in re.finditer(r'<script type="text/plain" id="([^"]+)">(.*?)</script>', s, re.S):
         body = m.group(2)
         if not re.match(r'\s*(<!DOCTYPE|<html)', body[:200], re.I): continue
-        nb, ok = put(body, esc=True)
+        nb, ok = put(body, esc=True, plain=(m.group(1) == 'am-studio-src'))
         if ok:
             out.append((m.start(2), m.end(2), nb)); notes.append('payload ' + m.group(1))
     for a, b, nb in reversed(out): s = s[:a] + nb + s[b:]
