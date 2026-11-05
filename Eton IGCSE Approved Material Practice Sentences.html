@@ -847,6 +847,8 @@ body{min-height:100vh}
 .aph-qcard.am-long .am-topic{text-transform:none;letter-spacing:.01em;font-size:.8125rem;line-height:1.35;white-space:normal}
 .aph-qcard.am-long .aph-prompt{font-size:clamp(1.15rem,.75rem + 1.05vw,1.85rem);line-height:1.45;text-align:left;overflow-wrap:break-word;text-wrap:pretty}
 .aph-qcard.am-long .am-others:not(:has(span)){display:none}
+.am-fnote{display:block;margin-top:10px;font:700 .8rem DM Sans,system-ui,sans-serif;letter-spacing:.06em;text-transform:uppercase;color:#9a7b1f}
+.am-full{display:block;margin-top:10px;font-size:.8em;opacity:.75}
 .aph-qcard.am-long .answer{font-size:clamp(1.15rem,.8rem + .75vw,1.6rem);line-height:1.45;text-align:left;overflow-wrap:break-word;text-wrap:pretty}
 
 /* 📖 Read & listen */
@@ -4917,15 +4919,16 @@ var LZ = {
   flag: function (l) { return ({ en: '🇬🇧', fr: '🇫🇷', it: '🇮🇹' })[l]; },
   promptCls: 'card-content',
   chip: function (card) { return '<span class="am-topic">' + amSubLbl(card.subsection) + '</span>'; },
-  qHtml: function (card) { return card.question; },
+  qHtml: function (card) { var fi = amCardFi(card, card._f || _lz.f, card._t || _lz.t, true); return fi ? fi.q + amFiNote(fi) : card.question; },
   qText: function (card) { return card.question; },
   aHtml: function (card) {
     var flags = { en: '🇬🇧', fr: '🇫🇷', it: '🇮🇹' };
-    return '<div class="answer">' + (card[card._t || _lz.t] || card.answer) + '</div>'
+    var fi = card._fi || null;
+    return '<div class="answer">' + (fi ? fi.a + '<span class="am-full">' + (card[card._t || _lz.t] || card.answer) + '</span>' : (card[card._t || _lz.t] || card.answer)) + '</div>'
       + '<div class="am-others">' + ['en','fr','it'].filter(function (l) { return l !== card.fromLang && l !== card.toLang && (amSet !== 'am' || card[l]); }).map(function (l) {
           return '<span>' + flags[l] + ' ' + card[l] + '</span>'; }).join('') + '</div>';
   },
-  aText: function (card) { return card.answer; },
+  aText: function (card) { return (card._fi && card._fi.a) || card.answer; },
   speak: function (text, l, cb) { speak(text, l, cb); }
 };
 // ─────────────────────────────────────────────────────────────────
@@ -5633,6 +5636,7 @@ function showCard() {
   }
   const card = deck[currentIndex];
   const cfl = cardF(card), ctl = cardT(card);
+  const _fi = amCardFi(card, cfl, ctl, true);
   isRevealed = false;
   const pct = Math.round((currentIndex / deck.length) * 100);
   const flags = {en:'🇬🇧',fr:'🇫🇷',it:'🇮🇹'};
@@ -5647,7 +5651,7 @@ function showCard() {
           <span class="am-topic">${amSubLbl(card.subsection)}</span>
           <div class="aph-qmeta">Card ${currentIndex + 1} of ${deck.length} · ${flags[cfl]} → ${flags[ctl]}${(mixMode && card._f) ? ' · ' + mixLabel() : ''}</div>
           <div class="timer-bar"><div class="timer-bar-fill" id="timerBarFill"></div></div>
-          <div class="aph-prompt card-content">${card[cfl] || card.question}</div>
+          <div class="aph-prompt card-content">${_fi ? _fi.q + amFiNote(_fi) : (card[cfl] || card.question)}</div>
           <div id="answer"></div>
         </div>
         <button id="revealBtn" class="aph-btn aph-btn-primary aph-btn-block" onclick="revealAnswer()">Show Answer</button>
@@ -5715,7 +5719,8 @@ function revealAnswer() {
   const flags = {en:'🇬🇧',fr:'🇫🇷',it:'🇮🇹'};
   const ctl = cardT(card);
 
-  speak(card[ctl] || card.answer, ctl);
+  const _fi = card._fi || null;
+  speak(_fi ? _fi.a : (card[ctl] || card.answer), ctl);
 
   // Hide show answer button
   const revealBtn = document.getElementById('revealBtn');
@@ -5725,7 +5730,7 @@ function revealAnswer() {
   const answerDiv = document.getElementById('answer');
   if (answerDiv) {
     answerDiv.innerHTML = `
-      <div class="answer" id="cardAnswerText">${card[cardT(card)] || card.answer}</div>
+      <div class="answer" id="cardAnswerText">${_fi ? _fi.a : (card[cardT(card)] || card.answer)}${_fi ? '<span class="am-full">' + (card[cardT(card)] || card.answer) + '</span>' : ''}</div>
       <div class="am-others">${
         ['en','fr','it'].filter(l => l !== cardF(card) && l !== cardT(card) && (amSet!=='am'||card[l])).map(l =>
           `<span>${flags[l]} ${card[l]}</span>`
@@ -5749,7 +5754,7 @@ function revealAnswer() {
       <button class="aph-mark-btn ok" onclick="markCorrect()">✓ Got it<small>→ key</small></button>
     </div>`;
     leftBtns.innerHTML = feedbackBtns +
-      `<div class="aph-under"><button class="aph-btn aph-btn-sm" onclick="speak(deck[currentIndex]['${ctl}']||deck[currentIndex].answer,'${ctl}')">&#128266; Replay</button></div>`;
+      `<div class="aph-under"><button class="aph-btn aph-btn-sm" onclick="speak((deck[currentIndex]._fi&&deck[currentIndex]._fi.a)||deck[currentIndex]['${ctl}']||deck[currentIndex].answer,'${ctl}')">&#128266; Replay</button></div>`;
   }
 }
 
@@ -6553,6 +6558,9 @@ function amFragCands(p,f,t){
   }
   return out.A1.concat(out.A2).length?out.A1.concat(out.A2):out.A3;
 }
+/* every long approved sentence is asked as a highlighted third to a half, whichever activity it comes through (Drill, Leisure Mode, Speed Challenge, tests, games) */
+function amCardFi(card,f,t,fresh){ if(!card) return null; if(fresh||card._fi===undefined){ try{ card._fi=(f&&t&&f!==t)?amFragItem(card,f,t):null; }catch(e){ card._fi=null; } } return card._fi; }
+function amFiNote(fi){ return fi?'<span class="am-fnote">Translate only the highlighted part</span>':''; }
 function amFragItem(p,pf,pt){
   var c=amFragCands(p,pf,pt); if(!c.length) return null; var x=c[Math.floor(Math.random()*c.length)], A=String(p[pf]);
   return {q:A.slice(0,x.s)+'<mark style="background:#fde9a8;color:inherit;padding:0 .15em;border-radius:3px;font-weight:700">'+A.slice(x.s,x.e)+'</mark>'+A.slice(x.e), a:x.ans};
@@ -7248,6 +7256,7 @@ function startReadListen() {
   if (timerInterval) clearInterval(timerInterval);
   isLeisureMode = false;
   _rl.topics = topics; _rl.lang = rlLang(); _rl.cur = -1;
+  _rl.showEn = false; _rl.enOnly = false; _rl.listen = 'tl'; _rl.prev = null;   // every time Read & listen opens: the language being studied only, heard in that language
   _rl.list = [];
   topics.forEach(function (t, ti) { (t['phrases_' + _rl.lang] || []).forEach(function (s, bi) { _rl.list.push({ ti: ti, bi: bi, text: s, en: (t['phrases_en_' + _rl.lang] || t.phrases_en || [])[bi] || '' }); }); });
   renderReadListen();
@@ -7580,11 +7589,13 @@ function amvpReveal(i, b) {
   el.innerHTML = '<div class="vp-ans"><div class="vp-tl" lang="' + _vp.lang + '">' + amEsc(amvpPts(x, _vp.lang)[b]) + '</div></div>';
   var s = document.getElementById('vp-s-' + k); if (s) s.style.visibility = 'visible';
 }
+function amvpEnView() { var m = document.getElementById('amvp'), y = m ? m.scrollTop : 0; _vp.showEn = !_vp.showEn; amvpSave(); amvpRenderView(); try { m.scrollTop = y; } catch (e) {} }
 function amvpRenderView() {
   var m = document.getElementById('amvp'), L = _vp.lang, lay = _vp.layout, idx = amvpChosen(), np = amvpCountPts(idx, L);
   m.classList.add('vp-viewing');
   var label = amvpLabel(idx, L), lastSec = null, h = '';
   h += '<div class="vp-bar"><span class="vp-bar-t">Approved Material · ' + AMVP_LAYOUTS[lay] + '</span>'
+    + (lay === 'model' ? '<button type="button" class="aph-dbar-btn' + (_vp.showEn ? ' on' : '') + '" id="vp-en-btn" aria-pressed="' + (!!_vp.showEn) + '" onclick="amvpEnView()">🇬🇧 ' + (_vp.showEn ? 'English: on' : 'English: off') + '</button>' : '')
     + '<button type="button" class="aph-dbar-btn vp-home" onclick="amvpBack()">⌂ Back to settings</button>'
     + '<button type="button" class="aph-dbar-btn" onclick="amvpPrint()">🖨 Print / PDF</button>'
     + '<button type="button" class="aph-dbar-btn" onclick="amvpClose()" aria-label="Close">✕ Close</button></div>';
@@ -7594,7 +7605,7 @@ function amvpRenderView() {
     var x = AM_DATA[i], pts = amvpPts(x, L);
     if (x.section_en !== lastSec) { lastSec = x.section_en; h += '<h3 class="vp-shead">' + amEsc(amvpSecLabel(x.section_en)) + '</h3>'; }
     h += '<section class="vp-q" id="vp-q-' + i + '"><div class="vp-qrow"><h4 class="vp-qt" lang="' + L + '"><span class="vp-qn">' + (qi + 1) + '.</span>' + amEsc(amvpQ(x, L)) + '</h4>' + amvpSayBtn(i, -1) + '</div>'
-      + '<div class="vp-qen" lang="en">' + amEsc(amvpQEn(x, L)) + '</div>';
+      + ((lay !== 'model' || _vp.showEn) ? '<div class="vp-qen" lang="en">' + amEsc(amvpQEn(x, L)) + '</div>' : '');
     if (lay === 'side') h += '<div class="vp-colh" aria-hidden="true"><span>English</span><span>' + AM_LANG_NAMES[L] + '</span></div>';
     h += '<ol class="vp-pts">';
     pts.forEach(function (s, b) {
@@ -11258,7 +11269,7 @@ textarea.ms-in{min-height:7rem;resize:vertical}.ms-hint.ms-hint-sm{font-size:.78
     card.appendChild(setDet);
     // Read & listen and View & Print are the first pair of tiles (study the model answers before any drill); the six activities follow (Approved Material only)
     var readOff = !usable || my, readD = my ? 'Works on whole topics, so not on a personalised set.' : 'Start here: read the model answers and hear them, sentence by sentence.';
-    var vpOff = !vp || !usable || my, vpD = !vp ? 'View &amp; Print is for the Approved Material set.' : (my ? 'Works on whole topics, so not on a personalised set.' : 'Read the whole list on screen, or print it or save it as a PDF.');
+    var vpOff = !usable || my, vpD = (my ? 'Works on whole topics, so not on a personalised set.' : 'Read the whole list on screen, or print it or save it as a PDF.');
     var studyHtml = '<button class="ms-tile ms-read"' + (readOff ? ' disabled' : '') + ' onclick="startReadListen()"><img class="ms-img" alt="" src="' + ICONS.read + '"><span class="ms-tx"><span class="ms-tt">Read &amp; listen</span><span class="ms-td">' + readD + '</span></span></button>'
       + '<button class="ms-tile ms-viewprint"' + (vpOff ? ' disabled' : '') + ' onclick="amvpOpen()"><img class="ms-img" alt="" src="' + ICONS.viewprint + '"><span class="ms-tx"><span class="ms-tt">View &amp; Print</span><span class="ms-td">' + vpD + '</span></span></button>';
     if (read) read.classList.add('ms-hide'); if (vp) vp.classList.add('ms-hide');
@@ -15698,4 +15709,4 @@ function deck(el,m,n,x,y,face,gap){clear(el);const cs=[];for(let i=0;i<n;i++){co
   if (document.readyState === 'complete') start(); else window.addEventListener('load', start);
 })();
 </script>
-<script id="ap-build">window.__apBuild="57e777c5b6";window.__apVer=172;(function(){var N=window.__apVer;function put(){try{var h=document.querySelector('header.aph-header');if(!h||document.getElementById('ap-ver'))return;var s=document.createElement('span');s.id='ap-ver';s.textContent='v'+N;s.style.cssText='position:absolute;right:10px;bottom:4px;font:600 11px/1 system-ui,sans-serif;color:#c9a84c;opacity:.8;pointer-events:none;letter-spacing:.04em;z-index:2';if(getComputedStyle(h).position==='static')h.style.position='relative';h.appendChild(s)}catch(e){}}put();document.addEventListener('DOMContentLoaded',put);window.addEventListener('load',put);setInterval(put,2000)})();</script>
+<script id="ap-build">window.__apBuild="33bd92a1ae";window.__apVer=173;(function(){var N=window.__apVer;function put(){try{var h=document.querySelector('header.aph-header');if(!h||document.getElementById('ap-ver'))return;var s=document.createElement('span');s.id='ap-ver';s.textContent='v'+N;s.style.cssText='position:absolute;right:10px;bottom:4px;font:600 11px/1 system-ui,sans-serif;color:#c9a84c;opacity:.8;pointer-events:none;letter-spacing:.04em;z-index:2';if(getComputedStyle(h).position==='static')h.style.position='relative';h.appendChild(s)}catch(e){}}put();document.addEventListener('DOMContentLoaded',put);window.addEventListener('load',put);setInterval(put,2000)})();</script>
