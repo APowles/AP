@@ -17411,15 +17411,34 @@ function endCard(d,total,label){
   <div class="row"><button class="btn pri" onclick="${nx[0]};render();window.scrollTo(0,0)">${nx[1]}</button><button class="btn" onclick="D['${dr}']=null;render()">Go again</button></div>`;
 }
 function pts(m){return m==='ok'?1:m==='near'?0.5:0}
+/* long sentences (14+ words): ask only a third to a half, cut at a clause that matches in English and French; no clean cut = whole */
+function ktrFrag(it){
+  if(it._kf!==undefined) return it._kf;
+  it._kf=null; const wc=s=>s.trim().split(/\s+/).filter(Boolean).length, E=String(it.en||''), R=String(it.fr||'');
+  const tot=wc(E); if(tot<14) return null;
+  const cut=s=>{const p=[0],re=/[,;:]\s+(?=\S)/g;let m;while((m=re.exec(s)))p.push(m.index+m[0].length);p.push(s.length);return p};
+  const pe=cut(E), pr=cut(R); if(pe.length!==pr.length||pe.length<3) return null;
+  for(let a=0;a<pe.length-1;a++){const x=wc(E.slice(pe[a],pe[a+1])), y=wc(R.slice(pr[a],pr[a+1])); if(x<1||y<1||x/y<.6||x/y>1.7) return null}
+  const strip=s=>s.replace(/^[\s,;:]+|[\s,;:.!?]+$/g,'');
+  let best=null;
+  for(let a=0;a<pe.length-1;a++) for(let b=a+1;b<pe.length;b++){
+    const fe=strip(E.slice(pe[a],pe[b])), fr=strip(R.slice(pr[a],pr[b])); if(!fe||!fr) continue;
+    const w=wc(fe), r=w/tot, q=w/Math.max(1,wc(fr)); if(w<4||q<.5||q>2) continue;
+    const tier=(r>=.33&&r<=.5)?1:((r>=.27&&r<=.56)?2:0); if(!tier||(best&&best.tier<=tier)) continue;
+    const s0=E.indexOf(fe); if(s0<0) continue;
+    best={tier,en:fe,fr:fr,html:esc(E.slice(0,s0))+'<mark style="background:#fde9a8;color:inherit;padding:0 .15em;border-radius:3px;font-weight:700">'+esc(fe)+'</mark>'+esc(E.slice(s0+fe.length))};
+  }
+  return it._kf=best;
+}
 /* recall */
 function dRecall(k){
   const items=k.say.recall;
   if(!D.recall)D.recall={order:shuffle(items.map((_,i)=>i)),i:0,rev:false,sc:0};
   const d=D.recall;
   if(d.i>=items.length){d.score=d.sc;mark(k.n,'d');return endCard(d,items.length,'Recall finished. A half point counts for nearly.')}
-  const it=items[d.order[d.i]];
+  const it0=items[d.order[d.i]], kf=ktrFrag(it0), it=kf?{en:kf.en,fr:kf.fr}:it0;
   return `<div class="prog">${d.i+1} of ${items.length} · English to French</div>
-  <div class="prompt">${esc(it.en)}</div>
+  <div class="prompt">${kf?kf.html+'<div class="mw" style="margin-top:6px">Translate only the highlighted part</div>':esc(it.en)}</div>
   ${d.rev?`<div class="ans line"><span>${esc(it.fr)}</span><button class="spk" data-t="${esc(it.fr)}" onclick="spk(this)" aria-label="Hear it in French">${SPK}</button></div>
    <div class="marks"><button class="mk bad" onclick="recMark('bad')">Major error ←</button><button class="mk near" onclick="recMark('near')">Nearly ↓</button><button class="mk ok" onclick="recMark('ok')">Got it →</button></div>`
    :`<div class="row"><button class="btn pri" onclick="D.recall.rev=true;render()">Show the French</button><span class="keys">Space or Enter</span></div>`}`;
@@ -17463,7 +17482,7 @@ function dScr(k){
   if(!D.scramble)D.scramble={i:0,sc:0,pool:null,built:[],res:null};
   const d=D.scramble;
   if(d.i>=items.length){d.score=d.sc;mark(k.n,'d');return endCard(d,items.length,'Rebuild finished.')}
-  const it=items[d.i];
+  const it0=items[d.i], kf=ktrFrag(it0), it=kf?{en:kf.en,fr:kf.fr}:it0;
   if(!d.pool){const w=it.fr.split(' ');let p=shuffle(w.map((t,i)=>({t,i})));let tries=0;while(p.map(x=>x.i).join()===w.map((_,i)=>i).join()&&tries++<20)p=shuffle(p);d.pool=p;d.built=[]}
   const left=d.pool.filter(x=>!d.built.includes(x.i));
   return `<div class="prog">${d.i+1} of ${items.length} · put the sentence back in order</div>
@@ -23988,4 +24007,4 @@ function deck(el,m,n,x,y,face,gap){clear(el);const cs=[];for(let i=0;i<n;i++){co
   if (document.readyState === 'complete') start(); else window.addEventListener('load', start);
 })();
 </script>
-<script id="ap-build">window.__apBuild="f05c4a89be";window.__apVer=246;(function(){var N=window.__apVer;function put(){try{var h=document.querySelector('header.aph-header');if(!h||document.getElementById('ap-ver'))return;var s=document.createElement('span');s.id='ap-ver';s.textContent='v'+N;s.style.cssText='position:absolute;right:10px;bottom:4px;font:600 11px/1 system-ui,sans-serif;color:#c9a84c;opacity:.8;pointer-events:none;letter-spacing:.04em;z-index:2';if(getComputedStyle(h).position==='static')h.style.position='relative';h.appendChild(s)}catch(e){}}put();document.addEventListener('DOMContentLoaded',put);window.addEventListener('load',put);setInterval(put,2000)})();</script>
+<script id="ap-build">window.__apBuild="be976f8a3d";window.__apVer=247;(function(){var N=window.__apVer;function put(){try{var h=document.querySelector('header.aph-header');if(!h||document.getElementById('ap-ver'))return;var s=document.createElement('span');s.id='ap-ver';s.textContent='v'+N;s.style.cssText='position:absolute;right:10px;bottom:4px;font:600 11px/1 system-ui,sans-serif;color:#c9a84c;opacity:.8;pointer-events:none;letter-spacing:.04em;z-index:2';if(getComputedStyle(h).position==='static')h.style.position='relative';h.appendChild(s)}catch(e){}}put();document.addEventListener('DOMContentLoaded',put);window.addEventListener('load',put);setInterval(put,2000)})();</script>
