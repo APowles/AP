@@ -6264,7 +6264,8 @@ function generateAMTest(){
   let sheet='', answers='';
   items.forEach((p,i)=>{
     const pf = cardF(p), pt = cardT(p);
-    const q = p[pf], a = p[pt];
+    p._tfi = amFragItem(p, pf, pt);   // a long sentence is asked as a highlighted third to a half
+    const q = p._tfi ? p._tfi.q : p[pf], a = p._tfi ? p._tfi.a : p[pt], qp = p._tfi ? p._tfi.pl : p[pf];
     const num = i+1<10 ? ` ${i+1}` : `${i+1}`;
     const others = amSetLangs().filter(l=>l!==pt)
       .map(l=>`${AM_FLAGS[l]}&thinsp;<span style="color:#888;font-size:0.8125rem;">${p[l]||''}</span>`).join(' &nbsp; ');
@@ -6281,10 +6282,11 @@ function generateAMTest(){
       <strong style="color:#1a2744;">${a}</strong>
       <span style="margin-left:10px;">${others}</span></div>`;
 
-    amPlainSheet += `\n${num}.  ${q}\n\n      ____________________________________\n`;
-    amPlainAnswers += `\n${num}.  ${q}  →  ${a}\n`;
+    amPlainSheet += `\n${num}.  ${qp}\n\n      ____________________________________\n`;
+    amPlainAnswers += `\n${num}.  ${qp}  →  ${a}\n`;
   });
 
+  if (items.some(function (p) { return p._tfi; })) { sheet = '<div style="font-size:0.8125rem;color:#7a5d00;font-weight:700;margin:0 0 6px">Where part of a sentence is highlighted, translate only the highlighted part.</div>' + sheet; amPlainSheet = amPlainSheet.replace(sep + '\n', sep + '\nWhere part of a sentence is in [brackets], translate only that part.\n'); }
   amTestItems = items;
   amTestPdfMeta = { title, secLabel, qFlag: AM_FLAGS[f], aFlag: AM_FLAGS[t], f, t, count: items.length, set: amSet, mixLbl: mixMode ? mixLabel() : '' };
 
@@ -6367,18 +6369,19 @@ function printAMTestPdf(which) {
     if (m.set === 'am') {   // Approved Material answers are long: two full-width writing lines
       return '<div class="q-item long">'
         + '<div class="q-num">'+(i+1)+'</div>'
-        + '<div class="q-text">'+(p[p._f||m.f]||'')+'</div>'
+        + '<div class="q-text">'+(p._tfi ? p._tfi.q : (p[p._f||m.f]||''))+'</div>'
         + '<div class="q-lines"><div></div><div></div></div>'
         + '</div>';
     }
     return '<div class="q-item">'
       + '<div class="q-num">'+(i+1)+'</div>'
-      + '<div class="q-text">'+(p[p._f||m.f]||'')+'</div>'
+      + '<div class="q-text">'+(p._tfi ? p._tfi.q : (p[p._f||m.f]||''))+'</div>'
       + '<div class="q-blank"></div>'
       + '</div>';
   }).join('');
 
   const sheetBody = header('Test Sheet')
+    + (amTestItems.some(function(p){ return p._tfi; }) ? '<div style="font:700 0.78rem DM Sans,sans-serif;color:#7a5d00;padding:6px 4px">Where part of a sentence is highlighted, translate only the highlighted part.</div>' : '')
     + '<div class="questions">'+qRows+'</div>'
     + footer('Test Sheet');
 
@@ -6388,7 +6391,7 @@ function printAMTestPdf(which) {
     return '<div class="a-item">'
       + '<div class="a-num">'+(i+1)+'</div>'
       + '<div class="a-body">'
-      +   '<div class="a-main"><span class="a-q">'+(p[p._f||m.f]||'')+'</span><span class="a-arrow">→</span><span class="a-ans">'+(p[p._t||m.t]||'')+'</span></div>'
+      +   '<div class="a-main"><span class="a-q">'+(p._tfi ? p._tfi.q : (p[p._f||m.f]||''))+'</span><span class="a-arrow">→</span><span class="a-ans">'+(p._tfi ? p._tfi.a : (p[p._t||m.t]||''))+'</span></div>'
       +   '<div class="a-others">'+others+'</div>'
       + '</div>'
       + '</div>';
@@ -6592,7 +6595,7 @@ function amCardFi(card,f,t,fresh){ if(!card) return null; if(fresh||card._fi===u
 function amFiNote(fi){ return fi?'<span class="am-fnote">Translate only the highlighted part</span>':''; }
 function amFragItem(p,pf,pt){
   var c=amFragCands(p,pf,pt); if(!c.length) return null; var x=c[Math.floor(Math.random()*c.length)], A=String(p[pf]);
-  return {q:A.slice(0,x.s)+'<mark style="background:#fde9a8;color:inherit;padding:0 .15em;border-radius:3px;font-weight:700">'+A.slice(x.s,x.e)+'</mark>'+A.slice(x.e), a:x.ans};
+  return {q:A.slice(0,x.s)+'<mark style="background:#fde9a8;color:inherit;padding:0 .15em;border-radius:3px;font-weight:700">'+A.slice(x.s,x.e)+'</mark>'+A.slice(x.e), a:x.ans, pl:A.slice(0,x.s)+'['+A.slice(x.s,x.e)+']'+A.slice(x.e)};
 }
 
 function generateAMSpotTest(timed) {
@@ -15791,4 +15794,4 @@ function deck(el,m,n,x,y,face,gap){clear(el);const cs=[];for(let i=0;i<n;i++){co
   if (document.readyState === 'complete') start(); else window.addEventListener('load', start);
 })();
 </script>
-<script id="ap-build">window.__apBuild="1695095550";window.__apVer=176;(function(){var N=window.__apVer;function put(){try{var h=document.querySelector('header.aph-header');if(!h||document.getElementById('ap-ver'))return;var s=document.createElement('span');s.id='ap-ver';s.textContent='v'+N;s.style.cssText='position:absolute;right:10px;bottom:4px;font:600 11px/1 system-ui,sans-serif;color:#c9a84c;opacity:.8;pointer-events:none;letter-spacing:.04em;z-index:2';if(getComputedStyle(h).position==='static')h.style.position='relative';h.appendChild(s)}catch(e){}}put();document.addEventListener('DOMContentLoaded',put);window.addEventListener('load',put);setInterval(put,2000)})();</script>
+<script id="ap-build">window.__apBuild="3bcf45e4dd";window.__apVer=177;(function(){var N=window.__apVer;function put(){try{var h=document.querySelector('header.aph-header');if(!h||document.getElementById('ap-ver'))return;var s=document.createElement('span');s.id='ap-ver';s.textContent='v'+N;s.style.cssText='position:absolute;right:10px;bottom:4px;font:600 11px/1 system-ui,sans-serif;color:#c9a84c;opacity:.8;pointer-events:none;letter-spacing:.04em;z-index:2';if(getComputedStyle(h).position==='static')h.style.position='relative';h.appendChild(s)}catch(e){}}put();document.addEventListener('DOMContentLoaded',put);window.addEventListener('load',put);setInterval(put,2000)})();</script>
