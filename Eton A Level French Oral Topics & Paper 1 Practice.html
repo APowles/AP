@@ -15325,7 +15325,7 @@ const VIDS={"sub": {"1": [{"url": "https://etoncollege-my.sharepoint.com/:v:/g/p
 
 
 const S={view:'home',sub:null,k:0,stage:'c',step:0,mode:'deck',drill:'recall',lang:'fr',story:1,uq:0};
-const STAGES=[['o','Overview'],['c','Go deeper'],['w','Vocab'],['d','Drill it'],['u','Use it'],['r','Key facts'],['i','Now I can']];
+const STAGES=[['o','Overview'],['c','Go deeper'],['w','Vocab'],['d','Drill it'],['u','Use it'],['r','Key facts'],['i','Now I can'],['p','Practise it']];
 const SPK='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 5 6 9H3v6h3l5 4z"/><path d="M15.5 8.5a5 5 0 0 1 0 7M18.5 5.5a9 9 0 0 1 0 13"/></svg>';
 const $=id=>document.getElementById(id);
 const esc=s=>String(s==null?'':s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
@@ -16126,7 +16126,7 @@ const KC_GLOSS={"10":[["sous contrat","sous contrat","A private school 'under co
 function kcGlossItems(n){return (KC_GLOSS[n]||[])}
 function kcGlossHtml(n,cls){const L=kcGlossItems(n);if(!L.length)return '';return `<dl class="kc-gl${cls?' '+cls:''}">${L.map(x=>`<dt>${esc(x[0])}${x[1]&&x[1].toLowerCase()!==x[0].toLowerCase()?` <i>${esc(x[1])}</i>`:''}</dt><dd>${esc(x[2])}</dd>`).join('')}</dl>`}
 function kcTermsDraw(){const R=KC,c=R.cur;const sh0=kpOv(kpHead('QPSEAIOHC + KTRs','')+`<div class="kc-ktr" style="--kcc:${kcCol(c.k)}"><small>Key terms</small><b>${esc(kcTerm(c.k))}</b></div><div class="kc-main"><div class="kc-act" style="margin:6px 0 10px"><button type="button" class="kc-b pri kc-go" onclick="KC.terms=0;kcDraw()">← Back to the card</button></div><div class="kc-glw">${kcGlossHtml(c.k)}</div></div>`);try{sh0.classList.add('kc');sh0.style.width='min(1240px,96vw)';sh0.style.maxWidth='96vw';sh0.style.minHeight='84vh';sh0.style.padding='14px 24px'}catch(e){}}
-(function(){try{const o=window.sOv;if(typeof sOv==='function'&&!sOv.__gl){const f=sOv;sOv=function(k){let h=f(k);try{const L=kcGlossItems(k.n);if(L.length)h+=`<details class="kc-gld"><summary>📖 Key terms for this KTR (${L.length})</summary>${kcGlossHtml(k.n)}</details>`}catch(e){}return h};sOv.__gl=1}}catch(e){}})();
+(function(){try{const o=window.sOv;if(typeof sOv==='function'&&!sOv.__gl){const f=sOv;sOv=function(k){let h=f(k);try{const L=kcGlossItems(k.n);if(L.length)h+=`<details class="kc-gld"><summary>📖 Glossary: the key terms of this KTR (${L.length})</summary>${kcGlossHtml(k.n)}</details>`}catch(e){}return h};sOv.__gl=1}}catch(e){}})();
 function kcRoll(){const R=KC,c=R.cur,N=18,L=Object.keys(KC_LCOL);let t=0,pk=null;R.rolling=true;
   const tick=()=>{if(KC!==R)return;if(t>0&&!document.getElementById('ps-ov')){R.rolling=false;return}
     t++;if(t<N){let k;const pool=R.ks.length>1?R.ks.filter(x=>x!==pk):R.ks;k=pool[Math.floor(Math.random()*pool.length)];pk=k;kcSpin(k,L[Math.floor(Math.random()*L.length)]);kcBlip(430+t*34);setTimeout(tick,60+210*Math.pow(t/N,2.2))}
@@ -16499,11 +16499,12 @@ function kpMEnd(){
 function vKtr(){
   const k=ktr();
   const tabs=STAGES.filter(s=>(s[0]!=='r'||k.remember)&&(s[0]!=='i'||k.ican)).map(s=>`<button class="stg${S.stage===s[0]?' on':''}" onclick="stg('${s[0]}')"><b>${s[1]}</b>${pips1(k.n,s[0])}</button>`).join('');
-  const body=S.stage==='o'?sOv(k):S.stage==='c'?sComp(k):S.stage==='r'&&k.remember?sRem(k):S.stage==='i'&&k.ican?sIcan(k):S.stage==='w'?sWords(k):S.stage==='d'?sSay(k):sUse(k);
+  const sts=STAGES.filter(s=>(s[0]!=='r'||k.remember)&&(s[0]!=='i'||k.ican)),ix=sts.findIndex(s=>s[0]===S.stage),nx=sts[ix+1];
+  const body=(S.stage==='p'?`<div class="label" style="margin-top:18px">You have met this KTR: now practise it</div>${kpStrip(k)}`:S.stage==='o'?sOv(k):S.stage==='c'?sComp(k):S.stage==='r'&&k.remember?sRem(k):S.stage==='i'&&k.ican?sIcan(k):S.stage==='w'?sWords(k):S.stage==='d'?sSay(k):sUse(k))+(nx?`<div class="row" style="margin-top:20px"><button class="btn pri" onclick="stg('${nx[0]}');window.scrollTo(0,0)">${nx[0]==='p'?'Ready to practise this KTR ›':'Next: '+nx[1]+' ›'}</button></div>`:'');
   const i=S.k,n=cur().ktrs.length;
   return `<div class="label">${esc(cur().name)} · KTR ${i+1} of ${n}</div>
   <h1 class="h1">${esc(k.term)}</h1>
-  ${kpRoute(k)}<div class="stages">${tabs}</div>${body}${kpStrip(k)}
+  <div class="stages">${tabs}</div>${body}
   <div class="nav" style="margin-top:22px">
     <button class="btn" ${i===0?'disabled':''} onclick="go('ktr',${S.sub},${i-1})">Previous KTR</button>
     <button class="btn" ${i===n-1?'disabled':''} onclick="go('ktr',${S.sub},${i+1})">Next KTR</button>
@@ -24094,4 +24095,4 @@ function deck(el,m,n,x,y,face,gap){clear(el);const cs=[];for(let i=0;i<n;i++){co
   if (document.readyState === 'complete') start(); else window.addEventListener('load', start);
 })();
 </script>
-<script id="ap-build">window.__apBuild="b3c63200a2";window.__apVer=285;(function(){var N=window.__apVer;function put(){try{var h=document.querySelector('header.aph-header');if(!h||document.getElementById('ap-ver'))return;var s=document.createElement('span');s.id='ap-ver';s.textContent='v'+N;s.style.cssText='position:absolute;right:10px;bottom:4px;font:600 11px/1 system-ui,sans-serif;color:#c9a84c;opacity:.8;pointer-events:none;letter-spacing:.04em;z-index:2';if(getComputedStyle(h).position==='static')h.style.position='relative';h.appendChild(s)}catch(e){}}put();document.addEventListener('DOMContentLoaded',put);window.addEventListener('load',put);setInterval(put,2000)})();</script>
+<script id="ap-build">window.__apBuild="6e3dfcb95d";window.__apVer=286;(function(){var N=window.__apVer;function put(){try{var h=document.querySelector('header.aph-header');if(!h||document.getElementById('ap-ver'))return;var s=document.createElement('span');s.id='ap-ver';s.textContent='v'+N;s.style.cssText='position:absolute;right:10px;bottom:4px;font:600 11px/1 system-ui,sans-serif;color:#c9a84c;opacity:.8;pointer-events:none;letter-spacing:.04em;z-index:2';if(getComputedStyle(h).position==='static')h.style.position='relative';h.appendChild(s)}catch(e){}}put();document.addEventListener('DOMContentLoaded',put);window.addEventListener('load',put);setInterval(put,2000)})();</script>
