@@ -356,6 +356,7 @@
       .replace(/\bpots?[-\s\u2010\u2011]au[-\s\u2010\u2011]feu\b/gi, function (m) { return (m[0] === 'P' ? 'P' : 'p') + 'o to feu'; });
   }
   window.amFrPron = fix;
+  ['click', 'keydown'].forEach(function (ev) { try { document.addEventListener(ev, function () { window._amTapAt = Date.now(); }, true); } catch (e) { } });
   try {
     var P = window.SpeechSynthesis && SpeechSynthesis.prototype, orig = P && P.speak;
     if (orig && !orig._amfr) {
@@ -870,6 +871,8 @@ body{min-height:100vh}
 .aph-qcard.am-long .am-others:not(:has(span)){display:none}
 .am-fnote{display:block;margin-top:10px;font:700 .8rem DM Sans,system-ui,sans-serif;letter-spacing:.06em;text-transform:uppercase;color:#9a7b1f}
 .am-full{display:block;margin-top:10px;font-size:.8em;opacity:.75}
+.am-fa-s{font-size:.52em;font-weight:500;opacity:.75;letter-spacing:.01em}.am-fa-b{font-weight:inherit}
+.am-fnote{background:#f3d77f;color:#14203a!important;border-radius:5px;padding:3px 9px;display:inline-block!important;font-size:.82rem!important}
 .aph-qcard.am-long .answer{font-size:clamp(1.15rem,.8rem + .75vw,1.6rem);line-height:1.45;text-align:left;overflow-wrap:break-word;text-wrap:pretty}
 
 /* 📖 Read & listen */
@@ -4910,6 +4913,10 @@ function cleanForSpeech(text, lang) {
 
 function speak(text, lang, onEndCallback) {
   if (!text) return;
+  // a speaker button pressed again while that same sentence is playing silences it at once
+  var _key = lang + '|' + text;
+  if ((synth.speaking || synth.pending) && window._amLastSpoken === _key && Date.now() - (window._amTapAt || 0) < 700) { window._amLastSpoken = ''; synth.cancel(); return; }
+  window._amLastSpoken = _key;
   synth.cancel();
   const langCode = lang === 'en' ? 'en-GB' : lang === 'fr' ? 'fr-FR' : lang === 'it' ? 'it-IT' : 'es-ES';
   const u = new SpeechSynthesisUtterance(cleanForSpeech(text, lang));
@@ -4946,11 +4953,11 @@ var LZ = {
   aHtml: function (card) {
     var flags = { en: '🇬🇧', fr: '🇫🇷', it: '🇮🇹' };
     var fi = card._fi || null;
-    return '<div class="answer">' + (fi ? fi.a + '<span class="am-full">' + (card[card._t || _lz.t] || card.answer) + '</span>' : (card[card._t || _lz.t] || card.answer)) + '</div>'
+    return '<div class="answer">' + (fi ? fi.full : (card[card._t || _lz.t] || card.answer)) + '</div>'
       + '<div class="am-others">' + ['en','fr','it'].filter(function (l) { return l !== card.fromLang && l !== card.toLang && (amSet !== 'am' || card[l]); }).map(function (l) {
           return '<span>' + flags[l] + ' ' + card[l] + '</span>'; }).join('') + '</div>';
   },
-  aText: function (card) { return (card._fi && card._fi.a) || card.answer; },
+  aText: function (card) { return (card._fi && card._fi.af) || (card._fi && card._fi.a) || card.answer; },
   speak: function (text, l, cb) { speak(text, l, cb); }
 };
 // ─────────────────────────────────────────────────────────────────
@@ -5743,7 +5750,7 @@ function revealAnswer() {
   const ctl = cardT(card);
 
   const _fi = card._fi || null;
-  speak(_fi ? _fi.a : (card[ctl] || card.answer), ctl);
+  speak(_fi ? (_fi.af || _fi.a) : (card[ctl] || card.answer), ctl);
 
   // Hide show answer button
   const revealBtn = document.getElementById('revealBtn');
@@ -5753,7 +5760,7 @@ function revealAnswer() {
   const answerDiv = document.getElementById('answer');
   if (answerDiv) {
     answerDiv.innerHTML = `
-      <div class="answer" id="cardAnswerText">${_fi ? _fi.a : (card[cardT(card)] || card.answer)}${_fi ? '<span class="am-full">' + (card[cardT(card)] || card.answer) + '</span>' : ''}</div>
+      <div class="answer" id="cardAnswerText">${_fi ? _fi.full : (card[cardT(card)] || card.answer)}</div>
       <div class="am-others">${
         ['en','fr','it'].filter(l => l !== cardF(card) && l !== cardT(card) && (amSet!=='am'||card[l])).map(l =>
           `<span>${flags[l]} ${card[l]}</span>`
@@ -5777,7 +5784,7 @@ function revealAnswer() {
       <button class="aph-mark-btn ok" onclick="markCorrect()">✓ Got it<small>→ key</small></button>
     </div>`;
     leftBtns.innerHTML = feedbackBtns +
-      `<div class="aph-under"><button class="aph-btn aph-btn-sm" onclick="speak((deck[currentIndex]._fi&&deck[currentIndex]._fi.a)||deck[currentIndex]['${ctl}']||deck[currentIndex].answer,'${ctl}')">&#128266; Replay</button></div>`;
+      `<div class="aph-under"><button class="aph-btn aph-btn-sm" onclick="speak((deck[currentIndex]._fi&&(deck[currentIndex]._fi.af||deck[currentIndex]._fi.a))||deck[currentIndex]['${ctl}']||deck[currentIndex].answer,'${ctl}')">&#128266; Replay</button></div>`;
   }
 }
 
@@ -6607,16 +6614,21 @@ function amFragCands0(p,f,t,relax){
     var wa=wc(fa), wb=wc(fb), fr=wa/tot; if(wa<(relax?3:4)||wb<(relax?2:3)||wa/wb<(relax?0.4:0.5)||wa/wb>(relax?2.5:2)||/[.!?]\s+\S/.test(fa)||/[.!?]\s+\S/.test(fb)) continue;
     if(!edgeOk(fa,f)||!edgeOk(fb,t)) continue;
     var tier=relax?((fr>=0.15&&fr<=0.75)?3:0):((fr>=0.33&&fr<=0.5)?1:((fr>=0.27&&fr<=0.56)?2:((fr>=0.2&&fr<=0.66)?3:0))); if(!tier) continue;
-    out[((m[i][2]&&m[j][2])?'A':'B')+tier].push({s:ra[0],e:ra[1],ans:fb});
+    out[((m[i][2]&&m[j][2])?'A':'B')+tier].push({s:ra[0],e:ra[1],ans:fb,bs:rb[0],be:rb[1]});
   }
   return out.A1.concat(out.A2).length?out.A1.concat(out.A2):(out.A3.length||!relax?out.A3:out.B3);
 }
 /* every long approved sentence is asked as a highlighted third to a half, whichever activity it comes through (Drill, Leisure Mode, Speed Challenge, tests, games) */
 function amCardFi(card,f,t,fresh){ if(!card) return null; if(fresh||card._fi===undefined){ try{ card._fi=(f&&t&&f!==t)?amFragItem(card,f,t):null; }catch(e){ card._fi=null; } } return card._fi; }
 function amFiNote(fi){ return fi?'<span class="am-fnote">Translate only the highlighted part</span>':''; }
+var AM_MARK='background:#f3d77f;color:#14203a;padding:.04em .28em;border-radius:4px;font-weight:800;text-decoration:underline;text-decoration-thickness:2px;text-underline-offset:3px;-webkit-box-decoration-break:clone;box-decoration-break:clone';
+function amEsc(s){ return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;'); }
 function amFragItem(p,pf,pt){
-  var c=amFragCands(p,pf,pt); if(!c.length) return null; var x=c[Math.floor(Math.random()*c.length)], A=String(p[pf]);
-  return {q:A.slice(0,x.s)+'<mark style="background:#fde9a8;color:inherit;padding:0 .15em;border-radius:3px;font-weight:700">'+A.slice(x.s,x.e)+'</mark>'+A.slice(x.e), a:x.ans, pl:A.slice(0,x.s)+'['+A.slice(x.s,x.e)+']'+A.slice(x.e)};
+  var c=amFragCands(p,pf,pt); if(!c.length) return null; var x=c[Math.floor(Math.random()*c.length)], A=String(p[pf]), B=String(p[pt]||'');
+  var r={q:A.slice(0,x.s)+'<mark style="'+AM_MARK+'">'+A.slice(x.s,x.e)+'</mark>'+A.slice(x.e), a:x.ans, pl:A.slice(0,x.s)+'['+A.slice(x.s,x.e)+']'+A.slice(x.e), af:B, full:amEsc(x.ans)};
+  if(x.bs!=null && B.slice(x.bs,x.be)===x.ans){ var pre=B.slice(0,x.bs), post=B.slice(x.be);   // the whole answer sentence: the asked part at full size, the rest small at either end
+    r.pre=pre; r.post=post; r.full=(pre.trim()?'<span class="am-fa-s">'+amEsc(pre)+'</span>':'')+'<span class="am-fa-b">'+amEsc(x.ans)+'</span>'+(post.trim()?'<span class="am-fa-s">'+amEsc(post)+'</span>':''); }
+  return r;
 }
 
 function generateAMSpotTest(timed) {
@@ -12779,7 +12791,7 @@ window.APBZ_HOST = {
       try {   // long approved sentences: the games ask about a third to a half of them (the same highlighted mouthfuls as the Spot Test), not the whole sentence
         if (typeof amFragCands === 'function' && fromLang !== toLang) {
           var cs = amFragCands({ en: c.en, fr: c.fr, it: c.it, es: c.es }, fromLang, toLang);
-          if (cs && cs.length) { var A = String(c[fromLang] || ''), i1 = Math.floor(Math.random() * cs.length), i2 = cs.length > 1 ? (i1 + 1 + Math.floor(Math.random() * (cs.length - 1))) % cs.length : i1, hv = {}; hv[fromLang] = [A.slice(cs[i1].s, cs[i1].e), A.slice(cs[i2].s, cs[i2].e)]; hv[toLang] = [cs[i1].ans, cs[i2].ans]; o.hv = hv; }
+          if (cs && cs.length) { var A = String(c[fromLang] || ''), i1 = Math.floor(Math.random() * cs.length), i2 = cs.length > 1 ? (i1 + 1 + Math.floor(Math.random() * (cs.length - 1))) % cs.length : i1, hv = {}; hv[fromLang] = [A.slice(cs[i1].s, cs[i1].e), A.slice(cs[i2].s, cs[i2].e)]; hv[toLang] = [cs[i1].ans, cs[i2].ans]; var B = String(c[toLang] || ''), cxf = function (x) { return (x.bs != null && B.slice(x.bs, x.be) === x.ans) ? [B.slice(0, x.bs), B.slice(x.be)] : ['', '']; }; hv.cx = {}; hv.cx[toLang] = [cxf(cs[i1]), cxf(cs[i2])]; o.hv = hv; }
         }
       } catch (e) { }
       out.push(o); });
@@ -13037,10 +13049,10 @@ function deck(el,m,n,x,y,face,gap){clear(el);const cs=[];for(let i=0;i<n;i++){co
     + '.bz-m[disabled]{opacity:.45;cursor:default;filter:grayscale(.6)}.bz-m[disabled] span{color:#e9d28a}'
     + '.bz-card{width:min(640px,92%);min-height:260px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;padding:6px 14px;border:46px solid transparent;border-image:url(CARDFACE) 46 fill / 46px stretch;color:#1a2744;font:700 clamp(1.7rem,4.4vw,3rem) Georgia,"Playfair Display",serif;line-height:1.2;filter:drop-shadow(0 14px 22px rgba(0,0,0,.55))}'
     + '.bz-card.bz-lg{font-size:clamp(1.25rem,3vw,2rem);min-height:0;flex:none}.bz-card.bz-xl{font-size:clamp(1rem,2.3vw,1.45rem);min-height:0;flex:none;line-height:1.25}.bz-card.bz-lg .ans,.bz-card.bz-xl .ans{font-size:.82em}'
-    + '.bz-card .hl{background:rgba(201,168,76,.4);border-radius:6px;padding:0 4px;box-decoration-break:clone;-webkit-box-decoration-break:clone}.bz-card .hln{display:block;font:700 .62em "DM Sans",sans-serif;color:#7a5a12;letter-spacing:.06em;text-transform:uppercase;margin-top:6px}'
+    + '.bz-card .hl{background:#f3d77f;color:#14203a;font-weight:800;text-decoration:underline;text-decoration-thickness:2px;text-underline-offset:3px;border-radius:5px;padding:.02em .22em;box-decoration-break:clone;-webkit-box-decoration-break:clone}.hx{font-size:.5em;font-weight:500;opacity:.78}.bz-card .hln{display:block;font:800 .8em "DM Sans",sans-serif;color:#f3d77f;letter-spacing:.06em;text-transform:uppercase;margin-top:6px}'
     + '.bz-mk{gap:22px}.bz-mk .bz-big{min-width:210px;padding:20px 34px;font-size:1.5rem;border-width:3px;box-shadow:0 6px 18px rgba(0,0,0,.45)}.bz-mk .bz-big.got{background:linear-gradient(180deg,#3fb877,#2a8f58);color:#fff;border-color:#a8e6c1}.bz-mk .bz-big.miss{background:linear-gradient(180deg,#e0624f,#b8402f);color:#fff;border-color:#f3b4aa}'
     + '.bz-card.bz-lg .bz-gap{font-size:clamp(1.15rem,2.6vw,1.8rem);letter-spacing:.06em}.bz-card.bz-xl .bz-gap{font-size:clamp(.95rem,2vw,1.3rem);letter-spacing:.04em}'
-    + '.rl-q.rl-s{font-size:clamp(.85rem,1.7vw,1.1rem)}.rl-c .hl{background:rgba(201,168,76,.45);border-radius:5px;padding:0 3px}.rl-c .hln{display:block;font:700 .6em "DM Sans",sans-serif;letter-spacing:.06em;text-transform:uppercase;color:#e9d28a;margin-top:4px}'
+    + '.rl-q.rl-s{font-size:clamp(.85rem,1.7vw,1.1rem)}.rl-c .hl{background:#f3d77f;color:#14203a;font-weight:800;text-decoration:underline;text-decoration-thickness:2px;text-underline-offset:3px;border-radius:5px;padding:.02em .22em}.rl-c .hln{display:block;font:700 .6em "DM Sans",sans-serif;letter-spacing:.06em;text-transform:uppercase;color:#e9d28a;margin-top:4px}'
     + '.bz-acc .kr{display:flex;justify-content:center;flex-wrap:nowrap}.bz-acc .kr button{min-width:58px;padding:12px 6px;font-size:2rem;font-weight:800;line-height:1.1;margin:3px}.bz-acc .kr.kacc{margin-top:10px}.bz-acc .kr.kacc button{background:linear-gradient(180deg,#ffe38a,#e9c24e);border-color:#b8892a;color:#1a2744;font-size:1.45rem;min-width:50px;padding:10px 6px}'
     + '.bz-lt{display:grid;grid-template-columns:minmax(0,1fr);gap:8px;width:min(1180px,98%);align-items:start;margin:0 auto}.bz-side{display:flex;flex-direction:row;align-items:center;justify-content:flex-start;gap:16px;padding:0 4px}.bz-side .bz-stat{flex-direction:row;gap:16px;margin:0}.bz-side .bz-stat b{font-size:1.15rem}.bz-side .bz-stat div{font-size:.6rem}.bz-side .bz-ring{zoom:.56}.bz-side .bz-note{font-size:.8rem;text-align:left;line-height:1.3;margin:0}.bz-lt .bz-card{width:100%;margin:0;min-height:0}.bz-lt .bz-card small{font:800 clamp(1.25rem,2.6vw,1.9rem) Georgia,serif;color:#13203f;letter-spacing:.01em;text-transform:none;padding:6px 20px;background:rgba(201,168,76,.32);border-radius:14px;margin-bottom:6px}.bz-lt .bz-card.bz-lg small{font-size:clamp(1rem,2vw,1.4rem)}.bz-lt .bz-card.bz-xl small{font-size:clamp(.9rem,1.7vw,1.15rem)}.bz-lt .bz-card:not(.bz-lg):not(.bz-xl) .bz-gap{font-size:clamp(2.4rem,5.8vw,4rem)}.bz-lt .bz-card.bz-lg .bz-gap{font-size:clamp(1.5rem,3.4vw,2.4rem)}.bz-lt .bz-card.bz-xl .bz-gap{font-size:clamp(1.2rem,2.7vw,1.8rem)}.bz-lt .bz-row{margin:0}.bz-lt .bz-acc{width:min(100%,930px);margin:0 auto}.bz-lt .bz-acc .kr{width:100%}.bz-lt .bz-acc .kr button{flex:1 1 0;min-width:0;max-width:96px;padding:16px 0;font-size:2.5rem;margin:4px 3px}.bz-lt .bz-acc .kr.kacc button{max-width:70px;font-size:1.7rem;padding:10px 0}.bz-lt #bz-msg{font-size:.95rem;margin:2px 0}.bz-lt .bz-verdict{font-size:1.3rem;padding:4px 20px;margin-bottom:2px}'
     + '.bz-mk .bz-big.near{background:linear-gradient(180deg,#ffe38a,#e9c24e);color:#1a2744;border-color:#b8892a}.rl-nr{background:#d9a62e}'
@@ -13557,7 +13569,7 @@ function deck(el,m,n,x,y,face,gap){clear(el);const cs=[];for(let i=0;i<n;i++){co
   window.apBzStart = function (k) { wrongReset(); stop(); bgNow = null; view = k; ctx(); sfx('go'); window.__erHold = (k === 'run' && snd) ? 1 : 0; if (k === 'run') { CFG.musRun = 'hymn'; CFG.erSay = 1; window.__erFresh = 1; } musicStart(true); GAMES[k](pool(/^(catch|lane)$/.test(k))); };   // Catch it and Lane it only pair words up (recognition), so a Recognition word is just an ordinary word there
 
   // ---------- helpers for self-marked card games
-  function card(q, a, extra, hl) { var n = String(q || '').length + String(a || '').length, z = n > 130 ? ' bz-xl' : n > 60 ? ' bz-lg' : '', qh = hl ? esc(hl[0]) + '<b class="hl">' + esc(hl[1]) + '</b>' + esc(hl[2]) + '<span class="hln">Translate only the highlighted part</span>' : esc(q); return '<div class="bz-card' + z + '" id="bz-card"><small>' + esc(extra || '') + '</small><div>' + qh + '</div><div class="ans" id="bz-ans" style="visibility:hidden">' + esc(a) + ' ' + SAYBTN(a) + '</div></div>'; }
+  function card(q, a, extra, hl, v) { var n = String(q || '').length + String(a || '').length, z = n > 130 ? ' bz-xl' : n > 60 ? ' bz-lg' : '', qh = hl ? esc(hl[0]) + '<b class="hl">' + esc(hl[1]) + '</b>' + esc(hl[2]) + '<span class="hln">Translate only the highlighted part</span>' : esc(q); return '<div class="bz-card' + z + '" id="bz-card"><small>' + esc(extra || '') + '</small><div>' + qh + '</div><div class="ans" id="bz-ans" style="visibility:hidden">' + (v ? ansH(v) : esc(a)) + ' ' + SAYBTN(v ? ansS(v) : a) + '</div></div>'; }
   function reveal() {   // the card turns over: the answer comes up big, the prompt shrinks to a footnote
     var a = $('bz-ans'), cd = a && a.parentNode, fin = function () { var b = $('bz-mark'); if (b) b.style.display = 'flex'; var s = $('bz-show'); if (s) s.style.display = 'none'; };
     if (!a || !cd || cd.classList.contains('bz-back')) { if (a) a.style.visibility = 'visible'; fin(); return; }
@@ -13626,8 +13638,11 @@ function deck(el,m,n,x,y,face,gap){clear(el);const cs=[];for(let i=0;i<n;i++){co
 
   // ---------- the eight rounds
   var GAMES = {};
-  function hvOf(c) { if (c.hv && c.hv[c.hf] && c.hv[c.ht]) { var hs = c.hv[c.hf]; if (c.h == null) c.h = Math.random() < .5 ? 0 : 1; var at = c.q.indexOf(hs[c.h]); if (at >= 0) return { hl: [c.q.slice(0, at), hs[c.h], c.q.slice(at + hs[c.h].length)], a: c.hv[c.ht][c.h] }; } return { hl: null, a: c.a }; }
-  function cardOf(c, extra) { var v = hvOf(c); return card(c.q, v.a, extra, v.hl); }
+  function ctxH(cx, a) { return (cx[0].trim() ? '<span class="hx">' + esc(cx[0]) + '</span>' : '') + '<span class="hb">' + esc(a) + '</span>' + (cx[1].trim() ? '<span class="hx">' + esc(cx[1]) + '</span>' : ''); }
+  function ansH(v) { return v.ax || esc(v.a); }   // the answer: the asked part big, the rest of the sentence small at either end
+  function ansS(v) { return v.af || v.a; }   // what is spoken: the whole sentence
+  function hvOf(c) { if (c.hv && c.hv[c.hf] && c.hv[c.ht]) { var hs = c.hv[c.hf]; if (c.h == null) c.h = Math.random() < .5 ? 0 : 1; var at = c.q.indexOf(hs[c.h]); if (at >= 0) { var an = c.hv[c.ht][c.h], cx = c.hv.cx && c.hv.cx[c.ht] && c.hv.cx[c.ht][c.h]; return { hl: [c.q.slice(0, at), hs[c.h], c.q.slice(at + hs[c.h].length)], a: an, ax: cx ? ctxH(cx, an) : null, af: cx ? cx[0] + an + cx[1] : null }; } } return { hl: null, a: c.a }; }
+  function cardOf(c, extra) { var v = hvOf(c); return card(c.q, v.a, extra, v.hl, v); }
   function selfMarkGame(opt) {   // shared by clock / streak / twomin / roll
     var all = opt.deck.slice(), res = [], pile = opt.deck.slice(), n = 0, ok = 0, miss = 0, startT = Date.now(), cur = null, best = opt.best || 0, run = 0, closed = false;
     function next() {
@@ -13637,7 +13652,7 @@ function deck(el,m,n,x,y,face,gap){clear(el);const cs=[];for(let i=0;i<n;i++){co
       frame(opt.title, (opt.strip ? '<div class="rl-strip">' + all.map(function (x, i) { return '<div class="rl-t' + (res[i] === 1 ? ' ok' : res[i] === 0 ? ' bad' : (i === n - 1 ? ' cur' : '')) + '">' + esc(x.q) + '</div>'; }).join('') + '</div>' : '') + '<div class="bz-stat">' + opt.stats(ok, miss, pile.length + 1, run) + '</div>' + (pc ? ringHTML('bzr') : '') + '<div onclick="apBzShow()" style="cursor:pointer;width:100%;display:flex;justify-content:center">' + card(shown.q, shown.a, cueFor(cur, opt.cue || ''), hl) + '</div>' + '<div class="bz-row"><button class="bz-big" id="bz-show" onclick="apBzShow()">Show answer</button></div><div class="bz-row bz-mk" id="bz-mark" style="display:none"><button class="bz-big miss" onclick="apBzMark(0)">✗ Major error</button><button class="bz-big near" onclick="apBzMark(2)">~ Nearly</button><button class="bz-big got" onclick="apBzMark(1)">✓ Got it</button></div>' + (opt.timerBar ? '<div class="bz-stat" style="margin-top:6px">Time left <b id="bz-tl">' + opt.timerBar() + '</b></div>' : ''));
       if (pc) runRing('bzr', pc, function () { reveal(); sayAns(); });
     }
-    function sayAns() { try { if (opt.say && CFG[opt.say] && cur && !cur.__s) { cur.__s = 1; say(toEn(cur) ? String(cur.q).replace(/<[^>]*>/g, '') : hvOf(cur).a); } } catch (e) { } }
+    function sayAns() { try { if (opt.say && CFG[opt.say] && cur && !cur.__s) { cur.__s = 1; say(toEn(cur) ? String(cur.q).replace(/<[^>]*>/g, '') : ansS(hvOf(cur))); } } catch (e) { } }
     function finish() { closed = true; opt.end({ ok: ok, miss: miss, secs: Math.round((Date.now() - startT) / 1000), best: Math.max(best, run) }); }
     window.apBzShow = function () { stop(); reveal(); sayAns(); if (opt.perCard) { var t = $('bzrt'); if (t) t.textContent = ''; } };
     window.apBzMark = function (good) {
@@ -13684,9 +13699,9 @@ function deck(el,m,n,x,y,face,gap){clear(el);const cs=[];for(let i=0;i<n;i++){co
           }
           function qOf(c) { var v = hvOf(c); return v.hl ? (v.hl[0].trim() ? '[…] ' : '') + (v.hl[2].trim() ? esc(v.hl[1].replace(/\s*…\s*$/, '')) + ' […]' : esc(v.hl[1])) : esc(c.q); }
           function cardHTML(c, i) {
-              return '<div class="rl-c" id="rlc' + i + '" onclick="apRlOpen(' + i + ')"><small>' + esc(cueFor(c, cue)) + (back.indexOf(c) >= 0 ? ' · back again' : '') + '</small><div class="rl-q' + (c.q.length > 90 ? ' rl-s' : '') + '">' + qOf(c) + '</div><div class="rl-hint">Say it, then tap to check</div><div class="rl-a' + (String(hvOf(c).a).length > 95 ? ' rl-ls' : '') + '" style="display:none"><div class="rl-qs">' + qOf(c) + '</div><div class="rl-ans">' + esc(hvOf(c).a) + ' ' + SAYBTN(hvOf(c).a) + '</div><div class="rl-m"><button class="rl-n" onclick="event.stopPropagation();apRlMark(' + i + ',0)">✗ Major error</button><button class="rl-nr" onclick="event.stopPropagation();apRlMark(' + i + ',2)">~ Nearly</button><button class="rl-y" onclick="event.stopPropagation();apRlMark(' + i + ',1)">✓ Got it</button></div></div></div>';
+              return '<div class="rl-c" id="rlc' + i + '" onclick="apRlOpen(' + i + ')"><small>' + esc(cueFor(c, cue)) + (back.indexOf(c) >= 0 ? ' · back again' : '') + '</small><div class="rl-q' + (c.q.length > 90 ? ' rl-s' : '') + '">' + qOf(c) + '</div><div class="rl-hint">Say it, then tap to check</div><div class="rl-a' + (String(hvOf(c).a).length > 95 ? ' rl-ls' : '') + '" style="display:none"><div class="rl-qs">' + qOf(c) + '</div><div class="rl-ans">' + ansH(hvOf(c)) + ' ' + SAYBTN(ansS(hvOf(c))) + '</div><div class="rl-m"><button class="rl-n" onclick="event.stopPropagation();apRlMark(' + i + ',0)">✗ Major error</button><button class="rl-nr" onclick="event.stopPropagation();apRlMark(' + i + ',2)">~ Nearly</button><button class="rl-y" onclick="event.stopPropagation();apRlMark(' + i + ',1)">✓ Got it</button></div></div></div>';
           }
-          window.apRlOpen = function (i) { var c = $('rlc' + i); if (!c || res[i] !== undefined || c.classList.contains('open') || c.classList.contains('flipout')) return; sfx('whoosh'); c.classList.add('flipout'); setTimeout(function () { c.classList.remove('flipout'); c.classList.add('open', 'flipin'); c.querySelector('.rl-q').style.display = 'none'; c.querySelector('.rl-a').style.display = 'block'; c.querySelector('.rl-hint').style.display = 'none'; try { if (CFG.rlSay) say(toEn(deck[i]) ? String(deck[i].q).replace(/<[^>]*>/g, '') : hvOf(deck[i]).a); } catch (e) { } setTimeout(function () { c.classList.remove('flipin'); }, 260); try { c.scrollIntoView({ block: 'nearest', behavior: 'smooth' }); } catch (e) { } }, 170); };
+          window.apRlOpen = function (i) { var c = $('rlc' + i); if (!c || res[i] !== undefined || c.classList.contains('open') || c.classList.contains('flipout')) return; sfx('whoosh'); c.classList.add('flipout'); setTimeout(function () { c.classList.remove('flipout'); c.classList.add('open', 'flipin'); c.querySelector('.rl-q').style.display = 'none'; c.querySelector('.rl-a').style.display = 'block'; c.querySelector('.rl-hint').style.display = 'none'; try { if (CFG.rlSay) say(toEn(deck[i]) ? String(deck[i].q).replace(/<[^>]*>/g, '') : ansS(hvOf(deck[i]))); } catch (e) { } setTimeout(function () { c.classList.remove('flipin'); }, 260); try { c.scrollIntoView({ block: 'nearest', behavior: 'smooth' }); } catch (e) { } }, 170); };
           window.apRlMark = function (i, g) {
             if (res[i] !== undefined) return; if (g !== 1) wrongAdd(deck[i], g === 2 ? 'Nearly' : 'Wrong'); if (g === 2) { var c0 = $('rlc' + i); sfx('tick'); if (spare.length && c0) { carry.push(deck[i]); deck[i] = spare.shift(); c0.outerHTML = cardHTML(deck[i], i); } else if (c0) { c0.classList.remove('open'); c0.querySelector('.rl-a').style.display = 'none'; c0.querySelector('.rl-q').style.display = ''; c0.querySelector('.rl-hint').style.display = ''; } return; } res[i] = g; done++; if (g) ok++; sfx(g ? 'ok' : 'bad');
             var c = $('rlc' + i); c.classList.remove('open'); c.classList.add(g ? 'ok' : 'bad'); c.querySelector('.rl-m').style.display = 'none';
@@ -13744,7 +13759,7 @@ function deck(el,m,n,x,y,face,gap){clear(el);const cs=[];for(let i=0;i<n;i++){co
     '.fl-bk{transform:rotateY(180deg) translateZ(calc(var(--ft)/2));background:linear-gradient(160deg,#fbf7ea,#efe6c8);color:#14203f;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;padding:22px 30px;text-align:center;overflow:auto}',
     '.fl-who{font-weight:800;letter-spacing:.12em;text-transform:uppercase;color:#7a5f14;font-size:.8rem}',
     '.fl-q{font:700 clamp(1.7rem,3.8vw,2.6rem)/1.25 Georgia,serif;color:#14203f}.fl-q.fl-lg{font-size:clamp(1.35rem,2.8vw,1.9rem)}.fl-q.fl-xl{font-size:clamp(1.1rem,2.2vw,1.45rem)}',
-    '.fl-q b.hl,.fl-qs b.hl,.c4-q b.hl{background:linear-gradient(180deg,rgba(246,223,154,.35),#f3d77f);color:#14203f;padding:0 .15em;border-radius:4px;font-weight:800}.fl-hl{font-size:.8rem;font-weight:700;color:#7a5f14;letter-spacing:.06em;text-transform:uppercase}.fl-hint{color:#5b6788;font-size:.95rem}',
+    '.fl-q b.hl,.fl-qs b.hl,.c4-q b.hl{background:#f3d77f;color:#14203f;padding:.02em .22em;border-radius:4px;font-weight:800;text-decoration:underline;text-decoration-thickness:2px;text-underline-offset:3px}.fl-hl{font-size:.8rem;font-weight:700;color:#7a5f14;letter-spacing:.06em;text-transform:uppercase}.fl-hint{color:#5b6788;font-size:.95rem}',
     '.fl-qs{font:600 1rem/1.3 Georgia,serif;color:#5b6788;max-width:92%}.fl-ans{font:700 clamp(1.5rem,3.2vw,2.3rem)/1.25 Georgia,serif;color:#0f5c35}.fl-ans.fl-lg{font-size:clamp(1.15rem,2.3vw,1.6rem)}',
     '.fl-bk .sp{background:#eef2ff;border:1px solid #b7c0d8;border-radius:50%;width:38px;height:38px;cursor:pointer;vertical-align:middle}',
     '.fl-m{display:flex;gap:10px;justify-content:center;margin-top:6px}.fl-m button{--b1:#7b2430;--b2:#3f0c16;--fr:linear-gradient(150deg,#ffe3df,#e49a94 40%,#8a3a3a 62%,#f6c4bf);font:800 1.35rem "DM Sans",sans-serif;letter-spacing:.02em;padding:14px 26px;min-width:190px;min-height:56px;border-radius:14px;border:3px solid transparent;cursor:pointer;color:#fff6dc;text-shadow:0 2px 0 rgba(0,0,0,.55);white-space:nowrap;background:linear-gradient(180deg,rgba(255,255,255,.28),rgba(255,255,255,0) 50%) padding-box,linear-gradient(170deg,var(--b1),var(--b2)) padding-box,var(--fr) border-box;box-shadow:inset 0 0 12px rgba(0,0,0,.45),0 1px 0 var(--b1),0 2px 0 var(--b1),0 3px 0 var(--b2),0 4px 0 var(--b2),0 5px 0 #0b0704,0 10px 14px rgba(0,0,0,.45);transition:transform .1s,filter .1s}.fl-m button:hover{filter:brightness(1.15);transform:translateY(-2px)}.fl-m button:active{transform:translateY(4px);box-shadow:inset 0 0 12px rgba(0,0,0,.45),0 1px 0 #0b0704}.fl-m .fl-n{--b1:#7b2430;--b2:#3f0c16}.fl-m .fl-nr{--b1:#c26a12;--b2:#6a3206;--fr:linear-gradient(150deg,#ffe9c2,#f4b45e 40%,#a8570e 62%,#fcd8a0)}.fl-m .fl-y{--b1:#176b46;--b2:#073b26;--fr:linear-gradient(150deg,#e4fff0,#8fe3b2 40%,#2f8a5c 62%,#c4f3d9)}',
@@ -14018,7 +14033,7 @@ function deck(el,m,n,x,y,face,gap){clear(el);const cs=[];for(let i=0;i<n;i++){co
     '.dl-ff small{font:800 .78rem "DM Sans",sans-serif;letter-spacing:.2em;text-transform:uppercase;color:#c9a84c}',
     '.dl-fq,.dl-fa{font-family:Georgia,"Playfair Display",serif;font-weight:700;line-height:1.2;font-size:clamp(1.5rem,3.6vw,2.7rem)}',
     '.dl-fq.lg,.dl-fa.lg{font-size:clamp(1.15rem,2.6vw,1.9rem)}.dl-fq.xl,.dl-fa.xl{font-size:clamp(.95rem,2vw,1.35rem)}',
-    '.dl-fq{color:#f6efd8}.dl-fa{color:#f0d27a}.dl-fq .hl{background:rgba(201,168,76,.35);border-radius:6px;padding:0 4px}.dl-fq .hln{display:block;font:700 .5em "DM Sans",sans-serif;color:#c9a84c;margin-top:6px}',
+    '.dl-fq{color:#f6efd8}.dl-fa{color:#f0d27a}.dl-fq .hl{background:#f3d77f;color:#14203a;font-weight:800;text-decoration:underline;text-decoration-thickness:2px;text-underline-offset:3px;border-radius:6px;padding:.02em .22em}.dl-fq .hln{display:block;font:700 .5em "DM Sans",sans-serif;color:#c9a84c;margin-top:6px}',
     '.dl-ff .sp{background:rgba(201,168,76,.18);color:#f0d27a;border:1.5px solid #c9a84c;border-radius:99px;padding:5px 14px;font-size:1.05rem;cursor:pointer;vertical-align:middle}',
     '.dl-fp{font:600 .85rem "DM Sans",sans-serif;color:rgba(246,239,216,.6)}',
     '.dl-ctl{position:absolute;left:0;right:0;display:flex;flex-direction:column;align-items:center;gap:10px;transition:opacity .35s}',
@@ -14087,7 +14102,7 @@ function deck(el,m,n,x,y,face,gap){clear(el);const cs=[];for(let i=0;i<n;i++){co
     if (!ov || !r) return; var cx = r.left + r.width / 2, cy = r.top + r.height / 2;
     for (var i = 0; i < 18; i++) { var e = document.createElement('i'), a = Math.random() * Math.PI * 2, d = 50 + Math.random() * 90; e.className = 'dl-sp'; e.style.left = cx + 'px'; e.style.top = cy + 'px'; e.style.setProperty('--x', Math.cos(a) * d + 'px'); e.style.setProperty('--y', Math.sin(a) * d + 'px'); ov.appendChild(e); (function (x) { setTimeout(function () { x.remove(); }, 1100); })(e); }
   }
-  function dlCardView(c, cue) { var v = hvOf(c); return '<div onclick="apBzShow()" style="cursor:pointer;width:100%;display:flex;justify-content:center">' + card(c.q, v.a, cueFor(c, cue), v.hl) + '</div><div class="bz-row"><button class="bz-big" id="bz-show" onclick="apBzShow()">Show answer</button></div>' + dlMarks(); }
+  function dlCardView(c, cue) { var v = hvOf(c); return '<div onclick="apBzShow()" style="cursor:pointer;width:100%;display:flex;justify-content:center">' + card(c.q, v.a, cueFor(c, cue), v.hl, v) + '</div><div class="bz-row"><button class="bz-big" id="bz-show" onclick="apBzShow()">Show answer</button></div>' + dlMarks(); }
   function dlSzCls(t) { var n = String(t || '').length; return n > 110 ? ' xl' : n > 50 ? ' lg' : ''; }
   function dlOpenCard(k, c, cue, topHTML) {   // the tapped card lifts off the table, flips in the middle, and shows its prompt
     var o0 = $('dl-ov'); if (o0) o0.remove();
@@ -14107,7 +14122,7 @@ function deck(el,m,n,x,y,face,gap){clear(el);const cs=[];for(let i=0;i<n;i++){co
     var v = hvOf(c);
     inn.style.transition = 'transform .2s ease-in'; inn.style.transform = 'rotateY(270deg)'; dplay(Math.random() < .5 ? 'p2' : 'p4');
     setTimeout(function () {
-      ff.innerHTML = dlOrn() + '<small>' + esc(H.names[dirs()[1]]) + '</small><div class="dl-fa' + dlSzCls(v.a) + '">' + esc(v.a) + ' ' + SAYBTN(v.a) + '</div><div class="dl-fp">' + esc(String(c.q).replace(/<[^>]*>/g, '')) + '</div>';
+      ff.innerHTML = dlOrn() + '<small>' + esc(H.names[dirs()[1]]) + '</small><div class="dl-fa' + dlSzCls(v.a) + '">' + ansH(v) + ' ' + SAYBTN(ansS(v)) + '</div><div class="dl-fp">' + esc(String(c.q).replace(/<[^>]*>/g, '')) + '</div>';
       inn.style.transition = 'transform .3s ease-out'; inn.style.transform = 'rotateY(180deg)';
       var m = $('bz-mark'); if (m) m.style.display = 'flex';
     }, 210);
@@ -14124,7 +14139,7 @@ function deck(el,m,n,x,y,face,gap){clear(el);const cs=[];for(let i=0;i<n;i++){co
     setTimeout(function () { if (o.parentNode) o.remove(); then(); if (fly) { var pe = ov && ov.querySelector('.dl-pcol.t' + (fly - 1)); if (pe && !quiet) { pe.classList.add('pulse'); setTimeout(function () { pe.classList.remove('pulse'); }, 1000); } } }, T * 1000 + 60);
   }
   function dlPileRect(t) { var e = ov && ov.querySelector('.dl-pcol.t' + t + ' .dl-pile'); if (!e) return null; var r = e.getBoundingClientRect(), w = r.width * .7, h = w * 2 / 3; return { left: r.left + r.width / 2 - w / 2, top: r.bottom - h - 8, width: w, height: h }; }
-  function dlSay(c) { try { if (CFG.dSay) say(toEn(c) ? String(c.q).replace(/<[^>]*>/g, '') : hvOf(c).a); } catch (e) { } }
+  function dlSay(c) { try { if (CFG.dSay) say(toEn(c) ? String(c.q).replace(/<[^>]*>/g, '') : ansS(hvOf(c))); } catch (e) { } }
 
   GAMES.deal = function (p) {
     if (!dlBackOrig) { dlBackOrig = window.apBzBack; window.apBzBack = function () { if (dlSub && view === 'deal') { var f = dlSub; dlSub = null; try { speechSynthesis.cancel(); } catch (e) { } f(); } else dlBackOrig(); }; }
@@ -14588,7 +14603,7 @@ function deck(el,m,n,x,y,face,gap){clear(el);const cs=[];for(let i=0;i<n;i++){co
       }
       function backA(cd) {
         var v = hvOf(cd.c);
-        return who(cd) + '<div class="fl-qs">' + qOf(cd.c) + '</div><div class="fl-ans' + (String(v.a).length > 95 ? ' fl-lg' : '') + '">' + esc(v.a) + ' ' + SAYBTN(v.a) + '</div><div class="fl-m"><button class="fl-n" onclick="apFlMk(0)">✗ Major error</button><button class="fl-nr" onclick="apFlMk(2)">~ Nearly</button><button class="fl-y" onclick="apFlMk(1)">✓ Got it</button></div>';
+        return who(cd) + '<div class="fl-qs">' + qOf(cd.c) + '</div><div class="fl-ans' + (String(v.a).length > 95 ? ' fl-lg' : '') + '">' + ansH(v) + ' ' + SAYBTN(ansS(v)) + '</div><div class="fl-m"><button class="fl-n" onclick="apFlMk(0)">✗ Major error</button><button class="fl-nr" onclick="apFlMk(2)">~ Nearly</button><button class="fl-y" onclick="apFlMk(1)">✓ Got it</button></div>';
       }
       window.apFlPick = function (i) {
         var cd = cards[i]; if (busy || cd.st) return; busy = true; openI = i; sfx('whoosh');
@@ -14603,7 +14618,7 @@ function deck(el,m,n,x,y,face,gap){clear(el);const cs=[];for(let i=0;i<n;i++){co
         a2.onfinish = function () { inn.style.transform = 'rotateX(-6deg) rotateY(168deg)'; };
         timers.push(setTimeout(function () { sfx('ok'); }, 800));
       };
-      window.apFlRev = function () { var cd = cards[openI], b = $('fl-bk'); if (!cd || !b) return; sfx('tick'); b.innerHTML = backA(cd); try { if (CFG.fSay) say(toEn(cd.c) ? String(cd.c.q) : hvOf(cd.c).a); } catch (e) { } };
+      window.apFlRev = function () { var cd = cards[openI], b = $('fl-bk'); if (!cd || !b) return; sfx('tick'); b.innerHTML = backA(cd); try { if (CFG.fSay) say(toEn(cd.c) ? String(cd.c.q) : ansS(hvOf(cd.c))); } catch (e) { } };
       function others(me) { return scores.map(function (v, s) { return s; }).filter(function (s) { return s !== me; }); }
       window.apFlSur = function () {
         var cd = cards[openI], t = cd.sur[0], me = cur, o = others(me), lead = o.reduce(function (a, s) { return scores[s] > scores[a] ? s : a; }, o[0]);
@@ -15137,7 +15152,7 @@ function deck(el,m,n,x,y,face,gap){clear(el);const cs=[];for(let i=0;i<n;i++){co
       function who() { return '<small class="fl-who"><span style="color:' + pcT(cur) + '">' + (P > 1 ? esc(nm(cur)) + ' · ' + pcN(cur) : 'Your go') + '</span> · square ' + pos[cur] + ' · ' + esc(H.names[dirs()[0]]) + '</small>'; }
       function task(c, v) { return '<div class="fl-hl">' + (c.ask ? 'Answer the question in ' + esc(H.names[target()]) : (v.hl ? 'Translate only the bold part into ' : 'Translate into ') + esc(H.names[dirs()[1]])) + '</div>'; }
       function backQ() { var v = hvOf(qd); return who() + '<div class="fl-q' + sz(qd) + '">' + qOf(qd) + '</div>' + task(qd, v) + '<div class="fl-hint">Say it, then reveal</div><button class="bz-big go" onclick="apErRev()">Reveal</button>'; }
-      function backA() { var v = hvOf(qd); return who() + '<div class="fl-qs">' + qOf(qd) + '</div><div class="fl-ans' + (String(v.a).length > 95 ? ' fl-lg' : '') + '">' + esc(v.a) + ' ' + SAYBTN(v.a) + '</div><div class="fl-m"><button class="fl-n" onclick="apErMk(0)">✗ Major error</button><button class="fl-nr" onclick="apErMk(2)">~ Nearly</button><button class="fl-y" onclick="apErMk(1)">✓ Got it</button></div>'; }
+      function backA() { var v = hvOf(qd); return who() + '<div class="fl-qs">' + qOf(qd) + '</div><div class="fl-ans' + (String(v.a).length > 95 ? ' fl-lg' : '') + '">' + ansH(v) + ' ' + SAYBTN(ansS(v)) + '</div><div class="fl-m"><button class="fl-n" onclick="apErMk(0)">✗ Major error</button><button class="fl-nr" onclick="apErMk(2)">~ Nearly</button><button class="fl-y" onclick="apErMk(1)">✓ Got it</button></div>'; }
       window.apErAsk = function () {
         if (busy) return; if (lcDone) lcDone();
         busy = true; qd = nextQ(); sfx('whoosh'); refresh(); try { var ak = document.querySelector('.er-turn.ask'); if (ak) ak.remove(); } catch (e) { }
@@ -15159,7 +15174,7 @@ function deck(el,m,n,x,y,face,gap){clear(el);const cs=[];for(let i=0;i<n;i++){co
         timers.push(setTimeout(function () { el.style.transition = 'opacity .3s'; el.style.opacity = '0'; }, 2500));
         timers.push(setTimeout(function () { el.remove(); fn(); }, 2850));
       }
-      window.apErRev = function () { var b = $('er-q'); if (!b || !qd) return; sfx('tick'); b.innerHTML = backA(); try { if (CFG.erSay) say(toEn(qd) ? String(qd.q) : hvOf(qd).a); } catch (e) { } };
+      window.apErRev = function () { var b = $('er-q'); if (!b || !qd) return; sfx('tick'); b.innerHTML = backA(); try { if (CFG.erSay) say(toEn(qd) ? String(qd.q) : ansS(hvOf(qd))); } catch (e) { } };
       function turnFlash(txt, col, ms, quiet) {   // a big central flash in the team colour; ms = how long it stays (2 s unless told otherwise)
         var old = document.querySelector('.er-turn'); if (old) old.remove();
         var el = document.createElement('div'); el.className = 'er-turn'; el.style.setProperty('--tc', col);
@@ -15602,14 +15617,14 @@ function deck(el,m,n,x,y,face,gap){clear(el);const cs=[];for(let i=0;i<n;i++){co
       frame('Four in a row', bar() + '<div class="c4-wrap"><div class="c4-st" id="c4-st">' + esc(msg) + '</div><div class="c4-cols" id="c4-cols">' + cols() + '</div><div class="c4-board" id="c4-board"><div class="c4-edge"></div><div class="c4-lay" id="c4-lay"></div><div class="c4-face"></div><div class="c4-rim"></div><div class="c4-gloss"></div></div></div>');
       function who() { return '<small class="fl-who"><span style="color:' + TXC[cur] + '">' + esc(nm(cur)) + ' · ' + COLN[cur] + '</span> · column ' + (pend + 1) + ' · ' + esc(H.names[dirs()[0]]) + '</small>'; }
       function backQ() { var v = hvOf(qd), CARD = qd; return who() + '<div class="fl-q' + sz(qd) + '">' + qOf(qd) + '</div>' + '<div class="fl-hl">' + (CARD.ask ? 'Answer the question in ' + esc(H.names[target()]) : (v.hl ? 'Translate only the bold part into ' : 'Translate into ') + esc(H.names[dirs()[1]])) + '</div>' + '<div class="fl-hint">Say it, then reveal</div><button class="bz-big go" onclick="apC4Rev()">Reveal</button>'; }
-      function backA() { var v = hvOf(qd); return who() + '<div class="fl-qs">' + qOf(qd) + '</div><div class="fl-ans' + (String(v.a).length > 95 ? ' fl-lg' : '') + '">' + esc(v.a) + ' ' + SAYBTN(v.a) + '</div><div class="fl-m"><button class="fl-n" onclick="apC4Mk(0)">✗ Major error</button><button class="fl-nr" onclick="apC4Mk(2)">~ Nearly</button><button class="fl-y" onclick="apC4Mk(1)">✓ Got it</button></div>'; }
+      function backA() { var v = hvOf(qd); return who() + '<div class="fl-qs">' + qOf(qd) + '</div><div class="fl-ans' + (String(v.a).length > 95 ? ' fl-lg' : '') + '">' + ansH(v) + ' ' + SAYBTN(ansS(v)) + '</div><div class="fl-m"><button class="fl-n" onclick="apC4Mk(0)">✗ Major error</button><button class="fl-nr" onclick="apC4Mk(2)">~ Nearly</button><button class="fl-y" onclick="apC4Mk(1)">✓ Got it</button></div>'; }
       window.apC4Pick = function (c) {
         if (busy || colFull(c)) return; busy = true; pend = c; qd = nextQ(); sfx('whoosh');
         var st = document.createElement('div'); st.id = 'c4-stage'; st.className = 'fl-stage';
         st.innerHTML = '<div class="c4-q" id="c4-q">' + backQ() + '</div>'; ov.appendChild(st);
         try { $('c4-q').animate([{ transform: 'translateY(80px) rotateX(38deg) scale(.88)', opacity: 0 }, { transform: 'none', opacity: 1 }], { duration: 520, easing: 'cubic-bezier(.2,.8,.2,1)' }); } catch (e) { }
       };
-      window.apC4Rev = function () { var b = $('c4-q'); if (!b || !qd) return; sfx('tick'); b.innerHTML = backA(); try { if (CFG.fSay) say(toEn(qd) ? String(qd.q) : hvOf(qd).a); } catch (e) { } };
+      window.apC4Rev = function () { var b = $('c4-q'); if (!b || !qd) return; sfx('tick'); b.innerHTML = backA(); try { if (CFG.fSay) say(toEn(qd) ? String(qd.q) : ansS(hvOf(qd))); } catch (e) { } };
       window.apC4Mk = function (m) {
         var stg = $('c4-stage'); if (!stg || !qd) return; if (m !== 1) wrongAdd(qd, m === 2 ? 'Nearly' : 'Wrong'); qd = null; stg.style.pointerEvents = 'none'; var c = pend; try { speechSynthesis.cancel(); } catch (e) { }
         stg.style.transition = 'opacity .22s'; stg.style.opacity = '0';
@@ -15818,4 +15833,4 @@ function deck(el,m,n,x,y,face,gap){clear(el);const cs=[];for(let i=0;i<n;i++){co
   if (document.readyState === 'complete') start(); else window.addEventListener('load', start);
 })();
 </script>
-<script id="ap-build">window.__apBuild="54808fac30";window.__apVer=182;(function(){var N=window.__apVer;function put(){try{var h=document.querySelector('header.aph-header');if(!h||document.getElementById('ap-ver'))return;var s=document.createElement('span');s.id='ap-ver';s.textContent='v'+N;s.style.cssText='position:absolute;right:10px;bottom:4px;font:600 11px/1 system-ui,sans-serif;color:#c9a84c;opacity:.8;pointer-events:none;letter-spacing:.04em;z-index:2';if(getComputedStyle(h).position==='static')h.style.position='relative';h.appendChild(s)}catch(e){}}put();document.addEventListener('DOMContentLoaded',put);window.addEventListener('load',put);setInterval(put,2000)})();</script>
+<script id="ap-build">window.__apBuild="c8ac3cf210";window.__apVer=183;(function(){var N=window.__apVer;function put(){try{var h=document.querySelector('header.aph-header');if(!h||document.getElementById('ap-ver'))return;var s=document.createElement('span');s.id='ap-ver';s.textContent='v'+N;s.style.cssText='position:absolute;right:10px;bottom:4px;font:600 11px/1 system-ui,sans-serif;color:#c9a84c;opacity:.8;pointer-events:none;letter-spacing:.04em;z-index:2';if(getComputedStyle(h).position==='static')h.style.position='relative';h.appendChild(s)}catch(e){}}put();document.addEventListener('DOMContentLoaded',put);window.addEventListener('load',put);setInterval(put,2000)})();</script>
