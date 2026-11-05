@@ -6552,7 +6552,10 @@ var AM_FRAG_END={}, AM_FRAG_START={};
   AM_FRAG_START.en=set('and or but is are was were');
   AM_FRAG_START.it=set('e o ma di del della che è sono era erano');
 })();
-function amFragCands(p,f,t){
+function amFragCands(p,f,t){   // the usual third-to-half cut; a sentence with no clean cut gets a looser one rather than staying whole
+  var c=amFragCands0(p,f,t,0); return c.length?c:amFragCands0(p,f,t,1);
+}
+function amFragCands0(p,f,t,relax){
   var A=String(p[f]||''), B=String(p[t]||''); if(!A||!B) return [];
   function nz(s){ return s.replace(/[‘’]/g,"'").toLowerCase(); }
   function wc(s){ return s.trim().split(/\s+/).filter(Boolean).length; }
@@ -6577,12 +6580,12 @@ function amFragCands(p,f,t){
   for(var i=0;i<m.length-1;i++) for(var j=i+1;j<m.length;j++){
     var ra=strip(A.slice(m[i][0],m[j][0]),m[i][0]), rb=strip(B.slice(m[i][1],m[j][1]),m[i][1]);
     var fa=A.slice(ra[0],ra[1]), fb=B.slice(rb[0],rb[1]); if(!fa||!fb) continue;
-    var wa=wc(fa), wb=wc(fb), fr=wa/tot; if(wa<4||wb<3||wa/wb<0.5||wa/wb>2||/[.!?]\s+\S/.test(fa)||/[.!?]\s+\S/.test(fb)) continue;
+    var wa=wc(fa), wb=wc(fb), fr=wa/tot; if(wa<(relax?3:4)||wb<(relax?2:3)||wa/wb<(relax?0.4:0.5)||wa/wb>(relax?2.5:2)||/[.!?]\s+\S/.test(fa)||/[.!?]\s+\S/.test(fb)) continue;
     if(!edgeOk(fa,f)||!edgeOk(fb,t)) continue;
-    var tier=(fr>=0.33&&fr<=0.5)?1:((fr>=0.27&&fr<=0.56)?2:((fr>=0.2&&fr<=0.66)?3:0)); if(!tier) continue;
+    var tier=relax?((fr>=0.15&&fr<=0.75)?3:0):((fr>=0.33&&fr<=0.5)?1:((fr>=0.27&&fr<=0.56)?2:((fr>=0.2&&fr<=0.66)?3:0))); if(!tier) continue;
     out[((m[i][2]&&m[j][2])?'A':'B')+tier].push({s:ra[0],e:ra[1],ans:fb});
   }
-  return out.A1.concat(out.A2).length?out.A1.concat(out.A2):out.A3;
+  return out.A1.concat(out.A2).length?out.A1.concat(out.A2):(out.A3.length||!relax?out.A3:out.B3);
 }
 /* every long approved sentence is asked as a highlighted third to a half, whichever activity it comes through (Drill, Leisure Mode, Speed Challenge, tests, games) */
 function amCardFi(card,f,t,fresh){ if(!card) return null; if(fresh||card._fi===undefined){ try{ card._fi=(f&&t&&f!==t)?amFragItem(card,f,t):null; }catch(e){ card._fi=null; } } return card._fi; }
@@ -10785,9 +10788,22 @@ function showAMStudio(lang) {
     if (mode === 'sentences' && window.__amSpeed.set === 'ps') return C.ps || (C.ps = buildPS());
     return C[mode] || (C[mode] = build(mode));
   }
+  function amSpeedShort(a) {
+    if (a._sh) return a._sh;
+    var o = a.map(function (p) {
+      try {
+        var L = p.fr ? 'fr' : (p.it ? 'it' : (p.es ? 'es' : null)); if (!L || typeof amFragCands !== 'function') return p;
+        var cs = amFragCands(p, 'en', L); if (!cs || !cs.length) return p;
+        var c = cs[Math.floor(Math.random() * cs.length)], q = {}; for (var k in p) q[k] = p[k];
+        q.en = String(p.en).slice(c.s, c.e); q[L] = c.ans; return q;
+      } catch (e) { return p; }
+    });
+    a._sh = o; return o;
+  }
   window.__amSpeed = { sel: null, lang: null, topics: null, rev: null, mode: null, mix: 0, set: 'am' };
   window.__voc = {
-    phrases: function (mode) {
+    phrases: function (mode) { var r = window.__voc._ph(mode); return mode === 'sentences' ? amSpeedShort(r) : r; },   // long sentences are asked as a third to a half (the same highlighted mouthfuls as the Spot Test)
+    _ph: function (mode) {
       var a = arr(mode), t = window.__amSpeed.topics;
       if (!t || !t.length) return a;
       var k = mode + '|' + (window.__amSpeed.set || 'am') + '|' + t.join('\u0001'); if (C.tk !== k) { C.tk = k; C.tv = a.filter(function (p) { return t.indexOf(p.q) >= 0; }); }
@@ -10817,6 +10833,7 @@ function showAMStudio(lang) {
   };
   function openGame() {
     closeVocabChallenge();
+    try { Object.keys(C).forEach(function (k) { if (Array.isArray(C[k])) delete C[k]._sh; }); } catch (e) { }   // a fresh set of shortened sentences each game
     try { if (window.speechSynthesis) speechSynthesis.cancel(); } catch (e) { }
     try { if (typeof countdown !== 'undefined' && countdown) clearInterval(countdown); } catch (e) { }
     var o = document.createElement('div'); o.id = 'apvoc-overlay';
@@ -15774,4 +15791,4 @@ function deck(el,m,n,x,y,face,gap){clear(el);const cs=[];for(let i=0;i<n;i++){co
   if (document.readyState === 'complete') start(); else window.addEventListener('load', start);
 })();
 </script>
-<script id="ap-build">window.__apBuild="2a89e11139";window.__apVer=175;(function(){var N=window.__apVer;function put(){try{var h=document.querySelector('header.aph-header');if(!h||document.getElementById('ap-ver'))return;var s=document.createElement('span');s.id='ap-ver';s.textContent='v'+N;s.style.cssText='position:absolute;right:10px;bottom:4px;font:600 11px/1 system-ui,sans-serif;color:#c9a84c;opacity:.8;pointer-events:none;letter-spacing:.04em;z-index:2';if(getComputedStyle(h).position==='static')h.style.position='relative';h.appendChild(s)}catch(e){}}put();document.addEventListener('DOMContentLoaded',put);window.addEventListener('load',put);setInterval(put,2000)})();</script>
+<script id="ap-build">window.__apBuild="1695095550";window.__apVer=176;(function(){var N=window.__apVer;function put(){try{var h=document.querySelector('header.aph-header');if(!h||document.getElementById('ap-ver'))return;var s=document.createElement('span');s.id='ap-ver';s.textContent='v'+N;s.style.cssText='position:absolute;right:10px;bottom:4px;font:600 11px/1 system-ui,sans-serif;color:#c9a84c;opacity:.8;pointer-events:none;letter-spacing:.04em;z-index:2';if(getComputedStyle(h).position==='static')h.style.position='relative';h.appendChild(s)}catch(e){}}put();document.addEventListener('DOMContentLoaded',put);window.addEventListener('load',put);setInterval(put,2000)})();</script>
