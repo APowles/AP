@@ -11783,11 +11783,13 @@ textarea.ms-in{min-height:7rem;resize:vertical}.ms-hint.ms-hint-sm{font-size:.78
     if (long) { var sh = u.filter(function (c) { return wc(c[L]) <= 26 && wc(c.en) <= 26; }); if (sh.length >= N) u = sh; }
     if (u.length < 3) { alert('Match needs at least 3 different sentences in the selection.'); return; }
     var d = shuffle(u).slice(0, window.apMN ? window.apMN(N) : N);
+    var mE = d.map(function (c) { return plain(c.en); }), mF = d.map(function (c) { return plain(c[L]); }), mFr = false;
+    d.forEach(function (c, k) { try { var fi = amFragItem(c, 'en', L); if (fi) { var m = /\[([^\]]+)\]/.exec(fi.pl); if (m) { mE[k] = m[1]; mF[k] = plain(fi.a); mFr = true; } } } catch (e) { } });
     mm = { d: d, L: L, N: d.length, en: shuffle(d.map(function (_, i) { return i; })), fr: shuffle(d.map(function (_, i) { return i; })), sel: null, done: 0, pen: 0, t0: Date.now(), label: label() };
     ov(head('🧩 Match it', esc(mm.label) + ' · tap an English sentence, then its ' + langName(L) + ' partner') + '<div class="ms-time" id="ms-time">0.0 s</div><div class="ms-grid">'
-      + '<div style="display:grid;gap:10px">' + mm.en.map(function (i) { return '<button class="ms-t" style="font-size:.9375rem;font-weight:500" id="ms-e' + i + '" onclick="apMatchTap(\'e\',' + i + ')">' + esc(plain(d[i].en)) + '</button>'; }).join('') + '</div>'
-      + '<div style="display:grid;gap:10px">' + mm.fr.map(function (i) { return '<button class="ms-t" style="font-size:.9375rem;font-weight:500" id="ms-f' + i + '" onclick="apMatchTap(\'f\',' + i + ')">' + esc(plain(d[i][L])) + '</button>'; }).join('') + '</div></div>'
-      + '<div class="ms-note" id="ms-mnote" style="text-align:center">A wrong pair adds 3 seconds.</div>');
+      + '<div style="display:grid;gap:10px">' + mm.en.map(function (i) { return '<button class="ms-t" style="font-size:.9375rem;font-weight:500" id="ms-e' + i + '" onclick="apMatchTap(\'e\',' + i + ')">' + esc(mE[i]) + '</button>'; }).join('') + '</div>'
+      + '<div style="display:grid;gap:10px">' + mm.fr.map(function (i) { return '<button class="ms-t" style="font-size:.9375rem;font-weight:500" id="ms-f' + i + '" onclick="apMatchTap(\'f\',' + i + ')">' + esc(mF[i]) + '</button>'; }).join('') + '</div></div>'
+      + '<div class="ms-note" id="ms-mnote" style="text-align:center">' + (mFr ? 'Long sentences are shown as one part only; pair the matching parts. ' : '') + 'A wrong pair adds 3 seconds.</div>');
     keys(function () { return false; });
     mt = setInterval(function () { if (!mm.t0) return; var t = (Date.now() - mm.t0) / 1000 + mm.pen; var el = document.getElementById('ms-time'); if (el) el.textContent = t.toFixed(1) + ' s'; }, 100);
   };
@@ -11817,6 +11819,7 @@ textarea.ms-in{min-height:7rem;resize:vertical}.ms-hint.ms-hint-sm{font-size:.78
     var L = foreign(), seen = {}, items = [];
     try { getPool().forEach(function (c) {
       var f = plain(c[L]), e = plain(c.en), n = wc(f);
+      try { var fi = amFragItem(c, 'en', L), mm2 = fi && /\[([^\]]+)\]/.exec(fi.pl); if (mm2) { e = mm2[1]; f = plain(fi.a); n = wc(f); } } catch (e2) { }
       if (!f || n < 4 || n > 40 || seen[f.toLowerCase()] || /_{2}|\.{3}|…|\[|\]|\//.test(f)) return;
       seen[f.toLowerCase()] = 1; items.push({ fr: f, en: e });
     }); } catch (e) { }
@@ -15985,4 +15988,4 @@ function deck(el,m,n,x,y,face,gap){clear(el);const cs=[];for(let i=0;i<n;i++){co
   if (document.readyState === 'complete') start(); else window.addEventListener('load', start);
 })();
 </script>
-<script id="ap-build">window.__apBuild="4b73401279";window.__apVer=177;(function(){var N=window.__apVer;function put(){try{var h=document.querySelector('header.aph-header');if(!h||document.getElementById('ap-ver'))return;var s=document.createElement('span');s.id='ap-ver';s.textContent='v'+N;s.style.cssText='position:absolute;right:10px;bottom:4px;font:600 11px/1 system-ui,sans-serif;color:#c9a84c;opacity:.8;pointer-events:none;letter-spacing:.04em;z-index:2';if(getComputedStyle(h).position==='static')h.style.position='relative';h.appendChild(s)}catch(e){}}put();document.addEventListener('DOMContentLoaded',put);window.addEventListener('load',put);setInterval(put,2000)})();</script>
+<script id="ap-build">window.__apBuild="c7155e5015";window.__apVer=178;(function(){var N=window.__apVer;function put(){try{var h=document.querySelector('header.aph-header');if(!h||document.getElementById('ap-ver'))return;var s=document.createElement('span');s.id='ap-ver';s.textContent='v'+N;s.style.cssText='position:absolute;right:10px;bottom:4px;font:600 11px/1 system-ui,sans-serif;color:#c9a84c;opacity:.8;pointer-events:none;letter-spacing:.04em;z-index:2';if(getComputedStyle(h).position==='static')h.style.position='relative';h.appendChild(s)}catch(e){}}put();document.addEventListener('DOMContentLoaded',put);window.addEventListener('load',put);setInterval(put,2000)})();</script>
