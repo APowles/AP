@@ -104,3 +104,7 @@ Record kept from 6 Nov 2026. Add a line for every change. Roll out to all KTRs o
 - Tier buttons show one tier at a time. A new All button shows every tier, with a heading for each.
 - Shuffle and Unticked first work only within the tier on screen (or within each tier under All), so the tiers stay together.
 - Back to logical order restores the tier-first order.
+
+## Practise it: reasons for greyed-out activities (6 Nov 2026)
+- Each unavailable activity shows its reason in a darker, bolder line, prefixed "Unavailable:", for example "Unavailable: Needs at least 3 points."
+- Until a source is chosen, each activity says "Choose a source first".
