@@ -6302,10 +6302,17 @@ var CYCLE_SECTION_TITLES = {
 /* Learn the technique: the gold neon QPSEAIOHC splash (jingle, concert backdrop, Start) lives inside the KTR Studio frame, not in this page, so open that frame, play its splash there, then hand over to the phrase drill picker here. If the frame is slow or fails, go straight to the picker so the button is never dead. */
 function kcSplashPhrase(){
   var gone=false;function next(){if(gone)return;gone=true;showPhraseDrill();}
-  try{showKTRStudio();}catch(e){next();return;}
-  var f=document.getElementById('ktr-studio-frame'),n=0;
-  if(!f){next();return;}
-  try{f.style.visibility='hidden';}catch(e){}
+  /* open the KTR Studio frame the same way showKTRStudio does, but without the Studio's own opening splash (pictures + music), so only the Quipsy IOC splash is heard */
+  var f=null;
+  try{
+    apIosAudio();
+    try{var AC=window.AudioContext||window.webkitAudioContext;if(AC){window.__ktrAC=window.__ktrAC||new AC();if(window.__ktrAC.state==="suspended")window.__ktrAC.resume()}}catch(e){}
+    var src=document.getElementById('ktr-studio-src').textContent.replace(/<\\\/script/g,'<'+'/script');
+    src=src.split("if(document.readyState==='complete')setTimeout(hmSplash,0);else addEventListener('load',()=>setTimeout(hmSplash,0));").join('');
+    document.getElementById('app').innerHTML='<iframe id="ktr-studio-frame" title="KTR Studio" allow="fullscreen *; autoplay *" allowfullscreen style="display:block;width:100%;border:0;height:calc(100vh - 100px);min-height:520px;background:#fff;visibility:hidden"></iframe>';
+    f=document.getElementById('ktr-studio-frame');f.srcdoc=src;window.scrollTo(0,0);
+  }catch(e){next();return;}
+  var n=0;
   (function w(){
     if(gone)return;
     try{
@@ -16131,7 +16138,7 @@ var KC_TRIM=3;function kcSplash(done){let mu=null;const T={Q:.4,P:.5,S:.82,E:.95
   try{const bx=sh.querySelector('.kc-bulbs');for(let n=0;n<26;n++){const e=document.createElement('span');e.className='kc-sp';e.textContent='\u2726';const a=Math.random()*6.283,rx=50+Math.random()*7,ry=50+Math.random()*9;e.style.left=(50+Math.cos(a)*rx)+'%';e.style.top=(50+Math.sin(a)*ry)+'%';e.style.fontSize=(10+Math.random()*20)+'px';e.style.animationDelay=(Math.random()*1.6).toFixed(2)+'s';e.style.animationDuration=(.9+Math.random()*1.1).toFixed(2)+'s';bx.appendChild(e)}}catch(e){}
   try{const ids=(KC.ks||[]).filter(n=>typeof ILLUS!=='undefined'&&ILLUS[n]&&ILLUS[n].src);const pool=kcSh(ids.length>1?ids:Object.keys(ILLUS||{}).filter(n=>ILLUS[n]&&ILLUS[n].src));
     if(pool.length){const bg=document.createElement('div');bg.className='kc-spbg';bg.innerHTML='<div class="kc-sl"></div><div class="kc-sl"></div><div class="kc-sv"></div>';sh.style.position='relative';sh.insertBefore(bg,sh.firstChild);const L=bg.querySelectorAll('.kc-sl');let i=0,cur=0;
-      const show=()=>{if(!document.body.contains(sh)){clearInterval(iv);return}const e=L[cur^1];e.style.backgroundImage='url('+ILLUS[pool[i%pool.length]].src+')';e.style.animation='none';void e.offsetWidth;e.style.animation='kcKb 2.4s ease-out forwards';e.style.opacity=1;L[cur].style.opacity=0;cur^=1;i++;};
+      const show=()=>{if(!document.body.contains(sh)){clearInterval(iv);return}const e=L[cur^1];e.style.backgroundImage='url('+ILLUS[pool[i%pool.length]].src+')';e.style.animation='none';void e.offsetWidth;e.style.animation='kcKb 2.4s ease-out forwards';e.style.opacity=1;L[cur].style.opacity=0;cur^=1;i++;try{kcBlip(520+(i%6)*40,.02)}catch(x){}};
       show();const iv=setInterval(show,620)}}catch(e){}
   const stop=()=>{fin=true;cancelAnimationFrame(raf);try{if(au){au.pause();au=null}}catch(e){}try{if(mu){mu.pause();mu=null}}catch(e){}};
   const fade=()=>{const m=mu;mu=null;if(!m)return;let v=m.volume;const iv=setInterval(()=>{v-=.07;if(v<=.02){try{m.pause()}catch(e){}clearInterval(iv)}else{try{m.volume=v}catch(e){}}},40)};
@@ -16142,7 +16149,7 @@ var KC_TRIM=3;function kcSplash(done){let mu=null;const T={Q:.4,P:.5,S:.82,E:.95
   const tick=()=>{if(fin)return;if(!document.body.contains(sh)){stop();return}
     const mt=(mu&&!mu.paused&&mu.currentTime>0)?mu.currentTime:(performance.now()-t0)/1000-.2+KC_TRIM,bs=mt-LEAD;
     if(!sk&&mt>=6.6){sk=true;kcSparkleSnd();kcSparkleFx(sh)}
-    if(!vs&&bs>=0){vs=true}   // the second tune (KC_JINGLE) is no longer played: the Quipsy IOC theme is the only music
+    if(!vs&&bs>=0){vs=true;try{au=new Audio(KC_JINGLE);au.volume=.95;const pr=au.play();if(pr&&pr.catch)pr.catch(()=>{au=null})}catch(e){au=null}}
     const tt=(au&&!au.paused&&!au.ended&&au.currentTime>0)?au.currentTime:bs;
     if(mu&&mt>5.6&&mu.volume<.9){try{mu.volume=Math.min(.95,mu.volume+.1)}catch(e){}}
     sh.querySelectorAll('.kc-lt').forEach(e=>e.classList.toggle('on',tt>=T[e.dataset.l]));
@@ -24280,4 +24287,4 @@ function deck(el,m,n,x,y,face,gap){clear(el);const cs=[];for(let i=0;i<n;i++){co
   if (document.readyState === 'complete') start(); else window.addEventListener('load', start);
 })();
 </script>
-<script id="ap-build">window.__apBuild="01cd16f897";window.__apVer=422;(function(){var N=window.__apVer;function put(){try{var h=document.querySelector('header.aph-header');if(!h||document.getElementById('ap-ver'))return;var s=document.createElement('span');s.id='ap-ver';s.textContent='v'+N;s.style.cssText='position:absolute;right:10px;bottom:4px;font:600 11px/1 system-ui,sans-serif;color:#c9a84c;opacity:.8;pointer-events:none;letter-spacing:.04em;z-index:2';if(getComputedStyle(h).position==='static')h.style.position='relative';h.appendChild(s)}catch(e){}}put();document.addEventListener('DOMContentLoaded',put);window.addEventListener('load',put);setInterval(put,2000)})();</script>
+<script id="ap-build">window.__apBuild="6f4f28f68c";window.__apVer=423;(function(){var N=window.__apVer;function put(){try{var h=document.querySelector('header.aph-header');if(!h||document.getElementById('ap-ver'))return;var s=document.createElement('span');s.id='ap-ver';s.textContent='v'+N;s.style.cssText='position:absolute;right:10px;bottom:4px;font:600 11px/1 system-ui,sans-serif;color:#c9a84c;opacity:.8;pointer-events:none;letter-spacing:.04em;z-index:2';if(getComputedStyle(h).position==='static')h.style.position='relative';h.appendChild(s)}catch(e){}}put();document.addEventListener('DOMContentLoaded',put);window.addEventListener('load',put);setInterval(put,2000)})();</script>
