@@ -78,3 +78,4 @@ Record kept from 6 Nov 2026. Add a line for every change. Roll out to all KTRs o
 - More space between the instructions, the question, the checklist and the frame (26px between sections).
 - Lucie Aubrac frame is now "Lucie Aubrac ne se contente pas de X : elle VERBE Y, ce qui montre que Z." (English: "Lucie Aubrac is not content with X: she VERBS Y, which shows that Z."). The earlier "L inf Y" was wrong: the verb in the frame must be conjugated.
 - Open question: is the boy ticking one checklist item or several? To confirm with Andrew.
+- Use it: after each exam question (where a KTR has more than one), a bottom button reads "Next: attempt Question 2 ›" (then 3). The stage's own Next ("Now I can") appears only after the last question.
