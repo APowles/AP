@@ -72,3 +72,9 @@ Record kept from 6 Nov 2026. Add a line for every change. Roll out to all KTRs o
 - English prompts in Basic drill and Rebuild must be phrased so that a boy is led to the French words, not just the meaning. Example: "was a history teacher, and she was agrégée in 1938" (not "who passed the agrégation").
 - Lucie Aubrac basic drill item 1 changed to this rule. The other 23 Basic drill items still need checking against it.
 - Lucie Aubrac basic drill: items 4, 6, 13 and 18 reworded to the drill rule. Item 4 now says 1997 only; the earlier "February" was not in the source facts and is removed.
+
+## Use it page (global layout; check every KTR)
+- Instructions reworded: 1 "Read the exam question and tick the material you would use in your answer." 2 "Use the sentence frame below at the beginning of your answer, and say it aloud." 3 "Press Show a model sentence below, then compare."
+- More space between the instructions, the question, the checklist and the frame (26px between sections).
+- Lucie Aubrac frame is now "Lucie Aubrac ne se contente pas de X : elle VERBE Y, ce qui montre que Z." (English: "Lucie Aubrac is not content with X: she VERBS Y, which shows that Z."). The earlier "L inf Y" was wrong: the verb in the frame must be conjugated.
+- Open question: is the boy ticking one checklist item or several? To confirm with Andrew.
