@@ -17687,8 +17687,9 @@ function ovoTap(i){
   if(i===o.placed){o.placed++;o.wrong=-1;render();const b=k.picture[i];if(b)fsSay(b.fr)}
   else{o.wrong=i;render();setTimeout(()=>{if(o.wrong===i){o.wrong=-1;if(S.view==='ktr'&&S.stage==='o'&&S.ovm==='order')render()}},1100)}
 }
+function gapEn(b){const m=((b.cl&&b.cl.en)||'').match(/\*\*(.+?)\*\*/);return m?m[1]:(b.en||'')}
 function ovgClue(i){const o=ovoSt(ktr());o.clue[i]=o.clue[i]?0:1;render()}
-function ovgRev(i){const k=ktr(),o=ovoSt(k);o.rev[i]=o.rev[i]?0:1;render();if(o.rev[i]&&k.picture[i])fsSay(k.picture[i].fr)}
+function ovgRev(i){const k=ktr(),o=ovoSt(k);o.rev[i]=o.rev[i]?0:1;render()}
 function ovgReset(){const o=ovoSt(ktr());o.clue.fill(0);o.rev.fill(0);render()}
 function ovgText(b,rev){
   const f=b.fr,c=(b.cl&&b.cl.fr)||'',x=c?f.indexOf(c):-1;if(x<0)return esc(f);
@@ -17742,7 +17743,7 @@ function ovoView(k){
   const o=ovoSt(k),bs=k.picture||[];
   const pills=`<div class="ovo-pills"><button class="tg${o.round==='order'?' on':''}" onclick="ovoRound('order')">Order</button><button class="tg${o.round==='gaps'?' on':''}" onclick="ovoRound('gaps')">Gaps</button></div>`;
   if(o.round==='gaps'){
-    const cards=bs.map((b,i)=>`<div class="ov-b rd ovg-b${o.rev[i]?' s1':''}">${ovBadge(b,i)}<div class="ovg-s">${ovgText(b,o.rev[i])}</div>${o.clue[i]?`<div class="ovg-clue"><b>Clue:</b> ${esc(b.en)}</div>`:''}<div class="ovg-btns"><button class="btn${o.clue[i]?' pri':''}" onclick="ovgClue(${i})">💡 Clue</button><button class="btn${o.rev[i]?' pri':''}" onclick="ovgRev(${i})">${o.rev[i]?'Hide':'Reveal'}</button></div></div>`).join('');
+    const cards=bs.map((b,i)=>`<div class="ov-b rd ovg-b${o.rev[i]?' s1':''}">${ovBadge(b,i)}<div class="ovg-s">${ovgText(b,o.rev[i])}</div>${o.clue[i]?`<div class="ovg-clue"><b>Clue:</b> <b>${esc(gapEn(b))}</b></div>`:''}<div class="ovg-btns"><button class="btn${o.clue[i]?' pri':''}" onclick="ovgClue(${i})">💡 Clue</button><button class="btn${o.rev[i]?' pri':''}" onclick="ovgRev(${i})">${o.rev[i]?'Hide':'Reveal'}</button></div></div>`).join('');
     return `<div class="ov">${pills}<div class="ov-l"><b>Trouvez la phrase clé de chaque partie.</b> Find the key phrase of each part. Say it, then tap Reveal to check.</div>${cards}</div>`;
   }
   const done=o.placed>=o.len;
@@ -17758,7 +17759,7 @@ function matchShuffle(){const k=ktr();if(S.mt)delete S.mt[k.n];render()}
 function matchPick(n,pi,ti){const st=S.mt[n];st.ans[pi]=ti;render()}
 function sMatch(k){const bs=k.picture||[],st=matchSt(k);
  const cards=st.perm.map(pi=>{const b=bs[pi],a=st.ans[pi],ok=a===pi;
-  return `<div class="ov-b rd"${ok?' style="border-color:#2a7a4b"':''}><div class="ov-full">${esc(b.fr)}</div><div class="ovg-btns">${bs.map((x,ti)=>`<button class="btn${a===ti?' pri':''}" onclick="matchPick(${k.n},${pi},${ti})">${esc(x.label)}</button>`).join('')}</div>${a!==undefined&&!ok?`<div class="ovo-msg bad"><b>Pas encore celui-là.</b> Not that one yet.</div>`:''}${ok?`<div class="ovo-msg"><b>Bien&nbsp;!</b> Right.</div>`:''}</div>`}).join('');
+  return `<div class="ov-b rd"${ok?' style="border-color:#2a7a4b"':''}><div class="ov-full">${esc(b.fr)}</div><div class="ovg-btns">${bs.map((x,ti)=>`<button class="btn${a===ti?' pri':''}" style="background:${(PAS[ti]||[])[0]||'#fff'};border-color:${(PAS[ti]||[])[1]||'#1a2744'}" onclick="matchPick(${k.n},${pi},${ti})">${esc(x.label)}</button>`).join('')}</div>${a!==undefined&&!ok?`<div class="ovo-msg bad"><b>Pas encore celui-là.</b> Not that one yet.</div>`:''}${ok?`<div class="ovo-msg"><b>Bien&nbsp;!</b> Right.</div>`:''}</div>`}).join('');
  return `<div class="ov"><div class="ov-l"><b>Quel titre va avec quel passage ?</b> Tap the title that goes with each passage.</div>${cards}</div>`}
 function sRecap(k){const bs=k.picture||[];return `<div class="ov"><div class="ov-l"><b>Dites-le en français.</b> Say each headline in French, then tap Reveal to check.</div>${bs.map((b,i)=>`<div class="ov-b s2 rd">${ovBadge(b,i)}<div class="ov-full"><div class="line">${esc(b.recap_en)}</div><details class="clipgl"><summary>Reveal · Montrer</summary><div class="line">${esc(b.recap_fr)}</div></details></div></div>`).join('')}</div>`}
 function sOv(k){
@@ -24203,4 +24204,4 @@ function deck(el,m,n,x,y,face,gap){clear(el);const cs=[];for(let i=0;i<n;i++){co
   if (document.readyState === 'complete') start(); else window.addEventListener('load', start);
 })();
 </script>
-<script id="ap-build">window.__apBuild="b16cfda17b";window.__apVer=324;(function(){var N=window.__apVer;function put(){try{var h=document.querySelector('header.aph-header');if(!h||document.getElementById('ap-ver'))return;var s=document.createElement('span');s.id='ap-ver';s.textContent='v'+N;s.style.cssText='position:absolute;right:10px;bottom:4px;font:600 11px/1 system-ui,sans-serif;color:#c9a84c;opacity:.8;pointer-events:none;letter-spacing:.04em;z-index:2';if(getComputedStyle(h).position==='static')h.style.position='relative';h.appendChild(s)}catch(e){}}put();document.addEventListener('DOMContentLoaded',put);window.addEventListener('load',put);setInterval(put,2000)})();</script>
+<script id="ap-build">window.__apBuild="fa34184b2c";window.__apVer=325;(function(){var N=window.__apVer;function put(){try{var h=document.querySelector('header.aph-header');if(!h||document.getElementById('ap-ver'))return;var s=document.createElement('span');s.id='ap-ver';s.textContent='v'+N;s.style.cssText='position:absolute;right:10px;bottom:4px;font:600 11px/1 system-ui,sans-serif;color:#c9a84c;opacity:.8;pointer-events:none;letter-spacing:.04em;z-index:2';if(getComputedStyle(h).position==='static')h.style.position='relative';h.appendChild(s)}catch(e){}}put();document.addEventListener('DOMContentLoaded',put);window.addEventListener('load',put);setInterval(put,2000)})();</script>
