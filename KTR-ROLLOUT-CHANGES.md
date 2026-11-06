@@ -55,3 +55,9 @@ Record kept from 6 Nov 2026. Add a line for every change. Roll out to all KTRs o
 
 ## Still to do (from 6 Nov feedback)
 - Words you need: colour-code the categories (words, nouns, chunks) instead of all white tiles; whole tile tappable; English first, then French; an activity before Drill it.
+
+## Words you need (global code; check every KTR)
+- Each word and chunk is a coloured card by type: noun blue, verb red, phrase green, connector purple, chunk gold.
+- Whole card is tappable. English shows first; say the French, then tap to reveal it. Speaker on every card.
+- Instructions: French line in bold, English line below it in grey italics.
+- Chunks use the same card style.

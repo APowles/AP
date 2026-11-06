@@ -17511,13 +17511,21 @@ function copyLinks(){
 }
 
 /* words */
+function wRev(n,key){S.wr=S.wr||{};const id=n+':'+key;S.wr[id]=!S.wr[id];render()}
+const WCOL={noun:['#e8f1ff','#2a5aa8'],verb:['#fdeeea','#b5452e'],phrase:['#eaf7ee','#2a7a4b'],connector:['#f3ecff','#6b3fa0'],chunk:['#fff6d9','#9a6b00']};
 function sWords(k){
-  mark(k.n,'w');
-  const types={noun:'noun',verb:'verb',phrase:'phrase',connector:'connector'};
-  return `<div class="sect"><div class="label">Words you need</div>
-   <div class="cards">${k.words.map(w=>`<div class="wc"><span class="tp">${types[w.type]||w.type}${w.vv?' · '+esc(w.vv):''}</span><div class="line">${SRC(w)}${FL(w)}<button class="spk" data-t="${esc(w.fr)}" onclick="spk(this)" aria-label="Hear it in French">${SPK}</button></div></div>`).join('')}</div></div>
-  <div class="sect"><div class="label">Chunks you can reuse · X, Y, INF, PP, ADJ, SUBJ stand for what you add</div>
-   <div class="cards" style="grid-template-columns:repeat(auto-fill,minmax(320px,1fr))">${k.chunks.map(c=>`<div class="chunk"><div class="line">${SRC(c)}${FL(c,'',true)}<button class="spk" data-t="${esc(c.fr)}" onclick="spk(this)" aria-label="Hear it in French">${SPK}</button></div></div>`).join('')}</div></div>`;
+  mark(k.n,'w');S.wr=S.wr||{};
+  const types={noun:'Noun',verb:'Verb',phrase:'Phrase',connector:'Connector'};
+  const card=(key,w,type,label)=>{const on=!!S.wr[k.n+':'+key];const c=WCOL[type]||['#fff','#1a2744'];
+    return `<div class="wc" role="button" tabindex="0" onclick="wRev(${k.n},'${key}')" style="cursor:pointer;background:${c[0]};border:2px solid ${c[1]};border-radius:12px;padding:12px 14px">`
+     +`<div style="font-size:.85rem;font-weight:700;color:${c[1]};text-transform:uppercase;letter-spacing:.05em">${label}</div>`
+     +`<div class="line" style="font-size:1.25rem;margin-top:6px;font-weight:${on?'400':'600'};color:${on?'#333':'#1a2744'}">${on?esc(w.fr):esc(w.en||'')}</div>`
+     +`<div style="display:flex;gap:10px;align-items:center;justify-content:space-between;margin-top:8px"><span style="font-size:.95rem;color:#666;font-style:italic">${on?'Tap to hide the French':'Say it in French, then tap to check'}</span><button class="spk" data-t="${esc(w.fr)}" onclick="event.stopPropagation();spk(this)" aria-label="Hear it in French">${SPK}</button></div></div>`};
+  const intro=`<div style="font-size:1.2rem;font-weight:700;color:#1a2744;margin-bottom:6px">Dites chaque mot en français, puis touchez la case pour vérifier.</div><div style="font-size:1.05rem;color:#666;font-style:italic;margin-bottom:14px">Say each word in French, then tap the card to check. Tap the speaker to hear it.</div>`;
+  return `<div class="sect">${intro}<div class="label">Words you need</div>
+   <div class="cards">${k.words.map((w,i)=>card('w'+i,w,w.type,(types[w.type]||w.type)+(w.vv?' · '+esc(w.vv):''))).join('')}</div></div>
+   <div class="sect"><div class="label">Chunks you can reuse · X, Y, INF, PP, ADJ, SUBJ stand for what you add</div>
+   <div class="cards" style="grid-template-columns:repeat(auto-fill,minmax(320px,1fr))">${k.chunks.map((c,i)=>card('c'+i,c,'chunk','Chunk')).join('')}</div></div>`;
 }
 
 /* drills */
@@ -24208,4 +24216,4 @@ function deck(el,m,n,x,y,face,gap){clear(el);const cs=[];for(let i=0;i<n;i++){co
   if (document.readyState === 'complete') start(); else window.addEventListener('load', start);
 })();
 </script>
-<script id="ap-build">window.__apBuild="173bfbb66b";window.__apVer=348;(function(){var N=window.__apVer;function put(){try{var h=document.querySelector('header.aph-header');if(!h||document.getElementById('ap-ver'))return;var s=document.createElement('span');s.id='ap-ver';s.textContent='v'+N;s.style.cssText='position:absolute;right:10px;bottom:4px;font:600 11px/1 system-ui,sans-serif;color:#c9a84c;opacity:.8;pointer-events:none;letter-spacing:.04em;z-index:2';if(getComputedStyle(h).position==='static')h.style.position='relative';h.appendChild(s)}catch(e){}}put();document.addEventListener('DOMContentLoaded',put);window.addEventListener('load',put);setInterval(put,2000)})();</script>
+<script id="ap-build">window.__apBuild="691c31ae6a";window.__apVer=349;(function(){var N=window.__apVer;function put(){try{var h=document.querySelector('header.aph-header');if(!h||document.getElementById('ap-ver'))return;var s=document.createElement('span');s.id='ap-ver';s.textContent='v'+N;s.style.cssText='position:absolute;right:10px;bottom:4px;font:600 11px/1 system-ui,sans-serif;color:#c9a84c;opacity:.8;pointer-events:none;letter-spacing:.04em;z-index:2';if(getComputedStyle(h).position==='static')h.style.position='relative';h.appendChild(s)}catch(e){}}put();document.addEventListener('DOMContentLoaded',put);window.addEventListener('load',put);setInterval(put,2000)})();</script>
