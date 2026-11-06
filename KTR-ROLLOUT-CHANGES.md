@@ -140,3 +140,8 @@ Record kept from 6 Nov 2026. Add a line for every change. Roll out to all KTRs o
 ## User guides updated (6 Nov 2026)
 - guides/a-level.html: Now I can order and views (tier-first order, the All view, Shuffle and Unticked within the level); the Practise it source choice (nothing preselected, Quick revision listed, reasons on greyed-out activities); View & Print for Whole KTR (comparisons, key quotations and photos); speed-card cue "highlighted part".
 - guides/igcse.html: Approved Material 'Bold bits' is now 'Highlighted bits', with the gold highlight and the TRANSLATE ONLY THE HIGHLIGHTED PART tag.
+
+## Drill autoplay (6 Nov 2026, approved by Andrew)
+- Basic drill (KTR Studio) and the Practise it Drill it: the French answer plays automatically when it is revealed. Pressing the speaker again stops it. This is an exception to the rule that French audio never autoplays on reveal.
+- The English prompt is not spoken; the speaker only reads French.
+- Gaps and Rebuild are not included yet.
