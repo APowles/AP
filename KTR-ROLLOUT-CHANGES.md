@@ -84,3 +84,9 @@ Record kept from 6 Nov 2026. Add a line for every change. Roll out to all KTRs o
 - Opens on Essential only. Tapping Important or Bonus shows that group alone; tapping the active group again no longer shows everything.
 - Essential is always yellow (#d9a400 on pale yellow). Important stays blue, Bonus purple.
 - Lucie Aubrac "Explain why she matters" (Essential): split into two sentences with a colon, so it reads in French. Film date given as 1997.
+
+## Practise it: source picker (6 Nov 2026)
+- Nothing is preselected when the page opens. The last choice is no longer remembered between visits (it was stored in localStorage).
+- Until a source is chosen, every activity is greyed out, with the line "Choose one source above first."
+- Whole KTR is labelled "Whole KTR (all of the above)" and sits first.
+- View & Print for Whole KTR still omits the Compare and Quotes sections, and the Photos section, which the KTR's layout includes. To be fixed in the sheet renderer (kpSheetOne) for all KTRs.
