@@ -15531,7 +15531,7 @@ function go(v,sub,k){
   if(v==='sub')S.story=1;
   render();window.scrollTo(0,0);
   if(v==='sub')svAuto(0);
-  if(v==='ktr'&&k!=null){try{ktrIntro(ktr())}catch(e){}}
+  if(v==='ktr'&&k!=null){try{const _cb=(HM&&HM.hint==='roll')?()=>{HM.hint=null;hmGoK(S.sub,S.k)}:undefined;ktrIntro(ktr(),_cb)}catch(e){}}
 }
 function crumb(){
   let c='';
@@ -17101,7 +17101,7 @@ function vCardsOv(c,x,I,fresh,hold){
    +'<div><div class="fc-q">'+esc(k.term)+'</div><div class="fc-qen">Answer the question by telling the parts in order. Tap a part for the clue, then the answer.</div></div>'+timer
    +'<div class="mc-ctl fc-ctl"><button class="btn" onclick="fcOvAll('+(a.some(v=>v>0)?'false':'true')+')">'+(a.some(v=>v>0)?'🙈 Hide all':'👁 Reveal all')+'</button>'
    +'<button class="btn fc-got'+(c.ok?' on':'')+'" onclick="fcGot()">'+(c.ok?'✓ Marked as got it · tap to undo':'☐ Mark as got it')+'</button><button class="btn" onclick="fcNext()">Back to the cards</button>'
-   +'<button class="btn" onclick="fcPractise('+n+')">Practise this KTR</button><button class="btn" onclick="mcFsToggle()">⛶</button></div>'
+   +'<button class="btn" onclick="mcFsToggle()">⛶</button></div>'
    +'<div class="fc-ovg"><div class="mc-img fc-pic'+(fresh?' fc-in':'')+(hold?' fc-hold':'')+'" style="--ar:'+(I.w/I.h).toFixed(4)+'"><img src="'+I.src+'" alt=""></div>'
    +'<div>'+(k.hook?'<div class="ov-q">'+LN(k.hook)+'</div>':'')+ovPanel(k,'c',true)+'</div></div></div>';
 }
@@ -17118,7 +17118,7 @@ function vCardsCard(){
    +'<div class="mc-ctl fc-ctl"><span class="label" style="margin:0 6px 0 0">Detail '+(p+1)+'</span><button class="btn" onclick="fcClue()">💡 '+(FC.clue?'Hide the clue':'Clue')+'</button>'
    +(FC.shown?'<button class="btn" onclick="fcHide()">🙈 Hide the answer</button>':'<button class="btn pri" onclick="fcShow()">👁 Reveal</button>')
    +'<button class="btn fc-got'+(c.ok?' on':'')+'" onclick="fcGot()">'+(c.ok?'✓ Marked as got it · tap to undo':'☐ Mark as got it')+'</button><button class="btn" onclick="fcNext()">Back to the cards</button>'
-   +'<button class="btn" onclick="fcPractise('+n+')">Practise this KTR</button><button class="btn" onclick="mcFsToggle()">⛶</button></div>'
+   +'<button class="btn" onclick="mcFsToggle()">⛶</button></div>'
    +clue+ans
    +'<div class="mc-img fc-pic'+(fresh?' fc-in':'')+(hold?' fc-hold':'')+'" style="--ar:'+(I.w/I.h).toFixed(4)+'"><img src="'+I.src+'" alt="">'+'<span class="spmk act" role="button" title="Tap for the clue" onclick="if(!FC.clue)fcClue()" style="cursor:pointer;pointer-events:auto;left:'+sp.x+'%;top:'+sp.y+'%">'+(p+1)+'</span></div>'
    +'</div>';
@@ -17155,13 +17155,13 @@ function hmBar(kind){
 function vHmThemes(){
   const cards=[1,2,3,4].map(t=>{const ss=SUBS.filter(s=>s.theme===t),n=ss.reduce((a,s)=>a+s.ktrs.length,0);
     return `<button class="hm-card${HMSEL.t.has(t)?' sel':''}" data-img="${hmThemeImg(t)||''}" onclick="HM.pick=2;HM.theme=${t};if(HM.hint!=='roll')HMSEL.s.clear();render();window.scrollTo(0,0)"><span class="hm-tk${HMSEL.t.has(t)?' on':''}" role="checkbox" aria-checked="${HMSEL.t.has(t)}" aria-label="Tick Thème ${t}" onclick="event.stopPropagation();hmTog('t',${t})"></span><span class="hm-cno">Thème ${t}</span><span class="hm-cnm">${esc(HMT[t])}</span><span class="hm-cmeta">${ss.length} sous-thèmes · ${n} KTRs</span></button>`}).join('');
-  return `<div class="hm-back"><button class="spbtn" onclick="HM.pick=0;HM.hint=null;render()">← Accueil</button></div><h1 class="h1">Choisissez un thème</h1>${HM.hint==='roll'?'<p class="hm-sh" style="margin:0 0 10px">Tap a picture to open it. To practise just one KTR, open its sous-thème and press <b>Practise this KTR</b>.</p>':''}${hmBar('t')}<div class="hm-themes">${cards}</div>`;
+  return `<div class="hm-back"><button class="spbtn" onclick="HM.pick=0;HM.hint=null;render()">← Accueil</button></div><h1 class="h1">Choisissez un thème</h1>${HM.hint==='roll'?'<p class="hm-sh" style="margin:0 0 10px">Tap a picture to go straight into QPSEAIOHC for that KTR.</p>':''}${hmBar('t')}<div class="hm-themes">${cards}</div>`;
 }
 function vHmTheme(){
   const t=HM.theme,tiles=SUBS.filter(s=>s.theme===t).map(s=>{
     const kn=(s.ktrs.find(k=>typeof ILLUS!=='undefined'&&ILLUS[k.n])||{}).n,done=s.ktrs.filter(k=>(PR[k.n]||{}).u).length;
     return `<button class="hm-card${HMSEL.s.has(s.subtheme)?' sel':''}" data-img="${kn||''}" onclick="go('sub',${s.subtheme})"><span class="hm-tk${HMSEL.s.has(s.subtheme)?' on':''}" role="checkbox" aria-checked="${HMSEL.s.has(s.subtheme)}" aria-label="Tick sous-thème ${s.subtheme}" onclick="event.stopPropagation();hmTog('s',${s.subtheme})"></span><span class="hm-cno">Sous-thème ${s.subtheme}</span><span class="hm-cnm">${esc(s.name)}</span><span class="hm-cmeta">${s.ktrs.length} KTRs · ${done} completed</span></button>`}).join('');
-  return `<div class="hm-back"><button class="spbtn" onclick="HM.pick=1;render()">← Thèmes</button></div><h1 class="h1">Thème ${t} · ${esc(HMT[t])}</h1>${HM.hint==='roll'?'<p class="hm-sh" style="margin:0 0 10px">Tap a picture to open it. To practise just one KTR, open its sous-thème and press <b>Practise this KTR</b>.</p>':''}${hmBar('s')}<div class="hm-themes hm-subs">${tiles}</div>`;
+  return `<div class="hm-back"><button class="spbtn" onclick="HM.pick=1;render()">← Thèmes</button></div><h1 class="h1">Thème ${t} · ${esc(HMT[t])}</h1>${HM.hint==='roll'?'<p class="hm-sh" style="margin:0 0 10px">Tap a picture to go straight into QPSEAIOHC for that KTR.</p>':''}${hmBar('s')}<div class="hm-themes hm-subs">${tiles}</div>`;
 }
 function vMix(){
   const m=kpMerge();return `<h1 class="h1">Ready to practise?</h1><p class="hm-sh" style="margin:0 0 12px"><b>${esc(MIXS.lab)}</b> · ${m.ids.length} KTRs</p>${kpStrip(m)}`;
@@ -17181,7 +17181,7 @@ function vHome(){
   return `<div class="hm-hero"><div class="hm-bg" id="hm-bg"></div><div class="hm-shade"></div><div class="hm-in">
     <div class="hm-kick">${n} KTRs · ${SUBS.length} sous-thèmes</div><h1 class="hm-title">KTR Studio</h1><p class="hm-tag">Learn, practise and test the 70 Key Topic References</p>
     <div class="hm-tiles">${hmTile('hm-big','<img alt="" src="icons/hx_topic.webp" style="width:100%;height:100%;display:block">','Learn a KTR<small class="hm-d">Pick a theme, then a KTR, then choose how to practise it</small>',"HM.pick=1;HM.hint=null;render();window.scrollTo(0,0)")}${keys.length&&window.parent&&window.parent.ORAL_CYCLE_EXPRS?hmTile('hm-big',`<img alt="" src="${HM_IC.cyc}" style="width:100%;height:100%;display:block">`,'QPSEAIOHC + KTRs<small class="hm-d">Practise the Oral Cycle on the KTRs you choose</small>',"HM.pick=2;HM.theme=1;HM.hint='roll';HMSEL.s.clear();HMSEL.t.clear();render();window.scrollTo(0,0)"):''}</div>
-    ${keys.length?`<div class="hm-kick" style="margin-top:16px">Or test yourself</div><div class="hm-cta" style="margin-top:8px">${hmTile('sm','<img alt="" src="icons/hx_wheel.webp" style="width:100%;height:100%;display:block">','Spin the wheel',"openMachine([])")}${hmTile('sm',HM_IC.deal,'Shuffle and deal',"openCards()")}${hmTile('sm',HM_IC.quiz,'KTR Pub Quiz',"kqOpen()")}${hmSm('icons/hx_how.webp','How to use the Studio','','https://apowles.github.io/AP/guides/ktr-studio.html')}</div>`:`<div class="hm-cta" style="margin-top:10px">${hmSm('icons/hx_how.webp','How to use the Studio','','https://apowles.github.io/AP/guides/ktr-studio.html')}</div>`}</div></div></div>
+    ${keys.length?`<div class="hm-kick" style="margin-top:20px;font-size:1em;letter-spacing:.12em;color:#f3d98a;font-weight:800">↓ Test yourself</div><div class="hm-cta" style="margin-top:10px">${hmTile('sm','<img alt="" src="icons/hx_wheel.webp" style="width:100%;height:100%;display:block">','Spin the wheel<span class="hm-d">Random picture — say it on the spot</span>',"openMachine([])")}${hmTile('sm',HM_IC.deal,'Shuffle and deal<span class="hm-d">Deal cards, say each sentence</span>',"openCards()")}${hmTile('sm',HM_IC.quiz,'KTR Pub Quiz<span class="hm-d">Questions from across the KTRs</span>',"kqOpen()")}${hmSm('icons/hx_how.webp','How to use the Studio','','https://apowles.github.io/AP/guides/ktr-studio.html')}</div>`:`<div class="hm-cta" style="margin-top:10px">${hmSm('icons/hx_how.webp','How to use the Studio','','https://apowles.github.io/AP/guides/ktr-studio.html')}</div>`}</div></div></div>
   <details class="hm-more"><summary><img alt="" src="icons/hx_more.webp" style="width:34px;height:34px;border-radius:9px;vertical-align:middle;margin-right:10px;box-shadow:0 3px 8px rgba(0,0,0,.3)">More options</summary>
     <div class="row"><button class="spbtn pri" onclick="openSpeed([])">⚡ Speed sessions: race on the words, any KTR or a mix</button>${spotHost()?`<button class="spbtn subbtn" onclick="openSpot(${all})">✍ Submitted Spot Test</button><button class="spbtn" onclick="openPaper(${all})">🖨 Paper Spot Test</button>`:''}${setTestBtn(all)}<button class="spbtn" onclick="toggle('proj')">Large type</button><button class="spbtn" onclick="openHow()">How this works</button>${keys.length?`<button class="spbtn" onclick="hmSplash(true)">▶ Revoir l'intro</button>`:''}</div>
     ${TEACH?'<div class="row" style="margin-top:12px"><button class="btn pri" onclick="go(\'review\')">Review notes for Andrew</button></div>':''}
@@ -17339,7 +17339,7 @@ function vSub(){
   const cards=s.ktrs.map((k,x)=>{const ok=(PR[k.n]||{}).u;
     const on=HMSEL.k.has(k.n);return `<button class="hm-card hm-kc${on?' sel':''}" data-img="${(typeof ILLUS!=='undefined'&&ILLUS[k.n])?k.n:''}" onclick="go('ktr',${s.subtheme},${x})">${HM.hint==='roll'?`<span class="hm-k1" role="button" title="Practise just this KTR with QPSEAIOHC + KTRs" onclick="event.stopPropagation();hmGoK(${s.subtheme},${k.n})"><b>Practise this KTR ›</b></span>`:''}<span class="hm-tk${on?' on':''}" role="checkbox" aria-checked="${on}" aria-label="Tick KTR ${x+1}" onclick="event.stopPropagation();hmTogK(${k.n})"></span><span class="hm-cno">KTR ${x+1}${ok?' · ✓':''}${(PR[k.n]||{}).a?' · Story ✓':''}</span><span class="hm-cnm">${esc(k.term)}</span></button>`}).join('');
   const tk=hmRollNs().length,allk=s.ktrs.every(k=>HMSEL.k.has(k.n)),okc=!!(window.parent&&window.parent.ORAL_CYCLE_EXPRS);
-  const kbar=`<div class="hm-sel"><button type="button" class="hm-tallink" onclick="hmAllK(${s.subtheme})">${allk?'Untick all':'Tick all'}</button>${tk&&okc&&HM.hint==='roll'?`<span class="hm-sh"><b>${tk} KTR${tk>1?'s':''} ticked</b></span><button class="spbtn spc-card hm-bulbbtn" onclick="hmGoK(${s.subtheme})" title="Practise the ticked KTRs with QPSEAIOHC + KTRs">${hmBulbLab(30)}</button>`:tk&&HM.hint!=='roll'?`<span class="hm-sh"><b>${tk} KTR${tk>1?'s':''} ticked</b></span><button type="button" class="hm-tallink" onclick="var e=document.querySelector('.kp');if(e)e.scrollIntoView({behavior:'smooth',block:'start'})">Practise them ›</button>${tk===1?`<button type="button" class="hm-tallink" onclick="go('ktr',${s.subtheme},${s.ktrs.findIndex(k=>HMSEL.k.has(k.n))})">Start with its Overview ›</button>`:''}`:`<span class="hm-sh">${HM.hint==='roll'?'Press <b>Practise this KTR</b> on any card to practise just that one, or tap a picture to open it.':'Tap a KTR to open it, or tick several KTRs to practise them together.'}</span>`}</div>`;
+  const kbar=`<div class="hm-sel"><button type="button" class="hm-tallink" onclick="hmAllK(${s.subtheme})">${allk?'Untick all':'Tick all'}</button>${tk&&okc&&HM.hint==='roll'?`<span class="hm-sh"><b>${tk} KTR${tk>1?'s':''} ticked</b></span><button class="spbtn spc-card hm-bulbbtn" onclick="hmGoK(${s.subtheme})" title="Practise the ticked KTRs with QPSEAIOHC + KTRs">${hmBulbLab(30)}</button>`:tk&&HM.hint!=='roll'?`<span class="hm-sh"><b>${tk} KTR${tk>1?'s':''} ticked</b></span><button type="button" class="hm-tallink" onclick="var e=document.querySelector('.kp');if(e)e.scrollIntoView({behavior:'smooth',block:'start'})">Practise them ›</button>${tk===1?`<button type="button" class="hm-tallink" onclick="go('ktr',${s.subtheme},${s.ktrs.findIndex(k=>HMSEL.k.has(k.n))})">Start with its Overview ›</button>`:''}`:`<span class="hm-sh">${HM.hint==='roll'?'Tap a picture to go straight into QPSEAIOHC for that KTR, or tick several and use the bulb button.':'Tap a KTR to open it, or tick several KTRs to practise them together.'}</span>`}</div>`;
   return h.slice(0,i)+kbar+`<div class="hm-themes hm-subs hm-ks">${cards}</div><details class="hm-more hm-start" open><summary>★ Start here: play the story of this sub-theme, then its videos and timeline</summary>${h.slice(i,j)}</details>${s.ktrs.some(k=>HMSEL.k.has(k.n))?kpStrip(kpMerge()):''}${kpTimeline()}`;
 }
 
@@ -17724,7 +17724,7 @@ function ovStory(k,hideQ){
   return `<div class="ov">${hideQ?'':`<div class="ov-ql">Question:</div><div class="ov-q">${k.hook?LN(k.hook):''}</div>`}<div class="ov-l">Say each part in French, then tap it to check. Press <b>Continue the story</b> for the next part. Switch <b>English gist</b> off for a harder go.</div><div class="ov-ctl"><button class="btn" onclick="ovShowAll()">🇫🇷 Show all French</button><button class="btn" onclick="ovStart()">↺ Start again</button><button class="btn" onclick="ovEn(${!OVEN})">🇬🇧 English gist: ${OVEN?'On':'Off'}</button></div>${cards}${ans}${c<tot?`<div class="ov-cont"><div class="ov-cn">Part ${c} of ${tot} shown. Say it in French, tap it to check, then press the button to reveal the next part. Take the story one piece at a time.</div><button class="btn pri ov-go ov-big" onclick="ovContinue()">▶ Continue the story</button></div>`:`<div class="ov-cont"><div class="ov-cn">That is the whole story. Press <b>Next</b> below to go deeper.</div></div>`}</div>`;
 }
 /* Gentle exposure: full-screen picture, fades to watercolour, the hook question holds for 2 s, then morphs into the page (once per KTR per visit) */
-function ktrIntro(k){
+function ktrIntro(k,cb){
   const I=(typeof ILLUS!=='undefined')&&ILLUS[k.n];if(!I||!k.hook)return;
   window.__introSeen=window.__introSeen||{};if(window.__introSeen[k.n])return;window.__introSeen[k.n]=1;
   const old=document.getElementById('ktr-intro');if(old)old.remove();
@@ -17735,7 +17735,7 @@ function ktrIntro(k){
   // Auto-size the band text to fill the height, like the pub quiz band
   requestAnimationFrame(()=>{try{const bd=o.querySelector('.kq-band');if(bd){const b=bd.querySelector('b');const sm=bd.querySelector('small');if(b){const availH=bd.clientHeight-24-(sm?sm.offsetHeight:0);const availW=bd.clientWidth-14;let lo=14,hi=120;while(lo<hi){const m=Math.ceil((lo+hi)/2);b.style.fontSize=m+'px';if(b.offsetHeight<=availH&&b.offsetWidth<=availW)lo=m;else hi=m-1}b.style.fontSize=lo+'px'}}}catch(e){}});
   let done=false;const T=[];
-  const end=()=>{if(done)return;done=true;T.forEach(clearTimeout);o.classList.add('out');setTimeout(()=>o.remove(),1100)};
+  const end=()=>{if(done)return;done=true;T.forEach(clearTimeout);o.classList.add('out');setTimeout(()=>{o.remove();if(typeof cb==='function')cb()},1100)};
   o.onclick=()=>{if(!o.classList.contains('q')){T.forEach(clearTimeout);o.classList.add('wash');setTimeout(()=>o.classList.add('q'),500)}else end()};
   requestAnimationFrame(()=>requestAnimationFrame(()=>o.classList.add('go')));
   T.push(setTimeout(()=>o.classList.add('wash'),4500));
@@ -24273,4 +24273,4 @@ function deck(el,m,n,x,y,face,gap){clear(el);const cs=[];for(let i=0;i<n;i++){co
   if (document.readyState === 'complete') start(); else window.addEventListener('load', start);
 })();
 </script>
-<script id="ap-build">window.__apBuild="5eb2714b01";window.__apVer=403;(function(){var N=window.__apVer;function put(){try{var h=document.querySelector('header.aph-header');if(!h||document.getElementById('ap-ver'))return;var s=document.createElement('span');s.id='ap-ver';s.textContent='v'+N;s.style.cssText='position:absolute;right:10px;bottom:4px;font:600 11px/1 system-ui,sans-serif;color:#c9a84c;opacity:.8;pointer-events:none;letter-spacing:.04em;z-index:2';if(getComputedStyle(h).position==='static')h.style.position='relative';h.appendChild(s)}catch(e){}}put();document.addEventListener('DOMContentLoaded',put);window.addEventListener('load',put);setInterval(put,2000)})();</script>
+<script id="ap-build">window.__apBuild="75713119f9";window.__apVer=404;(function(){var N=window.__apVer;function put(){try{var h=document.querySelector('header.aph-header');if(!h||document.getElementById('ap-ver'))return;var s=document.createElement('span');s.id='ap-ver';s.textContent='v'+N;s.style.cssText='position:absolute;right:10px;bottom:4px;font:600 11px/1 system-ui,sans-serif;color:#c9a84c;opacity:.8;pointer-events:none;letter-spacing:.04em;z-index:2';if(getComputedStyle(h).position==='static')h.style.position='relative';h.appendChild(s)}catch(e){}}put();document.addEventListener('DOMContentLoaded',put);window.addEventListener('load',put);setInterval(put,2000)})();</script>
