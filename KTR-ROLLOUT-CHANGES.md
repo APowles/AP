@@ -122,3 +122,8 @@ Record kept from 6 Nov 2026. Add a line for every change. Roll out to all KTRs o
 - Important: early life, 1940 joining, the Resistance groups, the 1997 film, the 2007 tribute.
 - Bonus: Barbie, 1944 London, the 1984 book title, what she did from 1984.
 - Rule for every KTR: order Now I can items by tier first, and within each tier by the story's sequence, with conclusions last.
+
+## Fact gaps closed (6 Nov 2026)
+- Parcoursup: a new extra fact, "Ses critiques dénoncent la pression subie par les lycéens et des inégalités entre les lycées." The critics' key idea now links to it.
+- Le rap: a new extra fact, on praise for its poetry and social messages, and lyrics challenged in court for incitement to violence or insults. The violence-and-praise key idea now links to it.
+- Both new facts are general. Please check them before roll-out.
