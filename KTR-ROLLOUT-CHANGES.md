@@ -90,3 +90,8 @@ Record kept from 6 Nov 2026. Add a line for every change. Roll out to all KTRs o
 - Until a source is chosen, every activity is greyed out, with the line "Choose one source above first."
 - Whole KTR is labelled "Whole KTR (all of the above)" and sits first.
 - View & Print for Whole KTR still omits the Compare and Quotes sections, and the Photos section, which the KTR's layout includes. To be fixed in the sheet renderer (kpSheetOne) for all KTRs.
+
+## Speed cards: highlighted, not bold (6 Nov 2026)
+- The "translate only" cue now reads "Translate only the highlighted part" and the tag reads "TRANSLATE ONLY THE HIGHLIGHTED PART" (was "bold").
+- The asked part is shown with a pale gold background and bold type, not underlining, which was too faint.
+- Long sentences: keep only the asked phrase highlighted; the rest of the sentence stays as context. To check on each KTR when rolled out.
