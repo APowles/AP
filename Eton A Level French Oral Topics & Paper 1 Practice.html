@@ -16532,7 +16532,7 @@ function vKtr(){
   const k=ktr();
   const tabs=STAGES.filter(s=>(s[0]!=='r'||k.remember)&&(s[0]!=='i'||k.ican)).map(s=>(s[0]==='p'?'<span class="stg-sep">then</span>':'')+`<button class="stg${S.stage===s[0]?' on':''}${s[0]==='p'?' stg-pr':''}" onclick="stg('${s[0]}')"><b>${s[1]}</b>${pips1(k.n,s[0])}</button>`).join('');
   const sts=STAGES.filter(s=>(s[0]!=='r'||k.remember)&&(s[0]!=='i'||k.ican)),ix=sts.findIndex(s=>s[0]===S.stage),nx=sts[ix+1];
-  const body=(S.stage==='p'?`<div class="label" style="margin-top:18px">You have met this KTR: now practise it</div>${kpStrip(k)}`:S.stage==='o'?sOv(k):S.stage==='c'?sComp(k):S.stage==='r'&&k.remember?sRem(k):S.stage==='i'&&k.ican?sIcan(k):S.stage==='w'?sWords(k):S.stage==='d'?sSay(k):sUse(k))+(S.stage==='o'&&(S.ovm||'tell')!=='order'?`<div class="row" style="margin-top:20px"><button class="btn pri" onclick="ovSet('${(S.ovm||'tell')==='read'?'tell':'order'}');window.scrollTo(0,0)">${(S.ovm||'tell')==='read'?'Next: Recap the story ›':'Next: Put in order ›'}</button></div>`:(nx?`<div class="row" style="margin-top:20px"><button class="btn pri" onclick="stg('${nx[0]}');window.scrollTo(0,0)">${nx[0]==='p'?'Ready to practise this KTR ›':'Next: '+nx[1]+' ›'}</button></div>`:''));
+  const body=(S.stage==='p'?`<div class="label" style="margin-top:18px">You have met this KTR: now practise it</div>${kpStrip(k)}`:S.stage==='o'?sOv(k):S.stage==='c'?sComp(k):S.stage==='r'&&k.remember?sRem(k):S.stage==='i'&&k.ican?sIcan(k):S.stage==='w'?sWords(k):S.stage==='d'?sSay(k):sUse(k))+(S.stage==='o'&&OVN[S.ovm||'read']?`<div class="row" style="margin-top:20px"><button class="btn pri" onclick="ovSet('${OVN[S.ovm||'read'][0]}');window.scrollTo(0,0)">Next: ${OVN[S.ovm||'read'][1]} ›</button></div>`:(nx?`<div class="row" style="margin-top:20px"><button class="btn pri" onclick="stg('${nx[0]}');window.scrollTo(0,0)">${nx[0]==='p'?'Ready to practise this KTR ›':'Next: '+nx[1]+' ›'}</button></div>`:''));
   const i=S.k,n=cur().ktrs.length;
   if(S.stage==='r')setTimeout(remJump,60);
   return `<div class="label">${esc(cur().name)} · KTR ${i+1} of ${n}</div>
@@ -17752,18 +17752,27 @@ function ovoView(k){
   const bravo=done?`<div class="ovo-bravo"><div><b>Bravo&nbsp;!</b> <span>Vous avez remis toutes les parties en ordre. You put every part in order.</span></div><button class="btn pri" onclick="ovoRound('gaps')">On to the gaps</button></div>`:'';
   return `<div class="ov">${pills}${bravo}${placed}${msg}${done?'':`<div class="ovo-pool">${pool}</div>`}</div>`;
 }
+const OVN={read:['gaps','Gaps'],gaps:['match','Match the titles'],match:['tell','Recap the story']};
+function matchSt(k){S.mt=S.mt||{};if(!S.mt[k.n]){const p=(k.picture||[]).map((_,i)=>i);for(let i=p.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[p[i],p[j]]=[p[j],p[i]]}S.mt[k.n]={perm:p,ans:{}}}return S.mt[k.n]}
+function matchShuffle(){const k=ktr();if(S.mt)delete S.mt[k.n];render()}
+function matchPick(n,pi,ti){const st=S.mt[n];st.ans[pi]=ti;render()}
+function sMatch(k){const bs=k.picture||[],st=matchSt(k);
+ const cards=st.perm.map(pi=>{const b=bs[pi],a=st.ans[pi],ok=a===pi;
+  return `<div class="ov-b rd"${ok?' style="border-color:#2a7a4b"':''}><div class="ov-full">${esc(b.fr)}</div><div class="ovg-btns">${bs.map((x,ti)=>`<button class="btn${a===ti?' pri':''}" onclick="matchPick(${k.n},${pi},${ti})">${esc(x.label)}</button>`).join('')}</div>${a!==undefined&&!ok?`<div class="ovo-msg bad"><b>Pas encore celui-là.</b> Not that one yet.</div>`:''}${ok?`<div class="ovo-msg"><b>Bien&nbsp;!</b> Right.</div>`:''}</div>`}).join('');
+ return `<div class="ov"><div class="ov-l"><b>Quel titre va avec quel passage ?</b> Tap the title that goes with each passage.</div>${cards}</div>`}
 function sRecap(k){const bs=k.picture||[];return `<div class="ov"><div class="ov-l"><b>Dites-le en français.</b> Say each headline in French, then tap Reveal to check.</div>${bs.map((b,i)=>`<div class="ov-b s2 rd">${ovBadge(b,i)}<div class="ov-full"><div class="line">${esc(b.recap_en)}</div><details class="clipgl"><summary>Reveal · Montrer</summary><div class="line">${esc(b.recap_fr)}</div></details></div></div>`).join('')}</div>`}
 function sOv(k){
   mark(k.n,'o');
-  const m=S.ovm||'tell',bs=k.picture||[];
-  const tabs=[['read','Read & listen'],['tell','Recap the story'],['order','Put in order']].map(t=>`<button class="tg${m===t[0]?' on':''}" onclick="ovSet('${t[0]}')">${t[1]}</button>`).join('');
+  const m=S.ovm||'read',bs=k.picture||[];
+  const tabs=[['read','Read & listen'],['gaps','Gaps'],['match','Match the titles'],['tell','Recap the story']].map(t=>`<button class="tg${m===t[0]?' on':''}" onclick="ovSet('${t[0]}')">${t[1]}</button>`).join('');
   const o=ovoSt(k);
   const story=m==='tell'&&bs.length>0&&bs.every(x=>x.g);const recap=m==='tell'&&bs.length>0&&bs.every(x=>x.recap_fr);const act=m==='tell'?(story||recap?'':`<button class="btn" onclick="ovNext()">▶ Next part</button><button class="btn" onclick="ovAll(true)">👁 Reveal all</button><button class="btn" onclick="ovAll(false)">🙈 Hide all</button>`)
-    :m==='order'?(o.round==='gaps'?`<button class="btn" onclick="ovgReset()">↺ Start again</button>`:`<button class="btn" onclick="ovoShuffle()">🔀 Shuffle</button>`):m==='read'?`<button class="btn pri" onclick="projOpen()" title="Big text for the projector: one or two boxes per screen">🖥 Project</button>`:'';
+    :m==='gaps'?`<button class="btn" onclick="ovgReset()">↺ Start again</button>`:m==='match'?`<button class="btn" onclick="matchShuffle()">🔀 Shuffle</button>`:m==='read'?`<button class="btn pri" onclick="projOpen()" title="Big text for the projector: one or two boxes per screen">🖥 Project</button>`:'';
   let body;
   if(m==='read'){
     body=`<div class="ov">${k.hook?`<div class="ov-ql">Focus question</div><div class="ov-q">${LN(k.hook)}</div>`:''}<div class="ov-l">Les parties, dans l'ordre. The parts, in order.</div>${bs.map((b,i)=>`<div class="ov-b s2 rd">${ovBadge(b,i)}<div class="ov-full">${LN(b)}</div></div>`).join('')}${k.answer?`<div class="ov-b ov-ans s2 rd">${ovAnsBadge(k)}<div class="ov-full">${LN({fr:k.answer.fr,en:k.answer.en})}</div></div>`:''}</div>`;
-  }else if(m==='order')body=ovoView(k);
+  }else if(m==='gaps'){ovoSt(k).round='gaps';body=ovoView(k)}
+  else if(m==='match')body=sMatch(k);
   else if(m==='tell'&&bs.length>0&&bs.every(x=>x.recap_fr))body=sRecap(k);
   else body=ovStory(k,false);
   const I=(typeof ILLUS!=='undefined')&&ILLUS[k.n];
@@ -24194,4 +24203,4 @@ function deck(el,m,n,x,y,face,gap){clear(el);const cs=[];for(let i=0;i<n;i++){co
   if (document.readyState === 'complete') start(); else window.addEventListener('load', start);
 })();
 </script>
-<script id="ap-build">window.__apBuild="4301dd1fbb";window.__apVer=321;(function(){var N=window.__apVer;function put(){try{var h=document.querySelector('header.aph-header');if(!h||document.getElementById('ap-ver'))return;var s=document.createElement('span');s.id='ap-ver';s.textContent='v'+N;s.style.cssText='position:absolute;right:10px;bottom:4px;font:600 11px/1 system-ui,sans-serif;color:#c9a84c;opacity:.8;pointer-events:none;letter-spacing:.04em;z-index:2';if(getComputedStyle(h).position==='static')h.style.position='relative';h.appendChild(s)}catch(e){}}put();document.addEventListener('DOMContentLoaded',put);window.addEventListener('load',put);setInterval(put,2000)})();</script>
+<script id="ap-build">window.__apBuild="23d5f255b5";window.__apVer=322;(function(){var N=window.__apVer;function put(){try{var h=document.querySelector('header.aph-header');if(!h||document.getElementById('ap-ver'))return;var s=document.createElement('span');s.id='ap-ver';s.textContent='v'+N;s.style.cssText='position:absolute;right:10px;bottom:4px;font:600 11px/1 system-ui,sans-serif;color:#c9a84c;opacity:.8;pointer-events:none;letter-spacing:.04em;z-index:2';if(getComputedStyle(h).position==='static')h.style.position='relative';h.appendChild(s)}catch(e){}}put();document.addEventListener('DOMContentLoaded',put);window.addEventListener('load',put);setInterval(put,2000)})();</script>
