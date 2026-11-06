@@ -95,3 +95,6 @@ Record kept from 6 Nov 2026. Add a line for every change. Roll out to all KTRs o
 - The "translate only" cue now reads "Translate only the highlighted part" and the tag reads "TRANSLATE ONLY THE HIGHLIGHTED PART" (was "bold").
 - The asked part is shown with a pale gold background and bold type, not underlining, which was too faint.
 - Long sentences: keep only the asked phrase highlighted; the rest of the sentence stays as context. To check on each KTR when rolled out.
+
+## View & Print: whole KTR (6 Nov 2026)
+- The Whole KTR printed sheet now includes the Compare, Quotes (Les phrases clés) and Photos sections, as well as Qui, Quoi, Quand, Combien and Les idées clés. Previously Compare, Quotes and Photos were left out.
