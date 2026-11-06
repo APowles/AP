@@ -116,3 +116,9 @@ Record kept from 6 Nov 2026. Add a line for every change. Roll out to all KTRs o
 ## Chirac gloss, KTR 70 (6 Nov 2026)
 - The quotation 'Non, la France n'est pas tout entière à Vichy !' is dated to the national tribute to Lucie Aubrac at the Invalides, 21 March 2007 (source: elysee.fr). It is not from 1995.
 - A gloss now sits under the quotation in Les phrases clés: Vichy was the collaborationist government of 1940–44; Chirac means that many French people opposed it and resisted, so France as a whole was not part of that regime.
+
+## Now I can: story order, Lucie Aubrac (6 Nov 2026)
+- Within each tier, the items now follow the story: who, June 1943 arrest, 21 October 1943, her part in the operation, then the women-in-the-Resistance and why-she-matters conclusions last.
+- Important: early life, 1940 joining, the Resistance groups, the 1997 film, the 2007 tribute.
+- Bonus: Barbie, 1944 London, the 1984 book title, what she did from 1984.
+- Rule for every KTR: order Now I can items by tier first, and within each tier by the story's sequence, with conclusions last.
