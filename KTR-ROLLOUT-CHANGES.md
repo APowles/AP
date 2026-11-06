@@ -127,3 +127,8 @@ Record kept from 6 Nov 2026. Add a line for every change. Roll out to all KTRs o
 - Parcoursup: a new extra fact, "Ses critiques dénoncent la pression subie par les lycéens et des inégalités entre les lycées." The critics' key idea now links to it.
 - Le rap: a new extra fact, on praise for its poetry and social messages, and lyrics challenged in court for incitement to violence or insults. The violence-and-praise key idea now links to it.
 - Both new facts are general. Please check them before roll-out.
+
+## Lucie Aubrac checks (6 Nov 2026)
+- Basic drill item 9: 'a Resistance strike unit' is now 'a Resistance armed group', matching groupe franc.
+- Checklist: a stray space removed after 'reconnu'.
+- Reviewed and left as they are: the other basic drill items, the four chunks, and the Use it model answer, which matches the question and the checklist.
