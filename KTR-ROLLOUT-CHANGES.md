@@ -46,3 +46,12 @@ Record kept from 6 Nov 2026. Add a line for every change. Roll out to all KTRs o
 - Gloss for the Chirac quotation.
 - Decide the stage name: currently "Key ideas and facts" (preferred over "Key concepts").
 - Roll out all of the above to every KTR.
+
+## Drill it (global code; check every KTR)
+- Drill tab "Recall" renamed "Basic drill" (Drill it overview and tabs).
+- Gap-fill clue reads "Clue (English)" (was "Click for the English").
+- The stage's bottom Next no longer jumps to Use it until the last drill (Rebuild, or Spot the error where present) is reached. Drill order: Basic drill, Gaps, Rebuild, Spot the error.
+- Learning stages stay optional: the rule is guidance by order, not gating.
+
+## Still to do (from 6 Nov feedback)
+- Words you need: colour-code the categories (words, nouns, chunks) instead of all white tiles; whole tile tappable; English first, then French; an activity before Drill it.
