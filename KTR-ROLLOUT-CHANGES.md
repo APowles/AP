@@ -71,3 +71,4 @@ Record kept from 6 Nov 2026. Add a line for every change. Roll out to all KTRs o
 ## Drill translation rule (all KTRs)
 - English prompts in Basic drill and Rebuild must be phrased so that a boy is led to the French words, not just the meaning. Example: "was a history teacher, and she was agrégée in 1938" (not "who passed the agrégation").
 - Lucie Aubrac basic drill item 1 changed to this rule. The other 23 Basic drill items still need checking against it.
+- Lucie Aubrac basic drill: items 4, 6, 13 and 18 reworded to the drill rule. Item 4 now says 1997 only; the earlier "February" was not in the source facts and is removed.
