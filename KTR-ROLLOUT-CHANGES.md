@@ -132,3 +132,7 @@ Record kept from 6 Nov 2026. Add a line for every change. Roll out to all KTRs o
 - Basic drill item 9: 'a Resistance strike unit' is now 'a Resistance armed group', matching groupe franc.
 - Checklist: a stray space removed after 'reconnu'.
 - Reviewed and left as they are: the other basic drill items, the four chunks, and the Use it model answer, which matches the question and the checklist.
+
+## Approved Material: highlighted, not bold (6 Nov 2026)
+- Both IGCSE Approved Material files (Eton and AP All Languages twins): the 'bold' activity is now named 'Highlighted bits'. Its cue reads 'Translate only the highlighted part', and its tag 'TRANSLATE ONLY THE HIGHLIGHTED PART'.
+- The asked part is shown with the gold highlight, not underlining. Internal keys stay as they were, so nothing else changes.
