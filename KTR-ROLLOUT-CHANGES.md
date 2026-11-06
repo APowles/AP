@@ -61,3 +61,6 @@ Record kept from 6 Nov 2026. Add a line for every change. Roll out to all KTRs o
 - Whole card is tappable. English shows first; say the French, then tap to reveal it. Speaker on every card.
 - Instructions: French line in bold, English line below it in grey italics.
 - Chunks use the same card style.
+
+## Layout of rich Key ideas view (global, all 70 KTRs)
+- Key ideas (Les idées clés) is the first section on every KTR page (layout order in REPX), before people, quoi, dates, figures and so on.
