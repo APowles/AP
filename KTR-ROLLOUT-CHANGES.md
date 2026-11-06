@@ -112,3 +112,7 @@ Record kept from 6 Nov 2026. Add a line for every change. Roll out to all KTRs o
 ## Serge Ravanel removed (6 Nov 2026)
 - The 21 October description now says the Groupe franc was "of Libération-Sud" instead of naming Serge Ravanel.
 - In the quiz item on Charles Tillon, the wrong option Serge Ravanel is replaced with Jean Moulin. Jean Moulin is a real Resistance figure and is not the answer.
+
+## Chirac gloss, KTR 70 (6 Nov 2026)
+- The quotation 'Non, la France n'est pas tout entière à Vichy !' is dated to the national tribute to Lucie Aubrac at the Invalides, 21 March 2007 (source: elysee.fr). It is not from 1995.
+- A gloss now sits under the quotation in Les phrases clés: Vichy was the collaborationist government of 1940–44; Chirac means that many French people opposed it and resisted, so France as a whole was not part of that regime.
