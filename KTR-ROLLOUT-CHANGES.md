@@ -98,3 +98,9 @@ Record kept from 6 Nov 2026. Add a line for every change. Roll out to all KTRs o
 
 ## View & Print: whole KTR (6 Nov 2026)
 - The Whole KTR printed sheet now includes the Compare, Quotes (Les phrases clés) and Photos sections, as well as Qui, Quoi, Quand, Combien and Les idées clés. Previously Compare, Quotes and Photos were left out.
+
+## Now I can: menu and order (6 Nov 2026)
+- Default order is tier-first: Essential, then Important, then Bonus. Within each tier, items keep their written order.
+- Tier buttons show one tier at a time. A new All button shows every tier, with a heading for each.
+- Shuffle and Unticked first work only within the tier on screen (or within each tier under All), so the tiers stay together.
+- Back to logical order restores the tier-first order.
