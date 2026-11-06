@@ -16557,7 +16557,7 @@ function spTick(){const left=Math.max(0,SP.end-Date.now());const bar=document.ge
   if(left<=0){clearInterval(SP.iv);SP.iv=null;SP.over=true;try{spdBeep(660,.4)}catch(e){}if(SP.mem)SP.hide=true;render()}}
 function spReveal(){if(SP.iv){clearInterval(SP.iv);SP.iv=null}SP.ph='reveal';SP.hide=false;SP.act=null;render()}
 function spBack(){const n=SP.n;spReset(n);render()}
-function spAct(i){SP.act=SP.act===i?null:i;render();if(SP.act!==null){const I=ILLUS[SP.n];if(I&&I.spots[SP.act])fsSay(I.spots[SP.act].ff||I.spots[SP.act].fr)}}
+function spAct(i){SP.open=SP.open||{};SP.open[i]=true;SP.act=i;render();if(SP.act!==null){const I=ILLUS[SP.n];if(I&&I.spots[SP.act])fsSay(I.spots[SP.act].ff||I.spots[SP.act].fr)}}
 let FS={n:null,num:false,act:null,demo:false,en:false,api:false,tok:0};
 function fsSay(t,cb){FS.tok++;const my=FS.tok;
   try{if(typeof SV!=='undefined'){SV.tok++;SV.playing=false}speechSynthesis.cancel();const u=new SpeechSynthesisUtterance(ttsText(t));u.lang='fr-FR';
@@ -16623,7 +16623,7 @@ function heroHook(k){
   if(SP.ph!=='idle')return spotView(k,I);
   const dm=!!(SP.demo&&I.demo);
   const panel=dm?`<div class="hero-panel big"><div class="label" style="margin-bottom:6px">Démo de 30 secondes · 30-second model</div>${LN(I.demo)}</div>`:'';
-  const btns=`<div class="hb-top"><button class="btn pri" onclick="spReveal()">🔢 Note the following details</button>${I.demo?`<button class="btn${SP.aud==='fr'?' pri':''}" onclick="heroAud('fr')">${SP.aud==='fr'?'⏹ Stop':'🎧 Listen to the model'}</button><button class="btn${SP.aud==='en'?' pri':''}" onclick="heroAud('en')">${SP.aud==='en'?'⏹ Stop':'🇬🇧 Listen to the model in English'}</button><button class="btn" onclick="SP.demo=!SP.demo;render()">${dm?'🖼 Back to the picture':'📝 Show the text'}</button>`:''}<button class="btn" onclick="fsOpen(${k.n})">⛶ Full screen</button></div>`;
+  const btns=`<div class="hb-top"><button class="btn pri" onclick="spReveal()">👆 Click here, then observe</button>${I.demo?`<button class="btn${SP.aud==='fr'?' pri':''}" onclick="heroAud('fr')">${SP.aud==='fr'?'⏹ Stop':'🎧 Listen to the model'}</button><button class="btn${SP.aud==='en'?' pri':''}" onclick="heroAud('en')">${SP.aud==='en'?'⏹ Stop':'🇬🇧 Listen to the model in English'}</button><button class="btn" onclick="SP.demo=!SP.demo;render()">${dm?'🖼 Back to the picture':'📝 Show the text'}</button>`:''}<button class="btn" onclick="fsOpen(${k.n})">⛶ Full screen</button></div>`;
   const ask=dm?'':`<div class="sp-ask">Remarquez-vous quelque chose d’intéressant ?</div>`;
   return `<div class="hb-row">${ask}${btns}</div><div class="hero${dm?' has-demo':' clear'}" style="--ar:${(I.w/I.h).toFixed(4)}"><img class="hero-img" src="${I.src}" alt="${esc(I.alt_en)}">
     <div class="hero-wash"></div>${panel}
@@ -16635,14 +16635,15 @@ function spotView(k,I){
   const intro=FL({fr:`Observez bien l’image. Combien de détails importants pouvez-vous repérer ? (${n} à trouver)`,en:`Look closely at the image. How many important details can you spot? (${n} to find)`});
   const left=Math.max(0,SP.end-Date.now()),pct=st?Math.round(100*left/(SP.dur*1000)):100;
   const fsb=`<button class="btn" onclick="fsOpen(${k.n})">⛶ Full screen</button>`;
-  const ctl=rv?`<button class="btn" onclick="spBack()">← Back to the picture</button>${fsb}`
+  const ctl=rv?`<button class="btn" onclick="spBack()">← Back to the picture</button><button class="btn" onclick="SP.all=!SP.all;render()">${SP.all?'Hide the points':'Show all points'}</button>${I.demo?`<button class="btn" onclick="SP.demo=!SP.demo;render()">${SP.demo?'🖼 Hide the text':'📝 Show the text'}</button>`:''}${fsb}`
     :`${st?`<span class="sp-t" id="spt">${spdFmt(left/1000)}</span>`:''}
       <label class="mw">Temps · Time <select onchange="spSet('dur',+this.value)">${[30,45,60,90].map(v=>`<option value="${v}"${v===SP.dur?' selected':''}>${v} s</option>`).join('')}</select></label>
       <label class="mw"><input type="checkbox" ${SP.mem?'checked':''} onchange="spSet('mem',this.checked)"> Mode mémoire · Memory mode (image hides when time is up)</label>
       ${st?'':`<button class="btn pri" onclick="spStart()">Start</button>`}
       <button class="btn${st?' pri':''}" onclick="spReveal()">Reveal</button><button class="btn" onclick="spBack()">Back</button>${fsb}`;
-  const list=rv?`<div class="splist">${I.spots.map((s,i)=>`<div class="spi${SP.act===i?' act':''}"><button class="spn" onclick="spAct(${i})" aria-label="Show detail ${i+1}">${i+1}</button><div class="spb">${LN({fr:s.ff||s.fr,en:s.fe||s.en})}${s.pic?`<div class="fc-pic">In the picture: ${esc(s.pic)}</div>`:''}</div></div>`).join('')}</div>`:'';
-  const dem=rv&&I.demo?`<div class="spdemo"><div class="label" style="margin-bottom:6px">Démo de 30 secondes · 30-second model <button class="btn" style="margin-left:8px" onclick="spkDemoEn(${k.n})">${SP.aud==='en'?'⏹ Stop':'🇬🇧 Hear it in English'}</button></div><div class="big">${LN(I.demo)}</div></div>`:'';
+  const shown=i=>SP.all||!!(SP.open&&SP.open[i]);
+  const list=rv?`<div class="sp-hint">${SP.all?'':'<b>Cliquez sur un numéro pour entendre le point.</b> Click a number to hear and read that point.'}</div><div class="splist">${I.spots.map((s,i)=>`<div class="spi${SP.act===i?' act':''}"><button class="spn" onclick="spAct(${i})" aria-label="Hear detail ${i+1}">${i+1}</button>${shown(i)?`<div class="spb">${LN({fr:s.ff||s.fr,en:s.fe||s.en})}${s.pic?`<div class="fc-pic">In the picture: ${esc(s.pic)}</div>`:''}</div>`:''}</div>`).join('')}</div>`:'';
+  const dem=rv&&I.demo&&SP.demo?`<div class="spdemo"><div class="label" style="margin-bottom:6px">Démo de 30 secondes · 30-second model <button class="btn" style="margin-left:8px" onclick="spkDemoEn(${k.n})">${SP.aud==='en'?'⏹ Stop':'🇬🇧 Hear it in English'}</button></div><div class="big">${LN(I.demo)}</div></div>`:'';
   return `<div class="spwrap">${rv?`<div class="sp-ctl">${ctl}</div>`:`<div class="sp-intro big">${intro}</div>`}
     ${st?`<div class="sp-bar"><i id="spbar" style="width:${pct}%"></i></div>`:''}
     <div class="spimg${hid?' hid':''}" style="--ar:${(I.w/I.h).toFixed(4)}"><img src="${I.src}" alt="${esc(I.alt_en)}"><div class="spmsg">Qu’est-ce que vous avez vu ?</div>${marks}</div>
@@ -24205,4 +24206,4 @@ function deck(el,m,n,x,y,face,gap){clear(el);const cs=[];for(let i=0;i<n;i++){co
   if (document.readyState === 'complete') start(); else window.addEventListener('load', start);
 })();
 </script>
-<script id="ap-build">window.__apBuild="6a3fbbee1e";window.__apVer=330;(function(){var N=window.__apVer;function put(){try{var h=document.querySelector('header.aph-header');if(!h||document.getElementById('ap-ver'))return;var s=document.createElement('span');s.id='ap-ver';s.textContent='v'+N;s.style.cssText='position:absolute;right:10px;bottom:4px;font:600 11px/1 system-ui,sans-serif;color:#c9a84c;opacity:.8;pointer-events:none;letter-spacing:.04em;z-index:2';if(getComputedStyle(h).position==='static')h.style.position='relative';h.appendChild(s)}catch(e){}}put();document.addEventListener('DOMContentLoaded',put);window.addEventListener('load',put);setInterval(put,2000)})();</script>
+<script id="ap-build">window.__apBuild="82cf6e0b49";window.__apVer=331;(function(){var N=window.__apVer;function put(){try{var h=document.querySelector('header.aph-header');if(!h||document.getElementById('ap-ver'))return;var s=document.createElement('span');s.id='ap-ver';s.textContent='v'+N;s.style.cssText='position:absolute;right:10px;bottom:4px;font:600 11px/1 system-ui,sans-serif;color:#c9a84c;opacity:.8;pointer-events:none;letter-spacing:.04em;z-index:2';if(getComputedStyle(h).position==='static')h.style.position='relative';h.appendChild(s)}catch(e){}}put();document.addEventListener('DOMContentLoaded',put);window.addEventListener('load',put);setInterval(put,2000)})();</script>
