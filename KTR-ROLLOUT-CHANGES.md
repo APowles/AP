@@ -108,3 +108,7 @@ Record kept from 6 Nov 2026. Add a line for every change. Roll out to all KTRs o
 ## Practise it: reasons for greyed-out activities (6 Nov 2026)
 - Each unavailable activity shows its reason in a darker, bolder line, prefixed "Unavailable:", for example "Unavailable: Needs at least 3 points."
 - Until a source is chosen, each activity says "Choose a source first".
+
+## Serge Ravanel removed (6 Nov 2026)
+- The 21 October description now says the Groupe franc was "of Libération-Sud" instead of naming Serge Ravanel.
+- In the quiz item on Charles Tillon, the wrong option Serge Ravanel is replaced with Jean Moulin. Jean Moulin is a real Resistance figure and is not the answer.
