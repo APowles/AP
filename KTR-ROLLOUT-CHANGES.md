@@ -136,3 +136,7 @@ Record kept from 6 Nov 2026. Add a line for every change. Roll out to all KTRs o
 ## Approved Material: highlighted, not bold (6 Nov 2026)
 - Both IGCSE Approved Material files (Eton and AP All Languages twins): the 'bold' activity is now named 'Highlighted bits'. Its cue reads 'Translate only the highlighted part', and its tag 'TRANSLATE ONLY THE HIGHLIGHTED PART'.
 - The asked part is shown with the gold highlight, not underlining. Internal keys stay as they were, so nothing else changes.
+
+## User guides updated (6 Nov 2026)
+- guides/a-level.html: Now I can order and views (tier-first order, the All view, Shuffle and Unticked within the level); the Practise it source choice (nothing preselected, Quick revision listed, reasons on greyed-out activities); View & Print for Whole KTR (comparisons, key quotations and photos); speed-card cue "highlighted part".
+- guides/igcse.html: Approved Material 'Bold bits' is now 'Highlighted bits', with the gold highlight and the TRANSLATE ONLY THE HIGHLIGHTED PART tag.
