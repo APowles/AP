@@ -64,3 +64,6 @@ Record kept from 6 Nov 2026. Add a line for every change. Roll out to all KTRs o
 
 ## Layout of rich Key ideas view (global, all 70 KTRs)
 - Key ideas (Les idées clés) is the first section on every KTR page (layout order in REPX), before people, quoi, dates, figures and so on.
+
+## Lucie Aubrac chunk fix
+- Chunk 1 is now "X ne se contente pas de INF" (EN "X does not settle for INF-ing"). The "elle INF Y" tail is removed.
