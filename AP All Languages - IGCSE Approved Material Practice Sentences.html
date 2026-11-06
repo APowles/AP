@@ -10968,9 +10968,10 @@ function showAMStudio(lang) {
       if (mode !== 'sentences' && wc(t) === 1 && t.replace(/[^A-Za-zÀ-ÿ]/g, '').length <= 3) return;
       var k = L + '|' + en.toLowerCase() + '|' + t.toLowerCase(); if (seen[k]) return; seen[k] = 1;
       var o = { sec: sec, en: hh || en, lv: lv, q: q };
-      if (ctx && wc(en) <= 6) {   // a short bit: it is asked inside its whole sentence, and only the bold part is to be translated
+      if (ctx) {   // a short bit: it is asked inside its whole sentence, and only the bold part is to be translated
         var ce = locate(ctx.e, en), ct = ce && locate(ctx.t, t);
         if (ce && ct) { if (hh) ce[1] = hh; o.ce = ce; o.ct = ct; }
+        else if (ctx.enMiss && (ct = locate(ctx.t, t))) { o.ce = [ctx.e + '  \u279c  ', hh || en, '']; o.ct = ct; }   // English wording differs from the sentence: the whole English sentence, then the asked phrase highlighted
         else if (ctx.e && ctx.t) { o.ce = ['', ctx.e, '']; o.ct = ['', ctx.t, '']; }   // never show a bare fragment: fall back to the whole sentence
       } o[L] = t; out.push(o);
     }
@@ -10985,18 +10986,18 @@ function showAMStudio(lang) {
       var ex = blk(BLK[L][0]) || [], lm = blk(BLK[L][1]) || {};
       var pl = function (t) { var n = wc(t); return n <= 2 ? 'E' : n <= 4 ? 'M' : 'H'; };
       // a phrase from the list is asked inside the sentence of its own passage that contains it (English and target wording at the same place), so it is never shown as a bare fragment
-      var ctxFor = function (x, L, en, t) { var E = x['en_' + L] || x.en || [], T = x[L] || []; for (var j = 0; j < T.length; j++) { if (E[j] && locate(E[j], en) && locate(T[j], t)) return { e: E[j], t: T[j] }; } return null; };
+      var ctxFor = function (x, L, en, t) { var E = x['en_' + L] || x.en || [], T = x[L] || [], j; for (j = 0; j < T.length; j++) { if (E[j] && locate(E[j], en) && locate(T[j], t)) return { e: E[j], t: T[j] }; } for (j = 0; j < T.length; j++) { if (E[j] && locate(T[j], t)) return { e: E[j], t: T[j], enMiss: 1 }; } return null; };   // 2nd pass: the English wording of the phrase differs from the sentence, so match on the target-language wording
       Object.keys(lm).forEach(function (i) {
         var x = AM_DATA[+i]; if (!x) return; var sec = C.by[x.section_en];
         (lm[i].w || []).forEach(function (w) { add(sec, w[1], L, w[0], pl(w[0]), x.q_en, ctxFor(x, L, w[1], w[0])); });
         // the AP Structures (reusable frames with X / Y / INF / ADJ slots) are tiles too
         (lm[i].s || []).forEach(function (w) { var n = wc(w[0]); add(sec, w[1], L, w[0], n <= 4 ? 'E' : n <= 7 ? 'M' : 'H', x.q_en, ctxFor(x, L, w[1], w[0])); });
       });
-      var cx = function (x, e, L) { var E = x['en_' + L] || x.en || [], T = x[L] || []; return { e: E[e.j], t: T[e.j] }; };
+      var cx = function (x, e, L, en, t) { var E = x['en_' + L] || x.en || [], T = x[L] || [], sc = e.scr && e.scr[L] && e.scr.en ? { e: e.scr.en, t: e.scr[L] } : null, c = { e: E[e.j], t: T[e.j] }; if (sc && !(c.t && locate(c.t, t)) && locate(sc.t, t)) c = { e: sc.e, t: sc.t, enMiss: locate(sc.e, en) ? 0 : 1 }; else if (c.t && c.e && !locate(c.e, en) && locate(c.t, t)) c.enMiss = 1; return c; };   // the exercise's own sentence (scr) is used when the listed one does not hold the piece
       ex.forEach(function (e) {
         var x = AM_DATA[e.i]; if (!x) return; var sec = C.by[x.section_en];
-        (e.short || []).forEach(function (s) { add(sec, s.en, L, s.fr, pl(s.fr), x.q_en, cx(x, e, L), s.h); });
-        (e.bold || []).forEach(function (b) { add(sec, b.en, L, b.fr, pl(b.fr), x.q_en, cx(x, e, L), b.h); });
+        (e.short || []).forEach(function (s) { add(sec, s.en, L, s.fr, pl(s.fr), x.q_en, cx(x, e, L, s.en, s.fr), s.h); });
+        (e.bold || []).forEach(function (b) { add(sec, b.en, L, b.fr, pl(b.fr), x.q_en, cx(x, e, L, b.en, b.fr), b.h); });
       });
     });
     return out;
@@ -16033,4 +16034,4 @@ function deck(el,m,n,x,y,face,gap){clear(el);const cs=[];for(let i=0;i<n;i++){co
   if (document.readyState === 'complete') start(); else window.addEventListener('load', start);
 })();
 </script>
-<script id="ap-build">window.__apBuild="cda8e9240a";window.__apVer=195;(function(){var N=window.__apVer;function put(){try{var h=document.querySelector('header.aph-header');if(!h||document.getElementById('ap-ver'))return;var s=document.createElement('span');s.id='ap-ver';s.textContent='v'+N;s.style.cssText='position:absolute;right:10px;bottom:4px;font:600 11px/1 system-ui,sans-serif;color:#c9a84c;opacity:.8;pointer-events:none;letter-spacing:.04em;z-index:2';if(getComputedStyle(h).position==='static')h.style.position='relative';h.appendChild(s)}catch(e){}}put();document.addEventListener('DOMContentLoaded',put);window.addEventListener('load',put);setInterval(put,2000)})();</script>
+<script id="ap-build">window.__apBuild="24fc5853ff";window.__apVer=196;(function(){var N=window.__apVer;function put(){try{var h=document.querySelector('header.aph-header');if(!h||document.getElementById('ap-ver'))return;var s=document.createElement('span');s.id='ap-ver';s.textContent='v'+N;s.style.cssText='position:absolute;right:10px;bottom:4px;font:600 11px/1 system-ui,sans-serif;color:#c9a84c;opacity:.8;pointer-events:none;letter-spacing:.04em;z-index:2';if(getComputedStyle(h).position==='static')h.style.position='relative';h.appendChild(s)}catch(e){}}put();document.addEventListener('DOMContentLoaded',put);window.addEventListener('load',put);setInterval(put,2000)})();</script>
