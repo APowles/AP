@@ -12328,10 +12328,12 @@ var P1A = {p:{}, cur:null, tok:0, rate:0.8, vM:'', vF:'', voices:[]};
 try { P1A.vM = localStorage.getItem('p1VoiceM')||''; P1A.vF = localStorage.getItem('p1VoiceF')||''; } catch(e){}
 /* Speed and pause are the single shared 🎚 Speed & pauses control (AP_SP): rate here is the base; AP_SP multiplies it once in speechSynthesis.speak */
 P1A.rate=1;
-/* Listening & Reading papers: their OWN speed and pause, separate from the Oral drills. Default 80% and 0.8 s between sentences. */
-var P1SP={speed:0.8, pause:0};
-try{ var _p1j=JSON.parse(localStorage.getItem('ap_p1_sp_v1')||'null'); if(_p1j){ if(_p1j.speed>=.5&&_p1j.speed<=1.5)P1SP.speed=_p1j.speed; if(_p1j.pause>=0&&_p1j.pause<=2)P1SP.pause=_p1j.pause; } }catch(e){}
-function p1SpSave(){ try{ localStorage.setItem('ap_p1_sp_v1', JSON.stringify(P1SP)); }catch(e){} }
+/* Listening & Reading papers: their OWN speed and pause — mirrors IGCSE _PACE pattern exactly. Default 80% speed, 0.8 s pause. */
+var _P1PACE={rate:0.80,pause:0.8};
+try{ var _p1r=parseFloat(localStorage.getItem('ap_p1_rate')),_p1p=parseFloat(localStorage.getItem('ap_p1_pause')); if(_p1r>=0.5&&_p1r<=1.5)_P1PACE.rate=_p1r; if(_p1p>=0&&_p1p<=2)_P1PACE.pause=_p1p; }catch(e){}
+var _p1Tok=0,_p1T=0;
+var _P1ABBR=/(?:^|[\s(«""])(?:m|mm|mme|mmes|mlle|mlles|dr|pr|mgr|st|ste|av|bd|tél|cf|min|max)$/i;
+function _p1chunks(t){ var out=[],start=0,rx=/[.!?…:;]+["'»)]*\s+/g,m; while((m=rx.exec(t))){ var end=m.index+m[0].length; if(m[0].charAt(0)==='.'&&/^\.\s/.test(m[0])&&_P1ABBR.test(t.slice(start,m.index))) continue; out.push({s:start,txt:t.slice(start,end),w:/^[:;]/.test(m[0])?0.5:1}); start=end; } if(start<t.length) out.push({s:start,txt:t.slice(start),w:1}); return out; }
 function p1SpPanel(ev){
   if(ev&&ev.stopPropagation) ev.stopPropagation();
   var old=document.getElementById('apsp-pop'); if(old){ old.remove(); return; }
@@ -12339,16 +12341,22 @@ function p1SpPanel(ev){
   p.style.position='fixed'; p.style.top='66px'; p.style.right='12px'; p.style.zIndex='200';
   p.innerHTML='<div class="pc-h">Listening papers: voice speed and pauses</div>'
     +'<label>Speed <b id="p1sp-sv"></b></label><input type="range" id="p1sp-s" min="0.5" max="1.5" step="0.05">'
-    +'<label>Pause between sentences <b id="p1sp-pv"></b></label><input type="range" id="p1sp-p" min="0" max="2" step="0.1">'
+    +'<label>Pause after each sentence <b id="p1sp-pv"></b></label><input type="range" id="p1sp-p" min="0" max="2" step="0.1">'
     +'<div class="pc-b"><button type="button" id="p1sp-try">&#9654; Try</button><button type="button" id="p1sp-reset">Reset</button></div>'
     +'<div class="pc-n">These settings are for the Listening &amp; Reading papers only. They do not change the Oral drills.</div>';
   document.body.appendChild(p);
-  var sl=document.getElementById('p1sp-s'), pl=document.getElementById('p1sp-p');
-  function show(){ document.getElementById('p1sp-sv').textContent=Math.round(P1SP.speed*100)+'%'; document.getElementById('p1sp-pv').textContent=P1SP.pause.toFixed(1)+' s'; sl.value=P1SP.speed; pl.value=P1SP.pause; }
-  sl.oninput=function(){ P1SP.speed=parseFloat(sl.value); p1SpSave(); show(); };
-  pl.oninput=function(){ P1SP.pause=parseFloat(pl.value); p1SpSave(); show(); };
-  document.getElementById('p1sp-reset').onclick=function(){ P1SP.speed=0.8; P1SP.pause=0; p1SpSave(); show(); };
-  document.getElementById('p1sp-try').onclick=function(){ try{ speechSynthesis.cancel(); var sents=['Chaque année, en septembre, des milliers de parents voient leur enfant partir étudier dans une autre ville.','Les étudiants doivent alors apprendre à gérer leur quotidien de façon autonome.']; var i=0; function next(){ if(i>=sents.length) return; var u=new SpeechSynthesisUtterance(sents[i++]); u.lang='fr-FR'; u.rate=P1SP.speed; u.__apSp=1; u.onend=function(){ setTimeout(next, Math.round(P1SP.pause*1000)); }; speechSynthesis.speak(u); } next(); }catch(e){} };
+  var sl=document.getElementById('p1sp-s'),pl=document.getElementById('p1sp-p');
+  function show(){ document.getElementById('p1sp-sv').textContent=Math.round(_P1PACE.rate*100)+'%'; document.getElementById('p1sp-pv').textContent=_P1PACE.pause.toFixed(1)+' s'; sl.value=_P1PACE.rate; pl.value=_P1PACE.pause; }
+  function save(){ try{ localStorage.setItem('ap_p1_rate',_P1PACE.rate); localStorage.setItem('ap_p1_pause',_P1PACE.pause); }catch(e){} }
+  sl.oninput=function(){ _P1PACE.rate=parseFloat(sl.value); show(); save(); };
+  pl.oninput=function(){ _P1PACE.pause=parseFloat(pl.value); show(); save(); };
+  document.getElementById('p1sp-reset').onclick=function(){ _P1PACE.rate=0.80; _P1PACE.pause=0.8; show(); save(); };
+  document.getElementById('p1sp-try').onclick=function(){
+    try{ _p1Tok++; clearTimeout(_p1T); speechSynthesis.cancel(); var tok=_p1Tok;
+      var sents=['Chaque année, en septembre, des milliers de parents voient leur enfant partir étudier dans une autre ville.','Les étudiants doivent alors apprendre à gérer leur quotidien de façon autonome.'];
+      var i=0; function next(){ if(tok!==_p1Tok||i>=sents.length) return; var u=new SpeechSynthesisUtterance(sents[i++]); u.lang='fr-FR'; u.rate=_P1PACE.rate; u.__apSp=1; u.onend=function(){ if(tok!==_p1Tok) return; _p1T=setTimeout(next,Math.round(_P1PACE.pause*1000)); }; u.onerror=function(){}; speechSynthesis.speak(u); } next();
+    }catch(e){}
+  };
   show();
 }
 window.__p1SpOpen=function(ev){ if(!document.querySelector('.p1-player')) return false; p1SpPanel(ev); return true; };
@@ -12442,39 +12450,56 @@ function p1PUpd(pid){
   if(st) st.textContent = Math.min(p.idx+(p.playing?1:0),p.segs.length)+' / '+p.segs.length;
   if(bar) bar.style.width = (p.segs.length? (100*p.idx/p.segs.length):0)+'%';
 }
-function speakSeg(pid){
+/* p1SpeakFrom — mirrors IGCSE speak() pattern: _p1Tok cancellation, _p1T timer, _p1chunks() text splitting, _P1PACE read live from closure */
+function p1SpeakFrom(pid){
   var p=P1A.p[pid]; if(!p||!p.playing) return;
-  if(p.idx>=p.segs.length){ p.playing=false; p.idx=0; p1PUpd(pid); var bar=document.getElementById(pid+'_bar'); if(bar) bar.style.width='100%'; return; }
-  var seg=p.segs[p.idx], vf=voiceFor(seg.sp), my=++P1A.tok, wd=null;
-  var u=new SpeechSynthesisUtterance(String(seg.text).replace(/\bCM\s?([12])\b/g,'cé aime $1').replace(/\bCE\s?([12])\b/g,'ce eu $1'));
-  if(vf.voice){ u.voice=vf.voice; u.lang=vf.voice.lang; } else u.lang='fr-FR';
-  u.pitch=vf.pitch; u.rate=P1SP.speed; u.__apSp=1;
-  u.onend=function(){ if(my!==P1A.tok||!p.playing) return; clearTimeout(wd); var prev=p.segs[p.idx]; p.idx++; p1PUpd(pid); var nxt=p.segs[p.idx]; var gap=Math.round((P1SP.pause+((nxt&&prev&&nxt.sp!==prev.sp)?0.25:0))*1000); setTimeout(function(){ if(my===P1A.tok&&p.playing) speakSeg(pid); }, gap); };
-  u.onerror=function(e){ if(my!==P1A.tok) return; if(e&&(e.error==='interrupted'||e.error==='canceled')) return; clearTimeout(wd); p.idx++; p1PUpd(pid); setTimeout(function(){ if(p.playing) speakSeg(pid); },300); };
-  p1PUpd(pid);
-  /* watchdog: if the device never reports the end of this sentence, move on so the whole extract still plays */
-  wd=setTimeout(function(){ if(my!==P1A.tok||!p.playing||p.segs[p.idx]!==seg) return; P1A.tok++; try{speechSynthesis.cancel();}catch(e){} p.idx++; p1PUpd(pid); setTimeout(function(){ if(p.playing) speakSeg(pid); },300); }, Math.max(6000, String(seg.text).length*110/P1SP.speed+4000));
-  try{ speechSynthesis.speak(u); }catch(e){ clearTimeout(wd); p.playing=false; p1PUpd(pid); }
+  var tok=++_p1Tok;
+  function nextSeg(i){
+    if(tok!==_p1Tok||!p.playing) return;
+    if(i>=p.segs.length){ p.playing=false; p.idx=0; p1PUpd(pid); var bar=document.getElementById(pid+'_bar'); if(bar) bar.style.width='100%'; return; }
+    p.idx=i; p1PUpd(pid);
+    var seg=p.segs[i], vf=voiceFor(seg.sp);
+    var txt=String(seg.text).replace(/\bCM\s?([12])\b/g,'cé aime $1').replace(/\bCE\s?([12])\b/g,'ce eu $1');
+    var ch=_p1chunks(txt);
+    function doChunk(k){
+      if(tok!==_p1Tok||!p.playing) return;
+      if(k>=ch.length){
+        p.idx=i+1; p1PUpd(pid);
+        var nxt=p.segs[i+1];
+        _p1T=setTimeout(function(){ nextSeg(i+1); },Math.round((_P1PACE.pause+((nxt&&nxt.sp!==seg.sp)?0.25:0))*1000));
+        return;
+      }
+      var c=ch[k], u=new SpeechSynthesisUtterance(c.txt.trim());
+      if(vf.voice){ u.voice=vf.voice; u.lang=vf.voice.lang; } else u.lang='fr-FR';
+      u.pitch=vf.pitch; u.rate=_P1PACE.rate; u.__apSp=1;
+      u.onend=function(){ if(tok!==_p1Tok||!p.playing) return; _p1T=setTimeout(function(){ doChunk(k+1); },Math.round(_P1PACE.pause*c.w*1000)); };
+      u.onerror=function(){};
+      try{ speechSynthesis.speak(u); }catch(e){ p.playing=false; p1PUpd(pid); }
+    }
+    if(!ch.length){ nextSeg(i+1); return; }
+    doChunk(0);
+  }
+  nextSeg(p.idx);
 }
 window.p1Play = function(pid){
   if(!window.speechSynthesis){ alert('This browser cannot play speech. Try Chrome, Edge or Safari.'); return; }
   var p=P1A.p[pid]; if(!p) return;
-  if(p.playing){ p.playing=false; P1A.tok++; speechSynthesis.cancel(); p1PUpd(pid); return; }
+  if(p.playing){ p.playing=false; _p1Tok++; clearTimeout(_p1T); speechSynthesis.cancel(); p1PUpd(pid); return; }
   Object.keys(P1A.p).forEach(function(k){ if(k!==pid && P1A.p[k].playing){ P1A.p[k].playing=false; p1PUpd(k); } });
-  P1A.tok++; speechSynthesis.cancel();
+  _p1Tok++; clearTimeout(_p1T); speechSynthesis.cancel();
   if(!frVoices().length){ var vp=document.getElementById(pid+'_vp'); if(vp && !vp.innerHTML) vp.innerHTML='<div class="warn">No French voice found on this device – the browser will use its default voice. On Windows, add French in Settings › Time &amp; language › Speech; on a Mac, in System Settings › Accessibility › Spoken Content.</div>'; }
-  p.playing=true; P1A.cur=pid; setTimeout(function(){ speakSeg(pid); }, 60);
+  p.playing=true; P1A.cur=pid; setTimeout(function(){ p1SpeakFrom(pid); },60);
 };
 window.p1Step = function(pid, d){
   var p=P1A.p[pid]; if(!p) return; var was=p.playing;
-  P1A.tok++; try{speechSynthesis.cancel();}catch(e){}
+  _p1Tok++; clearTimeout(_p1T); try{speechSynthesis.cancel();}catch(e){}
   p.idx=Math.max(0,Math.min(p.segs.length-1,p.idx+d)); p1PUpd(pid);
-  if(was){ setTimeout(function(){ p.playing=true; speakSeg(pid); },80); }
+  if(was){ setTimeout(function(){ p.playing=true; p1SpeakFrom(pid); },80); }
 };
 // ⏪ 10 s / 10 s ⏩ : the voice is the device's speech, not a recording, so the time of each sentence is estimated from its length, the speed and the pause; the jump lands on the start of the sentence nearest to 10 seconds away
 function p1SegSecs(p, i){
   var seg=p.segs[i], nxt=p.segs[i+1]; if(!seg) return 0;
-  return String(seg.text).length/(20*P1SP.speed) + P1SP.pause + ((nxt&&nxt.sp!==seg.sp)?0.25:0);
+  return String(seg.text).length/(20*_P1PACE.rate) + _P1PACE.pause + ((nxt&&nxt.sp!==seg.sp)?0.25:0);
 }
 window.p1Skip = function(pid, secs){
   var p=P1A.p[pid]; if(!p||!p.segs.length) return; var was=p.playing, n=p.segs.length, from=Math.max(0,Math.min(n-1,p.idx)), tgt=from, acc, best, j;
@@ -12485,14 +12510,14 @@ window.p1Skip = function(pid, secs){
     acc=0; best=Infinity; tgt=Math.min(n-1,from+1);
     for(j=from;j<n-1;j++){ acc+=p1SegSecs(p,j); var d2=Math.abs(acc-secs); if(d2<=best){ best=d2; tgt=j+1; } else break; }
   }
-  P1A.tok++; try{speechSynthesis.cancel();}catch(e){}
+  _p1Tok++; clearTimeout(_p1T); try{speechSynthesis.cancel();}catch(e){}
   p.idx=tgt; p1PUpd(pid);
-  if(was){ setTimeout(function(){ p.playing=true; speakSeg(pid); },80); }
+  if(was){ setTimeout(function(){ p.playing=true; p1SpeakFrom(pid); },80); }
 };
 window.p1Restart = function(pid){
   var p=P1A.p[pid]; if(!p) return; var was=p.playing;
-  P1A.tok++; try{speechSynthesis.cancel();}catch(e){}
-  p.idx=0; p1PUpd(pid); if(was){ setTimeout(function(){ p.playing=true; speakSeg(pid); },80); }
+  _p1Tok++; clearTimeout(_p1T); try{speechSynthesis.cancel();}catch(e){}
+  p.idx=0; p1PUpd(pid); if(was){ setTimeout(function(){ p.playing=true; p1SpeakFrom(pid); },80); }
 };
 window.p1PacePanel = function(){ if(window.AP_SP) AP_SP.toggle(); };
 window.p1VoicePanel = function(pid){
@@ -24348,4 +24373,4 @@ function deck(el,m,n,x,y,face,gap){clear(el);const cs=[];for(let i=0;i<n;i++){co
   if (document.readyState === 'complete') start(); else window.addEventListener('load', start);
 })();
 </script>
-<script id="ap-build">window.__apBuild="4ce2833898";window.__apVer=435;(function(){var N=window.__apVer;function put(){try{var h=document.querySelector('header.aph-header');if(!h||document.getElementById('ap-ver'))return;var s=document.createElement('span');s.id='ap-ver';s.textContent='v'+N;s.style.cssText='position:absolute;right:10px;bottom:4px;font:600 11px/1 system-ui,sans-serif;color:#c9a84c;opacity:.8;pointer-events:none;letter-spacing:.04em;z-index:2';if(getComputedStyle(h).position==='static')h.style.position='relative';h.appendChild(s)}catch(e){}}put();document.addEventListener('DOMContentLoaded',put);window.addEventListener('load',put);setInterval(put,2000)})();</script>
+<script id="ap-build">window.__apBuild="e6bdf6c4f4";window.__apVer=436;(function(){var N=window.__apVer;function put(){try{var h=document.querySelector('header.aph-header');if(!h||document.getElementById('ap-ver'))return;var s=document.createElement('span');s.id='ap-ver';s.textContent='v'+N;s.style.cssText='position:absolute;right:10px;bottom:4px;font:600 11px/1 system-ui,sans-serif;color:#c9a84c;opacity:.8;pointer-events:none;letter-spacing:.04em;z-index:2';if(getComputedStyle(h).position==='static')h.style.position='relative';h.appendChild(s)}catch(e){}}put();document.addEventListener('DOMContentLoaded',put);window.addEventListener('load',put);setInterval(put,2000)})();</script>
