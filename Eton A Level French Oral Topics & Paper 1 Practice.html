@@ -15169,7 +15169,7 @@ body.whsp{background:#080e1e}
 .sline.rv2-on{background:#fbf1cf;border-color:#c9a84c;box-shadow:0 0 0 2px #c9a84c}
 
 .wh2-tally{display:flex;gap:16px;flex-wrap:wrap;justify-content:center;font:700 .88rem var(--body);color:#f3d98a}.wh2-tally .g{color:#8be0a8}.wh2-tally .n{color:#f0b35a}
-.mc-wrap.rv2 .mc-img.mc-talkpic,:fullscreen .mc-wrap.rv2 .mc-img.mc-talkpic{width:min(100%,calc((100vh - 420px)*1.78))}
+.mc-wrap.rv2 .mc-img.mc-talkpic,:fullscreen .mc-wrap.rv2 .mc-img.mc-talkpic{width:min(100%,calc((100vh - 420px)*1.78))}.mc-wrap.rv2.rv2-talk{flex-direction:row;align-items:stretch;gap:14px}.rv2-talk-main{flex:1;min-width:0;display:flex;flex-direction:column;gap:12px}.mc-band{align-self:stretch}
 .wh2-det{max-width:1100px;margin:14px auto 0;text-align:left}
 .wh2-tt{min-width:0}
 body.mcimm .wh2-spin{position:fixed}
@@ -17066,7 +17066,7 @@ function mcSpinEnd(){
 }
 function mcLand(){
   MC.back=false;MC.fresh=true;mcSfx('land');MC.seen.add(MC.cur);MC.phase='talk';MC.over=false;MC.end=Date.now()+MC.secs*1000;
-  render();window.scrollTo(0,0);MC.iv=setInterval(mcTick,250);if(MCQ.on)setTimeout(mcQPlay,500);
+  render();window.scrollTo(0,0);MC.iv=setInterval(mcTick,250);if(MCQ.on)setTimeout(mcQPlay,500);setTimeout(kqFitBand,0);setTimeout(kqFitBand,350);setTimeout(kqFitBand,1000);kqBandWatch();
 }
 function mcTick(){
   const left=Math.max(0,MC.end-Date.now()),bar=document.getElementById('mcbar'),tt=document.getElementById('mct');
@@ -17127,11 +17127,11 @@ function vMachine(){
   if(MC.phase==='talk'){
     const left=Math.max(0,MC.end-Date.now()),pct=Math.round(100*left/(MC.secs*1000)),fr=MC.fresh;MC.fresh=false;
     return `<div class="rv2-tr"><button class="btn" onclick="mcBackTalk()">← Back</button>${mcTally()}<div class="rv2-qa"><button class="btn" id="qaBtn" onclick="mcQToggle()">${MCQ.play?'\u25A0 Stop':'\u{1F50A} Play question'}</button><label class="rv2-sw"><input type="checkbox" ${MCQ.on?'checked':''} onchange="mcQAuto(this.checked)"><span>Auto</span></label></div></div>
-    <div class="mc-wrap rv2${fr?' mc-tin':''}"><div class="mc-qp"><div class="mc-qt">${esc(k.term)}</div>${k.hook?`<div class="mc-hq">${LN(k.hook)}</div>`:''}</div><div class="mc-bar"><i id="mcbar" style="width:${MC.over?0:pct}%"></i></div>
+    <div class="mc-wrap rv2 rv2-talk${fr?' mc-tin':''}"><div class="kq-band mc-band" style="--kcc:${kcCol(k.n)}"><small>${esc((SUBS.find(s=>s.ktrs.some(q=>q.n===k.n))||{}).name||'')}</small><b style="font-size:${kqBandFs(k.n)}px">${esc(kqBandTxt(k.n))}</b></div><div class="rv2-talk-main"><div class="mc-qp"><div class="mc-qt">${esc(k.term)}</div>${k.hook?`<div class="mc-hq">${LN(k.hook)}</div>`:''}</div><div class="mc-bar"><i id="mcbar" style="width:${MC.over?0:pct}%"></i></div>
     <div class="mc-img mc-talkpic${MC.over&&k.answer?' mc-rev':''}" style="--ar:${ar};${MC.over?'':'cursor:pointer'}" onclick="${MC.over?'':'mcSkipOver()'}" title="${MC.over?'':'Click to reveal answer'}"><img id="mcimg" src="${I.src}" alt="${esc(I.alt_en)}">${MC.over&&k.answer?`<div class="mc-ans mc-ans-ov"><div class="mc-anl">La réponse · The answer</div><div class="mc-anb">${LN({fr:k.answer.fr,en:k.answer.en})}</div></div>`:''}</div>
     <div class="rv2-mark"><div class="rv2-row"><span class="mc-t" id="mct">${MC.back?'':MC.over?'\u23F0 0:00':spdFmt(left/1000)}</span><span class="mc-q2" style="margin:0">${MC.over&&!MC.back?'Time is up. How did that go?':'How did that go?'}</span></div>
     <div class="mc-ch"><button class="btn r" onclick="mcReveal()">\u{1F4D6} Help me prepare this</button><button class="btn y" onclick="mcMark('near')">\u2248 Nearly: back on the wheel soon</button><button class="btn gr" onclick="mcMark('ok')">\u2713 I've got it: new picture</button></div>
-    <div class="rv2-row"><button class="btn" onclick="mcFsToggle()">\u26F6</button><button class="rv2-skip" onclick="mcSpin()">Skip: spin again</button></div></div></div>`;
+    <div class="rv2-row"><button class="btn" onclick="mcFsToggle()">\u26F6</button><button class="rv2-skip" onclick="mcSpin()">Skip: spin again</button></div></div></div></div>`;
   }
   const marks=I.spots.map((sp,i)=>`<button class="spmk${MC.act===i?' act':''}" style="left:${sp.x}%;top:${sp.y}%" onclick="mcAct(${i})" aria-label="Detail ${i+1}">${i+1}</button>`).join('');
   const list=`<div class="splist">${I.spots.map((sp,i)=>`<div class="spi${MC.act===i?' act':''}"><button class="spn" onclick="mcAct(${i})" aria-label="Hear detail ${i+1}">${i+1}</button><div class="spb">${MC.facts?LN({fr:sp.ff||sp.fr,en:sp.fe||sp.en})+(sp.pic?`<div class="fc-pic">In the picture: ${esc(sp.pic)}</div>`:''):LN({fr:sp.fr,en:sp.en})}</div></div>`).join('')}</div>`;
@@ -24448,4 +24448,4 @@ function deck(el,m,n,x,y,face,gap){clear(el);const cs=[];for(let i=0;i<n;i++){co
   if (document.readyState === 'complete') start(); else window.addEventListener('load', start);
 })();
 </script>
-<script id="ap-build">window.__apBuild="f9118a8119";window.__apVer=461;(function(){var N=window.__apVer;function put(){try{var h=document.querySelector('header.aph-header');if(!h||document.getElementById('ap-ver'))return;var s=document.createElement('span');s.id='ap-ver';s.textContent='v'+N;s.style.cssText='position:absolute;right:10px;bottom:4px;font:600 11px/1 system-ui,sans-serif;color:#c9a84c;opacity:.8;pointer-events:none;letter-spacing:.04em;z-index:2';if(getComputedStyle(h).position==='static')h.style.position='relative';h.appendChild(s)}catch(e){}}put();document.addEventListener('DOMContentLoaded',put);window.addEventListener('load',put);setInterval(put,2000)})();</script>
+<script id="ap-build">window.__apBuild="0a6830e852";window.__apVer=462;(function(){var N=window.__apVer;function put(){try{var h=document.querySelector('header.aph-header');if(!h||document.getElementById('ap-ver'))return;var s=document.createElement('span');s.id='ap-ver';s.textContent='v'+N;s.style.cssText='position:absolute;right:10px;bottom:4px;font:600 11px/1 system-ui,sans-serif;color:#c9a84c;opacity:.8;pointer-events:none;letter-spacing:.04em;z-index:2';if(getComputedStyle(h).position==='static')h.style.position='relative';h.appendChild(s)}catch(e){}}put();document.addEventListener('DOMContentLoaded',put);window.addEventListener('load',put);setInterval(put,2000)})();</script>
