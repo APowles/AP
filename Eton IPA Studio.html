@@ -340,7 +340,7 @@ body.aph-at-home .aph-header .aph-home{display:none}   /* no Home on the home sc
 (function (W) {
   if (W.AP_SP) return;
   var K = 'ap_sp_v1', DP = (W.AP_SP_DEFAULT_PAUSE >= 0 ? W.AP_SP_DEFAULT_PAUSE : 0.3), st = { speed: 1, pause: DP };
-  try { var j = JSON.parse(localStorage.getItem(K) || 'null'); if (j) { if (j.speed >= .5 && j.speed <= 1.5) st.speed = j.speed; if (j.pause >= 0 && j.pause <= 2) st.pause = j.pause; } } catch (e) { }
+  try { var j = JSON.parse(localStorage.getItem(K) || 'null'); if (j) { if (j.speed >= .5 && j.speed <= 1.5) st.speed = j.speed; if (j.pause >= 0 && j.pause <= 5) st.pause = j.pause; } } catch (e) { }
   function save() { try { localStorage.setItem(K, JSON.stringify(st)); } catch (e) { } }
   // Speed: apps with the older "AP VOICE SPEED" block (window.__apVF) keep scaling every utterance there; the panel only sets that factor.
   function getSpeed() { return W.__apVF ? W.__apVF.get() : st.speed; }
@@ -362,7 +362,7 @@ body.aph-at-home .aph-header .aph-home{display:none}   /* no Home on the home sc
     p = document.createElement('div'); p.id = 'apsp-pop'; p.setAttribute('data-nogrow', '1');
     p.innerHTML = '<div class="pc-h">Voice speed and pauses</div>'
       + '<label>Speed <b id="apsp-sv"></b></label><input type="range" id="apsp-s" min="0.5" max="1.5" step="0.05">'
-      + '<label>Pause between sentences <b id="apsp-pv"></b></label><input type="range" id="apsp-p" min="0" max="2" step="0.1">'
+      + '<label>Pause between sentences <b id="apsp-pv"></b></label><input type="range" id="apsp-p" min="0" max="5" step="0.1">'
       + '<div class="pc-b"><button type="button" id="apsp-try">&#9654; Try</button><button type="button" id="apsp-reset">Reset</button></div>'
       + '<div class="pc-n">Speed changes every voice. The pause is the gap in “Hear the whole answer” and other multi-sentence playback.</div>';
     (document.querySelector('.aph-header') || document.body).appendChild(p);
@@ -372,9 +372,14 @@ body.aph-at-home .aph-header .aph-home{display:none}   /* no Home on the home sc
     q.oninput = function () { st.pause = parseFloat(q.value); show(); save(); };
     document.getElementById('apsp-reset').onclick = function () { setSpeed(1); st.pause = DP; show(); save(); };
     document.getElementById('apsp-try').onclick = function () {
-      try { var s = W.speechSynthesis; s.cancel(); var L = (W.LG && W.LG.code) || 'fr'; var T = { fr: 'Bonjour, je m’appelle Thomas. J’habite à Londres avec ma famille.', it: 'Ciao, mi chiamo Luca. Abito a Londra con la mia famiglia.', es: 'Hola, me llamo Pablo. Vivo en Madrid con mi familia.' };
-        var u = new SpeechSynthesisUtterance(T[L] || T.fr); var b = W.AP_VOICE; u.lang = ({ fr: 'fr-FR', it: 'it-IT', es: 'es-ES' })[L] || 'fr-FR'; u.rate = .9;
-        try { var v = b && b.pick && b.pick(u.lang); if (v) u.voice = v; } catch (e) { } s.speak(u); } catch (e) { }
+      /* Try: three short sentences, one at a time, with the chosen pause between them, so both the speed and the pause can be heard */
+      try { var s = W.speechSynthesis; s.cancel(); var L = (W.LG && W.LG.code) || 'fr'; var T = { fr: ['Bonjour, je m’appelle Thomas.', 'J’habite à Londres avec ma famille.', 'Le week-end, j’aime aller au cinéma.'], it: ['Ciao, mi chiamo Luca.', 'Abito a Londra con la mia famiglia.', 'Il fine settimana mi piace andare al cinema.'], es: ['Hola, me llamo Pablo.', 'Vivo en Madrid con mi familia.', 'Los fines de semana me gusta ir al cine.'] };
+        var parts = T[L] || T.fr, lang = ({ fr: 'fr-FR', it: 'it-IT', es: 'es-ES' })[L] || 'fr-FR', b = W.AP_VOICE, my = W.__apspTry = (W.__apspTry || 0) + 1;
+        var go = function (k) { if (my !== W.__apspTry || k >= parts.length) return; var done = false, u = new SpeechSynthesisUtterance(parts[k]); u.lang = lang; u.rate = .9;
+          try { var v = b && b.pick && b.pick(lang); if (v) u.voice = v; } catch (e) { }
+          var nx = function () { if (done) return; done = true; setTimeout(function () { go(k + 1); }, Math.round(st.pause * 1000)); };
+          u.onend = nx; s.speak(u); setTimeout(nx, Math.round(parts[k].length / (13 * .9 * getSpeed()) * 1000) + 1500); };   // safety clock in case the voice never says it has finished
+        setTimeout(function () { go(0); }, 300); } catch (e) { }
     };
     show();
   }
@@ -1812,4 +1817,4 @@ load(); render(true);
   if (document.readyState === 'complete') start(); else window.addEventListener('load', start);
 })();
 </script>
-<script id="ap-build">window.__apBuild="0281fac225";window.__apVer=150;(function(){var N=window.__apVer;function put(){try{var h=document.querySelector('header.aph-header');if(!h||document.getElementById('ap-ver'))return;var s=document.createElement('span');s.id='ap-ver';s.textContent='v'+N;s.style.cssText='position:absolute;right:10px;bottom:4px;font:600 11px/1 system-ui,sans-serif;color:#c9a84c;opacity:.8;pointer-events:none;letter-spacing:.04em;z-index:2';if(getComputedStyle(h).position==='static')h.style.position='relative';h.appendChild(s)}catch(e){}}put();document.addEventListener('DOMContentLoaded',put);window.addEventListener('load',put);setInterval(put,2000)})();</script>
+<script id="ap-build">window.__apBuild="6e749ef91e";window.__apVer=151;(function(){var N=window.__apVer;function put(){try{var h=document.querySelector('header.aph-header');if(!h||document.getElementById('ap-ver'))return;var s=document.createElement('span');s.id='ap-ver';s.textContent='v'+N;s.style.cssText='position:absolute;right:10px;bottom:4px;font:600 11px/1 system-ui,sans-serif;color:#c9a84c;opacity:.8;pointer-events:none;letter-spacing:.04em;z-index:2';if(getComputedStyle(h).position==='static')h.style.position='relative';h.appendChild(s)}catch(e){}}put();document.addEventListener('DOMContentLoaded',put);window.addEventListener('load',put);setInterval(put,2000)})();</script>
