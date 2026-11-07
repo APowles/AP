@@ -6365,15 +6365,9 @@ function kcSplashPhrase(){
     if(++n<80)setTimeout(w,100);else next();
   })();
 }
-addEventListener('load',function(){setTimeout(function(){
-  var f=document.createElement('iframe');
-  try{var src=document.getElementById('ktr-studio-src').textContent.replace(/<\\\/script/g,'<'+'/script');
-    src=src.split("if(document.readyState==='complete')setTimeout(hmSplash,0);else addEventListener('load',()=>setTimeout(hmSplash,0));").join('');
-    f.id='qp-preload'; f.style.cssText='position:fixed;inset:0;width:100%;height:100%;border:0;background:#fff;visibility:hidden;z-index:9000';
-    f.srcdoc=src; document.body.appendChild(f); window.__qpFrame=f;
-    var t=setInterval(function(){try{var W=f.contentWindow;if(W&&W.document&&W.document.readyState==='complete'&&typeof W.kcSplash==='function'){f.__ready=true;clearInterval(t)}}catch(e){}},200);
-  }catch(e){}
-},300)});
+/* 7 Nov 2026: no hidden KTR Studio frame is loaded in advance any more. A second copy of the Studio sitting in the background
+   shares the iPad/Mac voice with the page and stops Demo Mode and the Paper 1 listening after their first sentence.
+   The frame is built when the button is tapped (above) and removed when the splash ends. */
 function showPhraseDrill() {
   var btns = Object.keys(CYCLE_SECTION_TITLES).map(function(k) {
     var count = ORAL_CYCLE_EXPRS[k] ? ORAL_CYCLE_EXPRS[k].phrases.length : 0;
@@ -11705,7 +11699,11 @@ function _karaAttach(u, text, uid, label, question, off) {
 var _tp = { paused: false, cur: null, pending: null, pausedAt: 0, pausedTotal: 0, uid: null };
 /* A long answer is spoken SENTENCE BY SENTENCE (as in the IGCSE Listening papers): the iPad/Safari voice cuts a long
    block short and then never reports the end, which stopped every demo after its first sentence. The gap between
-   sentences is the 🎚 Speed & pauses pause; a watchdog moves on if the voice ever goes quiet without saying it has finished. */
+   sentences is the 🎚 Speed & pauses pause; a watchdog moves on if the voice ever goes quiet without saying it has finished.
+   On the iPad and Mac (WebKit) a sentence spoken straight after the voice was silenced never reports "started" or "finished"
+   and the voice claims to be speaking for ever (seen 7 Nov 2026), so: a short breath before the first sentence, and a safety
+   clock on every sentence that moves on once the sentence must be over (a sentence still talking just queues the next one). */
+function _tpEst(u) { var sp = 1; try { if (window.AP_SP && !u.__apSp) sp = AP_SP.speed || 1; } catch (e) { } return Math.round(String(u.text || '').length / (13 * (u.rate || 1) * sp) * 1000) + 1500; }
 function _tpChunks(t) {
   var out = [], s = 0, re = /[.!?…]+["”’»)]*\s+/g, m;
   while ((m = re.exec(t))) {
@@ -11715,18 +11713,18 @@ function _tpChunks(t) {
   if (t.slice(s).trim()) out.push({ s: s, txt: t.slice(s) });
   return out;
 }
-function _tpKill(c) { if (!c) return; c.dead = true; clearTimeout(c.tm); clearInterval(c.wd); if (c.cu) c.cu._killed = true; }
+function _tpKill(c) { if (!c) return; c.dead = true; clearTimeout(c.tm); clearInterval(c.wd); clearTimeout(c.sc); if (c.cu) c.cu._killed = true; }
 function _tpSpeak(u) {
   var c = { text: u.text, lang: u.lang, rate: u.rate, voice: u.voice, onend: u.onend, kara: u._kara || null, off: u._off || 0, ch: _tpChunks(u.text || ''), k: 0, cu: null, done: false, dead: false, tm: null, wd: null };
   if (_tp.cur && _tp.cur !== c) _tpKill(_tp.cur);
   _tp.cur = c; _tp.pending = null;
   if (!c.ch.length) { c.done = true; if (c.onend) setTimeout(c.onend, 0); return; }
   if (_tp.paused) { _tp.pending = c; return; }
-  _tpChunk(c);
+  c.tm = setTimeout(function () { _tpChunk(c); }, 300);   // a breath after any silencing (WebKit)
 }
 function _tpChunk(c) {
   if (c.dead || _tp.cur !== c || _tp.paused) return;
-  clearTimeout(c.tm); clearInterval(c.wd);
+  clearTimeout(c.tm); clearInterval(c.wd); clearTimeout(c.sc);
   if (c.k >= c.ch.length) { c.done = true; if (c.onend) c.onend(); return; }
   var ch = c.ch[c.k], last = c.k === c.ch.length - 1, fin = false, started = false, t0 = Date.now();
   var u = new SpeechSynthesisUtterance(ch.txt.trim()); u.lang = c.lang; u.rate = c.rate; if (c.voice) u.voice = c.voice;
@@ -11735,7 +11733,7 @@ function _tpChunk(c) {
   c.cu = u;
   function next() {
     if (fin || u._killed || c.dead || _tp.cur !== c) return;
-    fin = true; clearInterval(c.wd); c.k++;
+    fin = true; clearInterval(c.wd); clearTimeout(c.sc); c.k++;
     c.tm = setTimeout(function () { _tpChunk(c); }, last ? 0 : (window.AP_SP ? AP_SP.pauseMs() : 800));
   }
   u.addEventListener('start', function () { started = true; });
@@ -11747,18 +11745,19 @@ function _tpChunk(c) {
     if (started || Date.now() - t0 > 6000) next();
   }, 700);
   window.speechSynthesis.speak(u);
+  c.sc = setTimeout(next, _tpEst(u));   // safety clock
 }
 function demoPauseToggle() {
   var c = _tp.cur;
   if (!_tp.paused) {
     _tp.paused = true; _tp.pausedAt = Date.now();
-    if (c && !c.done) { clearTimeout(c.tm); clearInterval(c.wd); if (c.cu) c.cu._killed = true; }
+    if (c && !c.done) { clearTimeout(c.tm); clearInterval(c.wd); clearTimeout(c.sc); if (c.cu) c.cu._killed = true; }
     window.speechSynthesis.cancel();
     if (typeof _karaStop === 'function') _karaStop();
   } else {
     _tp.paused = false; _tp.pausedTotal += Date.now() - _tp.pausedAt;
-    if (_tp.pending) { var p = _tp.pending; _tp.pending = null; _tpChunk(p); }
-    else if (c && !c.done && !c.dead) _tpChunk(c);   // the sentence that was being spoken, from its beginning
+    if (_tp.pending) { var p = _tp.pending; _tp.pending = null; p.tm = setTimeout(function () { _tpChunk(p); }, 300); }
+    else if (c && !c.done && !c.dead) c.tm = setTimeout(function () { _tpChunk(c); }, 300);   // the sentence that was being spoken, from its beginning
   }
   _tpLabel();
 }
@@ -12461,10 +12460,13 @@ function speakSeg(pid){
   var u=new SpeechSynthesisUtterance(String(seg.text).replace(/\bCM\s?([12])\b/g,'cé aime $1').replace(/\bCE\s?([12])\b/g,'ce eu $1'));
   if(vf.voice){ u.voice=vf.voice; u.lang=vf.voice.lang; } else u.lang='fr-FR';
   u.pitch=vf.pitch; u.rate=P1A.rate;
-  u.onend=function(){ if(my!==P1A.tok||!p.playing) return; var prev=p.segs[p.idx]; p.idx++; p1PUpd(pid); var nxt=p.segs[p.idx]; var gap=Math.round((P1A.pause+((nxt&&prev&&nxt.sp!==prev.sp)?0.25:0))*1000); setTimeout(function(){ if(my===P1A.tok&&p.playing) speakSeg(pid); }, gap); };
+  var fin=false, sc=null;
+  u.onend=function(){ if(fin||my!==P1A.tok||!p.playing) return; fin=true; clearTimeout(sc); var prev=p.segs[p.idx]; p.idx++; p1PUpd(pid); var nxt=p.segs[p.idx]; var gap=Math.round((P1A.pause+((nxt&&prev&&nxt.sp!==prev.sp)?0.25:0))*1000); setTimeout(function(){ if(my===P1A.tok&&p.playing) speakSeg(pid); }, gap); };
   u.onerror=function(e){ if(my!==P1A.tok) return; if(e&&(e.error==='interrupted'||e.error==='canceled')) return; p.playing=false; p1PUpd(pid); };
   p1PUpd(pid);
-  try{ speechSynthesis.speak(u); }catch(e){ p.playing=false; p1PUpd(pid); }
+  try{ speechSynthesis.speak(u); }catch(e){ p.playing=false; p1PUpd(pid); return; }
+  // safety clock: on the iPad and Mac the voice sometimes never says it has finished (7 Nov 2026); move on once the sentence must be over
+  sc=setTimeout(function(){ if(!fin&&my===P1A.tok&&p.playing) u.onend(); }, Math.round(String(u.text).length/(13*(u.rate||1))*1000)+1500);
 }
 window.p1Play = function(pid){
   if(!window.speechSynthesis){ alert('This browser cannot play speech. Try Chrome, Edge or Safari.'); return; }
@@ -12473,13 +12475,13 @@ window.p1Play = function(pid){
   Object.keys(P1A.p).forEach(function(k){ if(k!==pid && P1A.p[k].playing){ P1A.p[k].playing=false; p1PUpd(k); } });
   P1A.tok++; speechSynthesis.cancel();
   if(!frVoices().length){ var vp=document.getElementById(pid+'_vp'); if(vp && !vp.innerHTML) vp.innerHTML='<div class="warn">No French voice found on this device – the browser will use its default voice. On Windows, add French in Settings › Time &amp; language › Speech; on a Mac, in System Settings › Accessibility › Spoken Content.</div>'; }
-  p.playing=true; P1A.cur=pid; setTimeout(function(){ speakSeg(pid); }, 60);
+  p.playing=true; P1A.cur=pid; setTimeout(function(){ speakSeg(pid); }, 300);   // a breath after silencing (WebKit)
 };
 window.p1Step = function(pid, d){
   var p=P1A.p[pid]; if(!p) return; var was=p.playing;
   P1A.tok++; try{speechSynthesis.cancel();}catch(e){}
   p.idx=Math.max(0,Math.min(p.segs.length-1,p.idx+d)); p1PUpd(pid);
-  if(was){ setTimeout(function(){ p.playing=true; speakSeg(pid); },80); }
+  if(was){ setTimeout(function(){ p.playing=true; speakSeg(pid); },300); }
 };
 // ⏪ 10 s / 10 s ⏩ : the voice is the device's speech, not a recording, so the time of each sentence is estimated from its length, the speed and the pause; the jump lands on the start of the sentence nearest to 10 seconds away
 function p1SegSecs(p, i){
@@ -12497,12 +12499,12 @@ window.p1Skip = function(pid, secs){
   }
   P1A.tok++; try{speechSynthesis.cancel();}catch(e){}
   p.idx=tgt; p1PUpd(pid);
-  if(was){ setTimeout(function(){ p.playing=true; speakSeg(pid); },80); }
+  if(was){ setTimeout(function(){ p.playing=true; speakSeg(pid); },300); }
 };
 window.p1Restart = function(pid){
   var p=P1A.p[pid]; if(!p) return; var was=p.playing;
   P1A.tok++; try{speechSynthesis.cancel();}catch(e){}
-  p.idx=0; p1PUpd(pid); if(was){ setTimeout(function(){ p.playing=true; speakSeg(pid); },80); }
+  p.idx=0; p1PUpd(pid); if(was){ setTimeout(function(){ p.playing=true; speakSeg(pid); },300); }
 };
 window.p1Rate = function(r){ P1A.rate=parseFloat(r)||0.8; try{localStorage.setItem('p1Rate',P1A.rate);}catch(e){} document.querySelectorAll('.p1-player select[title=Speed]').forEach(function(s){ s.value=String(P1A.rate); }); };
 window.p1PacePanel = function(pid){
@@ -24375,4 +24377,4 @@ function deck(el,m,n,x,y,face,gap){clear(el);const cs=[];for(let i=0;i<n;i++){co
   if (document.readyState === 'complete') start(); else window.addEventListener('load', start);
 })();
 </script>
-<script id="ap-build">window.__apBuild="6ccdc79ee1";window.__apVer=440;(function(){var N=window.__apVer;function put(){try{var h=document.querySelector('header.aph-header');if(!h||document.getElementById('ap-ver'))return;var s=document.createElement('span');s.id='ap-ver';s.textContent='v'+N;s.style.cssText='position:absolute;right:10px;bottom:4px;font:600 11px/1 system-ui,sans-serif;color:#c9a84c;opacity:.8;pointer-events:none;letter-spacing:.04em;z-index:2';if(getComputedStyle(h).position==='static')h.style.position='relative';h.appendChild(s)}catch(e){}}put();document.addEventListener('DOMContentLoaded',put);window.addEventListener('load',put);setInterval(put,2000)})();</script>
+<script id="ap-build">window.__apBuild="ab569f5a5d";window.__apVer=441;(function(){var N=window.__apVer;function put(){try{var h=document.querySelector('header.aph-header');if(!h||document.getElementById('ap-ver'))return;var s=document.createElement('span');s.id='ap-ver';s.textContent='v'+N;s.style.cssText='position:absolute;right:10px;bottom:4px;font:600 11px/1 system-ui,sans-serif;color:#c9a84c;opacity:.8;pointer-events:none;letter-spacing:.04em;z-index:2';if(getComputedStyle(h).position==='static')h.style.position='relative';h.appendChild(s)}catch(e){}}put();document.addEventListener('DOMContentLoaded',put);window.addEventListener('load',put);setInterval(put,2000)})();</script>
