@@ -497,10 +497,7 @@
 })(window);
 /* ===== END AP VOICE ===== */
 </script>
-<script>window.AP_SP_DEFAULT_PAUSE=0.8;
-window._tpSS=window.speechSynthesis;
-window._tpSpeak=window.speechSynthesis.speak.bind(window.speechSynthesis);
-/* captured before AP_SP wraps speak — oral demo and P1 engines use this so onend fires in Safari */</script>
+<script>window.AP_SP_DEFAULT_PAUSE=0.8;</script>
 <script id="ap-sp">
 /* ===== AP SPEED & PAUSES v1 (identical in every AP app that has it) =====
    One header button "🎚 Speed & pauses" opens a small panel: voice Speed (50–150 %) and the Pause between sentences (0–2 s).
@@ -11686,7 +11683,7 @@ function _karaAttach(u, text, uid, label, question, off) {
       _karaSet(k); if (c > total) _karaStop();
     }, 120);
   });
-  u.addEventListener('end', function () { if (u._killed) return; _karaStop(); _karaSet(_kara.words.length); });
+  u.addEventListener('end', function () { if (u._killed) return; _karaStop(); if (!u._notLast) _karaSet(_kara.words.length); });
 }
 
 // ─────────────────────────────────────────────────────────────────
@@ -11694,42 +11691,67 @@ function _karaAttach(u, text, uid, label, question, off) {
 // resuming starts again from the beginning of the sentence that was being spoken)
 // ─────────────────────────────────────────────────────────────────
 var _tp = { paused: false, cur: null, pending: null, pausedAt: 0, pausedTotal: 0, uid: null };
+/* A long answer is spoken SENTENCE BY SENTENCE (as in the IGCSE Listening papers): the iPad/Safari voice cuts a long
+   block short and then never reports the end, which stopped every demo after its first sentence. The gap between
+   sentences is the 🎚 Speed & pauses pause; a watchdog moves on if the voice ever goes quiet without saying it has finished. */
+function _tpChunks(t) {
+  var out = [], s = 0, re = /[.!?…]+["”’»)]*\s+/g, m;
+  while ((m = re.exec(t))) {
+    if (m[0].charAt(0) === '.' && /(?:^|[\s(])(?:M|Mme|Mlle|MM|Dr|St|Ste|cf|av|apr|J\.-C|p|n°)$/.test(t.slice(s, m.index))) continue;   // M. Dupont, av. J.-C.: no break
+    var e = m.index + m[0].length; if (t.slice(s, e).trim()) out.push({ s: s, txt: t.slice(s, e) }); s = e;
+  }
+  if (t.slice(s).trim()) out.push({ s: s, txt: t.slice(s) });
+  return out;
+}
+function _tpKill(c) { if (!c) return; c.dead = true; clearTimeout(c.tm); clearInterval(c.wd); if (c.cu) c.cu._killed = true; }
 function _tpSpeak(u) {
-  var c = { u: u, text: u.text, lang: u.lang, rate: u.rate, voice: u.voice, onend: u.onend, kara: u._kara || null, off: u._off || 0, pos: 0, gotB: false, t0: 0, spent: 0, started: false, done: false };
-  u.onend = function () { if (u._killed) return; c.done = true; if (c.onend) c.onend(); };
-  var sp = [], re = /\S+/g, m; while ((m = re.exec(u.text))) sp.push(m.index);
-  u.addEventListener('start', function () { c.started = true; c.t0 = Date.now(); });
-  u.addEventListener('boundary', function (e) { if (e.name && e.name !== 'word') return; c.gotB = true; c.pos = e.charIndex; });
-  _tp.cur = c;
+  var c = { text: u.text, lang: u.lang, rate: u.rate, voice: u.voice, onend: u.onend, kara: u._kara || null, off: u._off || 0, ch: _tpChunks(u.text || ''), k: 0, cu: null, done: false, dead: false, tm: null, wd: null };
+  if (_tp.cur && _tp.cur !== c) _tpKill(_tp.cur);
+  _tp.cur = c; _tp.pending = null;
+  if (!c.ch.length) { c.done = true; if (c.onend) setTimeout(c.onend, 0); return; }
   if (_tp.paused) { _tp.pending = c; return; }
-  window._tpSpeak(u);
+  _tpChunk(c);
+}
+function _tpChunk(c) {
+  if (c.dead || _tp.cur !== c || _tp.paused) return;
+  clearTimeout(c.tm); clearInterval(c.wd);
+  if (c.k >= c.ch.length) { c.done = true; if (c.onend) c.onend(); return; }
+  var ch = c.ch[c.k], last = c.k === c.ch.length - 1, fin = false, started = false, t0 = Date.now();
+  var u = new SpeechSynthesisUtterance(ch.txt.trim()); u.lang = c.lang; u.rate = c.rate; if (c.voice) u.voice = c.voice;
+  if (!last) u._notLast = true;
+  if (c.kara && typeof _karaAttach === 'function') _karaAttach(u, c.kara[0], c.kara[1], c.kara[2], c.kara[3], c.off + ch.s);
+  c.cu = u;
+  function next() {
+    if (fin || u._killed || c.dead || _tp.cur !== c) return;
+    fin = true; clearInterval(c.wd); c.k++;
+    c.tm = setTimeout(function () { _tpChunk(c); }, last ? 0 : (window.AP_SP ? AP_SP.pauseMs() : 800));
+  }
+  u.addEventListener('start', function () { started = true; });
+  u.onend = next;
+  u.onerror = function (e) { if (e && (e.error === 'interrupted' || e.error === 'canceled')) return; next(); };
+  c.wd = setInterval(function () {
+    if (_tp.paused || fin) return;
+    var S = window.speechSynthesis; if (S.speaking || S.pending) return;
+    if (started || Date.now() - t0 > 6000) next();
+  }, 700);
+  window.speechSynthesis.speak(u);
 }
 function demoPauseToggle() {
   var c = _tp.cur;
   if (!_tp.paused) {
     _tp.paused = true; _tp.pausedAt = Date.now();
-    if (c && c.u && !c.done) { c.u._killed = true; if (c.started) c.spent += Date.now() - c.t0; }
+    if (c && !c.done) { clearTimeout(c.tm); clearInterval(c.wd); if (c.cu) c.cu._killed = true; }
     window.speechSynthesis.cancel();
     if (typeof _karaStop === 'function') _karaStop();
   } else {
     _tp.paused = false; _tp.pausedTotal += Date.now() - _tp.pausedAt;
-    if (_tp.pending) { var p = _tp.pending; _tp.pending = null; window.speechSynthesis.speak(p.u); }
-    else if (c && !c.done) {
-      var start = 0;
-      if (c.started) {
-        var pos = c.gotB ? c.pos : Math.min(c.text.length, c.spent / 1000 * 20.5 * (c.rate || 0.9));
-        var re = /[.!?…]\s+/g, m; while ((m = re.exec(c.text)) && m.index + m[0].length <= pos) start = m.index + m[0].length;
-      }
-      var u = new SpeechSynthesisUtterance(c.text.slice(start)); u.lang = c.lang; u.rate = c.rate; if (c.voice) u.voice = c.voice;
-      u.onend = c.onend; u._off = c.off + start;
-      if (c.kara && typeof _karaAttach === 'function') { u._kara = c.kara; _karaAttach(u, c.kara[0], c.kara[1], c.kara[2], c.kara[3], u._off); }
-      _tpSpeak(u);
-    }
+    if (_tp.pending) { var p = _tp.pending; _tp.pending = null; _tpChunk(p); }
+    else if (c && !c.done && !c.dead) _tpChunk(c);   // the sentence that was being spoken, from its beginning
   }
   _tpLabel();
 }
 function _tpPausedMs() { return _tp.pausedTotal + (_tp.paused ? Date.now() - _tp.pausedAt : 0); }
-function _tpReset() { _tp.paused = false; _tp.cur = null; _tp.pending = null; _tp.pausedTotal = 0; _tpLabel(); }
+function _tpReset() { _tpKill(_tp.cur); _tp.paused = false; _tp.cur = null; _tp.pending = null; _tp.pausedTotal = 0; _tpLabel(); }
 function _tpLabel() {
   var txt = _tp.paused ? '&#9654; Resume' : '&#10074;&#10074; Pause';
   document.querySelectorAll('.tp-btn').forEach(function (b) { b.innerHTML = txt; });
@@ -12430,7 +12452,7 @@ function speakSeg(pid){
   u.onend=function(){ if(my!==P1A.tok||!p.playing) return; var prev=p.segs[p.idx]; p.idx++; p1PUpd(pid); var nxt=p.segs[p.idx]; var gap=Math.round((P1A.pause+((nxt&&prev&&nxt.sp!==prev.sp)?0.25:0))*1000); setTimeout(function(){ if(my===P1A.tok&&p.playing) speakSeg(pid); }, gap); };
   u.onerror=function(e){ if(my!==P1A.tok) return; if(e&&(e.error==='interrupted'||e.error==='canceled')) return; p.playing=false; p1PUpd(pid); };
   p1PUpd(pid);
-  try{ window._tpSpeak(u); }catch(e){ p.playing=false; p1PUpd(pid); }
+  try{ speechSynthesis.speak(u); }catch(e){ p.playing=false; p1PUpd(pid); }
 }
 window.p1Play = function(pid){
   if(!window.speechSynthesis){ alert('This browser cannot play speech. Try Chrome, Edge or Safari.'); return; }
@@ -24341,4 +24363,4 @@ function deck(el,m,n,x,y,face,gap){clear(el);const cs=[];for(let i=0;i<n;i++){co
   if (document.readyState === 'complete') start(); else window.addEventListener('load', start);
 })();
 </script>
-<script id="ap-build">window.__apBuild="0f763fcdd4";window.__apVer=438;(function(){var N=window.__apVer;function put(){try{var h=document.querySelector('header.aph-header');if(!h||document.getElementById('ap-ver'))return;var s=document.createElement('span');s.id='ap-ver';s.textContent='v'+N;s.style.cssText='position:absolute;right:10px;bottom:4px;font:600 11px/1 system-ui,sans-serif;color:#c9a84c;opacity:.8;pointer-events:none;letter-spacing:.04em;z-index:2';if(getComputedStyle(h).position==='static')h.style.position='relative';h.appendChild(s)}catch(e){}}put();document.addEventListener('DOMContentLoaded',put);window.addEventListener('load',put);setInterval(put,2000)})();</script>
+<script id="ap-build">window.__apBuild="b3f6108cab";window.__apVer=439;(function(){var N=window.__apVer;function put(){try{var h=document.querySelector('header.aph-header');if(!h||document.getElementById('ap-ver'))return;var s=document.createElement('span');s.id='ap-ver';s.textContent='v'+N;s.style.cssText='position:absolute;right:10px;bottom:4px;font:600 11px/1 system-ui,sans-serif;color:#c9a84c;opacity:.8;pointer-events:none;letter-spacing:.04em;z-index:2';if(getComputedStyle(h).position==='static')h.style.position='relative';h.appendChild(s)}catch(e){}}put();document.addEventListener('DOMContentLoaded',put);window.addEventListener('load',put);setInterval(put,2000)})();</script>
