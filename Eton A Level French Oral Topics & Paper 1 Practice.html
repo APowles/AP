@@ -12332,7 +12332,6 @@ P1A.rate=1;
 var P1SP={speed:0.8, pause:0};
 try{ var _p1j=JSON.parse(localStorage.getItem('ap_p1_sp_v1')||'null'); if(_p1j){ if(_p1j.speed>=.5&&_p1j.speed<=1.5)P1SP.speed=_p1j.speed; if(_p1j.pause>=0&&_p1j.pause<=2)P1SP.pause=_p1j.pause; } }catch(e){}
 function p1SpSave(){ try{ localStorage.setItem('ap_p1_sp_v1', JSON.stringify(P1SP)); }catch(e){} }
-Object.defineProperty(P1A,'pause',{get:function(){ return P1SP.pause; }});
 function p1SpPanel(ev){
   if(ev&&ev.stopPropagation) ev.stopPropagation();
   var old=document.getElementById('apsp-pop'); if(old){ old.remove(); return; }
@@ -12450,7 +12449,7 @@ function speakSeg(pid){
   var u=new SpeechSynthesisUtterance(String(seg.text).replace(/\bCM\s?([12])\b/g,'cé aime $1').replace(/\bCE\s?([12])\b/g,'ce eu $1'));
   if(vf.voice){ u.voice=vf.voice; u.lang=vf.voice.lang; } else u.lang='fr-FR';
   u.pitch=vf.pitch; u.rate=P1SP.speed; u.__apSp=1;
-  u.onend=function(){ if(my!==P1A.tok||!p.playing) return; clearTimeout(wd); var prev=p.segs[p.idx]; p.idx++; p1PUpd(pid); var nxt=p.segs[p.idx]; var gap=Math.round((P1A.pause+((nxt&&prev&&nxt.sp!==prev.sp)?0.25:0))*1000); setTimeout(function(){ if(my===P1A.tok&&p.playing) speakSeg(pid); }, gap); };
+  u.onend=function(){ if(my!==P1A.tok||!p.playing) return; clearTimeout(wd); var prev=p.segs[p.idx]; p.idx++; p1PUpd(pid); var nxt=p.segs[p.idx]; var gap=Math.round((P1SP.pause+((nxt&&prev&&nxt.sp!==prev.sp)?0.25:0))*1000); setTimeout(function(){ if(my===P1A.tok&&p.playing) speakSeg(pid); }, gap); };
   u.onerror=function(e){ if(my!==P1A.tok) return; if(e&&(e.error==='interrupted'||e.error==='canceled')) return; clearTimeout(wd); p.idx++; p1PUpd(pid); setTimeout(function(){ if(p.playing) speakSeg(pid); },300); };
   p1PUpd(pid);
   /* watchdog: if the device never reports the end of this sentence, move on so the whole extract still plays */
@@ -12475,7 +12474,7 @@ window.p1Step = function(pid, d){
 // ⏪ 10 s / 10 s ⏩ : the voice is the device's speech, not a recording, so the time of each sentence is estimated from its length, the speed and the pause; the jump lands on the start of the sentence nearest to 10 seconds away
 function p1SegSecs(p, i){
   var seg=p.segs[i], nxt=p.segs[i+1]; if(!seg) return 0;
-  return String(seg.text).length/(20*P1SP.speed) + P1A.pause + ((nxt&&nxt.sp!==seg.sp)?0.25:0);
+  return String(seg.text).length/(20*P1SP.speed) + P1SP.pause + ((nxt&&nxt.sp!==seg.sp)?0.25:0);
 }
 window.p1Skip = function(pid, secs){
   var p=P1A.p[pid]; if(!p||!p.segs.length) return; var was=p.playing, n=p.segs.length, from=Math.max(0,Math.min(n-1,p.idx)), tgt=from, acc, best, j;
@@ -24349,4 +24348,4 @@ function deck(el,m,n,x,y,face,gap){clear(el);const cs=[];for(let i=0;i<n;i++){co
   if (document.readyState === 'complete') start(); else window.addEventListener('load', start);
 })();
 </script>
-<script id="ap-build">window.__apBuild="b175b509b7";window.__apVer=434;(function(){var N=window.__apVer;function put(){try{var h=document.querySelector('header.aph-header');if(!h||document.getElementById('ap-ver'))return;var s=document.createElement('span');s.id='ap-ver';s.textContent='v'+N;s.style.cssText='position:absolute;right:10px;bottom:4px;font:600 11px/1 system-ui,sans-serif;color:#c9a84c;opacity:.8;pointer-events:none;letter-spacing:.04em;z-index:2';if(getComputedStyle(h).position==='static')h.style.position='relative';h.appendChild(s)}catch(e){}}put();document.addEventListener('DOMContentLoaded',put);window.addEventListener('load',put);setInterval(put,2000)})();</script>
+<script id="ap-build">window.__apBuild="4ce2833898";window.__apVer=435;(function(){var N=window.__apVer;function put(){try{var h=document.querySelector('header.aph-header');if(!h||document.getElementById('ap-ver'))return;var s=document.createElement('span');s.id='ap-ver';s.textContent='v'+N;s.style.cssText='position:absolute;right:10px;bottom:4px;font:600 11px/1 system-ui,sans-serif;color:#c9a84c;opacity:.8;pointer-events:none;letter-spacing:.04em;z-index:2';if(getComputedStyle(h).position==='static')h.style.position='relative';h.appendChild(s)}catch(e){}}put();document.addEventListener('DOMContentLoaded',put);window.addEventListener('load',put);setInterval(put,2000)})();</script>
