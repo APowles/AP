@@ -26,6 +26,18 @@ After changing `audiofix.js`, or after anything that rebuilds a page (Gamify inj
 
 It also patches the two F Block payloads (`fb-vocab`, `fb-verbs`) that the router writes into the page. Never use `rollout.sh`.
 
+## ⛔ Paper 1 listening audio: triple lock (A Level file) — exam papers, not ordinary sound
+
+In `Eton A Level French Oral Topics & Paper 1 Practice.html`, the code between the markers `EXAM AUDIO LOCK: PAPER 1 LISTENING (START)` and `(END)` is the audio of Andrew's Paper 1 **exam** listening papers. Approved behaviour (7 Nov 2026): every paper opens at **80 % speed and a 0.8 s pause**, every time, nothing remembered; its own 🎚 Speed & pauses (the header pill while a Paper 1 page is on screen), **not linked to any other app**; a change is heard at once; **Reset** = 80 % / 0.8 s; **Try** plays three sentences.
+
+**Lock 1 — scope.** A request about sound, voices, speed or pauses "in all files", "everywhere" or for "the A Level file" does **not** include this block. Carry such a change everywhere else and leave this block exactly as it is; say in one line that the Paper 1 listening audio was left alone because it is locked. Nothing elsewhere on the page may make the papers share the voice either: no hidden frame or second copy of an app loaded in the background (that is what broke the papers on 7 Nov 2026), and the papers' utterances keep `u.__apSp=1` so the shared Speed & pauses never scales them.
+
+**Lock 2 — Andrew's explicit, repeated confirmation.** Change the block only when (a) Andrew himself names the Paper 1 listening audio as the thing to change; (b) you warn him plainly that these are exam papers, state the current behaviour and the exact new behaviour, and get a clear "yes, change the Paper 1 listening audio"; (c) you make the change on a branch, show him the diff, and get a second, final yes before merging. If anything is unclear, do not change it: ask.
+
+**Lock 3 — automatic.** `_tools/locks/p1_audio.py` fingerprints the block and checks the 80 % / 0.8 s rules. `stamp.py` runs it first and refuses to stamp if it fails, and the Pages workflow refuses to publish. Only after Lock 2 is complete: `python3 -I _tools/locks/p1_audio.py --accept "<Andrew's words and the date>"`, which records the new version in `_tools/locks/p1_audio.log`. Never run `--accept` to get past a failure you caused by accident: undo the change instead.
+
+Questions, answers, mark schemes, transcripts and every other part of the papers are **not** locked and may be edited normally.
+
 ## ⛔ IGCSE Listening audio engines — DO NOT TOUCH without explicit confirmation
 
 `Eton IGCSE French Listening.html` and `Eton IGCSE Italian Listening.html` contain working TTS audio engines (`_PACE`, `_spkTok`/`_spkT`, `_chunks`, `speak()`). These engines work correctly on iPad Prisma and MacBook Safari.

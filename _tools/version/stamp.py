@@ -3,6 +3,10 @@
 Run from the repo root before committing (the pre-commit hook does this).  Idempotent: the stamp block is removed, the page is hashed without it, and the block is appended at the very end."""
 import re, glob, os, hashlib, json
 here = os.path.dirname(os.path.abspath(__file__))
+# ⛔ EXAM AUDIO LOCK: refuse to stamp anything if the Paper 1 listening audio was changed without Andrew's approval (see CLAUDE.md)
+import subprocess, sys
+if subprocess.call([sys.executable, '-I', os.path.join(here, '..', 'locks', 'p1_audio.py')]) != 0:
+    sys.exit('stamp.py: NOT stamped, because the EXAM AUDIO LOCK failed (see the message above).')
 chk = open(os.path.join(here,'newversion.js'),encoding='utf-8').read().strip()
 CHK = '<script id="ap-newver-js">\n'+chk+'\n</script>\n'
 STAMP = re.compile(r'<script id="ap-build">[^<]*</script>\n?')
