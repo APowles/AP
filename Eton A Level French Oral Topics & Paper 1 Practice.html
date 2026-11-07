@@ -497,7 +497,10 @@
 })(window);
 /* ===== END AP VOICE ===== */
 </script>
-<script>window.AP_SP_DEFAULT_PAUSE=0.8;window._tpSS=window.speechSynthesis;/* captured before AP_SP wraps speak — oral demo and P1 engines use this so onend fires in Safari */</script>
+<script>window.AP_SP_DEFAULT_PAUSE=0.8;
+window._tpSS=window.speechSynthesis;
+window._tpSpeak=window.speechSynthesis.speak.bind(window.speechSynthesis);
+/* captured before AP_SP wraps speak — oral demo and P1 engines use this so onend fires in Safari */</script>
 <script id="ap-sp">
 /* ===== AP SPEED & PAUSES v1 (identical in every AP app that has it) =====
    One header button "🎚 Speed & pauses" opens a small panel: voice Speed (50–150 %) and the Pause between sentences (0–2 s).
@@ -11699,7 +11702,7 @@ function _tpSpeak(u) {
   u.addEventListener('boundary', function (e) { if (e.name && e.name !== 'word') return; c.gotB = true; c.pos = e.charIndex; });
   _tp.cur = c;
   if (_tp.paused) { _tp.pending = c; return; }
-  (window._tpSS || window.speechSynthesis).speak(u);
+  window._tpSpeak(u);
 }
 function demoPauseToggle() {
   var c = _tp.cur;
@@ -12427,7 +12430,7 @@ function speakSeg(pid){
   u.onend=function(){ if(my!==P1A.tok||!p.playing) return; var prev=p.segs[p.idx]; p.idx++; p1PUpd(pid); var nxt=p.segs[p.idx]; var gap=Math.round((P1A.pause+((nxt&&prev&&nxt.sp!==prev.sp)?0.25:0))*1000); setTimeout(function(){ if(my===P1A.tok&&p.playing) speakSeg(pid); }, gap); };
   u.onerror=function(e){ if(my!==P1A.tok) return; if(e&&(e.error==='interrupted'||e.error==='canceled')) return; p.playing=false; p1PUpd(pid); };
   p1PUpd(pid);
-  try{ (window._tpSS||window.speechSynthesis).speak(u); }catch(e){ p.playing=false; p1PUpd(pid); }
+  try{ window._tpSpeak(u); }catch(e){ p.playing=false; p1PUpd(pid); }
 }
 window.p1Play = function(pid){
   if(!window.speechSynthesis){ alert('This browser cannot play speech. Try Chrome, Edge or Safari.'); return; }
@@ -24338,4 +24341,4 @@ function deck(el,m,n,x,y,face,gap){clear(el);const cs=[];for(let i=0;i<n;i++){co
   if (document.readyState === 'complete') start(); else window.addEventListener('load', start);
 })();
 </script>
-<script id="ap-build">window.__apBuild="5113bba24d";window.__apVer=437;(function(){var N=window.__apVer;function put(){try{var h=document.querySelector('header.aph-header');if(!h||document.getElementById('ap-ver'))return;var s=document.createElement('span');s.id='ap-ver';s.textContent='v'+N;s.style.cssText='position:absolute;right:10px;bottom:4px;font:600 11px/1 system-ui,sans-serif;color:#c9a84c;opacity:.8;pointer-events:none;letter-spacing:.04em;z-index:2';if(getComputedStyle(h).position==='static')h.style.position='relative';h.appendChild(s)}catch(e){}}put();document.addEventListener('DOMContentLoaded',put);window.addEventListener('load',put);setInterval(put,2000)})();</script>
+<script id="ap-build">window.__apBuild="0f763fcdd4";window.__apVer=438;(function(){var N=window.__apVer;function put(){try{var h=document.querySelector('header.aph-header');if(!h||document.getElementById('ap-ver'))return;var s=document.createElement('span');s.id='ap-ver';s.textContent='v'+N;s.style.cssText='position:absolute;right:10px;bottom:4px;font:600 11px/1 system-ui,sans-serif;color:#c9a84c;opacity:.8;pointer-events:none;letter-spacing:.04em;z-index:2';if(getComputedStyle(h).position==='static')h.style.position='relative';h.appendChild(s)}catch(e){}}put();document.addEventListener('DOMContentLoaded',put);window.addEventListener('load',put);setInterval(put,2000)})();</script>
