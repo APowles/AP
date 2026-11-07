@@ -28,7 +28,11 @@ It also patches the two F Block payloads (`fb-vocab`, `fb-verbs`) that the route
 
 ## ⛔ IGCSE Listening audio engines — DO NOT TOUCH without explicit confirmation
 
-`Eton IGCSE French Listening.html` and `Eton IGCSE Italian Listening.html` contain working TTS audio engines (`_PACE`, `_spkTok`/`_spkT`, `_chunks`, `speak()`). These engines work correctly on iPad Prisma and MacBook Safari. They must not be changed under any circumstances without all of the following:
+`Eton IGCSE French Listening.html` and `Eton IGCSE Italian Listening.html` contain working TTS audio engines (`_PACE`, `_spkTok`/`_spkT`, `_chunks`, `speak()`). These engines work correctly on iPad Prisma and MacBook Safari.
+
+**This safeguard applies only to the audio playback engine.** Text content, question data, layout, styling, and any non-audio feature may be changed normally.
+
+Any change to the audio engine (the variables and functions listed above, how utterances are created and spoken, speed/pause settings, the speak() call chain) requires all of the following:
 
 1. **Andrew explicitly names the IGCSE listening file** as the thing to change (not the A-level file, not "the listening files" generically).
 2. **State out loud what the current behaviour is** and what the requested change is, and get a clear "yes, do it" from Andrew.
@@ -36,7 +40,7 @@ It also patches the two F Block payloads (`fb-vocab`, `fb-verbs`) that the route
 4. **Never** copy code FROM these files into another file in a way that modifies these files. Reading them as reference is fine.
 5. **Never** treat a fix to the A-level listening file as a reason to touch these files.
 
-If in doubt: DO NOT TOUCH. Ask first.
+If in doubt about whether a change touches the audio engine: DO NOT TOUCH. Ask first.
 
 ## F Block Spanish: two stand-alone files, never rebuilt from other files
 
