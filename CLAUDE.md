@@ -26,6 +26,18 @@ After changing `audiofix.js`, or after anything that rebuilds a page (Gamify inj
 
 It also patches the two F Block payloads (`fb-vocab`, `fb-verbs`) that the router writes into the page. Never use `rollout.sh`.
 
+## ⛔ IGCSE Listening audio engines — DO NOT TOUCH without explicit confirmation
+
+`Eton IGCSE French Listening.html` and `Eton IGCSE Italian Listening.html` contain working TTS audio engines (`_PACE`, `_spkTok`/`_spkT`, `_chunks`, `speak()`). These engines work correctly on iPad Prisma and MacBook Safari. They must not be changed under any circumstances without all of the following:
+
+1. **Andrew explicitly names the IGCSE listening file** as the thing to change (not the A-level file, not "the listening files" generically).
+2. **State out loud what the current behaviour is** and what the requested change is, and get a clear "yes, do it" from Andrew.
+3. **Make the change on a branch**, not main, and show Andrew the exact diff before merging.
+4. **Never** copy code FROM these files into another file in a way that modifies these files. Reading them as reference is fine.
+5. **Never** treat a fix to the A-level listening file as a reason to touch these files.
+
+If in doubt: DO NOT TOUCH. Ask first.
+
 ## F Block Spanish: two stand-alone files, never rebuilt from other files
 
 `Eton F Block Spanish.html` (boys and colleagues: all F Block vocab, only the 100 core verbs) and `AP F Block Spanish.html` (the same plus every verb, the extra tenses and the E Block trials tile; AP only) are edited directly. The old twins (`Eton F Spanish Vocab.html`, `Eton Spanish Verbs.html`) were deleted on 3 Nov 2026 and `_tools/fblock/build.py` is disabled. Never rebuild either file from other pages, and never put the full verb list into the Eton file (it must hold 309 verb entries). Any change to one file goes into the other in the same piece of work. The old addresses `AP F Spanish Vocab.html` and `AP Spanish Verbs.html` are redirect stubs to the Eton file.
