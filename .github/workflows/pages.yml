@@ -47,5 +47,12 @@ jobs:
       - name: Deploy to GitHub Pages
         id: deployment
         uses: actions/deploy-pages@v4
+        continue-on-error: true   # GitHub sometimes takes longer than its 10-minute maximum; if so, try once more below
         with:
-          timeout: 1800000   # 30 minutes: the whole site takes GitHub longer than the 10-minute default to go live
+          timeout: 600000
+
+      - name: Deploy to GitHub Pages (second try)
+        if: steps.deployment.outcome == 'failure'
+        uses: actions/deploy-pages@v4
+        with:
+          timeout: 600000
