@@ -26,16 +26,14 @@ jobs:
 
       - name: Gather files for Pages
         run: |
+          # Publish the WHOLE site (pages, pictures, sounds, icons, tests, pamphlets, guides, version files...).
+          # Only git's own folders are left out (the games load files from _tools/ too). Never trim this to a list of folders: anything left out
+          # (e.g. pictures/) silently disappears from the live apps.
           mkdir -p _site
-          # Copy all HTML files
-          cp *.html _site/
-          # Copy assets and icons folders
-          cp -r assets _site/assets
-          cp -r icons _site/icons
-          # Copy guides folder if present
-          [ -d guides ] && cp -r guides _site/guides || true
-          # Suppress Jekyll processing
+          rsync -a --exclude='.git' --exclude='.github' --exclude='_site' ./ _site/
           touch _site/.nojekyll
+          du -sh _site
+          test -f _site/pictures/17.jpg && test -f _site/version.json
 
       - name: Upload Pages artifact
         uses: actions/upload-pages-artifact@v3
