@@ -15938,6 +15938,8 @@ function vSubOld(){
 /* KTR */
 function trailPush(){(S.trail=S.trail||[]).push({stage:S.stage,step:S.step,ovm:S.ovm,mode:S.mode,drill:S.drill,uq:S.uq});if(S.trail.length>40)S.trail.shift()}
 function stg(x){if(S.stage!==x)trailPush();S.stage=x;S.step=0;S.routeOpen=false;render()}
+/* the numbered route at the top of a KTR: tapping a stage opens it AND scrolls down to where that stage begins (the row of stage tabs, with the stage's own content under it) */
+function routeJump(){setTimeout(function(){var e=document.querySelector('.stages');if(!e)return;var y=e.getBoundingClientRect().top+(window.pageYOffset||document.documentElement.scrollTop||0)-72;window.scrollTo({top:Math.max(0,y),behavior:'smooth'})},40)}
 function dTab(x){if(S.drill!==x)trailPush();S.drill=x;render()}
 function uTab(i){if(S.uq!==i)trailPush();S.uq=i;render()}
 function cStep(i){if(S.step!==i)trailPush();S.step=i;render()}
@@ -16151,6 +16153,8 @@ const KCARDS=[{"k":1,"g":"Q","st":["The examiner asks you about the PACS. React 
 let KC=null;
 function kcCss(){if(document.getElementById('kc-css'))return;const s=document.createElement('style');s.id='kc-css';s.textContent=`
 #ps-ov .ms-sheet.kc{display:flex;flex-direction:column;gap:12px}
+.ms-ov:has(.ms-sheet.kc){padding:0!important;background:#000!important}
+#ps-ov .ms-sheet.kc{width:100vw!important;max-width:100vw!important;min-height:100vh!important;height:100vh!important;border-radius:0!important;box-sizing:border-box;overflow:auto!important}
 .kc-top{display:flex;gap:6px;flex-wrap:wrap;align-items:center}
 .kc-ch{display:inline-flex;align-items:center;gap:6px;border:2px solid #8fa8d1;background:#fff;color:#6b7a96;border-radius:18px;padding:3px 10px;font:600 13px/1.2 system-ui,sans-serif;cursor:pointer}
 .kc-ch i{width:10px;height:10px;border-radius:50%;background:var(--kcc);display:inline-block}
@@ -16816,7 +16820,7 @@ function vKtr(){
   const k=ktr();
   const demo=true;const LRN=STAGES.filter(s=>s[0]!=='p'&&(s[0]!=='r'||k.remember)&&(s[0]!=='i'||k.ican));
   const RT={o:'Hear the story, see the picture and the hook question.',c:'Explore the parts of the story and why they matter.',r:'Key ideas you can use in your oral, each backed by facts.',w:'Vocabulary and sentence frames, English to French.',d:'Drill the key sentences, short and in both directions.',u:'Use the KTR in full answers and practice questions.',i:'Check yourself against the I can list.'};
-  const routeHtml=demo?'<div style="margin:0 0 12px"><div class="label" style="margin:0 0 6px">The route through this KTR</div>'+LRN.map((s,j)=>'<button type="button" onclick="stg(\''+s[0]+'\');window.scrollTo(0,0)" style="display:flex;gap:10px;align-items:flex-start;width:100%;text-align:left;margin:4px 0;padding:8px 10px;border-radius:10px;border:1px solid rgba(128,128,128,.45);background:'+(S.stage===s[0]?'rgba(201,168,76,.22)':'transparent')+';color:inherit;font:inherit;cursor:pointer"><b style="min-width:1.4em">'+(j+1)+'</b><span><b>'+s[1]+'</b> '+RT[s[0]]+'</span></button>').join('')+'<div style="font-size:13px;opacity:.75;margin-top:6px">Then practise it, when you are ready.</div></div>':'';
+  const routeHtml=demo?'<div style="margin:0 0 12px"><div class="label" style="margin:0 0 6px">The route through this KTR</div>'+LRN.map((s,j)=>'<button type="button" onclick="stg(\''+s[0]+'\');routeJump()" style="display:flex;gap:10px;align-items:flex-start;width:100%;text-align:left;margin:4px 0;padding:8px 10px;border-radius:10px;border:1px solid rgba(128,128,128,.45);background:'+(S.stage===s[0]?'rgba(201,168,76,.22)':'transparent')+';color:inherit;font:inherit;cursor:pointer"><b style="min-width:1.4em">'+(j+1)+'</b><span><b>'+s[1]+'</b> '+RT[s[0]]+'</span></button>').join('')+'<div style="font-size:13px;opacity:.75;margin-top:6px">Then practise it, when you are ready.</div></div>':'';
   const backBtn='';
   if(demo&&S.routeOpen){const i0=S.k,n0=cur().ktrs.length;return `<div class="label">${esc(cur().name)} · KTR ${i0+1} of ${n0}</div><h1 class="h1">${esc(k.term)}</h1>${backBtn}${routeHtml}`;}
   const tabs=STAGES.filter(s=>(s[0]!=='r'||k.remember)&&(s[0]!=='i'||k.ican)).map((s,j)=>(s[0]==='p'?'<span class="stg-sep">then</span>':'')+`<button class="stg${S.stage===s[0]?' on':''}${s[0]==='p'?' stg-pr':''}" onclick="stg('${s[0]}')"><b>${demo&&s[0]!=='p'?(j+1)+'. ':''}${s[1]}</b>${pips1(k.n,s[0])}</button>`).join('');
@@ -17424,7 +17428,7 @@ function vHome(){
   const last=hmLast(),n=SUBS.reduce((a,s)=>a+s.ktrs.length,0);
   const all=`SUBS.flatMap(s=>s.ktrs.map(k=>k.n)),'All ${n} KTRs'`;
   return `<div class="hm-hero"><div class="hm-bg" id="hm-bg"></div><div class="hm-shade"></div><div class="hm-in">
-    <div class="hm-kick">${n} KTRs · ${SUBS.length} sous-thèmes</div><h1 class="hm-title">KTR Studio</h1><p class="hm-tag">Learn, practise and test the 70 Key Topic References</p>
+    <div class="hm-kick">${n} KTRs · ${SUBS.length} sous-thèmes</div><h1 class="hm-title">KTR Studio</h1><p class="hm-tag">Pick a theme and a KTR, then learn it step by step</p>
     <div class="hm-tiles">${hmTile('hm-big','<img alt="" src="icons/hx_topic.webp" style="width:100%;height:100%;display:block">','Learn a KTR<small class="hm-d">Pick a theme and a KTR, then learn it step by step</small>',"HM.pick=1;HM.hint=null;render();window.scrollTo(0,0)")}${keys.length&&window.parent&&window.parent.ORAL_CYCLE_EXPRS?hmTile('hm-big',`<img alt="" src="${HM_IC.cyc}" style="width:100%;height:100%;display:block">`,'QPSEAIOHC + KTRs<small class="hm-d">Practise the Oral Cycle on the KTRs you choose</small>',"HM.pick=2;HM.theme=1;HM.hint='roll';HMSEL.s.clear();HMSEL.t.clear();render();window.scrollTo(0,0)"):''}</div>
     ${keys.length?`<div class="hm-kick" style="margin-top:20px;font-size:1em;letter-spacing:.12em;color:#f3d98a;font-weight:800">↓ Apply your skills</div><div class="hm-cta" style="margin-top:10px">${hmTile('sm','<img alt="" src="icons/hx_wheel.webp" style="width:100%;height:100%;display:block">','Spin the wheel<span class="hm-d">Random picture — say it on the spot</span>',"openMachine([])")}${hmTile('sm',HM_IC.deal,'Shuffle and deal<span class="hm-d">Deal cards, say each sentence</span>',"openCards()")}${hmTile('sm',HM_IC.quiz,'KTR Pub Quiz<span class="hm-d">Questions from across the KTRs</span>',"kqOpen()")}${hmSm('icons/hx_how.webp','How to use the Studio','','https://apowles.github.io/AP/guides/ktr-studio.html')}</div>`:`<div class="hm-cta" style="margin-top:10px">${hmSm('icons/hx_how.webp','How to use the Studio','','https://apowles.github.io/AP/guides/ktr-studio.html')}</div>`}</div></div></div>
   <details class="hm-more"><summary><img alt="" src="icons/hx_more.webp" style="width:34px;height:34px;border-radius:9px;vertical-align:middle;margin-right:10px;box-shadow:0 3px 8px rgba(0,0,0,.3)">More options</summary>
@@ -17552,7 +17556,7 @@ function hmSplash(force){
   if(force){HM.pick=0;render();window.scrollTo(0,0);SPL.master&&(SPL.master.gain.value=.58)}
   const N=8,pick=shuffle(keys).slice(0,N);
   const el=document.createElement('div');el.id='hmsp';
-  el.innerHTML='<div class="hm-st" id="hm-st"><div class="hm-fr" id="hm-fr"></div><div id="hm-mks"></div></div><div class="hm-vig"></div><div class="hm-sp-t" id="hm-spt"><b>KTR Studio</b><span>Learn, practise and test the 70 Key Topic References</span></div><button class="hm-skip" type="button">Passer ›</button>';
+  el.innerHTML='<div class="hm-st" id="hm-st"><div class="hm-fr" id="hm-fr"></div><div id="hm-mks"></div></div><div class="hm-vig"></div><div class="hm-sp-t" id="hm-spt"><b>KTR Studio</b><span>Pick a theme and a KTR, then learn it step by step</span></div><button class="hm-skip" type="button">Passer ›</button>';
   document.body.appendChild(el);SPL.el=el;SPL.live=true;SPL.t0=performance.now();
   document.addEventListener('keydown',hmKey,true);
   const c=hmCtx();let blocked=false;
@@ -18922,6 +18926,25 @@ function showKTRStudio(){
   document.getElementById('ktr-studio-frame').srcdoc=src;
   window.scrollTo(0,0);
 }
+/* QPSEAIOHC cards fill the whole screen: while one is open, the KTR Studio frame covers the window and the navy banner is tucked away behind a small arrow tab at the top (tap it to slide the banner down over the card, tap again or tap the card to put it away). */
+(function(){
+  var tab=null,open=false,on=false,hooked=null;
+  function css(){if(document.getElementById('ap-kcf-css'))return;var s=document.createElement('style');s.id='ap-kcf-css';
+    s.textContent='html.ap-kcfocus,html.ap-kcfocus body{overflow:hidden!important}'
+    +'html.ap-kcfocus #ktr-studio-frame{position:fixed!important;inset:0!important;width:100vw!important;height:100vh!important;min-height:0!important;z-index:9000}'
+    +'html.ap-kcfocus .aph-header{position:fixed!important;top:0;left:0;right:0;z-index:9600;transform:translateY(-104%);transition:transform .25s ease;box-shadow:0 10px 30px rgba(0,0,0,.5)}'
+    +'html.ap-kcfocus.ap-hdr-open .aph-header{transform:translateY(0)}'
+    +'#ap-kc-tab{display:none;position:fixed;top:0;left:50%;margin-left:-34px;width:68px;height:20px;padding:0;border:0;border-radius:0 0 12px 12px;background:rgba(19,32,63,.88);color:#c9a84c;font:700 13px/20px system-ui,sans-serif;cursor:pointer;z-index:9700;transition:top .25s ease;box-shadow:0 2px 8px rgba(0,0,0,.4)}'
+    +'#ap-kc-tab:hover{background:#13203f}';
+    document.head.appendChild(s)}
+  function setOpen(v){open=v;document.documentElement.classList.toggle('ap-hdr-open',v);if(tab){var h=document.querySelector('.aph-header');tab.style.top=v&&h?(h.offsetHeight-3)+'px':'0';tab.innerHTML=v?'&#9652;':'&#9662;';tab.title=v?'Put the menu away':'Show the menu (Speed & pauses, Voices, Back, Home)';tab.setAttribute('aria-label',tab.title)}}
+  function enter(){css();document.documentElement.classList.add('ap-kcfocus');if(!tab){tab=document.createElement('button');tab.id='ap-kc-tab';tab.type='button';tab.onclick=function(e){e.stopPropagation();setOpen(!open)};document.body.appendChild(tab)}tab.style.display='block';setOpen(false)}
+  function leave(){document.documentElement.classList.remove('ap-kcfocus','ap-hdr-open');if(tab)tab.style.display='none';open=false}
+  function tick(){var f=document.getElementById('ktr-studio-frame'),d=null,has=false;try{d=f&&f.contentDocument;has=!!(d&&d.querySelector('#ps-ov .ms-sheet.kc'))}catch(e){}
+    if(has&&!on){on=true;enter()}else if(!has&&on){on=false;leave()}
+    if(has&&d&&hooked!==d){hooked=d;d.addEventListener('pointerdown',function(){if(open)setOpen(false)},true)}}
+  setInterval(tick,300);
+})();
 (function(){function go(){var m=/^#kq=([0-9a-z.]+)/.exec(location.hash||'');if(!m)return;showKTRStudio();var f=document.getElementById('ktr-studio-frame'),ids=m[1].split('.'),n=0;(function w(){try{var W=f.contentWindow;if(W&&W.document.readyState==='complete'&&W.kqLinkStart){W.kqLinkStart(ids);return}}catch(e){}if(++n<100)setTimeout(w,150)})()}
 if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',go);else setTimeout(go,0);window.addEventListener('hashchange',go)})();
 </script>
@@ -24521,4 +24544,4 @@ function deck(el,m,n,x,y,face,gap){clear(el);const cs=[];for(let i=0;i<n;i++){co
   if (document.readyState === 'complete') start(); else window.addEventListener('load', start);
 })();
 </script>
-<script id="ap-build">window.__apBuild="aced9a6425";window.__apVer=518;(function(){var N=window.__apVer;function put(){try{var h=document.querySelector('header.aph-header');if(!h||document.getElementById('ap-ver'))return;var s=document.createElement('span');s.id='ap-ver';s.textContent='v'+N;s.style.cssText='position:absolute;right:10px;bottom:4px;font:600 11px/1 system-ui,sans-serif;color:#c9a84c;opacity:.8;pointer-events:none;letter-spacing:.04em;z-index:2';if(getComputedStyle(h).position==='static')h.style.position='relative';h.appendChild(s)}catch(e){}}put();document.addEventListener('DOMContentLoaded',put);window.addEventListener('load',put);setInterval(put,2000)})();</script>
+<script id="ap-build">window.__apBuild="24f65fb596";window.__apVer=519;(function(){var N=window.__apVer;function put(){try{var h=document.querySelector('header.aph-header');if(!h||document.getElementById('ap-ver'))return;var s=document.createElement('span');s.id='ap-ver';s.textContent='v'+N;s.style.cssText='position:absolute;right:10px;bottom:4px;font:600 11px/1 system-ui,sans-serif;color:#c9a84c;opacity:.8;pointer-events:none;letter-spacing:.04em;z-index:2';if(getComputedStyle(h).position==='static')h.style.position='relative';h.appendChild(s)}catch(e){}}put();document.addEventListener('DOMContentLoaded',put);window.addEventListener('load',put);setInterval(put,2000)})();</script>
