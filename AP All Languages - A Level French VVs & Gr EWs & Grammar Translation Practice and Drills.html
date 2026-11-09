@@ -6585,6 +6585,14 @@ function openVVBrowse(){
             <span class="vvb-tool">Items <input id="vvbFrom" type="number" min="1" placeholder="1" oninput="vvbRender()"> to <input id="vvbTo" type="number" min="1" placeholder="end" oninput="vvbRender()"> <span class="vvb-hint">in each set</span></span>
             <input id="vvbSearch" type="search" placeholder="Search English or French…" oninput="vvbRender()">
           </div>
+          <div class="vvb-tools" id="vvbCoverRow">
+            <button class="vvb-cover" id="vvbCoverBtn" onclick="vvbToggleCover()" title="Hide one side of the list so you can test yourself, then tap a box to check it">&#128584; Cover and check your answers</button>
+            <span id="vvbCoverOpts" style="display:none;gap:6px;align-items:center;flex-wrap:wrap">
+              <button class="vvb-mini" data-show="en" onclick="vvbSetShow('en')">Cover French</button>
+              <button class="vvb-mini" data-show="fr" onclick="vvbSetShow('fr')">Cover English</button>
+              <span class="vvb-hint">tap a covered box to reveal it</span>
+            </span>
+          </div>
           <div class="vvb-tools">
             <span class="vvb-hint" style="margin-right:2px">Group by:</span>
             <button class="vvb-mini" data-grp="set" onclick="vvbSetGroup('set')">Set</button>
@@ -6595,7 +6603,8 @@ function openVVBrowse(){
             <span class="vvb-hint" style="margin-right:2px">Sort:</span>
             <button class="vvb-mini" data-sort="orig" onclick="vvbSetSort('orig')">Original order</button>
             <button class="vvb-mini" data-sort="az" onclick="vvbSetSort('az')">A–Z</button>
-            <button class="vvb-mini" data-sort="mix" onclick="vvbSetSort('mix')" title="Shuffles the words. Press again for a new order">&#128256; Mixed up</button>
+            <button class="vvb-mini vvb-shuf" data-sort="mix" onclick="vvbSetSort('mix')" title="Put the words in a new random order. Press again for another new order">&#128256; Shuffle the list</button>
+            <span class="vvb-hint">press again for a new order each time</span>
           </div>
           <div class="vvb-tools">
             <span class="vvb-hint" style="margin-right:2px">Show:</span>
@@ -6609,12 +6618,6 @@ function openVVBrowse(){
           <div class="vvb-tools">
             <button class="vvb-mini" onclick="vvbTickAll(true)">Tick all</button>
             <button class="vvb-mini" onclick="vvbTickAll(false)">Untick all</button>
-            <span class="vvb-sep"></span>
-            <span class="vvb-hint" style="margin-right:2px">&#128584; Cover answers:</span>
-            <button class="vvb-mini" data-show="both" onclick="vvbSetShow('both')">Show both</button>
-            <button class="vvb-mini" data-show="en" onclick="vvbSetShow('en')">Cover French</button>
-            <button class="vvb-mini" data-show="fr" onclick="vvbSetShow('fr')">Cover English</button>
-            <span class="vvb-hint">tap a covered box to reveal it</span>
           </div>
           <div id="vvbList"></div>
         </div>
@@ -6719,6 +6722,7 @@ function vvbToggleTopic(n, prefix){
   else sets.forEach(k => { if (!vvbSel.includes(k)) vvbSel.push(k); });
   vvbSortSel(); vvbRenderPicker(); vvbRender();
 }
+function vvbToggleCover(){ vvbSetShow(vvbShow === 'both' ? 'en' : 'both'); }
 function vvbSetShow(m){ vvbShow = m; vvbRevealed = {}; vvbRender(); }
 
 // Items currently shown: selected sets → item range → search.
@@ -6792,6 +6796,7 @@ function vvbRender(){
   const list = document.getElementById('vvbList');
   if (!list) return;
   document.querySelectorAll('#vvbModal [data-show]').forEach(b => b.classList.toggle('on', b.dataset.show === vvbShow));
+  { const cb = document.getElementById('vvbCoverBtn'), co = document.getElementById('vvbCoverOpts'); if (cb) { cb.classList.toggle('on', vvbShow !== 'both'); cb.innerHTML = (vvbShow !== 'both' ? '&#10003; ' : '&#128584; ') + 'Cover and check your answers'; } if (co) co.style.display = vvbShow !== 'both' ? 'inline-flex' : 'none'; }
   document.querySelectorAll('#vvbModal [data-grp]').forEach(b => b.classList.toggle('on', b.dataset.grp === vvbGroupBy));
   document.querySelectorAll('#vvbModal [data-sort]').forEach(b => b.classList.toggle('on', b.dataset.sort === vvbSortBy));
   document.querySelectorAll('#vvbModal [data-tier]').forEach(b => b.classList.toggle('on', b.dataset.tier === vvbTierF));
@@ -49562,6 +49567,10 @@ body{background:var(--cream)}
 #vvbModal .vvb-headr{display:flex;align-items:center;gap:12px}
 #vvbModal .vvb-printpill{flex:0 0 auto;background:#ffd76a;color:#1a2744;border:2px solid #fff3c4;border-radius:999px;padding:8px 20px;min-height:44px;font:800 1.0625rem var(--aph-body);cursor:pointer;white-space:nowrap;box-shadow:0 0 0 3px rgba(255,215,106,.35),0 0 18px 4px rgba(255,215,106,.55);animation:vvbPrintGlow 2.4s ease-in-out infinite}
 #vvbModal .vvb-printpill:hover{background:#ffe08a}
+#vvbModal .vvb-cover{background:#22c55e;border:2px solid #bbf7d0;color:#052e16;border-radius:999px;padding:8px 20px;min-height:44px;font:800 1rem var(--aph-body);cursor:pointer;box-shadow:0 0 0 3px rgba(34,197,94,.3),0 0 14px 3px rgba(34,197,94,.45)}
+#vvbModal .vvb-cover.on{background:#15803d;color:#fff}
+#vvbModal .vvb-mini.vvb-shuf{border-radius:999px;border-color:#c9a84c;font-weight:800;padding:7px 14px}
+#vvbModal .vvb-mini.vvb-shuf.on{background:#c9a84c;color:#1a2744}
 #vvbModal .vvb-printpill:disabled{opacity:.45;animation:none;box-shadow:none;cursor:default}
 @keyframes vvbPrintGlow{50%{box-shadow:0 0 0 4px rgba(255,215,106,.5),0 0 26px 8px rgba(255,215,106,.75)}}
 @media (prefers-reduced-motion:reduce){#vvbModal .vvb-printpill{animation:none}}
@@ -60766,4 +60775,4 @@ function deck(el,m,n,x,y,face,gap){clear(el);const cs=[];for(let i=0;i<n;i++){co
   if (document.readyState === 'complete') start(); else window.addEventListener('load', start);
 })();
 </script>
-<script id="ap-build">window.__apBuild="412900b580";window.__apVer=185;(function(){var N=window.__apVer;function put(){try{var h=document.querySelector('header.aph-header');if(!h||document.getElementById('ap-ver'))return;var s=document.createElement('span');s.id='ap-ver';s.textContent='v'+N;s.style.cssText='position:absolute;right:10px;bottom:4px;font:600 11px/1 system-ui,sans-serif;color:#c9a84c;opacity:.8;pointer-events:none;letter-spacing:.04em;z-index:2';if(getComputedStyle(h).position==='static')h.style.position='relative';h.appendChild(s)}catch(e){}}put();document.addEventListener('DOMContentLoaded',put);window.addEventListener('load',put);setInterval(put,2000)})();</script>
+<script id="ap-build">window.__apBuild="6ca411608c";window.__apVer=186;(function(){var N=window.__apVer;function put(){try{var h=document.querySelector('header.aph-header');if(!h||document.getElementById('ap-ver'))return;var s=document.createElement('span');s.id='ap-ver';s.textContent='v'+N;s.style.cssText='position:absolute;right:10px;bottom:4px;font:600 11px/1 system-ui,sans-serif;color:#c9a84c;opacity:.8;pointer-events:none;letter-spacing:.04em;z-index:2';if(getComputedStyle(h).position==='static')h.style.position='relative';h.appendChild(s)}catch(e){}}put();document.addEventListener('DOMContentLoaded',put);window.addEventListener('load',put);setInterval(put,2000)})();</script>
