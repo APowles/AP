@@ -211,7 +211,40 @@
 <script>/* apOpenSheet: printable sheets open as a pop-up over the same screen, never a new tab */
 (function () {
   if (window.apOpenSheet) return;
+  /* iPad / iPhone only: the iPad's browser ignores a hidden frame's print() and prints the whole page, so on those devices the sheet is placed inside this page
+     (in its own sealed box, so its styles and the page's cannot mix) and print rules hide everything else. Mac, PC and every other browser keep the frame route below, unchanged. */
+  function isIOSPrint() {
+    try { var ua = navigator.userAgent || ''; return /iPad|iPhone|iPod/.test(ua) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1); } catch (e) { return false; }
+  }
+  function apPrintCleanup() {
+    try {
+      var r = document.getElementById('ap-print-root'); if (r) r.remove();
+      var s = document.getElementById('ap-print-css'); if (s) s.remove();
+      document.documentElement.classList.remove('ap-printing');
+    } catch (e) { }
+  }
+  function printInline(f) {
+    var d = f.contentDocument; if (!d || !d.body) return false;
+    var css = '', pageRules = '';
+    Array.prototype.forEach.call(d.querySelectorAll('style'), function (s) { css += s.textContent + '\n'; });
+    css = css.replace(/@page[^{]*\{[^}]*\}/g, function (m) { pageRules += m + '\n'; return ''; });
+    css = css.replace(/(^|[\s,{};])html(?=[\s,{.#:\[>+~])/g, '$1:host').replace(/(^|[\s,{};])body(?=[\s,{.#:\[>+~])/g, '$1.ap-sheet-body');
+    apPrintCleanup();
+    var root = document.createElement('div'); root.id = 'ap-print-root';
+    var sh = root.attachShadow({ mode: 'open' });
+    var st = document.createElement('style'); st.textContent = ':host{display:block}\n.ap-sheet-body{margin:8px}\n' + css; sh.appendChild(st);
+    var w = document.createElement('div'); w.className = ('ap-sheet-body ' + (d.body.className || '')).trim(); w.style.cssText = d.body.style.cssText;
+    w.innerHTML = d.body.innerHTML.replace(/<script[\s\S]*?<\/script>/gi, '');
+    sh.appendChild(w);
+    var pg = document.createElement('style'); pg.id = 'ap-print-css';
+    pg.textContent = pageRules + '#ap-print-root{display:none}@media print{html.ap-printing,html.ap-printing body{background:#fff!important;margin:0!important;padding:0!important;height:auto!important;min-height:0!important;overflow:visible!important;position:static!important}html.ap-printing body>*:not(#ap-print-root){display:none!important}html.ap-printing #ap-print-root{display:block!important}}';
+    document.head.appendChild(pg); document.body.appendChild(root);
+    document.documentElement.classList.add('ap-printing');
+    window.print();
+    return true;
+  }
   function printClone(f) {
+    if (isIOSPrint()) { try { if (printInline(f)) return; } catch (e0) { apPrintCleanup(); } }
     try {
       var h = '<!doctype html>' + f.contentDocument.documentElement.outerHTML.replace(/<script[\s\S]*?<\/script>/gi, '');
       var g = document.createElement('iframe'); g.setAttribute('aria-hidden', 'true');
@@ -237,7 +270,7 @@
       if (src) f.src = src; else f.srcdoc = html;
       o.appendChild(bar); o.appendChild(f); document.body.appendChild(o);
       var prevOv = document.documentElement.style.overflow;
-      function close() { o.remove(); document.removeEventListener('keydown', esc); document.documentElement.style.overflow = prevOv; }
+      function close() { o.remove(); apPrintCleanup(); document.removeEventListener('keydown', esc); document.documentElement.style.overflow = prevOv; }
       function esc(e) { if (e.key === 'Escape') close(); }
       document.addEventListener('keydown', esc); document.documentElement.style.overflow = 'hidden';
       bar.querySelector('.aps-close').onclick = close;
@@ -4274,6 +4307,8 @@ function _stCss() {
       + '.stp-foot{display:flex;gap:8px;align-items:center;padding:12px 22px;border-top:1px solid #e2e6f0}.stp-foot button{padding:9px 14px;min-height:40px;border-radius:8px;border:1.5px solid #e2e6f0;background:#fff;color:#1a2744;font-size:.9375rem;font-weight:600;cursor:pointer;font-family:inherit}'
       + '.stp-foot .stp-done{background:#1a2744;color:#ffd76a;border-color:#1a2744;font-weight:700;padding:9px 22px}#stp-count{font-size:.875rem;color:#1a2744;font-weight:600}'
       + '.stb-opt{display:flex;flex-wrap:wrap;gap:18px;padding:12px 22px;border-bottom:1px solid #e2e6f0;font-size:.875rem;color:#1a2744}.stb-opt label{display:inline-flex;align-items:center;gap:5px;cursor:pointer}.stb-opt b{font-size:.75rem;text-transform:uppercase;letter-spacing:.08em;color:#8899bb;margin-right:4px}'
+      + '.stb-pill{flex:0 0 auto;background:#ffd76a;color:#1a2744;border:2px solid #fff3c4;border-radius:999px;padding:9px 20px;min-height:44px;font:800 1rem var(--aph-body);cursor:pointer;white-space:nowrap;box-shadow:0 0 0 3px rgba(255,215,106,.35),0 0 18px 4px rgba(255,215,106,.55);animation:stbGlow 2.4s ease-in-out infinite}.stb-pill:hover{background:#ffe08a}@keyframes stbGlow{50%{box-shadow:0 0 0 4px rgba(255,215,106,.5),0 0 26px 8px rgba(255,215,106,.75)}}@media (prefers-reduced-motion:reduce){.stb-pill{animation:none}}'
+      + '.stb-cvbtn{background:#fff;color:#1a2744;border:1.5px solid #c9a84c;border-radius:8px;padding:7px 12px;font:700 .875rem var(--aph-body);cursor:pointer}.stb-cvbtn.on{background:#ffd76a}'
       + '.stb-prev{overflow-y:auto;padding:16px 22px;background:#faf8f3}.stb-prev .ph,.stp-it .ph{font-style:italic;color:#8899bb}'
       + '.stp-note{font-size:.8125rem;color:#4a5a7a;margin:4px 0 0;line-height:1.35}.stp-nt{display:block;font-style:normal;font-size:.75rem;color:#6b7a99;margin-top:2px;line-height:1.3}';
     document.head.appendChild(st);
@@ -4350,12 +4385,13 @@ function openStructuresBook() {
   var L = { en: '🇬🇧 English', fr: '🇫🇷 French', it: '🇮🇹 Italian', es: '🇪🇸 Spanish' };
   m.innerHTML = '<div class="stp-box" style="max-width:1000px">'
     + '<div class="stp-head"><div><div class="stp-title">📖 View &amp; Print</div><div class="stp-sub">View or print any combination of sections, in the languages you choose.</div></div>'
-    + '<span style="display:inline-flex;gap:8px;flex-wrap:wrap"><button class="aph-btn aph-btn-sm" style="background:#fdeeb4;border-color:#c9a84c;font-weight:700" onclick="_stBook.sel=_stCompress(MASTER_SECTIONS_LIST.filter(function(x){return _stSections().indexOf(x)>=0;}));_stBookRender();">★ Master list</button><button class="aph-btn aph-btn-sm" onclick="openSectionPicker(_stBook.sel,function(v){_stBook.sel=v;_stBookRender();},{title:\'Sections to view / print\'})">📚 Choose sections</button></span></div>'
+    + '<span style="display:inline-flex;gap:8px;flex-wrap:wrap"><button class="aph-btn aph-btn-sm" style="background:#fdeeb4;border-color:#c9a84c;font-weight:700" onclick="_stBook.sel=_stCompress(MASTER_SECTIONS_LIST.filter(function(x){return _stSections().indexOf(x)>=0;}));_stBookRender();">★ Master list</button><button class="stb-pill" onclick="_stBookPrint()" title="Opens the formatted sheet, ready to print or save as a PDF">🖨 Print / PDF</button><button class="aph-btn aph-btn-sm" onclick="openSectionPicker(_stBook.sel,function(v){_stBook.sel=v;_stBookRender();},{title:\'Sections to view / print\'})">📚 Choose sections</button></span></div>'
     + '<div class="stb-opt"><span><b>Languages</b>' + ['en', 'fr', 'it', 'es'].map(function (l) { return '<label><input type="checkbox" class="stb-l" value="' + l + '"' + (_stBook.langs.indexOf(l) >= 0 ? ' checked' : '') + ' onchange="_stBookOpts()">' + L[l] + '</label>'; }).join(' ') + '</span>'
     + '<span><b>Layout</b><label><input type="radio" name="stb-s" value="table"' + (_stBook.style === 'table' ? ' checked' : '') + ' onchange="_stBookOpts()">Phrasebook table</label> <label><input type="radio" name="stb-s" value="cards"' + (_stBook.style === 'cards' ? ' checked' : '') + ' onchange="_stBookOpts()">Revision cards</label></span>'
-    + '<span><label><input type="checkbox" id="stb-h"' + (_stBook.hide ? ' checked' : '') + ' onchange="_stBookOpts()">Blank out all but the first language (self-test)</label></span></div>'
+    + '<span><button type="button" id="stb-cv" class="stb-cvbtn' + (_stBook.cover ? ' on' : '') + '" onclick="_stBook.cover=!_stBook.cover;this.classList.toggle(\'on\',!!_stBook.cover);_stBookRender()" title="Hide all but the first language on screen to test yourself: tap a row or card in the preview to reveal it">🙈 Cover answers</button></span>'
+    + '<span><label><input type="checkbox" id="stb-h"' + (_stBook.hide ? ' checked' : '') + ' onchange="_stBookOpts()">Blank out all but the first language when printed (self-test)</label></span></div>'
     + '<div class="stb-prev" id="stb-prev"></div>'
-    + '<div class="stp-foot"><span id="stb-count"></span><span style="flex:1"></span><button onclick="document.getElementById(\'st-book\').remove()">✕ Close</button><button class="stp-done" onclick="_stBookPrint()">🖨 Print / PDF</button></div></div>';
+    + '<div class="stp-foot"><span id="stb-count"></span><span style="flex:1"></span><button onclick="document.getElementById(\'st-book\').remove()">✕ Close</button></div></div>';
   m.addEventListener('click', function (e) { if (e.target === m) m.remove(); });
   document.body.appendChild(m);
   _stBookRender();
@@ -4377,7 +4413,7 @@ function _stBookData() {
   });
   return out.filter(function (g) { return g.secs.length; });
 }
-function _stBookHTML(forPrint) {
+function _stBookHTML(forPrint, screen) {
   var L = { en: 'English', fr: 'Français', it: 'Italiano', es: 'Español' }, F = { en: '🇬🇧', fr: '🇫🇷', it: '🇮🇹', es: '🇪🇸' };
   var langs = _stBook.langs, data = _stBookData(), n = 0, html = '';
   data.forEach(function (g) {
@@ -4385,10 +4421,10 @@ function _stBookHTML(forPrint) {
     g.secs.forEach(function (s) {
       html += '<section class="sec"><h3><span class="t">' + _stFmt(s.label) + '</span><span class="c">' + s.items.length + '</span></h3>';
       if (_stBook.style === 'cards') {
-        html += '<div class="cards">' + s.items.map(function (c) { n++; return '<div class="card">' + langs.map(function (l, k) { return '<div class="cl ' + (k ? 'tl' : 'fl') + '"><i>' + F[l] + '</i>' + ((_stBook.hide && k) ? '<span class="blank"></span>' : _stFmt(c[l])) + '</div>'; }).join('') + '</div>'; }).join('') + '</div>';
+        html += '<div class="cards">' + s.items.map(function (c) { n++; var cov = screen && _stBook.cover && !_stBook.hide; return '<div class="card' + (cov ? ' cov' : '') + '">' + langs.map(function (l, k) { return '<div class="cl ' + (k ? 'tl' : 'fl') + '"><i>' + F[l] + '</i>' + ((_stBook.hide && k) ? '<span class="blank"></span>' : (cov && k ? '<span class="cvt">' + _stFmt(c[l]) + '</span>' : _stFmt(c[l]))) + '</div>'; }).join('') + '</div>'; }).join('') + '</div>';
       } else {
         html += '<table><thead><tr><th class="n"></th>' + langs.map(function (l) { return '<th>' + F[l] + ' ' + L[l] + '</th>'; }).join('') + '</tr></thead><tbody>'
-          + s.items.map(function (c, i) { n++; return '<tr><td class="n">' + (i + 1) + '</td>' + langs.map(function (l, k) { return '<td class="' + (k ? 'tl' : 'fl') + '">' + ((_stBook.hide && k) ? '<span class="blank"></span>' : _stFmt(c[l])) + '</td>'; }).join('') + '</tr>'; }).join('') + '</tbody></table>';
+          + s.items.map(function (c, i) { n++; var cov = screen && _stBook.cover && !_stBook.hide; return '<tr' + (cov ? ' class="cov"' : '') + '><td class="n">' + (i + 1) + '</td>' + langs.map(function (l, k) { return '<td class="' + (k ? 'tl' : 'fl') + '">' + ((_stBook.hide && k) ? '<span class="blank"></span>' : (cov && k ? '<span class="cvt">' + _stFmt(c[l]) + '</span>' : _stFmt(c[l]))) + '</td>'; }).join('') + '</tr>'; }).join('') + '</tbody></table>';
       }
       html += '</section>';
     });
@@ -4408,19 +4444,19 @@ var ST_BOOK_CSS = '.grp{margin-bottom:8mm}.gl{background:#1a2744;color:#c9a84c;f
 function _stBookRender() {
   var p = document.getElementById('stb-prev'); if (!p) return;
   p.innerHTML = '<iframe id="stb-if" style="width:100%;height:62vh;border:0;border-radius:8px;background:#fff;box-shadow:0 2px 12px rgba(26,39,68,.12)"></iframe>';
-  document.getElementById('stb-if').srcdoc = _stBookDoc(false);
+  document.getElementById('stb-if').srcdoc = _stBookDoc(false, true);
   document.getElementById('stb-count').textContent = _secLabel(_stBook.sel) + ' · ' + _stBook.n + ' phrases';
 }
-function _stBookDoc(toolbar) {
+function _stBookDoc(toolbar, screen) {
   var L = { en: 'English', fr: 'French', it: 'Italian', es: 'Spanish' };
-  var body = _stBookHTML(true);
+  var body = _stBookHTML(true, screen);
   var html = '<!doctype html><html><head><meta charset="utf-8"><title>Top Structures — view &amp; print</title>'
     + '<style>' + aphCSS() + '</style>'
     + '<style>@page{size:A4;margin:13mm 14mm}*{box-sizing:border-box}body{margin:0;background:#fff;font-family:var(--aph-body);color:#1a2744;-webkit-print-color-adjust:exact;print-color-adjust:exact}'
     + '.wrap{max-width:182mm;margin:0 auto;padding:8mm 0}@media print{.wrap{padding:0}}.wrap>.aph-pband{margin-bottom:6mm}'
-    + ST_BOOK_CSS + '</style></head><body><div class="wrap">'
+    + ST_BOOK_CSS + (screen && _stBook.cover ? '.cov{cursor:pointer}.cov:not(.rev) .cvt,.cov:not(.rev) .cvt *{color:transparent!important;background:#e8ecf5;border-radius:3px;user-select:none}' : '') + '</style></head><body><div class="wrap">'
     + aphPrintHead({ kicker: 'AP IGCSE Top Structures, Oral & Writing Practice', title: 'Top <em>Structures</em>', meta: _stBook.langs.map(function (l) { return L[l]; }).join(' · ') + ' &nbsp;|&nbsp; ' + _secLabel(_stBook.sel) + ' &nbsp;|&nbsp; ' + _stBook.n + ' phrases', strip: false, print: !!toolbar })
-    + body + aphPrintFoot('AP IGCSE Top Structures, Oral & Writing Practice &middot; Top Structures') + '</div></body></html>';
+    + body + aphPrintFoot('AP IGCSE Top Structures, Oral & Writing Practice &middot; Top Structures') + '</div>' + (screen && _stBook.cover ? '<script>document.addEventListener("click",function(e){var r=e.target.closest(".cov");if(r)r.classList.toggle("rev")})<' + '/script>' : '') + '</body></html>';
   return html;
 }
 function _stBookPrint() {
@@ -21741,4 +21777,4 @@ function deck(el,m,n,x,y,face,gap){clear(el);const cs=[];for(let i=0;i<n;i++){co
   if (document.readyState === 'complete') start(); else window.addEventListener('load', start);
 })();
 </script>
-<script id="ap-build">window.__apBuild="822f59f2a5";window.__apVer=179;(function(){var N=window.__apVer;function put(){try{var h=document.querySelector('header.aph-header');if(!h||document.getElementById('ap-ver'))return;var s=document.createElement('span');s.id='ap-ver';s.textContent='v'+N;s.style.cssText='position:absolute;right:10px;bottom:4px;font:600 11px/1 system-ui,sans-serif;color:#c9a84c;opacity:.8;pointer-events:none;letter-spacing:.04em;z-index:2';if(getComputedStyle(h).position==='static')h.style.position='relative';h.appendChild(s)}catch(e){}}put();document.addEventListener('DOMContentLoaded',put);window.addEventListener('load',put);setInterval(put,2000)})();</script>
+<script id="ap-build">window.__apBuild="a5d880009b";window.__apVer=180;(function(){var N=window.__apVer;function put(){try{var h=document.querySelector('header.aph-header');if(!h||document.getElementById('ap-ver'))return;var s=document.createElement('span');s.id='ap-ver';s.textContent='v'+N;s.style.cssText='position:absolute;right:10px;bottom:4px;font:600 11px/1 system-ui,sans-serif;color:#c9a84c;opacity:.8;pointer-events:none;letter-spacing:.04em;z-index:2';if(getComputedStyle(h).position==='static')h.style.position='relative';h.appendChild(s)}catch(e){}}put();document.addEventListener('DOMContentLoaded',put);window.addEventListener('load',put);setInterval(put,2000)})();</script>

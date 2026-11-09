@@ -211,7 +211,40 @@
 <script>/* apOpenSheet: printable sheets open as a pop-up over the same screen, never a new tab */
 (function () {
   if (window.apOpenSheet) return;
+  /* iPad / iPhone only: the iPad's browser ignores a hidden frame's print() and prints the whole page, so on those devices the sheet is placed inside this page
+     (in its own sealed box, so its styles and the page's cannot mix) and print rules hide everything else. Mac, PC and every other browser keep the frame route below, unchanged. */
+  function isIOSPrint() {
+    try { var ua = navigator.userAgent || ''; return /iPad|iPhone|iPod/.test(ua) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1); } catch (e) { return false; }
+  }
+  function apPrintCleanup() {
+    try {
+      var r = document.getElementById('ap-print-root'); if (r) r.remove();
+      var s = document.getElementById('ap-print-css'); if (s) s.remove();
+      document.documentElement.classList.remove('ap-printing');
+    } catch (e) { }
+  }
+  function printInline(f) {
+    var d = f.contentDocument; if (!d || !d.body) return false;
+    var css = '', pageRules = '';
+    Array.prototype.forEach.call(d.querySelectorAll('style'), function (s) { css += s.textContent + '\n'; });
+    css = css.replace(/@page[^{]*\{[^}]*\}/g, function (m) { pageRules += m + '\n'; return ''; });
+    css = css.replace(/(^|[\s,{};])html(?=[\s,{.#:\[>+~])/g, '$1:host').replace(/(^|[\s,{};])body(?=[\s,{.#:\[>+~])/g, '$1.ap-sheet-body');
+    apPrintCleanup();
+    var root = document.createElement('div'); root.id = 'ap-print-root';
+    var sh = root.attachShadow({ mode: 'open' });
+    var st = document.createElement('style'); st.textContent = ':host{display:block}\n.ap-sheet-body{margin:8px}\n' + css; sh.appendChild(st);
+    var w = document.createElement('div'); w.className = ('ap-sheet-body ' + (d.body.className || '')).trim(); w.style.cssText = d.body.style.cssText;
+    w.innerHTML = d.body.innerHTML.replace(/<script[\s\S]*?<\/script>/gi, '');
+    sh.appendChild(w);
+    var pg = document.createElement('style'); pg.id = 'ap-print-css';
+    pg.textContent = pageRules + '#ap-print-root{display:none}@media print{html.ap-printing,html.ap-printing body{background:#fff!important;margin:0!important;padding:0!important;height:auto!important;min-height:0!important;overflow:visible!important;position:static!important}html.ap-printing body>*:not(#ap-print-root){display:none!important}html.ap-printing #ap-print-root{display:block!important}}';
+    document.head.appendChild(pg); document.body.appendChild(root);
+    document.documentElement.classList.add('ap-printing');
+    window.print();
+    return true;
+  }
   function printClone(f) {
+    if (isIOSPrint()) { try { if (printInline(f)) return; } catch (e0) { apPrintCleanup(); } }
     try {
       var h = '<!doctype html>' + f.contentDocument.documentElement.outerHTML.replace(/<script[\s\S]*?<\/script>/gi, '');
       var g = document.createElement('iframe'); g.setAttribute('aria-hidden', 'true');
@@ -237,7 +270,7 @@
       if (src) f.src = src; else f.srcdoc = html;
       o.appendChild(bar); o.appendChild(f); document.body.appendChild(o);
       var prevOv = document.documentElement.style.overflow;
-      function close() { o.remove(); document.removeEventListener('keydown', esc); document.documentElement.style.overflow = prevOv; }
+      function close() { o.remove(); apPrintCleanup(); document.removeEventListener('keydown', esc); document.documentElement.style.overflow = prevOv; }
       function esc(e) { if (e.key === 'Escape') close(); }
       document.addEventListener('keydown', esc); document.documentElement.style.overflow = 'hidden';
       bar.querySelector('.aps-close').onclick = close;
@@ -15846,4 +15879,4 @@ function deck(el,m,n,x,y,face,gap){clear(el);const cs=[];for(let i=0;i<n;i++){co
   if (document.readyState === 'complete') start(); else window.addEventListener('load', start);
 })();
 </script>
-<script id="ap-build">window.__apBuild="592fc801f0";window.__apVer=204;(function(){var N=window.__apVer;function put(){try{var h=document.querySelector('header.aph-header');if(!h||document.getElementById('ap-ver'))return;var s=document.createElement('span');s.id='ap-ver';s.textContent='v'+N;s.style.cssText='position:absolute;right:10px;bottom:4px;font:600 11px/1 system-ui,sans-serif;color:#c9a84c;opacity:.8;pointer-events:none;letter-spacing:.04em;z-index:2';if(getComputedStyle(h).position==='static')h.style.position='relative';h.appendChild(s)}catch(e){}}put();document.addEventListener('DOMContentLoaded',put);window.addEventListener('load',put);setInterval(put,2000)})();</script>
+<script id="ap-build">window.__apBuild="3239ab1824";window.__apVer=205;(function(){var N=window.__apVer;function put(){try{var h=document.querySelector('header.aph-header');if(!h||document.getElementById('ap-ver'))return;var s=document.createElement('span');s.id='ap-ver';s.textContent='v'+N;s.style.cssText='position:absolute;right:10px;bottom:4px;font:600 11px/1 system-ui,sans-serif;color:#c9a84c;opacity:.8;pointer-events:none;letter-spacing:.04em;z-index:2';if(getComputedStyle(h).position==='static')h.style.position='relative';h.appendChild(s)}catch(e){}}put();document.addEventListener('DOMContentLoaded',put);window.addEventListener('load',put);setInterval(put,2000)})();</script>
