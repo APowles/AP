@@ -11,7 +11,40 @@
 <script>/* apOpenSheet: printable sheets open as a pop-up over the same screen, never a new tab */
 (function () {
   if (window.apOpenSheet) return;
+  /* iPad / iPhone only: the iPad's browser ignores a hidden frame's print() and prints the whole page, so on those devices the sheet is placed inside this page
+     (in its own sealed box, so its styles and the page's cannot mix) and print rules hide everything else. Mac, PC and every other browser keep the frame route below, unchanged. */
+  function isIOSPrint() {
+    try { var ua = navigator.userAgent || ''; return /iPad|iPhone|iPod/.test(ua) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1); } catch (e) { return false; }
+  }
+  function apPrintCleanup() {
+    try {
+      var r = document.getElementById('ap-print-root'); if (r) r.remove();
+      var s = document.getElementById('ap-print-css'); if (s) s.remove();
+      document.documentElement.classList.remove('ap-printing');
+    } catch (e) { }
+  }
+  function printInline(f) {
+    var d = f.contentDocument; if (!d || !d.body) return false;
+    var css = '', pageRules = '';
+    Array.prototype.forEach.call(d.querySelectorAll('style'), function (s) { css += s.textContent + '\n'; });
+    css = css.replace(/@page[^{]*\{[^}]*\}/g, function (m) { pageRules += m + '\n'; return ''; });
+    css = css.replace(/(^|[\s,{};])html(?=[\s,{.#:\[>+~])/g, '$1:host').replace(/(^|[\s,{};])body(?=[\s,{.#:\[>+~])/g, '$1.ap-sheet-body');
+    apPrintCleanup();
+    var root = document.createElement('div'); root.id = 'ap-print-root';
+    var sh = root.attachShadow({ mode: 'open' });
+    var st = document.createElement('style'); st.textContent = ':host{display:block}\n.ap-sheet-body{margin:8px}\n' + css; sh.appendChild(st);
+    var w = document.createElement('div'); w.className = ('ap-sheet-body ' + (d.body.className || '')).trim(); w.style.cssText = d.body.style.cssText;
+    w.innerHTML = d.body.innerHTML.replace(/<script[\s\S]*?<\/script>/gi, '');
+    sh.appendChild(w);
+    var pg = document.createElement('style'); pg.id = 'ap-print-css';
+    pg.textContent = pageRules + '#ap-print-root{display:none}@media print{html.ap-printing,html.ap-printing body{background:#fff!important;margin:0!important;padding:0!important;height:auto!important;min-height:0!important;overflow:visible!important;position:static!important}html.ap-printing body>*:not(#ap-print-root){display:none!important}html.ap-printing #ap-print-root{display:block!important}}';
+    document.head.appendChild(pg); document.body.appendChild(root);
+    document.documentElement.classList.add('ap-printing');
+    window.print();
+    return true;
+  }
   function printClone(f) {
+    if (isIOSPrint()) { try { if (printInline(f)) return; } catch (e0) { apPrintCleanup(); } }
     try {
       var h = '<!doctype html>' + f.contentDocument.documentElement.outerHTML.replace(/<script[\s\S]*?<\/script>/gi, '');
       var g = document.createElement('iframe'); g.setAttribute('aria-hidden', 'true');
@@ -37,7 +70,7 @@
       if (src) f.src = src; else f.srcdoc = html;
       o.appendChild(bar); o.appendChild(f); document.body.appendChild(o);
       var prevOv = document.documentElement.style.overflow;
-      function close() { o.remove(); document.removeEventListener('keydown', esc); document.documentElement.style.overflow = prevOv; }
+      function close() { o.remove(); apPrintCleanup(); document.removeEventListener('keydown', esc); document.documentElement.style.overflow = prevOv; }
       function esc(e) { if (e.key === 'Escape') close(); }
       document.addEventListener('keydown', esc); document.documentElement.style.overflow = 'hidden';
       bar.querySelector('.aps-close').onclick = close;
@@ -15753,6 +15786,26 @@ main{display:block}
 #svTopicOverviewModal [style*="font-size:0.72rem"]{font-size:.8125rem!important}
 #ovConfirmBar button{font:700 .9375rem/1.2 var(--aph-body)!important;padding:9px 12px!important}
 #ovConfirmBar #ovTally+div{font-size:.75rem!important}
+/* View & Print: a full screen like the IGCSE Vocab one */
+#studyViewModal{background:#f4f6fb!important;padding:0!important}
+#studyViewModal .svv-top{position:sticky;top:0;z-index:3;background:#1a2744;color:#fff;padding:10px 18px;display:flex;flex-wrap:wrap;align-items:center;gap:8px 10px;border-bottom:2px solid #c9a84c}
+#studyViewModal .svv-back{background:transparent;color:#ffd76a;border:2px solid #ffd76a;border-radius:999px;padding:8px 16px;min-height:44px;font:800 .9375rem var(--aph-body);cursor:pointer;white-space:nowrap}
+#studyViewModal .svv-ttl{flex:1;min-width:160px;font:700 1.15rem/1.25 var(--aph-display);color:#fff;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+#studyViewModal .svv-q{padding:9px 12px;border-radius:10px;border:0;min-width:170px;font:600 .9375rem var(--aph-body);color:#1a2744;background:#fff}
+#studyViewModal .svv-print{flex:0 0 auto;background:#ffd76a;color:#1a2744;border:2px solid #fff3c4;border-radius:999px;padding:10px 22px;min-height:44px;font:800 1.0625rem var(--aph-body);cursor:pointer;white-space:nowrap;box-shadow:0 0 0 3px rgba(255,215,106,.35),0 0 18px 4px rgba(255,215,106,.55);animation:svvPrintGlow 2.4s ease-in-out infinite}
+#studyViewModal .svv-print:hover{background:#ffe08a}
+@keyframes svvPrintGlow{50%{box-shadow:0 0 0 4px rgba(255,215,106,.5),0 0 26px 8px rgba(255,215,106,.75)}}
+@media (prefers-reduced-motion:reduce){#studyViewModal .svv-print{animation:none}}
+#studyViewModal .svv-tools{flex-basis:100%;display:flex;flex-wrap:wrap;align-items:center;gap:6px}
+#studyViewModal .svv-tools button,#studyViewModal .svv-chk{background:rgba(255,255,255,.1);color:#fff;border:1px solid rgba(255,255,255,.3);border-radius:8px;padding:7px 12px;font:700 .875rem var(--aph-body)!important;cursor:pointer;display:inline-flex;align-items:center;gap:5px}
+#studyViewModal .svv-tools button.on{background:#ffd76a;color:#1a2744;border-color:#ffd76a}
+#studyViewModal .svv-lab{font:600 .8125rem var(--aph-body);color:#c8d3ea}
+#studyViewModal .svv-sep{width:1px;height:22px;background:rgba(255,255,255,.25);margin:0 4px}
+#studyViewModal .svv-note{flex-basis:100%;font:500 .8125rem/1.4 var(--aph-body);color:#c8d3ea}
+#studyViewModal .svv-body{max-width:1000px;margin:16px auto 0;padding:0 16px 40px}
+#studyViewModal .svv-body tr{cursor:pointer}
+#studyViewModal .svv-body.covered tr:not(.rev) td.cv>span.t{color:transparent!important;background:#e8ecf5;border-radius:4px;user-select:none}
+#studyViewModal .svv-spk{background:none;border:0;cursor:pointer;font-size:.95rem;padding:0 4px;opacity:.7}
 #studyViewModal label{font-size:.875rem!important}
 #svChunksViewerBody [style*="font-size:0.6rem"],#svChunksViewerBody [style*="font-size:0.58rem"],#svChunksViewerBody [style*="font-size:0.65rem"],#svChunksViewerBody [style*="font-size:0.7rem"]{font-size:.75rem!important}
 @media (max-width:760px){#svTopicOverviewModal>div>div[style*="grid-template-columns"]{grid-template-columns:1fr!important}}
@@ -22675,32 +22728,83 @@ function printChunksViewer() {
 
 
 ⟦!-- Study View Modal -->
-<div id="studyViewModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.75);z-index:1001;overflow-y:auto;padding:20px;box-sizing:border-box;">
-  <div style="max-width:960px;margin:0 auto;background:#fff;border-radius:12px;padding:24px;border:1px solid #e2e6f0;">
-    <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:16px;flex-wrap:wrap;gap:10px;">
-      <div>
-        <div style="font-size:0.75rem;font-weight:700;text-transform:uppercase;letter-spacing:0.1em;color:#b8922a;margin-bottom:4px;">AP F Block Spanish Vocab</div>
-        <h2 class="sv-modal-title">&#128214; View &amp; Print</h2>
-      </div>
-      <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
-        <span style="font-size:0.75rem;color:#888;font-weight:600;text-transform:uppercase;letter-spacing:0.05em;">Show:</span>
-        <label style="display:flex;align-items:center;gap:4px;font-size:0.78rem;cursor:pointer;"><input type="checkbox" id="sv-en" checked onchange="renderStudyView()"> 🇬🇧 English</label>
-        <label style="display:flex;align-items:center;gap:4px;font-size:0.78rem;cursor:pointer;"><input type="checkbox" id="sv-es" checked onchange="renderStudyView()"> 🇪🇸 Spanish</label>
-        <button class="aph-btn aph-btn-sm aph-btn-primary" onclick="printStudyView()" style="min-height:36px;font-size:.9375rem;padding:7px 12px">&#128424; Print / PDF</button>
-        <button class="aph-btn aph-btn-sm" onclick="document.getElementById('studyViewModal').style.display='none'">✕ Close</button>
-      </div>
+<div id="studyViewModal" style="display:none;position:fixed;inset:0;z-index:1001;overflow-y:auto;">
+  <div class="svv-top">
+    <button class="svv-back" onclick="closeStudyView()">&#8592; Back</button>
+    <div class="svv-ttl" id="svv-ttl">&#128214; View &amp; Print</div>
+    <input id="svv-q" class="svv-q" placeholder="&#128269; Search…" oninput="renderStudyView()">
+    <button class="svv-print" onclick="printStudyView()" title="Opens the formatted sheet, ready to print or save as a PDF">&#128424; Print / PDF</button>
+    <div class="svv-tools">
+      <button id="svv-cover" onclick="svToggleCover()" title="Hide the Spanish to test yourself: tap a row to reveal it">&#128584; Cover answers</button>
+      <label class="svv-chk"><input type="checkbox" id="sv-en" checked onchange="renderStudyView()"> 🇬🇧 English</label>
+      <label class="svv-chk"><input type="checkbox" id="sv-es" checked onchange="renderStudyView()"> 🇪🇸 Spanish</label>
+      <span class="svv-sep"></span>
+      <button data-o="list" onclick="svSetOrder('list')">List order</button>
+      <button data-o="mix" onclick="svSetOrder('mix')" title="Shuffles the words. Press again for a new order">&#128256; Mixed up</button>
+      <button data-o="E" onclick="svSetOrder('E')" title="Easy batch first, then Medium, then Hard">Easy words first</button>
+      <button data-o="H" onclick="svSetOrder('H')" title="Hard batch first, then Medium, then Easy">Hard words first</button>
+      <span class="svv-sep"></span>
+      <span class="svv-lab">Group by</span>
+      <button data-g="sec" onclick="svSetGroup('sec')">List</button>
+      <button data-g="level" onclick="svSetGroup('level')">Easy / Medium / Hard</button>
+      <div class="svv-note" id="svv-note" style="display:none">Words come in three batches: <b>Easy</b> (looks like English: la familia), <b>Medium</b> (el apartamento = flat), <b>Hard</b> (el perro = dog). Easy first builds confidence; Hard first tackles the toughest while you are fresh. Each batch is shuffled and every word stays in.</div>
     </div>
-    <div id="studyViewContent" style="margin-top:8px;"></div>
   </div>
+  <div id="studyViewContent" class="svv-body"></div>
 </div>
 
 
 <script>
 // Study View
+var svOpts = { cover: false, order: 'list', group: 'sec', seed: 1 };
+var SV_BANDS = { E: ['Easy', 'looks like the English'], M: ['Medium', 'looks like a different English word'], H: ['Hard', 'nothing to go on'] };
+var _svSpk = [];
 function openStudyView() {
+  svOpts = { cover: false, order: 'list', group: 'sec', seed: 1 };
+  var q = document.getElementById('svv-q'); if (q) q.value = '';
   document.getElementById('studyViewModal').style.display = 'block';
+  document.documentElement.style.overflow = 'hidden';
   renderStudyView();
 }
+function closeStudyView() {
+  var m = document.getElementById('studyViewModal'); if (m) m.style.display = 'none';
+  document.documentElement.style.overflow = '';
+  try { speechSynthesis.cancel(); } catch (e) { }
+}
+function svToggleCover() { svOpts.cover = !svOpts.cover; renderStudyView(); }
+function svSetOrder(o) { svOpts.order = o; if (o === 'mix' || o === 'E' || o === 'H') svOpts.seed = Math.floor(Math.random() * 1e9) + 1; renderStudyView(); }
+function svSetGroup(g) { svOpts.group = g; renderStudyView(); }
+function svShuffle(a) {
+  var s = svOpts.seed, b = a.slice(), i, j, t;
+  function rnd() { s = (s * 1664525 + 1013904223) % 4294967296; return s / 4294967296; }
+  for (i = b.length - 1; i > 0; i--) { j = Math.floor(rnd() * (i + 1)); t = b[i]; b[i] = b[j]; b[j] = t; }
+  return b;
+}
+function svLevelOf(p) { try { return spvLevel(p) || 'H'; } catch (e) { return 'H'; } }
+function svOrderLabel() {
+  var o = svOpts.order, g = svOpts.group;
+  return (o === 'mix' ? 'Mixed up' : o === 'E' ? 'Easy words first' : o === 'H' ? 'Hard words first' : '') + (g === 'level' ? (o !== 'list' ? ' · ' : '') + 'Grouped Easy / Medium / Hard' : '');
+}
+// the selected words in the order and grouping chosen on screen: [{title, ps}]
+function svGroups() {
+  var phrases = getSelectedPhrases(), by = {}, order = [], out = [], o = svOpts.order;
+  phrases.forEach(function (p) { if (!by[p.sec]) { by[p.sec] = []; order.push(p.sec); } by[p.sec].push(p); });
+  function arrange(ps) {
+    if (o === 'mix') return svShuffle(ps);
+    if (o === 'E' || o === 'H') { var res = []; (o === 'E' ? ['E', 'M', 'H'] : ['H', 'M', 'E']).forEach(function (b) { res = res.concat(svShuffle(ps.filter(function (p) { return svLevelOf(p) === b; }))); }); return res; }
+    return ps;
+  }
+  if (svOpts.group === 'level') {
+    (o === 'H' ? ['H', 'M', 'E'] : ['E', 'M', 'H']).forEach(function (b) {
+      var ps = phrases.filter(function (p) { return svLevelOf(p) === b; });
+      if (ps.length) out.push({ title: SV_BANDS[b][0] + ' · ' + SV_BANDS[b][1], ps: o === 'list' ? ps : svShuffle(ps) });
+    });
+    return out;
+  }
+  order.forEach(function (sec) { out.push({ title: sec + ' — ' + (SECTION_TITLES[sec] || sec), ps: arrange(by[sec]) }); });
+  return out;
+}
+function svSay(i) { try { speak(_svSpk[i], (typeof LANG_CODES !== 'undefined' && LANG_CODES.es) || 'es-ES'); } catch (e) { } }
 
 function renderStudyView() {
   var showEn = document.getElementById('sv-en').checked;
@@ -22710,67 +22814,77 @@ function renderStudyView() {
   if (showEs) langs.push({code:'es',flag:'🇪🇸',name:'Spanish'});
 
   var el = document.getElementById('studyViewContent');
+  document.getElementById('svv-cover').classList.toggle('on', !!svOpts.cover);
+  document.querySelectorAll('#studyViewModal [data-o]').forEach(function (b) { b.classList.toggle('on', b.getAttribute('data-o') === svOpts.order); });
+  document.querySelectorAll('#studyViewModal [data-g]').forEach(function (b) { b.classList.toggle('on', b.getAttribute('data-g') === svOpts.group); });
+  var nt = document.getElementById('svv-note'); if (nt) nt.style.display = (svOpts.order === 'E' || svOpts.order === 'H' || svOpts.group === 'level') ? 'block' : 'none';
+  el.classList.toggle('covered', !!svOpts.cover);
   if (!langs.length) { el.innerHTML = '<p style="color:#888;text-align:center;padding:20px;">Select at least one language.</p>'; return; }
 
-  var phrases = getSelectedPhrases();
-  var sections = {}, secOrder = [];
-  phrases.forEach(function(p) {
-    if (!sections[p.sec]) { sections[p.sec] = []; secOrder.push(p.sec); }
-    sections[p.sec].push(p);
-  });
+  var qv = ((document.getElementById('svv-q') || {}).value || '').trim().toLowerCase();
+  var groups = svGroups(), secs = [];
+  getSelectedPhrases().forEach(function (p) { if (secs.indexOf(p.sec) < 0) secs.push(p.sec); });
+  var names = secs.map(function (s) { return SECTION_TITLES[s] || s; });
+  var tt = document.getElementById('svv-ttl');
+  if (tt) { tt.textContent = '📖 View & Print' + (names.length ? ' · ' + (names.length > 3 ? names.slice(0, 3).join(' · ') + ' + ' + (names.length - 3) + ' more' : names.join(' · ')) : ''); tt.title = names.join(' · '); }
 
-  var colW = Math.floor(100 / langs.length);
-  var out = '';
-  var n = 1;
-
-  secOrder.forEach(function(sec) {
-    var title = SECTION_TITLES[sec] || sec;
+  _svSpk = [];
+  var lastCol = langs[langs.length - 1].code;
+  var out = '', n = 1;
+  groups.forEach(function (g) {
+    var ps = g.ps.filter(function (p) { return !qv || (String(p.en || '') + ' ' + String(p.es || '')).toLowerCase().indexOf(qv) >= 0; });
+    if (!ps.length) return;
     out += '<div style="margin-bottom:20px;">';
-    out += '<div style="background:#1a2744;color:#c9a84c;font-size:0.75rem;font-weight:700;letter-spacing:0.1em;text-transform:uppercase;padding:6px 12px;border-radius:4px 4px 0 0;">' + sec + ' \u2014 ' + title + '<' + '/div>';
-    out += '<table style="width:100%;border-collapse:collapse;border:1px solid #e2e6f0;border-top:none;">';
+    out += '<div style="background:#1a2744;color:#c9a84c;font-size:0.8125rem;font-weight:700;letter-spacing:0.1em;text-transform:uppercase;padding:7px 12px;border-radius:4px 4px 0 0;">' + g.title + ' <span style="font-weight:500;letter-spacing:0;text-transform:none;color:#c8d3ea;margin-left:6px">' + ps.length + ' words<' + '/span><' + '/div>';
+    out += '<table style="width:100%;border-collapse:collapse;border:1px solid #e2e6f0;border-top:none;background:#fff;">';
     out += '<thead><tr style="background:#f0f3fa;"><th style="width:28px;padding:4px 8px;font-size:0.75rem;color:#aab;border-bottom:1px solid #e2e6f0;">#<' + '/th>';
     langs.forEach(function(l) {
       out += '<th style="padding:6px 10px;font-size:0.75rem;color:#4a5a7a;border-bottom:1px solid #e2e6f0;font-weight:700;text-align:left;">' + l.flag + ' ' + l.name + '<' + '/th>';
     });
     out += '<' + '/tr><' + '/thead><tbody>';
-    sections[sec].forEach(function(p, i) {
+    ps.forEach(function(p, i) {
       var bg = i % 2 === 0 ? '#ffffff' : '#faf9f6';
-      out += '<tr style="background:' + bg + ';">';
+      out += '<tr style="background:' + bg + ';" onclick="this.classList.toggle(\'rev\')">';
       out += '<td style="padding:5px 8px;font-size:0.75rem;color:#bbb;vertical-align:top;border-bottom:1px solid #f0f0f0;text-align:right;">' + (n++) + '<' + '/td>';
       langs.forEach(function(l) {
         var txt = (p[l.code] || '').replace(/\s*\([^)]+\)/g, function(m) { return '<span style="opacity:0.45">' + m + '<' + '/span>'; });
-        out += '<td style="padding:6px 10px;font-size:0.82rem;color:#1a2744;line-height:1.5;vertical-align:top;border-bottom:1px solid #f0f0f0;">' + txt + '<' + '/td>';
+        var spk = '';
+        if (l.code === 'es' && p.es) { _svSpk.push(String(p.es).replace(/\s*\([^)]*\)/g, '')); spk = ' <button class="svv-spk" onclick="event.stopPropagation();this.closest(\'tr\').classList.add(\'rev\');svSay(' + (_svSpk.length - 1) + ')" title="Listen" aria-label="Listen">🔊<' + '/button>'; }
+        out += '<td' + (l.code === lastCol ? ' class="cv"' : '') + ' style="padding:6px 10px;font-size:0.9rem;color:#1a2744;line-height:1.5;vertical-align:top;border-bottom:1px solid #f0f0f0;"><span class="t">' + txt + '<' + '/span>' + spk + '<' + '/td>';
       });
       out += '<' + '/tr>';
     });
     out += '<' + '/tbody><' + '/table><' + '/div>';
   });
 
-  if (!out) out = '<p style="color:#888;text-align:center;padding:20px;">No sections selected.</p>';
+  if (!out) out = '<p style="color:#888;text-align:center;padding:20px;">' + (qv ? 'No words match your search.' : 'No sections selected.') + '</p>';
   el.innerHTML = out;
 }
 
-// The study sheet (selected words, grouped by section): used by Print / PDF and by the timed-test "vocab list" page. langs = [{code,flag,name}]
-function svStudySheet(langs) {
-  var phrases = getSelectedPhrases();
-  var sections = {}, secOrder = [];
-  phrases.forEach(function(p) {
-    if (!sections[p.sec]) { sections[p.sec] = []; secOrder.push(p.sec); }
-    sections[p.sec].push(p);
-  });
+// The study sheet (selected words, grouped by section): used by Print / PDF and by the timed-test "vocab list" page. langs = [{code,flag,name}]. arranged = use the order and grouping chosen on the View & Print screen.
+function svStudySheet(langs, arranged) {
+  var phrases = getSelectedPhrases(), groups;
+  if (arranged) groups = svGroups();
+  else {
+    var sections = {}, secOrder = [];
+    phrases.forEach(function(p) {
+      if (!sections[p.sec]) { sections[p.sec] = []; secOrder.push(p.sec); }
+      sections[p.sec].push(p);
+    });
+    groups = secOrder.map(function (sec) { return { title: sec + ' — ' + (SECTION_TITLES[sec] || sec), ps: sections[sec] }; });
+  }
 
   var body = '';
   var n = 1;
-  secOrder.forEach(function(sec) {
-    var title = SECTION_TITLES[sec] || sec;
-    body += '<div style="background:#1a2744;color:#c9a84c;font-size:0.68rem;font-weight:700;letter-spacing:0.1em;text-transform:uppercase;padding:5px 10px;margin-top:18px;border-radius:4px 4px 0 0;">' + sec + ' \u2014 ' + title + '<' + '/div>';
+  groups.forEach(function(g) {
+    body += '<div style="background:#1a2744;color:#c9a84c;font-size:0.68rem;font-weight:700;letter-spacing:0.1em;text-transform:uppercase;padding:5px 10px;margin-top:18px;border-radius:4px 4px 0 0;">' + g.title + '<' + '/div>';
     body += '<table style="width:100%;border-collapse:collapse;border:1px solid #ccc;border-top:none;margin-bottom:4px;">';
     body += '<thead><tr style="background:#f0f3fa;"><th style="width:24px;padding:3px 6px;font-size:0.6rem;color:#aab;border-bottom:1px solid #ddd;">#<' + '/th>';
     langs.forEach(function(l) {
       body += '<th style="padding:4px 8px;font-size:0.65rem;color:#4a5a7a;border-bottom:1px solid #ddd;text-align:left;">' + l.flag + ' ' + l.name + '<' + '/th>';
     });
     body += '<' + '/tr><' + '/thead><tbody>';
-    sections[sec].forEach(function(p, i) {
+    g.ps.forEach(function(p, i) {
       var bg = i % 2 === 0 ? '#fff' : '#faf9f6';
       body += '<tr style="background:' + bg + ';">';
       body += '<td style="padding:3px 6px;font-size:0.6rem;color:#bbb;text-align:right;vertical-align:top;border-bottom:1px solid #eee;">' + (n++) + '<' + '/td>';
@@ -22781,7 +22895,7 @@ function svStudySheet(langs) {
     });
     body += '<' + '/tbody><' + '/table>';
   });
-  return { body: body, count: phrases.length, title: 'AP F Block Spanish Vocab \u2014 Study Sheet',
+  return { body: body, count: phrases.length, title: 'Eton F Block Spanish Vocab — Study Sheet',
     css: 'body{font-family:var(--aph-body);background:#fff;margin:0;padding:20px 24px;color:#1a2744;}.no-print{} @media print{.no-print{display:none!important;}@page{margin:1cm;size:A4;}tr{break-inside:avoid;}}' };
 }
 
@@ -22791,15 +22905,16 @@ function printStudyView() {
   var langs = [];
   if (showEn) langs.push({code:'en',flag:'🇬🇧',name:'English'});
   if (showEs) langs.push({code:'es',flag:'🇪🇸',name:'Spanish'});
+  if (!langs.length) return;
 
-  var sh = svStudySheet(langs), body = sh.body, phrases = { length: sh.count };
+  var sh = svStudySheet(langs, true), body = sh.body, phrases = { length: sh.count }, ol = svOrderLabel();
 
   var pageHead = '<!DOCTYPE html><html><head><meta charset="UTF-8"><title>' + sh.title + '<' + '/title>'
     + '<style>' + aphCSS() + '<' + '/style>'
     + '<style>' + sh.css + '<' + '/style>'
     + '<' + '/head><body>';
-  var pageHdr = aphPrintHead({ kicker: 'AP F Block &middot; Spanish Vocab', title: 'Study Sheet &mdash; <em>' + langs.map(function (l) { return l.name; }).join(' / ') + '<' + '/em>', meta: phrases.length + ' words', strip: false });
-  var pageFoot = aphPrintFoot('AP F Block Spanish Vocab &middot; View &amp; Print &middot; Study Sheet') + '<' + '/body><' + '/html>';
+  var pageHdr = aphPrintHead({ kicker: 'Eton F Block &middot; Spanish Vocab', title: 'Study Sheet &mdash; <em>' + langs.map(function (l) { return l.name; }).join(' / ') + '<' + '/em>', meta: phrases.length + ' words' + (ol ? ' &middot; ' + ol : ''), strip: false });
+  var pageFoot = aphPrintFoot('Eton F Block Spanish Vocab &middot; View &amp; Print &middot; Study Sheet') + '<' + '/body><' + '/html>';
 
   var w = apOpenSheet();
   if (!w) { alert('Please allow pop-ups.'); return; }
@@ -24301,6 +24416,7 @@ textarea.ms-in.ms-in-big{min-height:8.5rem;font-size:1.4rem;margin:6px 0}
   // the header Back closes the chooser first (one stage at a time)
   var prevBack = window.aphBackHook;
   window.aphBackHook = function () {
+    try { var sv0 = document.getElementById('studyViewModal'); if (sv0 && sv0.style.display === 'block') { closeStudyView(); return true; } } catch (e) { }
     try { var m = $('svTopicOverviewModal'); if (m && m.style.display === 'block') { window.apOnePickerClose(); return true; } } catch (e) { }
     return typeof prevBack === 'function' ? prevBack.apply(this, arguments) : false;
   };
@@ -28252,4 +28368,4 @@ function deck(el,m,n,x,y,face,gap){clear(el);const cs=[];for(let i=0;i<n;i++){co
   if (document.readyState === 'complete') start(); else window.addEventListener('load', start);
 })();
 </script>
-<script id="ap-build">window.__apBuild="2c8f915854";window.__apVer=181;(function(){var N=window.__apVer;function put(){try{var h=document.querySelector('header.aph-header');if(!h||document.getElementById('ap-ver'))return;var s=document.createElement('span');s.id='ap-ver';s.textContent='v'+N;s.style.cssText='position:absolute;right:10px;bottom:4px;font:600 11px/1 system-ui,sans-serif;color:#c9a84c;opacity:.8;pointer-events:none;letter-spacing:.04em;z-index:2';if(getComputedStyle(h).position==='static')h.style.position='relative';h.appendChild(s)}catch(e){}}put();document.addEventListener('DOMContentLoaded',put);window.addEventListener('load',put);setInterval(put,2000)})();</script>
+<script id="ap-build">window.__apBuild="58d265dcf3";window.__apVer=182;(function(){var N=window.__apVer;function put(){try{var h=document.querySelector('header.aph-header');if(!h||document.getElementById('ap-ver'))return;var s=document.createElement('span');s.id='ap-ver';s.textContent='v'+N;s.style.cssText='position:absolute;right:10px;bottom:4px;font:600 11px/1 system-ui,sans-serif;color:#c9a84c;opacity:.8;pointer-events:none;letter-spacing:.04em;z-index:2';if(getComputedStyle(h).position==='static')h.style.position='relative';h.appendChild(s)}catch(e){}}put();document.addEventListener('DOMContentLoaded',put);window.addEventListener('load',put);setInterval(put,2000)})();</script>
