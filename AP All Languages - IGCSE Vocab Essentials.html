@@ -12725,7 +12725,7 @@ function selectTopic(area, group, section) {
 @media (prefers-reduced-motion:reduce){#ve-view .vev-print{animation:none}}
 #ve-view .vev-tools{flex-basis:100%;display:flex;flex-wrap:wrap;align-items:center;gap:6px}
 #ve-view .vev-tools button{background:rgba(255,255,255,.1);color:#fff;border:1px solid rgba(255,255,255,.3);border-radius:8px;padding:7px 12px;font:700 .875rem var(--aph-body);cursor:pointer;display:inline-flex;align-items:center;gap:5px}
-#ve-view .vev-tools button.on{background:#ffd76a;color:#1a2744;border-color:#ffd76a}
+#ve-view .vev-tools button.on{background:#ffd76a;color:#1a2744;border-color:#ffd76a}#ve-view .vev-tools button.vev-cover{background:#22c55e!important;border:2px solid #bbf7d0!important;color:#052e16!important;border-radius:999px!important;padding:8px 18px!important;min-height:40px;font-weight:800!important;box-shadow:0 0 0 3px rgba(34,197,94,.3),0 0 14px 3px rgba(34,197,94,.45)}#ve-view .vev-tools button.vev-cover.on{background:#15803d!important;color:#fff!important}#ve-view .vev-tools button.vev-shuf{border-radius:999px!important;border-color:#c9a84c!important;color:#ffe08a!important;font-weight:800!important}#ve-view .vev-tools button.vev-shuf.on{background:#c9a84c!important;color:#1a2744!important}
 #ve-view .vev-lab{font:600 .8125rem var(--aph-body);color:#c8d3ea}
 #ve-view .vev-sep{width:1px;height:22px;background:rgba(255,255,255,.25);margin:0 4px}
 #ve-view .vev-note{flex-basis:100%;font:500 .8125rem/1.4 var(--aph-body);color:#c8d3ea}
@@ -12787,7 +12787,7 @@ function vevLvLang() { return VEV.t !== 'en' ? VEV.t : (VEV.f !== 'en' ? VEV.f :
 function vevLevelOf(p) { try { return veLevel(p, vevLvLang()) || 'H'; } catch (e) { return 'H'; } }
 function vevOrderLabel() {
   var o = VEV.order;
-  return (o === 'mix' ? 'Mixed up' : o === 'E' ? 'Easy words first' : o === 'H' ? 'Hard words first' : '') + (VEV.group === 'level' ? (o !== 'list' ? ' · ' : '') + 'Grouped Easy / Medium / Hard' : '');
+  return (o === 'mix' ? 'Shuffled' : o === 'E' ? 'Easy words first' : o === 'H' ? 'Hard words first' : '') + (VEV.group === 'level' ? (o !== 'list' ? ' · ' : '') + 'Grouped Easy / Medium / Hard' : '');
 }
 function vevSecNames(phrases) {
   var secs = [], names;
@@ -12819,14 +12819,14 @@ function vevSay(i, l) { try { speak(_vevSpk[i], (typeof LANG_CODES !== 'undefine
 function veViewRender() {
   var phrases = []; try { phrases = window.getSelectedPhrases() || []; } catch (e) { }
   var tl = vevLangs();
-  var tools = '<button class="' + (VEV.cover ? 'on' : '') + '" onclick="VEV.cover=!VEV.cover;veViewRender()" title="Hide the answers to test yourself: tap a row to reveal it">&#128584; Cover answers</button>'
+  var tools = '<button class="vev-cover' + (VEV.cover ? ' on' : '') + '" onclick="VEV.cover=!VEV.cover;veViewRender()" title="Hide the answers to test yourself: tap a row to reveal it">' + (VEV.cover ? '&#10003; ' : '&#128584; ') + 'Cover and check your answers</button>'
     + '<span class="vev-sep"></span>'
     + tl.map(function (l) { return '<button class="' + (VEV.f === l ? 'on' : '') + '" onclick="vevPick(\'f\',\'' + l + '\')" title="From: ' + VEV_NM[l] + '">' + VEV_FL[l] + '</button>'; }).join('')
     + '<button onclick="vevSwap()" title="Swap">&#8644;</button>'
     + tl.map(function (l) { return '<button class="' + (VEV.t === l ? 'on' : '') + '" onclick="vevPick(\'t\',\'' + l + '\')" title="To: ' + VEV_NM[l] + '">' + VEV_FL[l] + '</button>'; }).join('')
     + '<span class="vev-sep"></span>'
     + '<button class="' + (VEV.order === 'list' ? 'on' : '') + '" onclick="vevSet(\'order\',\'list\')">List order</button>'
-    + '<button class="' + (VEV.order === 'mix' ? 'on' : '') + '" onclick="vevSet(\'order\',\'mix\')" title="Shuffles the words. Press again for a new order">&#128256; Mixed up</button>'
+    + '<button class="vev-shuf' + (VEV.order === 'mix' ? ' on' : '') + '" onclick="vevSet(\'order\',\'mix\')" title="Put the words in a new random order. Press again for another new order">&#128256; Shuffle the list</button>'
     + '<button class="' + (VEV.order === 'E' ? 'on' : '') + '" onclick="vevSet(\'order\',\'E\')" title="Easy batch first, then Medium, then Hard">Easy words first</button>'
     + '<button class="' + (VEV.order === 'H' ? 'on' : '') + '" onclick="vevSet(\'order\',\'H\')" title="Hard batch first, then Medium, then Easy">Hard words first</button>'
     + '<span class="vev-sep"></span><span class="vev-lab">Group by</span>'
@@ -15341,4 +15341,4 @@ textarea.ms-in{min-height:7rem;resize:vertical}.ms-hint.ms-hint-sm{font-size:.78
   if (document.readyState === 'complete') start(); else window.addEventListener('load', start);
 })();
 </script>
-<script id="ap-build">window.__apBuild="f6cd639339";window.__apVer=181;(function(){var N=window.__apVer;function put(){try{var h=document.querySelector('header.aph-header');if(!h||document.getElementById('ap-ver'))return;var s=document.createElement('span');s.id='ap-ver';s.textContent='v'+N;s.style.cssText='position:absolute;right:10px;bottom:4px;font:600 11px/1 system-ui,sans-serif;color:#c9a84c;opacity:.8;pointer-events:none;letter-spacing:.04em;z-index:2';if(getComputedStyle(h).position==='static')h.style.position='relative';h.appendChild(s)}catch(e){}}put();document.addEventListener('DOMContentLoaded',put);window.addEventListener('load',put);setInterval(put,2000)})();</script>
+<script id="ap-build">window.__apBuild="716c17bc5e";window.__apVer=182;(function(){var N=window.__apVer;function put(){try{var h=document.querySelector('header.aph-header');if(!h||document.getElementById('ap-ver'))return;var s=document.createElement('span');s.id='ap-ver';s.textContent='v'+N;s.style.cssText='position:absolute;right:10px;bottom:4px;font:600 11px/1 system-ui,sans-serif;color:#c9a84c;opacity:.8;pointer-events:none;letter-spacing:.04em;z-index:2';if(getComputedStyle(h).position==='static')h.style.position='relative';h.appendChild(s)}catch(e){}}put();document.addEventListener('DOMContentLoaded',put);window.addEventListener('load',put);setInterval(put,2000)})();</script>
