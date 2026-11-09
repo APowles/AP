@@ -211,7 +211,40 @@
 <script>/* apOpenSheet: printable sheets open as a pop-up over the same screen, never a new tab */
 (function () {
   if (window.apOpenSheet) return;
+  /* iPad / iPhone only: the iPad's browser ignores a hidden frame's print() and prints the whole page, so on those devices the sheet is placed inside this page
+     (in its own sealed box, so its styles and the page's cannot mix) and print rules hide everything else. Mac, PC and every other browser keep the frame route below, unchanged. */
+  function isIOSPrint() {
+    try { var ua = navigator.userAgent || ''; return /iPad|iPhone|iPod/.test(ua) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1); } catch (e) { return false; }
+  }
+  function apPrintCleanup() {
+    try {
+      var r = document.getElementById('ap-print-root'); if (r) r.remove();
+      var s = document.getElementById('ap-print-css'); if (s) s.remove();
+      document.documentElement.classList.remove('ap-printing');
+    } catch (e) { }
+  }
+  function printInline(f) {
+    var d = f.contentDocument; if (!d || !d.body) return false;
+    var css = '', pageRules = '';
+    Array.prototype.forEach.call(d.querySelectorAll('style'), function (s) { css += s.textContent + '\n'; });
+    css = css.replace(/@page[^{]*\{[^}]*\}/g, function (m) { pageRules += m + '\n'; return ''; });
+    css = css.replace(/(^|[\s,{};])html(?=[\s,{.#:\[>+~])/g, '$1:host').replace(/(^|[\s,{};])body(?=[\s,{.#:\[>+~])/g, '$1.ap-sheet-body');
+    apPrintCleanup();
+    var root = document.createElement('div'); root.id = 'ap-print-root';
+    var sh = root.attachShadow({ mode: 'open' });
+    var st = document.createElement('style'); st.textContent = ':host{display:block}\n.ap-sheet-body{margin:8px}\n' + css; sh.appendChild(st);
+    var w = document.createElement('div'); w.className = ('ap-sheet-body ' + (d.body.className || '')).trim(); w.style.cssText = d.body.style.cssText;
+    w.innerHTML = d.body.innerHTML.replace(/<script[\s\S]*?<\/script>/gi, '');
+    sh.appendChild(w);
+    var pg = document.createElement('style'); pg.id = 'ap-print-css';
+    pg.textContent = pageRules + '#ap-print-root{display:none}@media print{html.ap-printing,html.ap-printing body{background:#fff!important;margin:0!important;padding:0!important;height:auto!important;min-height:0!important;overflow:visible!important;position:static!important}html.ap-printing body>*:not(#ap-print-root){display:none!important}html.ap-printing #ap-print-root{display:block!important}}';
+    document.head.appendChild(pg); document.body.appendChild(root);
+    document.documentElement.classList.add('ap-printing');
+    window.print();
+    return true;
+  }
   function printClone(f) {
+    if (isIOSPrint()) { try { if (printInline(f)) return; } catch (e0) { apPrintCleanup(); } }
     try {
       var h = '<!doctype html>' + f.contentDocument.documentElement.outerHTML.replace(/<script[\s\S]*?<\/script>/gi, '');
       var g = document.createElement('iframe'); g.setAttribute('aria-hidden', 'true');
@@ -237,7 +270,7 @@
       if (src) f.src = src; else f.srcdoc = html;
       o.appendChild(bar); o.appendChild(f); document.body.appendChild(o);
       var prevOv = document.documentElement.style.overflow;
-      function close() { o.remove(); document.removeEventListener('keydown', esc); document.documentElement.style.overflow = prevOv; }
+      function close() { o.remove(); apPrintCleanup(); document.removeEventListener('keydown', esc); document.documentElement.style.overflow = prevOv; }
       function esc(e) { if (e.key === 'Escape') close(); }
       document.addEventListener('keydown', esc); document.documentElement.style.overflow = 'hidden';
       bar.querySelector('.aps-close').onclick = close;
@@ -6485,7 +6518,8 @@ function openVVBrowse(){
       <div class="vvb-sheet" role="dialog" aria-label="View and print VVs">
         <div class="vvb-head">
           <div><div class="vvb-brand">Eton A Level · VVs, Gr EWs &amp; Translation</div><div class="vvb-title">&#128214; View &amp; Print</div></div>
-          <button class="vvb-close" onclick="closeVVBrowse()" aria-label="Close">✕</button>
+          <div class="vvb-headr"><button class="vvb-printpill" onclick="vvbPrint('list')" title="Opens the formatted word list, ready to print or save as a PDF">&#128424; Print / PDF</button>
+          <button class="vvb-close" onclick="closeVVBrowse()" aria-label="Close">✕</button></div>
         </div>
         <div class="vvb-body">
           <div class="vvb-lbl">1 · Choose sets <span class="vvb-hint">tap to add or remove</span></div>
@@ -6505,15 +6539,26 @@ function openVVBrowse(){
             <span class="vvb-hint" style="margin-right:2px">Sort:</span>
             <button class="vvb-mini" data-sort="orig" onclick="vvbSetSort('orig')">Original order</button>
             <button class="vvb-mini" data-sort="az" onclick="vvbSetSort('az')">A–Z</button>
+            <button class="vvb-mini" data-sort="mix" onclick="vvbSetSort('mix')" title="Shuffles the words. Press again for a new order">&#128256; Mixed up</button>
+          </div>
+          <div class="vvb-tools">
+            <span class="vvb-hint" style="margin-right:2px">Show:</span>
+            <button class="vvb-mini" data-tier="all" onclick="vvbSetTier('all')">All words</button>
+            <button class="vvb-mini" data-tier="E" onclick="vvbSetTier('E')">Essential</button>
+            <button class="vvb-mini" data-tier="I" onclick="vvbSetTier('I')">Important</button>
+            <button class="vvb-mini" data-tier="EI" onclick="vvbSetTier('EI')">Essential + Important</button>
+            <button class="vvb-mini" data-tier="R" onclick="vvbSetTier('R')">Recognition</button>
+            <span class="vvb-hint">(the last four show verb structures only)</span>
           </div>
           <div class="vvb-tools">
             <button class="vvb-mini" onclick="vvbTickAll(true)">Tick all</button>
             <button class="vvb-mini" onclick="vvbTickAll(false)">Untick all</button>
             <span class="vvb-sep"></span>
-            <span class="vvb-hint" style="margin-right:2px">Cover:</span>
+            <span class="vvb-hint" style="margin-right:2px">&#128584; Cover answers:</span>
             <button class="vvb-mini" data-show="both" onclick="vvbSetShow('both')">Show both</button>
-            <button class="vvb-mini" data-show="en" onclick="vvbSetShow('en')">Hide French</button>
-            <button class="vvb-mini" data-show="fr" onclick="vvbSetShow('fr')">Hide English</button>
+            <button class="vvb-mini" data-show="en" onclick="vvbSetShow('en')">Cover French</button>
+            <button class="vvb-mini" data-show="fr" onclick="vvbSetShow('fr')">Cover English</button>
+            <span class="vvb-hint">tap a covered box to reveal it</span>
           </div>
           <div id="vvbList"></div>
         </div>
@@ -6521,7 +6566,7 @@ function openVVBrowse(){
           <div id="vvbCount" class="vvb-count"></div>
           <div id="vvbLvSlot"></div>
           <label id="vvbAnsRow" style="display:flex;align-items:center;gap:8px;margin:2px 0 8px;font-size:0.82rem;font-weight:600;color:#1a2744;cursor:pointer"><input type="checkbox" id="vvbAnsChk" style="width:18px;height:18px" onchange="vvbAns=this.checked"> Include the answers on a separate last page <span style="font-weight:400;color:#8899bb">(off: the sheet is for the boys, with no answers)</span></label>
-          <div style="font:700 .8125rem var(--aph-body);color:#1a2744;margin:2px 0 6px">Make a sheet. It opens here, ready to print or save as PDF:</div>
+          <div style="font:700 .8125rem var(--aph-body);color:#1a2744;margin:2px 0 6px">Make a sheet. It opens here as a formatted A4 page, ready to print or save as PDF. Word list: numbered, two columns, with Essential / Important / Recognition tags. Study sheet: English and French pairs to learn from. Tests: numbered questions with a blank line for each answer.</div>
           <div class="vvb-prints">
             <button class="vvb-pbtn navy" onclick="vvbPrint('list')">&#128203; Formatted word list</button>
             <button class="vvb-pbtn" onclick="vvbPrint('study')">&#128203; Study sheet (to learn from)</button>
@@ -6640,9 +6685,12 @@ function vvbShown(){
   return vvbRegroup(groups);
 }
 // ── Group by (Set / Topic / Tier / One list) and Sort (Original order / A–Z) for the list on screen and every print ──
-let vvbGroupBy = 'set', vvbSortBy = 'orig';
+let vvbGroupBy = 'set', vvbSortBy = 'orig', vvbTierF = 'all', vvbMixSeed = 1;   // vvbTierF: 'all' | 'E' | 'I' | 'EI' | 'R' (verb-structure importance)
 function vvbSetGroup(m){ vvbGroupBy = m; vvbRender(); }
-function vvbSetSort(m){ vvbSortBy = m; vvbRender(); }
+function vvbSetSort(m){ if (m === 'mix') vvbMixSeed = Math.floor(Math.random() * 1e9) + 1; vvbSortBy = m; vvbRender(); }
+function vvbSetTier(t){ vvbTierF = t; vvbRender(); }
+// the same shuffle every time until Mixed up is pressed again (so the list on screen and the sheet agree)
+function vvbShuffle(arr){ let s = vvbMixSeed; const rnd = () => { s = (s * 1664525 + 1013904223) % 4294967296; return s / 4294967296; }; for (let i = arr.length - 1; i > 0; i--) { const j = Math.floor(rnd() * (i + 1)); const t = arr[i]; arr[i] = arr[j]; arr[j] = t; } return arr; }
 // the tier of one item: 'E' / 'I' / 'R' for a verb structure (by the week it comes from), null for topic vocabulary
 function vvbTierOfItem(it){
   const p = (VV_DATA[it.set] || [])[it.idx];
@@ -6659,6 +6707,7 @@ function vvbTopicName(set){
 function vvbAzKey(s){ return vvbFold(s).replace(/^[\s(*]+/, '').replace(/^(se |s')/, ''); }
 function vvbRegroup(groups){
   groups.forEach(g => g.items.forEach(it => { it.tier = vvbTierOfItem(it); }));
+  if (vvbTierF !== 'all') { const ok = vvbTierF.split(''); groups = groups.map(g => ({ set: g.set, items: g.items.filter(it => it.tier && ok.includes(it.tier)) })).filter(g => g.items.length); }
   let out;
   if (vvbGroupBy === 'set') out = groups;
   else {
@@ -6674,7 +6723,8 @@ function vvbRegroup(groups){
     out = order.map(k => by[k]);
   }
   if (vvbSortBy === 'az') out.forEach(g => g.items.sort((a, b) => vvbAzKey(a.fr).localeCompare(vvbAzKey(b.fr), 'fr')));
-  if (vvbGroupBy !== 'set' || vvbSortBy === 'az') out.forEach(g => g.items.forEach((it, i) => { it.n = i + 1; }));   // numbered 1, 2, 3 … in each group
+  if (vvbSortBy === 'mix') out.forEach(g => vvbShuffle(g.items));
+  if (vvbGroupBy !== 'set' || vvbSortBy === 'az' || vvbSortBy === 'mix') out.forEach(g => g.items.forEach((it, i) => { it.n = i + 1; }));   // numbered 1, 2, 3 … in each group
   return out;
 }
 function vvbChosen(){
@@ -6688,11 +6738,12 @@ function vvbRender(){
   document.querySelectorAll('#vvbModal [data-show]').forEach(b => b.classList.toggle('on', b.dataset.show === vvbShow));
   document.querySelectorAll('#vvbModal [data-grp]').forEach(b => b.classList.toggle('on', b.dataset.grp === vvbGroupBy));
   document.querySelectorAll('#vvbModal [data-sort]').forEach(b => b.classList.toggle('on', b.dataset.sort === vvbSortBy));
+  document.querySelectorAll('#vvbModal [data-tier]').forEach(b => b.classList.toggle('on', b.dataset.tier === vvbTierF));
   const groups = vvbShown();
   if (!vvbSel.length) {
     list.innerHTML = '<div class="vvb-empty">Choose one or more sets above.</div>';
   } else if (!groups.length) {
-    list.innerHTML = '<div class="vvb-empty">No phrases match — check the item range or search.</div>';
+    list.innerHTML = '<div class="vvb-empty">No phrases match — check the item range, the search' + (vvbTierF !== 'all' ? ', or the Show choice (Essential, Important and Recognition only show verb structures)' : '') + '.</div>';
   } else {
     let h = '';
     groups.forEach(g => {
@@ -6719,16 +6770,16 @@ function vvbRender(){
   document.getElementById('vvbCount').innerHTML = vvbSel.length
     ? `<strong>${chosen}</strong> phrase${chosen===1?'':'s'} ticked to print` + (chosen < shown ? ` <span class="vvb-hint">(of ${shown} shown)</span>` : '')
     : 'No sets chosen';
-  document.querySelectorAll('#vvbModal .vvb-pbtn').forEach(b => b.disabled = !chosen);
+  document.querySelectorAll('#vvbModal .vvb-pbtn, #vvbModal .vvb-printpill').forEach(b => b.disabled = !chosen);
   // the two Test versions print only the chosen level
   const lvSlot = document.getElementById('vvbLvSlot');
   if (lvSlot) lvSlot.innerHTML = apLvRow('vvb', null, { cls: 'vvb-mini', on: 'on', label: 'Test level:', style: 'margin:0 0 8px;' });
 }
 function vvbTick(key, on){
   if (on) delete vvbUnticked[key]; else vvbUnticked[key] = true;
-  const st = document.getElementById('vvbList').scrollTop;
+  const bd = document.querySelector('#vvbModal .vvb-sheet'), st = bd.scrollTop;
   vvbRender();
-  document.getElementById('vvbList').scrollTop = st;
+  bd.scrollTop = st;
 }
 function vvbTickAll(on){
   vvbShown().forEach(g => g.items.forEach(it => { if (on) delete vvbUnticked[it.key]; else vvbUnticked[it.key] = true; }));
@@ -6737,9 +6788,9 @@ function vvbTickAll(on){
 function vvbReveal(key){
   if (vvbShow === 'both') return;
   vvbRevealed[key] = !vvbRevealed[key];
-  const st = document.getElementById('vvbList').scrollTop;
+  const bd = document.querySelector('#vvbModal .vvb-sheet'), st = bd.scrollTop;
   vvbRender();
-  document.getElementById('vvbList').scrollTop = st;
+  bd.scrollTop = st;
 }
 
 // ── Printing ─────────────────────────────────────────────────
@@ -49433,6 +49484,19 @@ body{background:var(--cream)}
 #vvbModal .vvb-chip,#vvbModal .vvb-mini{font-size:.875rem!important;font-family:var(--aph-body)!important}
 #vvbModal .vvb-pbtn{font:600 .9375rem/1.2 var(--aph-body)!important;min-height:40px}
 
+#vvbModal .vvb-headr{display:flex;align-items:center;gap:12px}
+#vvbModal .vvb-printpill{flex:0 0 auto;background:#ffd76a;color:#1a2744;border:2px solid #fff3c4;border-radius:999px;padding:8px 20px;min-height:44px;font:800 1.0625rem var(--aph-body);cursor:pointer;white-space:nowrap;box-shadow:0 0 0 3px rgba(255,215,106,.35),0 0 18px 4px rgba(255,215,106,.55);animation:vvbPrintGlow 2.4s ease-in-out infinite}
+#vvbModal .vvb-printpill:hover{background:#ffe08a}
+#vvbModal .vvb-printpill:disabled{opacity:.45;animation:none;box-shadow:none;cursor:default}
+@keyframes vvbPrintGlow{50%{box-shadow:0 0 0 4px rgba(255,215,106,.5),0 0 26px 8px rgba(255,215,106,.75)}}
+@media (prefers-reduced-motion:reduce){#vvbModal .vvb-printpill{animation:none}}
+/* the whole middle of the pop-up scrolls, so the list gets all the room the choices above it leave */
+#vvbModal .vvb-sheet{overflow-y:auto;-webkit-overflow-scrolling:touch;display:block}
+#vvbModal .vvb-head{position:sticky;top:0;z-index:5}
+#vvbModal .vvb-body{overflow:visible;display:block;flex:none}
+#vvbModal #vvbList{overflow:visible;flex:none;min-height:160px}
+@media (max-width:600px){#vvbModal .vvb-printpill{padding:8px 12px;font-size:.9375rem}}
+
 /* edit-mode modals and older blocks: house fonts */
 #vvEditModal,#mlfEditModal,#vvbModal{font-family:var(--aph-body)}
 
@@ -60606,4 +60670,4 @@ function deck(el,m,n,x,y,face,gap){clear(el);const cs=[];for(let i=0;i<n;i++){co
   if (document.readyState === 'complete') start(); else window.addEventListener('load', start);
 })();
 </script>
-<script id="ap-build">window.__apBuild="c446f4a133";window.__apVer=183;(function(){var N=window.__apVer;function put(){try{var h=document.querySelector('header.aph-header');if(!h||document.getElementById('ap-ver'))return;var s=document.createElement('span');s.id='ap-ver';s.textContent='v'+N;s.style.cssText='position:absolute;right:10px;bottom:4px;font:600 11px/1 system-ui,sans-serif;color:#c9a84c;opacity:.8;pointer-events:none;letter-spacing:.04em;z-index:2';if(getComputedStyle(h).position==='static')h.style.position='relative';h.appendChild(s)}catch(e){}}put();document.addEventListener('DOMContentLoaded',put);window.addEventListener('load',put);setInterval(put,2000)})();</script>
+<script id="ap-build">window.__apBuild="c1fd7799b9";window.__apVer=184;(function(){var N=window.__apVer;function put(){try{var h=document.querySelector('header.aph-header');if(!h||document.getElementById('ap-ver'))return;var s=document.createElement('span');s.id='ap-ver';s.textContent='v'+N;s.style.cssText='position:absolute;right:10px;bottom:4px;font:600 11px/1 system-ui,sans-serif;color:#c9a84c;opacity:.8;pointer-events:none;letter-spacing:.04em;z-index:2';if(getComputedStyle(h).position==='static')h.style.position='relative';h.appendChild(s)}catch(e){}}put();document.addEventListener('DOMContentLoaded',put);window.addEventListener('load',put);setInterval(put,2000)})();</script>
