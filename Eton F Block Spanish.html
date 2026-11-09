@@ -22735,15 +22735,17 @@ function printChunksViewer() {
       <label class="svv-chk"><input type="checkbox" id="sv-en" checked onchange="renderStudyView()"> 🇬🇧 English</label>
       <label class="svv-chk"><input type="checkbox" id="sv-es" checked onchange="renderStudyView()"> 🇪🇸 Spanish</label>
       <span class="svv-sep"></span>
+      <span style="display:inline-flex;align-items:center;gap:8px;white-space:nowrap">
       <button data-o="list" onclick="svSetOrder('list')">List order</button>
       <button class="svv-shuf" data-o="mix" onclick="svSetOrder('mix')" title="Put the words in a new random order. Press again for another new order">&#128256; Shuffle the list</button>
       <button data-o="E" onclick="svSetOrder('E')" title="Easy batch first, then Medium, then Hard">Easy words first</button>
-      <button data-o="H" onclick="svSetOrder('H')" title="Hard batch first, then Medium, then Easy">Hard words first</button>
+      <button data-o="M" onclick="svSetOrder('M')" title="Medium batch first, then Easy, then Hard">Medium words first</button>
+      <button data-o="H" onclick="svSetOrder('H')" title="Hard batch first, then Medium, then Easy">Hard words first</button></span>
       <span class="svv-sep"></span>
-      <span class="svv-lab">Group by</span>
+      <span style="display:inline-flex;align-items:center;gap:8px;white-space:nowrap"><span class="svv-lab">Group by</span>
       <button data-g="sec" onclick="svSetGroup('sec')">List</button>
-      <button data-g="level" onclick="svSetGroup('level')">Easy / Medium / Hard</button>
-      <div class="svv-note" id="svv-note" style="display:none">Words come in three batches: <b>Easy</b> (looks like English: la familia), <b>Medium</b> (el apartamento = flat), <b>Hard</b> (el perro = dog). Easy first builds confidence; Hard first tackles the toughest while you are fresh. Each batch is shuffled and every word stays in.</div>
+      <button data-g="level" onclick="svSetGroup('level')">Easy / Medium / Hard</button></span>
+      <div class="svv-note" id="svv-note" style="display:none">Words come in three batches: <b>Easy</b> (looks like English: la familia), <b>Medium</b> (el apartamento = flat), <b>Hard</b> (el perro = dog). Easy first builds confidence; Medium first starts in the middle; Hard first tackles the toughest while you are fresh. Each batch is shuffled and every word stays in.</div>
     </div>
   </div>
   <div id="studyViewContent" class="svv-body"></div>
@@ -22768,7 +22770,7 @@ function closeStudyView() {
   try { speechSynthesis.cancel(); } catch (e) { }
 }
 function svToggleCover() { svOpts.cover = !svOpts.cover; renderStudyView(); }
-function svSetOrder(o) { svOpts.order = o; if (o === 'mix' || o === 'E' || o === 'H') svOpts.seed = Math.floor(Math.random() * 1e9) + 1; renderStudyView(); }
+function svSetOrder(o) { svOpts.order = o; if (o === 'mix' || o === 'E' || o === 'M' || o === 'H') svOpts.seed = Math.floor(Math.random() * 1e9) + 1; renderStudyView(); }
 function svSetGroup(g) { svOpts.group = g; renderStudyView(); }
 function svShuffle(a) {
   var s = svOpts.seed, b = a.slice(), i, j, t;
@@ -22779,7 +22781,7 @@ function svShuffle(a) {
 var SV_BANDCOL = { E: ['#e3f1e6', '#3f8f55'], M: ['#fff1d6', '#d89a1e'], H: ['#fbe1e1', '#c0504d'] };
 // coloured Easy / Medium / Hard heading row, shown whenever the words are put Easy-first or Hard-first within a list (screen and printed sheet alike)
 function svBandRow(ps, i, last, cols, big) {
-  if (!(svOpts.order === 'E' || svOpts.order === 'H') || svOpts.group === 'level') return '';
+  if (!(svOpts.order === 'E' || svOpts.order === 'M' || svOpts.order === 'H') || svOpts.group === 'level') return '';
   var b = svLevelOf(ps[i]); if (b === last.b) return ''; last.b = b;
   var k = 0; for (var j = i; j < ps.length && svLevelOf(ps[j]) === b; j++) k++;
   return '<tr class="svv-cb"><td colspan="' + cols + '" style="background:' + SV_BANDCOL[b][0] + ';border-left:8px solid ' + SV_BANDCOL[b][1] + ';padding:' + (big ? '7px 14px' : '3px 8px') + ';font-size:' + (big ? '0.875rem' : '0.68rem') + ';font-weight:600;color:#1a2744;cursor:default;-webkit-print-color-adjust:exact;print-color-adjust:exact"><b>' + SV_BANDS[b][0] + '<' + '/b> · ' + SV_BANDS[b][1] + ' <span style="font-weight:400;color:#56607a;margin-left:8px">' + k + ' words<' + '/span><' + '/td><' + '/tr>';
@@ -22787,7 +22789,7 @@ function svBandRow(ps, i, last, cols, big) {
 function svLevelOf(p) { try { return spvLevel(p) || 'H'; } catch (e) { return 'H'; } }
 function svOrderLabel() {
   var o = svOpts.order, g = svOpts.group;
-  return (o === 'mix' ? 'Shuffled' : o === 'E' ? 'Easy words first' : o === 'H' ? 'Hard words first' : '') + (g === 'level' ? (o !== 'list' ? ' · ' : '') + 'Grouped Easy / Medium / Hard' : '');
+  return (o === 'mix' ? 'Shuffled' : o === 'E' ? 'Easy words first' : o === 'M' ? 'Medium words first' : o === 'H' ? 'Hard words first' : '') + (g === 'level' ? (o !== 'list' ? ' · ' : '') + 'Grouped Easy / Medium / Hard' : '');
 }
 // the selected words in the order and grouping chosen on screen: [{title, ps}]
 function svGroups() {
@@ -22795,11 +22797,11 @@ function svGroups() {
   phrases.forEach(function (p) { if (!by[p.sec]) { by[p.sec] = []; order.push(p.sec); } by[p.sec].push(p); });
   function arrange(ps) {
     if (o === 'mix') return svShuffle(ps);
-    if (o === 'E' || o === 'H') { var res = []; (o === 'E' ? ['E', 'M', 'H'] : ['H', 'M', 'E']).forEach(function (b) { res = res.concat(svShuffle(ps.filter(function (p) { return svLevelOf(p) === b; }))); }); return res; }
+    if (o === 'E' || o === 'M' || o === 'H') { var res = []; (o === 'E' ? ['E', 'M', 'H'] : o === 'M' ? ['M', 'E', 'H'] : ['H', 'M', 'E']).forEach(function (b) { res = res.concat(svShuffle(ps.filter(function (p) { return svLevelOf(p) === b; }))); }); return res; }
     return ps;
   }
   if (svOpts.group === 'level') {
-    (o === 'H' ? ['H', 'M', 'E'] : ['E', 'M', 'H']).forEach(function (b) {
+    (o === 'H' ? ['H', 'M', 'E'] : o === 'M' ? ['M', 'E', 'H'] : ['E', 'M', 'H']).forEach(function (b) {
       var ps = phrases.filter(function (p) { return svLevelOf(p) === b; });
       if (ps.length) out.push({ band: b, title: SV_BANDS[b][0] + ' · ' + SV_BANDS[b][1], ps: o === 'list' ? ps : svShuffle(ps) });
     });
@@ -22821,7 +22823,7 @@ function renderStudyView() {
   { const cb = document.getElementById('svv-cover'); cb.classList.toggle('on', !!svOpts.cover); cb.innerHTML = (svOpts.cover ? '&#10003; ' : '&#128584; ') + 'Cover and check your answers'; }
   document.querySelectorAll('#studyViewModal [data-o]').forEach(function (b) { b.classList.toggle('on', b.getAttribute('data-o') === svOpts.order); });
   document.querySelectorAll('#studyViewModal [data-g]').forEach(function (b) { b.classList.toggle('on', b.getAttribute('data-g') === svOpts.group); });
-  var nt = document.getElementById('svv-note'); if (nt) nt.style.display = (svOpts.order === 'E' || svOpts.order === 'H' || svOpts.group === 'level') ? 'block' : 'none';
+  var nt = document.getElementById('svv-note'); if (nt) nt.style.display = (svOpts.order === 'E' || svOpts.order === 'M' || svOpts.order === 'H' || svOpts.group === 'level') ? 'block' : 'none';
   el.classList.toggle('covered', !!svOpts.cover);
   if (!langs.length) { el.innerHTML = '<p style="color:#888;text-align:center;padding:20px;">Select at least one language.</p>'; return; }
 
@@ -28378,4 +28380,4 @@ function deck(el,m,n,x,y,face,gap){clear(el);const cs=[];for(let i=0;i<n;i++){co
   if (document.readyState === 'complete') start(); else window.addEventListener('load', start);
 })();
 </script>
-<script id="ap-build">window.__apBuild="1f6536e596";window.__apVer=195;(function(){var N=window.__apVer;function put(){try{var h=document.querySelector('header.aph-header');if(!h||document.getElementById('ap-ver'))return;var s=document.createElement('span');s.id='ap-ver';s.textContent='v'+N;s.style.cssText='position:absolute;right:10px;bottom:4px;font:600 11px/1 system-ui,sans-serif;color:#c9a84c;opacity:.8;pointer-events:none;letter-spacing:.04em;z-index:2';if(getComputedStyle(h).position==='static')h.style.position='relative';h.appendChild(s)}catch(e){}}put();document.addEventListener('DOMContentLoaded',put);window.addEventListener('load',put);setInterval(put,2000)})();</script>
+<script id="ap-build">window.__apBuild="66f0b5d735";window.__apVer=196;(function(){var N=window.__apVer;function put(){try{var h=document.querySelector('header.aph-header');if(!h||document.getElementById('ap-ver'))return;var s=document.createElement('span');s.id='ap-ver';s.textContent='v'+N;s.style.cssText='position:absolute;right:10px;bottom:4px;font:600 11px/1 system-ui,sans-serif;color:#c9a84c;opacity:.8;pointer-events:none;letter-spacing:.04em;z-index:2';if(getComputedStyle(h).position==='static')h.style.position='relative';h.appendChild(s)}catch(e){}}put();document.addEventListener('DOMContentLoaded',put);window.addEventListener('load',put);setInterval(put,2000)})();</script>
