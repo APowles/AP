@@ -3993,6 +3993,57 @@ const VV_REC = new WeakSet();
 })();
 
 let currentVV = VV_DATA['TVE1a'] ? 'TVE1a' : 'VV1a';   // opens on Topic Vocab + Essential structures, the usual choice for the weekly learning EW
+
+// ── Combined sets: any mix of sets (e.g. 1a + 3b + 9a + 10 Entire) practised as ONE set. It is a temporary set built in VV_DATA (like the Personalised set), so Drill, Spell, Match, Build it, Speed, Leisure and Tests all work on it unchanged. ──
+var vvCombo = { on: false, sufs: [], tv: true, E: true, I: false, R: false, key: null };
+function vvComboKeyFor(st, suf) {
+  var t = (st.E ? 'E' : '') + (st.I ? 'I' : '') + (st.R ? 'R' : '');
+  var key = st.tv ? 'TV' + t + suf : (t === 'E' ? 'VSE' : t === 'I' ? 'VSI' : t === 'EI' ? 'VSEI' : t === 'R' ? 'VSR' : 'VS') + suf;
+  return VV_DATA[key] ? key : null;
+}
+function vvComboSortSufs() {
+  var o = ['a', 'b', 'c', '_Entire'];
+  vvCombo.sufs.sort(function (a, b) { var na = parseInt(a), nb = parseInt(b); return na !== nb ? na - nb : o.indexOf(a.replace(/^\d+/, '')) - o.indexOf(b.replace(/^\d+/, '')); });
+}
+function vvComboTag() { return (vvCombo.tv ? 'TV' : 'VS') + (vvCombo.E ? 'E' : '') + (vvCombo.I ? 'I' : '') + (vvCombo.R ? 'R' : ''); }
+function vvComboInclude() { return [vvCombo.tv ? 'Topic vocab' : null, vvCombo.E ? 'Essential' : null, vvCombo.I ? 'Important' : null, vvCombo.R ? 'Recognition' : null].filter(Boolean).join(' + '); }
+function vvComboLabel() { return 'Combined sets ' + vvCombo.sufs.map(function (s) { return s.replace(/_/g, ' '); }).join(', ') + ' (' + vvComboInclude() + ')'; }
+// builds (or rebuilds) the combined set from vvCombo; returns its key, or null if nothing was found
+function vvComboBuild() {
+  vvComboSortSufs();
+  var st = { tv: vvCombo.tv, E: vvCombo.E, I: vvCombo.I, R: vvCombo.R }, rows = [], from = [], seen = {}, haveSrc = true;
+  vvCombo.sufs.forEach(function (suf) {
+    var k = vvComboKeyFor(st, suf); if (!k) return;
+    (VV_DATA[k] || []).forEach(function (p, i) {
+      var id = String(p[0]).replace(/\*\*/g, '').trim().toLowerCase() + '|' + String(p[1]).replace(/\*\*/g, '').trim().toLowerCase();
+      if (seen[id]) return; seen[id] = 1; rows.push(p);
+      var f = VV_SRC[k] ? VV_SRC[k][i] : null; if (!f) haveSrc = false; from.push(f);
+    });
+  });
+  if (!rows.length) return null;
+  var key = 'Combined ' + vvComboTag() + ': ' + vvCombo.sufs.join(', ');
+  if (vvCombo.key && vvCombo.key !== key) { delete VV_DATA[vvCombo.key]; delete VV_SRC[vvCombo.key]; }
+  VV_DATA[key] = rows; if (haveSrc) VV_SRC[key] = from; vvCombo.key = key;
+  return key;
+}
+// a link or saved choice written as 'Combined TVE: 1a, 3b, 9a, 10_Entire' rebuilds the same set
+function vvComboFromKey(k) {
+  var m = /^Combined (TV|VS)([EIR]*): (.+)$/.exec(k || ''); if (!m) return null;
+  vvCombo.tv = m[1] === 'TV'; vvCombo.E = m[2].indexOf('E') >= 0; vvCombo.I = m[2].indexOf('I') >= 0; vvCombo.R = m[2].indexOf('R') >= 0;
+  vvCombo.sufs = m[3].split(', ').filter(function (s) { return /^\d+(?:[a-z]|_Entire)$/.test(s); }); vvCombo.on = true;
+  return vvCombo.sufs.length ? vvComboBuild() : null;
+}
+// the real sets inside the combined one (View & Print starts from these); null when the current set is not a combined one
+function vvComboSets(k) {
+  if (!vvCombo.key || k !== vvCombo.key) return null;
+  var st = { tv: vvCombo.tv, E: vvCombo.E, I: vvCombo.I, R: vvCombo.R }, out = [];
+  vvCombo.sufs.forEach(function (s) {
+    (/_Entire$/.test(s) ? ['a', 'b', 'c'].map(function (x) { return s.replace('_Entire', x); }) : [s]).forEach(function (x) { var kk = vvComboKeyFor(st, x); if (kk && out.indexOf(kk) < 0) out.push(kk); });
+  });
+  try { var ord = vvbAllSets(), f = ord.filter(function (x) { return out.indexOf(x) >= 0; }); if (f.length) return f; } catch (e) { }
+  return out.length ? out : null;
+}
+try { var vvHm = /^#vv=(Combined .*)$/.exec(location.hash || ''); if (vvHm) vvComboFromKey(decodeURIComponent(vvHm[1])); } catch (e) { }
 let editModeUnlocked = false;
 
 // Helper: capture document HTML in a clean "freshly-opened" state.
@@ -4372,6 +4423,7 @@ function toggleAutotime() {
 // what a set is called on screen: VS tier sets read "VS Essential 3b" rather than the code VSE3b
 const VS_TIER_NAMES = { VSEI: 'VS Essential + Important ', VSE: 'VS Essential ', VSI: 'VS Important ', VSR: 'VS Recognition ' };
 function vvSetLabel(k) {
+  if (vvCombo.key && k === vvCombo.key) return vvComboLabel();
   const c = /^(TVEIR|TVEI|TVER|TVIR|TVE|TVI|TVR)(\d+(?:[a-z]|_Entire))$/.exec(k);
   if (c) return 'TV + ' + (c[1].length === 5 ? 'all structures' : c[1].slice(2).split('').map(function (t) { return VC_UI.filter(function (u) { return u[0] === t; })[0][1]; }).join(' + ')) + ' ' + c[2].replace(/_/g, ' ');
   const m = /^(VSEI|VSE|VSI|VSR)(\d+(?:[a-z]|_Entire))$/.exec(k);
@@ -4405,7 +4457,7 @@ function getVVOptions(only, selKey) {
   const trials = keys.filter(k => k.includes('Trial')).sort();
   if (only === 'TV') return opts(some(/^TV\d/));
   if (only === 'VS') return opts(some(new RegExp('^' + vsPrefix() + '\\d')));
-  if (only === 'VV') return opts(trials.concat(some(/^VV\d/)));
+  if (only === 'VV') return (vvCombo.key && currentVV === vvCombo.key ? '<option value="' + vvCombo.key + '" selected>' + vvComboLabel() + '</option>' : '') + opts(trials.concat(some(/^VV\d/)));
   if (only === 'TC') return opts(some(new RegExp('^' + vcPrefix() + '\\d')));
   return group('Topic Vocabulary (TV)', some(/^TV\d/))
        + group('Verb Structures (VS)', some(/^VS\d/))
@@ -4615,7 +4667,7 @@ function vvKeepRecognitionFrToEn() {
   } else if (vvDirBeforeForce) { fromLang = vvDirBeforeForce.f; toLang = vvDirBeforeForce.t; vvDirBeforeForce = null; }
 }
 // Topic Vocab + chosen structures with Recognition ticked: the 🔒 locks ONLY the Recognition phrases to French -> English; every other phrase follows the chosen direction
-function vvRecLockedFor(k) { return /^TV[EI]*R\d/.test(k) && vcLockOn(); }
+function vvRecLockedFor(k) { if (vvCombo.key && k === vvCombo.key) return !!vvCombo.R && vcLockOn(); return /^TV[EI]*R\d/.test(k) && vcLockOn(); }
 function vvRecLocked() { return vvRecLockedFor(currentVV); }
 function vvCardDir(card) {
   if (card && card.rec && vvRecLocked()) return { from: 'fr', to: 'en' };            // a locked Recognition phrase is always French -> English, Mix or not
@@ -6506,7 +6558,7 @@ function openVVBrowse(){
   if (!vvbSel.length) {
     const m = (currentVV||'').match(/^((?:VV|TVEIR|TVEI|TVER|TVIR|TVE|TVI|TVR|TV|VSEI|VSE|VSI|VSR|VS)\d+)_Entire$/);
     vvbSel = m ? vvbAllSets().filter(k => new RegExp('^'+m[1]+'[a-z]$').test(k))
-               : (VV_DATA[currentVV] ? [currentVV] : []);
+               : (vvComboSets(currentVV) || (VV_DATA[currentVV] ? [currentVV] : []));
   }
   // a set is already chosen (from the drill dropdown, or left over from last time) - show a collapsed summary, not the full 36+-set grid
   vvbPickerOpen = !vvbSel.length;
@@ -6519,7 +6571,7 @@ function openVVBrowse(){
         <div class="vvb-head">
           <div><div class="vvb-brand">Eton A Level · VVs, Gr EWs &amp; Translation</div><div class="vvb-title">&#128214; View &amp; Print</div></div>
           <div class="vvb-headr"><button class="vvb-printpill" onclick="vvbPrint('list')" title="Opens the formatted word list, ready to print or save as a PDF">&#128424; Print / PDF</button>
-          <button class="vvb-close" onclick="closeVVBrowse()" aria-label="Close">✕</button></div>
+          <button class="vvb-close" onclick="closeVVBrowse()" aria-label="Back">&#8592; Back</button></div>
         </div>
         <div class="vvb-body">
           <div class="vvb-lbl">1 · Choose sets <span class="vvb-hint">tap to add or remove</span></div>
@@ -49484,6 +49536,11 @@ body{background:var(--cream)}
 #vvbModal .vvb-chip,#vvbModal .vvb-mini{font-size:.875rem!important;font-family:var(--aph-body)!important}
 #vvbModal .vvb-pbtn{font:600 .9375rem/1.2 var(--aph-body)!important;min-height:40px}
 
+/* full screen, like the IGCSE View & Print: the pop-up fills the window and its contents sit in a comfortable centred column */
+#vvbModal{padding:0!important;align-items:stretch!important;justify-content:stretch!important}
+#vvbModal .vvb-sheet{max-width:none!important;width:100%!important;height:100%!important;max-height:100vh!important;border-radius:0!important}
+#vvbModal .vvb-head,#vvbModal .vvb-body,#vvbModal .vvb-foot{padding-left:max(16px,calc((100% - 1100px)/2))!important;padding-right:max(16px,calc((100% - 1100px)/2))!important}
+#vvbModal .vvb-close{width:auto!important;height:auto!important;border-radius:999px!important;padding:8px 18px!important;min-height:44px;font:700 1rem var(--aph-body)!important;white-space:nowrap}
 #vvbModal .vvb-headr{display:flex;align-items:center;gap:12px}
 #vvbModal .vvb-printpill{flex:0 0 auto;background:#ffd76a;color:#1a2744;border:2px solid #fff3c4;border-radius:999px;padding:8px 20px;min-height:44px;font:800 1.0625rem var(--aph-body);cursor:pointer;white-space:nowrap;box-shadow:0 0 0 3px rgba(255,215,106,.35),0 0 18px 4px rgba(255,215,106,.55);animation:vvbPrintGlow 2.4s ease-in-out infinite}
 #vvbModal .vvb-printpill:hover{background:#ffe08a}
@@ -52804,6 +52861,7 @@ textarea.ms-in{min-height:7rem;resize:vertical}.ms-hint.ms-hint-sm{font-size:.78
   // ---- "Set" + "Include" model: the picker lists sets only; what is included (topic vocab, Essential, Important, Recognition) is a row of ticks
   function incState() {
     var k = currentVV || '', m;
+    if (vvCombo.key && k === vvCombo.key) return { tv: vvCombo.tv, E: vvCombo.E, I: vvCombo.I, R: vvCombo.R };
     if ((m = /^(TVEIR|TVEI|TVER|TVIR|TVE|TVI|TVR)\d/.exec(k))) return { tv: true, E: m[1].indexOf('E') > 1, I: m[1].indexOf('I') > 1, R: m[1].indexOf('R') > 1 };
     if (/^TV\d/.test(k)) return { tv: true, E: false, I: false, R: false };
     if ((m = /^(VSEI|VSE|VSI|VSR|VS)\d/.exec(k))) { var t = m[1]; return { tv: false, E: t === 'VSE' || t === 'VSEI' || t === 'VS', I: t === 'VSI' || t === 'VSEI' || t === 'VS', R: t === 'VSR' || t === 'VS' }; }
@@ -52821,12 +52879,29 @@ textarea.ms-in{min-height:7rem;resize:vertical}.ms-hint.ms-hint-sm{font-size:.78
     try { if (/^TV(E|I|R)/.test(key)) { try { localStorage.removeItem('apvv_combo_lock'); } catch (e) { } } } catch (e) { }
     vvKeepRecognitionFrToEn(); renderIntro();
   }
+  // ---- Combine several sets: a switch above the grid; while it is on, each tap adds or removes a set, and the sets chosen are practised as one
+  function comboSyncTiers() { try { vcTiers = { E: !!vvCombo.E, I: !!vvCombo.I, R: !!vvCombo.R }; if (!vvCombo.E && !vvCombo.I && !vvCombo.R) vcTiers = { E: true, I: false, R: false }; } catch (e) { } }
+  window.vvComboMode = function () {
+    var sy = window.scrollY; vvCombo.on = !vvCombo.on;
+    if (!vvCombo.on && vvCombo.key && currentVV === vvCombo.key) { var k0 = vvCombo.sufs.length ? keyFor(incState(), vvCombo.sufs[0]) : null; if (k0) { apply(k0); window.scrollTo(0, sy); return; } }
+    renderIntro(); window.scrollTo(0, sy);
+  };
+  window.vvComboTap = function (x) {
+    var sy = window.scrollY, i = vvCombo.sufs.indexOf(x);
+    if (i >= 0) { if (vvCombo.sufs.length === 1) return; vvCombo.sufs.splice(i, 1); } else vvCombo.sufs.push(x);
+    vvComboSortSufs();
+    var st = incState();
+    if (vvCombo.sufs.length === 1) { var k1 = keyFor(st, vvCombo.sufs[0]); if (k1) apply(k1); }
+    else { vvCombo.tv = st.tv; vvCombo.E = st.E; vvCombo.I = st.I; vvCombo.R = st.R; comboSyncTiers(); var ck = vvComboBuild(); if (ck) apply(ck); }
+    window.scrollTo(0, sy);
+  };
   var incDone = null;
   var vca0 = window.vvClearAll; if (vca0) window.vvClearAll = function () { incDone = false; return vca0.apply(this, arguments); };
   window.vvIncDone = function () { incDone = true; renderIntro(); };
   window.vvIncToggle = function (w) {
     var st = incState(); st[w] = !st[w];
     if (!st.tv && !st.E && !st.I && !st.R) return;   // something must stay ticked
+    if (vvCombo.key && currentVV === vvCombo.key) { vvCombo.tv = st.tv; vvCombo.E = st.E; vvCombo.I = st.I; vvCombo.R = st.R; comboSyncTiers(); var ck = vvComboBuild(); if (ck) apply(ck); return; }
     apply(keyFor(st, sufOf(currentVV)));
   };
   window.vvIncLock = function () { if (/^TV(E|I|R)/.test(currentVV)) vcToggleLock(); else vvToggleRecogLock(); };
@@ -52837,12 +52912,15 @@ textarea.ms-in{min-height:7rem;resize:vertical}.ms-hint.ms-hint-sm{font-size:.78
       + (st.R ? '<button type="button" class="vvinc-lock ' + (unlocked ? 'open' : 'shut') + '" title="' + (unlocked ? 'Either way round' : 'French to English only') + '" onclick="vvIncLock()">' + (unlocked ? '&#128275; Open' : '&#128274; Locked') + '</button><div class="vvinc-note">' + (unlocked ? 'Recognition structures are practised either way round. Tap the padlock to lock them to French &rarr; English.' : 'Recognition structures are French &rarr; English only. Tap the padlock to practise them into French too.') + '</div>' : '') + '<button type="button" class="vvinc-done' + (incDone ? ' is-done' : '') + '" onclick="vvIncDone()">&#10003; That\'s my selection</button>';
   }
   function gridHtml(chosen) {
+    if (vvCombo.on && currentVV !== vvCombo.key) vvCombo.sufs = chosen && !/Trial/.test(currentVV) ? [sufOf(currentVV)] : [];   // one set (or none) chosen: that is the starting point for combining
     var st = incState(), cur = sufOf(currentVV), sufs = [];
     Object.keys(VV_DATA).forEach(function (k) { var m = /^TV(\d+(?:[a-z]|_Entire))$/.exec(k); if (m) sufs.push(m[1]); });
     sufs.sort(function (a, b) { var na = parseInt(a), nb = parseInt(b); if (na !== nb) return na - nb; var o = ['a', 'b', 'c', '_Entire']; return o.indexOf(a.replace(/^\d+/, '')) - o.indexOf(b.replace(/^\d+/, '')); });
     var ord = []; for (var r = 1; r <= 6; r++) [r, r + 6].forEach(function (t) { ['a', 'b', 'c', '_Entire'].forEach(function (p) { if (sufs.indexOf(t + p) >= 0) ord.push(t + p); }); }); sufs.forEach(function (x) { if (ord.indexOf(x) < 0) ord.push(x); }); sufs = ord;
-    var h = '<div class="vvg-cap">Sets</div><div class="vvg">' + sufs.map(function (x) {
-      return '<button type="button" class="vvg-b' + (/_Entire$/.test(x) ? ' ent' : '') + (chosen && x === cur && !/Trial/.test(currentVV) ? ' on' : '') + '" onclick="vvpkPickSet(\'' + x + '\')">' + x.replace(/_/g, ' ') + '</button>';
+    var h = '<div class="vvg-cap">Sets</div><div class="aph-row" style="margin:0 0 8px;gap:8px;align-items:center;flex-wrap:wrap"><button type="button" class="aph-chip' + (vvCombo.on ? ' on' : '') + '" onclick="vvComboMode()">' + (vvCombo.on ? '&#10003; ' : '&#10133; ') + 'Combine several sets</button>'
+      + '<span class="aph-note" style="min-width:auto">' + (vvCombo.on ? 'Tap every set you want (tap again to take one out). They are practised together as one set.' : 'Tap this to mix sets, e.g. 1a + 3b + 9a + 10 Entire.') + '</span></div><div class="vvg">' + sufs.map(function (x) {
+      var on = vvCombo.on ? vvCombo.sufs.indexOf(x) >= 0 : (chosen && x === cur && !/Trial/.test(currentVV));
+      return '<button type="button" class="vvg-b' + (/_Entire$/.test(x) ? ' ent' : '') + (on ? ' on' : '') + '" onclick="vvpkPickSet(\'' + x + '\')">' + x.replace(/_/g, ' ') + '</button>';
     }).join('') + '</div>';
     var trials = Object.keys(VV_DATA).filter(function (k) { return /Trial/.test(k) && !/\s/.test(k); }).sort();
     if (trials.length) h += '<div class="vvg vvg-t">' + trials.map(function (k) { return '<button type="button" class="vvg-b ent' + (chosen && currentVV === k ? ' on' : '') + '" onclick="vvpkPick(\'VV\',\'' + k + '\')">' + k.replace(/_/g, ' ') + '</button>'; }).join('') + '</div>';
@@ -52865,7 +52943,7 @@ textarea.ms-in{min-height:7rem;resize:vertical}.ms-hint.ms-hint-sm{font-size:.78
     }).join('') + '</div>';
     return html || '<div class="gg-rempty">No set matches that search.</div>';
   }
-  window.vvpkPickSet = function (x) { var k = keyFor(incState(), x); if (k) apply(k); vvpkClose(); };
+  window.vvpkPickSet = function (x) { if (vvCombo.on) { window.vvComboTap(x); return; } var k = keyFor(incState(), x); if (k) apply(k); vvpkClose(); };
   window.vvpkFilter = function (v) { var b = $('vvpk-body'); if (b) b.innerHTML = rowsHtml(v); };
   window.vvpkPick = function (g, k) { if (typeof window.vvPickSet === 'function') window.vvPickSet(g, k); vvpkClose(); };
   window.vvpkOpen = function () {
@@ -60670,4 +60748,4 @@ function deck(el,m,n,x,y,face,gap){clear(el);const cs=[];for(let i=0;i<n;i++){co
   if (document.readyState === 'complete') start(); else window.addEventListener('load', start);
 })();
 </script>
-<script id="ap-build">window.__apBuild="c1fd7799b9";window.__apVer=184;(function(){var N=window.__apVer;function put(){try{var h=document.querySelector('header.aph-header');if(!h||document.getElementById('ap-ver'))return;var s=document.createElement('span');s.id='ap-ver';s.textContent='v'+N;s.style.cssText='position:absolute;right:10px;bottom:4px;font:600 11px/1 system-ui,sans-serif;color:#c9a84c;opacity:.8;pointer-events:none;letter-spacing:.04em;z-index:2';if(getComputedStyle(h).position==='static')h.style.position='relative';h.appendChild(s)}catch(e){}}put();document.addEventListener('DOMContentLoaded',put);window.addEventListener('load',put);setInterval(put,2000)})();</script>
+<script id="ap-build">window.__apBuild="0061db3dde";window.__apVer=185;(function(){var N=window.__apVer;function put(){try{var h=document.querySelector('header.aph-header');if(!h||document.getElementById('ap-ver'))return;var s=document.createElement('span');s.id='ap-ver';s.textContent='v'+N;s.style.cssText='position:absolute;right:10px;bottom:4px;font:600 11px/1 system-ui,sans-serif;color:#c9a84c;opacity:.8;pointer-events:none;letter-spacing:.04em;z-index:2';if(getComputedStyle(h).position==='static')h.style.position='relative';h.appendChild(s)}catch(e){}}put();document.addEventListener('DOMContentLoaded',put);window.addEventListener('load',put);setInterval(put,2000)})();</script>
