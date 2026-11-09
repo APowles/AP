@@ -22780,6 +22780,14 @@ function svShuffle(a) {
   for (i = b.length - 1; i > 0; i--) { j = Math.floor(rnd() * (i + 1)); t = b[i]; b[i] = b[j]; b[j] = t; }
   return b;
 }
+var SV_BANDCOL = { E: ['#e3f1e6', '#3f8f55'], M: ['#fff1d6', '#d89a1e'], H: ['#fbe1e1', '#c0504d'] };
+// coloured Easy / Medium / Hard heading row, shown whenever the words are put Easy-first or Hard-first within a list (screen and printed sheet alike)
+function svBandRow(ps, i, last, cols, big) {
+  if (!(svOpts.order === 'E' || svOpts.order === 'H') || svOpts.group === 'level') return '';
+  var b = svLevelOf(ps[i]); if (b === last.b) return ''; last.b = b;
+  var k = 0; for (var j = i; j < ps.length && svLevelOf(ps[j]) === b; j++) k++;
+  return '<tr class="svv-cb"><td colspan="' + cols + '" style="background:' + SV_BANDCOL[b][0] + ';border-left:8px solid ' + SV_BANDCOL[b][1] + ';padding:' + (big ? '7px 14px' : '3px 8px') + ';font-size:' + (big ? '0.875rem' : '0.68rem') + ';font-weight:600;color:#1a2744;cursor:default;-webkit-print-color-adjust:exact;print-color-adjust:exact"><b>' + SV_BANDS[b][0] + '<' + '/b> · ' + SV_BANDS[b][1] + ' <span style="font-weight:400;color:#56607a;margin-left:8px">' + k + ' words<' + '/span><' + '/td><' + '/tr>';
+}
 function svLevelOf(p) { try { return spvLevel(p) || 'H'; } catch (e) { return 'H'; } }
 function svOrderLabel() {
   var o = svOpts.order, g = svOpts.group;
@@ -22842,8 +22850,10 @@ function renderStudyView() {
       out += '<th style="padding:6px 10px;font-size:0.75rem;color:#4a5a7a;border-bottom:1px solid #e2e6f0;font-weight:700;text-align:left;">' + l.flag + ' ' + l.name + '<' + '/th>';
     });
     out += '<' + '/tr><' + '/thead><tbody>';
+    var _lb = { b: null };
     ps.forEach(function(p, i) {
       var bg = i % 2 === 0 ? '#ffffff' : '#faf9f6';
+      if (!qv) out += svBandRow(ps, i, _lb, langs.length + 1, true);
       out += '<tr style="background:' + bg + ';" onclick="this.classList.toggle(\'rev\')">';
       out += '<td style="padding:5px 8px;font-size:0.75rem;color:#bbb;vertical-align:top;border-bottom:1px solid #f0f0f0;text-align:right;">' + (n++) + '<' + '/td>';
       langs.forEach(function(l) {
@@ -22884,8 +22894,10 @@ function svStudySheet(langs, arranged) {
       body += '<th style="padding:4px 8px;font-size:0.65rem;color:#4a5a7a;border-bottom:1px solid #ddd;text-align:left;">' + l.flag + ' ' + l.name + '<' + '/th>';
     });
     body += '<' + '/tr><' + '/thead><tbody>';
+    var _lb = { b: null };
     g.ps.forEach(function(p, i) {
       var bg = i % 2 === 0 ? '#fff' : '#faf9f6';
+      if (arranged) body += svBandRow(g.ps, i, _lb, langs.length + 1, false);
       body += '<tr style="background:' + bg + ';">';
       body += '<td style="padding:3px 6px;font-size:0.6rem;color:#bbb;text-align:right;vertical-align:top;border-bottom:1px solid #eee;">' + (n++) + '<' + '/td>';
       langs.forEach(function(l) {
@@ -28368,4 +28380,4 @@ function deck(el,m,n,x,y,face,gap){clear(el);const cs=[];for(let i=0;i<n;i++){co
   if (document.readyState === 'complete') start(); else window.addEventListener('load', start);
 })();
 </script>
-<script id="ap-build">window.__apBuild="58d265dcf3";window.__apVer=182;(function(){var N=window.__apVer;function put(){try{var h=document.querySelector('header.aph-header');if(!h||document.getElementById('ap-ver'))return;var s=document.createElement('span');s.id='ap-ver';s.textContent='v'+N;s.style.cssText='position:absolute;right:10px;bottom:4px;font:600 11px/1 system-ui,sans-serif;color:#c9a84c;opacity:.8;pointer-events:none;letter-spacing:.04em;z-index:2';if(getComputedStyle(h).position==='static')h.style.position='relative';h.appendChild(s)}catch(e){}}put();document.addEventListener('DOMContentLoaded',put);window.addEventListener('load',put);setInterval(put,2000)})();</script>
+<script id="ap-build">window.__apBuild="f3d004495f";window.__apVer=183;(function(){var N=window.__apVer;function put(){try{var h=document.querySelector('header.aph-header');if(!h||document.getElementById('ap-ver'))return;var s=document.createElement('span');s.id='ap-ver';s.textContent='v'+N;s.style.cssText='position:absolute;right:10px;bottom:4px;font:600 11px/1 system-ui,sans-serif;color:#c9a84c;opacity:.8;pointer-events:none;letter-spacing:.04em;z-index:2';if(getComputedStyle(h).position==='static')h.style.position='relative';h.appendChild(s)}catch(e){}}put();document.addEventListener('DOMContentLoaded',put);window.addEventListener('load',put);setInterval(put,2000)})();</script>
