@@ -1120,6 +1120,7 @@ button[onclick*="apMySetHelp"]{background:none!important;border:0!important;box-
     <div class="vb-vp-tools">
       <input id="spVerbSearch" class="aph-input" oninput="filterSpVerbList()" placeholder="Search…">
       <button onclick="copySpVerbList()" id="copyVerbListBtn" class="aph-btn aph-btn-sm">Copy list</button>
+      <button id="vbCoverBtn" class="aph-btn aph-btn-sm" onclick="vbToggleCover()" style="display:none">&#128584; Cover the forms</button>
       <button class="aph-btn aph-btn-sm aph-btn-primary" onclick="printSpVerbList()">&#128424; Print / PDF</button>
       <button class="aph-btn aph-btn-sm" onclick="exportSDHtml()">💾 Export</button>
     </div>
@@ -3763,7 +3764,7 @@ let isAutotime = true;
 let regFilter = 'all'; // 'all' | 'regular' | 'radical' | 'irregular'
 
 /* Reflexive = the infinitive ends in -se (llamarse, levantarse...). Any other Regularity choice is judged from the note. */
-function regHit(v, f) { if (f === 'reflexive') { var i = v && v.inf; if (i && typeof i === 'object') i = i.inf; return /se$/.test(String(i || '')); } return classifyNote(v && v.note) === f; }
+function regHit(v, f) { if (f === 'reflexive') { var i = v && v.inf; if (i && typeof i === 'object') i = i.inf; return /se$/.test(String(i || '')); } if ((f === 'regular' || f === 'irregular') && v && v.tense === 'FUTURE' && ['regular', 'irregular'].indexOf(classifyNote(v.note)) >= 0) { var q2 = apFmIrrRec(v); if (q2 !== null) return (f === 'irregular') === q2; } return classifyNote(v && v.note) === f; }
 function classifyNote(note) {
   if (!note) return 'irregular';
   const n = note.toLowerCase();
@@ -5352,6 +5353,7 @@ function openSpanishTestPDF(type) {
 
 // ── Verb List ──────────────────────────────────────────────────
 function showVerbList(){
+  vbCover=false;
   document.getElementById('spVerbSearch').value='';
   renderSpVerbList('');
   document.getElementById('spVerbListModal').style.display='block';
@@ -5372,7 +5374,7 @@ function apListMark(inf, rec, tense) {
   if (tense === 'PRETERITE' && /-ir stem-changing/i.test((rec && rec.note) || '')) return /^ue?$/.test(ps) || /^ue/.test(ps) ? 'u' : (ps ? 'i' : '');
   return '';
 }
-function apListRows() {
+function apListRows0() {
   var ts = apListTenses(), seen = new Map(), on = apRegOn();
   vqListVerbs().forEach(function (v) {
     if (seen.has(v.inf)) return;
@@ -5389,13 +5391,117 @@ function apListRows() {
   });
   return [...seen.values()].sort(function (a, b) { return a.en.replace(/^to /, '').localeCompare(b.en.replace(/^to /, '')); });
 }
+
+/* ===== "Form to learn" in View & Print: present / preterite in six fixed slots, future in its own column. BOLD = the part that is not regular ===== */
+var AP_FM_ORDER = ['PRESENT', 'PRETERITE', 'FUTURE'], AP_FM_GRID = ['PRESENT', 'PRETERITE'];
+var AP_FM_SHORT = { PRESENT: 'pres.', PRETERITE: 'pret.', FUTURE: 'fut.' };
+var AP_FM_HEAD = { FUTURE: 'Future (yo)', PRETERITE: 'Preterite', PRESENT: 'Present' };
+var AP_FM_SUP = ['¹', '²', '³', '⁴', '⁵', '⁶'];
+var AP_EF = ['é', 'ás', 'á', 'emos', 'éis', 'án'];
+function apFmTenses() { var sel = (typeof selectedTenses !== 'undefined' && selectedTenses) ? selectedTenses : new Set(); return AP_FM_ORDER.filter(function (k) { return sel.has(k); }); }
+function apFmEsc(s) { return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;'); }
+function apFmDash(x) { return !x || /^[—–-]+$/.test(String(x).trim()); }
+function apFmHead(inf) { var w = String(inf).trim().split(/\s+/), refl = /(ar|er|ir)se$/.test(w[0]); return { head: refl ? w[0].slice(0, -2) : w[0], tail: w.slice(1).join(' '), refl: refl }; }
+function apFmClean(f, refl) { var s = String(f || '').normalize('NFC').replace(/\([^)]*\)/g, ' ').replace(/\s+/g, ' ').trim(); if (refl) s = s.replace(/^(me|te|se|nos|os)\s+/i, ''); return s; }
+function apFmReg(b, t, p) {   // the regular form for person p (0-5), or null if the infinitive has no regular pattern
+  var m = /^(.*)(ar|er|ir)$/.exec(b); if (!m) return null;
+  var st = m[1], c = m[2];
+  if (t === 'PRESENT') {
+    if (p === 0 && c !== 'ar') { if (/g$/.test(st)) st = st.slice(0, -1) + 'j'; else if (/[^aeiouáéíóú]c$/.test(st)) st = st.slice(0, -1) + 'z'; }   // coger: cojo, vencer: venzo
+    return st + (c === 'ar' ? ['o', 'as', 'a', 'amos', 'áis', 'an'] : c === 'er' ? ['o', 'es', 'e', 'emos', 'éis', 'en'] : ['o', 'es', 'e', 'imos', 'ís', 'en'])[p];
+  }
+  if (t === 'PRETERITE') {
+    if (p === 0 && c === 'ar') { if (/c$/.test(st)) st = st.slice(0, -1) + 'qu'; else if (/g$/.test(st)) st += 'u'; else if (/z$/.test(st)) st = st.slice(0, -1) + 'c'; }
+    return st + (c === 'ar' ? ['é', 'aste', 'ó', 'amos', 'asteis', 'aron'] : ['í', 'iste', 'ió', 'imos', 'isteis', 'ieron'])[p];
+  }
+  if (t === 'FUTURE') return b + AP_EF[p];
+  return null;
+}
+function apFmDiff(a, r) {   // bold only the letters that differ from the regular form (p<b>ie</b>nso); the whole word if little is shared (<b>soy</b>)
+  if (r === null) return '<b>' + apFmEsc(a) + '</b>';
+  var i = 0, j = 0; while (i < a.length && i < r.length && a[i] === r[i]) i++;
+  while (j < a.length - i && j < r.length - i && a[a.length - 1 - j] === r[r.length - 1 - j]) j++;
+  if (i + j >= 3 && a.length - i - j > 0) return apFmEsc(a.slice(0, i)) + '<b>' + apFmEsc(a.slice(i, a.length - j)) + '</b>' + apFmEsc(a.slice(a.length - j));
+  return '<b>' + apFmEsc(a) + '</b>';
+}
+function apFmForms(inf, rec) {   // the six stored forms, cleaned of reflexive pronouns and the tail words of a phrase
+  var hd = apFmHead(inf);
+  return (rec.forms || []).map(function (f) { var s = apFmClean(f, hd.refl); if (hd.tail && s.slice(-hd.tail.length - 1) === ' ' + hd.tail) s = s.slice(0, -hd.tail.length - 1).trim(); return s; });
+}
+function apFmIrrRec(v) {   // true / false for a future record judged by its forms; null = cannot tell (use the note)
+  var inf = (v && v.inf && typeof v.inf === 'object') ? v.inf.inf : (v && v.inf) || '';
+  if (!v || v.tense !== 'FUTURE') return null;
+  var hd = apFmHead(inf), fs = apFmForms(inf, v), any = false, irr = false;
+  for (var i = 0; i < 6; i++) { if (apFmDash((v.forms || [])[i])) continue; var r = apFmReg(hd.head, 'FUTURE', i); if (r === null) return null; any = true; if (r !== fs[i]) irr = true; }
+  return any ? irr : null;
+}
+function apFmLine0(inf, t) {   // { html, text, slots } for one tense, or null
+  var hd = apFmHead(inf), rec = VERBS.find(function (x) { return x.inf === inf && x.tense === t; });
+  if (!rec) return null;
+  var fs = apFmForms(inf, rec), first = -1; for (var k = 0; k < 6; k++) if (!apFmDash(fs[k])) { first = k; break; }
+  if (first < 0) return null;
+  if (t === 'FUTURE') {
+    var out = [], tx = [];
+    for (var i = 0; i < 6; i++) { if (apFmDash(fs[i])) continue; var reg = apFmReg(hd.head, t, i), e = AP_EF[i]; tx.push(fs[i]); if (reg === fs[i]) out.push(apFmEsc(fs[i])); else if (reg !== null && fs[i].length > e.length && fs[i].slice(-e.length) === e) out.push('<b>' + apFmEsc(fs[i].slice(0, -e.length)) + '</b>' + apFmEsc(e)); else out.push('<b>' + apFmEsc(fs[i]) + '</b>'); }
+    var one = out.length === 1 || fs.slice(1).every(apFmDash);
+    return { html: one ? out[0] : out[0], text: tx[0], first: out[0] };
+  }
+  var irr = [];
+  for (var j = 0; j < 6; j++) { if (apFmDash(fs[j])) continue; if (apFmReg(hd.head, t, j) !== fs[j]) irr.push(j); }
+  var slots = [0, 1, 2, 3, 4, 5].map(function (i) { return apFmDash(fs[i]) ? '<span class="ap-fm-reg">&ndash;</span>' : irr.indexOf(i) >= 0 ? apFmDiff(fs[i], apFmReg(hd.head, t, i)) : '<span class="ap-fm-reg">reg</span>'; });
+  return { slots: slots, irr: irr, html: irr.length ? irr.map(function (i) { return '<span class="ap-fm-p"><span class="ap-fm-n">' + AP_FM_SUP[i] + '</span>' + slots[i] + '</span>'; }).join(' ') : apFmEsc(fs[first]), text: irr.length ? irr.map(function (i) { return AP_FM_SUP[i] + fs[i]; }).join(' ') : fs[first] };
+}
+function apFmLine(inf, t) {   // reflexive verbs: the pronoun is part of the form to learn (me llamo, me levantaré)
+  var r = apFmLine0(inf, t), hd = apFmHead(inf);
+  if (!r || !hd.refl) return r;
+  var rec = VERBS.find(function (x) { return x.inf === inf && x.tense === t; });
+  var pro = function (i) { var m = /^(me|te|se|nos|os)\s+/i.exec(String((rec.forms || [])[i] || '').normalize('NFC').replace(/\([^)]*\)/g, ' ').trim()); return m ? m[1] + ' ' : ''; };
+  if (r.slots) {
+    r.slots = r.slots.map(function (s, i) { return s.indexOf('ap-fm-reg') >= 0 ? s : pro(i) + s; });
+    if (r.irr.length) { r.html = r.irr.map(function (i) { return '<span class="ap-fm-p"><span class="ap-fm-n">' + AP_FM_SUP[i] + '</span>' + r.slots[i] + '</span>'; }).join(' '); r.text = r.irr.map(function (i) { return AP_FM_SUP[i] + pro(i) + r.text.replace(/^.*?([^\s¹²³⁴⁵⁶]+)$/, '$1'); }).join(' '); }
+    else { r.html = pro(0) + r.html; r.text = pro(0) + r.text; }
+    return r;
+  }
+  var p0 = pro(0); return p0 ? { html: p0 + r.html, text: p0 + r.text } : r;
+}
+function apFmCell(inf) {   // all chosen tenses for one verb
+  var ts = apFmTenses(), lines = {}, cols = {}, gts = ts.filter(function (k) { return AP_FM_GRID.indexOf(k) >= 0; });
+  ts.forEach(function (t) { lines[t] = apFmLine(inf, t); });
+  ts.forEach(function (t) { if (AP_FM_GRID.indexOf(t) < 0) cols[t] = lines[t] ? lines[t].html : '<span class="ap-fm-reg">&mdash;</span>'; });
+  var lab = gts.length > 1, slots = null;
+  if (gts.length) {
+    var have = gts.filter(function (t) { return lines[t] && lines[t].slots; });
+    if (have.length) slots = [0, 1, 2, 3, 4, 5].map(function (i) { return have.map(function (t) { return (lab ? '<i class="ap-fm-t">' + AP_FM_SHORT[t] + '</i> ' : '') + lines[t].slots[i]; }).join('<br>'); });
+  }
+  var text = ts.map(function (t) { var l = lines[t]; return (ts.length > 1 ? AP_FM_SHORT[t] + ' ' : '') + (l ? l.text : '—'); }).join('; ');
+  return { slots: slots, cols: cols, text: text, hasAny: ts.length > 0 };
+}
+function apListRows() {
+  var rows = apListRows0(), ts = apListTenses();
+  rows.forEach(function (r) {
+    var fc = apFmCell(r.inf); r.fmText = fc.text; r.slots = fc.slots; r.cols = fc.cols; r.fm = fc.hasAny ? '1' : '';
+    if (ts.length > 1) {   // several tenses: small tags for the tenses that are not regular
+      var tg = ts.filter(function (t) { var rec = VERBS.find(function (x) { return x.inf === r.inf && x.tense === t; }); return rec && classifyNote(rec.note) !== 'regular' && !(t === 'FUTURE' && apFmIrrRec(rec) === false); }).map(function (t) { return AP_FM_SHORT[t]; });
+      r.label = tg.length ? tg.join(' · ') : 'regular';
+    }
+  });
+  return rows;
+}
+var vbCover = false;   // Cover the forms: the bold (irregular) forms are hidden until tapped
+function vbSyncCover() {
+  var body = document.getElementById('spVerbListBody'), btn = document.getElementById('vbCoverBtn');
+  if (body) body.classList.toggle('vb-cover', vbCover);
+  if (btn) { btn.textContent = vbCover ? '\uD83D\uDC40 Show the forms' : '\uD83D\uDE48 Cover the forms'; btn.style.display = (body && body.querySelector('td.vb-fm')) ? '' : 'none'; }
+}
+function vbToggleCover() { vbCover = !vbCover; document.querySelectorAll('#spVerbListBody b.vb-open').forEach(function (b) { b.classList.remove('vb-open'); }); vbSyncCover(); }
+document.addEventListener('click', function (e) { var b = e.target && e.target.closest ? e.target.closest('#spVerbListBody td.vb-fm b') : null; if (b && vbCover) b.classList.toggle('vb-open'); });
 function copySpVerbList(){
   const q = (document.getElementById('spVerbSearch').value||'').trim().toLowerCase();
   let rows = apListRows();
   if(q) rows = rows.filter(r=>r.en.toLowerCase().includes(q)||r.inf.toLowerCase().includes(q));
   const text = rows.map(r=>{
     const usage = r.usage_es ? '  ' + r.usage_es : '';
-    return r.inf + (r.mark ? ' (' + r.mark + ')' : '') + '  —  ' + r.en + usage;
+    return r.inf + (r.mark ? ' (' + r.mark + ')' : '') + '  —  ' + r.en + (r.fmText ? '  —  ' + r.fmText : usage);
   }).join('\n');
   navigator.clipboard.writeText(text).then(()=>{
     const btn = document.getElementById('copyVerbListBtn');
@@ -5418,19 +5524,23 @@ function renderSpVerbList(q){
   const editAttrs=editorUnlocked
     ?`readonly onfocus="this.removeAttribute('readonly');this.style.borderBottom='1px dashed var(--border)'" onblur="this.setAttribute('readonly','');this.style.borderBottom='none';saveSpVerbField(this)" onkeydown="if(event.key==='Enter')this.blur()"`
     :`readonly`;
+  const hasGrid=apFmTenses().some(k=>AP_FM_GRID.indexOf(k)>=0)&&rows.some(r=>r.slots), otC=rows.some(r=>r.fm)?apFmTenses().filter(k=>AP_FM_GRID.indexOf(k)<0):[], hasFm=hasGrid||otC.length>0, nc=3+(hasGrid?6:0)+otC.length+(hasFm?0:1), otH=k=>apFmTenses().length===1?'Form to learn':(AP_FM_HEAD[k]||k);
+  const gridTd=r=>r.slots?r.slots.map(s=>`<td class="vb-fm vb-g">${s}</td>`).join(''):`<td class="vb-fm vb-g" colspan="6"></td>`;
   const html=`
     <div class="vb-vp-n">${rows.length} ${apRegOn()?({regular:'regular ',radical:'radical ',irregular:'irregular ',reflexive:'reflexive '}[regFilter]||''):''}verbs${apRegOn()?' ('+apListTenseNames()+')':''}${editorUnlocked?' &nbsp;·&nbsp; <span style="font-style:italic;">Click any cell to edit · Enter or click away to save (session only)</span>':''}</div>
-    <div class="vb-vp-scroll"><table class="vb-vp-table">
-      <thead><tr><th>English</th><th>Spanish</th><th>Usage (es)</th><th></th></tr></thead>
-      <tbody>${rows.map((r,i)=>vqHead(rows,i,4)+`
+    <div class="vb-vp-scroll"><table class="vb-vp-table${hasFm?' vb-fmt':''}${hasGrid?' vb-grid':''}">
+      <thead><tr><th>English</th><th>Spanish</th>${hasGrid?'<th class="vb-g">yo</th><th class="vb-g">tú</th><th class="vb-g">él/ella</th><th class="vb-g">nosotros</th><th class="vb-g">vosotros</th><th class="vb-g">ellos/ellas</th>':''}${otC.map(k=>'<th class="vb-ot">'+otH(k)+'</th>').join('')}${hasFm?'':'<th class="vb-thu">Usage (es)</th>'}<th></th></tr></thead>
+      <tbody>${rows.map((r,i)=>vqHead(rows,i,nc)+`
       <tr>
         <td><input class="vb-en" value="${esc(r.en)}" data-field="en" data-inf="${esc(r.inf)}" ${editAttrs}></td>
         <td style="white-space:nowrap"><input class="vb-inf" value="${esc(r.inf)}" ${r.mark?`style="width:${r.inf.length+1}ch"`:''} data-field="inf" data-inf="${esc(r.inf)}" ${editAttrs}>${r.mark?`<span style="color:var(--navy);white-space:nowrap"> (${r.markHtml||r.mark})</span>`:''}</td>
-        <td><input class="vb-us" value="${esc(editorUnlocked?r.usage_es:String(r.usage_es||'').replace(/<\/?u>/g,''))}" data-field="usage_es" data-inf="${esc(r.inf)}" placeholder="—" ${editAttrs}></td>
+        ${hasGrid?gridTd(r):''}${otC.map(k=>`<td class="vb-fm vb-o">${(r.cols&&r.cols[k])||'&mdash;'}</td>`).join('')}
+        ${hasFm?'':`<td><input class="vb-us" value="${esc(editorUnlocked?r.usage_es:String(r.usage_es||'').replace(/<\/?u>/g,''))}" data-field="usage_es" data-inf="${esc(r.inf)}" placeholder="—" ${editAttrs}></td>`}
         <td class="vb-reg ${r.allReg?'r':'i'}">${vqBadge(r)}${r.label}</td>
       </tr>`).join('')}</tbody>
     </table></div>`;
-  document.getElementById('spVerbListBody').innerHTML=html;
+  document.getElementById('spVerbListBody').innerHTML=html; vbSyncCover();
+  try{var bx=document.querySelector('#spVerbListModal .vb-vp-box');if(bx)bx.style.maxWidth=hasGrid?'1180px':hasFm?'1080px':'';}catch(e){}
 }
 function saveSpVerbField(el){
   const newVal=el.value.trim(), oldInf=el.dataset.inf, field=el.dataset.field;
@@ -5453,15 +5563,18 @@ function printSpVerbList() {
   let rows = apListRows();
   if (q) rows = rows.filter(r => r.en.toLowerCase().includes(q) || r.inf.toLowerCase().includes(q) || r.note.toLowerCase().includes(q));
   rows = vqArrange(rows);
+  const hasGrid = apFmTenses().some(k => AP_FM_GRID.indexOf(k) >= 0) && rows.some(r => r.slots), otC = rows.some(r => r.fm) ? apFmTenses().filter(k => AP_FM_GRID.indexOf(k) < 0) : [], hasFm = hasGrid || otC.length > 0, nc = 4 + (hasGrid ? 6 : 0) + otC.length + (hasFm ? 0 : 1), otH = k => apFmTenses().length === 1 ? 'Form to learn' : (AP_FM_HEAD[k] || k);
+  const gtd = r => r.slots ? r.slots.map(s => '<td style="padding:5px 6px;font-size:0.85rem;color:#1a2744;border-bottom:1px solid #e8ecf4;border-left:1px solid #eef1f7;">' + s + '</td>').join('') : '<td colspan="6" style="border-bottom:1px solid #e8ecf4;"></td>';
   const tableRows = rows.map((r, i) => {
     const bg = i % 2 === 0 ? '#ffffff' : '#faf8f3';
     const regColor = r.allReg ? '#2e7d52' : '#c9a84c';
     const regLabel = r.label;
-    return vqHead(rows,i,5)+'<tr style="background:'+bg+';">'
+    return vqHead(rows,i,nc)+'<tr style="background:'+bg+';">'
       + '<td style="padding:5px 10px;font-size:0.82rem;color:#1a2744;border-bottom:1px solid #e8ecf4;">'+(i+1)+'.</td>'
       + '<td style="padding:5px 10px;font-size:0.82rem;color:#1a2744;border-bottom:1px solid #e8ecf4;">'+r.en+'</td>'
       + '<td style="padding:5px 10px;font-size:0.85rem;color:#3a8aaa;font-style:italic;border-bottom:1px solid #e8ecf4;">'+r.inf+(r.mark?' <span style="font-style:normal;color:#1a2744">('+(r.markHtml||r.mark)+')</span>':'')+'</td>'
-      + '<td style="padding:5px 10px;font-size:0.78rem;color:#c9a84c;border-bottom:1px solid #e8ecf4;">'+(r.usage_es||'')+'</td>'
+      + (hasGrid ? gtd(r) : '') + otC.map(k => '<td style="padding:5px 10px;font-size:0.85rem;color:#1a2744;border-bottom:1px solid #e8ecf4;white-space:nowrap;">'+((r.cols && r.cols[k]) || '&mdash;')+'</td>').join('')
+      + (hasFm ? '' : '<td style="padding:5px 10px;font-size:0.78rem;color:#c9a84c;border-bottom:1px solid #e8ecf4;">'+(r.usage_es||'')+'</td>')
       + '<td style="padding:5px 10px;font-size:0.72rem;color:'+regColor+';font-weight:600;border-bottom:1px solid #e8ecf4;white-space:nowrap;">'+vqBadge(r)+regLabel+'</td>'
       + '</tr>';
   }).join('');
@@ -5473,10 +5586,12 @@ function printSpVerbList() {
     + 'body{font-family:var(--aph-body);margin:0;padding:28px 32px;color:#1a2744;background:#fff;}'
     + 'table{width:100%;border-collapse:collapse;border:1px solid #e2e6f0;border-radius:6px;overflow:hidden;margin-top:6px;}'
     + 'thead tr{background:#1a2744;}'
+    + '.ap-fm-n{font-size:.72rem;color:#8899bb;margin-right:1px}.ap-fm-p{white-space:nowrap;display:inline-block;margin-right:.5em}.ap-fm-t{font-size:.7rem;color:#8899bb}b{font-weight:800}.ap-fm-reg{font-size:.58rem;color:#b3bccf;letter-spacing:.04em}'
+    + (vbCover ? 'td b{color:transparent;background:#dfe5f0;border-radius:5px;-webkit-print-color-adjust:exact;print-color-adjust:exact}' : '')
     + 'thead th{padding:7px 10px;text-align:left;font-size:0.68rem;color:#c9a84c;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;}'
     + '@media print{'
     + '  body{padding:16px 20px;}'
-    + '  @page{margin:1.2cm 1.5cm;size:A4;}'
+    + '  @page{margin:1.2cm 1.5cm;size:A4'+(hasGrid?' landscape':'')+';}'
     + '  .no-print{display:none!important;}'
     + '  tr{break-inside:avoid;}'
     + '}'
@@ -5486,9 +5601,9 @@ function printSpVerbList() {
     + '<table>'
     + '<thead><tr>'
     + '<th style="width:4%">#</th>'
-    + '<th style="width:30%">English</th>'
-    + '<th style="width:28%">Spanish (Infinitive)</th>'
-    + '<th style="width:26%">Usage</th>'
+    + '<th'+(hasGrid?'':' style="width:30%"')+'>English</th>'
+    + '<th'+(hasGrid?'':' style="width:28%"')+'>Spanish (Infinitive)</th>'
+    + (hasGrid ? '<th>yo</th><th>tú</th><th>él/ella</th><th>nosotros</th><th>vosotros</th><th>ellos/ellas</th>' : '') + otC.map(k => '<th>' + otH(k) + '</th>').join('') + (hasFm ? '' : '<th style="width:26%">Usage</th>')
     + '<th style="width:12%">Type</th>'
     + '</tr></thead>'
     + '<tbody>'+tableRows+'</tbody>'
@@ -7339,6 +7454,7 @@ if (window.__cj) window.__cj.speedTest = function (kind, g) {
 .hm-n{display:inline-flex;align-items:center;justify-content:center;width:34px;height:34px;border-radius:50%;background:var(--navy);color:var(--gold2);font:700 1.1rem var(--aph-display)}
 .hm-banner{background:var(--navy);color:#fff;border:2px solid var(--gold);border-radius:14px;padding:10px 18px;margin:0 0 12px;display:flex;flex-direction:column;gap:2px}
 .hm-banner small{letter-spacing:.1em;font-size:.75rem;color:var(--gold2);font-weight:700}.hm-banner b{font-size:1.15rem}
+.ap-fm-n{font-size:.78rem;color:#8a96b0;margin-right:1px;font-weight:600}.ap-fm-p{white-space:nowrap;display:inline-block;margin-right:.55em}.ap-fm-t{font-size:.7rem;color:#8a96b0}.ap-fm-reg{font-size:.58rem;color:#b3bccf;letter-spacing:.04em}.vb-vp-table td.vb-fm{font-size:.84rem;color:var(--navy);line-height:1.5}.vb-vp-table td.vb-fm b{font-weight:800}.vb-vp-table td.vb-o{white-space:nowrap}.vb-cover td.vb-fm b{color:transparent;background:#dfe5f0;border-radius:5px;cursor:pointer;user-select:none;-webkit-user-select:none}.vb-cover td.vb-fm b.vb-open{color:inherit;background:transparent}.vb-vp-table.vb-grid{font-size:.84rem}.vb-vp-table.vb-grid input{font-size:.84rem}.vb-vp-table.vb-grid th,.vb-vp-table.vb-grid td{padding-left:6px;padding-right:6px}.vb-vp-table.vb-grid th:nth-child(1){width:8em}.vb-vp-table.vb-grid th:nth-child(2){width:7em}.vb-vp-table.vb-grid td.vb-g{border-left:1px solid #eef1f7;white-space:nowrap;min-width:3.4em}.vb-vp-table.vb-grid td.vb-reg{white-space:normal;font-size:.66rem;min-width:4.2em}.vb-vp-table.vb-grid .vb-inf{min-width:5em}
 .hm-vlist{display:flex;flex-direction:column;gap:8px;margin:8px 0;font-size:.92rem;line-height:1.5}
 .hm-vlist b{display:block;color:var(--navy)}.hm-vlist>div>span{display:flex;flex-wrap:wrap;gap:6px 22px;margin-top:4px}.hm-vlist .hm-vv{display:inline-block;line-height:1.35}.hm-vlist .hm-vi{display:inline;font-size:1.08rem;font-weight:800;color:#0b1530;letter-spacing:.1px}.hm-vlist .hm-vs{font-size:.86rem;font-weight:700;color:#0b1530;margin-left:3px}.hm-vlist .hm-vv i{font-size:.78rem;font-weight:400;font-style:normal;color:#aab2c3;margin-left:6px}
 html.ap-sh-lock body{overflow:hidden}
@@ -28673,4 +28789,4 @@ function deck(el,m,n,x,y,face,gap){clear(el);const cs=[];for(let i=0;i<n;i++){co
   if (document.readyState === 'complete') start(); else window.addEventListener('load', start);
 })();
 </script>
-<script id="ap-build">window.__apBuild="308cf88ade";window.__apVer=224;(function(){var N=window.__apVer;function put(){try{var h=document.querySelector('header.aph-header');if(!h||document.getElementById('ap-ver'))return;var s=document.createElement('span');s.id='ap-ver';s.textContent='v'+N;s.style.cssText='position:absolute;right:10px;bottom:4px;font:600 11px/1 system-ui,sans-serif;color:#c9a84c;opacity:.8;pointer-events:none;letter-spacing:.04em;z-index:2';if(getComputedStyle(h).position==='static')h.style.position='relative';h.appendChild(s)}catch(e){}}put();document.addEventListener('DOMContentLoaded',put);window.addEventListener('load',put);setInterval(put,2000)})();</script>
+<script id="ap-build">window.__apBuild="26ab76ad24";window.__apVer=225;(function(){var N=window.__apVer;function put(){try{var h=document.querySelector('header.aph-header');if(!h||document.getElementById('ap-ver'))return;var s=document.createElement('span');s.id='ap-ver';s.textContent='v'+N;s.style.cssText='position:absolute;right:10px;bottom:4px;font:600 11px/1 system-ui,sans-serif;color:#c9a84c;opacity:.8;pointer-events:none;letter-spacing:.04em;z-index:2';if(getComputedStyle(h).position==='static')h.style.position='relative';h.appendChild(s)}catch(e){}}put();document.addEventListener('DOMContentLoaded',put);window.addEventListener('load',put);setInterval(put,2000)})();</script>
