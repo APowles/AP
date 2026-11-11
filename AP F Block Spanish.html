@@ -5381,10 +5381,11 @@ function apListRows() {
     if (!recs.length) { if (on) return; recs = [{ t: 'PRESENT', rec: v, note: v.note || '' }]; }
     var hits = on ? recs.filter(function (x) { return regHit(x.rec, regFilter); }) : recs;
     if (on && !hits.length) return;
-    var shown = on ? hits : recs, marks = []; shown.forEach(function (x) { var mk = apListMark(v.inf, x.rec, x.t); if (mk && marks.indexOf(mk) < 0) marks.push(mk); });
+    var shown = on ? hits : recs, marks = [], mks = []; shown.forEach(function (x) { var mk = apListMark(v.inf, x.rec, x.t); if (mk && marks.indexOf(mk) < 0) { marks.push(mk); mks.push({ t: x.t, mk: mk }); } });
+    var TN = { PRESENT: 'pres.', PRETERITE: 'pret.', FUTURE: 'fut.' }, lab = mks.length > 1;   // two different vowels (e.g. morir): name the tense for each
     var cls = shown.map(function (x) { return classifyNote(x.note); });
     var label = ts.length === 1 ? cls[0] : shown.map(function (x, i) { return AP_LT_NAMES[x.t] + ': ' + cls[i]; }).join(' · ');   // several tenses: a verb is listed once, with the tense(s) it qualifies in
-    seen.set(v.inf, { en: v.en, inf: v.inf, usage_es: v.usage_es || '', note: hits[0].note, group: v.group || '', label: label, allReg: cls.every(function (c) { return c === 'regular'; }), mark: marks.join(', ') });
+    seen.set(v.inf, { en: v.en, inf: v.inf, usage_es: v.usage_es || '', note: hits[0].note, group: v.group || '', label: label, allReg: cls.every(function (c) { return c === 'regular'; }), mark: mks.map(function (m) { return (lab ? TN[m.t] + ' ' : '') + m.mk; }).join(', '), markHtml: mks.map(function (m) { return (lab ? '<i style="font-weight:400;font-style:italic;color:#9aa3b5">' + TN[m.t] + '</i> ' : '') + '<b style="font-style:normal">' + m.mk + '</b>'; }).join(', ') });
   });
   return [...seen.values()].sort(function (a, b) { return a.en.replace(/^to /, '').localeCompare(b.en.replace(/^to /, '')); });
 }
@@ -5424,7 +5425,7 @@ function renderSpVerbList(q){
       <tbody>${rows.map((r,i)=>vqHead(rows,i,4)+`
       <tr>
         <td><input class="vb-en" value="${esc(r.en)}" data-field="en" data-inf="${esc(r.inf)}" ${editAttrs}></td>
-        <td style="white-space:nowrap"><input class="vb-inf" value="${esc(r.inf)}" ${r.mark?`style="width:${r.inf.length+1}ch"`:''} data-field="inf" data-inf="${esc(r.inf)}" ${editAttrs}>${r.mark?`<span style="font-weight:700;color:var(--navy);white-space:nowrap"> (${r.mark})</span>`:''}</td>
+        <td style="white-space:nowrap"><input class="vb-inf" value="${esc(r.inf)}" ${r.mark?`style="width:${r.inf.length+1}ch"`:''} data-field="inf" data-inf="${esc(r.inf)}" ${editAttrs}>${r.mark?`<span style="color:var(--navy);white-space:nowrap"> (${r.markHtml||r.mark})</span>`:''}</td>
         <td><input class="vb-us" value="${esc(editorUnlocked?r.usage_es:String(r.usage_es||'').replace(/<\/?u>/g,''))}" data-field="usage_es" data-inf="${esc(r.inf)}" placeholder="—" ${editAttrs}></td>
         <td class="vb-reg ${r.allReg?'r':'i'}">${vqBadge(r)}${r.label}</td>
       </tr>`).join('')}</tbody>
@@ -5459,7 +5460,7 @@ function printSpVerbList() {
     return vqHead(rows,i,5)+'<tr style="background:'+bg+';">'
       + '<td style="padding:5px 10px;font-size:0.82rem;color:#1a2744;border-bottom:1px solid #e8ecf4;">'+(i+1)+'.</td>'
       + '<td style="padding:5px 10px;font-size:0.82rem;color:#1a2744;border-bottom:1px solid #e8ecf4;">'+r.en+'</td>'
-      + '<td style="padding:5px 10px;font-size:0.85rem;color:#3a8aaa;font-style:italic;border-bottom:1px solid #e8ecf4;">'+r.inf+(r.mark?' <b style="font-style:normal;color:#1a2744">('+r.mark+')</b>':'')+'</td>'
+      + '<td style="padding:5px 10px;font-size:0.85rem;color:#3a8aaa;font-style:italic;border-bottom:1px solid #e8ecf4;">'+r.inf+(r.mark?' <span style="font-style:normal;color:#1a2744">('+(r.markHtml||r.mark)+')</span>':'')+'</td>'
       + '<td style="padding:5px 10px;font-size:0.78rem;color:#c9a84c;border-bottom:1px solid #e8ecf4;">'+(r.usage_es||'')+'</td>'
       + '<td style="padding:5px 10px;font-size:0.72rem;color:'+regColor+';font-weight:600;border-bottom:1px solid #e8ecf4;white-space:nowrap;">'+vqBadge(r)+regLabel+'</td>'
       + '</tr>';
@@ -28672,4 +28673,4 @@ function deck(el,m,n,x,y,face,gap){clear(el);const cs=[];for(let i=0;i<n;i++){co
   if (document.readyState === 'complete') start(); else window.addEventListener('load', start);
 })();
 </script>
-<script id="ap-build">window.__apBuild="0d9a89ef02";window.__apVer=221;(function(){var N=window.__apVer;function put(){try{var h=document.querySelector('header.aph-header');if(!h||document.getElementById('ap-ver'))return;var s=document.createElement('span');s.id='ap-ver';s.textContent='v'+N;s.style.cssText='position:absolute;right:10px;bottom:4px;font:600 11px/1 system-ui,sans-serif;color:#c9a84c;opacity:.8;pointer-events:none;letter-spacing:.04em;z-index:2';if(getComputedStyle(h).position==='static')h.style.position='relative';h.appendChild(s)}catch(e){}}put();document.addEventListener('DOMContentLoaded',put);window.addEventListener('load',put);setInterval(put,2000)})();</script>
+<script id="ap-build">window.__apBuild="308cf88ade";window.__apVer=222;(function(){var N=window.__apVer;function put(){try{var h=document.querySelector('header.aph-header');if(!h||document.getElementById('ap-ver'))return;var s=document.createElement('span');s.id='ap-ver';s.textContent='v'+N;s.style.cssText='position:absolute;right:10px;bottom:4px;font:600 11px/1 system-ui,sans-serif;color:#c9a84c;opacity:.8;pointer-events:none;letter-spacing:.04em;z-index:2';if(getComputedStyle(h).position==='static')h.style.position='relative';h.appendChild(s)}catch(e){}}put();document.addEventListener('DOMContentLoaded',put);window.addEventListener('load',put);setInterval(put,2000)})();</script>
