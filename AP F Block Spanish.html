@@ -8125,7 +8125,15 @@ textarea.ms-in.ms-in-big{min-height:8.5rem;font-size:1.4rem;margin:6px 0}
   var GRP = [['E1', 'Essential 1', 'the first 20 verbs', 20], ['E2', 'Essential 2', 'the second 20 verbs', 20], ['I', 'Important', 'the next 30 verbs', 30], ['U', 'Useful', 'the last 30 verbs', 30]];
   var SETS = [['all', 'All Verbs', 'the 100 Core Verbs and the rest'], ['Top Structures', 'Specialist Verb Structures', 'set phrases such as aprovechar X'], ['Both', 'Both', 'all verbs and the structures']];
   var KINDS = [['single', 'Single form', 'One English form, give the Spanish', 's'], ['full', 'Full (6 forms)', 'See the English, say all six persons', 'f'], ['inf', 'Infinitives', 'What is the Spanish infinitive?', 'i'], ['sentences', 'Sentences', 'Gap-fill sentences', 'z']];
-  var KIND_CORE = [['exer', 'Trials-style exercises', 'The four kinds of question on the Trials paper', 's']].concat(KINDS);   // 100 Core Verbs: the four Trials exercises come first
+  var KIND_CORE = [KINDS[0], ['exer', 'Trials-style exercises', 'The four kinds of question on the Trials paper', 's']].concat(KINDS.slice(1));   // 100 Core Verbs: the four Trials exercises come first
+  window.msKP = false;   // has a kind of question been chosen on this set-up screen? (nothing is ticked on arrival)
+  function kindPicked() { return !!window.msKP || msIsMy() || (msDoor === 'core' && hmTrialOn()); }
+  function infRow() {   // Show the infinitive: Hidden / Shown, in plain view under the kind of question
+    var why = (mode === 'infinitives' || mode === 'inf') ? 'Not used for Infinitives: the infinitive is the answer.' : mode === 'sentences' ? 'Not used for Sentences.' : mode === 'exer' ? 'For Trials-style exercises, tick Infinitive given above.' : '';
+    var h = '<div class="aph-label">Show the infinitive <span class="vb-light">in the question</span></div>';
+    if (kindPicked() && why) return h + '<div class="hm-note">' + why + '</div>';
+    return h + '<div class="aph-row">' + chip(!showInfHint, 'showInfHint=false;renderIntro()', 'Hidden') + chip(!!showInfHint, 'showInfHint=true;renderIntro()', 'Shown') + '</div>';
+  }
   function kindsFor(my, core) { return !my && core ? KIND_CORE : KINDS; }
   var TNAME = { PRESENT: 'Present', PRETERITE: 'Preterite', IMPERFECT: 'Imperfect', PERFECT: 'Perfect', FUTURE: 'Future', COND: 'Conditional', PRESENT_SUBJ: 'Pres. Subj.', IMP_SUBJ: 'Imp. Subj.', INFINITIVE: 'Infinitives', SET: 'Set structure' };
   function msIsMy() { return msMy && apHome === 'setup'; }
@@ -8233,7 +8241,7 @@ textarea.ms-in.ms-in-big{min-height:8.5rem;font-size:1.4rem;margin:6px 0}
   var sd0 = window.startDrill;
   window.startDrill = function () { if (mode === 'sentences') return startQuickDrill(_selectedCount); return sd0.apply(this, arguments); };
   // a drill opened from a teacher's link: work out what step 1 would have shown
-  function derive() {
+  function derive() { window.msKP = true;
     msMy = false; tenseBak = null;
     if (verbSetFilter === 'Eton F Verbs') { msDoor = 'core'; msCore = new Set(vqSel); } else { msDoor = 'all'; msSetPick = true; }
   }
@@ -8264,7 +8272,7 @@ textarea.ms-in.ms-in-big{min-height:8.5rem;font-size:1.4rem;margin:6px 0}
     try { vqSync('ALL'); } catch (e) { } renderIntro();
   };
   window.msTrial = function (k) { leaveMy(); hmPickTrial(k); };
-  window.msKind = function (m) { hmMode(m); };
+  window.msKind = function (m) { window.msKP = true; hmMode(m); };
   window.msTense = function (t) { introToggleTense(t); };
   window.msTg = function (d) { setOpen = d.open; };
   window.msRg = function (d) { refOpen = d.open; };
@@ -8376,7 +8384,7 @@ textarea.ms-in.ms-in-big{min-height:8.5rem;font-size:1.4rem;margin:6px 0}
 
   function renderSetup() {
     var my = msIsMy(), core = msDoor === 'core', tk = core && !my && hmTrialOn();
-    var n = countPool(), usable = verbsChosen() && tensesOK() && n > 0;
+    var n = countPool(), usable = verbsChosen() && tensesOK() && kindPicked() && n > 0;
     // ----- step 1
     var h = '<div class="hm-top"><div class="hm-tl"><button class="hm-back" onclick="hmLand()" aria-label="Back to the start screen">&#8249; Verbs</button><h2 class="hm-title hm-t2">' + (my ? 'My personalised set' : core ? '100 Core Verbs' : 'All Verbs') + '</h2></div></div>';
     h += '<div class="ms-step"><span class="ms-num">1</span>What do you want to practise?</div>';
@@ -8406,10 +8414,10 @@ textarea.ms-in.ms-in-big{min-height:8.5rem;font-size:1.4rem;margin:6px 0}
     }
     var kinds = kindsFor(my, core);
     h += '<div class="aph-label">Kind of question</div><div class="ms-kinds' + (kinds.length === 5 ? ' ms-k5' : '') + '">' + kinds.map(function (k) {
-      var on = mode === k[0], c = my ? ' <i>(' + kindCount(k[3]) + ')</i>' : '';
+      var on = kindPicked() && mode === k[0], c = my ? ' <i>(' + kindCount(k[3]) + ')</i>' : '';
       return '<button class="ms-pick' + (on ? ' on' : '') + '" onclick="msKind(\'' + k[0] + '\')"><b>' + (on ? '&#10003; ' : '') + k[1] + c + '</b><small>' + k[2] + '</small></button>';
     }).join('') + '</div>';
-    if (!my && core && mode === 'exer') {
+    if (!my && core && kindPicked() && mode === 'exer') {
       var ruleOn = xqRuleOn(), rule = tk ? XQ_RULE[trSet] : null;
       h += '<div class="aph-label">Which exercises <span class="vb-light">tick any mix</span></div>';
       if (tk) h += '<div class="hm-seg hm-seg2 hm-rule"><button class="' + (ruleOn ? 'on' : '') + '" onclick="xqSetRule(\'paper\')">As in Trials</button><button class="' + (!ruleOn ? 'on' : '') + '" onclick="xqSetRule(\'any\')">Any verb, any exercise (harder)</button></div>'
@@ -8428,11 +8436,13 @@ textarea.ms-in.ms-in-big{min-height:8.5rem;font-size:1.4rem;margin:6px 0}
         h += '<div class="aph-row">' + msTenseRow(ta);
       }
     }
+    h += my ? '' : infRow();
     h += '<div class="ms-or">' + (my ? 'You are practising your own tricky cards.' : 'Or practise your own tricky cards:') + '</div>' + myBox(my);
     if (my) h += '<div class="ms-brow"><button class="ms-b sm" onclick="msBackToSets()">&#8249; Choose verbs and tenses instead</button></div>';
     var msg;
     if (!verbsChosen()) msg = core ? 'Choose the verbs above (or a Trials set) to unlock the ways to practise them.' : 'Choose a verb set above to unlock the ways to practise it.';
     else if (!tensesOK()) msg = 'Now choose at least one tense above to unlock the ways to practise.';
+    else if (!kindPicked()) msg = 'Now choose a kind of question above to unlock the ways to practise.';
     else if (!n) msg = my ? 'Nothing in your personalised set for this kind of question yet.' : 'No cards match this selection. Change the verbs or tenses above.';
     else msg = 'Practising: <b>' + esc(selText()) + '</b> · ' + n + (my ? ' card' : ' question') + (n === 1 ? '' : 's');
     var reg = HMC.regs.map(function (r) { return chip(regFilter === r[0], "introSetReg('" + r[0] + "')", r[1]); }).join('');
@@ -8450,7 +8460,6 @@ textarea.ms-in.ms-in-big{min-height:8.5rem;font-size:1.4rem;margin:6px 0}
       + '<div class="aph-label">Cards per session <span class="vb-count">' + n + ' available</span></div><div class="aph-row">' + counts + '</div>'
       + '<div class="aph-label">Timer per card</div><div class="aph-row"><button class="aph-step" onclick="msTimer(-2)" aria-label="Less time">&#8722;</button><span class="aph-step-val" id="intro-timer-display">' + timerSecs + 's</span><button class="aph-step" onclick="msTimer(2)" aria-label="More time">+</button></div>'
       + '<div class="aph-label">Autotime</div><div class="aph-row"><button class="aph-btn' + (isAutotime ? ' on' : '') + '" onclick="toggleAutotime()">⏱ Autotime: ' + (isAutotime ? 'On' : 'Off') + '</button></div><div class="aph-note" style="margin:4px 0 0">Autotime: Leisure Mode moves on by itself, with no timer bar.</div>'
-      + '<div class="aph-label">Hint</div><div class="aph-row"><button class="aph-btn' + (showInfHint ? ' on' : '') + '" onclick="showInfHint=!showInfHint;renderIntro()">💡 Hint (the infinitive): ' + (showInfHint ? 'On' : 'Off') + '</button></div>'
       + (editModeUnlocked ? '<div class="aph-label">Teacher</div><div class="aph-row"><button class="aph-btn" onclick="' + HMC.printContent + '">&#128424; Print Content</button></div>' : '')
       + '</details>';
     h += '<div class="aph-tools ms-tiles">' + TILES.map(function (x) {
@@ -8475,7 +8484,7 @@ textarea.ms-in.ms-in-big{min-height:8.5rem;font-size:1.4rem;margin:6px 0}
   var ri0 = window.renderIntro;
   window.renderIntro = function () {
     var d = $('drill'); if (!d) return;
-    if (apHome !== 'setup') { return ri0.apply(this, arguments); }
+    if (apHome !== 'setup') { window.msKP = false; return ri0.apply(this, arguments); }
     d.classList.remove('wide');
     d.innerHTML = (msIsMy() ? '<div class="intro-card ap-landing" style="display:none" aria-hidden="true"></div>' : '') + renderSetup();   // (hidden marker: the teacher's "set this drill" button is for the normal sets only)
   };
@@ -28398,4 +28407,4 @@ function deck(el,m,n,x,y,face,gap){clear(el);const cs=[];for(let i=0;i<n;i++){co
   if (document.readyState === 'complete') start(); else window.addEventListener('load', start);
 })();
 </script>
-<script id="ap-build">window.__apBuild="fb2099a922";window.__apVer=204;(function(){var N=window.__apVer;function put(){try{var h=document.querySelector('header.aph-header');if(!h||document.getElementById('ap-ver'))return;var s=document.createElement('span');s.id='ap-ver';s.textContent='v'+N;s.style.cssText='position:absolute;right:10px;bottom:4px;font:600 11px/1 system-ui,sans-serif;color:#c9a84c;opacity:.8;pointer-events:none;letter-spacing:.04em;z-index:2';if(getComputedStyle(h).position==='static')h.style.position='relative';h.appendChild(s)}catch(e){}}put();document.addEventListener('DOMContentLoaded',put);window.addEventListener('load',put);setInterval(put,2000)})();</script>
+<script id="ap-build">window.__apBuild="bd6b8eb2b2";window.__apVer=205;(function(){var N=window.__apVer;function put(){try{var h=document.querySelector('header.aph-header');if(!h||document.getElementById('ap-ver'))return;var s=document.createElement('span');s.id='ap-ver';s.textContent='v'+N;s.style.cssText='position:absolute;right:10px;bottom:4px;font:600 11px/1 system-ui,sans-serif;color:#c9a84c;opacity:.8;pointer-events:none;letter-spacing:.04em;z-index:2';if(getComputedStyle(h).position==='static')h.style.position='relative';h.appendChild(s)}catch(e){}}put();document.addEventListener('DOMContentLoaded',put);window.addEventListener('load',put);setInterval(put,2000)})();</script>
