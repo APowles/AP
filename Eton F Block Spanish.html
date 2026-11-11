@@ -993,6 +993,7 @@ button[onclick*="apMySetHelp"]{background:none!important;border:0!important;box-
       <button class="reg-btn" data-reg="regular" onclick="setRegFilter('regular')">Regular only</button>
       <button class="reg-btn" data-reg="radical" onclick="setRegFilter('radical')">Radical / Spelling</button>
       <button class="reg-btn" data-reg="irregular" onclick="setRegFilter('irregular')">Fully irregular</button>
+      <button class="reg-btn" data-reg="reflexive" onclick="setRegFilter('reflexive')">Reflexive only</button>
     </div>
   </div>
   <div id="singlePersonCtrl" style="display:none">
@@ -3726,7 +3727,7 @@ function apLvCount(ctx) {
     var n = VERBS.filter(function (v) {
       if (v.tense === 'INFINITIVE' || v.tense === 'SET' || _spLvExclude.has(v.inf)) return false;
       if (selectedTenses.size > 0 && !selectedTenses.has(v.tense)) return false;
-      if (regFilter !== 'all' && classifyNote(v.note) !== regFilter) return false;
+      if (regFilter !== 'all' && !regHit(v, regFilter)) return false;
       return vsOK(v) && apLvOK(v);
     }).length;
     if (selectedTenses.has('INFINITIVE')) n += spInfItems().filter(function (c) { return !_spLvExclude.has(c.inf) && apLvOK(c); }).length;
@@ -3762,6 +3763,8 @@ let isLeisureMode = false;
 let isAutotime = true;
 let regFilter = 'all'; // 'all' | 'regular' | 'radical' | 'irregular'
 
+/* Reflexive = the infinitive ends in -se (llamarse, levantarse...). Any other Regularity choice is judged from the note. */
+function regHit(v, f) { if (f === 'reflexive') { var i = v && v.inf; if (i && typeof i === 'object') i = i.inf; return /se$/.test(String(i || '')); } return classifyNote(v && v.note) === f; }
 function classifyNote(note) {
   if (!note) return 'irregular';
   const n = note.toLowerCase();
@@ -3875,7 +3878,7 @@ function buildPool() {
     verbPool = VERBS.filter(v => conjTenses.has(v.tense));
   } else if (mode === 'single') {
     // In Single CONJ mode: filter per card — each tense entry assessed individually
-    verbPool = VERBS.filter(v => conjTenses.has(v.tense) && classifyNote(v.note) === regFilter);
+    verbPool = VERBS.filter(v => conjTenses.has(v.tense) && regHit(v, regFilter));
   } else {
     // In Full CONJ mode: verb must qualify in ALL selected tenses (cross-tense check)
     const byInfTense = {};
@@ -3889,7 +3892,7 @@ function buildPool() {
       const qualifiesInAll = [...conjTenses].every(tense => {
         const v = byInfTense[inf + '|' + tense];
         if (!v) return false;
-        return classifyNote(v.note) === regFilter;
+        return regHit(v, regFilter);
       });
       if (qualifiesInAll) qualifyingInfs.add(inf);
     });
@@ -4004,7 +4007,7 @@ function renderIntro(){
   const allSpSelected=ALL_SP_TENSES.every(t=>selectedTenses.has(t));
   const tenseHtml = vbChip(allSpSelected,'selectAllTenses()','All Tenses')+visibleTenses.map(t => vbTenseChip(selectedTenses.has(t),`introToggleTense('${t}')`,tenseLabels[t],tenseColors[t])).join('');
 
-  const regs = [{k:'all',l:'All'},{k:'regular',l:'Regular'},{k:'radical',l:'Radical'},{k:'irregular',l:'Irregular'}];
+  const regs = [{k:'all',l:'All'},{k:'regular',l:'Regular'},{k:'radical',l:'Radical'},{k:'irregular',l:'Irregular'},{k:'reflexive',l:'Reflexive'}];
   const regHtml = regs.map(r => vbChip(regFilter===r.k,`introSetReg('${r.k}')`,r.l)).join('');
 
   const pool = (selectedTenses.size > 0 || mode==='inf') && mode ? (mode==='sentences' ? SENTENCES.filter(s=>inSentSet(s)&&sentTenseOn(s)) : buildPool()) : [];
@@ -4953,7 +4956,7 @@ function generateSDSpotTest(timed){
   timed = timed === true;   // ⏱ timed & submitted: the same draw, on screen
   var filtered = VERBS.filter(function(v){
     if(!selectedTenses.has(v.tense)) return false;
-    if(regFilter !== 'all' && classifyNote(v.note) !== regFilter) return false;
+    if(regFilter !== 'all' && !regHit(v, regFilter)) return false;
     if(!vsOK(v)) return false;
     return true;
   });
@@ -4995,7 +4998,7 @@ function generateSDSpotTest(timed){
   if(timed){
     var tns=[].concat(Array.from(selectedTenses)).sort().join(',');
     var tnames=Array.from(selectedTenses).map(function(t){return TNAME_ES[t]||t;}).join(', ');
-    var _vd=APTT.verbDetail(items, TNAME_ES, { reg: ({regular:'Regular verbs only',irregular:'Irregular verbs only'}[regFilter]||'') });
+    var _vd=APTT.verbDetail(items, TNAME_ES, { reg: ({regular:'Regular verbs only',irregular:'Irregular verbs only',reflexive:'Reflexive verbs only'}[regFilter]||'') });
     if(_xq){ _vd.short=_xqN; _vd.detail='<b>Exercises:</b> '+String(_xqN).replace(/&/g,'&amp;').replace(/</g,'&lt;')+' &middot; '+_vd.detail; }
     apttSpot({ id: (_xq ? 'xq'+Array.from(xqOn).sort().join('')+'|' : '')+'spot|'+tns+'|'+regFilter+'|'+verbSetFilter+'|'+(spTestOpts.tense?'t':'')+(spTestOpts.person?'p':'')+(spTestOpts.inf?'i':'')+'|'+apTestLevel+'|'+(5*per), title: 'Spanish Verbs: '+_vd.short+apLvSuffix(), detail: _vd.detail,
       meta: (_xq ? _xqN : qFlag+' → '+aFlag)+' &nbsp;·&nbsp; '+tnames+' &nbsp;·&nbsp; 5 × '+per+' = '+(5*per)+' items', lang: 'Spanish', kind: 'word', rows: rows,
@@ -5248,7 +5251,7 @@ function generateSpanishTest(){
     if(v.tense==='INFINITIVE') return false;
     if(_gtSpotExclude.has(v.inf)) return false;
     if(selectedTenses.size>0 && !selectedTenses.has(v.tense)) return false;
-    if(regFilter !== 'all' && classifyNote(v.note) !== regFilter) return false;
+    if(regFilter !== 'all' && !regHit(v, regFilter)) return false;
     if(!vsOK(v)) return false;
     if(v.tense==='SET') return false;
     if(!apLvOK(v)) return false;
@@ -5389,7 +5392,7 @@ function renderSpVerbList(q){
   }
   let rows=[...seen.values()].sort((a,b)=>a.en.replace(/^to /,'').localeCompare(b.en.replace(/^to /,'')));
   if(q) rows=rows.filter(r=>r.en.toLowerCase().includes(q)||r.inf.toLowerCase().includes(q)||r.note.toLowerCase().includes(q));
-  if(apRegOn()) rows=rows.filter(r=>classifyNote(r.note)===regFilter);
+  if(apRegOn()) rows=rows.filter(r=>regHit(r,regFilter));
   rows=vqArrange(rows);
   const isReg=r=>r.note.toLowerCase().startsWith('regular');
   const esc=s=>(s||'').replace(/"/g,'&quot;').replace(/'/g,'&#39;');
@@ -5398,7 +5401,7 @@ function renderSpVerbList(q){
     ?`readonly onfocus="this.removeAttribute('readonly');this.style.borderBottom='1px dashed var(--border)'" onblur="this.setAttribute('readonly','');this.style.borderBottom='none';saveSpVerbField(this)" onkeydown="if(event.key==='Enter')this.blur()"`
     :`readonly`;
   const html=`
-    <div class="vb-vp-n">${rows.length} ${apRegOn()?({regular:'regular ',radical:'radical ',irregular:'irregular '}[regFilter]||''):''}verbs${editorUnlocked?' &nbsp;·&nbsp; <span style="font-style:italic;">Click any cell to edit · Enter or click away to save (session only)</span>':''}</div>
+    <div class="vb-vp-n">${rows.length} ${apRegOn()?({regular:'regular ',radical:'radical ',irregular:'irregular ',reflexive:'reflexive '}[regFilter]||''):''}verbs${editorUnlocked?' &nbsp;·&nbsp; <span style="font-style:italic;">Click any cell to edit · Enter or click away to save (session only)</span>':''}</div>
     <div class="vb-vp-scroll"><table class="vb-vp-table">
       <thead><tr><th>English</th><th>Spanish</th><th>Usage (es)</th><th></th></tr></thead>
       <tbody>${rows.map((r,i)=>vqHead(rows,i,4)+`
@@ -7231,7 +7234,7 @@ if (window.__cj) window.__cj.speedTest = function (kind, g) {
 (function () {
   function $(i) { return document.getElementById(i); }
   var TENSES = [['PRESENT', 'Present'], ['PRETERITE', 'Preterite'], ['FUTURE', 'Future'], ['INFINITIVE', 'Infinitive']];
-  var REGS = { all: 'All', regular: 'Regular', radical: 'Radical', irregular: 'Irregular' };
+  var REGS = { all: 'All', regular: 'Regular', radical: 'Radical', irregular: 'Irregular', reflexive: 'Reflexive' };
   var MODES = { full: 'Full (6 forms)', single: 'Single form', inf: 'Infinitives', sentences: 'Sentences' };
   var PERS = ['yo', 'tú', 'él/ella', 'nosotros', 'vosotros', 'ellos/as'];
   function inList(a, v) { return a.indexOf(v) >= 0; }
@@ -7455,7 +7458,7 @@ var HMC = { lang: 'Spanish', title: 'Spanish Verbs', pattern: ['soy', 'eres', 'e
   modes: [['full', 'Full (6 forms)', 'See the English, say all six persons'], ['single', 'Single form', 'One English form, give the Spanish'], ['inf', 'Infinitives', 'What is the Spanish infinitive?'], ['sentences', 'Sentences', 'Gap-fill sentences']],
   tenses: [['INFINITIVE', 'Infinitives'], ['PRESENT', 'Present'], ['FUTURE', 'Future'], ['PRETERITE', 'Preterite']],
   tn: { PRESENT: 'Present', PRETERITE: 'Preterite', IMPERFECT: 'Imperfect', PERFECT: 'Perfect', FUTURE: 'Future', COND: 'Conditional', PRESENT_SUBJ: 'Pres. Subj.', IMP_SUBJ: 'Imp. Subj.', INFINITIVE: 'Infinitives' },
-  regs: [['all', 'All'], ['regular', 'Regular'], ['radical', 'Radical'], ['irregular', 'Irregular']],
+  regs: [['all', 'All'], ['regular', 'Regular'], ['radical', 'Radical'], ['irregular', 'Irregular'], ['reflexive', 'Reflexive']],
   persons: [['ALL', 'All persons'], ['0', 'yo'], ['1', 'tú'], ['2', 'él/ella'], ['3', 'nosotros'], ['4', 'vosotros'], ['5', 'ellos/as']],
   pool: function () { return (selectedTenses.size > 0 || mode === 'inf') && mode ? (mode === 'sentences' ? SENTENCES.filter(function (s) { return inSentSet(s) && sentTenseOn(s); }) : buildPool()) : []; },
   test: function () { var tp = document.getElementById('testPanel'); tp.style.display = 'block'; renderSpTestTenses(); generateSpanishTest(); tp.scrollIntoView({ behavior: 'smooth' }); },
@@ -7840,7 +7843,7 @@ function xqOK(v, p) { return !!hmQ.ok(v.forms[p]); }
 function xqPersons(v) { var pf = _personFilter, all = [0, 1, 2, 3, 4, 5].filter(function (p) { return xqOK(v, p); }); return pf === 'ALL' ? all : all.filter(function (p) { return p === parseInt(pf, 10); }); }
 function xqVerbs(useLv) {
   var ts = new Set(Array.from(selectedTenses).filter(function (t) { return t !== 'INFINITIVE'; }));
-  return VERBS.filter(function (v) { return v.tense !== 'SET' && v.tense !== 'INFINITIVE' && v.group !== 'structures' && v.forms && ts.has(v.tense) && vsOK(v) && (regFilter === 'all' || classifyNote(v.note) === regFilter) && (!useLv || apLvOK(v)); });
+  return VERBS.filter(function (v) { return v.tense !== 'SET' && v.tense !== 'INFINITIVE' && v.group !== 'structures' && v.forms && ts.has(v.tense) && vsOK(v) && (regFilter === 'all' || regHit(v, regFilter)) && (!useLv || apLvOK(v)); });
 }
 function xqInfs(useLv) {
   if (!selectedTenses.has('INFINITIVE')) return [];
@@ -8065,6 +8068,7 @@ function apRegKeep(v) {
   if (!_apRegNote) { _apRegNote = {}; VERBS.forEach(function (x) { if (x.tense === 'PRESENT' && x.group !== 'structures' && !(x.inf in _apRegNote)) _apRegNote[x.inf] = x.note || ''; }); }
   var inf = (v && v.inf && typeof v.inf === 'object') ? v.inf.inf : (v && v.inf), tn = v && v.tense;
   var note = (!v || tn === 'INFINITIVE' || tn === 'SET' || v.note === undefined) ? (_apRegNote[inf] || '') : (v.note || '');
+  if (regFilter === 'reflexive') return /se$/.test(String(inf || ''));
   return classifyNote(note) === regFilter;
 }
 if (window.__cj && window.__cj.inSet) { var _apRegInSet0 = window.__cj.inSet; window.__cj.inSet = function (v, s) { return _apRegInSet0(v, s) && apRegKeep(v); }; }⟦/script><style id="ap-setup-css">
@@ -8498,7 +8502,7 @@ textarea.ms-in.ms-in-big{min-height:8.5rem;font-size:1.4rem;margin:6px 0}
   }
   function refSum(core) {
     var my = msIsMy(), p = [];
-    if (!(my || mode === 'inf' || mode === 'sentences')) p.push('Regularity: ' + ({ regular: 'Regular', radical: 'Radical', irregular: 'Irregular' }[regFilter] || 'All'));
+    if (!(my || mode === 'inf' || mode === 'sentences')) p.push('Regularity: ' + ({ regular: 'Regular', radical: 'Radical', irregular: 'Irregular', reflexive: 'Reflexive' }[regFilter] || 'All'));
     if (!(my || (mode !== 'single' && mode !== 'exer'))) p.push('Person: ' + (HMC.persons.filter(function (q) { return q[0] === _personFilter; })[0] || [0, 'All persons'])[1]);
     if (!my && !core) p.push('Importance: ' + (vqTier === 'SEL' ? (vqSelText() || 'All 100') : ((VQ_DEF.filter(function (x) { return x[0] === vqTier; })[0] || [0, 'All 100'])[1])));
     return p.join(' · ');
@@ -28544,4 +28548,4 @@ function deck(el,m,n,x,y,face,gap){clear(el);const cs=[];for(let i=0;i<n;i++){co
   if (document.readyState === 'complete') start(); else window.addEventListener('load', start);
 })();
 </script>
-<script id="ap-build">window.__apBuild="11f5506458";window.__apVer=212;(function(){var N=window.__apVer;function put(){try{var h=document.querySelector('header.aph-header');if(!h||document.getElementById('ap-ver'))return;var s=document.createElement('span');s.id='ap-ver';s.textContent='v'+N;s.style.cssText='position:absolute;right:10px;bottom:4px;font:600 11px/1 system-ui,sans-serif;color:#c9a84c;opacity:.8;pointer-events:none;letter-spacing:.04em;z-index:2';if(getComputedStyle(h).position==='static')h.style.position='relative';h.appendChild(s)}catch(e){}}put();document.addEventListener('DOMContentLoaded',put);window.addEventListener('load',put);setInterval(put,2000)})();</script>
+<script id="ap-build">window.__apBuild="441cfd3793";window.__apVer=213;(function(){var N=window.__apVer;function put(){try{var h=document.querySelector('header.aph-header');if(!h||document.getElementById('ap-ver'))return;var s=document.createElement('span');s.id='ap-ver';s.textContent='v'+N;s.style.cssText='position:absolute;right:10px;bottom:4px;font:600 11px/1 system-ui,sans-serif;color:#c9a84c;opacity:.8;pointer-events:none;letter-spacing:.04em;z-index:2';if(getComputedStyle(h).position==='static')h.style.position='relative';h.appendChild(s)}catch(e){}}put();document.addEventListener('DOMContentLoaded',put);window.addEventListener('load',put);setInterval(put,2000)})();</script>
