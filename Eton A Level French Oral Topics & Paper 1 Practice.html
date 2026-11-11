@@ -881,6 +881,16 @@ main{display:block;width:100%}
 .ot-ktr-lbl.def{color:var(--nearly)}.ot-ktr-lbl.ex{color:var(--correct)}.ot-ktr-lbl.an{color:var(--navy2)}
 .ot-ktr-fr{font-size:.9375rem;color:var(--navy);cursor:pointer}
 .ot-ktr-en{font-size:.875rem;color:#7a8899;font-style:italic;margin-top:2px;cursor:pointer}
+.ot-sv-bar{display:flex;flex-wrap:wrap;gap:6px;align-items:center;margin:0 0 12px;padding:8px 10px;background:#fff;border:1px solid #e2e6f0;border-radius:10px;position:sticky;top:0;z-index:5}
+.ot-sv-bar .sv-t{font-size:.7rem;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:#7a8899;margin-right:2px}
+.ot-sv-bar button{font:inherit;font-size:.8rem;font-weight:600;padding:6px 11px;border-radius:999px;border:1px solid #c9d1e0;background:#fff;color:#1a2744;cursor:pointer}
+.ot-sv-bar button.on{background:#1a2744;color:#fff;border-color:#1a2744}
+.ot-sv-bar .sv-sp{flex:1}
+.ot-kv.sv-l-fr .ot-ktr-en{display:none}
+.ot-kv.sv-l-en .ot-ktr-fr{display:none}
+.ot-kv.sv-l-en .ot-ktr-en{font-style:normal;color:#1a2744;font-size:.9375rem;margin-top:0}
+.ot-kv.sv-c-fr:not(.sv-all) .ot-ktr-fr:not(.sv-rev),.ot-kv.sv-c-en:not(.sv-all) .ot-ktr-en:not(.sv-rev){color:transparent!important;background:#e3e8f1;border-radius:6px;user-select:none;-webkit-user-select:none;display:block;padding:2px 6px;min-height:1.4em;text-shadow:none;position:relative}
+.ot-kv.sv-c-fr:not(.sv-all) .ot-ktr-fr:not(.sv-rev)::after,.ot-kv.sv-c-en:not(.sv-all) .ot-ktr-en:not(.sv-rev)::after{content:'tap to reveal';position:absolute;left:8px;top:50%;transform:translateY(-50%);color:#7a8899;font-size:.72rem;font-style:italic;font-weight:600}
 
 /* Generate Test panels (KTRs and Oral Cycle phrases) */
 #apTestPanel,#ocTestPanel{margin-bottom:20px}
@@ -6108,15 +6118,50 @@ function showStudySheet(view, themeFilter, ns) {
     contentHtml = topics.map(ktrCard).join('');
   }
 
-  var html = '<div class="ot-kv">'
+  if (!window.__svKeep) window.__sheetMode = { lang: 'both', cover: 'none', all: false };
+  window.__svKeep = false;
+  var SVM = window.__sheetMode;
+  var svBar = '<div class="ot-sv-bar" id="ot-sv-bar"><span class="sv-t">Show</span>'
+    + '<button type="button" data-m="both">Both</button><button type="button" data-m="fr">French only</button><button type="button" data-m="en">English only</button>'
+    + '<span class="sv-t" style="margin-left:8px">Cover</span>'
+    + '<button type="button" data-m="cfr">French</button><button type="button" data-m="cen">English</button>'
+    + '<span class="sv-sp"></span><button type="button" data-m="all" id="sv-all">Reveal all</button></div>';
+  var html = '<div class="ot-kv sv-l-' + SVM.lang + (SVM.cover !== 'none' ? ' sv-c-' + SVM.cover : '') + (SVM.all ? ' sv-all' : '') + '" id="ot-kv-root">'
     + '<div class="ot-kv-head">'
     + '<h2 class="aph-panel-title">📖 View &amp; Print <span class="aph-note" style="font-family:var(--aph-body);font-weight:500">Key Topic References · ' + topics.length + ' KTRs</span></h2>'
     + '<button class="aph-btn aph-btn-sm" onclick="printStudySheet(this.dataset.theme, this.dataset.ns)" data-ns="' + (NSF ? NSF.join(',') : '') + '" data-theme="' + (view==='theme' ? themeFilter.replace(/&/g,'&amp;').replace(/"/g,'&quot;') : 'all') + '">🖨 Print / PDF</button>'
     + '</div>'
+    + svBar
     + (NSF ? '' : themeTabsHtml)
     + contentHtml
     + '</div>';
 
+  window.__svWire = function () {
+    var root = document.getElementById('ot-kv-root'); if (!root) return;
+    var M = window.__sheetMode;
+    function paint() {
+      root.className = 'ot-kv sv-l-' + M.lang + (M.cover !== 'none' ? ' sv-c-' + M.cover : '') + (M.all ? ' sv-all' : '');
+      var on = { both: M.lang === 'both' && M.cover === 'none', fr: M.lang === 'fr', en: M.lang === 'en', cfr: M.cover === 'fr', cen: M.cover === 'en' };
+      [].forEach.call(root.querySelectorAll('#ot-sv-bar button'), function (b) {
+        var m = b.dataset.m; if (m === 'all') { b.classList.toggle('on', M.all); b.textContent = M.all ? 'Cover all' : 'Reveal all'; b.style.display = M.cover === 'none' ? 'none' : ''; } else b.classList.toggle('on', !!on[m]);
+      });
+      [].forEach.call(root.querySelectorAll('.sv-rev'), function (e) { e.classList.remove('sv-rev'); });
+    }
+    root.querySelector('#ot-sv-bar').onclick = function (e) {
+      var b = e.target.closest('button'); if (!b) return; var m = b.dataset.m;
+      if (m === 'both') { M.lang = 'both'; M.cover = 'none'; M.all = false; }
+      else if (m === 'fr' || m === 'en') { M.lang = m; M.cover = 'none'; M.all = false; }
+      else if (m === 'cfr' || m === 'cen') { M.lang = 'both'; M.cover = m.slice(1); M.all = false; }
+      else if (m === 'all') { M.all = !M.all; }
+      paint();
+    };
+    root.addEventListener('click', function (e) {
+      var el = e.target.closest('.ot-ktr-fr,.ot-ktr-en'); if (!el) return;
+      var cov = (M.cover === 'fr' && el.classList.contains('ot-ktr-fr')) || (M.cover === 'en' && el.classList.contains('ot-ktr-en'));
+      if (cov && !M.all) { e.stopPropagation(); e.preventDefault(); el.classList.toggle('sv-rev'); }
+    }, true);
+    paint();
+  };
   if (NSF) {
     var ov = document.getElementById('ap-sheet-ov');
     if (!ov) { ov = document.createElement('div'); ov.id = 'ap-sheet-ov'; document.body.appendChild(ov); }
@@ -6124,9 +6169,11 @@ function showStudySheet(view, themeFilter, ns) {
     ov.innerHTML = '<div style="max-width:960px;margin:0 auto"><button type="button" class="aph-btn aph-btn-primary" style="margin-bottom:10px" onclick="document.getElementById(\'ap-sheet-ov\').remove();document.documentElement.style.overflow=\'\'">&larr; Back to the Studio</button>' + html + '</div>';
     document.documentElement.style.overflow = 'hidden';
     ov.scrollTop = 0;
+    window.__svWire();
     return;
   }
   document.getElementById('app').innerHTML = html;
+  window.__svWire();
 }
 
 // ── Printable Study Sheet (Key Topic References) ─────────────────────
@@ -6210,6 +6257,13 @@ function printStudySheet(themeFilter, nsStr) {
     '.lbl-an{background:#e8ecf5;color:#1a2744;}',
     '.fr{font-size:0.72rem;color:#1a2744;line-height:1.35;}',
     '.en{font-size:0.62rem;color:#888;line-height:1.3;font-style:italic;margin-top:1px;}',
+    (function () {
+      var M = window.__sheetMode || { lang: 'both', cover: 'none', all: false }, c = '';
+      if (M.lang === 'fr') c += '.en{display:none}';
+      if (M.lang === 'en') c += '.fr{display:none}.en{font-style:normal;color:#1a2744;font-size:0.72rem}';
+      if (M.cover !== 'none' && !M.all) { var k = M.cover === 'fr' ? '.fr' : '.en'; c += k + '{display:block;color:transparent!important;border-bottom:1px solid #8a94a8;min-height:1.5em;margin-top:3px;overflow:hidden;-webkit-print-color-adjust:exact}'; }
+      return c;
+    })(),
     '</style></head><body>',
     aphPrintHead({kicker:'Eton A Level &middot; Oral Topics & Paper 1 Practice', title:'Key Topic References &mdash; <em>' + esc(label) + '</em>', strip:false}),
     contentHtml,
@@ -24746,4 +24800,4 @@ function deck(el,m,n,x,y,face,gap){clear(el);const cs=[];for(let i=0;i<n;i++){co
   if (document.readyState === 'complete') start(); else window.addEventListener('load', start);
 })();
 </script>
-<script id="ap-build">window.__apBuild="51b3d62fef";window.__apVer=532;(function(){var N=window.__apVer;function put(){try{var h=document.querySelector('header.aph-header');if(!h||document.getElementById('ap-ver'))return;var s=document.createElement('span');s.id='ap-ver';s.textContent='v'+N;s.style.cssText='position:absolute;right:10px;bottom:4px;font:600 11px/1 system-ui,sans-serif;color:#c9a84c;opacity:.8;pointer-events:none;letter-spacing:.04em;z-index:2';if(getComputedStyle(h).position==='static')h.style.position='relative';h.appendChild(s)}catch(e){}}put();document.addEventListener('DOMContentLoaded',put);window.addEventListener('load',put);setInterval(put,2000)})();</script>
+<script id="ap-build">window.__apBuild="727010de51";window.__apVer=533;(function(){var N=window.__apVer;function put(){try{var h=document.querySelector('header.aph-header');if(!h||document.getElementById('ap-ver'))return;var s=document.createElement('span');s.id='ap-ver';s.textContent='v'+N;s.style.cssText='position:absolute;right:10px;bottom:4px;font:600 11px/1 system-ui,sans-serif;color:#c9a84c;opacity:.8;pointer-events:none;letter-spacing:.04em;z-index:2';if(getComputedStyle(h).position==='static')h.style.position='relative';h.appendChild(s)}catch(e){}}put();document.addEventListener('DOMContentLoaded',put);window.addEventListener('load',put);setInterval(put,2000)})();</script>
