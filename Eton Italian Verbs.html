@@ -1032,6 +1032,7 @@ button[onclick*="apMySetHelp"]{background:none!important;border:0!important;box-
     <button class="reg-btn active-reg" data-reg="all" onclick="setReg('all')">All</button>
     <button class="reg-btn" data-reg="regular" onclick="setReg('regular')">Regular</button>
     <button class="reg-btn" data-reg="irregular" onclick="setReg('irregular')">Irregular</button>
+    <button class="reg-btn" data-reg="reflexive" onclick="setReg('reflexive')">Reflexive</button>
     <button class="reg-btn" data-reg="piacere" onclick="setReg('piacere')">Piacere</button>
   </div>
   <label id="personLabel" style="opacity:0.4">Person:</label>
@@ -4929,6 +4930,8 @@ function setPersonFilter(v){
 }
 
 function classifyNote(n){if(!n)return'irregular';const s=n.toLowerCase();if(s.startsWith('regular'))return'regular';return'irregular';}
+function apIsRefl(i) { return /rsi$/i.test(String(i || '').trim().split(/\s+/)[0]); }
+function regHit(v, f) { if (f === 'reflexive') { var i = v && v.inf; if (i && typeof i === 'object') i = i.inf; return apIsRefl(i); } return classifyNote(v && v.note) === f; }
 
 function setMode(m){
   mode=m;
@@ -4951,7 +4954,7 @@ var italianSpotRows=[], italianSpotLabel='', italianSpotQFlag='', italianSpotAFl
 function renderTestPanel(){
   const tenses=[{k:'INFINITIVE',l:verbMode==='structures'?'Infinitives / Set structures':'Infinitive',c:'#2e7d52'},{k:'PRESENT',l:'Present',c:'#1a65c0'},{k:'FUTURE',l:'Future',c:'#0a7050'},{k:'PP',l:'Perfect',c:'#9a1060'},{k:'IMPERFECT',l:'Imperfect',c:'#6020a0'},{k:'COND',l:'Conditional',c:'#1a4090'},{k:'PRES_SUBJ',l:'Pres. Subj.',c:'#805010'},{k:'IMP_SUBJ',l:'Imp. Subj.',c:'#7a1818'},{k:'PR',l:'Past Hist.',c:'#804040'},{k:'PLUPERFECT',l:'Pluperfect',c:'#5a3a8a'},{k:'FUT_ANT',l:'Future Perf.',c:'#2a6a5a'},{k:'COND_PASSE',l:'Cond. Perf.',c:'#3a4a8a'}];
   const tenseHtml=tenses.map(function(t){return vbTenseChip(selectedTenses.has(t.k),'testToggleTense(\''+t.k+'\')',t.l,t.c);}).join('');
-  const regHtml=[{k:'all',l:'All'},{k:'regular',l:'Regular'},{k:'irregular',l:'Irregular'},{k:'piacere',l:'Piacere type'}].map(function(r){return vbChip(regFilter===r.k,'introSetReg(\''+r.k+'\')',r.l);}).join('');
+  const regHtml=[{k:'all',l:'All'},{k:'regular',l:'Regular'},{k:'irregular',l:'Irregular'},{k:'reflexive',l:'Reflexive'},{k:'piacere',l:'Piacere type'}].map(function(r){return vbChip(regFilter===r.k,'introSetReg(\''+r.k+'\')',r.l);}).join('');
   const savedMode=mode; mode='single';
   const available=buildPool().filter(function(x){return apLvOK(x);}).length;
   mode=savedMode;
@@ -5198,10 +5201,10 @@ function buildPool(){
   const conjTenses=new Set([...selectedTenses].filter(t=>t!=='INFINITIVE'));
   let verbPool=liveVerbs.filter(inVerbSet).filter(v=>conjTenses.has(v.tense));
   if(regFilter==='piacere')verbPool=verbPool.filter(v=>v.inf==='piacere');
-  else if(regFilter!=='all')verbPool=verbPool.filter(v=>classifyNote(v.note)===regFilter);
+  else if(regFilter!=='all')verbPool=verbPool.filter(v=>regHit(v, regFilter));
   let infCards=selectedTenses.has('INFINITIVE')?getLiveInfCards():[];
   if(regFilter==='piacere')infCards=infCards.filter(c=>c.inf==='piacere');
-  else if(regFilter!=='all')infCards=infCards.filter(c=>classifyNote(c.note)===regFilter);
+  else if(regFilter!=='all')infCards=infCards.filter(c=>regHit(c, regFilter));
   if(mode==='full')return[...verbPool,...infCards];
   const pf=_personFilter;
   const cards=[];
@@ -5431,7 +5434,7 @@ function renderIntro(){
   const ALL_TENSES=['PRESENT','FUTURE','PP','IMPERFECT','COND','PRES_SUBJ','IMP_SUBJ','INFINITIVE'];
   const allSelected=ALL_TENSES.every(t=>selectedTenses.has(t))&&!selectedTenses.has('PR');
   const tenseHtml=vbChip(allSelected,'selectAllTenses()','All Tenses')+tenses.map(t=>vbTenseChip(selectedTenses.has(t.k),`introToggleTense('${t.k}')`,t.l,t.c)).join('');
-  const regHtml=[{k:'all',l:'All'},{k:'regular',l:'Regular'},{k:'irregular',l:'Irregular'},{k:'piacere',l:'Piacere type'}].map(r=>vbChip(regFilter===r.k,`introSetReg('${r.k}')`,r.l)).join('');
+  const regHtml=[{k:'all',l:'All'},{k:'regular',l:'Regular'},{k:'irregular',l:'Irregular'},{k:'reflexive',l:'Reflexive'},{k:'piacere',l:'Piacere type'}].map(r=>vbChip(regFilter===r.k,`introSetReg('${r.k}')`,r.l)).join('');
   const pool=mode==='infinitives'?getLiveInfCards():selectedTenses.size>0&&mode?(mode==='sentences'?SENTENCES.filter(s=>inSentSet(s,verbMode)&&sentTenseOn(s)):buildPool()):[];
   const verbSetHtml='<div class="aph-label">Verb set</div><div class="aph-row">'+verbSetButtons('renderIntro()')+'</div>'+vqRowHtml();
   const cardCount=_selectedCount===-1?pool.length:Math.min(_selectedCount,pool.length);
@@ -6610,7 +6613,7 @@ function generateItalianSpotTest(timed) {
     if(!selectedTenses.has(v.tense)) return false;
     if(!inVerbSet(v)) return false;
     if(regFilter === 'piacere' && v.inf !== 'piacere') return false;
-    else if(regFilter !== 'all' && regFilter !== 'piacere' && classifyNote(v.note) !== regFilter) return false;
+    else if(regFilter !== 'all' && regFilter !== 'piacere' && !regHit(v, regFilter)) return false;
     return true;
   });
   var expanded = [];
@@ -6623,7 +6626,7 @@ function generateItalianSpotTest(timed) {
   if(selectedTenses.has('INFINITIVE')){
     getLiveInfCards().forEach(function(c){
       if(regFilter === 'piacere' && c.inf !== 'piacere') return;
-      if(regFilter !== 'all' && regFilter !== 'piacere' && classifyNote(c.note) !== regFilter) return;
+      if(regFilter !== 'all' && regFilter !== 'piacere' && !regHit(c, regFilter)) return;
       expanded.push({inf:c});
     });
   }
@@ -7539,7 +7542,7 @@ if (window.__cj) window.__cj.speedTest = function (kind, g) {
 /* ===== AP DRILL LINKS: Italian Verbs adapter ===== */
 (function () {
   function $(i) { return document.getElementById(i); }
-  var L = {"app": "Eton Italian Verbs", "lang": "Italian", "prefix": "DRI", "cat": "IGCSE Italian ▸ Drills", "short": "Italian Verbs", "tenses": [["PRESENT", "Present"], ["FUTURE", "Future"], ["PP", "Perfect"], ["IMPERFECT", "Imperfect"], ["COND", "Conditional"], ["PRES_SUBJ", "Pres. Subj."], ["IMP_SUBJ", "Imp. Subj."], ["INFINITIVE", "Infinitive"], ["PR", "Past Hist."]], "sets": {"igcse": "100 Core Verbs", "allv": "All Verbs", "structures": "Specialist Verb Structures", "both": "Both"}, "regs": {"all": "All", "regular": "Regular", "irregular": "Irregular", "piacere": "Piacere type"}, "persons": ["io", "tu", "lui (lei)", "noi", "voi", "loro"]};
+  var L = {"app": "Eton Italian Verbs", "lang": "Italian", "prefix": "DRI", "cat": "IGCSE Italian ▸ Drills", "short": "Italian Verbs", "tenses": [["PRESENT", "Present"], ["FUTURE", "Future"], ["PP", "Perfect"], ["IMPERFECT", "Imperfect"], ["COND", "Conditional"], ["PRES_SUBJ", "Pres. Subj."], ["IMP_SUBJ", "Imp. Subj."], ["INFINITIVE", "Infinitive"], ["PR", "Past Hist."]], "sets": {"igcse": "100 Core Verbs", "allv": "All Verbs", "structures": "Specialist Verb Structures", "both": "Both"}, "regs": {"all": "All", "regular": "Regular", "irregular": "Irregular", "reflexive": "Reflexive", "piacere": "Piacere type"}, "persons": ["io", "tu", "lui (lei)", "noi", "voi", "loro"]};
   function inList(a, v) { return a.indexOf(v) >= 0; }
   function pool() {
     if (mode === 'infinitives') return getLiveInfCards();
@@ -7725,7 +7728,7 @@ var HMC = { lang: 'Italian', title: 'Italian Verbs', pattern: ['sono', 'sei', '�
   modes: [['full', 'Full (6 forms)', 'See the English, say all six persons'], ['single', 'Single form', 'One English form, give the Italian'], ['infinitives', 'Infinitives', 'What is the Italian infinitive?'], ['sentences', 'Sentences', 'Gap-fill sentences']],
   tenses: [['INFINITIVE', 'Infinitives'], ['PRESENT', 'Present'], ['PP', 'Perfect'], ['FUTURE', 'Future'], ['IMPERFECT', 'Imperfect'], ['COND', 'Conditional'], ['PRES_SUBJ', 'Pres. Subj.'], ['IMP_SUBJ', 'Imp. Subj.'], ['PR', 'Past Hist.']],
   tn: { PRESENT: 'Present', FUTURE: 'Future', PP: 'Perfect', IMPERFECT: 'Imperfect', COND: 'Conditional', PRES_SUBJ: 'Pres. Subj.', IMP_SUBJ: 'Imp. Subj.', INFINITIVE: 'Infinitives', PR: 'Past Hist.' },
-  regs: [['all', 'All'], ['regular', 'Regular'], ['irregular', 'Irregular'], ['piacere', 'Piacere type']],
+  regs: [['all', 'All'], ['regular', 'Regular'], ['irregular', 'Irregular'], ['reflexive', 'Reflexive'], ['piacere', 'Piacere type']],
   persons: [['ALL', 'All persons'], ['0', 'io'], ['1', 'tu'], ['2', 'lui (lei)'], ['3', 'noi'], ['4', 'voi'], ['5', 'loro']],
   pool: function () { return mode === 'infinitives' ? getLiveInfCards() : selectedTenses.size > 0 && mode ? (mode === 'sentences' ? SENTENCES.filter(function (s) { return inSentSet(s, verbMode) && sentTenseOn(s); }) : buildPool()) : []; },
   test: function () { showTestPanel(); generateTest(); },
@@ -8069,7 +8072,7 @@ function xqSetRule(r) { xqTrialRule = r; try { localStorage.setItem('apiv_xqrule
 try { var _xr = localStorage.getItem('apiv_xqrule'); if (_xr === 'any' || _xr === 'paper') xqTrialRule = _xr; } catch (e) { }
 function xqOK(v, p) { return HMQ.ok(v.forms[p]); }
 function xqPersons(v) { var pf = _personFilter, all = [0, 1, 2, 3, 4, 5].filter(function (p) { return xqOK(v, p); }); return pf === 'ALL' ? all : all.filter(function (p) { return p === parseInt(pf, 10); }); }
-function xqReg(x) { if (regFilter === 'all') return true; if (regFilter === 'piacere') return x.inf === 'piacere'; return classifyNote(x.note) === regFilter; }
+function xqReg(x) { if (regFilter === 'all') return true; if (regFilter === 'piacere') return x.inf === 'piacere'; return regHit(x, regFilter); }
 function xqVerbs(useLv) {
   var ts = new Set(Array.from(selectedTenses).filter(function (t) { return t !== 'INFINITIVE'; }));
   return liveVerbs.filter(function (v) { return v.tense !== 'SET' && v.group !== 'structures' && inVerbSet(v) && ts.has(v.tense) && xqReg(v) && (!useLv || apLvOK(v)); });
@@ -8275,7 +8278,20 @@ var _xqPool0 = HMC.pool; HMC.pool = function () { if (mode === 'exer' && hmCoreQ
 })();
 </script>
 <script>if (window.__cj) window.__cj.imp = { get: function () { return vqTier; }, set: function (k) { vqSet(k); }, defs: function () { return vqTier === 'SEL' ? VQ_DEF.concat([['SEL', 'Your groups', vqSelText()]]) : VQ_DEF; }, text: function () { return vqTierText(); }, count: function (k, fn) { var o = vqTier; vqTier = k; try { return fn(); } finally { vqTier = o; } } };
-if (window.__cj && window.__cj.inSet) { var _vqInSet0 = window.__cj.inSet; window.__cj.inSet = function (v, s) { return _vqInSet0(v, s) && vqKeep(v); }; }</script><style id="ap-setup-css">
+if (window.__cj && window.__cj.inSet) { var _vqInSet0 = window.__cj.inSet; window.__cj.inSet = function (v, s) { return _vqInSet0(v, s) && vqKeep(v); }; }
+/* Regularity (Regular / Irregular / Reflexive), chosen on the set-up screen, is also kept by Speed Challenge (it used to be ignored there) */
+var _apRegNote = null;
+function apRegOn() { return typeof regFilter !== 'undefined' && regFilter !== 'all' && regFilter !== 'piacere' && apHome === 'setup'; }
+function apRegKeep(v) {
+  if (!apRegOn()) return true;
+  var inf = (v && v.inf && typeof v.inf === 'object') ? v.inf.inf : (v && v.inf);
+  if (regFilter === 'reflexive') return apIsRefl(inf);
+  if (!_apRegNote) { _apRegNote = {}; VERBS.forEach(function (x) { if (x.tense === 'PRESENT' && x.group !== 'structures' && !(x.inf in _apRegNote)) _apRegNote[x.inf] = x.note || ''; }); }
+  var tn = v && v.tense, note = (!v || tn === 'INFINITIVE' || tn === 'SET' || v.note === undefined) ? (_apRegNote[inf] || '') : (v.note || '');
+  return classifyNote(note) === regFilter;
+}
+if (window.__cj && window.__cj.inSet) { var _apRegInSet0 = window.__cj.inSet; window.__cj.inSet = function (v, s) { return _apRegInSet0(v, s) && apRegKeep(v); }; }
+</script><style id="ap-setup-css">
 /* mysethelp */
 .mh{font-size:1.0625rem;line-height:1.5;color:var(--navy,#1a2744)}
 .mh-steps{list-style:none;margin:0 0 14px;padding:0}
@@ -8678,7 +8694,7 @@ textarea.ms-in{min-height:7rem;resize:vertical}.ms-hint.ms-hint-sm{font-size:.78
     return { reg: !(my || mode === 'infinitives' || mode === 'sentences'), pers: !(my || (mode !== 'single' && mode !== 'exer')), imp: !my && !core };
   }
   function refineSum(my, core) {
-    var f = refineParts(my, core), parts = [(f.reg && { regular: 'Regular only', irregular: 'Irregular only', piacere: 'Piacere type only' }[regFilter]) || 'All verbs'];
+    var f = refineParts(my, core), parts = [(f.reg && { regular: 'Regular only', irregular: 'Irregular only', reflexive: 'Reflexive only', piacere: 'Piacere type only' }[regFilter]) || 'All verbs'];
     if (f.pers) parts.push(_personFilter === 'ALL' ? 'all persons' : HMC.persons.filter(function (p) { return p[0] === _personFilter; })[0][1]);
     if (f.imp) { var t = vqTierText(); if (t) parts.push(t + ' only'); }
     return parts.join(' · ');
@@ -8694,7 +8710,7 @@ textarea.ms-in{min-height:7rem;resize:vertical}.ms-hint.ms-hint-sm{font-size:.78
       + '</details>';
   }
   function sumText() {
-    var reg = { regular: 'Regular only', irregular: 'Irregular only', piacere: 'Piacere type only' }[regFilter];
+    var reg = { regular: 'Regular only', irregular: 'Irregular only', reflexive: 'Reflexive only', piacere: 'Piacere type only' }[regFilter];
     return (_selectedCount === -1 ? 'All cards' : _selectedCount + ' cards') + ' · ' + timerSecs + 's a card' + (isAutotime ? ' · Autotime on' : '');
   }
 
@@ -13278,4 +13294,4 @@ function deck(el,m,n,x,y,face,gap){clear(el);const cs=[];for(let i=0;i<n;i++){co
   if (document.readyState === 'complete') start(); else window.addEventListener('load', start);
 })();
 </script>
-<script id="ap-build">window.__apBuild="0e040d1760";window.__apVer=196;(function(){var N=window.__apVer;function put(){try{var h=document.querySelector('header.aph-header');if(!h||document.getElementById('ap-ver'))return;var s=document.createElement('span');s.id='ap-ver';s.textContent='v'+N;s.style.cssText='position:absolute;right:10px;bottom:4px;font:600 11px/1 system-ui,sans-serif;color:#c9a84c;opacity:.8;pointer-events:none;letter-spacing:.04em;z-index:2';if(getComputedStyle(h).position==='static')h.style.position='relative';h.appendChild(s)}catch(e){}}put();document.addEventListener('DOMContentLoaded',put);window.addEventListener('load',put);setInterval(put,2000)})();</script>
+<script id="ap-build">window.__apBuild="360470aec5";window.__apVer=197;(function(){var N=window.__apVer;function put(){try{var h=document.querySelector('header.aph-header');if(!h||document.getElementById('ap-ver'))return;var s=document.createElement('span');s.id='ap-ver';s.textContent='v'+N;s.style.cssText='position:absolute;right:10px;bottom:4px;font:600 11px/1 system-ui,sans-serif;color:#c9a84c;opacity:.8;pointer-events:none;letter-spacing:.04em;z-index:2';if(getComputedStyle(h).position==='static')h.style.position='relative';h.appendChild(s)}catch(e){}}put();document.addEventListener('DOMContentLoaded',put);window.addEventListener('load',put);setInterval(put,2000)})();</script>
