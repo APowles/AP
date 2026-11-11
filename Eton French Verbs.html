@@ -4984,18 +4984,19 @@ function setPersonFilter(v){
 
 function classifyNote(n){if(!n)return'irregular';const s=n.toLowerCase();if(s.startsWith('regular'))return'regular';return'irregular';}
 function apIsRefl(i) { return /^(se\s|s['’])/i.test(String(i || '').trim()); }
-var AP_SPELL = ["acheter", "amener", "emmener", "enlever", "se lever", "se promener", "appeler", "s'appeler", "payer", "essayer", "envoyer", "s'ennuyer", "s'essuyer", "espérer", "préférer", "s'inquiéter"].reduce(function (o, k) { o[k] = 1; return o; }, {});
+var AP_SPELL = ["acheter", "amener", "emmener", "enlever", "se lever", "se promener", "appeler", "s'appeler", "payer", "essayer", "envoyer", "s'ennuyer", "s'essuyer", "espérer", "préférer", "s'inquiéter", "commencer", "partager", "voyager", "ranger", "obliger", "encourager", "se changer", "s'allonger"].reduce(function (o, k) { o[k] = 1; return o; }, {});
 function apIsSpell(i) { return !!AP_SPELL[String(i || '').trim()]; }
-function apPPIrr(v) {   // perfect tense: judge the PARTICIPLE itself (fini, vendu, all\u00e9 are regular; pris, fait, venu, pu, su are not)
-  var inf = String((v && v.inf && typeof v.inf === 'object') ? v.inf.inf : (v && v.inf) || '').trim().replace(/^(se|s['\u2019]|y)\s*/, '').split(/\s+/)[0];
+function apPPIrr(v) {   // perfect tense: judge the PARTICIPLE itself (fini, vendu, allé are regular; pris, fait, venu, pu, su are not)
+  var inf = String((v && v.inf && typeof v.inf === 'object') ? v.inf.inf : (v && v.inf) || '').trim().replace(/^(se\s+|s['’]|y\s+)/, '');
+  if (/\s/.test(inf)) return null;   // a phrase or structure (se faire mal, rendre visite à): use its note
   var f = ((v && v.forms) || []).filter(function (x) { return x && !/^-+$/.test(String(x).trim()); })[0];   // first real form (impersonal verbs only have the il form)
   if (!f) return null;
-  var tk = String(f).replace(/[\u2019']/g, "' ").split(/\s+/), ix = -1;
-  tk.forEach(function (w, n) { if (ix < 0 && /^(ai|as|a|avons|avez|ont|suis|es|est|sommes|\u00eates|sont)$/.test(w.replace(/^.*'\s*/, ''))) ix = n; });
+  var tk = String(f).replace(/[’']/g, "' ").split(/\s+/), ix = -1;
+  tk.forEach(function (w, n) { if (ix < 0 && /^(ai|as|a|avons|avez|ont|suis|es|est|sommes|êtes|sont)$/.test(w.replace(/^.*'\s*/, ''))) ix = n; });
   var p = ix >= 0 ? String(tk[ix + 1] || '').replace(/\(.*$/, '') : '';
-  if (!p || !/[a-z\u00e0-\u00ff]/i.test(p)) return null;
-  // regular only if the participle is exactly stem + regular ending: aimer-aim\u00e9, finir-fini, vendre-vendu. Every -oir verb (pu, su, voulu, vu, eu, fallu) and boire-bu, lire-lu, conna\u00eetre-connu etc. are irregular.
-  var reg = /er$/.test(inf) ? inf.slice(0, -2) + '\u00e9' : /oir$/.test(inf) ? null : /re$/.test(inf) ? inf.slice(0, -2) + 'u' : /ir$/.test(inf) ? inf.slice(0, -2) + 'i' : undefined;
+  if (!p || !/[a-zà-ÿ]/i.test(p)) return null;
+  // regular only if the participle is exactly stem + regular ending: aimer-aimé, finir-fini, vendre-vendu. Every -oir verb (pu, su, voulu, vu, eu, fallu) and boire-bu, lire-lu, connaître-connu etc. are irregular.
+  var reg = /er$/.test(inf) ? inf.slice(0, -2) + 'é' : /oir$/.test(inf) ? null : /re$/.test(inf) ? inf.slice(0, -2) + 'u' : /ir$/.test(inf) ? inf.slice(0, -2) + 'i' : undefined;
   if (reg === undefined) return null;
   return p !== reg;
 }
@@ -14083,4 +14084,4 @@ function deck(el,m,n,x,y,face,gap){clear(el);const cs=[];for(let i=0;i<n;i++){co
   if (document.readyState === 'complete') start(); else window.addEventListener('load', start);
 })();
 </script>
-<script id="ap-build">window.__apBuild="dbd12f3035";window.__apVer=204;(function(){var N=window.__apVer;function put(){try{var h=document.querySelector('header.aph-header');if(!h||document.getElementById('ap-ver'))return;var s=document.createElement('span');s.id='ap-ver';s.textContent='v'+N;s.style.cssText='position:absolute;right:10px;bottom:4px;font:600 11px/1 system-ui,sans-serif;color:#c9a84c;opacity:.8;pointer-events:none;letter-spacing:.04em;z-index:2';if(getComputedStyle(h).position==='static')h.style.position='relative';h.appendChild(s)}catch(e){}}put();document.addEventListener('DOMContentLoaded',put);window.addEventListener('load',put);setInterval(put,2000)})();</script>
+<script id="ap-build">window.__apBuild="86a1e97220";window.__apVer=205;(function(){var N=window.__apVer;function put(){try{var h=document.querySelector('header.aph-header');if(!h||document.getElementById('ap-ver'))return;var s=document.createElement('span');s.id='ap-ver';s.textContent='v'+N;s.style.cssText='position:absolute;right:10px;bottom:4px;font:600 11px/1 system-ui,sans-serif;color:#c9a84c;opacity:.8;pointer-events:none;letter-spacing:.04em;z-index:2';if(getComputedStyle(h).position==='static')h.style.position='relative';h.appendChild(s)}catch(e){}}put();document.addEventListener('DOMContentLoaded',put);window.addEventListener('load',put);setInterval(put,2000)})();</script>
