@@ -6279,16 +6279,46 @@ function closeVerbList(){
 function filterVerbList(){
   renderVerbListTable(document.getElementById('verbListSearch').value.trim().toLowerCase());
 }
+
+/* ===== View & Print / Copy list: follows the Regularity and the tense(s) chosen on the set-up screen ===== */
+function apListTenses() {
+  var sel = (typeof selectedTenses !== 'undefined' && selectedTenses) ? selectedTenses : new Set(['PRESENT']);
+  var t = Object.keys(TENSE_LABEL).filter(function (k) { return sel.has(k) && k !== 'INFINITIVE' && k !== 'SET'; });
+  return t.length ? t : ['PRESENT'];
+}
+function apListTenseNames() { var t = apListTenses(); return t.map(function (k) { return String(TENSE_LABEL[k] || k).toLowerCase(); }).join(' + ') + (t.length > 1 ? ' tenses' : ' tense'); }
+function apListMark(inf, rec, t) {
+  return '';
+}
+var AP_LT_REG = { regular: 'regular ', irregular: 'irregular ', reflexive: 'reflexive ', spelling: 'spelling-change ' };
+function apListRows(src) {
+  var ts = apListTenses(), seen = new Map(), on = apRegOn(), idx = {};
+  src.forEach(function (v) { if (v.group !== 'structures') idx[v.inf + '|' + v.tense] = v; });
+  src.forEach(function (v) {
+    if (v.group === 'structures' ? v.tense !== 'SET' : v.tense !== 'PRESENT') return;
+    var k = v.group === 'structures' ? v.inf + '|' + v.en : v.inf; if (seen.has(k)) return;
+    var base = { en: v.en, inf: v.inf, usage_fr: v.usage_fr || '', usage_en: v.usage_en || '', note: v.note || '', group: v.group || '' };
+    if (v.group === 'structures') { base.label = classifyNote(base.note); base.allReg = base.label === 'regular'; base.mark = ''; seen.set(k, base); return; }
+    var recs = [];
+    ts.forEach(function (t) { var r = idx[v.inf + '|' + t]; if (r) recs.push({ t: t, rec: r, note: r.note || '' }); });
+    if (!recs.length) { if (on) return; recs = [{ t: 'PRESENT', rec: v, note: v.note || '' }]; }
+    var hits = on ? recs.filter(function (x) { return regHit(x.rec, regFilter); }) : recs;
+    if (on && !hits.length) return;
+    var shown = on ? hits : recs, marks = [];
+    shown.forEach(function (x) { var mk = apListMark(v.inf, x.rec, x.t); if (mk && marks.indexOf(mk) < 0) marks.push(mk); });
+    var cls = shown.map(function (x) { return classifyNote(x.note); });
+    base.note = hits[0].note; base.mark = marks.join(', ');
+    base.label = ts.length === 1 ? cls[0] : shown.map(function (x, i) { return (TENSE_LABEL[x.t] || x.t) + ': ' + cls[i]; }).join(' · ');
+    base.allReg = cls.every(function (c) { return c === 'regular'; });
+    seen.set(k, base);
+  });
+  return [...seen.values()].sort(function (a, b) { return a.en.replace(/^to /, '').localeCompare(b.en.replace(/^to /, '')); });
+}
 function copyItVerbList(){
   const q=(document.getElementById('verbListSearch').value||'').trim().toLowerCase();
-  const seen=new Map();
-  for(const v of liveVerbs){
-    if(v.tense!=='PRESENT')continue;
-    if(!seen.has(v.inf))seen.set(v.inf,{en:v.en,inf:v.inf,usage_fr:v.usage_fr||''});
-  }
-  let rows=[...seen.values()].sort((a,b)=>a.en.replace(/^to /,'').localeCompare(b.en.replace(/^to /,'')));
+  let rows=apListRows(liveVerbs.filter(inVerbSet));
   if(q)rows=rows.filter(r=>r.en.toLowerCase().includes(q)||r.inf.toLowerCase().includes(q));
-  const text=rows.map(r=>(r.inf+'  —  '+r.en+(r.usage_fr?'  '+r.usage_fr:''))).join('\n');
+  const text=rows.map(r=>(r.inf+(r.mark?' ('+r.mark+')':'')+'  —  '+r.en+(r.usage_fr?'  '+r.usage_fr:''))).join('\n');
   navigator.clipboard.writeText(text).then(()=>{
     const btn=document.getElementById('copyItVerbListBtn');
     const orig=btn.textContent;btn.textContent='✓ Copied!';btn.style.color='var(--correct)';
@@ -6297,35 +6327,24 @@ function copyItVerbList(){
 }
 
 function renderVerbListTable(q){
-  const seen=new Map();
-  // Include all verbs respecting verbMode
-  const listSource = VERBS_ALL.filter(inVerbSet);
-  for(const v of listSource){
-    if(v.group==='structures' ? v.tense!=='SET' : v.tense!=='PRESENT')continue;
-    const _k=v.group==='structures'?v.inf+'|'+v.en:v.inf;
-    if(!seen.has(_k)){
-      seen.set(_k,{en:v.en,inf:v.inf,usage_fr:v.usage_fr||'',usage_en:v.usage_en||'',note:v.note||'',group:v.group||''});
-    }
-  }
-  let rows=[...seen.values()].sort((a,b)=>a.en.replace('to ','').localeCompare(b.en.replace('to ','')));
+  let rows=apListRows(VERBS_ALL.filter(inVerbSet));
   if(q) rows=rows.filter(r=>r.en.toLowerCase().includes(q)||r.inf.toLowerCase().includes(q)||r.note.toLowerCase().includes(q));
   rows=vqArrange(rows);
-  const isReg=r=>r.note.toLowerCase().startsWith('regular');
   const esc=s=>(s||'').replace(/"/g,'&quot;').replace(/'/g,'&#39;');
   const editorUnlocked=editModeUnlocked;
   const editAttrs=editorUnlocked
     ?`readonly onfocus="this.removeAttribute('readonly');this.style.borderBottom='1px dashed #e2e6f0'" onblur="this.setAttribute('readonly','');this.style.borderBottom='none';saveVerbListField(this)" onkeydown="if(event.key==='Enter')this.blur()"`
     :`readonly`;
   const html=`
-    <div class="vb-vp-n">${rows.length} verbs${editorUnlocked?' &nbsp;·&nbsp; <span style="font-style:italic;">Click any cell to edit · Enter or click away to save</span>':''}</div>
+    <div class="vb-vp-n">${rows.length} ${apRegOn()?(AP_LT_REG[regFilter]||''):''}verbs${apRegOn()?' ('+apListTenseNames()+')':''}${editorUnlocked?' &nbsp;·&nbsp; <span style="font-style:italic;">Click any cell to edit · Enter or click away to save</span>':''}</div>
     <div class="vb-vp-scroll"><table class="vb-vp-table">
       <thead><tr><th>English</th><th>French</th><th>Usage (fr)</th><th></th></tr></thead>
       <tbody>${rows.map((r,i)=>vqHead(rows,i,4)+`
       <tr>
         <td><input class="vb-en" value="${esc(r.en)}" data-field="en" data-inf="${esc(r.inf)}" ${editAttrs}></td>
-        <td><input class="vb-inf" value="${esc(r.inf)}" data-field="inf" data-inf="${esc(r.inf)}" ${editAttrs}></td>
+        <td style="white-space:nowrap"><input class="vb-inf" value="${esc(r.inf)}" ${r.mark?`style="width:${r.inf.length+1}ch"`:''} data-field="inf" data-inf="${esc(r.inf)}" ${editAttrs}>${r.mark?`<span style="font-weight:700;color:var(--navy);white-space:nowrap"> (${r.mark})</span>`:''}</td>
         <td><input class="vb-us" value="${esc(r.usage_fr)}" data-field="usage_fr" data-inf="${esc(r.inf)}" placeholder="—" ${editAttrs}></td>
-        <td class="vb-reg ${isReg(r)?'r':'i'}">${vqBadge(r)}${isReg(r)?'regular':'irregular'}</td>
+        <td class="vb-reg ${r.allReg?'r':'i'}">${vqBadge(r)}${r.label}</td>
       </tr>`).join('')}</tbody>
     </table></div>`;
   document.getElementById('verbListBody').innerHTML=html;
@@ -6932,27 +6951,20 @@ function openItalianSpotTestPDF(type) {
 
 // ── Print / PDF: Verb List ─────────────────────────────────────
 function printItVerbList() {
-  // Same rows as the on-screen list (renderVerbListTable): current verb set + search box
+  // Same rows as the on-screen list (renderVerbListTable): current verb set, Regularity, chosen tense(s) and search box
   const q = (document.getElementById('verbListSearch').value||'').trim().toLowerCase();
-  const seen = new Map();
-  for (const v of VERBS_ALL.filter(inVerbSet)) {
-    if (v.group==='structures' ? v.tense!=='SET' : v.tense!=='PRESENT') continue;
-    const _k = v.group==='structures' ? v.inf+'|'+v.en : v.inf;
-    if (!seen.has(_k)) seen.set(_k, {en:v.en, inf:v.inf, usage_fr:v.usage_fr||'', note:v.note||'', group:v.group||''});
-  }
-  let rows = [...seen.values()].sort((a,b) => a.en.replace('to ','').localeCompare(b.en.replace('to ','')));
+  let rows = apListRows(VERBS_ALL.filter(inVerbSet));
   if (q) rows = rows.filter(r => r.en.toLowerCase().includes(q) || r.inf.toLowerCase().includes(q) || r.note.toLowerCase().includes(q));
   rows = vqArrange(rows);
-  const isReg = r => r.note.toLowerCase().startsWith('regular');
 
   const tableRows = rows.map((r, i) => {
     const bg = i % 2 === 0 ? '#ffffff' : '#faf8f3';
-    const regColor = isReg(r) ? '#2e7d52' : '#c9a84c';
-    const regLabel = isReg(r) ? 'regular' : 'irregular';
+    const regColor = r.allReg ? '#2e7d52' : '#c9a84c';
+    const regLabel = r.label;
     return vqHead(rows,i,5)+'<tr style="background:'+bg+';">'
       + '<td style="padding:5px 10px;font-size:0.82rem;color:#8899bb;border-bottom:1px solid #e8ecf4;width:4%;">'+(i+1)+'.</td>'
       + '<td style="padding:5px 10px;font-size:0.82rem;color:#1a2744;border-bottom:1px solid #e8ecf4;width:30%;">'+r.en+'</td>'
-      + '<td style="padding:5px 10px;font-size:0.85rem;color:#3a8aaa;font-style:italic;border-bottom:1px solid #e8ecf4;width:28%;">'+r.inf+'</td>'
+      + '<td style="padding:5px 10px;font-size:0.85rem;color:#3a8aaa;font-style:italic;border-bottom:1px solid #e8ecf4;width:28%;">'+r.inf+(r.mark?' <b style="font-style:normal;color:#1a2744">('+r.mark+')</b>':'')+'</td>'
       + '<td style="padding:5px 10px;font-size:0.78rem;color:#c9a84c;border-bottom:1px solid #e8ecf4;width:26%;">'+(r.usage_fr||'')+'</td>'
       + '<td style="padding:5px 10px;font-size:0.72rem;color:'+regColor+';font-weight:600;border-bottom:1px solid #e8ecf4;white-space:nowrap;width:12%;">'+vqBadge(r)+regLabel+'</td>'
       + '</tr>';
@@ -14058,4 +14070,4 @@ function deck(el,m,n,x,y,face,gap){clear(el);const cs=[];for(let i=0;i<n;i++){co
   if (document.readyState === 'complete') start(); else window.addEventListener('load', start);
 })();
 </script>
-<script id="ap-build">window.__apBuild="4d6ae00d04";window.__apVer=199;(function(){var N=window.__apVer;function put(){try{var h=document.querySelector('header.aph-header');if(!h||document.getElementById('ap-ver'))return;var s=document.createElement('span');s.id='ap-ver';s.textContent='v'+N;s.style.cssText='position:absolute;right:10px;bottom:4px;font:600 11px/1 system-ui,sans-serif;color:#c9a84c;opacity:.8;pointer-events:none;letter-spacing:.04em;z-index:2';if(getComputedStyle(h).position==='static')h.style.position='relative';h.appendChild(s)}catch(e){}}put();document.addEventListener('DOMContentLoaded',put);window.addEventListener('load',put);setInterval(put,2000)})();</script>
+<script id="ap-build">window.__apBuild="fc1d286044";window.__apVer=200;(function(){var N=window.__apVer;function put(){try{var h=document.querySelector('header.aph-header');if(!h||document.getElementById('ap-ver'))return;var s=document.createElement('span');s.id='ap-ver';s.textContent='v'+N;s.style.cssText='position:absolute;right:10px;bottom:4px;font:600 11px/1 system-ui,sans-serif;color:#c9a84c;opacity:.8;pointer-events:none;letter-spacing:.04em;z-index:2';if(getComputedStyle(h).position==='static')h.style.position='relative';h.appendChild(s)}catch(e){}}put();document.addEventListener('DOMContentLoaded',put);window.addEventListener('load',put);setInterval(put,2000)})();</script>
