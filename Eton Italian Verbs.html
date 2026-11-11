@@ -4934,9 +4934,11 @@ function classifyNote(n){if(!n)return'irregular';const s=n.toLowerCase();if(s.st
 function apIsRefl(i) { return /rsi$/i.test(String(i || '').trim().split(/\s+/)[0]); }
 var AP_SPELL = ["litigare", "spiegare", "dimenticare", "cercare", "pagare", "giocare", "coricarsi", "incoraggiare", "cominciare", "viaggiare", "mangiare", "lasciare", "passeggiare", "invecchiare", "sbagliare", "assomigliare"].reduce(function (o, k) { o[k] = 1; return o; }, {});
 function apIsSpell(i) { return !!AP_SPELL[String(i || '').trim()]; }
-function apPPIrr(v) {   // perfect tense: judge the PARTICIPLE itself (potuto, dovuto, voluto are regular; fatto, venuto, stato are not)
-  var inf = String((v && v.inf && typeof v.inf === 'object') ? v.inf.inf : (v && v.inf) || '').trim().replace(/si$/, 'e');
-  var f = String(((v && v.forms) || [])[0] || '').replace(/\s*\(.*?\)\s*$/, '').trim(), p = f.split(/\s+/).pop();
+function apPPIrr(v) {   // perfect tense: judge the PARTICIPLE itself (potuto, dovuto, voluto follow the -ere pattern; fatto, venuto, stato do not)
+  var inf = String((v && v.inf && typeof v.inf === 'object') ? v.inf.inf : (v && v.inf) || '').trim().split(/\s+/)[0].replace(/si$/, 'e');
+  var f = String(((v && v.forms) || [])[0] || '').replace(/\(.*?\)/g, ' ').trim(), tk = f.split(/\s+/), ix = -1;
+  tk.forEach(function (w, n) { if (ix < 0 && /^(ho|hai|ha|abbiamo|avete|hanno|sono|sei|\u00e8|siamo|siete)$/.test(w)) ix = n; });
+  var p = ix >= 0 ? tk[ix + 1] : tk[tk.length - 1];
   if (/^esser/.test(inf)) return true;
   if (!p || p === '\u2014') return null;
   var sfx = /are$/.test(inf) ? 'ato' : /ere$/.test(inf) ? 'uto' : /ire$/.test(inf) ? 'ito' : '';
@@ -13543,4 +13545,4 @@ function deck(el,m,n,x,y,face,gap){clear(el);const cs=[];for(let i=0;i<n;i++){co
   if (document.readyState === 'complete') start(); else window.addEventListener('load', start);
 })();
 </script>
-<script id="ap-build">window.__apBuild="abf2583d22";window.__apVer=202;(function(){var N=window.__apVer;function put(){try{var h=document.querySelector('header.aph-header');if(!h||document.getElementById('ap-ver'))return;var s=document.createElement('span');s.id='ap-ver';s.textContent='v'+N;s.style.cssText='position:absolute;right:10px;bottom:4px;font:600 11px/1 system-ui,sans-serif;color:#c9a84c;opacity:.8;pointer-events:none;letter-spacing:.04em;z-index:2';if(getComputedStyle(h).position==='static')h.style.position='relative';h.appendChild(s)}catch(e){}}put();document.addEventListener('DOMContentLoaded',put);window.addEventListener('load',put);setInterval(put,2000)})();</script>
+<script id="ap-build">window.__apBuild="dd07512fb5";window.__apVer=203;(function(){var N=window.__apVer;function put(){try{var h=document.querySelector('header.aph-header');if(!h||document.getElementById('ap-ver'))return;var s=document.createElement('span');s.id='ap-ver';s.textContent='v'+N;s.style.cssText='position:absolute;right:10px;bottom:4px;font:600 11px/1 system-ui,sans-serif;color:#c9a84c;opacity:.8;pointer-events:none;letter-spacing:.04em;z-index:2';if(getComputedStyle(h).position==='static')h.style.position='relative';h.appendChild(s)}catch(e){}}put();document.addEventListener('DOMContentLoaded',put);window.addEventListener('load',put);setInterval(put,2000)})();</script>
