@@ -7322,7 +7322,7 @@ html.ap-sh-lock body{overflow:hidden}
 .ap-sh-g h3 small{font:500 .85rem var(--aph-body,system-ui);color:#6b7699;margin-left:8px}
 .ap-sh-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(310px,1fr));gap:8px}
 .ap-sh-c{display:flex;align-items:center;gap:8px;background:#fff;border:1.5px solid #d9d4c3;border-radius:12px;padding:6px 8px;min-height:78px}
-.ap-sh-c.kn .ap-sh-t{flex:1;min-width:0;display:flex;flex-direction:column;align-items:flex-start;gap:2px}
+.ap-sh-t{flex:1;min-width:0;display:flex;flex-direction:column;align-items:flex-start;gap:2px}
 .ap-sh-t button{border:none;background:none;text-align:left;padding:0;cursor:pointer;font-family:inherit;min-height:26px}
 .ap-sh-es strong{font-size:1.7rem;font-weight:800;color:#0b1530;line-height:1.15}
 .ap-sh-es .hm-vs{margin-left:5px;font-size:1.05rem!important;font-weight:800!important;color:#0b1530}
@@ -7330,6 +7330,10 @@ html.ap-sh-lock body{overflow:hidden}
 .ap-sh-t .ap-sh-cv{border:1.5px dashed var(--gold,#c9a84c);border-radius:8px;background:#fffbea;color:#8a6d1c;font-size:.82rem;padding:2px 10px;min-height:28px}
 .ap-sh-sp{flex:none;width:44px;height:44px;border-radius:50%;border:2px solid var(--navy,#1a2744);background:#fff;font-size:1.15rem;cursor:pointer;padding:0}
 .ap-sh-sp.on{background:var(--navy,#1a2744)}
+.ap-sh-grpf{display:flex;flex-wrap:wrap;align-items:center;gap:8px;margin:10px 0 2px}
+.ap-sh-grpf>span{font:700 .85rem var(--aph-body,system-ui);letter-spacing:.06em;text-transform:uppercase;color:#6b7699;margin-right:4px}
+.ap-sh-grpf button{border:2px solid var(--navy,#1a2744);background:#fff;color:var(--navy,#1a2744);border-radius:999px;font:600 .95rem var(--aph-body,system-ui);min-height:44px;padding:0 16px;cursor:pointer}
+.ap-sh-grpf button.on{background:var(--navy,#1a2744);color:var(--gold2,#e6c875)}
 .ap-sh-act{border:2px solid var(--gold,#c9a84c);background:transparent;color:var(--gold2,#e6c875);border-radius:10px;font:700 .9rem var(--aph-body,system-ui);min-height:44px;padding:0 14px;cursor:pointer}
 #apProj{display:none;position:fixed;inset:0;z-index:12600;background:#f7f4ec;flex-direction:column;font-family:var(--aph-body,system-ui);color:#0b1530}
 .ap-pr-bar{flex:none;display:flex;flex-wrap:wrap;align-items:center;gap:8px 14px;padding:8px 16px;background:var(--navy,#1a2744);color:#fff;border-bottom:3px solid var(--gold,#c9a84c)}
@@ -7537,15 +7541,16 @@ function hmSelText() {
 function hmGrpVerbs(g) { var all = VQ_TIER.E.concat(VQ_TIER.I, VQ_TIER.U); return all.filter(function (inf) { var t = VQ_MAP[inf]; return g === 'E1' ? (t === 'E' && VQ_HALF[inf] === 1) : g === 'E2' ? (t === 'E' && VQ_HALF[inf] === 2) : t === g; }); }
 /* ===== 100 Core Verbs learning sheet: one page, cover and check, hear each verb ===== */
 var AP_VLVL = {"ser":"H","estar":"M","tener":"H","ir":"H","hacer":"H","poder":"M","querer":"H","ver":"M","decir":"H","venir":"H","saber":"H","dar":"H","haber":"M","salir":"H","poner":"H","vivir":"M","trabajar":"H","estudiar":"E","comer":"H","llegar":"H","jugar":"H","pensar":"M","preferir":"E","llamarse":"H","levantarse":"H","acostarse":"H","llevar":"H","pasar":"E","beber":"M","aprender":"M","leer":"H","escribir":"M","empezar":"H","pedir":"H","dormir":"M","seguir":"H","hablar":"H","comprar":"H","necesitar":"M","gustar":"H","vestirse":"M","ponerse":"H","ducharse":"H","desayunar":"H","almorzar":"H","creer":"M","llamar":"H","pagar":"E","buscar":"H","practicar":"E","tocar":"E","nadar":"H","divertirse":"M","lavarse":"H","conocer":"H","entender":"H","volver":"H","mirar":"M","escuchar":"H","ayudar":"H","viajar":"M","visitar":"E","cocinar":"M","ganar":"E","perder":"H","esperar":"H","olvidar":"H","encontrar":"M","cenar":"H","correr":"M","sacar":"H","cruzar":"M","oír":"H","caer":"H","morir":"M","servir":"E","repetir":"E","sentir":"M","mentir":"H","reír":"H","sonreír":"H","andar":"H","caber":"H","suponer":"E","traer":"H","conducir":"H","valer":"M","recibir":"E","vender":"E","abrir":"H","decidir":"E","bailar":"M","cantar":"M","recordar":"M","romper":"M","quedarse":"H","explicar":"E","terminar":"M","entrar":"E","cambiar":"H"};
-var apSh = { lvl: 'all', perm: null, cover: 'none', rev: {} };
-function apShVerbs(g) { return ((apSh.perm && apSh.perm[g]) || hmGrpVerbs(g)).filter(function (i) { return apSh.lvl === 'all' || AP_VLVL[i] === apSh.lvl; }); }
+var apSh = { lvl: 'all', grp: 'all', perm: null, cover: 'none', rev: {} };
+function apShGrpOK(g) { var k = apSh.grp; return k === 'all' || k === g || (k === 'E' && (g === 'E1' || g === 'E2')); }
+function apShVerbs(g) { if (!apShGrpOK(g)) return []; return ((apSh.perm && apSh.perm[g]) || hmGrpVerbs(g)).filter(function (i) { return apSh.lvl === 'all' || AP_VLVL[i] === apSh.lvl; }); }
 function apShData() {
   var en = {}, sc = {};
   try { VERBS.forEach(function (v) { if (!en[v.inf]) en[v.inf] = String(v.en || '').toLowerCase(); if (v.tense === 'PRESENT' && !(v.inf in sc)) { var m = /stem-changing\s+\w+\W+(\w+)/.exec(v.note || ''); sc[v.inf] = (m && !/irregular/i.test(v.note || '')) ? m[1] : ''; } }); } catch (e) {}
   return { en: en, sc: sc };
 }
 function apShOpen() {
-  apSh.cover = 'none'; apSh.rev = {}; apSh.lvl = 'all';
+  apSh.cover = 'none'; apSh.rev = {}; apSh.lvl = 'all'; apSh.grp = 'all';
   var ov = document.getElementById('apSheet');
   if (!ov) { ov = document.createElement('div'); ov.id = 'apSheet'; ov.setAttribute('role', 'dialog'); ov.setAttribute('aria-label', 'The 100 Core Verbs'); ov.addEventListener('click', apShClick); document.body.appendChild(ov); }
   ov.style.display = 'block'; document.documentElement.classList.add('ap-sh-lock'); apShRender(); ov.scrollTop = 0;
@@ -7575,6 +7580,7 @@ function apShClick(e) {
   if (a === 'project') { apPrOpen(); return; }
   if (a === 'close') { apShClose(); return; }
   if (a === 'print') { try { window.print(); } catch (er) {} return; }
+  if (a === 'grp') { apSh.grp = s; apSh.rev = {}; apShRender(); return; }
   if (a === 'lvl') { apSh.lvl = s; apShRender(); return; }
   if (a === 'say') { apShSay(i, b); return; }
   if (a === 'cover') { apSh.cover = s; apSh.rev = {}; }
@@ -7669,11 +7675,12 @@ function apShPrint() {
     }
     return '<table><colgroup><col style="width:17%"><col style="width:16%"><col style="width:17%"><col style="width:16%"><col style="width:17%"><col style="width:16%"></colgroup><thead><tr><th class="g" colspan="6">' + g[1] + ' &middot; ' + g[3] + ' verbs</th></tr></thead><tbody>' + rows + '</tbody></table>';
   }).join('');
-  el.innerHTML = '<h1>The 100 Core Verbs &middot; ' + (HMC.lang || '') + (apSh.lvl === 'all' ? '' : ' &middot; ' + ({ E: 'Easy', M: 'Medium', H: 'Hard' })[apSh.lvl] + ' verbs') + '</h1>' + tabs;
+  el.innerHTML = '<h1>The 100 Core Verbs &middot; ' + (HMC.lang || '') + (apSh.grp === 'all' ? '' : ' &middot; ' + ({ E1: 'Essential 1', E2: 'Essential 2', E: 'Essential 1 + 2', I: 'Important', U: 'Useful' })[apSh.grp]) + (apSh.lvl === 'all' ? '' : ' &middot; ' + ({ E: 'Easy', M: 'Medium', H: 'Hard' })[apSh.lvl] + ' verbs') + '</h1>' + tabs;
 }
 function apShRender() {
   var ov = document.getElementById('apSheet'); if (!ov) return;
   var st = ov.scrollTop, d = apShData(), c = apSh.cover;
+  var grpRow = '<div class="ap-sh-grpf"><span>Show</span>' + [['all', 'All 100'], ['E1', 'Essential 1 (20)'], ['E2', 'Essential 2 (20)'], ['E', 'Essential 1 + 2 (40)'], ['I', 'Important (30)'], ['U', 'Useful (30)']].map(function (o) { return '<button class="' + (apSh.grp === o[0] ? 'on' : '') + '" data-act="grp" data-s="' + o[0] + '">' + o[1] + '</button>'; }).join('') + '</div>';
   var body = HM_GRP.map(function (g) {
     var vs = apShVerbs(g[0]); if (!vs.length) return '';
     return '<section class="ap-sh-g"><h3>' + g[1] + ' <small>' + vs.length + ' verbs</small></h3><div class="ap-sh-grid">' + vs.map(function (i) {
@@ -7689,7 +7696,7 @@ function apShRender() {
   ov.innerHTML = '<div class="ap-sh-bar"><button class="ap-sh-back" data-act="close">&#8249; 100 Core Verbs</button><h2>The 100 Core Verbs</h2><div class="ap-sh-seg">' + seg + '</div><div class="ap-sh-lvf" aria-label="Show verbs by level">' + [['all', 'All levels'], ['E', 'Easy'], ['M', 'Medium'], ['H', 'Hard']].map(function (o) { return '<button class="' + (apSh.lvl === o[0] ? 'on' : '') + '" data-act="lvl" data-s="' + o[0] + '">' + o[1] + '</button>'; }).join('') + '</div>'
     + (c !== 'none' ? '<button class="ap-sh-lk" data-act="revall">Reveal all</button><button class="ap-sh-lk" data-act="coverall">Cover all</button>' : '')
     + '<button class="ap-sh-act" data-act="shuffle">&#128256; Shuffle</button>' + (apSh.perm ? '<button class="ap-sh-lk" data-act="book">Book order</button>' : '') + '<button class="ap-sh-act" data-act="project">&#128253; Project</button><button class="ap-sh-lk ap-sh-pr" data-act="print">&#128424; Print</button></div>'
-    + '<div class="ap-sh-in"><p class="ap-sh-hint">One sheet to learn from. Cover one side and test yourself, tap a covered box to check, tap &#128266; to hear the verb. Each verb is tagged <b>Easy</b> (looks like the English), <b>Medium</b> (looks like a related English word) or <b>Hard</b> (nothing to go on), so you can learn the hard ones first, or the easy ones first.</p>' + body + '</div>';
+    + '<div class="ap-sh-in"><p class="ap-sh-hint">One sheet to learn from. Cover one side and test yourself, tap a covered box to check, tap &#128266; to hear the verb. Each verb is tagged <b>Easy</b> (looks like the English), <b>Medium</b> (looks like a related English word) or <b>Hard</b> (nothing to go on), so you can learn the hard ones first, or the easy ones first.</p>' + grpRow + body + '</div>';
   apShPrint();
   ov.scrollTop = st;
 }
@@ -28640,4 +28647,4 @@ function deck(el,m,n,x,y,face,gap){clear(el);const cs=[];for(let i=0;i<n;i++){co
   if (document.readyState === 'complete') start(); else window.addEventListener('load', start);
 })();
 </script>
-<script id="ap-build">window.__apBuild="413d913826";window.__apVer=215;(function(){var N=window.__apVer;function put(){try{var h=document.querySelector('header.aph-header');if(!h||document.getElementById('ap-ver'))return;var s=document.createElement('span');s.id='ap-ver';s.textContent='v'+N;s.style.cssText='position:absolute;right:10px;bottom:4px;font:600 11px/1 system-ui,sans-serif;color:#c9a84c;opacity:.8;pointer-events:none;letter-spacing:.04em;z-index:2';if(getComputedStyle(h).position==='static')h.style.position='relative';h.appendChild(s)}catch(e){}}put();document.addEventListener('DOMContentLoaded',put);window.addEventListener('load',put);setInterval(put,2000)})();</script>
+<script id="ap-build">window.__apBuild="d316c9fef1";window.__apVer=216;(function(){var N=window.__apVer;function put(){try{var h=document.querySelector('header.aph-header');if(!h||document.getElementById('ap-ver'))return;var s=document.createElement('span');s.id='ap-ver';s.textContent='v'+N;s.style.cssText='position:absolute;right:10px;bottom:4px;font:600 11px/1 system-ui,sans-serif;color:#c9a84c;opacity:.8;pointer-events:none;letter-spacing:.04em;z-index:2';if(getComputedStyle(h).position==='static')h.style.position='relative';h.appendChild(s)}catch(e){}}put();document.addEventListener('DOMContentLoaded',put);window.addEventListener('load',put);setInterval(put,2000)})();</script>
