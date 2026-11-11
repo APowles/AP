@@ -7331,20 +7331,24 @@ html.ap-sh-lock body{overflow:hidden}
 .ap-sh-t .ap-sh-cv{border:1.5px dashed var(--gold,#c9a84c);border-radius:8px;background:#fffbea;color:#8a6d1c;font-size:.82rem;padding:2px 10px;min-height:28px}
 .ap-sh-sp{flex:none;width:44px;height:44px;border-radius:50%;border:2px solid var(--navy,#1a2744);background:#fff;font-size:1.15rem;cursor:pointer;padding:0}
 .ap-sh-sp.on{background:var(--navy,#1a2744)}
+#apPrintSheet{display:none}
+@page{size:A4;margin:12mm}
 @media print{
-html.ap-sh-lock body>*:not(#apSheet){display:none!important}
-html.ap-sh-lock,html.ap-sh-lock body{overflow:visible!important;height:auto!important;background:#fff!important}
-#apSheet{position:static!important;overflow:visible!important;background:#fff!important}
-.ap-sh-bar{position:static;background:#fff!important;color:#0b1530!important;border-bottom:2px solid #0b1530;padding:0 0 6px}
-.ap-sh-bar h2{color:#0b1530!important;font-size:1.3rem}
-.ap-sh-bar button,.ap-sh-seg,.ap-sh-hint,.ap-sh-sp,.ap-sh-n{display:none!important}
-.ap-sh-in{max-width:none;padding:0}
-.ap-sh-grid{grid-template-columns:repeat(4,1fr);gap:3px}
-.ap-sh-c{break-inside:avoid;min-height:0;padding:3px 6px;border:1px solid #999;background:#fff!important}
-.ap-sh-g{break-inside:auto}.ap-sh-g h3{break-after:avoid;margin:10px 0 5px;font-size:1.05rem}
-.ap-sh-k{width:20px;height:20px;border-width:1.5px;background:#fff!important}
-.ap-sh-es strong{font-size:1.05rem}.ap-sh-en{font-size:.85rem}
-.ap-sh-t .ap-sh-cv{border-color:#999;background:#fff!important;color:transparent;min-height:20px;width:100%}
+html.ap-sh-lock body>*:not(#apPrintSheet){display:none!important}
+html.ap-sh-lock,html.ap-sh-lock body{overflow:visible!important;height:auto!important;background:#fff!important;margin:0!important;padding:0!important}
+html.ap-sh-lock #apPrintSheet{display:block!important;position:static;color:#000;background:#fff;font-family:Arial,Helvetica,sans-serif}
+#apPrintSheet h1{font-size:16pt;margin:0 0 6px}
+#apPrintSheet table{width:100%;border-collapse:collapse;table-layout:fixed;margin:0 0 10px;page-break-inside:auto}
+#apPrintSheet thead{display:table-header-group}
+#apPrintSheet th.g{text-align:left;font-size:12pt;padding:4px 2px 3px;border-bottom:2px solid #000}
+#apPrintSheet tr{page-break-inside:avoid;break-inside:avoid}
+#apPrintSheet td{padding:3px 3px;border-bottom:1px solid #bbb;vertical-align:middle;font-size:10pt;line-height:1.2;overflow:hidden}
+#apPrintSheet td.b{text-align:center}
+#apPrintSheet td.b i{display:inline-block;width:11px;height:11px;border:1.5px solid #000;border-radius:2px;vertical-align:middle}
+#apPrintSheet td.s{font-weight:700;font-size:11.5pt;padding-left:2px}
+#apPrintSheet td.s small{font-weight:400;font-size:9pt}
+#apPrintSheet td.e{color:#333;border-right:1px solid #bbb}
+#apPrintSheet td.e:last-child{border-right:none}
 }
 .ap-sh-open{align-self:flex-start;border:2px solid var(--navy,#1a2744);background:var(--navy,#1a2744);color:var(--gold2,#e6c875);border-radius:12px;font:700 1rem var(--aph-body,system-ui);min-height:46px;padding:0 18px;margin:2px 0 10px;cursor:pointer}
 .hm-exgrid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
@@ -7551,6 +7555,21 @@ function apShClick(e) {
   else if (a === 'clear') { apSh.known = {}; apShSave(); }
   apShRender();
 }
+function apShPrint() {
+  var el = document.getElementById('apPrintSheet'); if (!el) { el = document.createElement('div'); el.id = 'apPrintSheet'; document.body.appendChild(el); }
+  var d = apShData(), c = apSh.cover;
+  var tabs = HM_GRP.map(function (g) {
+    var vs = hmGrpVerbs(g[0]), rows = '';
+    for (var r = 0; r < vs.length; r += 3) {
+      rows += '<tr>' + [0, 1, 2].map(function (k) {
+        var i = vs[r + k]; if (!i) return '<td class="b"></td><td class="s"></td><td class="e"></td>';
+        return '<td class="b"><i></i></td><td class="s">' + (c === 'es' ? '&nbsp;' : i + (d.sc[i] ? ' <small>(' + d.sc[i] + ')</small>' : '')) + '</td><td class="e">' + (c === 'en' ? '&nbsp;' : (d.en[i] || '')) + '</td>';
+      }).join('') + '</tr>';
+    }
+    return '<table><colgroup><col style="width:4%"><col style="width:15%"><col style="width:14%"><col style="width:4%"><col style="width:15%"><col style="width:14%"><col style="width:4%"><col style="width:15%"><col style="width:15%"></colgroup><thead><tr><th class="g" colspan="9">' + g[1] + ' &middot; ' + g[3] + ' verbs</th></tr></thead><tbody>' + rows + '</tbody></table>';
+  }).join('');
+  el.innerHTML = '<h1>The 100 Core Verbs &middot; ' + (HMC.lang || '') + '</h1>' + tabs;
+}
 function apShRender() {
   var ov = document.getElementById('apSheet'); if (!ov) return;
   var st = ov.scrollTop, d = apShData(), kn = apSh.known, nK = 0, c = apSh.cover;
@@ -7569,6 +7588,7 @@ function apShRender() {
     + (c !== 'none' ? '<button class="ap-sh-lk" data-act="revall">Reveal all</button><button class="ap-sh-lk" data-act="coverall">Cover all</button>' : '')
     + '<button class="ap-sh-lk ap-sh-pr" data-act="print">&#128424; Print</button><span class="ap-sh-n">' + nK + ' of 100 known</span>' + (nK ? '<button class="ap-sh-lk" data-act="clear">Clear ticks</button>' : '') + '</div>'
     + '<div class="ap-sh-in"><p class="ap-sh-hint">One sheet to learn from. Cover one side and test yourself, tap a covered box to check, tap &#128266; to hear the verb, and tick the verbs you know.</p>' + body + '</div>';
+  apShPrint();
   ov.scrollTop = st;
 }
 function hmVerbList() {
@@ -28517,4 +28537,4 @@ function deck(el,m,n,x,y,face,gap){clear(el);const cs=[];for(let i=0;i<n;i++){co
   if (document.readyState === 'complete') start(); else window.addEventListener('load', start);
 })();
 </script>
-<script id="ap-build">window.__apBuild="d92e4a79df";window.__apVer=208;(function(){var N=window.__apVer;function put(){try{var h=document.querySelector('header.aph-header');if(!h||document.getElementById('ap-ver'))return;var s=document.createElement('span');s.id='ap-ver';s.textContent='v'+N;s.style.cssText='position:absolute;right:10px;bottom:4px;font:600 11px/1 system-ui,sans-serif;color:#c9a84c;opacity:.8;pointer-events:none;letter-spacing:.04em;z-index:2';if(getComputedStyle(h).position==='static')h.style.position='relative';h.appendChild(s)}catch(e){}}put();document.addEventListener('DOMContentLoaded',put);window.addEventListener('load',put);setInterval(put,2000)})();</script>
+<script id="ap-build">window.__apBuild="a2ddf88e4e";window.__apVer=209;(function(){var N=window.__apVer;function put(){try{var h=document.querySelector('header.aph-header');if(!h||document.getElementById('ap-ver'))return;var s=document.createElement('span');s.id='ap-ver';s.textContent='v'+N;s.style.cssText='position:absolute;right:10px;bottom:4px;font:600 11px/1 system-ui,sans-serif;color:#c9a84c;opacity:.8;pointer-events:none;letter-spacing:.04em;z-index:2';if(getComputedStyle(h).position==='static')h.style.position='relative';h.appendChild(s)}catch(e){}}put();document.addEventListener('DOMContentLoaded',put);window.addEventListener('load',put);setInterval(put,2000)})();</script>
