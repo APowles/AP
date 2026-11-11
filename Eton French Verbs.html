@@ -4987,14 +4987,13 @@ function apIsRefl(i) { return /^(se\s|s['’])/i.test(String(i || '').trim()); }
 var AP_SPELL = ["acheter", "amener", "emmener", "enlever", "se lever", "se promener", "appeler", "s'appeler", "payer", "essayer", "envoyer", "s'ennuyer", "s'essuyer", "espérer", "préférer", "s'inquiéter", "commencer", "partager", "voyager", "ranger", "obliger", "encourager", "se changer", "s'allonger"].reduce(function (o, k) { o[k] = 1; return o; }, {});
 function apIsSpell(i) { return !!AP_SPELL[String(i || '').trim()]; }
 function apPPIrr(v) {   // perfect tense: judge the PARTICIPLE itself (fini, vendu, allé are regular; pris, fait, venu, pu, su are not)
-  var inf = String((v && v.inf && typeof v.inf === 'object') ? v.inf.inf : (v && v.inf) || '').trim().replace(/^(se\s+|s['’]|y\s+)/, '');
-  if (/\s/.test(inf)) return null;   // a phrase or structure (se faire mal, rendre visite à): use its note
+  var inf0 = String((v && v.inf && typeof v.inf === 'object') ? v.inf.inf : (v && v.inf) || '').trim().replace(/^(se\s+|s['’]|y\s+)/, ''), tl = inf0.split(/\s+/), inf = tl[0];   // a phrase (se faire mal, rendre visite à): judge its verb
   var f = ((v && v.forms) || []).filter(function (x) { return x && !/^-+$/.test(String(x).trim()); })[0];   // first real form (impersonal verbs only have the il form)
   if (!f) return null;
   var tk = String(f).replace(/[’']/g, "' ").split(/\s+/), ix = -1;
   tk.forEach(function (w, n) { if (ix < 0 && /^(ai|as|a|avons|avez|ont|suis|es|est|sommes|êtes|sont)$/.test(w.replace(/^.*'\s*/, ''))) ix = n; });
   var p = ix >= 0 ? String(tk[ix + 1] || '').replace(/\(.*$/, '') : '';
-  if (!p || !/[a-zà-ÿ]/i.test(p)) return null;
+  if (!p || !/[a-zà-ÿ]/i.test(p) || tl.slice(1).indexOf(p) >= 0) return null;   // no participle found, or a word of the phrase stands in its place (s'entendre bien avec X)
   // regular only if the participle is exactly stem + regular ending: aimer-aimé, finir-fini, vendre-vendu. Every -oir verb (pu, su, voulu, vu, eu, fallu) and boire-bu, lire-lu, connaître-connu etc. are irregular.
   var reg = /er$/.test(inf) ? inf.slice(0, -2) + 'é' : /oir$/.test(inf) ? null : /re$/.test(inf) ? inf.slice(0, -2) + 'u' : /ir$/.test(inf) ? inf.slice(0, -2) + 'i' : undefined;
   if (reg === undefined) return null;
@@ -6304,6 +6303,104 @@ function apListTenseNames() { var t = apListTenses(); return t.map(function (k) 
 function apListMark(inf, rec, t) {
   return '';
 }
+
+/* ===== "Form" column in View & Print: the form(s) to learn in each chosen tense. BOLD = the part that is not regular ===== */
+var hmAux = 'all';   // Perfect tense: 'all', 'avoir' or 'etre' verbs
+var AP_FM_ORDER = ['PRESENT', 'IMPERFECT', 'FUTURE', 'CONDITIONNEL', 'PASSE_COMPOSE'];
+var AP_FM_SHORT = { PRESENT: 'pr\u00e9s.', IMPERFECT: 'imp.', FUTURE: 'fut.', CONDITIONNEL: 'cond.', PASSE_COMPOSE: 'p.c.' };
+var AP_FM_SUP = ['\u00b9', '\u00b2', '\u00b3', '\u2074', '\u2075', '\u2076'];
+var AP_FM_DOUBLE = ['appeler', 'rappeler', 'jeter', 'rejeter', 'projeter', '\u00e9peler', 'renouveler'];
+function apFmSrc() { return (typeof VERBS_ALL !== 'undefined' && VERBS_ALL.length) ? VERBS_ALL : VERBS; }
+function apFmTenses() { var sel = (typeof selectedTenses !== 'undefined' && selectedTenses) ? selectedTenses : new Set(); return AP_FM_ORDER.filter(function (k) { return sel.has(k); }); }
+function apFmEsc(s) { return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;'); }
+function apFmDash(x) { return !x || /^[\u2014-]+$/.test(String(x).trim()); }
+function apFmClean(f, refl, keepSubj) {
+  var s = String(f || '').normalize('NFC').replace(/\([^)]*\)/g, ' ').replace(/\s+/g, ' ').trim();
+  if (!keepSubj) { s = s.replace(/^(je|tu|il|elle|nous|vous|ils|elles)\s+/i, '').replace(/^j['\u2019]/i, ''); if (refl) s = s.replace(/^(me|te|se|nous|vous)\s+/i, '').replace(/^(m|t|s)['\u2019]/i, ''); }
+  return s;
+}
+function apFmHead(inf) { var s = String(inf).trim(), refl = /^(se\s|s['\u2019])/.test(s); s = s.replace(/^(se\s+|s['\u2019]|y\s+)/, ''); var w = s.split(/\s+/); return { head: w[0], tail: w.slice(1).join(' '), refl: refl }; }
+function apFmStem(b, mute, fut) {   // the stem of an -er verb, with its spelling changes (acheter: ach\u00e8t-, appeler: appell-, payer: pai-)
+  var st = b.slice(0, -2);
+  if (!mute) return st;
+  if (/yer$/.test(b)) return st.slice(0, -1) + 'i';
+  if (/e[lt]er$/.test(b)) return AP_FM_DOUBLE.indexOf(b) >= 0 ? st + st.slice(-1) : st.replace(/e([lt])$/, '\u00e8$1');
+  if (/e[^aeiouy\u00e9\u00e8\u00ea]er$/.test(b)) return st.replace(/e([^aeiouy\u00e9\u00e8\u00ea])$/, '\u00e8$1');
+  if (!fut && /\u00e9[^aeiouy\u00e9\u00e8\u00ea]+er$/.test(b)) return st.replace(/\u00e9([^aeiouy\u00e9\u00e8\u00ea]+)$/, '\u00e8$1');
+  return st;
+}
+function apFmRegPres(b, p, a) {   // regular present, person p (0-5); a = the actual forms (to tell the three -ir/-re patterns apart)
+  if (/oir$/.test(b)) { var nu = a[3] || ''; if (!/ons$/.test(nu)) return null; return p === 3 ? nu : p === 4 ? nu.slice(0, -3) + 'ez' : p === 5 ? nu.slice(0, -3) + 'ent' : null; }   // -oir verbs: nous, vous and ils follow the nous stem; je, tu, il are irregular
+  var m = /^(.*)(er|ir|re)$/.exec(b); if (!m) return null;
+  var c = m[2], E;
+  if (c === 'er') E = ['e', 'es', 'e', 'ons', 'ez', 'ent'];
+  else if (c === 're') E = ['s', 's', '', 'ons', 'ez', 'ent'];
+  else E = /issons$/.test(a[3] || '') ? ['is', 'is', 'it', 'issons', 'issez', 'issent'] : /e$/.test(a[0] || '') ? ['e', 'es', 'e', 'ons', 'ez', 'ent'] : ['s', 's', 't', 'ons', 'ez', 'ent'];
+  var st = c === 'er' ? apFmStem(b, p !== 3 && p !== 4) : m[1];
+  if (c === 'er' && p === 3) { if (/c$/.test(st)) st = st.slice(0, -1) + '\u00e7'; else if (/g$/.test(st)) st += 'e'; }
+  return st + E[p];
+}
+function apFmRegStem(b) {   // future / conditional stem
+  var m = /^(.*)(er|ir|re)$/.exec(b); if (!m || /oir$/.test(b)) return null;
+  if (m[2] === 'er') return apFmStem(b, true, true) + 'er';
+  return m[2] === 're' ? b.slice(0, -1) : b;
+}
+function apFmPPWord(rec) {
+  var f = (rec.forms || []).filter(function (x) { return !apFmDash(x); })[0]; if (!f) return '';
+  var tk = String(f).normalize('NFC').replace(/[\u2019']/g, "' ").split(/\s+/), ix = -1;
+  tk.forEach(function (w, n) { if (ix < 0 && /^(ai|as|a|avons|avez|ont|suis|es|est|sommes|\u00eates|sont)$/.test(w.replace(/^.*'\s*/, ''))) ix = n; });
+  var p = ix >= 0 ? String(tk[ix + 1] || '').replace(/\(.*$/, '') : '';
+  return /[a-z\u00e0-\u00ff]/i.test(p) ? p : '';
+}
+function apAuxOf(inf) {   // 'avoir' or '\u00eatre', from the perfect-tense record
+  var r = apFmSrc().find(function (x) { return x.inf === inf && x.tense === 'PASSE_COMPOSE'; });
+  if (!r) return '';
+  var f = (r.forms || []).filter(function (x) { return !apFmDash(x); })[0] || '', tk = String(f).normalize('NFC').replace(/\([^)]*\)/g, ' ').replace(/[\u2019']/g, "' ").split(/\s+/);
+  for (var n = 0; n < tk.length; n++) { var w = tk[n].replace(/^.*'\s*/, ''); if (/^(ai|as|a|avons|avez|ont)$/.test(w)) return 'avoir'; if (/^(suis|es|est|sommes|\u00eates|sont)$/.test(w)) return '\u00eatre'; }
+  return '';
+}
+function apAuxKey(inf) { var a = apAuxOf(inf); return a === '\u00eatre' ? 'etre' : a; }
+function apFmLine(inf, t) {   // { html, text } for one tense, or null
+  var src = apFmSrc(), hd = apFmHead(inf), all = src.filter(function (x) { return x.inf === inf && x.tense === t; });
+  if (!all.length) return null;
+  var rec = all[0], fs = (rec.forms || []).map(function (f) { var s = apFmClean(f, hd.refl); if (hd.tail && s.slice(-hd.tail.length - 1) === ' ' + hd.tail) s = s.slice(0, -hd.tail.length - 1).trim(); return s; });
+  if (apFmDash((rec.forms || [])[0])) {   // impersonal or third-person-only verb (il faut, co\u00fbter): show its forms plain
+    var got = []; all.forEach(function (x) { (x.forms || []).forEach(function (f) { if (!apFmDash(f)) got.push(apFmClean(f, false, true)); }); });
+    return got.length ? { html: got.map(apFmEsc).join(' &middot; '), text: got.join(' / ') } : null;
+  }
+  if (t === 'PASSE_COMPOSE') { var w = apFmPPWord(rec); if (!w) return null; var ir = apPPIrr(rec) === true; return { html: ir ? '<b>' + apFmEsc(w) + '</b>' : apFmEsc(w), text: w }; }
+  var a = fs[0];
+  if (apFmDash(a)) return null;
+  if (t === 'PRESENT') {
+    var irr = [];
+    for (var i = 0; i < 6; i++) { if (apFmDash(fs[i])) continue; var r = apFmRegPres(hd.head, i, fs); if (r !== fs[i]) irr.push(i); }
+    if (!irr.length) return { html: apFmEsc(a), text: a };
+    return { html: irr.map(function (i) { return '<span class="ap-fm-p"><span class="ap-fm-n">' + AP_FM_SUP[i] + '</span><b>' + apFmEsc(fs[i]) + '</b></span>'; }).join(' '), text: irr.map(function (i) { return AP_FM_SUP[i] + fs[i]; }).join(' ') };
+  }
+  var reg, end;
+  if (t === 'IMPERFECT') {
+    var pr = src.filter(function (x) { return x.inf === inf && x.tense === 'PRESENT'; })[0], nous = pr ? apFmClean((pr.forms || [])[3], hd.refl) : '';
+    if (hd.tail && nous.slice(-hd.tail.length - 1) === ' ' + hd.tail) nous = nous.slice(0, -hd.tail.length - 1).trim();
+    reg = /ons$/.test(nous) ? nous.slice(0, -3) + 'ais' : null; end = 'ais';
+  } else {
+    var sm = apFmRegStem(hd.head); end = t === 'FUTURE' ? 'ai' : 'ais'; reg = sm === null ? null : sm + end;
+  }
+  if (reg === a) return { html: apFmEsc(a), text: a };
+  if (a.slice(-end.length) === end && a.length > end.length) return { html: '<b>' + apFmEsc(a.slice(0, -end.length)) + '</b>' + apFmEsc(end), text: a };
+  return { html: '<b>' + apFmEsc(a) + '</b>', text: a };
+}
+function apFmCell(inf) {   // all chosen tenses for one verb
+  var ts = apFmTenses(), lines = [];
+  ts.forEach(function (t) { var l = apFmLine(inf, t) || { html: '<span class="ap-fm-n">&mdash;</span>', text: '\u2014' }; lines.push({ t: t, l: l }); });
+  var lab = ts.length > 1;
+  return { html: lines.map(function (x) { return (lab ? '<i class="ap-fm-t">' + AP_FM_SHORT[x.t] + '</i> ' : '') + x.l.html; }).join('<br>'), text: lines.map(function (x) { return (lab ? AP_FM_SHORT[x.t] + ' ' : '') + x.l.text; }).join('; ') };
+}
+function hmSetAux(a) { hmAux = a; renderIntro(); }
+function hmAuxHtml(kind) {
+  if (typeof selectedTenses === 'undefined' || !selectedTenses.has('PASSE_COMPOSE') || mode === 'infinitives') return '';
+  var ch = kind === 'aph' ? chip : vbChip, nc = kind === 'aph' ? 'aph-note' : 'hm-note';
+  return '<div class="hm-row" style="margin-top:6px"><span class="' + nc + '" style="margin:0 6px 0 0">Perfect tense:</span>' + ch(hmAux === 'all', "hmSetAux('all')", 'All verbs') + ch(hmAux === 'avoir', "hmSetAux('avoir')", 'avoir verbs only') + ch(hmAux === 'etre', "hmSetAux('etre')", '\u00eatre verbs only') + '</div>';
+}
 var AP_LT_REG = { regular: 'regular ', irregular: 'irregular ', reflexive: 'reflexive ', spelling: 'spelling-change ' };
 function apListRows(src) {
   var ts = apListTenses(), seen = new Map(), on = apRegOn(), idx = {};
@@ -6311,8 +6408,10 @@ function apListRows(src) {
   src.forEach(function (v) {
     if (v.group === 'structures' ? v.tense !== 'SET' : v.tense !== 'PRESENT') return;
     var k = v.group === 'structures' ? v.inf + '|' + v.en : v.inf; if (seen.has(k)) return;
-    var base = { en: v.en, inf: v.inf, usage_fr: v.usage_fr || '', usage_en: v.usage_en || '', note: v.note || '', group: v.group || '' };
+    var base = { en: v.en, inf: v.inf, usage_fr: v.usage_fr || '', usage_en: v.usage_en || '', note: v.note || '', group: v.group || '', fm: '', fmText: '', aux: '' };
     if (v.group === 'structures') { base.label = classifyNote(base.note); base.allReg = base.label === 'regular'; base.mark = ''; seen.set(k, base); return; }
+    if (hmAux !== 'all' && ts.indexOf('PASSE_COMPOSE') >= 0 && apAuxKey(v.inf) !== hmAux) return;   // Perfect tense: only the avoir (or être) verbs
+    var fc = apFmCell(v.inf); base.fm = fc.html; base.fmText = fc.text; if (ts.indexOf('PASSE_COMPOSE') >= 0) base.aux = apAuxOf(v.inf);
     var recs = [];
     ts.forEach(function (t) { var r = idx[v.inf + '|' + t]; if (r) recs.push({ t: t, rec: r, note: r.note || '' }); });
     if (!recs.length) { if (on) return; recs = [{ t: 'PRESENT', rec: v, note: v.note || '' }]; }
@@ -6332,7 +6431,7 @@ function copyItVerbList(){
   const q=(document.getElementById('verbListSearch').value||'').trim().toLowerCase();
   let rows=apListRows(liveVerbs.filter(inVerbSet));
   if(q)rows=rows.filter(r=>r.en.toLowerCase().includes(q)||r.inf.toLowerCase().includes(q));
-  const text=rows.map(r=>(r.inf+(r.mark?' ('+r.mark+')':'')+'  —  '+r.en+(r.usage_fr?'  '+r.usage_fr:''))).join('\n');
+  const text=rows.map(r=>(r.inf+(r.mark?' ('+r.mark+')':'')+'  —  '+r.en+(r.fmText?'  —  '+r.fmText+(r.aux?' ('+r.aux+')':''):'')+(r.usage_fr?'  '+r.usage_fr:''))).join('\n');
   navigator.clipboard.writeText(text).then(()=>{
     const btn=document.getElementById('copyItVerbListBtn');
     const orig=btn.textContent;btn.textContent='✓ Copied!';btn.style.color='var(--correct)';
@@ -6349,19 +6448,22 @@ function renderVerbListTable(q){
   const editAttrs=editorUnlocked
     ?`readonly onfocus="this.removeAttribute('readonly');this.style.borderBottom='1px dashed #e2e6f0'" onblur="this.setAttribute('readonly','');this.style.borderBottom='none';saveVerbListField(this)" onkeydown="if(event.key==='Enter')this.blur()"`
     :`readonly`;
+  const hasFm=apFmTenses().length>0&&rows.some(r=>r.fm), hasAux=hasFm&&apFmTenses().indexOf('PASSE_COMPOSE')>=0, nc=4+(hasFm?1:0)+(hasAux?1:0);
   const html=`
     <div class="vb-vp-n">${rows.length} ${apRegOn()?(AP_LT_REG[regFilter]||''):''}verbs${apRegOn()?' ('+apListTenseNames()+')':''}${editorUnlocked?' &nbsp;·&nbsp; <span style="font-style:italic;">Click any cell to edit · Enter or click away to save</span>':''}</div>
-    <div class="vb-vp-scroll"><table class="vb-vp-table">
-      <thead><tr><th>English</th><th>French</th><th>Usage (fr)</th><th></th></tr></thead>
-      <tbody>${rows.map((r,i)=>vqHead(rows,i,4)+`
+    <div class="vb-vp-scroll"><table class="vb-vp-table${hasFm?' vb-fmt':''}">
+      <thead><tr><th>English</th><th>French</th>${hasFm?'<th>Form to learn</th>':''}${hasAux?'<th class="vb-tha">Auxiliary</th>':''}<th class="vb-thu">Usage (fr)</th><th></th></tr></thead>
+      <tbody>${rows.map((r,i)=>vqHead(rows,i,nc)+`
       <tr>
         <td><input class="vb-en" value="${esc(r.en)}" data-field="en" data-inf="${esc(r.inf)}" ${editAttrs}></td>
         <td style="white-space:nowrap"><input class="vb-inf" value="${esc(r.inf)}" ${r.mark?`style="width:${r.inf.length+1}ch"`:''} data-field="inf" data-inf="${esc(r.inf)}" ${editAttrs}>${r.mark?`<span style="font-weight:700;color:var(--navy);white-space:nowrap"> (${r.mark})</span>`:''}</td>
+        ${hasFm?`<td class="vb-fm">${r.fm}</td>`:''}${hasAux?`<td class="vb-fm vb-ax">${r.aux}</td>`:''}
         <td><input class="vb-us" value="${esc(r.usage_fr)}" data-field="usage_fr" data-inf="${esc(r.inf)}" placeholder="—" ${editAttrs}></td>
         <td class="vb-reg ${r.allReg?'r':'i'}">${vqBadge(r)}${r.label}</td>
       </tr>`).join('')}</tbody>
     </table></div>`;
   document.getElementById('verbListBody').innerHTML=html;
+  try{var bx=document.querySelector('#verbListModal .vb-vp-box');if(bx)bx.style.maxWidth=hasFm?'1080px':'';}catch(e){}
 }
 function saveVerbListField(el){
   const newVal=el.value.trim();
@@ -6971,15 +7073,18 @@ function printItVerbList() {
   if (q) rows = rows.filter(r => r.en.toLowerCase().includes(q) || r.inf.toLowerCase().includes(q) || r.note.toLowerCase().includes(q));
   rows = vqArrange(rows);
 
+  const hasFm = apFmTenses().length > 0 && rows.some(r => r.fm), hasAux = hasFm && apFmTenses().indexOf('PASSE_COMPOSE') >= 0, nc = 5 + (hasFm ? 1 : 0) + (hasAux ? 1 : 0);
   const tableRows = rows.map((r, i) => {
     const bg = i % 2 === 0 ? '#ffffff' : '#faf8f3';
     const regColor = r.allReg ? '#2e7d52' : '#c9a84c';
     const regLabel = r.label;
-    return vqHead(rows,i,5)+'<tr style="background:'+bg+';">'
+    return vqHead(rows,i,nc)+'<tr style="background:'+bg+';">'
       + '<td style="padding:5px 10px;font-size:0.82rem;color:#8899bb;border-bottom:1px solid #e8ecf4;width:4%;">'+(i+1)+'.</td>'
       + '<td style="padding:5px 10px;font-size:0.82rem;color:#1a2744;border-bottom:1px solid #e8ecf4;width:30%;">'+r.en+'</td>'
       + '<td style="padding:5px 10px;font-size:0.85rem;color:#3a8aaa;font-style:italic;border-bottom:1px solid #e8ecf4;width:28%;">'+r.inf+(r.mark?' <b style="font-style:normal;color:#1a2744">('+r.mark+')</b>':'')+'</td>'
-      + '<td style="padding:5px 10px;font-size:0.78rem;color:#c9a84c;border-bottom:1px solid #e8ecf4;width:26%;">'+(r.usage_fr||'')+'</td>'
+      + (hasFm ? '<td style="padding:5px 10px;font-size:0.85rem;color:#1a2744;border-bottom:1px solid #e8ecf4;">'+r.fm+'</td>' : '')
+      + (hasAux ? '<td style="padding:5px 10px;font-size:0.78rem;color:#1a2744;border-bottom:1px solid #e8ecf4;">'+r.aux+'</td>' : '')
+      + '<td style="padding:5px 10px;font-size:0.78rem;color:#c9a84c;border-bottom:1px solid #e8ecf4;">'+(r.usage_fr||'')+'</td>'
       + '<td style="padding:5px 10px;font-size:0.72rem;color:'+regColor+';font-weight:600;border-bottom:1px solid #e8ecf4;white-space:nowrap;width:12%;">'+vqBadge(r)+regLabel+'</td>'
       + '</tr>';
   }).join('');
@@ -6991,6 +7096,7 @@ function printItVerbList() {
     + 'body{font-family:var(--aph-body);margin:0;padding:28px 32px;color:#1a2744;background:#fff;}'
     + 'table{width:100%;border-collapse:collapse;border:1px solid #e2e6f0;border-radius:6px;overflow:hidden;margin-top:6px;}'
     + 'thead tr{background:#1a2744;}'
+    + '.ap-fm-n{font-size:.72rem;color:#8899bb;margin-right:1px}.ap-fm-p{white-space:nowrap;display:inline-block;margin-right:.5em}.ap-fm-t{font-size:.72rem;color:#8899bb}b{font-weight:800}'
     + 'thead th{padding:7px 10px;text-align:left;font-size:0.68rem;color:#c9a84c;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;}'
     + '@media print{'
     + '  body{padding:16px 20px;}'
@@ -7006,7 +7112,7 @@ function printItVerbList() {
     + '<th style="width:4%">#</th>'
     + '<th style="width:30%">English</th>'
     + '<th style="width:28%">French (Infinitive)</th>'
-    + '<th style="width:26%">Usage</th>'
+    + (hasFm ? '<th>Form to learn</th>' : '') + (hasAux ? '<th>Auxiliary</th>' : '') + '<th>Usage</th>'
     + '<th style="width:12%">Type</th>'
     + '</tr></thead>'
     + '<tbody>'+tableRows+'</tbody>'
@@ -8093,9 +8199,9 @@ function hmSetup(pool, cardCount) {
 }
 
 // ───── 100 Core Verbs screen: step 1 (what to test: my own choice or a Trials set) and step 2 (how to be tested) ─────
-var hmAvoirOnly = false, hmVList = false;
-var _hmISS0 = inVerbSet; inVerbSet = function (v) { return _hmISS0(v) && !(hmAvoirOnly && verbMode === 'quizlet' && v && v.tense === 'PASSE_COMPOSE' && !FT_AVOIR[v.inf]); };
-var _hmISS1 = inSentSet; inSentSet = function (s, vs) { return _hmISS1(s, vs) && !(hmAvoirOnly && vs === 'quizlet' && s && s.tense === 'PASSE_COMPOSE' && !FT_AVOIR[s.inf]); };
+var hmVList = false;
+var _hmISS0 = inVerbSet; inVerbSet = function (v) { return _hmISS0(v) && !(hmAux !== 'all' && verbMode === 'quizlet' && v && v.tense === 'PASSE_COMPOSE' && apAuxKey(v.inf) !== hmAux); };
+var _hmISS1 = inSentSet; inSentSet = function (s, vs) { return _hmISS1(s, vs) && !(hmAux !== 'all' && vs === 'quizlet' && s && s.tense === 'PASSE_COMPOSE' && apAuxKey(s.inf) !== hmAux); };
 function hmCoreQ() { return verbMode === 'quizlet' || (!!window.TR_NAME && !!TR_NAME[verbMode]); }
 var HM_TORD = ['INFINITIVE', 'PRESENT', 'PASSE_COMPOSE', 'FUTURE', 'IMPERFECT', 'CONDITIONNEL', 'SUBJONCTIF'];
 var HM_TNAME = { INFINITIVE: 'Infinitives', PRESENT: 'Present', PASSE_COMPOSE: 'Perfect', FUTURE: 'Future', IMPERFECT: 'Imperfect', CONDITIONNEL: 'Conditional', SUBJONCTIF: 'Subjunctive' };
@@ -8103,13 +8209,13 @@ var HM_GRP = [['E1', 'Essential 1', 'the first 20 verbs', 20], ['E2', 'Essential
 function hmTrialKey() { return hmIsTrial(verbMode) ? verbMode : ''; }
 function hmSelText() {
   var d = FT_DEF[verbMode], tk = hmIsTrial(verbMode);
-  var ts = HM_TORD.filter(function (k) { return selectedTenses.has(k); }).map(function (k) { return HM_TNAME[k] + (k === 'PASSE_COMPOSE' && ((tk && d && d.avoir) || (!tk && hmAvoirOnly)) ? ' (avoir verbs only)' : ''); });
+  var ts = HM_TORD.filter(function (k) { return selectedTenses.has(k); }).map(function (k) { return HM_TNAME[k] + (k === 'PASSE_COMPOSE' && (tk && d && d.avoir) ? ' (avoir verbs only)' : (!tk && hmAux !== 'all') ? ' (' + (hmAux === 'etre' ? 'être' : 'avoir') + ' verbs only)' : ''); });
   var vs = tk ? 'all 100 verbs' : (vqSel.size === 4 ? 'all 100 verbs' : HM_GRP.filter(function (g) { return vqSel.has(g[0]); }).map(function (g) { return g[1] + ' (' + g[2] + ')'; }).join(' + '));
   return (tk ? TR_NAME[verbMode] + ': ' : 'Testing: ') + vs + ' · ' + (mode === 'infinitives' ? 'Infinitives' : (ts.join(', ') || 'choose a tense'));
 }
-function hmPickTrial(k) { hmAvoirOnly = false; vqTier = 'ALL'; vqSel = new Set(['E1', 'E2', 'I', 'U']); selectedTenses = new Set(Object.keys(FT_DEF[k].t)); if (mode !== 'exer') mode = 'exer'; setVerbMode(k); }
-function hmOwn() { hmAvoirOnly = false; if (!selectedTenses.size) selectedTenses = new Set(['INFINITIVE']); setVerbMode('quizlet'); }
-function hmAvoir() { hmAvoirOnly = !hmAvoirOnly; renderIntro(); }
+function hmPickTrial(k) { hmAux = 'all'; vqTier = 'ALL'; vqSel = new Set(['E1', 'E2', 'I', 'U']); selectedTenses = new Set(Object.keys(FT_DEF[k].t)); if (mode !== 'exer') mode = 'exer'; setVerbMode(k); }
+function hmOwn() { hmAux = 'all'; if (!selectedTenses.size) selectedTenses = new Set(['INFINITIVE']); setVerbMode('quizlet'); }
+function hmAvoir() { hmAux = hmAux === 'avoir' ? 'all' : 'avoir'; renderIntro(); }
 function hmPaperKey() { return hmIsTrial(verbMode) ? verbMode : ''; }
 function hmGrpVerbs(g) {
   var all = VQ_TIER.E.concat(VQ_TIER.I, VQ_TIER.U);
@@ -8286,7 +8392,7 @@ function hmSetupCore(cardCount) {
     s1 = '<div class="hm-h">WHICH VERBS <span>tick any groups: ' + nSel + ' verbs chosen</span></div><button type="button" class="ap-sh-open" onclick="apShOpen()">&#128203; Click here for the full list of 100 core verbs</button><div class="hm-tiers">' + grp + '</div>'
       + '<div class="hm-row"><button class="hm-link" onclick="vqSet(\'ALL\')">All 100</button><button class="hm-link" onclick="vqSet(\'E\')">Essential 1 + 2 (40)</button><button class="hm-link" onclick="hmToggle(\'vlist\')">' + (hmVList ? 'Hide the verbs &#9652;' : 'See the verbs in these groups &#9662;') + '</button></div>' + (hmVList ? hmVerbList() : '')
       + '<div class="hm-h" style="margin-top:14px">WHICH TENSES <span>in the order we learn them</span></div><div class="hm-row">' + vbChip(HM_TORD.every(function (k) { return selectedTenses.has(k); }), 'selectAllTenses()', 'All') + ts + '</div>'
-      + (selectedTenses.has('PASSE_COMPOSE') ? '<div class="hm-row" style="margin-top:6px">' + vbChip(hmAvoirOnly, 'hmAvoir()', 'Perfect: avoir verbs only') + '<span class="hm-note" style="margin:0">leaves out the verbs that take être</span></div>' : '');
+      + hmAuxHtml('hm');
   } else {
     var tb = Object.keys(TR_NAME).map(function (k) { return '<button class="hm-trbtn' + (verbMode === k ? ' on' : '') + '" onclick="hmPickTrial(\'' + k + '\')">' + (verbMode === k ? '&#10003; ' : '') + TR_NAME[k] + '</button>'; }).join('');
     s1 = '<div class="hm-h">WHICH TRIALS <span>everything is chosen for you and locked in</span></div><div class="hm-trgrid">' + tb + '</div>'
@@ -8389,6 +8495,7 @@ var _hmSQD0 = startQuickDrill; startQuickDrill = function (c) { apHome = 'setup'
 .hm-trbtn{min-height:56px;border-radius:12px;border:2px solid var(--navy);background:#fff;color:var(--navy);font:700 1.05rem var(--aph-body);cursor:pointer}
 .hm-trbtn.on{background:var(--gold2);color:var(--navy);border-color:var(--gold)}
 .hm-lock{margin:6px 0;padding:10px 14px;border-radius:10px;background:#f3f5fb;color:var(--navy);font-size:1rem}
+.vb-vp-table td.vb-fm{font-size:.95rem;color:var(--navy);line-height:1.5;min-width:9em}.vb-vp-table td.vb-fm b{font-weight:800}.vb-vp-table td.vb-ax{font-size:.8rem;min-width:4.5em}.ap-fm-n{font-size:.78rem;color:#8a96b0;margin-right:1px;font-weight:600}.ap-fm-p{white-space:nowrap;display:inline-block;margin-right:.55em}.ap-fm-t{font-size:.74rem;color:#8a96b0}.vb-vp-table.vb-fmt th:nth-child(1){width:21%}.vb-vp-table.vb-fmt th:nth-child(2){width:16%}.vb-vp-table.vb-fmt th:nth-child(3){width:auto}.vb-vp-table.vb-fmt th:nth-child(4){width:auto}.vb-vp-table.vb-fmt td.vb-fm{min-width:11em}.vb-vp-table.vb-fmt th.vb-tha{width:8%}.vb-vp-table.vb-fmt th.vb-thu{width:22%}
 .hm-vlist{display:flex;flex-direction:column;gap:8px;margin:8px 0;font-size:.92rem;line-height:1.5}
 .hm-vlist b{display:block;color:var(--navy)}.hm-vlist>div>span{display:flex;flex-wrap:wrap;gap:6px 22px;margin-top:4px}.hm-vlist .hm-vv{display:inline-block;line-height:1.35}.hm-vlist .hm-vi{display:inline;font-size:1.08rem;font-weight:800;color:#0b1530;letter-spacing:.1px}.hm-vlist .hm-vs{font-size:.86rem;font-weight:700;color:#0b1530;margin-left:3px}.hm-vlist .hm-vv i{font-size:.78rem;font-weight:400;font-style:normal;color:#aab2c3;margin-left:6px}
 html.ap-sh-lock body{overflow:hidden}
@@ -9379,7 +9486,7 @@ textarea.ms-in{min-height:7rem;resize:vertical}.ms-hint.ms-hint-sm{font-size:.78
 
   // ---- door opening: nothing is preselected
   window.hmOpen = function (door) {
-    apHome = 'setup'; msMy = false; myBak = null; infBak = null; msCore = new Set(); msSetPick = false; note = ''; hmAvoirOnly = false; hmVList = false;
+    apHome = 'setup'; msMy = false; myBak = null; infBak = null; msCore = new Set(); msSetPick = false; note = ''; hmAux = 'all'; hmVList = false;
     selectedTenses = new Set(); vqTier = 'ALL'; vqSel = new Set(['E1', 'E2', 'I', 'U']);
     if (door === 'quizlet') { msDoor = 'core'; verbMode = 'quizlet'; mode = 'exer'; } else { msDoor = 'all'; verbMode = 'both'; mode = 'single'; }
     renderIntro();
@@ -9393,7 +9500,7 @@ textarea.ms-in{min-height:7rem;resize:vertical}.ms-hint.ms-hint-sm{font-size:.78
     renderIntro();
   }
   window.msOwn = function () {
-    leaveMy(); hmAvoirOnly = false; msCore = new Set(); selectedTenses = new Set(); vqTier = 'ALL'; vqSel = new Set(['E1', 'E2', 'I', 'U']); infBak = null;
+    leaveMy(); hmAux = 'all'; msCore = new Set(); selectedTenses = new Set(); vqTier = 'ALL'; vqSel = new Set(['E1', 'E2', 'I', 'U']); infBak = null;
     if (hmIsTrial(verbMode)) { verbMode = 'quizlet'; } renderIntro();
   };
   window.msTrial = function (k) { leaveMy(); infBak = null; hmPickTrial(k); };
@@ -9467,7 +9574,7 @@ textarea.ms-in{min-height:7rem;resize:vertical}.ms-hint.ms-hint-sm{font-size:.78
     else {
       if (msDoor === 'core') parts.push(hmIsTrial(verbMode) ? TR_NAME[verbMode] + (mode === 'exer' ? (xqRuleOn() ? ' · as in Trials' : ' · any verb, any exercise') : '') : (msCore.size === 4 ? 'all 100 Core Verbs' : GRP.filter(function (g) { return msCore.has(g[0]); }).map(function (g) { return g[1]; }).join(' + ')));
       else parts.push(SETS.filter(function (s) { return s[0] === verbMode; }).map(function (s) { return s[1]; })[0] || '');
-      if (mode !== 'infinitives') parts.push(TORD.concat(['PLUPERFECT', 'FUTUR_ANT', 'COND_PASSE']).filter(function (k) { return selectedTenses.has(k); }).map(function (k) { return (TNAME[k] || k) + (k === 'PASSE_COMPOSE' && hmAvoirOnly && verbMode === 'quizlet' ? ' (avoir verbs only)' : ''); }).join(', '));
+      if (mode !== 'infinitives') parts.push(TORD.concat(['PLUPERFECT', 'FUTUR_ANT', 'COND_PASSE']).filter(function (k) { return selectedTenses.has(k); }).map(function (k) { return (TNAME[k] || k) + (k === 'PASSE_COMPOSE' && hmAux !== 'all' && verbMode === 'quizlet' ? ' (' + (hmAux === 'etre' ? 'être' : 'avoir') + ' verbs only)' : ''); }).join(', '));
     }
     return parts.filter(Boolean).join(' · ');
   }
@@ -9528,7 +9635,7 @@ textarea.ms-in{min-height:7rem;resize:vertical}.ms-hint.ms-hint-sm{font-size:.78
           if (mode === 'infinitives') h += '<div class="hm-note">Infinitives only: you see the English and give the French infinitive, so tenses are not needed.</div>';
           else {
             h += '<div class="aph-row">' + chip(TORD.every(function (k) { return selectedTenses.has(k); }), "msAllTenses(['" + TORD.join("','") + "'])", 'All') + TORD.map(function (k, i) { return chip(selectedTenses.has(k), "msTense('" + k + "')", (i + 1) + '. ' + TNAME[k]); }).join('') + '</div>';
-            if (selectedTenses.has('PASSE_COMPOSE')) h += '<div class="hm-row" style="margin-top:6px">' + chip(hmAvoirOnly, 'hmAvoir()', 'Perfect: avoir verbs only') + '<span class="aph-note" style="margin:0">leaves out the verbs that take être</span></div>';
+            h += hmAuxHtml('aph');
           }
         } else {
           h += '<div class="aph-label">Which Trials set</div><div class="hm-trgrid">' + Object.keys(TR_NAME).map(function (k) { return '<button class="hm-trbtn' + (verbMode === k ? ' on' : '') + '" onclick="msTrial(\'' + k + '\')">' + (verbMode === k ? '&#10003; ' : '') + TR_NAME[k] + '</button>'; }).join('') + '</div>'
@@ -14084,4 +14191,4 @@ function deck(el,m,n,x,y,face,gap){clear(el);const cs=[];for(let i=0;i<n;i++){co
   if (document.readyState === 'complete') start(); else window.addEventListener('load', start);
 })();
 </script>
-<script id="ap-build">window.__apBuild="86a1e97220";window.__apVer=205;(function(){var N=window.__apVer;function put(){try{var h=document.querySelector('header.aph-header');if(!h||document.getElementById('ap-ver'))return;var s=document.createElement('span');s.id='ap-ver';s.textContent='v'+N;s.style.cssText='position:absolute;right:10px;bottom:4px;font:600 11px/1 system-ui,sans-serif;color:#c9a84c;opacity:.8;pointer-events:none;letter-spacing:.04em;z-index:2';if(getComputedStyle(h).position==='static')h.style.position='relative';h.appendChild(s)}catch(e){}}put();document.addEventListener('DOMContentLoaded',put);window.addEventListener('load',put);setInterval(put,2000)})();</script>
+<script id="ap-build">window.__apBuild="57e319deff";window.__apVer=206;(function(){var N=window.__apVer;function put(){try{var h=document.querySelector('header.aph-header');if(!h||document.getElementById('ap-ver'))return;var s=document.createElement('span');s.id='ap-ver';s.textContent='v'+N;s.style.cssText='position:absolute;right:10px;bottom:4px;font:600 11px/1 system-ui,sans-serif;color:#c9a84c;opacity:.8;pointer-events:none;letter-spacing:.04em;z-index:2';if(getComputedStyle(h).position==='static')h.style.position='relative';h.appendChild(s)}catch(e){}}put();document.addEventListener('DOMContentLoaded',put);window.addEventListener('load',put);setInterval(put,2000)})();</script>
