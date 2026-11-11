@@ -1069,6 +1069,7 @@ button[onclick*="apMySetHelp"]{background:none!important;border:0!important;box-
     <div class="vb-vp-tools">
       <input id="verbListSearch" class="aph-input" oninput="filterVerbList()" placeholder="Search…">
       <button id="copyItVerbListBtn" class="aph-btn aph-btn-sm" onclick="copyItVerbList()">Copy list</button>
+      <button id="vbCoverBtn" class="aph-btn aph-btn-sm" onclick="vbToggleCover()" style="display:none">&#128584; Cover the forms</button>
       <button class="aph-btn aph-btn-sm aph-btn-primary" onclick="printItVerbList()">&#128424; Print / PDF</button>
       <button class="aph-btn aph-btn-sm" onclick="exportModifiedHtml()">💾 Export</button>
     </div>
@@ -6166,7 +6167,16 @@ function openItalianContentPDF(){
   if(!w) alert('Please allow pop-ups.');
 }
 
+var vbCover = false;   // Cover the forms: the bold (irregular) forms are hidden until tapped
+function vbSyncCover() {
+  var body = document.getElementById('verbListBody'), btn = document.getElementById('vbCoverBtn');
+  if (body) body.classList.toggle('vb-cover', vbCover);
+  if (btn) { btn.textContent = vbCover ? '\uD83D\uDC40 Show the forms' : '\uD83D\uDE48 Cover the forms'; btn.style.display = (body && body.querySelector('td.vb-fm')) ? '' : 'none'; }
+}
+function vbToggleCover() { vbCover = !vbCover; document.querySelectorAll('#verbListBody b.vb-open').forEach(function (b) { b.classList.remove('vb-open'); }); vbSyncCover(); }
+document.addEventListener('click', function (e) { var b = e.target && e.target.closest ? e.target.closest('#verbListBody td.vb-fm b') : null; if (b && vbCover) b.classList.toggle('vb-open'); });
 function showVerbList(){
+  vbCover=false;
   const modal=document.getElementById('verbListModal');
   document.getElementById('verbListSearch').value='';
   renderVerbListTable('');
@@ -6320,7 +6330,7 @@ function renderVerbListTable(q){
         <td class="vb-reg ${r.allReg?'r':'i'}">${vqBadge(r)}${r.label}</td>
       </tr>`).join('')}</tbody>
     </table></div>`;
-  document.getElementById('verbListBody').innerHTML=html;
+  document.getElementById('verbListBody').innerHTML=html; vbSyncCover();
   try{var bx=document.querySelector('#verbListModal .vb-vp-box');if(bx)bx.style.maxWidth=hasGrid?'1180px':hasFm?'1080px':'';}catch(e){}
 }
 function saveVerbListField(el){
@@ -6967,6 +6977,7 @@ function printItVerbList() {
     + 'table{width:100%;border-collapse:collapse;border:1px solid #e2e6f0;border-radius:6px;overflow:hidden;margin-top:6px;}'
     + 'thead tr{background:#1a2744;}'
     + '.ap-fm-n{font-size:.72rem;color:#8899bb;margin-right:1px}.ap-fm-p{white-space:nowrap;display:inline-block;margin-right:.5em}.ap-fm-t{font-size:.72rem;color:#8899bb}b{font-weight:800}.ap-fm-reg{font-size:.58rem;color:#b3bccf;letter-spacing:.04em}'
+    + (vbCover ? 'td b{color:transparent;background:#dfe5f0;border-radius:5px;-webkit-print-color-adjust:exact;print-color-adjust:exact}' : '')
     + 'thead th{padding:7px 10px;text-align:left;font-size:0.68rem;color:#c9a84c;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;}'
     + '@media print{'
     + '  body{padding:16px 20px;}'
@@ -7783,7 +7794,7 @@ if (window.__cj) window.__cj.speedTest = function (kind, g) {
 .hm-n{display:inline-flex;align-items:center;justify-content:center;width:34px;height:34px;border-radius:50%;background:var(--navy);color:var(--gold2);font:700 1.1rem var(--aph-display)}
 .hm-banner{background:var(--navy);color:#fff;border:2px solid var(--gold);border-radius:14px;padding:10px 18px;margin:0 0 12px;display:flex;flex-direction:column;gap:2px}
 .hm-banner small{letter-spacing:.1em;font-size:.75rem;color:var(--gold2);font-weight:700}.hm-banner b{font-size:1.15rem}
-.vb-vp-table td.vb-fm{font-size:.95rem;color:var(--navy);line-height:1.5;min-width:9em}.vb-vp-table td.vb-fm b{font-weight:800}.vb-vp-table td.vb-ax{font-size:.8rem;min-width:4.5em}.ap-fm-n{font-size:.78rem;color:#8a96b0;margin-right:1px;font-weight:600}.ap-fm-p{white-space:nowrap;display:inline-block;margin-right:.55em}.ap-fm-t{font-size:.74rem;color:#8a96b0}.vb-vp-table.vb-fmt th:nth-child(1){width:21%}.vb-vp-table.vb-fmt th:nth-child(2){width:16%}.vb-vp-table.vb-fmt th:nth-child(3){width:auto}.vb-vp-table.vb-fmt th:nth-child(4){width:auto}.vb-vp-table.vb-fmt td.vb-fm{min-width:11em}.vb-vp-table.vb-fmt th.vb-tha{width:8%}.vb-vp-table.vb-fmt th.vb-thu{width:22%}.ap-fm-reg{font-size:.58rem;color:#b3bccf;letter-spacing:.04em}.vb-vp-table.vb-grid th.vb-g{width:9%;text-align:left}.vb-vp-table.vb-grid td.vb-g{border-left:1px solid #eef1f7;min-width:5em;white-space:nowrap}.vb-vp-table.vb-grid th:nth-child(1){width:15%}.vb-vp-table.vb-grid th:nth-child(2){width:13%}.vb-vp-table.vb-grid th.vb-g{width:7%}.vb-vp-table.vb-grid td.vb-g{min-width:0}.vb-vp-table.vb-grid td.vb-reg{white-space:normal;font-size:.68rem;min-width:7em}.vb-vp-table.vb-grid .vb-en{min-width:7em}.vb-vp-table.vb-grid td.vb-fm{min-width:0}
+.vb-vp-table td.vb-fm{font-size:.95rem;color:var(--navy);line-height:1.5;min-width:9em}.vb-vp-table td.vb-fm b{font-weight:800}.vb-vp-table td.vb-ax{font-size:.8rem;min-width:4.5em}.ap-fm-n{font-size:.78rem;color:#8a96b0;margin-right:1px;font-weight:600}.ap-fm-p{white-space:nowrap;display:inline-block;margin-right:.55em}.ap-fm-t{font-size:.74rem;color:#8a96b0}.vb-vp-table.vb-fmt th:nth-child(1){width:21%}.vb-vp-table.vb-fmt th:nth-child(2){width:16%}.vb-vp-table.vb-fmt th:nth-child(3){width:auto}.vb-vp-table.vb-fmt th:nth-child(4){width:auto}.vb-vp-table.vb-fmt td.vb-fm{min-width:11em}.vb-vp-table.vb-fmt th.vb-tha{width:8%}.vb-vp-table.vb-fmt th.vb-thu{width:22%}.ap-fm-reg{font-size:.58rem;color:#b3bccf;letter-spacing:.04em}.vb-cover td.vb-fm b{color:transparent;background:#dfe5f0;border-radius:5px;cursor:pointer;user-select:none;-webkit-user-select:none}.vb-cover td.vb-fm b.vb-open{color:inherit;background:transparent}.vb-vp-table.vb-grid th.vb-g{width:9%;text-align:left}.vb-vp-table.vb-grid td.vb-g{border-left:1px solid #eef1f7;min-width:5em;white-space:nowrap}.vb-vp-table.vb-grid th:nth-child(1){width:15%}.vb-vp-table.vb-grid th:nth-child(2){width:13%}.vb-vp-table.vb-grid th.vb-g{width:7%}.vb-vp-table.vb-grid td.vb-g{min-width:0}.vb-vp-table.vb-grid td.vb-reg{white-space:normal;font-size:.68rem;min-width:7em}.vb-vp-table.vb-grid .vb-en{min-width:7em}.vb-vp-table.vb-grid td.vb-fm{min-width:0}
 .hm-vlist{display:flex;flex-direction:column;gap:8px;margin:8px 0;font-size:.92rem;line-height:1.5}
 .hm-vlist b{display:block;color:var(--navy)}.hm-vlist>div>span{display:flex;flex-wrap:wrap;gap:6px 22px;margin-top:4px}.hm-vlist .hm-vv{display:inline-block;line-height:1.35}.hm-vlist .hm-vi{display:inline;font-size:1.08rem;font-weight:800;color:#0b1530;letter-spacing:.1px}.hm-vlist .hm-vs{font-size:.86rem;font-weight:700;color:#0b1530;margin-left:3px}.hm-vlist .hm-vv i{font-size:.78rem;font-weight:400;font-style:normal;color:#aab2c3;margin-left:6px}
 html.ap-sh-lock body{overflow:hidden}
@@ -13694,4 +13705,4 @@ function deck(el,m,n,x,y,face,gap){clear(el);const cs=[];for(let i=0;i<n;i++){co
   if (document.readyState === 'complete') start(); else window.addEventListener('load', start);
 })();
 </script>
-<script id="ap-build">window.__apBuild="a71357d405";window.__apVer=208;(function(){var N=window.__apVer;function put(){try{var h=document.querySelector('header.aph-header');if(!h||document.getElementById('ap-ver'))return;var s=document.createElement('span');s.id='ap-ver';s.textContent='v'+N;s.style.cssText='position:absolute;right:10px;bottom:4px;font:600 11px/1 system-ui,sans-serif;color:#c9a84c;opacity:.8;pointer-events:none;letter-spacing:.04em;z-index:2';if(getComputedStyle(h).position==='static')h.style.position='relative';h.appendChild(s)}catch(e){}}put();document.addEventListener('DOMContentLoaded',put);window.addEventListener('load',put);setInterval(put,2000)})();</script>
+<script id="ap-build">window.__apBuild="3aa1e83614";window.__apVer=209;(function(){var N=window.__apVer;function put(){try{var h=document.querySelector('header.aph-header');if(!h||document.getElementById('ap-ver'))return;var s=document.createElement('span');s.id='ap-ver';s.textContent='v'+N;s.style.cssText='position:absolute;right:10px;bottom:4px;font:600 11px/1 system-ui,sans-serif;color:#c9a84c;opacity:.8;pointer-events:none;letter-spacing:.04em;z-index:2';if(getComputedStyle(h).position==='static')h.style.position='relative';h.appendChild(s)}catch(e){}}put();document.addEventListener('DOMContentLoaded',put);window.addEventListener('load',put);setInterval(put,2000)})();</script>
