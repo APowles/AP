@@ -1038,6 +1038,7 @@ button[onclick*="apMySetHelp"]{background:none!important;border:0!important;box-
     <button class="reg-btn" data-reg="regular" onclick="setReg('regular')">Regular</button>
     <button class="reg-btn" data-reg="irregular" onclick="setReg('irregular')">Irregular</button>
     <button class="reg-btn" data-reg="reflexive" onclick="setReg('reflexive')">Reflexive</button>
+    <button class="reg-btn" data-reg="spelling" onclick="setReg('spelling')">Spelling change</button>
     <button class="reg-btn" data-reg="piacere" onclick="setReg('piacere')">Piacere</button>
   </div>
   <label id="personLabel" style="opacity:0.4">Person:</label>
@@ -4983,7 +4984,9 @@ function setPersonFilter(v){
 
 function classifyNote(n){if(!n)return'irregular';const s=n.toLowerCase();if(s.startsWith('regular'))return'regular';return'irregular';}
 function apIsRefl(i) { return /^(se\s|s['’])/i.test(String(i || '').trim()); }
-function regHit(v, f) { if (f === 'reflexive') { var i = v && v.inf; if (i && typeof i === 'object') i = i.inf; return apIsRefl(i); } return classifyNote(v && v.note) === f; }
+var AP_SPELL = ["acheter", "amener", "emmener", "enlever", "se lever", "se promener", "appeler", "s'appeler", "payer", "essayer", "envoyer", "s'ennuyer", "s'essuyer", "espérer", "préférer", "s'inquiéter"].reduce(function (o, k) { o[k] = 1; return o; }, {});
+function apIsSpell(i) { return !!AP_SPELL[String(i || '').trim()]; }
+function regHit(v, f) { if (f === 'reflexive') { var i = v && v.inf; if (i && typeof i === 'object') i = i.inf; return apIsRefl(i); } if (f === 'spelling') { var i2 = v && v.inf; if (i2 && typeof i2 === 'object') i2 = i2.inf; return apIsSpell(i2); } return classifyNote(v && v.note) === f; }
 
 function setMode(m){
   mode=m;
@@ -5016,7 +5019,7 @@ function renderTestPanel(){
   const verbSetHtmlTP=vsModes.map(function(m){return vbChip(verbMode===m.k,'setVerbMode(\''+m.k+'\');renderTestPanel();',m.l);}).join('');
   const allSelected2=ftList(['PRESENT','FUTURE','PASSE_COMPOSE','IMPERFECT','CONDITIONNEL','SUBJONCTIF','PLUPERFECT','FUTUR_ANT','COND_PASSE']).every(t=>selectedTenses.has(t));
   const tenseHtml=vbChip(allSelected2,'selectAllTenses()','All Tenses')+ftTenses(tenses).map(function(t){return vbTenseChip(selectedTenses.has(t.k),'testToggleTense(\''+t.k+'\');',t.l,t.c);}).join('');
-  const regHtml=[{k:'all',l:'All'},{k:'regular',l:'Regular'},{k:'irregular',l:'Irregular'},{k:'reflexive',l:'Reflexive'}].map(function(r){const a=regFilter===r.k;return '<button class="aph-chip reg-btn'+(a?' active-reg':'')+'" data-reg="'+r.k+'" onclick="setReg(\''+r.k+'\')">'+r.l+'</button>';}).join('');
+  const regHtml=[{k:'all',l:'All'},{k:'regular',l:'Regular'},{k:'irregular',l:'Irregular'},{k:'reflexive',l:'Reflexive'},{k:'spelling',l:'Spelling change'}].map(function(r){const a=regFilter===r.k;return '<button class="aph-chip reg-btn'+(a?' active-reg':'')+'" data-reg="'+r.k+'" onclick="setReg(\''+r.k+'\')">'+r.l+'</button>';}).join('');
   const savedMode=mode; mode='single';
   const available=buildPool().filter(function(x){return apLvOK(x);}).length;
   mode=savedMode;
@@ -5611,7 +5614,7 @@ function renderIntro(){
   const ALL_TENSES=ftList(['PRESENT','FUTURE','PASSE_COMPOSE','IMPERFECT','CONDITIONNEL','SUBJONCTIF','INFINITIVE','PLUPERFECT','FUTUR_ANT','COND_PASSE']);
   const allSelected=ALL_TENSES.every(t=>selectedTenses.has(t))&&true;
   const tenseHtml=vbChip(allSelected,'selectAllTenses()','All Tenses')+ftTenses(tenses).map(t=>vbTenseChip(selectedTenses.has(t.k),`introToggleTense('${t.k}')`,t.l,t.c)).join('');
-  const regHtml=[{k:'all',l:'All'},{k:'regular',l:'Regular'},{k:'irregular',l:'Irregular'},{k:'reflexive',l:'Reflexive'}].map(r=>vbChip(regFilter===r.k,`introSetReg('${r.k}')`,r.l)).join('');
+  const regHtml=[{k:'all',l:'All'},{k:'regular',l:'Regular'},{k:'irregular',l:'Irregular'},{k:'reflexive',l:'Reflexive'},{k:'spelling',l:'Spelling change'}].map(r=>vbChip(regFilter===r.k,`introSetReg('${r.k}')`,r.l)).join('');
   const pool=mode==='exer'?xqPool():mode==='infinitives'?getLiveInfCards():mode==='sentences'?SENTENCES.filter(s=>inSentSet(s,verbMode)&&sentTenseOn(s)):(selectedTenses.size>0&&mode?buildPool():[]);
   const cardCount=_selectedCount===-1?pool.length:Math.min(_selectedCount,pool.length);
   const countHtml=[10,20,30,50,-1].map(n=>vbChip(_selectedCount===n,`setSelectedCount(${n})`,n===-1?'All':n)).join('');
@@ -8034,7 +8037,7 @@ function hmSetup(pool, cardCount) {
   right += '<div class="hm-panel"><div class="hm-h">' + (mode === 'infinitives' ? 'TENSES' : (isQ ? 'TENSES <span>learn in this order, one at a time or together</span>' : 'TENSES <span>tap to choose</span>')) + '</div>' + (mode === 'infinitives' ? '<div class="hm-note">Infinitives only: you see the English and give the French infinitive, so tenses are not needed.</div>' : '<div class="hm-row">' + tenseHtml + '</div>') + '</div>';
   var more2 = '';
   if (hmMore) {
-    var regHtml = [{ k: 'all', l: 'All' }, { k: 'regular', l: 'Regular' }, { k: 'irregular', l: 'Irregular' }, { k: 'reflexive', l: 'Reflexive' }].map(function (r) { return vbChip(regFilter === r.k, "introSetReg('" + r.k + "')", r.l); }).join('');
+    var regHtml = [{ k: 'all', l: 'All' }, { k: 'regular', l: 'Regular' }, { k: 'irregular', l: 'Irregular' }, { k: 'reflexive', l: 'Reflexive' }, { k: 'spelling', l: 'Spelling change' }].map(function (r) { return vbChip(regFilter === r.k, "introSetReg('" + r.k + "')", r.l); }).join('');
     var _po = [['ALL', 'All persons'], ['0', 'je'], ['1', 'tu'], ['2', 'il (elle)'], ['3', 'nous'], ['4', 'vous'], ['5', 'ils (elles)']];
     var personHtml = (mode === 'single' || mode === 'exer') ? '<div class="hm-opt"><div class="hm-h">PERSON</div><div class="hm-row">' + _po.map(function (p) { return vbChip(_personFilter === p[0], "setPersonFilter('" + p[0] + "')", p[1]); }).join('') + '</div></div>' : '';
     more2 = '<div class="hm-more"><div class="hm-opt"><div class="hm-h">REGULARITY</div><div class="hm-row">' + regHtml + '</div></div>' + personHtml
@@ -8088,7 +8091,6 @@ function hmGrpVerbs(g) {
 }
 /* ===== 100 Core Verbs learning sheet: one page, cover and check, hear each verb ===== */
 var AP_SH_LANG = 'French';
-var AP_VLVL = {"être":"H","avoir":"H","aller":"H","faire":"H","pouvoir":"M","vouloir":"H","devoir":"M","savoir":"H","voir":"M","dire":"H","prendre":"H","venir":"H","donner":"M","y avoir":"H","falloir":"H","sortir":"H","partir":"M","rester":"H","arriver":"E","trouver":"H","jouer":"H","regarder":"M","passer":"E","commencer":"E","comprendre":"M","s'appeler":"H","rentrer":"M","demander":"M","acheter":"H","visiter":"E","voyager":"E","préférer":"E","écouter":"H","lire":"H","s'amuser":"E","décider":"E","aider":"M","choisir":"H","apprendre":"M","connaître":"H","attendre":"H","boire":"H","chercher":"H","conduire":"M","coûter":"E","devenir":"H","entrer":"E","envoyer":"H","espérer":"H","expliquer":"E","montrer":"H","offrir":"E","oublier":"H","ouvrir":"H","payer":"M","porter":"M","réussir":"H","se coucher":"H","se dépêcher":"H","écrire":"H","essayer":"H","apporter":"H","dormir":"M","se reposer":"M","s'occuper de":"M","finir":"E","répondre":"M","quitter":"E","s'ennuyer":"H","rendre visite à":"H","se disputer":"E","appartenir":"H","se casser":"H","amener":"H","se plaindre":"H","encourager":"E","défendre":"H","se fâcher":"H","se faire mal":"H","compter":"M","rire":"H","ressembler à":"E","obliger":"E","rater":"H","remarquer":"E","reconnaître":"M","se souvenir":"M","courir":"M","partager":"H","emmener":"H","enlever":"H","ranger":"H","promettre":"M","vendre":"M","téléphoner":"E","entendre":"H","se tromper":"H","continuer":"E","recevoir":"E","appeler":"M"};
 var apSh = { grp: 'all', perm: null, cover: 'none', rev: {} };
 function apShGrpOK(g) { var k = apSh.grp; return k === 'all' || k === g || (k === 'E' && (g === 'E1' || g === 'E2')); }
 function apShVerbs(g) { if (!apShGrpOK(g)) return []; return ((apSh.perm && apSh.perm[g]) || hmGrpVerbs(g)); }
@@ -8232,13 +8234,12 @@ function apShRender() {
       return '<div class="ap-sh-c"><div class="ap-sh-t">'
         + (esH ? '<button class="ap-sh-cv" data-act="tog" data-i="' + i + '" data-s="es" aria-label="Tap to see it">&nbsp;</button>' : '<button class="ap-sh-es" data-act="tog" data-i="' + i + '" data-s="es"><strong>' + i + '</strong>' + (d.sc[i] ? '<span class="hm-vs">(' + d.sc[i] + ')</span>' : '') + '</button>')
         + (enH ? '<button class="ap-sh-cv" data-act="tog" data-i="' + i + '" data-s="en" aria-label="Tap to see it">&nbsp;</button>' : '<button class="ap-sh-en" data-act="tog" data-i="' + i + '" data-s="en">' + (d.en[i] || '') + '</button>')
-        + (AP_VLVL[i] === 'H' ? '' : '<span class="ap-sh-lvl ' + AP_VLVL[i] + '">' + ({ E: 'Cognate', M: 'Related' })[AP_VLVL[i]] + '</span>')
         + '</div><button class="ap-sh-sp" data-act="say" data-i="' + i + '" aria-label="Hear ' + i + '">&#128266;</button></div>';
     }).join('') + '</div></section>';
   }).join('');
   var seg = [['none', 'Show both'], ['en', 'Cover the English'], ['es', 'Cover the ' + AP_SH_LANG]].map(function (o) { return '<button class="' + (c === o[0] ? 'on' : '') + '" data-act="cover" data-s="' + o[0] + '">' + o[1] + '</button>'; }).join('');
   ov.innerHTML = '<div class="ap-sh-bar"><button class="ap-sh-back" data-act="close">&#8249; 100 Core Verbs</button><div class="ap-sh-seg">' + seg + '</div><button class="ap-sh-act" data-act="shuffle">&#128256; Shuffle</button><button class="ap-sh-act" data-act="project">&#128253; Project</button><button class="ap-sh-act" data-act="print">&#128424; Print</button></div>'
-    + '<div class="ap-sh-in"><p class="ap-sh-hint">One sheet to learn from. Cover one side to test yourself, tap a blank box to see the answer, tap &#128266; to hear the verb. A tag marks the verbs that help you remember them: <b>Cognate</b> looks like the English, <b>Related</b> looks like a related English word.</p>' + grpRow + body + '</div>';
+    + '<div class="ap-sh-in"><p class="ap-sh-hint">One sheet to learn from. Cover one side to test yourself, tap a blank box to see the answer, tap &#128266; to hear the verb.</p>' + grpRow + body + '</div>';
   apShPrint();
   ov.scrollTop = st;
 }
@@ -8276,7 +8277,7 @@ function hmSetupCore(cardCount) {
     : '<button class="hm-tile hm-tile-g" onclick="hmTrialsPaper(\'ftrials\')"><b>&#128221; Practice F Trials Paper</b><small>40 questions, the real layout</small></button><button class="hm-tile hm-tile-g" onclick="hmTrialsPaper(\'etrials\')"><b>&#128221; Practice E Trials Paper</b><small>20 verb questions, the real layout</small></button>';
   var more2 = '';
   if (hmMore) {
-    var regHtml = [{ k: 'all', l: 'All' }, { k: 'regular', l: 'Regular' }, { k: 'irregular', l: 'Irregular' }, { k: 'reflexive', l: 'Reflexive' }].map(function (r) { return vbChip(regFilter === r.k, "introSetReg('" + r.k + "')", r.l); }).join('');
+    var regHtml = [{ k: 'all', l: 'All' }, { k: 'regular', l: 'Regular' }, { k: 'irregular', l: 'Irregular' }, { k: 'reflexive', l: 'Reflexive' }, { k: 'spelling', l: 'Spelling change' }].map(function (r) { return vbChip(regFilter === r.k, "introSetReg('" + r.k + "')", r.l); }).join('');
     var _po = [['ALL', 'All persons'], ['0', 'je'], ['1', 'tu'], ['2', 'il (elle)'], ['3', 'nous'], ['4', 'vous'], ['5', 'ils (elles)']];
     more2 = '<div class="hm-more"><div class="hm-opt"><div class="hm-h">REGULARITY</div><div class="hm-row">' + regHtml + '</div></div>'
       + (mode === 'exer' || mode === 'single' ? '<div class="hm-opt"><div class="hm-h">PERSON</div><div class="hm-row">' + _po.map(function (p) { return vbChip(_personFilter === p[0], "setPersonFilter('" + p[0] + "')", p[1]); }).join('') + '</div></div>' : '')
@@ -8415,8 +8416,6 @@ html.ap-sh-lock body{overflow:hidden}
 .ap-pr-c .ap-pr-sp.on{background:var(--navy,#1a2744)}
 .ap-pr-empty{padding:30px;font-size:1.3rem}
 @media print{#apProj{display:none!important}}
-.ap-sh-lvl{font:700 .58rem var(--aph-body,system-ui);letter-spacing:.04em;text-transform:uppercase;border-radius:6px;padding:1px 7px;margin-top:1px}
-.ap-sh-lvl.E{background:#d8f0dc;color:#1c6a2f}.ap-sh-lvl.M{background:#fbeec2;color:#7a5a00}.ap-sh-lvl.H{background:#e3e6f2;color:#1a2744}
 #apPrintSheet{display:none}
 @page{size:A4;margin:12mm}
 @media print{
@@ -8591,6 +8590,7 @@ function apRegKeep(v) {
   if (!apRegOn()) return true;
   var inf = (v && v.inf && typeof v.inf === 'object') ? v.inf.inf : (v && v.inf);
   if (regFilter === 'reflexive') return apIsRefl(inf);
+  if (regFilter === 'spelling') return apIsSpell(inf);
   if (!_apRegNote) { _apRegNote = {}; VERBS.forEach(function (x) { if (x.tense === 'PRESENT' && x.group !== 'structures' && !(x.inf in _apRegNote)) _apRegNote[x.inf] = x.note || ''; }); }
   var tn = v && v.tense, note = (!v || tn === 'INFINITIVE' || tn === 'SET' || v.note === undefined) ? (_apRegNote[inf] || '') : (v.note || '');
   return classifyNote(note) === regFilter;
@@ -9458,7 +9458,7 @@ textarea.ms-in{min-height:7rem;resize:vertical}.ms-hint.ms-hint-sm{font-size:.78
   }
   function refineRow(my, core) {
     var f = refineParts(my, core); if (!f.reg && !f.pers && !f.imp) return '';
-    var reg = [['all', 'All'], ['regular', 'Regular'], ['irregular', 'Irregular'], ['reflexive', 'Reflexive']].map(function (r) { return chip(regFilter === r[0], "introSetReg('" + r[0] + "')", r[1]); }).join('');
+    var reg = [['all', 'All'], ['regular', 'Regular'], ['irregular', 'Irregular'], ['reflexive', 'Reflexive'], ['spelling', 'Spelling change']].map(function (r) { return chip(regFilter === r[0], "introSetReg('" + r[0] + "')", r[1]); }).join('');
     var pers = [['ALL', 'All persons'], ['0', 'je'], ['1', 'tu'], ['2', 'il (elle)'], ['3', 'nous'], ['4', 'vous'], ['5', 'ils (elles)']].map(function (p) { return chip(_personFilter === p[0], "setPersonFilter('" + p[0] + "')", p[1]); }).join('');
     return '<details class="ms-opts ms-refine" ' + (refOpen ? 'open' : '') + ' ontoggle="msRg(this)"><summary><span class="ms-gear">&#127919;</span><span class="ms-st">Refine my choice</span><small id="msRefSum">' + esc(refineSum(my, core)) + '</small><span class="ms-chg"></span></summary>'
       + (f.reg ? '<div class="aph-label">Regularity</div><div class="aph-row">' + reg + '</div>' : '')
@@ -14058,4 +14058,4 @@ function deck(el,m,n,x,y,face,gap){clear(el);const cs=[];for(let i=0;i<n;i++){co
   if (document.readyState === 'complete') start(); else window.addEventListener('load', start);
 })();
 </script>
-<script id="ap-build">window.__apBuild="65cc3bd098";window.__apVer=198;(function(){var N=window.__apVer;function put(){try{var h=document.querySelector('header.aph-header');if(!h||document.getElementById('ap-ver'))return;var s=document.createElement('span');s.id='ap-ver';s.textContent='v'+N;s.style.cssText='position:absolute;right:10px;bottom:4px;font:600 11px/1 system-ui,sans-serif;color:#c9a84c;opacity:.8;pointer-events:none;letter-spacing:.04em;z-index:2';if(getComputedStyle(h).position==='static')h.style.position='relative';h.appendChild(s)}catch(e){}}put();document.addEventListener('DOMContentLoaded',put);window.addEventListener('load',put);setInterval(put,2000)})();</script>
+<script id="ap-build">window.__apBuild="4d6ae00d04";window.__apVer=199;(function(){var N=window.__apVer;function put(){try{var h=document.querySelector('header.aph-header');if(!h||document.getElementById('ap-ver'))return;var s=document.createElement('span');s.id='ap-ver';s.textContent='v'+N;s.style.cssText='position:absolute;right:10px;bottom:4px;font:600 11px/1 system-ui,sans-serif;color:#c9a84c;opacity:.8;pointer-events:none;letter-spacing:.04em;z-index:2';if(getComputedStyle(h).position==='static')h.style.position='relative';h.appendChild(s)}catch(e){}}put();document.addEventListener('DOMContentLoaded',put);window.addEventListener('load',put);setInterval(put,2000)})();</script>
