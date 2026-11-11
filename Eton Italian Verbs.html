@@ -6204,6 +6204,7 @@ function apListMark(inf, rec, t) {
 /* ===== "Form" column in View & Print: the form(s) to learn in each chosen tense. BOLD = the part that is not regular ===== */
 var hmAux = 'all';   // Perfect tense: 'all', 'avere' or 'essere' verbs
 var AP_FM_ORDER = ['PRESENT', 'IMPERFECT', 'FUTURE', 'COND', 'PP'];
+var AP_FM_HEAD = { IMPERFECT: 'Imperfect (io)', FUTURE: 'Future (io)', COND: 'Conditional (io)', PP: 'Perfect' };
 var AP_FM_SHORT = { PRESENT: 'pres.', IMPERFECT: 'imperf.', FUTURE: 'fut.', COND: 'cond.', PP: 'perf.' };
 var AP_FM_SUP = ['¹', '²', '³', '⁴', '⁵', '⁶'];
 var AP_EF = ['ò', 'ai', 'à', 'emo', 'ete', 'anno'], AP_EC = ['ei', 'esti', 'ebbe', 'emmo', 'este', 'ebbero'], AP_EI = ['o', 'i', 'a', 'amo', 'ate', 'ano'];
@@ -6298,12 +6299,13 @@ function apFmLine0(inf, t) {   // { html, text } for one tense, or null
 function apFmCell(inf) {   // all chosen tenses for one verb
   var ts = apFmTenses(), lines = [];
   ts.forEach(function (t) { var l = apFmLine(inf, t) || { html: '<span class="ap-fm-n" style="vertical-align:baseline">&mdash;</span>', text: '\u2014' }; lines.push({ t: t, l: l }); });   // no forms stored for this tense: a faint dash
-  var lab = ts.length > 1;
+  var lab = ts.length > 1, cols = {}, auxTag = apAuxOf(inf);
+  lines.forEach(function (x) { cols[x.t] = x.l.html + (x.t === 'PP' && auxTag && x.l.html.indexOf('ap-fm-n') < 0 ? ' <span class="ap-fm-ax">&middot; ' + auxTag + '</span>' : ''); });
   if (ts.indexOf('PRESENT') >= 0) {   // present tense: six fixed slots (io tu lui noi voi loro); the other chosen tenses go in their own column
     var pl = lines.filter(function (x) { return x.t === 'PRESENT'; })[0].l, ot = lines.filter(function (x) { return x.t !== 'PRESENT'; });
-    return { slots: pl.slots || null, span: pl.slots ? '' : pl.html, html: ot.map(function (x) { return '<i class="ap-fm-t">' + AP_FM_SHORT[x.t] + '</i> ' + x.l.html; }).join('<br>'), text: lines.map(function (x) { return (lab ? AP_FM_SHORT[x.t] + ' ' : '') + x.l.text; }).join('; ') };
+    return { cols: cols, slots: pl.slots || null, span: pl.slots ? '' : pl.html, html: ot.map(function (x) { return '<i class="ap-fm-t">' + AP_FM_SHORT[x.t] + '</i> ' + x.l.html; }).join('<br>'), text: lines.map(function (x) { return (lab ? AP_FM_SHORT[x.t] + ' ' : '') + x.l.text; }).join('; ') };
   }
-  return { html: lines.map(function (x) { return (lab ? '<i class="ap-fm-t">' + AP_FM_SHORT[x.t] + '</i> ' : '') + x.l.html; }).join('<br>'), text: lines.map(function (x) { return (lab ? AP_FM_SHORT[x.t] + ' ' : '') + x.l.text; }).join('; ') };
+  return { cols: cols, html: lines.map(function (x) { return (lab ? '<i class="ap-fm-t">' + AP_FM_SHORT[x.t] + '</i> ' : '') + x.l.html; }).join('<br>'), text: lines.map(function (x) { return (lab ? AP_FM_SHORT[x.t] + ' ' : '') + x.l.text; }).join('; ') };
 }
 function hmSetAux(a) { hmAux = a; renderIntro(); }
 function hmAuxHtml() {
@@ -6320,7 +6322,7 @@ function apListRows(src) {
     var base = { en: v.en, inf: v.inf, usage_it: v.usage_it || '', usage_en: v.usage_en || '', note: v.note || '', group: v.group || '', fm: '', fmText: '', aux: '' };
     if (v.group === 'structures') { base.label = classifyNote(base.note); base.allReg = base.label === 'regular'; base.mark = ''; seen.set(k, base); return; }
     if (hmAux !== 'all' && ts.indexOf('PP') >= 0 && apAuxOf(v.inf) !== hmAux) return;   // Perfect tense: only the avere (or essere) verbs
-    var fc = apFmCell(v.inf); base.fm = fc.html; base.fmText = fc.text; base.slots = fc.slots || null; base.span = fc.span || ''; if (ts.indexOf('PP') >= 0) base.aux = apAuxOf(v.inf);
+    var fc = apFmCell(v.inf); base.fm = fc.html; base.fmText = fc.text; base.cols = fc.cols || {}; base.slots = fc.slots || null; base.span = fc.span || ''; if (ts.indexOf('PP') >= 0) base.aux = apAuxOf(v.inf);
     var recs = [];
     ts.forEach(function (t) { var r = idx[v.inf + '|' + t]; if (r) recs.push({ t: t, rec: r, note: r.note || '' }); });
     if (!recs.length) { if (on) return; recs = [{ t: 'PRESENT', rec: v, note: v.note || '' }]; }
@@ -6330,7 +6332,8 @@ function apListRows(src) {
     shown.forEach(function (x) { var mk = apListMark(v.inf, x.rec, x.t); if (mk && marks.indexOf(mk) < 0) marks.push(mk); });
     var cls = shown.map(function (x) { return classifyNote(x.note); });
     base.note = hits[0].note; base.mark = marks.join(', ');
-    base.label = ts.length === 1 ? cls[0] : shown.map(function (x, i) { return (TENSE_LABEL[x.t] || x.t) + ': ' + cls[i]; }).join(' · ');
+    var tg = shown.filter(function (x) { return regHit(x.rec, 'irregular'); }).map(function (x) { return AP_FM_SHORT[x.t] || TENSE_LABEL[x.t] || x.t; });
+    base.label = ts.length === 1 ? cls[0] : (tg.length ? tg.join(' · ') : 'regular');
     base.allReg = cls.every(function (c) { return c === 'regular'; });
     seen.set(k, base);
   });
@@ -6357,17 +6360,17 @@ function renderVerbListTable(q){
   const editAttrs=editorUnlocked
     ?`readonly onfocus="this.removeAttribute('readonly');this.style.borderBottom='1px dashed #e2e6f0'" onblur="this.setAttribute('readonly','');this.style.borderBottom='none';saveVerbListField(this)" onkeydown="if(event.key==='Enter')this.blur()"`
     :`readonly`;
-  const hasGrid=apFmTenses().indexOf('PRESENT')>=0&&rows.some(r=>r.slots||r.span), hasOth=rows.some(r=>r.fm), hasFm=hasGrid||hasOth, hasAux=hasFm&&apFmTenses().indexOf('PP')>=0, nc=3+(hasGrid?6:0)+(hasOth?1:0)+(hasAux?1:0)+(hasFm?0:1);
+  const hasGrid=apFmTenses().indexOf('PRESENT')>=0&&rows.some(r=>r.slots||r.span), otC=rows.some(r=>r.fm)?apFmTenses().filter(k=>k!=='PRESENT'):[], hasOth=otC.length>0, hasFm=hasGrid||hasOth, nc=3+(hasGrid?6:0)+otC.length+(hasFm?0:1), otH=k=>apFmTenses().length===1?'Form to learn':(AP_FM_HEAD[k]||k);
   const gridTd=r=>r.slots?r.slots.map(s=>`<td class="vb-fm vb-g">${s}</td>`).join(''):`<td class="vb-fm" colspan="6">${r.span}</td>`;
   const html=`
     <div class="vb-vp-n">${rows.length} ${apRegOn()?(AP_LT_REG[regFilter]||''):''}verbs${apRegOn()?' ('+apListTenseNames()+')':''}${editorUnlocked?' &nbsp;·&nbsp; <span style="font-style:italic;">Click any cell to edit · Enter or click away to save</span>':''}</div>
     <div class="vb-vp-scroll"><table class="vb-vp-table${hasFm?' vb-fmt':''}${hasGrid?' vb-grid':''}">
-      <thead><tr><th>English</th><th>Italian</th>${hasGrid?'<th class="vb-g">io</th><th class="vb-g">tu</th><th class="vb-g">lui/lei</th><th class="vb-g">noi</th><th class="vb-g">voi</th><th class="vb-g">loro</th>':''}${hasOth?'<th>'+(hasGrid?'Other tenses':'Form to learn')+'</th>':''}${hasAux?'<th class="vb-tha">Auxiliary</th>':''}${hasFm?'':'<th class="vb-thu">Usage (it)</th>'}<th></th></tr></thead>
+      <thead><tr><th>English</th><th>Italian</th>${hasGrid?'<th class="vb-g">io</th><th class="vb-g">tu</th><th class="vb-g">lui/lei</th><th class="vb-g">noi</th><th class="vb-g">voi</th><th class="vb-g">loro</th>':''}${otC.map(k=>'<th class="vb-ot">'+otH(k)+'</th>').join('')}${hasFm?'':'<th class="vb-thu">Usage (it)</th>'}<th></th></tr></thead>
       <tbody>${rows.map((r,i)=>vqHead(rows,i,nc)+`
       <tr>
         <td><input class="vb-en" value="${esc(r.en)}" data-field="en" data-inf="${esc(r.inf)}" ${editAttrs}></td>
         <td style="white-space:nowrap"><input class="vb-inf" value="${esc(r.inf)}" ${r.mark?`style="width:${r.inf.length+1}ch"`:''} data-field="inf" data-inf="${esc(r.inf)}" ${editAttrs}>${r.mark?`<span style="font-weight:700;color:var(--navy);white-space:nowrap"> (${r.mark})</span>`:''}</td>
-        ${hasGrid?gridTd(r):''}${hasOth?`<td class="vb-fm">${r.fm}</td>`:''}${hasAux?`<td class="vb-fm vb-ax">${r.aux}</td>`:''}
+        ${hasGrid?gridTd(r):''}${otC.map(k=>`<td class="vb-fm vb-o">${(r.cols&&r.cols[k])||'&mdash;'}</td>`).join('')}
         ${hasFm?'':`<td><input class="vb-us" value="${esc(r.usage_it)}" data-field="usage_it" data-inf="${esc(r.inf)}" placeholder="—" ${editAttrs}></td>`}
         <td class="vb-reg ${r.allReg?'r':'i'}">${vqBadge(r)}${r.label}</td>
       </tr>`).join('')}</tbody>
@@ -6994,7 +6997,7 @@ function printItVerbList() {
   if (q) rows = rows.filter(r => r.en.toLowerCase().includes(q) || r.inf.toLowerCase().includes(q) || r.note.toLowerCase().includes(q));
   rows = vqArrange(rows);
 
-  const hasGrid = apFmTenses().indexOf('PRESENT') >= 0 && rows.some(r => r.slots || r.span), hasOth = rows.some(r => r.fm), hasFm = hasGrid || hasOth, hasAux = hasFm && apFmTenses().indexOf('PP') >= 0, nc = 4 + (hasGrid ? 6 : 0) + (hasOth ? 1 : 0) + (hasAux ? 1 : 0) + (hasFm ? 0 : 1);
+  const hasGrid = apFmTenses().indexOf('PRESENT') >= 0 && rows.some(r => r.slots || r.span), otC = rows.some(r => r.fm) ? apFmTenses().filter(k => k !== 'PRESENT') : [], hasOth = otC.length > 0, hasFm = hasGrid || hasOth, nc = 4 + (hasGrid ? 6 : 0) + otC.length + (hasFm ? 0 : 1), otH = k => apFmTenses().length === 1 ? 'Form to learn' : (AP_FM_HEAD[k] || k);
   const gtd = r => r.slots ? r.slots.map(s => '<td style="padding:5px 6px;font-size:0.9rem;color:#1a2744;border-bottom:1px solid #e8ecf4;border-left:1px solid #eef1f7;">' + s + '</td>').join('') : '<td colspan="6" style="padding:5px 10px;font-size:0.85rem;color:#1a2744;border-bottom:1px solid #e8ecf4;">' + r.span + '</td>';
   const tableRows = rows.map((r, i) => {
     const bg = i % 2 === 0 ? '#ffffff' : '#faf8f3';
@@ -7004,8 +7007,7 @@ function printItVerbList() {
       + '<td style="padding:5px 10px;font-size:0.82rem;color:#8899bb;border-bottom:1px solid #e8ecf4;width:4%;">'+(i+1)+'.</td>'
       + '<td style="padding:5px 10px;font-size:0.82rem;color:#1a2744;border-bottom:1px solid #e8ecf4;'+(hasGrid?'':'width:30%;')+'">'+r.en+'</td>'
       + '<td style="padding:5px 10px;font-size:0.85rem;color:#3a8aaa;font-style:italic;border-bottom:1px solid #e8ecf4;'+(hasGrid?'':'width:28%;')+'">'+r.inf+(r.mark?' <b style="font-style:normal;color:#1a2744">('+r.mark+')</b>':'')+'</td>'
-      + (hasGrid ? gtd(r) : '') + (hasOth ? '<td style="padding:5px 10px;font-size:0.85rem;color:#1a2744;border-bottom:1px solid #e8ecf4;">'+r.fm+'</td>' : '')
-      + (hasAux ? '<td style="padding:5px 10px;font-size:0.78rem;color:#1a2744;border-bottom:1px solid #e8ecf4;">'+r.aux+'</td>' : '')
+      + (hasGrid ? gtd(r) : '') + otC.map(k => '<td style="padding:5px 10px;font-size:0.85rem;color:#1a2744;border-bottom:1px solid #e8ecf4;white-space:nowrap;">'+((r.cols && r.cols[k]) || '&mdash;')+'</td>').join('')
       + (hasFm ? '' : '<td style="padding:5px 10px;font-size:0.78rem;color:#c9a84c;border-bottom:1px solid #e8ecf4;">'+(r.usage_it||'')+'</td>')
       + '<td style="padding:5px 10px;font-size:0.72rem;color:'+regColor+';font-weight:600;border-bottom:1px solid #e8ecf4;white-space:nowrap;width:12%;">'+vqBadge(r)+regLabel+'</td>'
       + '</tr>';
@@ -7018,7 +7020,7 @@ function printItVerbList() {
     + 'body{font-family:var(--aph-body);margin:0;padding:28px 32px;color:#1a2744;background:#fff;}'
     + 'table{width:100%;border-collapse:collapse;border:1px solid #e2e6f0;border-radius:6px;overflow:hidden;margin-top:6px;}'
     + 'thead tr{background:#1a2744;}'
-    + '.ap-fm-n{font-size:.72rem;color:#8899bb;margin-right:1px}.ap-fm-p{white-space:nowrap;display:inline-block;margin-right:.5em}.ap-fm-t{font-size:.72rem;color:#8899bb}b{font-weight:800}.ap-fm-reg{font-size:.58rem;color:#b3bccf;letter-spacing:.04em}'
+    + '.ap-fm-n{font-size:.72rem;color:#8899bb;margin-right:1px}.ap-fm-p{white-space:nowrap;display:inline-block;margin-right:.5em}.ap-fm-t{font-size:.72rem;color:#8899bb}b{font-weight:800}.ap-fm-reg{font-size:.58rem;color:#b3bccf;letter-spacing:.04em}.ap-fm-ax{font-size:.7rem;color:#8899bb}'
     + (vbCover ? 'td b{color:transparent;background:#dfe5f0;border-radius:5px;-webkit-print-color-adjust:exact;print-color-adjust:exact}' : '')
     + 'thead th{padding:7px 10px;text-align:left;font-size:0.68rem;color:#c9a84c;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;}'
     + '@media print{'
@@ -7035,7 +7037,7 @@ function printItVerbList() {
     + '<th style="width:4%">#</th>'
     + '<th'+(hasGrid?'':' style="width:30%"')+'>English</th>'
     + '<th'+(hasGrid?'':' style="width:28%"')+'>Italian (Infinitive)</th>'
-    + (hasGrid ? '<th>io</th><th>tu</th><th>lui/lei</th><th>noi</th><th>voi</th><th>loro</th>' : '') + (hasOth ? '<th>' + (hasGrid ? 'Other tenses' : 'Form to learn') + '</th>' : '') + (hasAux ? '<th>Auxiliary</th>' : '') + (hasFm ? '' : '<th>Usage</th>')
+    + (hasGrid ? '<th>io</th><th>tu</th><th>lui/lei</th><th>noi</th><th>voi</th><th>loro</th>' : '') + otC.map(k => '<th>' + otH(k) + '</th>').join('') + (hasFm ? '' : '<th>Usage</th>')
     + '<th style="width:12%">Type</th>'
     + '</tr></thead>'
     + '<tbody>'+tableRows+'</tbody>'
@@ -7836,7 +7838,7 @@ if (window.__cj) window.__cj.speedTest = function (kind, g) {
 .hm-n{display:inline-flex;align-items:center;justify-content:center;width:34px;height:34px;border-radius:50%;background:var(--navy);color:var(--gold2);font:700 1.1rem var(--aph-display)}
 .hm-banner{background:var(--navy);color:#fff;border:2px solid var(--gold);border-radius:14px;padding:10px 18px;margin:0 0 12px;display:flex;flex-direction:column;gap:2px}
 .hm-banner small{letter-spacing:.1em;font-size:.75rem;color:var(--gold2);font-weight:700}.hm-banner b{font-size:1.15rem}
-.vb-vp-table td.vb-fm{font-size:.95rem;color:var(--navy);line-height:1.5;min-width:9em}.vb-vp-table td.vb-fm b{font-weight:800}.vb-vp-table td.vb-ax{font-size:.8rem;min-width:4.5em}.ap-fm-n{font-size:.78rem;color:#8a96b0;margin-right:1px;font-weight:600}.ap-fm-p{white-space:nowrap;display:inline-block;margin-right:.55em}.ap-fm-t{font-size:.74rem;color:#8a96b0}.vb-vp-table.vb-fmt th:nth-child(1){width:21%}.vb-vp-table.vb-fmt th:nth-child(2){width:16%}.vb-vp-table.vb-fmt th:nth-child(3){width:auto}.vb-vp-table.vb-fmt th:nth-child(4){width:auto}.vb-vp-table.vb-fmt td.vb-fm{min-width:11em}.vb-vp-table.vb-fmt th.vb-tha{width:8%}.vb-vp-table.vb-fmt th.vb-thu{width:22%}.ap-fm-reg{font-size:.58rem;color:#b3bccf;letter-spacing:.04em}.vb-cover td.vb-fm b{color:transparent;background:#dfe5f0;border-radius:5px;cursor:pointer;user-select:none;-webkit-user-select:none}.vb-cover td.vb-fm b.vb-open{color:inherit;background:transparent}.vb-vp-table.vb-grid th.vb-g{width:9%;text-align:left}.vb-vp-table.vb-grid td.vb-g{border-left:1px solid #eef1f7;min-width:5em;white-space:nowrap}.vb-vp-table.vb-grid th:nth-child(1){width:15%}.vb-vp-table.vb-grid th:nth-child(2){width:13%}.vb-vp-table.vb-grid th.vb-g{width:7%}.vb-vp-table.vb-grid td.vb-g{min-width:0}.vb-vp-table.vb-grid td.vb-reg{white-space:normal;font-size:.68rem;min-width:7em}.vb-vp-table.vb-grid .vb-en{min-width:7em}.vb-vp-table.vb-grid td.vb-fm{min-width:0}
+.vb-vp-table td.vb-fm{font-size:.95rem;color:var(--navy);line-height:1.5;min-width:9em}.vb-vp-table td.vb-fm b{font-weight:800}.vb-vp-table td.vb-ax{font-size:.8rem;min-width:4.5em}.ap-fm-n{font-size:.78rem;color:#8a96b0;margin-right:1px;font-weight:600}.ap-fm-p{white-space:nowrap;display:inline-block;margin-right:.55em}.ap-fm-t{font-size:.74rem;color:#8a96b0}.vb-vp-table.vb-fmt th:nth-child(1){width:21%}.vb-vp-table.vb-fmt th:nth-child(2){width:16%}.vb-vp-table.vb-fmt th:nth-child(3){width:auto}.vb-vp-table.vb-fmt th:nth-child(4){width:auto}.vb-vp-table.vb-fmt td.vb-fm{min-width:11em}.vb-vp-table.vb-fmt th.vb-tha{width:8%}.vb-vp-table.vb-fmt th.vb-thu{width:22%}.ap-fm-reg{font-size:.58rem;color:#b3bccf;letter-spacing:.04em}.ap-fm-ax{font-size:.72rem;color:#8a96b0}.vb-vp-table td.vb-o{white-space:nowrap}.vb-vp-table.vb-grid td.vb-reg{white-space:nowrap}.vb-cover td.vb-fm b{color:transparent;background:#dfe5f0;border-radius:5px;cursor:pointer;user-select:none;-webkit-user-select:none}.vb-cover td.vb-fm b.vb-open{color:inherit;background:transparent}.vb-vp-table.vb-grid th.vb-g{width:9%;text-align:left}.vb-vp-table.vb-grid td.vb-g{border-left:1px solid #eef1f7;min-width:5em;white-space:nowrap}.vb-vp-table.vb-grid th:nth-child(1){width:15%}.vb-vp-table.vb-grid th:nth-child(2){width:13%}.vb-vp-table.vb-grid th,.vb-vp-table.vb-grid td{padding-left:6px;padding-right:6px}.vb-vp-table.vb-grid th.vb-g{width:7.3%}.vb-vp-table.vb-grid{table-layout:fixed}.vb-vp-table.vb-grid th.vb-ot{width:11.5%}.vb-vp-table.vb-grid th:last-child{width:11%}.vb-vp-table.vb-grid td.vb-reg{white-space:nowrap}.vb-vp-table.vb-grid td.vb-g{min-width:0}.vb-vp-table.vb-grid td.vb-reg{font-size:.68rem}.vb-vp-table.vb-grid .vb-en{min-width:7em}.vb-vp-table.vb-grid td.vb-fm{min-width:0}
 .hm-vlist{display:flex;flex-direction:column;gap:8px;margin:8px 0;font-size:.92rem;line-height:1.5}
 .hm-vlist b{display:block;color:var(--navy)}.hm-vlist>div>span{display:flex;flex-wrap:wrap;gap:6px 22px;margin-top:4px}.hm-vlist .hm-vv{display:inline-block;line-height:1.35}.hm-vlist .hm-vi{display:inline;font-size:1.08rem;font-weight:800;color:#0b1530;letter-spacing:.1px}.hm-vlist .hm-vs{font-size:.86rem;font-weight:700;color:#0b1530;margin-left:3px}.hm-vlist .hm-vv i{font-size:.78rem;font-weight:400;font-style:normal;color:#aab2c3;margin-left:6px}
 html.ap-sh-lock body{overflow:hidden}
@@ -13747,4 +13749,4 @@ function deck(el,m,n,x,y,face,gap){clear(el);const cs=[];for(let i=0;i<n;i++){co
   if (document.readyState === 'complete') start(); else window.addEventListener('load', start);
 })();
 </script>
-<script id="ap-build">window.__apBuild="25aa5227aa";window.__apVer=210;(function(){var N=window.__apVer;function put(){try{var h=document.querySelector('header.aph-header');if(!h||document.getElementById('ap-ver'))return;var s=document.createElement('span');s.id='ap-ver';s.textContent='v'+N;s.style.cssText='position:absolute;right:10px;bottom:4px;font:600 11px/1 system-ui,sans-serif;color:#c9a84c;opacity:.8;pointer-events:none;letter-spacing:.04em;z-index:2';if(getComputedStyle(h).position==='static')h.style.position='relative';h.appendChild(s)}catch(e){}}put();document.addEventListener('DOMContentLoaded',put);window.addEventListener('load',put);setInterval(put,2000)})();</script>
+<script id="ap-build">window.__apBuild="e3bd4f1c9e";window.__apVer=211;(function(){var N=window.__apVer;function put(){try{var h=document.querySelector('header.aph-header');if(!h||document.getElementById('ap-ver'))return;var s=document.createElement('span');s.id='ap-ver';s.textContent='v'+N;s.style.cssText='position:absolute;right:10px;bottom:4px;font:600 11px/1 system-ui,sans-serif;color:#c9a84c;opacity:.8;pointer-events:none;letter-spacing:.04em;z-index:2';if(getComputedStyle(h).position==='static')h.style.position='relative';h.appendChild(s)}catch(e){}}put();document.addEventListener('DOMContentLoaded',put);window.addEventListener('load',put);setInterval(put,2000)})();</script>
