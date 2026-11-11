@@ -6674,10 +6674,14 @@ function kdClose(quiet) {
   var cb = KD && KD.onClose; KD = null;
   if (!quiet && cb) { try { cb(); } catch (e) { } }
 }
+function kdAutoOn() { try { return localStorage.getItem('ap-kd-autoplay') !== '0'; } catch (e) { return true; } }
+function kdAutoTog() { var on = !kdAutoOn(); try { localStorage.setItem('ap-kd-autoplay', on ? '1' : '0'); } catch (e) { } if (!on) { try { speechSynthesis.cancel(); } catch (e) { } } var b = document.getElementById('kd-auto'); if (b) { b.innerHTML = kdAutoLab(); b.className = 'aph-dbar-btn' + (on ? ' on' : ''); } }
+function kdAutoLab() { return '&#128266; Autoplay ' + (kdAutoOn() ? 'on' : 'off'); }
 function kdBar() {
   var K = KD, ne = K.errs.length;
   return '<div class="aph-dbar"><span class="aph-dbar-title">' + kdEsc(K.title) + '</span>'
     + '<span class="aph-dbar-score"><span class="ok">&#10003; ' + K.score + '</span><span class="bad">&#10007; ' + ne + '</span></span>'
+    + '<button type="button" id="kd-auto" class="aph-dbar-btn' + (kdAutoOn() ? ' on' : '') + '" onclick="kdAutoTog()">' + kdAutoLab() + '</button>'
     + '<button type="button" class="aph-dbar-btn" onclick="kdSettings(event)">&#9881; Settings</button>'
     + '<button type="button" class="aph-dbar-btn" ' + (ne ? 'onclick="kdErrors()"' : 'disabled') + '>&#9654; Errors</button>'
     + '<button type="button" class="aph-dbar-btn" onclick="kdClose()" aria-label="Close">&#10005; Close</button></div>';
@@ -6716,7 +6720,7 @@ function kdReveal(timedOut) {
   var c = K.deck[K.idx];
   document.getElementById('kd-ans').innerHTML = '<div class="reveal' + (timedOut ? ' timed' : '') + '"><div class="reveal-answer">' + kdEsc(c.fr) + '</div>' + (timedOut ? '<div class="ot-timeup">Time\'s up!</div>' : '') + '</div>';
   var s = document.getElementById('kd-show'); if (s) s.style.display = 'none';
-  setTimeout(function () { if (KD && KD.rev && KD.deck[KD.idx] === c) kdSay(); }, 60);   /* the French is read aloud as soon as the answer shows (AP, 11 Nov 2026); marking, closing or Replay again moves on at once */
+  setTimeout(function () { if (kdAutoOn() && KD && KD.rev && KD.deck[KD.idx] === c) kdSay(); }, 60);   /* the French is read aloud as soon as the answer shows (AP, 11 Nov 2026); marking, closing or Replay again moves on at once */
   var m = document.getElementById('kd-marks'); m.style.display = 'block';
   m.innerHTML = (K.review
     ? '<div class="aph-mark"><button type="button" class="aph-mark-btn skip" onclick="kdMark(\'ignore\')">&#9197; Ignore</button><button type="button" class="aph-mark-btn near" onclick="kdMark(\'again\')">&#10007; Still not got it<small>&#8595; key</small></button><button type="button" class="aph-mark-btn ok" onclick="kdMark(\'got\')">&#10003; Got it<small>&#8594; key</small></button></div>'
@@ -24697,4 +24701,4 @@ function deck(el,m,n,x,y,face,gap){clear(el);const cs=[];for(let i=0;i<n;i++){co
   if (document.readyState === 'complete') start(); else window.addEventListener('load', start);
 })();
 </script>
-<script id="ap-build">window.__apBuild="cf3dd62b8c";window.__apVer=524;(function(){var N=window.__apVer;function put(){try{var h=document.querySelector('header.aph-header');if(!h||document.getElementById('ap-ver'))return;var s=document.createElement('span');s.id='ap-ver';s.textContent='v'+N;s.style.cssText='position:absolute;right:10px;bottom:4px;font:600 11px/1 system-ui,sans-serif;color:#c9a84c;opacity:.8;pointer-events:none;letter-spacing:.04em;z-index:2';if(getComputedStyle(h).position==='static')h.style.position='relative';h.appendChild(s)}catch(e){}}put();document.addEventListener('DOMContentLoaded',put);window.addEventListener('load',put);setInterval(put,2000)})();</script>
+<script id="ap-build">window.__apBuild="365528755d";window.__apVer=525;(function(){var N=window.__apVer;function put(){try{var h=document.querySelector('header.aph-header');if(!h||document.getElementById('ap-ver'))return;var s=document.createElement('span');s.id='ap-ver';s.textContent='v'+N;s.style.cssText='position:absolute;right:10px;bottom:4px;font:600 11px/1 system-ui,sans-serif;color:#c9a84c;opacity:.8;pointer-events:none;letter-spacing:.04em;z-index:2';if(getComputedStyle(h).position==='static')h.style.position='relative';h.appendChild(s)}catch(e){}}put();document.addEventListener('DOMContentLoaded',put);window.addEventListener('load',put);setInterval(put,2000)})();</script>
