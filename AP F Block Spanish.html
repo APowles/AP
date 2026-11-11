@@ -5389,6 +5389,7 @@ function renderSpVerbList(q){
   }
   let rows=[...seen.values()].sort((a,b)=>a.en.replace(/^to /,'').localeCompare(b.en.replace(/^to /,'')));
   if(q) rows=rows.filter(r=>r.en.toLowerCase().includes(q)||r.inf.toLowerCase().includes(q)||r.note.toLowerCase().includes(q));
+  if(apRegOn()) rows=rows.filter(r=>classifyNote(r.note)===regFilter);
   rows=vqArrange(rows);
   const isReg=r=>r.note.toLowerCase().startsWith('regular');
   const esc=s=>(s||'').replace(/"/g,'&quot;').replace(/'/g,'&#39;');
@@ -5397,7 +5398,7 @@ function renderSpVerbList(q){
     ?`readonly onfocus="this.removeAttribute('readonly');this.style.borderBottom='1px dashed var(--border)'" onblur="this.setAttribute('readonly','');this.style.borderBottom='none';saveSpVerbField(this)" onkeydown="if(event.key==='Enter')this.blur()"`
     :`readonly`;
   const html=`
-    <div class="vb-vp-n">${rows.length} verbs${editorUnlocked?' &nbsp;·&nbsp; <span style="font-style:italic;">Click any cell to edit · Enter or click away to save (session only)</span>':''}</div>
+    <div class="vb-vp-n">${rows.length} ${apRegOn()?({regular:'regular ',radical:'radical ',irregular:'irregular '}[regFilter]||''):''}verbs${editorUnlocked?' &nbsp;·&nbsp; <span style="font-style:italic;">Click any cell to edit · Enter or click away to save (session only)</span>':''}</div>
     <div class="vb-vp-scroll"><table class="vb-vp-table">
       <thead><tr><th>English</th><th>Spanish</th><th>Usage (es)</th><th></th></tr></thead>
       <tbody>${rows.map((r,i)=>vqHead(rows,i,4)+`
@@ -7302,7 +7303,7 @@ if (window.__cj) window.__cj.speedTest = function (kind, g) {
 .hm-banner{background:var(--navy);color:#fff;border:2px solid var(--gold);border-radius:14px;padding:10px 18px;margin:0 0 12px;display:flex;flex-direction:column;gap:2px}
 .hm-banner small{letter-spacing:.1em;font-size:.75rem;color:var(--gold2);font-weight:700}.hm-banner b{font-size:1.15rem}
 .hm-vlist{display:flex;flex-direction:column;gap:8px;margin:8px 0;font-size:.92rem;line-height:1.5}
-.hm-vlist b{display:block;color:var(--navy)}.hm-vlist span{color:var(--text2)}.hm-vlist i{color:#7a869f}
+.hm-vlist b{display:block;color:var(--navy)}.hm-vlist>div>span{display:flex;flex-wrap:wrap;gap:6px 22px;margin-top:4px}.hm-vlist .hm-vv{display:inline-block;line-height:1.35}.hm-vlist .hm-vi{display:inline;font-size:1.08rem;font-weight:800;color:#0b1530;letter-spacing:.1px}.hm-vlist .hm-vs{font-size:.86rem;font-weight:700;color:#0b1530;margin-left:3px}.hm-vlist .hm-vv i{font-size:.78rem;font-weight:400;font-style:normal;color:#aab2c3;margin-left:6px}
 .hm-exgrid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
 .hm-exgrid .hm-h{grid-column:1/-1;margin:0}
 .hm-ctls{margin:10px 0;align-items:center}
@@ -7400,7 +7401,7 @@ var HMC = { lang: 'Spanish', title: 'Spanish Verbs', pattern: ['soy', 'eres', 'e
   sets: [['Eton F Verbs', '100 Core Verbs'], ['all', 'All Verbs'], ['Top Structures', 'Specialist Verb Structures'], ['Both', 'Both']],
   curSet: function () { return verbSetFilter; }, setSet: function (k) { setVerbSetFilter(k); },
   modes: [['full', 'Full (6 forms)', 'See the English, say all six persons'], ['single', 'Single form', 'One English form, give the Spanish'], ['inf', 'Infinitives', 'What is the Spanish infinitive?'], ['sentences', 'Sentences', 'Gap-fill sentences']],
-  tenses: [['INFINITIVE', 'Infinitives'], ['PRESENT', 'Present'], ['PRETERITE', 'Preterite'], ['FUTURE', 'Future'], ['IMPERFECT', 'Imperfect'], ['COND', 'Conditional'], ['PERFECT', 'Perfect'], ['PRESENT_SUBJ', 'Pres. Subj.'], ['IMP_SUBJ', 'Imp. Subj.']],
+  tenses: [['INFINITIVE', 'Infinitives'], ['PRESENT', 'Present'], ['FUTURE', 'Future'], ['PRETERITE', 'Preterite'], ['IMPERFECT', 'Imperfect'], ['COND', 'Conditional'], ['PERFECT', 'Perfect'], ['PRESENT_SUBJ', 'Pres. Subj.'], ['IMP_SUBJ', 'Imp. Subj.']],
   tn: { PRESENT: 'Present', PRETERITE: 'Preterite', IMPERFECT: 'Imperfect', PERFECT: 'Perfect', FUTURE: 'Future', COND: 'Conditional', PRESENT_SUBJ: 'Pres. Subj.', IMP_SUBJ: 'Imp. Subj.', INFINITIVE: 'Infinitives' },
   regs: [['all', 'All'], ['regular', 'Regular'], ['radical', 'Radical'], ['irregular', 'Irregular']],
   persons: [['ALL', 'All persons'], ['0', 'yo'], ['1', 'tú'], ['2', 'él/ella'], ['3', 'nosotros'], ['4', 'vosotros'], ['5', 'ellos/as']],
@@ -7462,9 +7463,9 @@ function hmSelText() {
 }
 function hmGrpVerbs(g) { var all = VQ_TIER.E.concat(VQ_TIER.I, VQ_TIER.U); return all.filter(function (inf) { var t = VQ_MAP[inf]; return g === 'E1' ? (t === 'E' && VQ_HALF[inf] === 1) : g === 'E2' ? (t === 'E' && VQ_HALF[inf] === 2) : t === g; }); }
 function hmVerbList() {
-  var en = {}; try { VERBS.forEach(function (v) { if (!en[v.inf]) en[v.inf] = String(v.en || '').toLowerCase(); }); } catch (e) {}
+  var en = {}, sc = {}; try { VERBS.forEach(function (v) { if (!en[v.inf]) en[v.inf] = String(v.en || '').toLowerCase(); if (v.tense === 'PRESENT' && !(v.inf in sc)) { var m = /stem-changing\s+\w+\W+(\w+)/.exec(v.note || ''); sc[v.inf] = m ? m[1] : ''; } }); } catch (e) {}
   return '<div class="hm-vlist">' + HM_GRP.filter(function (g) { return vqSel.has(g[0]); }).map(function (g) {
-    return '<div><b>' + g[1] + ' · ' + g[3] + '</b><span>' + hmGrpVerbs(g[0]).map(function (i) { return i + (en[i] ? ' <i>' + en[i] + '</i>' : ''); }).join(' &middot; ') + '</span></div>';
+    return '<div><b>' + g[1] + ' · ' + g[3] + '</b><span>' + hmGrpVerbs(g[0]).map(function (i) { return '<span class="hm-vv"><strong class="hm-vi">' + i + '</strong>' + (sc[i] ? '<span class="hm-vs">(' + sc[i] + ')</span>' : '') + (en[i] ? '<i>' + en[i] + '</i>' : '') + '</span>'; }).join('') + '</span></div>';
   }).join('') + '</div>';
 }
 function hmCoreHtml(left, tenseHtml, more2, cardCount) {
@@ -7920,7 +7921,18 @@ function hmTrialsPaperPen() {
 })();
 ⟦/script>
 <script>if (window.__cj) window.__cj.imp = { get: function () { return vqTier; }, set: function (k) { vqSet(k); }, defs: function () { return vqTier === 'SEL' ? VQ_DEF.concat([['SEL', 'Your groups', vqSelText()]]) : VQ_DEF; }, text: function () { return vqTierText(); }, count: function (k, fn) { var o = vqTier; vqTier = k; try { return fn(); } finally { vqTier = o; } } };
-if (window.__cj && window.__cj.inSet) { var _vqInSet0 = window.__cj.inSet; window.__cj.inSet = function (v, s) { return _vqInSet0(v, s) && vqKeep(v); }; }⟦/script><style id="ap-setup-css">
+if (window.__cj && window.__cj.inSet) { var _vqInSet0 = window.__cj.inSet; window.__cj.inSet = function (v, s) { return _vqInSet0(v, s) && vqKeep(v); }; }
+/* Refine my choice > Regularity (Regular / Radical / Irregular), chosen on the set-up screen, is also kept by Speed Challenge and by View & Print (it used to be ignored there) */
+var _apRegNote = null;
+function apRegOn() { return typeof regFilter !== 'undefined' && regFilter !== 'all' && apHome === 'setup'; }
+function apRegKeep(v) {
+  if (!apRegOn()) return true;
+  if (!_apRegNote) { _apRegNote = {}; VERBS.forEach(function (x) { if (x.tense === 'PRESENT' && x.group !== 'structures' && !(x.inf in _apRegNote)) _apRegNote[x.inf] = x.note || ''; }); }
+  var inf = (v && v.inf && typeof v.inf === 'object') ? v.inf.inf : (v && v.inf), tn = v && v.tense;
+  var note = (!v || tn === 'INFINITIVE' || tn === 'SET' || v.note === undefined) ? (_apRegNote[inf] || '') : (v.note || '');
+  return classifyNote(note) === regFilter;
+}
+if (window.__cj && window.__cj.inSet) { var _apRegInSet0 = window.__cj.inSet; window.__cj.inSet = function (v, s) { return _apRegInSet0(v, s) && apRegKeep(v); }; }⟦/script><style id="ap-setup-css">
 /* mysethelp */
 .mh{font-size:1.0625rem;line-height:1.5;color:var(--navy,#1a2744)}
 .mh-steps{list-style:none;margin:0 0 14px;padding:0}
@@ -28386,4 +28398,4 @@ function deck(el,m,n,x,y,face,gap){clear(el);const cs=[];for(let i=0;i<n;i++){co
   if (document.readyState === 'complete') start(); else window.addEventListener('load', start);
 })();
 </script>
-<script id="ap-build">window.__apBuild="239698760f";window.__apVer=201;(function(){var N=window.__apVer;function put(){try{var h=document.querySelector('header.aph-header');if(!h||document.getElementById('ap-ver'))return;var s=document.createElement('span');s.id='ap-ver';s.textContent='v'+N;s.style.cssText='position:absolute;right:10px;bottom:4px;font:600 11px/1 system-ui,sans-serif;color:#c9a84c;opacity:.8;pointer-events:none;letter-spacing:.04em;z-index:2';if(getComputedStyle(h).position==='static')h.style.position='relative';h.appendChild(s)}catch(e){}}put();document.addEventListener('DOMContentLoaded',put);window.addEventListener('load',put);setInterval(put,2000)})();</script>
+<script id="ap-build">window.__apBuild="36f8f758dc";window.__apVer=202;(function(){var N=window.__apVer;function put(){try{var h=document.querySelector('header.aph-header');if(!h||document.getElementById('ap-ver'))return;var s=document.createElement('span');s.id='ap-ver';s.textContent='v'+N;s.style.cssText='position:absolute;right:10px;bottom:4px;font:600 11px/1 system-ui,sans-serif;color:#c9a84c;opacity:.8;pointer-events:none;letter-spacing:.04em;z-index:2';if(getComputedStyle(h).position==='static')h.style.position='relative';h.appendChild(s)}catch(e){}}put();document.addEventListener('DOMContentLoaded',put);window.addEventListener('load',put);setInterval(put,2000)})();</script>
