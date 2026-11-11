@@ -6732,9 +6732,29 @@ function closeConjChallenge() {
   W.gramAcc = function (c) { var i = $('gq-in'); if (!i || i.disabled) return; var s = i.selectionStart == null ? i.value.length : i.selectionStart, e = i.selectionEnd == null ? s : i.selectionEnd; i.value = i.value.slice(0, s) + c + i.value.slice(e); i.focus(); i.selectionStart = i.selectionEnd = s + 1; };
   /* ---------- ORAL DRILL: say it, show the answer, mark yourself (Tests stay on screen as before) ---------- */
   function ansOf(q) { return q.t === 'mc' ? q.o[q.a] : q.a.filter(function (x, i, r) { var k = String(x).toLowerCase().replace(/[. !?]+$/, ''); return r.findIndex(function (y) { return String(y).toLowerCase().replace(/[. !?]+$/, '') === k; }) === i; }).join('  /  '); }
+
+  /* ---------- hear the Spanish in the oral drill: 🔊 on every option and on the answer; the answer plays by itself on Show answer (switch below the topic) ---------- */
+  function gqAuto() { try { return localStorage.getItem('apGqAuto') !== '0'; } catch (e) { return true; } }
+  function gqSpeakText(s) { var t = String(s), prev; do { prev = t; t = t.replace(/\s*\([^()]*\)/g, ''); } while (t !== prev); return t.replace(/\s{2,}/g, ' ').replace(/\s+([,.;:!?])/g, '$1').trim(); }
+  function gqIsEs(s) { return !!String(s).trim() && !/\b(the|is|are|and|you|of|it|for|with|that|this|have|your|not|can)\b/i.test(gqSpeakText(s)); }
+  function gqSay(txt, btn) {
+    var ss = window.speechSynthesis; if (!ss) return;
+    var was = btn && btn.classList.contains('on'); ss.cancel();
+    [].forEach.call(document.querySelectorAll('#drill .gq-sp.on'), function (b) { b.classList.remove('on'); });
+    if (was) return;
+    var c = gqSpeakText(txt), u = new SpeechSynthesisUtterance(typeof _phSayEs === 'function' ? _phSayEs(c) : c);
+    u.lang = 'es-ES'; u.rate = 0.75;
+    try { var v = _spkGetVoice('es-ES'); if (v) u.voice = v; } catch (e) {}
+    if (btn) { btn.classList.add('on'); u.onend = u.onerror = function () { btn.classList.remove('on'); }; }
+    ss.speak(u);
+  }
+  W.gramSay = function (btn) { gqSay(btn.getAttribute('data-t'), btn); };
+  function gqBtn(txt) { return gqIsEs(txt) ? '<button type="button" class="gq-sp" data-t="' + esc(txt).replace(/"/g, '&quot;') + '" onclick="gramSay(this)" aria-label="Hear it">&#128266;</button>' : ''; }
+  function gqAutoLabel() { return '&#128266; Play the answer automatically: <b>' + (gqAuto() ? 'On' : 'Off') + '</b>'; }
+  W.gramAuto = function () { try { localStorage.setItem('apGqAuto', gqAuto() ? '0' : '1'); } catch (e) { window.__gqA = !gqAuto(); } var b = $('gq-auto'); if (b) b.innerHTML = gqAutoLabel(); };
   function oralCard(q) {
     var h = '<div class="aph-prompt card-question gq-q' + (q.t === 'mc' ? '' : ' gq-gap') + '" id="gq-sent">' + (q.t === 'mc' ? esc(q.q) : blank(q)) + '</div>';
-    if (q.t === 'mc') h += '<div class="gq-opts">' + q.o.map(function (o, i) { return '<div class="gq-opt" id="gq-o' + i + '" style="cursor:default"><span class="gq-l">' + 'ABCD'[i] + '</span>' + esc(o) + '</div>'; }).join('') + '</div>';
+    if (q.t === 'mc') h += '<div class="gq-opts">' + q.o.map(function (o, i) { return '<div class="gq-opt" id="gq-o' + i + '" style="cursor:default"><span class="gq-l">' + 'ABCD'[i] + '</span>' + esc(o) + gqBtn(o) + '</div>'; }).join('') + '</div>';
     h += '<p class="gh-p gq-sayit">' + (q.t === 'mc' ? 'Say your choice out loud, then press Show answer.' : 'Say the missing word out loud, then press Show answer.') + '</p>'
       + '<button class="aph-btn aph-btn-primary aph-btn-block" id="gq-show" onclick="gramShow()">Show answer</button>';
     return h;
@@ -6745,7 +6765,9 @@ function closeConjChallenge() {
     var sy = document.querySelector('.gq-sayit'); if (sy) sy.style.display = 'none';
     if (q.t === 'mc') { var ok = $('gq-o' + q.a); if (ok) ok.classList.add('ok'); }
     else { var s = $('gq-sent'); if (s) s.innerHTML = blank(q, q.a[0], 'ok'); }
-    $('gq-fb').innerHTML = '<div class="gq-fb"><b>Answer: ' + esc(ansOf(q)) + '</b><p>' + esc(q.e) + '</p></div>' + vbMarkRow('gramSelf');
+    var said = q.t === 'mc' ? q.o[q.a] : String(q.q).replace('___', q.a[0]);
+    $('gq-fb').innerHTML = '<div class="gq-fb"><b>Answer: ' + esc(ansOf(q)) + '</b> ' + gqBtn(said) + '<p>' + esc(q.e) + '</p></div>' + vbMarkRow('gramSelf');
+    var sb = document.querySelector('#gq-fb .gq-sp'); if (sb && gqAuto()) gqSay(said, sb);
   };
   W.gramSelf = function (k) {
     var R = S.run, q = R && R.qs[R.i]; if (!q || !R.oral || !R.shown || R.lock) return;
@@ -6755,10 +6777,11 @@ function closeConjChallenge() {
   function gramCard() {
     var R = S.run, q = R.qs[R.i]; if (!q) { gramEnd(); return; }
     R.shown = false;
+    try { window.speechSynthesis.cancel(); } catch (e) {}
     var pct = R.i / R.qs.length * 100;
     var h = '<div class="aph-wrap gq-wrap"><div class="aph-progress"><div class="progress-fill" style="width:' + pct + '%"></div></div>'
       + '<div class="aph-card aph-qcard gq-card"><div class="aph-qmeta">' + (R.test ? 'Test' : 'Drill') + ' &middot; question ' + (R.i + 1) + ' of ' + R.qs.length + ' &middot; ' + esc(uName(q.u)) + (LVN[q.d] ? ' &middot; <span class="gq-lv gq-lv-' + q.d + '">' + LVN[q.d] + '</span>' : '') + '</div>'
-      + '<div class="gq-topic">' + esc(q.topic) + '</div>';
+      + '<div class="gq-topic">' + esc(q.topic) + '</div>' + (R.oral ? '<button type="button" class="gq-auto" id="gq-auto" onclick="gramAuto()">' + gqAutoLabel() + '</button>' : '');
     if (R.oral) {
       h += oralCard(q);
     } else if (q.t === 'mc') {
@@ -7376,6 +7399,10 @@ html.ap-sh-lock #apPrintSheet{display:block!important;position:static;color:#000
 #apPrintSheet td.e:last-child{border-right:none}
 }
 .ap-sh-open{align-self:flex-start;border:4px solid #0a9b3c;background:#fff;color:var(--navy,#1a2744);border-radius:999px;box-shadow:0 0 0 3px rgba(10,155,60,.22),0 0 14px 3px rgba(10,155,60,.55);font:700 1rem var(--aph-body,system-ui);min-height:48px;padding:0 22px;margin:4px 0 12px;cursor:pointer}
+.gq-sp{flex:none;margin-left:auto;width:44px;height:44px;border-radius:50%;border:2px solid var(--navy,#1a2744);background:#fff;font-size:1.15rem;cursor:pointer;padding:0}
+.gq-sp.on{background:var(--navy,#1a2744)}
+.gq-fb .gq-sp{margin-left:10px;width:40px;height:40px;vertical-align:middle}
+.gq-auto{border:none;background:none;color:var(--text2,#4a5578);text-decoration:underline;font:500 .9rem var(--aph-body,system-ui);min-height:36px;cursor:pointer;padding:0;margin:0 0 6px}
 .hm-exgrid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
 .hm-exgrid .hm-h{grid-column:1/-1;margin:0}
 .hm-ctls{margin:10px 0;align-items:center}
@@ -28633,4 +28660,4 @@ function deck(el,m,n,x,y,face,gap){clear(el);const cs=[];for(let i=0;i<n;i++){co
   if (document.readyState === 'complete') start(); else window.addEventListener('load', start);
 })();
 </script>
-<script id="ap-build">window.__apBuild="4fbc2f5473";window.__apVer=220;(function(){var N=window.__apVer;function put(){try{var h=document.querySelector('header.aph-header');if(!h||document.getElementById('ap-ver'))return;var s=document.createElement('span');s.id='ap-ver';s.textContent='v'+N;s.style.cssText='position:absolute;right:10px;bottom:4px;font:600 11px/1 system-ui,sans-serif;color:#c9a84c;opacity:.8;pointer-events:none;letter-spacing:.04em;z-index:2';if(getComputedStyle(h).position==='static')h.style.position='relative';h.appendChild(s)}catch(e){}}put();document.addEventListener('DOMContentLoaded',put);window.addEventListener('load',put);setInterval(put,2000)})();</script>
+<script id="ap-build">window.__apBuild="d8b976e147";window.__apVer=221;(function(){var N=window.__apVer;function put(){try{var h=document.querySelector('header.aph-header');if(!h||document.getElementById('ap-ver'))return;var s=document.createElement('span');s.id='ap-ver';s.textContent='v'+N;s.style.cssText='position:absolute;right:10px;bottom:4px;font:600 11px/1 system-ui,sans-serif;color:#c9a84c;opacity:.8;pointer-events:none;letter-spacing:.04em;z-index:2';if(getComputedStyle(h).position==='static')h.style.position='relative';h.appendChild(s)}catch(e){}}put();document.addEventListener('DOMContentLoaded',put);window.addEventListener('load',put);setInterval(put,2000)})();</script>
