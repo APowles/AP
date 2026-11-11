@@ -21331,7 +21331,7 @@ function ovStudy(){ if (!selectedSections.size) return; ovCloseModal(); openStud
 
 
 function updatePhraseCount() {
-  document.getElementById('phrase-count').textContent = getSelectedPhrases().length + ' words';
+  document.getElementById('phrase-count').textContent = getSelectedPhrases().length + (typeof svNoun === 'function' ? svNoun(getSelectedPhrases()) : ' words');
 }
 
 // ── LANGUAGE ──────────────────────────────────────────────────────────────
@@ -23197,7 +23197,7 @@ function printChunksViewer() {
       <span style="display:inline-flex;align-items:center;gap:8px;white-space:nowrap"><span class="svv-lab">Group by</span>
       <button data-g="sec" onclick="svSetGroup('sec')">List</button>
       <button data-g="level" onclick="svSetGroup('level')">Easy / Medium / Hard</button></span>
-      <div class="svv-note" id="svv-note" style="display:none">Words come in three batches: <b>Easy</b> (looks like English: la familia), <b>Medium</b> (el apartamento = flat), <b>Hard</b> (el perro = dog). Easy first builds confidence; Medium first starts in the middle; Hard first tackles the toughest while you are fresh. Each batch is shuffled and every word stays in.</div>
+      <div class="svv-note" id="svv-note" style="display:none"></div>
     </div>
   </div>
   <div id="studyViewContent" class="svv-body"></div>
@@ -23207,6 +23207,14 @@ function printChunksViewer() {
 <script>
 // Study View
 var svOpts = { cover: false, order: 'list', group: 'sec', seed: 1 };
+var SV_CH = { E: 'up to 10 words', M: '11 to 14 words', H: '15 words or more' };
+function svKinds(ps) { var w = 0, c = 0; (ps || []).forEach(function (p) { if (spvIsChunk(p)) c++; else w++; }); return { w: w, c: c }; }
+function svBandDesc(b, ps) { var k = svKinds(ps); return k.c && !k.w ? SV_CH[b] : k.c ? SV_BANDS[b][1] + ' (words) · ' + SV_CH[b] + ' (chunks)' : SV_BANDS[b][1]; }
+function svNoun(ps) { var k = svKinds(ps); return k.c && !k.w ? ' chunks' : k.c ? ' items' : ' words'; }
+function svNoteHtml(ps) {
+  var k = svKinds(ps), W = 'Individual words come in three batches by how much they look like English: <b>Easy</b> (la familia), <b>Medium</b> (el apartamento = flat), <b>Hard</b> (el perro = dog).', C = 'Chunks (whole sentences) come in three batches by length only: <b>Easy</b> up to 10 words, <b>Medium</b> 11 to 14, <b>Hard</b> 15 or more.';
+  return (k.c && !k.w ? C : k.c ? W + ' ' + C : W) + ' Easy first builds confidence; Medium first starts in the middle; Hard first tackles the toughest while you are fresh. Each batch is shuffled and everything stays in.';
+}
 var SV_BANDS = { E: ['Easy', 'looks like the English'], M: ['Medium', 'looks like a different English word'], H: ['Hard', 'nothing to go on'] };
 var _svSpk = [];
 function openStudyView() {
@@ -23236,7 +23244,7 @@ function svBandRow(ps, i, last, cols, big) {
   if (!(svOpts.order === 'E' || svOpts.order === 'M' || svOpts.order === 'H') || svOpts.group === 'level') return '';
   var b = svLevelOf(ps[i]); if (b === last.b) return ''; last.b = b;
   var k = 0; for (var j = i; j < ps.length && svLevelOf(ps[j]) === b; j++) k++;
-  return '<tr class="svv-cb"><td colspan="' + cols + '" style="background:' + SV_BANDCOL[b][0] + ';border-left:8px solid ' + SV_BANDCOL[b][1] + ';padding:' + (big ? '7px 14px' : '3px 8px') + ';font-size:' + (big ? '0.875rem' : '0.68rem') + ';font-weight:600;color:#1a2744;cursor:default;-webkit-print-color-adjust:exact;print-color-adjust:exact"><b>' + SV_BANDS[b][0] + '<' + '/b> · ' + SV_BANDS[b][1] + ' <span style="font-weight:400;color:#56607a;margin-left:8px">' + k + ' words<' + '/span><' + '/td><' + '/tr>';
+  return '<tr class="svv-cb"><td colspan="' + cols + '" style="background:' + SV_BANDCOL[b][0] + ';border-left:8px solid ' + SV_BANDCOL[b][1] + ';padding:' + (big ? '7px 14px' : '3px 8px') + ';font-size:' + (big ? '0.875rem' : '0.68rem') + ';font-weight:600;color:#1a2744;cursor:default;-webkit-print-color-adjust:exact;print-color-adjust:exact"><b>' + SV_BANDS[b][0] + '<' + '/b> · ' + svBandDesc(b, ps.slice(i, i + k)) + ' <span style="font-weight:400;color:#56607a;margin-left:8px">' + k + (svKinds(ps.slice(i, i + k)).c ? (svKinds(ps.slice(i, i + k)).w ? ' items' : ' chunks') : ' words') + '<' + '/span><' + '/td><' + '/tr>';
 }
 function svLevelOf(p) { try { return spvLevel(p) || 'H'; } catch (e) { return 'H'; } }
 function svOrderLabel() {
@@ -23255,7 +23263,7 @@ function svGroups() {
   if (svOpts.group === 'level') {
     (o === 'H' ? ['H', 'M', 'E'] : o === 'M' ? ['M', 'E', 'H'] : ['E', 'M', 'H']).forEach(function (b) {
       var ps = phrases.filter(function (p) { return svLevelOf(p) === b; });
-      if (ps.length) out.push({ band: b, title: SV_BANDS[b][0] + ' · ' + SV_BANDS[b][1], ps: o === 'list' ? ps : svShuffle(ps) });
+      if (ps.length) out.push({ band: b, title: SV_BANDS[b][0] + ' · ' + svBandDesc(b, ps), ps: o === 'list' ? ps : svShuffle(ps) });
     });
     return out;
   }
@@ -23275,7 +23283,7 @@ function renderStudyView() {
   { const cb = document.getElementById('svv-cover'); cb.classList.toggle('on', !!svOpts.cover); cb.innerHTML = (svOpts.cover ? '&#10003; ' : '&#128584; ') + 'Cover and check your answers'; }
   document.querySelectorAll('#studyViewModal [data-o]').forEach(function (b) { b.classList.toggle('on', b.getAttribute('data-o') === svOpts.order); });
   document.querySelectorAll('#studyViewModal [data-g]').forEach(function (b) { b.classList.toggle('on', b.getAttribute('data-g') === svOpts.group); });
-  var nt = document.getElementById('svv-note'); if (nt) nt.style.display = (svOpts.order === 'E' || svOpts.order === 'M' || svOpts.order === 'H' || svOpts.group === 'level') ? 'block' : 'none';
+  var nt = document.getElementById('svv-note'); if (nt) nt.innerHTML = svNoteHtml(getSelectedPhrases()); if (nt) nt.style.display = (svOpts.order === 'E' || svOpts.order === 'M' || svOpts.order === 'H' || svOpts.group === 'level') ? 'block' : 'none';
   el.classList.toggle('covered', !!svOpts.cover);
   if (!langs.length) { el.innerHTML = '<p style="color:#888;text-align:center;padding:20px;">Select at least one language.</p>'; return; }
 
@@ -23293,7 +23301,7 @@ function renderStudyView() {
     var ps = g.ps.filter(function (p) { return !qv || (String(p.en || '') + ' ' + String(p.es || '')).toLowerCase().indexOf(qv) >= 0; });
     if (!ps.length) return;
     out += '<div style="margin-bottom:20px;">';
-    out += '<div style="' + (g.band ? 'background:' + SV_BANDCOL[g.band][0] + ';border-left:8px solid ' + SV_BANDCOL[g.band][1] + ';color:#1a2744;' : 'background:#1a2744;color:#c9a84c;') + 'font-size:0.8125rem;font-weight:700;letter-spacing:0.1em;text-transform:uppercase;padding:7px 12px;border-radius:4px 4px 0 0;">' + g.title + ' <span style="font-weight:500;letter-spacing:0;text-transform:none;color:' + (g.band ? '#56607a' : '#c8d3ea') + ';margin-left:6px">' + ps.length + ' words<' + '/span><' + '/div>';
+    out += '<div style="' + (g.band ? 'background:' + SV_BANDCOL[g.band][0] + ';border-left:8px solid ' + SV_BANDCOL[g.band][1] + ';color:#1a2744;' : 'background:#1a2744;color:#c9a84c;') + 'font-size:0.8125rem;font-weight:700;letter-spacing:0.1em;text-transform:uppercase;padding:7px 12px;border-radius:4px 4px 0 0;">' + g.title + ' <span style="font-weight:500;letter-spacing:0;text-transform:none;color:' + (g.band ? '#56607a' : '#c8d3ea') + ';margin-left:6px">' + ps.length + svNoun(ps) + '<' + '/span><' + '/div>';
     out += '<table style="width:100%;border-collapse:collapse;border:1px solid #e2e6f0;border-top:none;background:#fff;">';
     out += '<thead><tr style="background:#f0f3fa;"><th style="width:28px;padding:4px 8px;font-size:0.75rem;color:#aab;border-bottom:1px solid #e2e6f0;">#<' + '/th>';
     langs.forEach(function(l) {
@@ -23375,7 +23383,7 @@ function printStudyView() {
     + '<style>' + aphCSS() + '<' + '/style>'
     + '<style>' + sh.css + '<' + '/style>'
     + '<' + '/head><body>';
-  var pageHdr = aphPrintHead({ kicker: 'Eton F Block &middot; Spanish Vocab', title: 'Study Sheet &mdash; <em>' + langs.map(function (l) { return l.name; }).join(' / ') + '<' + '/em>', meta: phrases.length + ' words' + (ol ? ' &middot; ' + ol : ''), strip: false });
+  var pageHdr = aphPrintHead({ kicker: 'Eton F Block &middot; Spanish Vocab', title: 'Study Sheet &mdash; <em>' + langs.map(function (l) { return l.name; }).join(' / ') + '<' + '/em>', meta: phrases.length + svNoun(phrases) + (ol ? ' &middot; ' + ol : ''), strip: false });
   var pageFoot = aphPrintFoot('Eton F Block Spanish Vocab &middot; View &amp; Print &middot; Study Sheet') + '<' + '/body><' + '/html>';
 
   var w = apOpenSheet();
@@ -23490,6 +23498,7 @@ var SPV_LVL = {"0.1|1":"M","0.1|2":"H","0.1|3":"M","0.1|4":"H","0.1|5":"M","0.1|
 // (P 1, L 0.6, D 0.3, N or no tag 0) + length
 var SPV_LIKE = { P: 1, L: 0.6, D: 0.3, N: 0 };
 function spvChunkLevel(p) { var n = 0; String(p && p.es || '').split(/\s+/).forEach(function (t) { if (/[A-Za-z\u00C0-\u00FF]/.test(t)) n++; }); return n <= 10 ? 'E' : n <= 14 ? 'M' : 'H'; }   /* chunks: Easy up to 10 words, Medium 11 to 14, Hard 15 and over (equal thirds of the 567 chunks) */
+function spvIsChunk(p) { return !(p && SPV_LVL[p.sec + '|' + p.n]); }   // a chunk (whole sentence) has no word level; it is levelled by length
 function spvLevel(p) { var q = p && SPV_LVL[p.sec + '|' + p.n]; return q || spvChunkLevel(p); }   // every item has one fixed level: the vocabulary list above, or word count for the chunks
 var COG_BANDS = [['E', 'Easy', 'looks like the English', 'la familia = family'], ['M', 'Medium', 'looks like a different English word', 'el apartamento = flat (think “apartment”)'], ['H', 'Hard', 'nothing to go on', 'el perro = dog']];
 var cogOn = 'EMH';   // always starts with all three ticked (all words); changes last for this visit only
@@ -23513,7 +23522,7 @@ function cogControls() {
     + '<button type="button" class="cogq" onclick="cogTip()" title="What do Easy, Medium and Hard mean?">?</button></div>';
   h += '<div id="cog-tip" class="cogtip" style="display:' + (cogTipOpen ? 'block' : 'none') + '">'
     + COG_BANDS.map(function (x) { return '<b>' + x[1] + '</b> ' + x[2] + ' (' + x[3] + ')'; }).join(' · ')
-    + '. Phrases are judged by their main words. Pick one or more levels; Mixed means all words. (For the drill: the Speed Challenge and the tests have their own Level choice.)</div>';
+    + '. Chunks (whole sentences) are judged by length only: Easy up to 10 words, Medium 11 to 14, Hard 15 or more. Pick one or more levels; Mixed means all words. (For the drill: the Speed Challenge and the tests have their own Level choice.)</div>';
   return h;
 }
 // chips with the meaning of the old tick boxes: from Mixed, a level chip picks just that level; then each chip adds or
