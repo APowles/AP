@@ -5372,6 +5372,52 @@ function apListMark(inf, rec, tense) {
   if (tense === 'PRETERITE' && /-ir stem-changing/i.test((rec && rec.note) || '')) return /^ue?$/.test(ps) || /^ue/.test(ps) ? 'u' : (ps ? 'i' : '');
   return '';
 }
+
+/* ===== "Form" column in View & Print: the form(s) to learn in each chosen tense. BOLD = the part that is not regular ===== */
+var AP_FM_ORDER = ['PRESENT', 'PRETERITE', 'FUTURE'];
+var AP_FM_SHORT = { PRESENT: 'pres.', PRETERITE: 'pret.', FUTURE: 'fut.' };
+var AP_FM_SUP = ['¹', '²', '³', '⁴', '⁵', '⁶'];
+function apFmTenses() { var sel = (typeof selectedTenses !== 'undefined' && selectedTenses) ? selectedTenses : new Set(); return AP_FM_ORDER.filter(function (k) { return sel.has(k); }); }
+function apFmEsc(s) { return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;'); }
+function apFmDash(x) { return !x || /^[—-]+$/.test(String(x).trim()); }
+function apFmHead(inf) { var w = String(inf).trim().split(/\s+/), refl = /rse$/.test(w[0]); return { head: refl ? w[0].replace(/se$/, '') : w[0], tail: w.slice(1).join(' '), refl: refl }; }
+function apFmClean(f, refl) { var s = String(f || '').normalize('NFC').replace(/\([^)]*\)/g, ' ').replace(/\s+/g, ' ').trim(); if (refl) s = s.replace(/^(me|te|se|nos|os)\s+/i, ''); return s; }
+function apFmReg(b, t, p) {   // the regular form for person p (0-5), or null if the infinitive has no regular pattern
+  var m = /^(.*)(ar|er|ir)$/.exec(b); if (!m) return null;
+  var st = m[1], c = m[2];
+  if (t === 'PRESENT') { if (p === 0 && c !== 'ar' && /g$/.test(st)) st = st.slice(0, -1) + 'j'; return st + (c === 'ar' ? ['o', 'as', 'a', 'amos', 'áis', 'an'] : c === 'er' ? ['o', 'es', 'e', 'emos', 'éis', 'en'] : ['o', 'es', 'e', 'imos', 'ís', 'en'])[p]; }
+  if (t === 'PRETERITE') { if (p === 0 && c === 'ar') { if (/c$/.test(st)) st = st.slice(0, -1) + 'qu'; else if (/g$/.test(st)) st += 'u'; else if (/z$/.test(st)) st = st.slice(0, -1) + 'c'; } return st + (c === 'ar' ? ['é', 'aste', 'ó', 'amos', 'asteis', 'aron'] : ['í', 'iste', 'ió', 'imos', 'isteis', 'ieron'])[p]; }
+  if (t === 'FUTURE') return b + ['é', 'ás', 'á', 'emos', 'éis', 'án'][p];
+  return null;
+}
+function apFmDiff(a, r) {   // bold only the letters that differ from the regular form (p<b>ie</b>nso); the whole word if little is shared (<b>soy</b>)
+  if (r === null) return '<b>' + apFmEsc(a) + '</b>';
+  var i = 0, j = 0; while (i < a.length && i < r.length && a[i] === r[i]) i++;
+  while (j < a.length - i && j < r.length - i && a[a.length - 1 - j] === r[r.length - 1 - j]) j++;
+  if (i + j >= 3 && a.length - i - j > 0) return apFmEsc(a.slice(0, i)) + '<b>' + apFmEsc(a.slice(i, a.length - j)) + '</b>' + apFmEsc(a.slice(a.length - j));
+  return '<b>' + apFmEsc(a) + '</b>';
+}
+function apFmLine(inf, t) {   // { html, text } for one tense, or null
+  var hd = apFmHead(inf), rec = VERBS.find(function (x) { return x.inf === inf && x.tense === t; });
+  if (!rec) return null;
+  var fs = (rec.forms || []).map(function (f) { var s = apFmClean(f, hd.refl); if (hd.tail && s.slice(-hd.tail.length - 1) === ' ' + hd.tail) s = s.slice(0, -hd.tail.length - 1).trim(); return s; });
+  var a = fs[0]; if (apFmDash(a)) return null;
+  if (t === 'FUTURE') {
+    var reg = apFmReg(hd.head, t, 0);
+    if (reg === a) return { html: apFmEsc(a), text: a };
+    return { html: (reg !== null && /é$/.test(a) && a.length > 1) ? '<b>' + apFmEsc(a.slice(0, -1)) + '</b>é' : '<b>' + apFmEsc(a) + '</b>', text: a };
+  }
+  var irr = [];
+  for (var i = 0; i < 6; i++) { if (apFmDash(fs[i])) continue; if (apFmReg(hd.head, t, i) !== fs[i]) irr.push(i); }
+  if (!irr.length) return { html: apFmEsc(a), text: a };
+  return { html: irr.map(function (i) { return '<span class="ap-fm-p"><span class="ap-fm-n">' + AP_FM_SUP[i] + '</span>' + apFmDiff(fs[i], apFmReg(hd.head, t, i)) + '</span>'; }).join(' '), text: irr.map(function (i) { return AP_FM_SUP[i] + fs[i]; }).join(' ') };
+}
+function apFmCell(inf) {   // all chosen tenses for one verb
+  var ts = apFmTenses(), lines = [];
+  ts.forEach(function (t) { var l = apFmLine(inf, t) || { html: '<span class="ap-fm-n">&mdash;</span>', text: '—' }; lines.push({ t: t, l: l }); });
+  var lab = ts.length > 1;
+  return { html: lines.map(function (x) { return (lab ? '<i class="ap-fm-t">' + AP_FM_SHORT[x.t] + '</i> ' : '') + x.l.html; }).join('<br>'), text: lines.map(function (x) { return (lab ? AP_FM_SHORT[x.t] + ' ' : '') + x.l.text; }).join('; ') };
+}
 function apListRows() {
   var ts = apListTenses(), seen = new Map(), on = apRegOn();
   vqListVerbs().forEach(function (v) {
@@ -5387,7 +5433,9 @@ function apListRows() {
     var label = ts.length === 1 ? cls[0] : shown.map(function (x, i) { return AP_LT_NAMES[x.t] + ': ' + cls[i]; }).join(' · ');   // several tenses: a verb is listed once, with the tense(s) it qualifies in
     seen.set(v.inf, { en: v.en, inf: v.inf, usage_es: v.usage_es || '', note: hits[0].note, group: v.group || '', label: label, allReg: cls.every(function (c) { return c === 'regular'; }), mark: mks.map(function (m) { return (lab ? TN[m.t] + ' ' : '') + m.mk; }).join(', '), markHtml: mks.map(function (m) { return (lab ? '<i style="font-weight:400;font-style:italic;color:#9aa3b5">' + TN[m.t] + '</i> ' : '') + '<b style="font-style:normal">' + m.mk + '</b>'; }).join(', ') });
   });
-  return [...seen.values()].sort(function (a, b) { return a.en.replace(/^to /, '').localeCompare(b.en.replace(/^to /, '')); });
+  var out = [...seen.values()].sort(function (a, b) { return a.en.replace(/^to /, '').localeCompare(b.en.replace(/^to /, '')); });
+  out.forEach(function (r) { var fc = apFmCell(r.inf); r.fm = fc.html; r.fmText = fc.text; });
+  return out;
 }
 function copySpVerbList(){
   const q = (document.getElementById('spVerbSearch').value||'').trim().toLowerCase();
@@ -5395,7 +5443,7 @@ function copySpVerbList(){
   if(q) rows = rows.filter(r=>r.en.toLowerCase().includes(q)||r.inf.toLowerCase().includes(q));
   const text = rows.map(r=>{
     const usage = r.usage_es ? '  ' + r.usage_es : '';
-    return r.inf + (r.mark ? ' (' + r.mark + ')' : '') + '  —  ' + r.en + usage;
+    return r.inf + (r.mark ? ' (' + r.mark + ')' : '') + '  —  ' + r.en + (r.fmText ? '  —  ' + r.fmText : '') + usage;
   }).join('\n');
   navigator.clipboard.writeText(text).then(()=>{
     const btn = document.getElementById('copyVerbListBtn');
@@ -5418,19 +5466,22 @@ function renderSpVerbList(q){
   const editAttrs=editorUnlocked
     ?`readonly onfocus="this.removeAttribute('readonly');this.style.borderBottom='1px dashed var(--border)'" onblur="this.setAttribute('readonly','');this.style.borderBottom='none';saveSpVerbField(this)" onkeydown="if(event.key==='Enter')this.blur()"`
     :`readonly`;
+  const hasFm=apFmTenses().length>0, nc=4+(hasFm?1:0);
   const html=`
     <div class="vb-vp-n">${rows.length} ${apRegOn()?({regular:'regular ',radical:'radical ',irregular:'irregular ',reflexive:'reflexive '}[regFilter]||''):''}verbs${apRegOn()?' ('+apListTenseNames()+')':''}${editorUnlocked?' &nbsp;·&nbsp; <span style="font-style:italic;">Click any cell to edit · Enter or click away to save (session only)</span>':''}</div>
-    <div class="vb-vp-scroll"><table class="vb-vp-table">
-      <thead><tr><th>English</th><th>Spanish</th><th>Usage (es)</th><th></th></tr></thead>
-      <tbody>${rows.map((r,i)=>vqHead(rows,i,4)+`
+    <div class="vb-vp-scroll"><table class="vb-vp-table${hasFm?' vb-fmt':''}">
+      <thead><tr><th>English</th><th>Spanish</th>${hasFm?'<th>Form to learn</th>':''}<th class="vb-thu">Usage (es)</th><th></th></tr></thead>
+      <tbody>${rows.map((r,i)=>vqHead(rows,i,nc)+`
       <tr>
         <td><input class="vb-en" value="${esc(r.en)}" data-field="en" data-inf="${esc(r.inf)}" ${editAttrs}></td>
         <td style="white-space:nowrap"><input class="vb-inf" value="${esc(r.inf)}" ${r.mark?`style="width:${r.inf.length+1}ch"`:''} data-field="inf" data-inf="${esc(r.inf)}" ${editAttrs}>${r.mark?`<span style="color:var(--navy);white-space:nowrap"> (${r.markHtml||r.mark})</span>`:''}</td>
+        ${hasFm?`<td class="vb-fm">${r.fm}</td>`:''}
         <td><input class="vb-us" value="${esc(editorUnlocked?r.usage_es:String(r.usage_es||'').replace(/<\/?u>/g,''))}" data-field="usage_es" data-inf="${esc(r.inf)}" placeholder="—" ${editAttrs}></td>
         <td class="vb-reg ${r.allReg?'r':'i'}">${vqBadge(r)}${r.label}</td>
       </tr>`).join('')}</tbody>
     </table></div>`;
   document.getElementById('spVerbListBody').innerHTML=html;
+  try{var bx=document.querySelector('#spVerbListModal .vb-vp-box');if(bx)bx.style.maxWidth=hasFm?'1080px':'';}catch(e){}
 }
 function saveSpVerbField(el){
   const newVal=el.value.trim(), oldInf=el.dataset.inf, field=el.dataset.field;
@@ -5453,14 +5504,16 @@ function printSpVerbList() {
   let rows = apListRows();
   if (q) rows = rows.filter(r => r.en.toLowerCase().includes(q) || r.inf.toLowerCase().includes(q) || r.note.toLowerCase().includes(q));
   rows = vqArrange(rows);
+  const hasFm = apFmTenses().length > 0, nc = 5 + (hasFm ? 1 : 0);
   const tableRows = rows.map((r, i) => {
     const bg = i % 2 === 0 ? '#ffffff' : '#faf8f3';
     const regColor = r.allReg ? '#2e7d52' : '#c9a84c';
     const regLabel = r.label;
-    return vqHead(rows,i,5)+'<tr style="background:'+bg+';">'
+    return vqHead(rows,i,nc)+'<tr style="background:'+bg+';">'
       + '<td style="padding:5px 10px;font-size:0.82rem;color:#1a2744;border-bottom:1px solid #e8ecf4;">'+(i+1)+'.</td>'
       + '<td style="padding:5px 10px;font-size:0.82rem;color:#1a2744;border-bottom:1px solid #e8ecf4;">'+r.en+'</td>'
       + '<td style="padding:5px 10px;font-size:0.85rem;color:#3a8aaa;font-style:italic;border-bottom:1px solid #e8ecf4;">'+r.inf+(r.mark?' <span style="font-style:normal;color:#1a2744">('+(r.markHtml||r.mark)+')</span>':'')+'</td>'
+      + (hasFm ? '<td style="padding:5px 10px;font-size:0.85rem;color:#1a2744;border-bottom:1px solid #e8ecf4;">'+r.fm+'</td>' : '')
       + '<td style="padding:5px 10px;font-size:0.78rem;color:#c9a84c;border-bottom:1px solid #e8ecf4;">'+(r.usage_es||'')+'</td>'
       + '<td style="padding:5px 10px;font-size:0.72rem;color:'+regColor+';font-weight:600;border-bottom:1px solid #e8ecf4;white-space:nowrap;">'+vqBadge(r)+regLabel+'</td>'
       + '</tr>';
@@ -5473,6 +5526,7 @@ function printSpVerbList() {
     + 'body{font-family:var(--aph-body);margin:0;padding:28px 32px;color:#1a2744;background:#fff;}'
     + 'table{width:100%;border-collapse:collapse;border:1px solid #e2e6f0;border-radius:6px;overflow:hidden;margin-top:6px;}'
     + 'thead tr{background:#1a2744;}'
+    + '.ap-fm-n{font-size:.72rem;color:#8899bb;margin-right:1px}.ap-fm-p{white-space:nowrap;display:inline-block;margin-right:.5em}.ap-fm-t{font-size:.72rem;color:#8899bb}b{font-weight:800}'
     + 'thead th{padding:7px 10px;text-align:left;font-size:0.68rem;color:#c9a84c;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;}'
     + '@media print{'
     + '  body{padding:16px 20px;}'
@@ -5488,7 +5542,7 @@ function printSpVerbList() {
     + '<th style="width:4%">#</th>'
     + '<th style="width:30%">English</th>'
     + '<th style="width:28%">Spanish (Infinitive)</th>'
-    + '<th style="width:26%">Usage</th>'
+    + (hasFm ? '<th>Form to learn</th>' : '') + '<th>Usage</th>'
     + '<th style="width:12%">Type</th>'
     + '</tr></thead>'
     + '<tbody>'+tableRows+'</tbody>'
@@ -7339,6 +7393,7 @@ if (window.__cj) window.__cj.speedTest = function (kind, g) {
 .hm-n{display:inline-flex;align-items:center;justify-content:center;width:34px;height:34px;border-radius:50%;background:var(--navy);color:var(--gold2);font:700 1.1rem var(--aph-display)}
 .hm-banner{background:var(--navy);color:#fff;border:2px solid var(--gold);border-radius:14px;padding:10px 18px;margin:0 0 12px;display:flex;flex-direction:column;gap:2px}
 .hm-banner small{letter-spacing:.1em;font-size:.75rem;color:var(--gold2);font-weight:700}.hm-banner b{font-size:1.15rem}
+.vb-vp-table td.vb-fm{font-size:.95rem;color:var(--navy);line-height:1.5;min-width:9em}.vb-vp-table td.vb-fm b{font-weight:800}.ap-fm-n{font-size:.78rem;color:#8a96b0;margin-right:1px;font-weight:600}.ap-fm-p{white-space:nowrap;display:inline-block;margin-right:.55em}.ap-fm-t{font-size:.74rem;color:#8a96b0}.vb-vp-table.vb-fmt th:nth-child(1){width:22%}.vb-vp-table.vb-fmt th:nth-child(2){width:16%}.vb-vp-table.vb-fmt th:nth-child(3){width:auto}.vb-vp-table.vb-fmt th:nth-child(4){width:auto}.vb-vp-table.vb-fmt td.vb-fm{min-width:11em}.vb-vp-table.vb-fmt th.vb-thu{width:22%}
 .hm-vlist{display:flex;flex-direction:column;gap:8px;margin:8px 0;font-size:.92rem;line-height:1.5}
 .hm-vlist b{display:block;color:var(--navy)}.hm-vlist>div>span{display:flex;flex-wrap:wrap;gap:6px 22px;margin-top:4px}.hm-vlist .hm-vv{display:inline-block;line-height:1.35}.hm-vlist .hm-vi{display:inline;font-size:1.08rem;font-weight:800;color:#0b1530;letter-spacing:.1px}.hm-vlist .hm-vs{font-size:.86rem;font-weight:700;color:#0b1530;margin-left:3px}.hm-vlist .hm-vv i{font-size:.78rem;font-weight:400;font-style:normal;color:#aab2c3;margin-left:6px}
 html.ap-sh-lock body{overflow:hidden}
