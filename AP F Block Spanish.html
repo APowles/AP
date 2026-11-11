@@ -5394,7 +5394,7 @@ function renderSpVerbList(q){
   if(q) rows=rows.filter(r=>r.en.toLowerCase().includes(q)||r.inf.toLowerCase().includes(q)||r.note.toLowerCase().includes(q));
   if(apRegOn()) rows=rows.filter(r=>regHit(r,regFilter));
   rows=vqArrange(rows);
-  const isReg=r=>r.note.toLowerCase().startsWith('regular');
+  const isReg=r=>classifyNote(r.note)==='regular';   // same test as the Regularity filter (reflexive verbs with a 'Reflexive verb' note count as regular)
   const esc=s=>(s||'').replace(/"/g,'&quot;').replace(/'/g,'&#39;');
   const editorUnlocked=editModeUnlocked;
   const editAttrs=editorUnlocked
@@ -5408,8 +5408,8 @@ function renderSpVerbList(q){
       <tr>
         <td><input class="vb-en" value="${esc(r.en)}" data-field="en" data-inf="${esc(r.inf)}" ${editAttrs}></td>
         <td><input class="vb-inf" value="${esc(r.inf)}" data-field="inf" data-inf="${esc(r.inf)}" ${editAttrs}></td>
-        <td><input class="vb-us" value="${esc(r.usage_es)}" data-field="usage_es" data-inf="${esc(r.inf)}" placeholder="—" ${editAttrs}></td>
-        <td class="vb-reg ${isReg(r)?'r':'i'}">${vqBadge(r)}${isReg(r)?'regular':'irregular'}</td>
+        <td><input class="vb-us" value="${esc(editorUnlocked?r.usage_es:String(r.usage_es||'').replace(/<\/?u>/g,''))}" data-field="usage_es" data-inf="${esc(r.inf)}" placeholder="—" ${editAttrs}></td>
+        <td class="vb-reg ${isReg(r)?'r':'i'}">${vqBadge(r)}${classifyNote(r.note)}</td>
       </tr>`).join('')}</tbody>
     </table></div>`;
   document.getElementById('spVerbListBody').innerHTML=html;
@@ -5440,12 +5440,12 @@ function printSpVerbList() {
   let rows = [...seen.values()].sort((a,b) => a.en.replace(/^to /,'').localeCompare(b.en.replace(/^to /,'')));
   if (q) rows = rows.filter(r => r.en.toLowerCase().includes(q) || r.inf.toLowerCase().includes(q) || r.note.toLowerCase().includes(q));
   rows = vqArrange(rows);
-  const isReg = r => r.note.toLowerCase().startsWith('regular');
+  const isReg = r => classifyNote(r.note) === 'regular';
 
   const tableRows = rows.map((r, i) => {
     const bg = i % 2 === 0 ? '#ffffff' : '#faf8f3';
     const regColor = isReg(r) ? '#2e7d52' : '#c9a84c';
-    const regLabel = isReg(r) ? 'regular' : 'irregular';
+    const regLabel = classifyNote(r.note);
     return vqHead(rows,i,5)+'<tr style="background:'+bg+';">'
       + '<td style="padding:5px 10px;font-size:0.82rem;color:#1a2744;border-bottom:1px solid #e8ecf4;">'+(i+1)+'.</td>'
       + '<td style="padding:5px 10px;font-size:0.82rem;color:#1a2744;border-bottom:1px solid #e8ecf4;">'+r.en+'</td>'
@@ -28662,4 +28662,4 @@ function deck(el,m,n,x,y,face,gap){clear(el);const cs=[];for(let i=0;i<n;i++){co
   if (document.readyState === 'complete') start(); else window.addEventListener('load', start);
 })();
 </script>
-<script id="ap-build">window.__apBuild="709e96fda6";window.__apVer=219;(function(){var N=window.__apVer;function put(){try{var h=document.querySelector('header.aph-header');if(!h||document.getElementById('ap-ver'))return;var s=document.createElement('span');s.id='ap-ver';s.textContent='v'+N;s.style.cssText='position:absolute;right:10px;bottom:4px;font:600 11px/1 system-ui,sans-serif;color:#c9a84c;opacity:.8;pointer-events:none;letter-spacing:.04em;z-index:2';if(getComputedStyle(h).position==='static')h.style.position='relative';h.appendChild(s)}catch(e){}}put();document.addEventListener('DOMContentLoaded',put);window.addEventListener('load',put);setInterval(put,2000)})();</script>
+<script id="ap-build">window.__apBuild="5e0e39a0c9";window.__apVer=220;(function(){var N=window.__apVer;function put(){try{var h=document.querySelector('header.aph-header');if(!h||document.getElementById('ap-ver'))return;var s=document.createElement('span');s.id='ap-ver';s.textContent='v'+N;s.style.cssText='position:absolute;right:10px;bottom:4px;font:600 11px/1 system-ui,sans-serif;color:#c9a84c;opacity:.8;pointer-events:none;letter-spacing:.04em;z-index:2';if(getComputedStyle(h).position==='static')h.style.position='relative';h.appendChild(s)}catch(e){}}put();document.addEventListener('DOMContentLoaded',put);window.addEventListener('load',put);setInterval(put,2000)})();</script>
