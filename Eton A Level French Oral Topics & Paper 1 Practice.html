@@ -16129,8 +16129,12 @@ function kpSheet(){
   const pgE=o.querySelector('.pg'),cE=o.querySelector('.c'),pst=D.createElement('style');pst.id='ap-sheet-pg';D.head.appendChild(pst);
   const mm=v=>v*96/25.4;let best=null;
   [['portrait',2,210,297],['landscape',3,297,210],['portrait',1,210,297],['landscape',2,297,210]].forEach(op=>{const w=op[2]-18,hh=op[3]-18;pgE.style.width=w+'mm';cE.style.columnCount=op[1];
-    for(let pt=13;pt>=6.5;pt-=0.25){pgE.style.fontSize=pt+'pt';if(pgE.offsetHeight<=mm(hh)-6){if(!best||pt>best.pt+0.01)best={pt,or:op[0],cols:op[1],w,hh};break}}});
-  if(!best)best={pt:6.5,or:'portrait',cols:2,w:192,hh:279};
+    /* binary search on the type size (a few layouts, not a hundred: many KTRs made the old loop freeze the iPad) */
+    const fits=q=>{pgE.style.fontSize=(q*0.25)+'pt';return pgE.offsetHeight<=mm(hh)-6};
+    if(!fits(26))return;let lo=26,hi=52;
+    while(lo<hi){const mid=Math.ceil((lo+hi)/2);if(fits(mid))lo=mid;else hi=mid-1}
+    const pt=lo*0.25;if(!best||pt>best.pt+0.01)best={pt,or:op[0],cols:op[1],w,hh}});
+  if(!best)best={pt:9,or:'portrait',cols:2,w:192,hh:279};   /* too much for one page: a readable size that runs over several pages */
   pgE.style.width=best.w+'mm';cE.style.columnCount=best.cols;pgE.style.fontSize=best.pt+'pt';
   pst.textContent='@page{size:A4 '+best.or+';margin:9mm}';
   const close=()=>{o.remove();st.remove();pst.remove()};
@@ -24707,4 +24711,4 @@ function deck(el,m,n,x,y,face,gap){clear(el);const cs=[];for(let i=0;i<n;i++){co
   if (document.readyState === 'complete') start(); else window.addEventListener('load', start);
 })();
 </script>
-<script id="ap-build">window.__apBuild="ef15b07761";window.__apVer=530;(function(){var N=window.__apVer;function put(){try{var h=document.querySelector('header.aph-header');if(!h||document.getElementById('ap-ver'))return;var s=document.createElement('span');s.id='ap-ver';s.textContent='v'+N;s.style.cssText='position:absolute;right:10px;bottom:4px;font:600 11px/1 system-ui,sans-serif;color:#c9a84c;opacity:.8;pointer-events:none;letter-spacing:.04em;z-index:2';if(getComputedStyle(h).position==='static')h.style.position='relative';h.appendChild(s)}catch(e){}}put();document.addEventListener('DOMContentLoaded',put);window.addEventListener('load',put);setInterval(put,2000)})();</script>
+<script id="ap-build">window.__apBuild="f39c577378";window.__apVer=531;(function(){var N=window.__apVer;function put(){try{var h=document.querySelector('header.aph-header');if(!h||document.getElementById('ap-ver'))return;var s=document.createElement('span');s.id='ap-ver';s.textContent='v'+N;s.style.cssText='position:absolute;right:10px;bottom:4px;font:600 11px/1 system-ui,sans-serif;color:#c9a84c;opacity:.8;pointer-events:none;letter-spacing:.04em;z-index:2';if(getComputedStyle(h).position==='static')h.style.position='relative';h.appendChild(s)}catch(e){}}put();document.addEventListener('DOMContentLoaded',put);window.addEventListener('load',put);setInterval(put,2000)})();</script>
