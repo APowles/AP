@@ -4991,8 +4991,10 @@ function apPPIrr(v) {   // perfect tense: judge the PARTICIPLE itself (fini, ven
   var f = String(((v && v.forms) || [])[0] || '').replace(/\s*\(.*?\)\s*$/, '').replace(/\(e\)(\(s\))?|\(s\)/g, '').trim(), p = f.split(/\s+/).pop().replace(/e?s?$/, function (m) { return m; });
   p = f.split(/\s+/).pop().replace(/\(.*$/, '');
   if (!p || !/[a-z\u00e0-\u00ff]/i.test(p) || /\s/.test(inf)) return null;   // no participle shown, or a multi-word verb: use the note
-  var sfx = /er$/.test(inf) ? '\u00e9' : /(ire|re|oir)$/.test(inf) ? 'u' : /ir$/.test(inf) ? 'i' : '';
-  return sfx ? p.slice(-1) !== sfx : null;
+  // regular only if the participle is exactly stem + regular ending: aimer-aimé, finir-fini, vendre-vendu. Every -oir verb (pu, su, voulu, vu) and boire-bu, lire-lu, connaître-connu etc. are irregular.
+  var reg = /er$/.test(inf) ? inf.slice(0, -2) + '\u00e9' : /oir$/.test(inf) ? null : /re$/.test(inf) ? inf.slice(0, -2) + 'u' : /ir$/.test(inf) ? inf.slice(0, -2) + 'i' : undefined;
+  if (reg === undefined) return null;
+  return p !== reg;
 }
 function regHit(v, f) { if (f === 'reflexive') { var i = v && v.inf; if (i && typeof i === 'object') i = i.inf; return apIsRefl(i); } if (f === 'spelling') { var i2 = v && v.inf; if (i2 && typeof i2 === 'object') i2 = i2.inf; return apIsSpell(i2); } if ((f === 'regular' || f === 'irregular') && v && v.tense === 'PASSE_COMPOSE') { var q = apPPIrr(v); if (q !== null) return (f === 'irregular') === q; } return classifyNote(v && v.note) === f; }
 
@@ -14078,4 +14080,4 @@ function deck(el,m,n,x,y,face,gap){clear(el);const cs=[];for(let i=0;i<n;i++){co
   if (document.readyState === 'complete') start(); else window.addEventListener('load', start);
 })();
 </script>
-<script id="ap-build">window.__apBuild="42aed20c52";window.__apVer=202;(function(){var N=window.__apVer;function put(){try{var h=document.querySelector('header.aph-header');if(!h||document.getElementById('ap-ver'))return;var s=document.createElement('span');s.id='ap-ver';s.textContent='v'+N;s.style.cssText='position:absolute;right:10px;bottom:4px;font:600 11px/1 system-ui,sans-serif;color:#c9a84c;opacity:.8;pointer-events:none;letter-spacing:.04em;z-index:2';if(getComputedStyle(h).position==='static')h.style.position='relative';h.appendChild(s)}catch(e){}}put();document.addEventListener('DOMContentLoaded',put);window.addEventListener('load',put);setInterval(put,2000)})();</script>
+<script id="ap-build">window.__apBuild="8b0ce64540";window.__apVer=203;(function(){var N=window.__apVer;function put(){try{var h=document.querySelector('header.aph-header');if(!h||document.getElementById('ap-ver'))return;var s=document.createElement('span');s.id='ap-ver';s.textContent='v'+N;s.style.cssText='position:absolute;right:10px;bottom:4px;font:600 11px/1 system-ui,sans-serif;color:#c9a84c;opacity:.8;pointer-events:none;letter-spacing:.04em;z-index:2';if(getComputedStyle(h).position==='static')h.style.position='relative';h.appendChild(s)}catch(e){}}put();document.addEventListener('DOMContentLoaded',put);window.addEventListener('load',put);setInterval(put,2000)})();</script>
