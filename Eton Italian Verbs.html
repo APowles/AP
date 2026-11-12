@@ -8120,19 +8120,21 @@ function apShSay(inf, btn) {
 function apShPrintOut() {
   try { apShPrint(); } catch (e) {}
   var el = document.getElementById('apPrintSheet'); if (!el) return;
-  /* plain inline styles on every element (no style rules to match), the same way the View & Print sheets are built, so every browser prints it */
+  /* plain inline styles on every element (no style rules to match), the same way the View & Print sheets are built, so every browser prints it; no automatic print: the sheet's own Print / Save as PDF button prints, once */
   var box = document.createElement('div'); box.innerHTML = el.innerHTML;
+  var h1 = box.querySelector('h1'), ttl = h1 ? h1.textContent.split(/\s*·\s*/) : ['The 100 Core Verbs', '']; if (h1) h1.remove();
   var S = function (sel, css) { [].forEach.call(box.querySelectorAll(sel), function (n) { n.setAttribute('style', css); }); };
-  S('h1', 'font-size:16pt;margin:0 0 8px');
-  S('table', 'width:100%;border-collapse:collapse;table-layout:fixed;margin:0 0 14px;break-inside:avoid;page-break-inside:avoid');
-  S('th.g', 'text-align:left;font-size:12pt;padding:4px 2px 3px;border-bottom:2px solid #000');
+  S('table', 'width:100%;border-collapse:collapse;table-layout:fixed;margin:0 0 16px');
+  S('th.g', 'text-align:left;font-size:11.5pt;font-weight:800;letter-spacing:.02em;padding:6px 8px;background:#1a2744;color:#ffd76a');
   S('tr', 'break-inside:avoid;page-break-inside:avoid');
-  S('td.s', 'width:15%;padding:4px 3px 4px 4px;border-bottom:1px solid #bbb;vertical-align:middle;font-weight:700;font-size:11pt;line-height:1.2');
-  S('td.e', 'width:18.3%;padding:4px 4px 4px 3px;border-bottom:1px solid #bbb;border-right:1px solid #bbb;vertical-align:middle;color:#333;font-size:9.5pt;line-height:1.2');
-  S('small', 'font-weight:800;font-size:10.5pt');
+  S('td.s', 'width:15%;padding:5px 4px 5px 8px;border-bottom:1px solid #e3dfd2;vertical-align:middle;font-weight:800;font-size:11pt;line-height:1.2;color:#1a2744');
+  S('td.e', 'width:18.3%;padding:5px 6px 5px 3px;border-bottom:1px solid #e3dfd2;border-right:1px solid #e3dfd2;vertical-align:middle;color:#4a5578;font-size:9.5pt;line-height:1.2');
+  S('small', 'font-weight:800;font-size:10pt;color:#8a6d1c');
   [].forEach.call(box.querySelectorAll('colgroup'), function (n) { n.remove(); });
-  [].forEach.call(box.querySelectorAll('tr'), function (r) { var e = r.querySelectorAll('td.e'); if (e.length) e[e.length - 1].style.borderRight = 'none'; });
-  var html = '<!DOCTYPE html><html><head><meta charset="UTF-8"><title>The 100 Core Verbs</title><style>@page{size:A4;margin:12mm}</style></head><body style="margin:0;padding:18px 22px;color:#000;background:#fff;font-family:Arial,Helvetica,sans-serif">' + box.innerHTML + '</body></html>';
+  [].forEach.call(box.querySelectorAll('tbody'), function (tb) { [].forEach.call(tb.querySelectorAll('tr'), function (r, i) { if (i % 2) r.style.background = '#f6f3ea'; var e = r.querySelectorAll('td.e'); if (e.length) e[e.length - 1].style.borderRight = 'none'; }); });
+  var html = '<!DOCTYPE html><html><head><meta charset="UTF-8"><title>The 100 Core Verbs</title><style>' + aphCSS() + '</style><style>@page{size:A4;margin:12mm}</style></head><body style="margin:0;padding:18px 22px;color:#1a2744;background:#fff;font-family:var(--aph-body),Arial,Helvetica,sans-serif;-webkit-print-color-adjust:exact;print-color-adjust:exact">'
+    + aphPrintHead({ kicker: 'Eton &middot; Italian Verbs', title: ttl[0] + ' &mdash; <em>' + (ttl[1] || '') + '</em>', meta: 'Essential 1 &amp; 2 &middot; Important &middot; Useful', strip: false, print: false })
+    + '<div style="height:14px"></div>' + box.innerHTML + '</body></html>';
   var w = apOpenSheet(); if (!w) { alert('Please allow pop-ups for this page, then try again.'); return; }
   w.document.write(html); w.document.close();
 }
@@ -8412,14 +8414,15 @@ function hmPracticePaper(kind, opt) {   // opt: { Q: a paper already built, answ
   var past = HMC.pastLabel + (isF && HMC.fOnly ? ' (avere only)' : '');
   var sub = isF ? '100 CORE VERBS: Infinitives, Present Tense and ' + past + ' Tense' : '100 CORE VERBS: Infinitives, Present, ' + HMC.pastLabel + ', Imperfect and Future Tenses';
   var body = secs.map(function (s) {
-    var h = '<h3 style="margin:18px 0 2px;font-size:1.05rem">' + s[0] + '.&nbsp; ' + s[1] + '&nbsp; (Q' + (k + 1) + '–' + (k + s[3].length) + ') <span class="ans" style="font-weight:400;font-size:.8rem;color:#8899bb">' + s[4] + ' verbs</span></h3>' + (s[2] ? '<div style="font-size:.85rem;margin-bottom:6px">' + s[2] + '</div>' : '');
-    return h + s[3].map(function (x) { k++; return '<div style="margin:0 0 16px;break-inside:avoid"><b>' + k + '.</b>&nbsp; ' + x.q + '<span class="ans" style="display:none"> &nbsp;→&nbsp; <b style="color:#1a2744">' + x.a + '</b></span><div class="ln" style="border-bottom:1px solid #999;height:20px;margin-top:4px"></div></div>'; }).join('');
+    var h = '<h3 style="margin:18px 0 2px;font-size:1.05rem">' + s[0] + '.&nbsp; ' + s[1] + '&nbsp; (Q' + (k + 1) + '–' + (k + s[3].length) + ') <span class="ans" style="display:none;font-weight:400;font-size:.8rem;color:#8899bb">' + s[4] + ' verbs</span></h3>' + (s[2] ? '<div style="font-size:.85rem;margin-bottom:6px">' + s[2] + '</div>' : '');
+    var qs = s[3].map(function (x) { k++; return '<div style="margin:0 0 11px;break-inside:avoid"><b>' + k + '.</b>&nbsp; ' + x.q + '<span class="ans" style="display:none"> &nbsp;→&nbsp; <b style="color:#1a2744">' + x.a + '</b></span><div class="ln" style="border-bottom:1px solid #999;height:17px;margin-top:3px"></div></div>'; });
+    return '<div style="break-inside:avoid;break-after:avoid">' + h + qs.shift() + '</div>' + qs.join('');
   }).join('');
-  var html = '<!DOCTYPE html><html><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>' + (setNm ? setNm + ' — Part I' : HMC.title + ' practice paper') + (opt.answers ? ' (answers)' : '') + '</title><style>' + aphCSS() + '</style><style>body{font-family:var(--aph-body);margin:0;padding:28px 36px;color:#1a2744;background:#fff;line-height:1.4}.bar{display:flex;gap:10px;margin:0 0 16px}.bar button{padding:10px 16px;font:600 1rem sans-serif;border:2px solid #1a2744;border-radius:10px;background:#fff;color:#1a2744;cursor:pointer;min-height:44px}@media print{.bar{display:none}@page{margin:1.5cm 1.8cm;size:A4}}body.sa .ans{display:inline!important}body.sa .ln{display:none}body.sa h3 .ans{display:inline!important}</style></head><body' + (opt.answers ? ' class="sa"' : '') + '>'
+  var html = '<!DOCTYPE html><html><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>' + (setNm ? setNm + ' — Part I' : HMC.title + ' practice paper') + (opt.answers ? ' (answers)' : '') + '</title><style>' + aphCSS() + '</style><style>body{font-family:var(--aph-body);margin:0;padding:28px 36px;color:#1a2744;background:#fff;line-height:1.35}.bar{display:flex;gap:10px;margin:0 0 16px}.bar button{padding:10px 16px;font:600 1rem sans-serif;border:2px solid #1a2744;border-radius:10px;background:#fff;color:#1a2744;cursor:pointer;min-height:44px}@media print{.bar{display:none}@page{margin:1.2cm 1.6cm;size:A4}body{padding:0}}body.sa .ans{display:inline!important}body.sa .ln{display:none}body.sa h3 .ans{display:inline!important}</style></head><body' + (opt.answers ? ' class="sa"' : '') + '>'
     + '<div class="bar"><button onclick="window.close();setTimeout(function(){if(!window.closed)history.back()},250)">← Back</button><button id="sb" onclick="var s=document.body.classList.toggle(\'sa\');this.textContent=s?\'🙈 Hide answers\':\'👁 Show answers\'">' + (opt.answers ? '🙈 Hide answers' : '👁 Show answers') + '</button><button onclick="document.body.classList.remove(\'sa\');document.getElementById(\'sb\').textContent=\'👁 Show answers\';window.print()">🖨 Print paper</button><button onclick="document.body.classList.add(\'sa\');document.getElementById(\'sb\').textContent=\'🙈 Hide answers\';window.print()">🖨 Print answers</button></div>'
-    + '<div style="display:flex;justify-content:space-between;font-weight:700;letter-spacing:.06em;text-transform:uppercase;font-size:.75rem;color:#8899bb"><span>Eton College · Modern Languages</span><span>PRACTICE PAPER</span></div>' + (setNm ? '<div style="font-weight:700;letter-spacing:.06em;text-transform:uppercase;font-size:.8rem;margin-top:6px">' + setNm + ' · ' + (isF ? 'F' : 'E') + ' ' + L + '</div>' : '')
-    + '<div style="display:flex;gap:28px;margin:10px 0 4px;font-size:.9rem"><span>Name: ______________________</span><span>Div: ________</span><span>Date: ____________</span><span style="margin-left:auto">Score: ______ / ' + total + '</span></div>'
-    + '<h2 style="margin:8px 0 2px">' + HMC.title.toUpperCase() + ' — ' + (isF ? 'PART I' : 'PART I — VERBS') + '</h2><div style="font-size:.9rem;margin-bottom:6px"><b>' + sub + '</b></div>' + body + '</body></html>';
+    + aphPrintHead({ kicker: 'Eton College &middot; Modern Languages &middot; Practice paper', title: (setNm || (HMC.title + ' practice paper')) + ' &mdash; <em>' + (isF ? 'Part I' : 'Part I &mdash; Verbs') + '</em>' + (opt.answers ? ' &mdash; Answers' : ''), meta: (isF ? 'F' : 'E') + ' ' + (typeof HMC !== 'undefined' ? HMC.lang : '') + ' &nbsp;&middot;&nbsp; ' + sub, strip: false, print: false })
+    + '<div style="display:flex;gap:18px;margin:12px 0 4px;font-size:.9rem;white-space:nowrap"><span>Name: ________________</span><span>Div: ______</span><span>Date: __________</span><span style="margin-left:auto">Score: _____ / ' + total + '</span></div>'
+    + '<div style="height:6px"></div>' + body + '</body></html>';
   var w = apOpenSheet(); if (!w) { alert('Please allow pop-ups for this page, then try again.'); return; }
   w.document.open(); w.document.write(html); w.document.close(); w.focus();
 }
@@ -13769,4 +13772,4 @@ function deck(el,m,n,x,y,face,gap){clear(el);const cs=[];for(let i=0;i<n;i++){co
   if (document.readyState === 'complete') start(); else window.addEventListener('load', start);
 })();
 </script>
-<script id="ap-build">window.__apBuild="832aad997e";window.__apVer=215;(function(){var N=window.__apVer;function put(){try{var h=document.querySelector('header.aph-header');if(!h||document.getElementById('ap-ver'))return;var s=document.createElement('span');s.id='ap-ver';s.textContent='v'+N;s.style.cssText='position:absolute;right:10px;bottom:4px;font:600 11px/1 system-ui,sans-serif;color:#c9a84c;opacity:.8;pointer-events:none;letter-spacing:.04em;z-index:2';if(getComputedStyle(h).position==='static')h.style.position='relative';h.appendChild(s)}catch(e){}}put();document.addEventListener('DOMContentLoaded',put);window.addEventListener('load',put);setInterval(put,2000)})();</script>
+<script id="ap-build">window.__apBuild="5a68a17526";window.__apVer=216;(function(){var N=window.__apVer;function put(){try{var h=document.querySelector('header.aph-header');if(!h||document.getElementById('ap-ver'))return;var s=document.createElement('span');s.id='ap-ver';s.textContent='v'+N;s.style.cssText='position:absolute;right:10px;bottom:4px;font:600 11px/1 system-ui,sans-serif;color:#c9a84c;opacity:.8;pointer-events:none;letter-spacing:.04em;z-index:2';if(getComputedStyle(h).position==='static')h.style.position='relative';h.appendChild(s)}catch(e){}}put();document.addEventListener('DOMContentLoaded',put);window.addEventListener('load',put);setInterval(put,2000)})();</script>
