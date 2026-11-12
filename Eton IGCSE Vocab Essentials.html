@@ -13248,7 +13248,10 @@ window.__voc.speedTest = function (kind, lang, secs, rev, mode, lv, mx) {
     d = document.createElement('div'); d.id = 'apdl-mk'; d.className = 'aptt-mkov';
     d.innerHTML = '<div class="aptt-mkbox" role="dialog" aria-modal="true"><div class="aptt-mkh">🎯 Set this drill as an EW</div>'
       + '<div class="aptt-mks">' + esc(info.title) + '</div>'
-      + '<div class="aptt-mkhint" style="margin:0 0 6px">The boys open the link (or type the code on the AP Tests page) and go <b>straight into this drill</b> with exactly this selection. No timer is added and nothing is logged: it is the normal drill.</div>'
+      + ((AD.canSet) ? '<div class="aptt-mkhint" style="margin:0 0 6px">What happens when the boys open the link (or type the code on the AP Tests page)? Nothing is timed and nothing is logged either way.</div>'
+        + '<label style="display:flex;gap:8px;align-items:flex-start;font-weight:600"><input type="radio" name="apdl-su" id="apdl-su1" checked style="margin-top:4px"><span><b>Practise this set</b>: the lists and direction are locked in, and the boys choose any activity (Drill, Speed Challenge, Spell, Match, Leisure Mode, Test…).</span></label>'
+        + '<label style="display:flex;gap:8px;align-items:flex-start;font-weight:600"><input type="radio" name="apdl-su" id="apdl-su0" style="margin-top:4px"><span><b>Straight into this drill</b>: exactly this drill starts at once.</span></label>'
+        : '<div class="aptt-mkhint" style="margin:0 0 6px">The boys open the link (or type the code on the AP Tests page) and go <b>straight into this drill</b> with exactly this selection. No timer is added and nothing is logged: it is the normal drill.</div>')
       + '<label>Name (for your list; the boys see it at the top)</label><input id="apdl-mk-n" type="text" value="' + esc(name) + '">'
       + '<label>Library heading</label><select id="apdl-mk-cat">' + (cats.indexOf(ct0) < 0 ? [ct0].concat(cats) : cats).map(function (x) { return '<option' + (x === ct0 ? ' selected' : '') + '>' + esc(x) + '</option>'; }).join('') + '</select>'
       + '<label>Folder inside it (optional: e.g. C Block Set 2, Autumn 2026)</label><input id="apdl-mk-f" type="text" list="apdl-mk-fl" maxlength="40" placeholder="none"><datalist id="apdl-mk-fl">' + ((APTT.folders && APTT.folders()) || []).map(function (x) { return '<option value="' + esc(x) + '">'; }).join('') + '</datalist>'
@@ -13264,7 +13267,8 @@ window.__voc.speedTest = function (kind, lang, secs, rev, mode, lv, mx) {
       if (!pageName()) { alert('This page has no file name, so a link cannot be made from it.'); return; }
       b.disabled = true; b.textContent = 'Making…';
       var made = new Date().toISOString().slice(0, 10);
-      var o = { v: 1, kind: 'drill', n: nm, c: code, a: AD.app, t: info.title, l: AD.lang, p: pageName(), cfg: info.cfg, s: 0, q: 'same', id: 'drill|' + pageName() + '|' + hash32(JSON.stringify(info.cfg)), cat: ct, f: fol, made: made };
+      var su1 = $('apdl-su1'), cfgO = (su1 && su1.checked) ? Object.assign({}, info.cfg, { su: 1 }) : info.cfg;
+      var o = { v: 1, kind: 'drill', n: nm, c: code, a: AD.app, t: info.title, l: AD.lang, p: pageName(), cfg: cfgO, s: 0, q: 'same', id: 'drill|' + pageName() + '|' + hash32(JSON.stringify(cfgO)), cat: ct, f: fol, made: made };
       APTT.pack(o).then(function (tok) {
         var link = APTT.linkFor(tok), line = (code || AD.prefix + '???') + ' | ' + nm.replace(/\|/g, '/') + ' | ' + ct + ' | ' + fol + ' | ' + tok;
         if (APTT.listAdd) APTT.listAdd({ n: nm, c: code, cat: ct, f: fol, made: made, s: 0, q: 'same', v: 1, items: 0, t: info.title, lv: '', app: AD.app, tok: tok });
@@ -13299,7 +13303,7 @@ window.__voc.speedTest = function (kind, lang, secs, rev, mode, lv, mx) {
   function bar() {
     css(); var b = $('apdl-bar'); if (b) b.remove();
     b = document.createElement('div'); b.id = 'apdl-bar'; b.className = 'apdl-bar aph-noprint';
-    b.innerHTML = '<span>' + (SET.view ? '👁 <b>VIEW</b>: what the boys see' : '📌 <b>Drill set by your teacher</b>') + (SET.code ? ' (' + esc(SET.code) + ')' : '') + ': ' + esc(plain(SET.o.t || SET.o.n)) + '</span><button type="button">✕ Free practice</button>';
+    b.innerHTML = '<span>' + (SET.view ? '👁 <b>VIEW</b>: what the boys see' : (SET.o && SET.o.cfg && SET.o.cfg.su ? '📌 <b>Set chosen by your teacher</b>' : '📌 <b>Drill set by your teacher</b>')) + (SET.code ? ' (' + esc(SET.code) + ')' : '') + ': ' + esc(plain(SET.o.t || SET.o.n)) + '</span><button type="button">✕ Free practice</button>';
     document.body.appendChild(b); document.body.classList.add('apdl-on');
     b.querySelector('button').onclick = function () { location.href = String(location.href).replace(/[#?].*$/, ''); };
   }
@@ -13339,6 +13343,7 @@ window.__voc.speedTest = function (kind, lang, secs, rev, mode, lv, mx) {
   function lang() { try { var f = $('lang-from').value, t = $('lang-to').value; return ['fr', 'it', 'es'].indexOf(t) >= 0 ? LN[t] : (['fr', 'it', 'es'].indexOf(f) >= 0 ? LN[f] : 'French'); } catch (e) { return 'French'; } }
   function secs() { var o = {}; ALL_PHRASES.concat(VOCAB_PHRASES).forEach(function (p) { o[p.sec] = 1; }); return o; }
   APDL.register({
+    canSet: true,
     app: 'Eton IGCSE Vocab Essentials',
     get lang() { return lang(); },
     get prefix() { return 'DR' + LT[lang()]; },
@@ -13373,7 +13378,7 @@ window.__voc.speedTest = function (kind, lang, secs, rev, mode, lv, mx) {
       var L = ['en', 'fr', 'it', 'es'];
       if (L.indexOf(c.f) < 0 || L.indexOf(c.t) < 0 || c.f === c.t) return false;
       if ([10, 20, 30, 50, -1].indexOf(c.n) < 0) return false;
-      var tm = Math.round(+c.tm); if (!(tm >= 5 && tm <= 30)) return false;
+      var tm = Math.round(+c.tm); if (!(tm >= 4 && tm <= 30)) return false;
       var ss = null;
       if (c.ss) {
         if (!Array.isArray(c.ss) || !c.ss.length || c.ss.length > 400) return false;
@@ -13391,6 +13396,12 @@ window.__voc.speedTest = function (kind, lang, secs, rev, mode, lv, mx) {
       if (!getSelectedPhrases().length) return false;
       veSetCount(c.n); timerSecs = tm; adjustTimer(0);
       if (!!isAutotime !== !!c.au) toggleAutotime();
+      if (c.su) {   // "Practise this set": show the set-up screen with this material locked in; the boy picks the activity
+        restart();
+        var toNext = function () { try { var s = [].slice.call(document.querySelectorAll('.ms-step')).filter(function (e) { return /^\s*(2|NEXT)\s*How do you want/i.test(e.textContent); })[0]; if (s) s.scrollIntoView({ block: 'start' }); } catch (e) { } };
+        toNext(); setTimeout(toNext, 150); setTimeout(toNext, 700);
+        return true;
+      }
       restart(); veStart();
     }
   });
@@ -15247,4 +15258,4 @@ textarea.ms-in{min-height:7rem;resize:vertical}.ms-hint.ms-hint-sm{font-size:.78
   if (document.readyState === 'complete') start(); else window.addEventListener('load', start);
 })();
 </script>
-<script id="ap-build">window.__apBuild="9dfd9f491f";window.__apVer=194;(function(){var N=window.__apVer;function put(){try{var h=document.querySelector('header.aph-header');if(!h||document.getElementById('ap-ver'))return;var s=document.createElement('span');s.id='ap-ver';s.textContent='v'+N;s.style.cssText='position:absolute;right:10px;bottom:4px;font:600 11px/1 system-ui,sans-serif;color:#c9a84c;opacity:.8;pointer-events:none;letter-spacing:.04em;z-index:2';if(getComputedStyle(h).position==='static')h.style.position='relative';h.appendChild(s)}catch(e){}}put();document.addEventListener('DOMContentLoaded',put);window.addEventListener('load',put);setInterval(put,2000)})();</script>
+<script id="ap-build">window.__apBuild="bae5bc6694";window.__apVer=195;(function(){var N=window.__apVer;function put(){try{var h=document.querySelector('header.aph-header');if(!h||document.getElementById('ap-ver'))return;var s=document.createElement('span');s.id='ap-ver';s.textContent='v'+N;s.style.cssText='position:absolute;right:10px;bottom:4px;font:600 11px/1 system-ui,sans-serif;color:#c9a84c;opacity:.8;pointer-events:none;letter-spacing:.04em;z-index:2';if(getComputedStyle(h).position==='static')h.style.position='relative';h.appendChild(s)}catch(e){}}put();document.addEventListener('DOMContentLoaded',put);window.addEventListener('load',put);setInterval(put,2000)})();</script>
