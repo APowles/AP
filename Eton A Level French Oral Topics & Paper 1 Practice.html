@@ -15227,6 +15227,9 @@ body.hm .bar{background:transparent;border-bottom-color:transparent}
 .qr-a1{display:flex;align-items:center;gap:10px;font:inherit;text-align:left;padding:10px 16px 10px 10px;border-radius:12px;border:2px solid var(--tc);background:#fff;cursor:pointer;color:#1a2744;min-width:200px}.qr-a1[disabled]{opacity:.5;cursor:default}
 .qr-a1 img{width:44px;height:44px;border-radius:10px}.qr-a1 b{display:block;font-size:1rem}.qr-a1 small{display:block;color:#56607a;font-size:.78rem}
 .qr-more{font:inherit;font-weight:700;padding:10px 16px;border-radius:12px;border:1.5px dashed #9aa6bd;background:none;color:#56607a;cursor:pointer;align-self:center}
+.qr-bgw,#qr-bgw{position:fixed;left:0;top:0;right:0;bottom:0;z-index:-1;display:flex;pointer-events:none;opacity:.13;filter:saturate(.55) blur(1.5px)}
+#qr-bgw i{flex:1;background-size:cover;background-position:center}
+.qr-hint{margin:-4px 2px 12px;font-size:.84rem;color:#56607a}
 .qr-sw{display:flex;flex-wrap:wrap;gap:6px;align-items:center;margin:0 0 12px;padding:8px 10px;background:#fff;border:1px solid #e2e6f0;border-radius:10px}
 .qr-st{font-size:.7rem;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:#7a8899;margin-right:2px}.qr-sp2{flex:1}
 .qr-sw button{font:inherit;font-size:.82rem;font-weight:600;padding:7px 12px;border-radius:999px;border:1px solid #c9d1e0;background:#fff;color:#1a2744;cursor:pointer}.qr-sw button.on{background:#1a2744;color:#fff;border-color:#1a2744}
@@ -15970,6 +15973,7 @@ function render(){
   if(S.view==='speed'&&SPD.phase==='setup')spdSum();
   try{hmAfter()}catch(e){}
   try{if(S.view==='mix'&&S.quick)qrPaint()}catch(e){}
+  try{qrBgSync()}catch(e){}
   try{ovAfter()}catch(e){}
   try{autoRead()}catch(e){}
 }
@@ -17715,6 +17719,14 @@ function qrTogK(n){QR.k.has(n)?QR.k.delete(n):QR.k.add(n);render()}
 function qrTogS(sub){const s=SUBS.find(x=>x.subtheme===sub);if(!s)return;const all=s.ktrs.every(k=>QR.k.has(k.n));s.ktrs.forEach(k=>all?QR.k.delete(k.n):QR.k.add(k.n));render()}
 function qrTogT(t){const ks=SUBS.filter(s=>s.theme===t).flatMap(s=>s.ktrs),all=ks.every(k=>QR.k.has(k.n));ks.forEach(k=>all?QR.k.delete(k.n):QR.k.add(k.n));render()}
 function qrAll(on){SUBS.forEach(s=>s.ktrs.forEach(k=>on?QR.k.add(k.n):QR.k.delete(k.n)));render()}
+function qrBgSync(){
+  const on=(S.view==='home'&&HM.pick===3)||(S.view==='mix'&&S.quick);let e=document.getElementById('qr-bgw');
+  if(!on){if(e)e.remove();QS.bg=null;return}
+  if(e)return;
+  const ks=Object.keys(ILLUS||{}).filter(n=>ILLUS[n]&&ILLUS[n].src);if(ks.length<2)return;
+  const a=ks[Math.floor(Math.random()*ks.length)];let b=a;while(b===a)b=ks[Math.floor(Math.random()*ks.length)];
+  e=document.createElement('div');e.id='qr-bgw';e.setAttribute('aria-hidden','true');
+  e.innerHTML=[a,b].map(n=>'<i style="background-image:url('+ILLUS[n].src+')"></i>').join('');document.body.appendChild(e)}
 function qrOpen(sub,o){o?QR.open.add(sub):QR.open.delete(sub)}
 function qrBox(on,part){return '<span class="qr-cb'+(on?' on':part?' part':'')+'"></span>'}
 function vQrPick(){
@@ -17739,10 +17751,11 @@ function qrTap(el){const r=document.getElementById('qr-root'),ln=el.parentNode;
 function qrSet(m){
   if(m==='both'){QS.lang='both';QS.cover='none';QS.all=false}
   else if(m==='fr'||m==='en'){QS.lang=m;QS.cover='none';QS.all=false}
-  else if(m==='cfr'||m==='cen'){QS.lang='both';QS.cover=m.slice(1);QS.all=false}
+  else if(m==='cfr'||m==='cen'){const c=m.slice(1);QS.cover=(QS.lang==='both'&&QS.cover===c)?'none':c;QS.lang='both';QS.all=false}
   else if(m==='all'){QS.all=!QS.all}
   qrPaint()}
-function qrPaint(){const r=document.getElementById('qr-root');if(!r)return;r.dataset.l=QS.lang;r.dataset.c=QS.cover;r.classList.toggle('all',QS.all);
+function qrPaint(){const r=document.getElementById('qr-root');if(!r)return;
+  {const h=document.getElementById('qr-hint');if(h)h.textContent=QS.lang==='fr'?'Showing the French only.':QS.lang==='en'?'Showing the English only.':QS.all?'Everything is showing.':QS.cover==='fr'?'The French is covered. Say it aloud, then tap the grey bar to check. Tap Cover French again to uncover it all.':QS.cover==='en'?'The English is covered. Tap a grey bar to check. Tap Cover English again to uncover it all.':'Everything is showing. Choose Cover French to test yourself.'}r.dataset.l=QS.lang;r.dataset.c=QS.cover;r.classList.toggle('all',QS.all);
   r.querySelectorAll('.qr-t.rev').forEach(e=>e.classList.remove('rev'));
   const on={both:QS.lang==='both'&&QS.cover==='none',fr:QS.lang==='fr',en:QS.lang==='en',cfr:QS.cover==='fr',cen:QS.cover==='en'};
   document.querySelectorAll('.qr-sw button').forEach(b=>{const m=b.dataset.m;if(m==='all'){b.classList.toggle('on',QS.all);b.textContent=QS.all?'Cover all':'Reveal all';b.style.display=QS.cover==='none'?'none':''}else b.classList.toggle('on',!!on[m])})}
@@ -17767,7 +17780,7 @@ function vQuick(){
   const B=(m,t)=>'<button type="button" data-m="'+m+'" onclick="qrSet(\''+m+'\')">'+t+'</button>';
   return '<h1 class="h1">⚡ Quick revision</h1><p class="hm-sh" style="margin:0 0 10px"><b>'+esc(MIXS.lab)+'</b>'+(/^\d+ KTRs$/.test(MIXS.lab)?'':' · '+ks.length+' KTR'+(ks.length>1?'s':''))+'</p>'
    +'<div class="qr-act"><div class="qr-at">Now test yourself</div><div class="qr-ab"><button type="button" class="qr-a1" style="--tc:#e0a81f" onclick="qrDrill()"><img src="'+KP_IC.drill+'" alt=""><span><b>Drill it</b><small>Say each answer aloud, then check</small></span></button><button type="button" class="qr-a1" style="--tc:#c4122e" onclick="qrSpeed()"><img src="'+KP_IC.speed+'" alt=""><span><b>Speed Challenge</b><small>Race the clock on these KTRs</small></span></button><button type="button" class="qr-a1" style="--tc:#5b3f9e"'+(sh?'':' disabled')+' onclick="qrSpot()"><img src="'+KP_IC.test+'" alt=""><span><b>Spot Test</b><small>'+(sh?'A short test, with Apple Pencil':'Not available here')+'</small></span></button><button type="button" class="qr-more" onclick="qrMore()">More activities ›</button></div></div>'
-   +'<div class="qr-sw"><span class="qr-st">Show</span>'+B('both','Both')+B('fr','French only')+B('en','English only')+'<span class="qr-st" style="margin-left:8px">Cover</span>'+B('cfr','French')+B('cen','English')+'<span class="qr-sp2"></span>'+B('all','Reveal all')+'</div>'
+   +'<div class="qr-sw"><span class="qr-st">Show</span>'+B('both','Both')+B('fr','French only')+B('en','English only')+'<span class="qr-st" style="margin-left:8px">Cover</span>'+B('cfr','French')+B('cen','English')+'<span class="qr-sp2"></span>'+B('all','Reveal all')+'</div><div class="qr-hint" id="qr-hint"></div>'
    +'<div id="qr-root" class="qr" data-l="'+QS.lang+'" data-c="'+QS.cover+'">'+ks.map(qrCard).join('')+'</div>'
    +'<div class="qr-end"><button type="button" class="qr-sg" onclick="window.ktrBack()">← Choose other KTRs</button></div>'}
 
@@ -17781,7 +17794,7 @@ function vHome(){
   const all=`SUBS.flatMap(s=>s.ktrs.map(k=>k.n)),'All ${n} KTRs'`;
   return `<div class="hm-hero"><div class="hm-bg" id="hm-bg"></div><div class="hm-shade"></div><div class="hm-in">
     <div class="hm-kick">${n} KTRs · ${SUBS.length} sous-thèmes</div><h1 class="hm-title">KTR Studio</h1><p class="hm-tag">Pick a theme and a KTR, then learn it step by step</p>
-    <div class="hm-tiles">${hmTile('hm-big hm-qr','<img alt="" src="icons/hx_quick.webp" style="width:100%;height:100%;display:block">','Quick revision<small class="hm-d">The minimum for each KTR, in a few taps</small>',"HM.pick=3;HM.hint=null;render();window.scrollTo(0,0)")}${hmTile('hm-big','<img alt="" src="icons/hx_topic.webp" style="width:100%;height:100%;display:block">','Learn a KTR<small class="hm-d">Pick a theme and a KTR, then learn it step by step</small>',"HM.pick=1;HM.hint=null;render();window.scrollTo(0,0)")}${keys.length&&window.parent&&window.parent.ORAL_CYCLE_EXPRS?hmTile('hm-big',`<img alt="" src="${HM_IC.cyc}" style="width:100%;height:100%;display:block">`,'QPSEAIOHC + KTRs<small class="hm-d">Practise the Oral Cycle on the KTRs you choose</small>',"HM.pick=2;HM.theme=1;HM.hint='roll';HMSEL.s.clear();HMSEL.t.clear();render();window.scrollTo(0,0)"):''}</div>
+    <div class="hm-tiles">${hmTile('hm-big hm-qr','<img alt="" src="icons/hx_quick.webp" style="width:100%;height:100%;display:block">','Short on time?<small class="hm-d">Quick revision: the minimum for each KTR, in a few taps</small>',"HM.pick=3;HM.hint=null;render();window.scrollTo(0,0)")}${hmTile('hm-big','<img alt="" src="icons/hx_topic.webp" style="width:100%;height:100%;display:block">','Learn a KTR<small class="hm-d">Pick a theme and a KTR, then learn it step by step</small>',"HM.pick=1;HM.hint=null;render();window.scrollTo(0,0)")}${keys.length&&window.parent&&window.parent.ORAL_CYCLE_EXPRS?hmTile('hm-big',`<img alt="" src="${HM_IC.cyc}" style="width:100%;height:100%;display:block">`,'QPSEAIOHC + KTRs<small class="hm-d">Practise the Oral Cycle on the KTRs you choose</small>',"HM.pick=2;HM.theme=1;HM.hint='roll';HMSEL.s.clear();HMSEL.t.clear();render();window.scrollTo(0,0)"):''}</div>
     ${keys.length?`<div class="hm-kick" style="margin-top:20px;font-size:1em;letter-spacing:.12em;color:#f3d98a;font-weight:800">↓ Apply your skills</div><div class="hm-cta" style="margin-top:10px">${hmTile('sm','<img alt="" src="icons/hx_wheel.webp" style="width:100%;height:100%;display:block">','Spin the wheel<span class="hm-d">Random picture — say it on the spot</span>',"openMachine([])")}${hmTile('sm',HM_IC.deal,'Shuffle and deal<span class="hm-d">Deal cards, say each sentence</span>',"openCards()")}${hmTile('sm',HM_IC.quiz,'KTR Pub Quiz<span class="hm-d">Questions from across the KTRs</span>',"kqOpen()")}${hmSm('icons/hx_how.webp','How to use the Studio','','https://apowles.github.io/AP/guides/ktr-studio.html')}</div>`:`<div class="hm-cta" style="margin-top:10px">${hmSm('icons/hx_how.webp','How to use the Studio','','https://apowles.github.io/AP/guides/ktr-studio.html')}</div>`}</div></div></div>
   <details class="hm-more"><summary><img alt="" src="icons/hx_more.webp" style="width:34px;height:34px;border-radius:9px;vertical-align:middle;margin-right:10px;box-shadow:0 3px 8px rgba(0,0,0,.3)">More options</summary>
     <div class="row"><button class="spbtn pri" onclick="openSpeed([])">⚡ Speed sessions: race on the words, any KTR or a mix</button>${spotHost()?`<button class="spbtn subbtn" onclick="openSpot(${all})">✍ Submitted Spot Test</button><button class="spbtn" onclick="openPaper(${all})">🖨 Paper Spot Test</button>`:''}${setTestBtn(all)}<button class="spbtn" onclick="toggle('proj')">Large type</button><button class="spbtn" onclick="openHow()">How this works</button>${keys.length?`<button class="spbtn" onclick="hmSplash(true)">▶ Revoir l'intro</button>`:''}</div>
@@ -24897,4 +24910,4 @@ function deck(el,m,n,x,y,face,gap){clear(el);const cs=[];for(let i=0;i<n;i++){co
   if (document.readyState === 'complete') start(); else window.addEventListener('load', start);
 })();
 </script>
-<script id="ap-build">window.__apBuild="bf9f3c6bce";window.__apVer=537;(function(){var N=window.__apVer;function put(){try{var h=document.querySelector('header.aph-header');if(!h||document.getElementById('ap-ver'))return;var s=document.createElement('span');s.id='ap-ver';s.textContent='v'+N;s.style.cssText='position:absolute;right:10px;bottom:4px;font:600 11px/1 system-ui,sans-serif;color:#c9a84c;opacity:.8;pointer-events:none;letter-spacing:.04em;z-index:2';if(getComputedStyle(h).position==='static')h.style.position='relative';h.appendChild(s)}catch(e){}}put();document.addEventListener('DOMContentLoaded',put);window.addEventListener('load',put);setInterval(put,2000)})();</script>
+<script id="ap-build">window.__apBuild="655644d9a5";window.__apVer=538;(function(){var N=window.__apVer;function put(){try{var h=document.querySelector('header.aph-header');if(!h||document.getElementById('ap-ver'))return;var s=document.createElement('span');s.id='ap-ver';s.textContent='v'+N;s.style.cssText='position:absolute;right:10px;bottom:4px;font:600 11px/1 system-ui,sans-serif;color:#c9a84c;opacity:.8;pointer-events:none;letter-spacing:.04em;z-index:2';if(getComputedStyle(h).position==='static')h.style.position='relative';h.appendChild(s)}catch(e){}}put();document.addEventListener('DOMContentLoaded',put);window.addEventListener('load',put);setInterval(put,2000)})();</script>
