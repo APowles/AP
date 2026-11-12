@@ -15243,7 +15243,7 @@ body.hm .bar{background:transparent;border-bottom-color:transparent}
 .qr-sp{flex:none;min-width:58px;height:28px;border-radius:999px;border:1px solid #d5dbe8;background:#f4f6fb;color:#1a2744;font:700 .7rem/1 inherit;font-family:inherit;cursor:pointer;padding:0 8px}
 .qr[data-l=fr] .qr-en{display:none}.qr[data-l=en] .qr-fr{display:none}.qr[data-l=en] .qr-en .qr-t{font-style:normal;color:#1a2744;font-size:1rem}
 .qr[data-c=fr]:not(.all) .qr-a.qr-fr .qr-t:not(.rev),.qr[data-c=en]:not(.all) .qr-a.qr-en .qr-t:not(.rev){color:transparent!important;background:#dfe5f0;border-radius:5px;box-shadow:0 0 0 2px #dfe5f0;user-select:none;-webkit-user-select:none}
-.qr-dlm{margin:0 0 12px}.qr-dlm b{color:#1a2744}
+.qr-dlm{margin:0 0 12px}.qr-dlm-h{font-weight:400;color:#7a6a3a;font-size:.8rem}.qr-dlm b{color:#1a2744}
 .qr-rc{margin:4px 0 0}.qr-rc>summary{cursor:pointer;font-weight:700;color:#8a2a1f;padding:8px 0}.qr-rc>summary small{font-weight:400;color:#7a8899}
 .qr-end{margin:10px 0 24px}
 
@@ -17746,7 +17746,7 @@ function qrSpot(){kpSpotN(MIXS.ns.slice(),MIXS.lab)}
 function qrSay(b,l){try{window.parent.speak(b.dataset.t,l||(b.parentNode.classList.contains('qr-fr')?'fr-FR':'en-GB'))}catch(e){}}
 function qrTap(el){const r=document.getElementById('qr-root'),ln=el.parentNode;
   const cov=r&&!r.classList.contains('all')&&ln.classList.contains('qr-a')&&((r.dataset.c==='fr'&&ln.classList.contains('qr-fr'))||(r.dataset.c==='en'&&ln.classList.contains('qr-en')));
-  if(cov&&!el.classList.contains('rev')){el.classList.add('rev');return}
+  if(cov){el.classList.toggle('rev');return}
   qrSay(el.nextElementSibling)}
 function qrSet(m){
   if(m==='both'){QS.lang='both';QS.cover='none';QS.all=false}
@@ -17755,7 +17755,7 @@ function qrSet(m){
   else if(m==='all'){QS.all=!QS.all}
   qrPaint()}
 function qrPaint(){const r=document.getElementById('qr-root');if(!r)return;
-  {const h=document.getElementById('qr-hint');if(h)h.textContent=QS.lang==='fr'?'Showing the French only.':QS.lang==='en'?'Showing the English only.':QS.all?'Everything is showing.':QS.cover==='fr'?'The French is covered. Say it aloud, then tap the grey bar to check. Tap Cover French again to uncover it all.':QS.cover==='en'?'The English is covered. Tap a grey bar to check. Tap Cover English again to uncover it all.':'Everything is showing. Choose Cover French to test yourself.'}r.dataset.l=QS.lang;r.dataset.c=QS.cover;r.classList.toggle('all',QS.all);
+  {const h=document.getElementById('qr-hint');if(h)h.textContent=QS.lang==='fr'?'Showing the French only.':QS.lang==='en'?'Showing the English only.':QS.all?'Everything is showing.':QS.cover==='fr'?'The French is covered. Say it aloud, then tap the grey bar to check. Tap it again to cover it and have another go. Tap Cover French again to uncover everything.':QS.cover==='en'?'The English is covered. Tap a grey bar to check, and tap it again to cover it. Tap Cover English again to uncover everything.':'Everything is showing. Choose Cover French to test yourself.'}r.dataset.l=QS.lang;r.dataset.c=QS.cover;r.classList.toggle('all',QS.all);
   r.querySelectorAll('.qr-t.rev').forEach(e=>e.classList.remove('rev'));
   const on={both:QS.lang==='both'&&QS.cover==='none',fr:QS.lang==='fr',en:QS.lang==='en',cfr:QS.cover==='fr',cen:QS.cover==='en'};
   document.querySelectorAll('.qr-sw button').forEach(b=>{const m=b.dataset.m;if(m==='all'){b.classList.toggle('on',QS.all);b.textContent=QS.all?'Cover all':'Reveal all';b.style.display=QS.cover==='none'?'none':''}else b.classList.toggle('on',!!on[m])})}
@@ -17767,9 +17767,9 @@ function qrCard(k){
   const I=k.ican||[],N=['Definition','Example','Analysis'],C=['d','e','a'];
   const dea=T?[[T.def_fr,T.def_en],[T.ex_fr,T.ex_en],[T.an_fr,T.an_en]]:[0,1,2].map(i=>I[i]?[I[i].fr,I[i].en||I[i].prompt]:['','']);
   let h='<div class="qr-card"><div class="qr-term">'+esc(k.term)+'</div>';
-  if(k.hook)h+=qrRow('La question','q',k.hook.fr,k.hook.en,false);
-  if(k.answer)h+=qrRow('Votre réponse','r',k.answer.fr,k.answer.en,true);
-  try{const t=AGX[k.n];if(t){const i=t.indexOf(':'),lead=i>0?t.slice(0,i):t,rest=i>0?t.slice(i+1):'';h+='<details class="agx qr-dlm"><summary><img class="agx-ic" src="'+AGIC+'" alt="">Dans le mille</summary><div class="agx-in">A good answer must explain <b>'+esc(lead)+'</b>'+(rest?':'+esc(rest):'')+'</div></details>'}}catch(e){}
+  if(k.hook)h+=qrRow('Hook question','q',k.hook.fr,k.hook.en,false);
+  if(k.answer)h+=qrRow('Hook answer','r',k.answer.fr,k.answer.en,true);
+  try{const t=AGX[k.n];if(t){const i=t.indexOf(':'),lead=i>0?t.slice(0,i):t,rest=i>0?t.slice(i+1):'';h+='<details class="agx qr-dlm"><summary><img class="agx-ic" src="'+AGIC+'" alt="">Dans le mille <small class="qr-dlm-h">(click here to see what a good answer should include)</small></summary><div class="agx-in">A good answer must explain <b>'+esc(lead)+'</b>'+(rest?':'+esc(rest):'')+'</div></details>'}}catch(e){}
   dea.forEach((x,i)=>{h+=qrRow(N[i],C[i],x[0],x[1],true)});
   const ide=(k.remember&&k.remember.ideas)||[];ide.forEach((x,i)=>{h+=qrRow('Idée clé'+(ide.length>1?' '+(i+1):''),'i',x.fr,x.en,true)});
   const rc=(k.picture||[]).filter(p=>p.recap_fr);
@@ -24910,4 +24910,4 @@ function deck(el,m,n,x,y,face,gap){clear(el);const cs=[];for(let i=0;i<n;i++){co
   if (document.readyState === 'complete') start(); else window.addEventListener('load', start);
 })();
 </script>
-<script id="ap-build">window.__apBuild="655644d9a5";window.__apVer=538;(function(){var N=window.__apVer;function put(){try{var h=document.querySelector('header.aph-header');if(!h||document.getElementById('ap-ver'))return;var s=document.createElement('span');s.id='ap-ver';s.textContent='v'+N;s.style.cssText='position:absolute;right:10px;bottom:4px;font:600 11px/1 system-ui,sans-serif;color:#c9a84c;opacity:.8;pointer-events:none;letter-spacing:.04em;z-index:2';if(getComputedStyle(h).position==='static')h.style.position='relative';h.appendChild(s)}catch(e){}}put();document.addEventListener('DOMContentLoaded',put);window.addEventListener('load',put);setInterval(put,2000)})();</script>
+<script id="ap-build">window.__apBuild="0638b2d583";window.__apVer=539;(function(){var N=window.__apVer;function put(){try{var h=document.querySelector('header.aph-header');if(!h||document.getElementById('ap-ver'))return;var s=document.createElement('span');s.id='ap-ver';s.textContent='v'+N;s.style.cssText='position:absolute;right:10px;bottom:4px;font:600 11px/1 system-ui,sans-serif;color:#c9a84c;opacity:.8;pointer-events:none;letter-spacing:.04em;z-index:2';if(getComputedStyle(h).position==='static')h.style.position='relative';h.appendChild(s)}catch(e){}}put();document.addEventListener('DOMContentLoaded',put);window.addEventListener('load',put);setInterval(put,2000)})();</script>
