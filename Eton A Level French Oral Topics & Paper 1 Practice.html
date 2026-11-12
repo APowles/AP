@@ -13358,19 +13358,24 @@ function p1PickBox(id){ return p1PickOn() ? '<label class="p1s-pick"><input type
 window.p1PickIds = function(){ return paperIds(p1Paper.st, p1Paper.v).filter(function(id){ return p1Pick[id]; }); };
 function p1PickPanel(ids){
   if(!p1PickOn()) return '';
-  return '<div class="p1-card p1s-panel"><b>🔑 Set several questions from this paper</b><div class="p1-note" style="margin:4px 0 8px">Tick the questions below (or pick a whole section), then press <b>Set the ticked questions</b>.</div><div class="p1-chips">'
-    + ['A','B','C'].map(function(k){ return '<button type="button" class="p1-chip" onclick="p1PickSec(\''+k+'\')">'+P1_SECS[k].short+'</button>'; }).join('')
+  return '<div class="p1-card p1s-panel"><b>🔑 Set several questions from this paper</b><div class="p1-note" style="margin:4px 0 8px">Tick the questions below (or pick a whole section), then tap the <b>Eton crest</b> (top right) to set them. You can combine sections, for example Listening and Translation.</div><div class="p1-chips">'
+    + ['A','B','C'].map(function(k){ return '<button type="button" class="p1-chip" data-psec="'+k+'" onclick="p1PickSec(\''+k+'\')">'+P1_SECS[k].short+'</button>'; }).join('')
     + '<button type="button" class="p1-chip" onclick="p1PickSec(\'\')">Clear ticks</button></div></div>'
     + '<div class="p1s-bar" id="p1s-bar" hidden></div>';
 }
 function p1PickUpd(){
   var ids=p1PickIds(), bar=document.getElementById('p1s-bar'); if(!bar) return;
   document.querySelectorAll('input[data-pid]').forEach(function(c){ c.checked=!!p1Pick[c.getAttribute('data-pid')]; });
+  var all=paperIds(p1Paper.st,p1Paper.v);
+  document.querySelectorAll('[data-psec]').forEach(function(b){ var k=b.getAttribute('data-psec'), q=all.filter(function(id){ return P1_TYPES[P1Q[id].type].sec===k; }); b.classList.toggle('on', q.length>0 && q.every(function(id){ return p1Pick[id]; })); });
+  /* the crest fires only when exactly one hidden set-button is on screen: while questions are ticked, the ticked-questions button is the one */
+  document.querySelectorAll('[data-tdoor-held]').forEach(function(b){ b.setAttribute('data-tdoor',b.getAttribute('data-tdoor-held')); b.removeAttribute('data-tdoor-held'); });
   if(!ids.length){ bar.hidden=true; return; }
-  bar.hidden=false; bar.innerHTML='<span><b>'+ids.length+'</b> question'+(ids.length>1?'s':'')+' ticked · '+p1sMarks(ids)+' marks · '+p1sMin(p1sTimes(ids).total)+' in all</span><button type="button" class="p1s-tbtn" data-tdoor="1" style="display:none" onclick="p1SetMake(p1PickIds())">🔑 Set the ticked questions</button>';
+  document.querySelectorAll('[data-tdoor]').forEach(function(b){ if(!bar.contains(b)){ b.setAttribute('data-tdoor-held',b.getAttribute('data-tdoor')); b.removeAttribute('data-tdoor'); } });
+  bar.hidden=false; bar.innerHTML='<span><b>'+ids.length+'</b> question'+(ids.length>1?'s':'')+' ticked · '+p1sMarks(ids)+' marks · '+p1sMin(p1sTimes(ids).total)+' in all · <b>tap the Eton crest to set them</b></span><button type="button" class="p1s-tbtn" data-tdoor="1" style="display:none" onclick="p1SetMake(p1PickIds())">🔑 Set the ticked questions</button>';
 }
 window.p1PickTog = function(el){ p1Pick[el.getAttribute('data-pid')]=el.checked; p1PickUpd(); };
-window.p1PickSec = function(sec){ p1Pick={}; if(sec) paperIds(p1Paper.st,p1Paper.v).forEach(function(id){ if(P1_TYPES[P1Q[id].type].sec===sec) p1Pick[id]=1; }); p1PickUpd(); };
+window.p1PickSec = function(sec){ if(!sec){ p1Pick={}; p1PickUpd(); return; } var q=paperIds(p1Paper.st,p1Paper.v).filter(function(id){ return P1_TYPES[P1Q[id].type].sec===sec; }), on=q.length&&q.every(function(id){ return p1Pick[id]; }); q.forEach(function(id){ if(on) delete p1Pick[id]; else p1Pick[id]=1; }); p1PickUpd(); };
 function p1SetTBtn(ids, whole){
   if(P1S || !p1sTeacher()) return '';
   return '<button type="button" class="p1s-tbtn" data-tdoor="1" style="display:none" onclick="p1SetMake([\''+ids.join("','")+'\'])" title="Teacher: set this as a timed test with a link / code">🔑 '+(whole?'Set the whole paper as a Timed Eton Past Paper':'Set as a Timed Eton Past Paper Question')+'</button>';
@@ -24932,4 +24937,4 @@ function deck(el,m,n,x,y,face,gap){clear(el);const cs=[];for(let i=0;i<n;i++){co
   if (document.readyState === 'complete') start(); else window.addEventListener('load', start);
 })();
 </script>
-<script id="ap-build">window.__apBuild="c2578003c8";window.__apVer=542;(function(){var N=window.__apVer;function put(){try{var h=document.querySelector('header.aph-header');if(!h||document.getElementById('ap-ver'))return;var s=document.createElement('span');s.id='ap-ver';s.textContent='v'+N;s.style.cssText='position:absolute;right:10px;bottom:4px;font:600 11px/1 system-ui,sans-serif;color:#c9a84c;opacity:.8;pointer-events:none;letter-spacing:.04em;z-index:2';if(getComputedStyle(h).position==='static')h.style.position='relative';h.appendChild(s)}catch(e){}}put();document.addEventListener('DOMContentLoaded',put);window.addEventListener('load',put);setInterval(put,2000)})();</script>
+<script id="ap-build">window.__apBuild="72c67cd340";window.__apVer=543;(function(){var N=window.__apVer;function put(){try{var h=document.querySelector('header.aph-header');if(!h||document.getElementById('ap-ver'))return;var s=document.createElement('span');s.id='ap-ver';s.textContent='v'+N;s.style.cssText='position:absolute;right:10px;bottom:4px;font:600 11px/1 system-ui,sans-serif;color:#c9a84c;opacity:.8;pointer-events:none;letter-spacing:.04em;z-index:2';if(getComputedStyle(h).position==='static')h.style.position='relative';h.appendChild(s)}catch(e){}}put();document.addEventListener('DOMContentLoaded',put);window.addEventListener('load',put);setInterval(put,2000)})();</script>
