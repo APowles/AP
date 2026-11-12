@@ -6769,15 +6769,18 @@ function kdCard() {
     + '<div class="aph-drill"><div class="aph-drill-main"><div class="aph-qcard">'
     + (c.lab ? '<span class="kd-chip ' + kdEsc(c.cls || '') + '">' + kdEsc(c.lab) + '</span>' : '')
     + (c.ktr ? '<div class="kd-ktr">' + kdEsc(c.ktr) + '</div>' : '')
-    + '<div class="aph-qmeta">Card ' + Math.min(K.idx + 1, K.orig) + ' of ' + K.orig + (K.review ? ' &middot; major errors again' : '') + ' &middot; &#127468;&#127463; &rarr; &#127467;&#127479;</div>'
+    + '<div class="aph-qmeta">Card ' + Math.min(K.idx + 1, K.orig) + ' of ' + K.orig + (K.review ? ' &middot; major errors again' : '') + ' &middot; ' + (c.qf ? '&#127467;&#127479; &rarr; &#127467;&#127479;' : '&#127468;&#127463; &rarr; &#127467;&#127479;') + '</div>'
     + '<div class="rf-bar-track"><div class="rf-bar-fill" id="kd-bar" style="width:100%"></div></div>'
-    + '<div class="aph-prompt">' + kdEsc(c.en) + '</div>'
-    + '<div class="prompt-hint">&#127467;&#127479; Say it in French, then press Show Answer</div>'
+    + (c.qf
+      ? '<div class="aph-prompt">' + kdEsc(c.qf) + '</div><div style="margin:2px 0 6px"><button type="button" class="aph-btn aph-btn-sm" onclick="kdTr(this)">&#127468;&#127463; Show translation</button><div id="kd-tr" style="display:none;margin-top:6px;font-style:italic;color:#6b7788">' + kdEsc(c.qe || c.en) + '</div></div>'
+        + '<div class="prompt-hint">&#127467;&#127479; Answer in French, then press Show Answer</div>'
+      : '<div class="aph-prompt">' + kdEsc(c.en) + '</div>'
+        + '<div class="prompt-hint">&#127467;&#127479; Say it in French, then press Show Answer</div>')
     + '<div id="kd-ans"></div></div>'
     + '<button type="button" id="kd-show" class="aph-btn aph-btn-primary aph-btn-block" onclick="kdReveal()">Show Answer</button><div id="kd-marks" style="display:none"></div></div>'
     + '<div class="aph-drill-side"><div class="aph-side-keys"><span><span class="aph-key bad">&#8592;</span>major error</span><span><span class="aph-key near">&#8595;</span>nearly</span><span><span class="aph-key ok">&#8594;</span>show / got it</span></div></div></div>';
   kdTick();
-  if (kdAutoOn()) setTimeout(function () { if (KD && !KD.rev && KD.deck[KD.idx] === c) { try { speak(c.en, 'en-GB'); } catch (e) { } } }, 150);   /* the question is read aloud too (AP, 11 Nov 2026) */
+  if (kdAutoOn()) setTimeout(function () { if (KD && !KD.rev && KD.deck[KD.idx] === c) { try { if (c.qf) speak(cleanForSpeech(c.qf, 'fr-FR'), 'fr-FR'); else speak(c.en, 'en-GB'); } catch (e) { } } }, 150);   /* the question is read aloud too (AP, 11 Nov 2026) */
 }
 function kdReveal(timedOut) {
   var K = KD; if (!K || K.rev) return; K.rev = true; if (K.tm) clearInterval(K.tm);
@@ -6791,6 +6794,7 @@ function kdReveal(timedOut) {
     : '<div class="aph-mark"><button type="button" class="aph-mark-btn bad" onclick="kdMark(\'end\')">&#10007; Major error<small>&#8592; key</small></button><button type="button" class="aph-mark-btn near" onclick="kdMark(\'soon\')">~ Nearly<small>&#8595; key</small></button><button type="button" class="aph-mark-btn ok" onclick="kdMark(\'got\')">&#10003; Got it<small>&#8594; key</small></button></div>')
     + '<div class="aph-under"><button type="button" class="aph-btn aph-btn-sm" onclick="kdSay()">&#128266; Replay</button></div>';
 }
+function kdTr(b) { var e = document.getElementById('kd-tr'); if (!e) return; var on = e.style.display === 'none'; e.style.display = on ? 'block' : 'none'; if (b) b.innerHTML = on ? '&#127468;&#127463; Hide translation' : '&#127468;&#127463; Show translation'; }
 function kdSay() { var K = KD; if (!K) return; try { speak(cleanForSpeech(K.deck[K.idx].fr, 'fr-FR'), 'fr-FR'); } catch (e) { } }
 function kdMark(r) {
   var K = KD; if (!K || !K.rev) return;
@@ -15205,7 +15209,7 @@ body.hm .bar{background:transparent;border-bottom-color:transparent}
 .hm-tag{font-size:1.45em;margin:0 0 1em;color:#f3ead0;font-family:var(--head);font-style:italic}
 .hm-cta{display:flex;flex-wrap:wrap;gap:14px}
 .hm-tiles{display:flex;flex-wrap:wrap;gap:16px;align-items:stretch}
-.hm-tile.hm-qr{background:linear-gradient(135deg,#17614e,#0f3f33)!important;border-color:#8fe0c4!important;color:#fff}.hm-tile.hm-qr .hm-tl{color:#fff}.hm-tile.hm-qr .hm-d{color:#cdeee2}
+.hm-tile.hm-qr{border-color:#8fe0c4!important;color:#fff}.hm-tile.hm-qr .hm-tl{color:#fff}.hm-tile.hm-qr .hm-d{color:#cdeee2}
 .qr-bar{display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin:0 0 14px}
 .qr-go{font:inherit;font-weight:800;font-size:1.05rem;padding:13px 26px;border-radius:12px;border:0;background:#1a2744;color:#fff;cursor:pointer}.qr-go[disabled]{background:#c9cfdb;color:#fff;cursor:default}
 .qr-sg{font:inherit;font-weight:700;padding:11px 18px;border-radius:12px;border:1.5px solid #c9cfdb;background:#fff;color:#1a2744;cursor:pointer}
@@ -16263,7 +16267,7 @@ function kpTogSrc(v){if(v==='all'){KPSEL=KPSEL.indexOf('all')>=0?[]:['all']}else
 function kpSents(k,qq){const seen={},o=[],m=kpSrc();
   if(m==='who'&&!qq)return [];
   if(m==='mix'||qq){const q=qq||KPSEL,ids=k.__sub?(k.ids||[]):[k.n],push=(fr,en,x)=>{if(!fr||!en||seen[fr])return;seen[fr]=1;o.push(Object.assign({fr:fr,en:en},x))};
-    if(q.indexOf('hook')>=0)ids.forEach(n=>{const K=SUBS.flatMap(x=>x.ktrs).find(x=>x.n===n);if(K&&K.hook&&K.answer)push(kpPlain(K.answer.fr),kpPlain(K.hook.en),{tag:'Overview question',kn:n,kt:K.term})});
+    if(q.indexOf('hook')>=0)ids.forEach(n=>{const K=SUBS.flatMap(x=>x.ktrs).find(x=>x.n===n);if(K&&K.hook&&K.answer)push(kpPlain(K.answer.fr),kpPlain(K.hook.en),{tag:'Overview question',qf:kpPlain(K.hook.fr),qe:kpPlain(K.hook.en),kn:n,kt:K.term})});
     if(q.indexOf('recap')>=0)(k.picture||[]).forEach(p=>push(kpPlain(p.recap_fr||''),kpPlain(p.recap_en||''),{tag:'Recap the story'}));
     if(q.indexOf('picture')>=0)ids.forEach(n=>((((typeof ILLUS!=='undefined')&&ILLUS[n])||{}).spots||[]).forEach(p=>push(kpPlain(p.ff||p.fr||''),kpPlain(p.fe||p.en||''),{tag:'Picture fact'})));
     if(q.indexOf('ideas')>=0)((k.remember&&k.remember.ideas)||[]).forEach(x=>push(kpPlain(x.fr),kpPlain(x.en),{tag:'Idée clé'}));
@@ -16338,7 +16342,8 @@ function kpSEnd(){const s=KPS,n=s.d.length;
    +'<div class="ms-cen" style="margin-top:14px"><button class="ms-b pri" onclick="kpSpell(KPS.k)">↻ Again</button><button class="ms-b" onclick="kpSClose()">Close</button></div>');
   KPSK=function(e){if(e.key==='Escape')kpSClose()};window.addEventListener('keydown',KPSK,true)}
 function kpSay(k0){const k=k0||ktr(),a=kpDrillItems(k).slice();for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]]}
-  if(a.length<3)return;{const P=kpStdHost();if(P){P.apKtrDrill({title:'KTR drill · '+kpLab(k),items:a.slice(0,10).map(c=>({fr:c.fr,en:c.en,lab:kpTypeLab(c),cls:kpTypeCls(c),ktr:c.kn?'KTR '+c.kn+' · '+(c.kt||''):kpLab(k)}))});return}}KPS={d:a.slice(0,10),i:0,ok:0,near:0,bad:0,miss:[],rev:false,k:k,say:1};kpYCard()}
+  const hk=a.filter(c=>c.qf),rest=a.filter(c=>!c.qf);if(hk.length)a.splice(0,a.length,...hk.slice(0,10).concat(rest));   /* every KTR's overview question comes up first (AP, 12 Nov 2026) */
+  if(a.length<3)return;{const P=kpStdHost();if(P){P.apKtrDrill({title:'KTR drill · '+kpLab(k),items:a.slice(0,10).map(c=>({fr:c.fr,en:c.en,qf:c.qf,qe:c.qe,lab:kpTypeLab(c),cls:kpTypeCls(c),ktr:c.kn?'KTR '+c.kn+' · '+(c.kt||''):kpLab(k)}))});return}}KPS={d:a.slice(0,10),i:0,ok:0,near:0,bad:0,miss:[],rev:false,k:k,say:1};kpYCard()}
 function kpBanner(c,k,n,t){const KN=['Definition','Example','Analysis'],KC=['d','e','a'],src=kpSrc(),lab=c.kind!=null&&KN[c.kind]?KN[c.kind]:(c.tag?c.tag:src==='ideas'?'Idée clé':c.tier?'Now I can · '+c.tier:'Key sentence'),cl=c.kind!=null&&KC[c.kind]?KC[c.kind]:'',ktr=c.kn?'KTR '+c.kn+' · '+(c.kt||''):kpLab(k);return '<div class="kd-banner"><span class="kd-type '+cl+'">'+esc(lab)+'</span><span class="kd-ktr">'+esc(ktr)+'</span><span class="kd-n">Card '+n+' of '+t+'</span></div>'}
 function kpDrillItems(k){return kpSrc()==='all'?kpSents(k,['recap','picture','ideas','ican']):kpSents(k)}
 function kpStdHost(){try{return window.parent!==window&&window.parent.apKtrDrill?window.parent:null}catch(e){return null}}
@@ -17776,7 +17781,7 @@ function vHome(){
   const all=`SUBS.flatMap(s=>s.ktrs.map(k=>k.n)),'All ${n} KTRs'`;
   return `<div class="hm-hero"><div class="hm-bg" id="hm-bg"></div><div class="hm-shade"></div><div class="hm-in">
     <div class="hm-kick">${n} KTRs · ${SUBS.length} sous-thèmes</div><h1 class="hm-title">KTR Studio</h1><p class="hm-tag">Pick a theme and a KTR, then learn it step by step</p>
-    <div class="hm-tiles">${hmTile('hm-big hm-qr','<svg viewBox="0 0 64 64" width="100%" height="100%" aria-hidden="true"><rect width="64" height="64" rx="14" fill="#0f3f33"/><path d="M36 8 16 36h13l-4 20 23-30H34z" fill="#f3d98a" stroke="#fff" stroke-width="2" stroke-linejoin="round"/></svg>','Quick revision<small class="hm-d">The minimum for each KTR, in a few taps</small>',"HM.pick=3;HM.hint=null;render();window.scrollTo(0,0)")}${hmTile('hm-big','<img alt="" src="icons/hx_topic.webp" style="width:100%;height:100%;display:block">','Learn a KTR<small class="hm-d">Pick a theme and a KTR, then learn it step by step</small>',"HM.pick=1;HM.hint=null;render();window.scrollTo(0,0)")}${keys.length&&window.parent&&window.parent.ORAL_CYCLE_EXPRS?hmTile('hm-big',`<img alt="" src="${HM_IC.cyc}" style="width:100%;height:100%;display:block">`,'QPSEAIOHC + KTRs<small class="hm-d">Practise the Oral Cycle on the KTRs you choose</small>',"HM.pick=2;HM.theme=1;HM.hint='roll';HMSEL.s.clear();HMSEL.t.clear();render();window.scrollTo(0,0)"):''}</div>
+    <div class="hm-tiles">${hmTile('hm-big hm-qr','<img alt="" src="icons/hx_quick.webp" style="width:100%;height:100%;display:block">','Quick revision<small class="hm-d">The minimum for each KTR, in a few taps</small>',"HM.pick=3;HM.hint=null;render();window.scrollTo(0,0)")}${hmTile('hm-big','<img alt="" src="icons/hx_topic.webp" style="width:100%;height:100%;display:block">','Learn a KTR<small class="hm-d">Pick a theme and a KTR, then learn it step by step</small>',"HM.pick=1;HM.hint=null;render();window.scrollTo(0,0)")}${keys.length&&window.parent&&window.parent.ORAL_CYCLE_EXPRS?hmTile('hm-big',`<img alt="" src="${HM_IC.cyc}" style="width:100%;height:100%;display:block">`,'QPSEAIOHC + KTRs<small class="hm-d">Practise the Oral Cycle on the KTRs you choose</small>',"HM.pick=2;HM.theme=1;HM.hint='roll';HMSEL.s.clear();HMSEL.t.clear();render();window.scrollTo(0,0)"):''}</div>
     ${keys.length?`<div class="hm-kick" style="margin-top:20px;font-size:1em;letter-spacing:.12em;color:#f3d98a;font-weight:800">↓ Apply your skills</div><div class="hm-cta" style="margin-top:10px">${hmTile('sm','<img alt="" src="icons/hx_wheel.webp" style="width:100%;height:100%;display:block">','Spin the wheel<span class="hm-d">Random picture — say it on the spot</span>',"openMachine([])")}${hmTile('sm',HM_IC.deal,'Shuffle and deal<span class="hm-d">Deal cards, say each sentence</span>',"openCards()")}${hmTile('sm',HM_IC.quiz,'KTR Pub Quiz<span class="hm-d">Questions from across the KTRs</span>',"kqOpen()")}${hmSm('icons/hx_how.webp','How to use the Studio','','https://apowles.github.io/AP/guides/ktr-studio.html')}</div>`:`<div class="hm-cta" style="margin-top:10px">${hmSm('icons/hx_how.webp','How to use the Studio','','https://apowles.github.io/AP/guides/ktr-studio.html')}</div>`}</div></div></div>
   <details class="hm-more"><summary><img alt="" src="icons/hx_more.webp" style="width:34px;height:34px;border-radius:9px;vertical-align:middle;margin-right:10px;box-shadow:0 3px 8px rgba(0,0,0,.3)">More options</summary>
     <div class="row"><button class="spbtn pri" onclick="openSpeed([])">⚡ Speed sessions: race on the words, any KTR or a mix</button>${spotHost()?`<button class="spbtn subbtn" onclick="openSpot(${all})">✍ Submitted Spot Test</button><button class="spbtn" onclick="openPaper(${all})">🖨 Paper Spot Test</button>`:''}${setTestBtn(all)}<button class="spbtn" onclick="toggle('proj')">Large type</button><button class="spbtn" onclick="openHow()">How this works</button>${keys.length?`<button class="spbtn" onclick="hmSplash(true)">▶ Revoir l'intro</button>`:''}</div>
@@ -24892,4 +24897,4 @@ function deck(el,m,n,x,y,face,gap){clear(el);const cs=[];for(let i=0;i<n;i++){co
   if (document.readyState === 'complete') start(); else window.addEventListener('load', start);
 })();
 </script>
-<script id="ap-build">window.__apBuild="1f561639e8";window.__apVer=536;(function(){var N=window.__apVer;function put(){try{var h=document.querySelector('header.aph-header');if(!h||document.getElementById('ap-ver'))return;var s=document.createElement('span');s.id='ap-ver';s.textContent='v'+N;s.style.cssText='position:absolute;right:10px;bottom:4px;font:600 11px/1 system-ui,sans-serif;color:#c9a84c;opacity:.8;pointer-events:none;letter-spacing:.04em;z-index:2';if(getComputedStyle(h).position==='static')h.style.position='relative';h.appendChild(s)}catch(e){}}put();document.addEventListener('DOMContentLoaded',put);window.addEventListener('load',put);setInterval(put,2000)})();</script>
+<script id="ap-build">window.__apBuild="bf9f3c6bce";window.__apVer=537;(function(){var N=window.__apVer;function put(){try{var h=document.querySelector('header.aph-header');if(!h||document.getElementById('ap-ver'))return;var s=document.createElement('span');s.id='ap-ver';s.textContent='v'+N;s.style.cssText='position:absolute;right:10px;bottom:4px;font:600 11px/1 system-ui,sans-serif;color:#c9a84c;opacity:.8;pointer-events:none;letter-spacing:.04em;z-index:2';if(getComputedStyle(h).position==='static')h.style.position='relative';h.appendChild(s)}catch(e){}}put();document.addEventListener('DOMContentLoaded',put);window.addEventListener('load',put);setInterval(put,2000)})();</script>
