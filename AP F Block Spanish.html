@@ -7297,7 +7297,10 @@ if (window.__cj) window.__cj.speedTest = function (kind, g) {
     d = document.createElement('div'); d.id = 'apdl-mk'; d.className = 'aptt-mkov';
     d.innerHTML = '<div class="aptt-mkbox" role="dialog" aria-modal="true"><div class="aptt-mkh">🎯 Set this drill as an EW</div>'
       + '<div class="aptt-mks">' + esc(info.title) + '</div>'
-      + '<div class="aptt-mkhint" style="margin:0 0 6px">The boys open the link (or type the code on the AP Tests page) and go <b>straight into this drill</b> with exactly this selection. No timer is added and nothing is logged: it is the normal drill.</div>'
+      + (AD.canSet ? '<div class="aptt-mkhint" style="margin:0 0 6px">What happens when the boys open the link (or type the code on the AP Tests page)? Nothing is timed and nothing is logged either way.</div>'
+        + '<label style="display:flex;gap:8px;align-items:flex-start;font-weight:600"><input type="radio" name="apdl-su" id="apdl-su1" checked style="margin-top:4px"><span><b>Practise this set</b>: the verbs and tenses are locked in, and the boys choose any activity (Drill, Spell, Match, Build it, Speed Challenge, Leisure Mode, Test…).</span></label>'
+        + '<label style="display:flex;gap:8px;align-items:flex-start;font-weight:600"><input type="radio" name="apdl-su" id="apdl-su0" style="margin-top:4px"><span><b>Straight into this drill</b>: exactly this drill starts at once.</span></label>'
+      : '<div class="aptt-mkhint" style="margin:0 0 6px">The boys open the link (or type the code on the AP Tests page) and go <b>straight into this drill</b> with exactly this selection. No timer is added and nothing is logged: it is the normal drill.</div>')
       + '<label>Name (for your list; the boys see it at the top)</label><input id="apdl-mk-n" type="text" value="' + esc(name) + '">'
       + '<label>Library heading</label><select id="apdl-mk-cat">' + (cats.indexOf(ct0) < 0 ? [ct0].concat(cats) : cats).map(function (x) { return '<option' + (x === ct0 ? ' selected' : '') + '>' + esc(x) + '</option>'; }).join('') + '</select>'
       + '<label>Folder inside it (optional: e.g. C Block Set 2, Autumn 2026)</label><input id="apdl-mk-f" type="text" list="apdl-mk-fl" maxlength="40" placeholder="none"><datalist id="apdl-mk-fl">' + ((APTT.folders && APTT.folders()) || []).map(function (x) { return '<option value="' + esc(x) + '">'; }).join('') + '</datalist>'
@@ -7313,7 +7316,8 @@ if (window.__cj) window.__cj.speedTest = function (kind, g) {
       if (!pageName()) { alert('This page has no file name, so a link cannot be made from it.'); return; }
       b.disabled = true; b.textContent = 'Making…';
       var made = new Date().toISOString().slice(0, 10);
-      var o = { v: 1, kind: 'drill', n: nm, c: code, a: AD.app, t: info.title, l: AD.lang, p: pageName(), cfg: info.cfg, s: 0, q: 'same', id: 'drill|' + pageName() + '|' + hash32(JSON.stringify(info.cfg)), cat: ct, f: fol, made: made };
+      var su1 = $('apdl-su1'), cfgO = (su1 && su1.checked) ? Object.assign({}, info.cfg, { su: 1 }) : info.cfg;
+      var o = { v: 1, kind: 'drill', n: nm, c: code, a: AD.app, t: info.title, l: AD.lang, p: pageName(), cfg: cfgO, s: 0, q: 'same', id: 'drill|' + pageName() + '|' + hash32(JSON.stringify(cfgO)), cat: ct, f: fol, made: made };
       APTT.pack(o).then(function (tok) {
         var link = APTT.linkFor(tok), line = (code || AD.prefix + '???') + ' | ' + nm.replace(/\|/g, '/') + ' | ' + ct + ' | ' + fol + ' | ' + tok;
         if (APTT.listAdd) APTT.listAdd({ n: nm, c: code, cat: ct, f: fol, made: made, s: 0, q: 'same', v: 1, items: 0, t: info.title, lv: '', app: AD.app, tok: tok });
@@ -7348,7 +7352,7 @@ if (window.__cj) window.__cj.speedTest = function (kind, g) {
   function bar() {
     css(); var b = $('apdl-bar'); if (b) b.remove();
     b = document.createElement('div'); b.id = 'apdl-bar'; b.className = 'apdl-bar aph-noprint';
-    b.innerHTML = '<span>' + (SET.view ? '👁 <b>VIEW</b>: what the boys see' : '📌 <b>Drill set by your teacher</b>') + (SET.code ? ' (' + esc(SET.code) + ')' : '') + ': ' + esc(plain(SET.o.t || SET.o.n)) + '</span><button type="button">✕ Free practice</button>';
+    b.innerHTML = '<span>' + (SET.view ? '👁 <b>VIEW</b>: what the boys see' : (SET.o.cfg && SET.o.cfg.su ? '📌 <b>Set chosen by your teacher</b>' : '📌 <b>Drill set by your teacher</b>')) + (SET.code ? ' (' + esc(SET.code) + ')' : '') + ': ' + esc(plain(SET.o.t || SET.o.n)) + '</span><button type="button">✕ Free practice</button>';
     document.body.appendChild(b); document.body.classList.add('apdl-on');
     b.querySelector('button').onclick = function () { location.href = String(location.href).replace(/[#?].*$/, ''); };
   }
@@ -7393,9 +7397,13 @@ if (window.__cj) window.__cj.speedTest = function (kind, g) {
   }
   function intOk(n, lo, hi) { return typeof n === 'number' && isFinite(n) && Math.floor(n) === n && n >= lo && n <= hi; }
   function sets() { return Object.keys(VERB_SETS); }
+  var G4 = ['E1', 'E2', 'I', 'U'];
+  function gCap() { if (verbSetFilter !== 'Eton F Verbs') return undefined; var a = G4.filter(function (x) { return vqSel.has(x); }); return a.length && a.length < 4 ? a : undefined; }
+  function gOk(g) { return g === undefined || (Array.isArray(g) && g.length >= 1 && g.length <= 4 && g.every(function (x) { return inList(G4, x); })); }
+  function gSet(g) { if (!g || !g.length) return; vqSel = new Set(g); vqTier = VQ_CAN[G4.filter(function (x) { return vqSel.has(x); }).join(',')] || 'SEL'; }
   function gramNow() { try { return !!(window.AP_GRAM && AP_GRAM.visible()); } catch (e) { return false; } }
   APDL.register({
-    app: 'AP F Block Spanish Verbs', lang: 'Spanish', get prefix() { return gramNow() ? 'GRM' : 'DRS'; }, get cat() { return gramNow() ? 'F Block Spanish ▸ Grammar' : 'F Block Spanish ▸ Drills'; },
+    canSet: true, app: 'AP F Block Spanish Verbs', lang: 'Spanish', get prefix() { return gramNow() ? 'GRM' : 'DRS'; }, get cat() { return gramNow() ? 'F Block Spanish ▸ Grammar' : 'F Block Spanish ▸ Drills'; },
     ready: function () { return typeof VERBS !== 'undefined' && VERBS.length && typeof SENTENCES !== 'undefined' && typeof startQuickDrill === 'function' && typeof buildPool === 'function' && typeof VERB_SETS !== 'undefined' && !!$('drill'); },
     visible: function () {
       if (gramNow()) return true;
@@ -7405,7 +7413,7 @@ if (window.__cj) window.__cj.speedTest = function (kind, g) {
     capture: function () {
       if (gramNow()) return AP_GRAM.capture();
       var ts = TENSES.map(function (x) { return x[0]; }).filter(function (k) { return selectedTenses.has(k); });
-      var cfg = { vs: verbSetFilter, m: mode, t: ts, r: regFilter, p: _personFilter, n: _selectedCount, ts: timerSecs, at: !!isAutotime, h: !!showInfHint };
+      var cfg = { vs: verbSetFilter, g: gCap(), m: mode, t: ts, r: regFilter, p: _personFilter, n: _selectedCount, ts: timerSecs, at: !!isAutotime, h: !!showInfHint };
       if (mode !== 'inf' && !ts.length) return { why: 'No tense is selected. Choose at least one tense first.' };
       var n = pool().length;
       if (!n) return { why: 'No cards match this selection. Change the selection first.' };
@@ -7415,12 +7423,14 @@ if (window.__cj) window.__cj.speedTest = function (kind, g) {
       if (mode === 'single' && _personFilter !== 'ALL') body.push('person: ' + PERS[+_personFilter]);
       if (mode !== 'inf' && mode !== 'sentences' && regFilter !== 'all') body.push(REGS[regFilter] || regFilter);
       body.push((_selectedCount === -1 ? n : Math.min(_selectedCount, n)) + ' cards');
+      if (cfg.g) body.unshift(cfg.g.map(function (x) { return VQ_NAME[x]; }).join(' + '));
       return { cfg: cfg, title: 'Spanish Verbs (' + (VERB_SET_LABEL[verbSetFilter] || verbSetFilter).replace(/^[^A-Za-z]+/, '') + '): ' + body.join(' · ') };
     },
     apply: function (c) {
       if (!c || typeof c !== 'object') return false;
       if (c.g === 1) return AP_GRAM.apply(c);
       if (typeof c.vs !== 'string' || !inList(sets(), c.vs)) return false;
+      if (!gOk(c.g) || (c.g && c.vs !== 'Eton F Verbs')) return false;
       if (!inList(['full', 'single', 'inf', 'sentences'], c.m)) return false;
       var valid = TENSES.map(function (x) { return x[0]; });
       if (!Array.isArray(c.t) || c.t.length > valid.length) return false;
@@ -7431,16 +7441,26 @@ if (window.__cj) window.__cj.speedTest = function (kind, g) {
       if (!intOk(c.ts, 3, 30)) return false;
       if (typeof c.at !== 'boolean' || typeof c.h !== 'boolean') return false;
       if (c.m !== 'inf' && !c.t.length) return false;
-      var sv = { vs: verbSetFilter, m: mode, t: Array.from(selectedTenses), r: regFilter, p: _personFilter, n: _selectedCount };
-      verbSetFilter = c.vs; mode = c.m; selectedTenses.clear(); c.t.forEach(function (k) { selectedTenses.add(k); });
+      var sv = { vs: verbSetFilter, m: mode, t: Array.from(selectedTenses), r: regFilter, p: _personFilter, n: _selectedCount, vt: vqTier, vsel: new Set(vqSel) };
+      verbSetFilter = c.vs; gSet(c.g); mode = c.m; selectedTenses.clear(); c.t.forEach(function (k) { selectedTenses.add(k); });
       regFilter = c.r; _personFilter = c.p; _selectedCount = c.n; timerSecs = c.ts; isAutotime = c.at; showInfHint = c.h;
       if (!pool().length) {
-        verbSetFilter = sv.vs; mode = sv.m; selectedTenses.clear(); sv.t.forEach(function (k) { selectedTenses.add(k); }); regFilter = sv.r; _personFilter = sv.p; _selectedCount = sv.n;
+        verbSetFilter = sv.vs; mode = sv.m; selectedTenses.clear(); sv.t.forEach(function (k) { selectedTenses.add(k); }); regFilter = sv.r; _personFilter = sv.p; _selectedCount = sv.n; vqTier = sv.vt; vqSel = sv.vsel;
         return false;
       }
       try { updateTenseButtons(); } catch (e) { }
       try { document.querySelectorAll('.reg-btn').forEach(function (b) { b.classList.toggle('active-reg', b.dataset.reg === regFilter); }); } catch (e) { }
       try { var pf = $('personFilter'); if (pf) pf.value = _personFilter; } catch (e) { }
+      if (c.su) {   // "Practise this set": open the set-up screen with exactly this material locked in; the boy picks the activity
+        var core = c.vs === 'Eton F Verbs', tn = Array.from(selectedTenses), md = mode, rf = regFilter, pf2 = _personFilter, nn = _selectedCount, ts2 = timerSecs, at2 = isAutotime, hh = showInfHint;
+        window.hmOpen(core ? 'core' : 'all');
+        if (core) { (c.g && c.g.length ? c.g : G4).forEach(function (x) { window.msGrp(x); }); } else window.msPickSet(c.vs);
+        window.msKind(md);
+        selectedTenses = new Set(tn); regFilter = rf; _personFilter = pf2; _selectedCount = nn; timerSecs = ts2; isAutotime = at2; showInfHint = hh;
+        try { updateTenseButtons(); } catch (e) { }
+        try { renderIntro(); } catch (e) { }
+        return true;
+      }
       startQuickDrill(_selectedCount);
     }
   });
@@ -24062,7 +24082,10 @@ if (window.__spv) window.__spv.speedTest = function (kind, secs, rev, lv, mix) {
     d = document.createElement('div'); d.id = 'apdl-mk'; d.className = 'aptt-mkov';
     d.innerHTML = '<div class="aptt-mkbox" role="dialog" aria-modal="true"><div class="aptt-mkh">🎯 Set this drill as an EW</div>'
       + '<div class="aptt-mks">' + esc(info.title) + '</div>'
-      + '<div class="aptt-mkhint" style="margin:0 0 6px">The boys open the link (or type the code on the AP Tests page) and go <b>straight into this drill</b> with exactly this selection. No timer is added and nothing is logged: it is the normal drill.</div>'
+      + (AD.canSet ? '<div class="aptt-mkhint" style="margin:0 0 6px">What happens when the boys open the link (or type the code on the AP Tests page)? Nothing is timed and nothing is logged either way.</div>'
+        + '<label style="display:flex;gap:8px;align-items:flex-start;font-weight:600"><input type="radio" name="apdl-su" id="apdl-su1" checked style="margin-top:4px"><span><b>Practise this set</b>: the verbs and tenses are locked in, and the boys choose any activity (Drill, Spell, Match, Build it, Speed Challenge, Leisure Mode, Test…).</span></label>'
+        + '<label style="display:flex;gap:8px;align-items:flex-start;font-weight:600"><input type="radio" name="apdl-su" id="apdl-su0" style="margin-top:4px"><span><b>Straight into this drill</b>: exactly this drill starts at once.</span></label>'
+      : '<div class="aptt-mkhint" style="margin:0 0 6px">The boys open the link (or type the code on the AP Tests page) and go <b>straight into this drill</b> with exactly this selection. No timer is added and nothing is logged: it is the normal drill.</div>')
       + '<label>Name (for your list; the boys see it at the top)</label><input id="apdl-mk-n" type="text" value="' + esc(name) + '">'
       + '<label>Library heading</label><select id="apdl-mk-cat">' + (cats.indexOf(ct0) < 0 ? [ct0].concat(cats) : cats).map(function (x) { return '<option' + (x === ct0 ? ' selected' : '') + '>' + esc(x) + '</option>'; }).join('') + '</select>'
       + '<label>Folder inside it (optional: e.g. C Block Set 2, Autumn 2026)</label><input id="apdl-mk-f" type="text" list="apdl-mk-fl" maxlength="40" placeholder="none"><datalist id="apdl-mk-fl">' + ((APTT.folders && APTT.folders()) || []).map(function (x) { return '<option value="' + esc(x) + '">'; }).join('') + '</datalist>'
@@ -24078,7 +24101,8 @@ if (window.__spv) window.__spv.speedTest = function (kind, secs, rev, lv, mix) {
       if (!pageName()) { alert('This page has no file name, so a link cannot be made from it.'); return; }
       b.disabled = true; b.textContent = 'Making…';
       var made = new Date().toISOString().slice(0, 10);
-      var o = { v: 1, kind: 'drill', n: nm, c: code, a: AD.app, t: info.title, l: AD.lang, p: pageName(), cfg: info.cfg, s: 0, q: 'same', id: 'drill|' + pageName() + '|' + hash32(JSON.stringify(info.cfg)), cat: ct, f: fol, made: made };
+      var su1 = $('apdl-su1'), cfgO = (su1 && su1.checked) ? Object.assign({}, info.cfg, { su: 1 }) : info.cfg;
+      var o = { v: 1, kind: 'drill', n: nm, c: code, a: AD.app, t: info.title, l: AD.lang, p: pageName(), cfg: cfgO, s: 0, q: 'same', id: 'drill|' + pageName() + '|' + hash32(JSON.stringify(cfgO)), cat: ct, f: fol, made: made };
       APTT.pack(o).then(function (tok) {
         var link = APTT.linkFor(tok), line = (code || AD.prefix + '???') + ' | ' + nm.replace(/\|/g, '/') + ' | ' + ct + ' | ' + fol + ' | ' + tok;
         if (APTT.listAdd) APTT.listAdd({ n: nm, c: code, cat: ct, f: fol, made: made, s: 0, q: 'same', v: 1, items: 0, t: info.title, lv: '', app: AD.app, tok: tok });
@@ -24113,7 +24137,7 @@ if (window.__spv) window.__spv.speedTest = function (kind, secs, rev, lv, mix) {
   function bar() {
     css(); var b = $('apdl-bar'); if (b) b.remove();
     b = document.createElement('div'); b.id = 'apdl-bar'; b.className = 'apdl-bar aph-noprint';
-    b.innerHTML = '<span>' + (SET.view ? '👁 <b>VIEW</b>: what the boys see' : '📌 <b>Drill set by your teacher</b>') + (SET.code ? ' (' + esc(SET.code) + ')' : '') + ': ' + esc(plain(SET.o.t || SET.o.n)) + '</span><button type="button">✕ Free practice</button>';
+    b.innerHTML = '<span>' + (SET.view ? '👁 <b>VIEW</b>: what the boys see' : (SET.o.cfg && SET.o.cfg.su ? '📌 <b>Set chosen by your teacher</b>' : '📌 <b>Drill set by your teacher</b>')) + (SET.code ? ' (' + esc(SET.code) + ')' : '') + ': ' + esc(plain(SET.o.t || SET.o.n)) + '</span><button type="button">✕ Free practice</button>';
     document.body.appendChild(b); document.body.classList.add('apdl-on');
     b.querySelector('button').onclick = function () { location.href = String(location.href).replace(/[#?].*$/, ''); };
   }
@@ -28811,4 +28835,4 @@ function deck(el,m,n,x,y,face,gap){clear(el);const cs=[];for(let i=0;i<n;i++){co
   if (document.readyState === 'complete') start(); else window.addEventListener('load', start);
 })();
 </script>
-<script id="ap-build">window.__apBuild="31be7c75d5";window.__apVer=231;(function(){var N=window.__apVer;function put(){try{var h=document.querySelector('header.aph-header');if(!h||document.getElementById('ap-ver'))return;var s=document.createElement('span');s.id='ap-ver';s.textContent='v'+N;s.style.cssText='position:absolute;right:10px;bottom:4px;font:600 11px/1 system-ui,sans-serif;color:#c9a84c;opacity:.8;pointer-events:none;letter-spacing:.04em;z-index:2';if(getComputedStyle(h).position==='static')h.style.position='relative';h.appendChild(s)}catch(e){}}put();document.addEventListener('DOMContentLoaded',put);window.addEventListener('load',put);setInterval(put,2000)})();</script>
+<script id="ap-build">window.__apBuild="a5e4f8d246";window.__apVer=232;(function(){var N=window.__apVer;function put(){try{var h=document.querySelector('header.aph-header');if(!h||document.getElementById('ap-ver'))return;var s=document.createElement('span');s.id='ap-ver';s.textContent='v'+N;s.style.cssText='position:absolute;right:10px;bottom:4px;font:600 11px/1 system-ui,sans-serif;color:#c9a84c;opacity:.8;pointer-events:none;letter-spacing:.04em;z-index:2';if(getComputedStyle(h).position==='static')h.style.position='relative';h.appendChild(s)}catch(e){}}put();document.addEventListener('DOMContentLoaded',put);window.addEventListener('load',put);setInterval(put,2000)})();</script>
