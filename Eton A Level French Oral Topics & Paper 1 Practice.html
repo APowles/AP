@@ -15254,13 +15254,21 @@ body.hm .bar{background:transparent;border-bottom-color:transparent}
 .qr-rc{margin:4px 0 0}.qr-rc>summary{cursor:pointer;font-weight:700;color:#8a2a1f;padding:8px 0}.qr-rc>summary small{font-weight:400;color:#7a8899}
 .qr-end{margin:10px 0 24px}
 .qr-r{border-radius:12px;padding:8px 12px 8px 14px;border-left-width:0}
-.qr-c-q,.qr-c-r{background:#ffef00;border:4px dotted #d32f2f;padding:10px 14px}
+.qr-c-q,.qr-c-r{background:#fff4a3;border:4px dotted #d32f2f;padding:10px 14px}
 .qr-c-q .qr-lb,.qr-c-r .qr-lb{color:#7a1a12}
 .qr-c-d,.qr-c-e,.qr-c-a{background:#e3ecfb}
 .qr-c-i{background:#e1f3e6}
 .qr-rc{padding:2px 12px 6px;border-radius:12px;background:#f1e6fa}
 .qr-rc .qr-r{background:rgba(255,255,255,.55)}
-.qr{max-width:1120px;margin-left:auto;margin-right:auto}
+.qr{max-width:none}
+.qr-lb{display:flex;align-items:center;justify-content:space-between;gap:10px}
+.qr-tk{display:inline-flex;align-items:center;gap:7px;font:inherit;font-size:.8rem;font-weight:700;letter-spacing:0;text-transform:none;color:#1a2744;background:rgba(255,255,255,.75);border:1.5px solid rgba(26,39,68,.35);border-radius:999px;padding:4px 12px 4px 6px;cursor:pointer}
+.qr-tk i{width:18px;height:18px;border-radius:5px;border:2px solid #1a2744;background:#fff;display:inline-block;position:relative}
+.qr-tk.on{background:#1f7a3f;border-color:#1f7a3f;color:#fff}.qr-tk.on i{background:#fff;border-color:#fff}.qr-tk.on i:after{content:"";position:absolute;left:4px;top:0;width:5px;height:10px;border:solid #1f7a3f;border-width:0 3px 3px 0;transform:rotate(45deg)}
+.qr-ins{display:flex;justify-content:space-between;align-items:center;gap:12px;margin:6px 2px 8px;padding:6px 4px;font-size:.9rem;line-height:1.35;color:#33405c;font-weight:600;border-bottom:2px solid rgba(26,39,68,.15)}
+.qr-sd{color:#1f7a3f;white-space:nowrap}.qr-ins.ok{border-bottom-color:#1f7a3f}
+.qr-term.ok .qr-tt:after{content:"  ✓";color:#7fe0a0}
+.qr-card .qr-term.ok{box-shadow:inset 0 -4px 0 #1f7a3f}
 .qr-card{padding:14px 18px}
 .qr-r{margin:0 0 14px;padding:10px 16px 12px}
 .qr-c-q,.qr-c-r{padding:10px 16px 12px}
@@ -17774,7 +17782,7 @@ function vQrPick(){
         return '<details class="qr-sub"'+(QR.open.has(s.subtheme)?' open':'')+' ontoggle="qrOpen('+s.subtheme+',this.open)"><summary><span class="qr-sc" onclick="event.preventDefault();event.stopPropagation();qrTogS('+s.subtheme+')">'+qrBox(c2===s.ktrs.length,c2>0)+'</span><span class="qr-sn">'+esc(s.name)+'</span><small>'+c2+' of '+s.ktrs.length+'</small></summary><div class="qr-ks">'
           +s.ktrs.map(k=>'<button type="button" class="qr-k'+(QR.k.has(k.n)?' on':'')+'" onclick="qrTogK('+k.n+')">'+qrBox(QR.k.has(k.n))+'<span>'+esc(k.term)+'</span></button>').join('')+'</div></details>'}).join('')+'</div>'}).join('');
   return '<div class="hm-back"><button class="spbtn" onclick="HM.pick=0;render()">← Accueil</button></div><h1 class="h1">⚡ Quick revision</h1><p class="hm-sh" style="margin:0 0 12px">Tick a whole theme, a sous-thème or single KTRs (open a sous-thème to see its KTRs), then press <b>Go</b>.</p><div class="qr-bar">'+(n?goB:hint('down'))+'<button type="button" class="qr-sg" onclick="qrAll('+(n<tot)+')">'+(n<tot?'All '+tot:'None')+'</button>'+(n&&n<tot?'<button type="button" class="qr-sg" onclick="qrAll(false)">Clear all ticks</button>':'')+'</div>'+th+'<div class="qr-bar" style="margin-top:14px">'+(n?goB:hint('up'))+'</div>'}
-function qrGo(){const ns=qrNs();if(!ns.length)return;MIXS.ns=ns;MIXS.lab=ns.length===1?kcShort(ns[0]):ns.length+' KTRs';QS.lang='both';QS.cover='fr';QS.all=false;window.__qrNext=1;go('mix');window.scrollTo(0,0)}
+function qrGo(){const ns=qrNs();if(!ns.length)return;MIXS.ns=ns;MIXS.lab=ns.length===1?kcShort(ns[0]):ns.length+' KTRs';QS.lang='both';QS.cover='fr';QS.all=false;QTK.clear();window.__qrNext=1;go('mix');window.scrollTo(0,0)}
 function qrMore(){S.quick=0;KPSEL=['core','ideas'];render();window.scrollTo(0,0)}
 function qrDrill(){kpSay(kpMerge())}
 function qrSpeed(){openSpeedNow(MIXS.ns.slice(),kpOnly())}
@@ -17811,27 +17819,42 @@ function qrSet(m){
   else if(m==='cfr'||m==='cen'){const c=m.slice(1);QS.cover=(QS.lang==='both'&&QS.cover===c)?'none':c;QS.lang='both';QS.all=false}
   else if(m==='all'){QS.all=!QS.all}
   qrPaint()}
-function qrPaint(){const r=document.getElementById('qr-root');if(!r)return;
+function qrTk(b){const k=b.dataset.k;QTK.has(k)?QTK.delete(k):QTK.add(k);qrMarks()}
+function qrMarks(){document.querySelectorAll('.qr-tk').forEach(b=>{const on=QTK.has(b.dataset.k);b.classList.toggle('on',on);b.setAttribute('aria-pressed',on);b.querySelector('span').textContent=on?'Got it':'I can say this';b.closest('.qr-r').classList.toggle('qr-done',on)});
+  document.querySelectorAll('.qr-card').forEach(c=>{let all=0,dn=0;['h','c','i','s'].forEach(sec=>{const rows=c.querySelectorAll('.qr-r[data-s="'+sec+'"]'),d=c.querySelectorAll('.qr-r.qr-done[data-s="'+sec+'"]');all+=rows.length;dn+=d.length;const i=c.querySelector('.qr-ins[data-s="'+sec+'"]');if(i){const ok=rows.length>0&&d.length===rows.length;i.classList.toggle('ok',ok);i.querySelector('.qr-sd').textContent=ok?'✓ Section done':''}});
+    const t=c.querySelector('.qr-term');if(t)t.classList.toggle('ok',all>0&&dn===all)})}
+function qrCopy(b){const cards=[...document.querySelectorAll('.qr-card')],done=[],part=[];
+  cards.forEach(c=>{const nm='KTR '+c.dataset.n+' '+c.querySelector('.qr-tt').textContent,rows=c.querySelectorAll('.qr-r[data-s]'),d=[...c.querySelectorAll('.qr-r.qr-done[data-s]')];
+    if(rows.length&&d.length===rows.length)done.push(nm);else if(d.length)part.push(nm+' ('+d.map(r=>r.querySelector('.qr-lb span').textContent).join(', ')+')')});
+  const dt=new Date().toLocaleDateString('en-GB',{day:'numeric',month:'long'});
+  let t='Quick revision, '+dt+'.\n';if(!done.length&&!part.length)t+='Nothing ticked yet.';else{if(done.length)t+='Completed: '+done.join('; ')+'.\n';if(part.length)t+='Part done: '+part.join('; ')+'.'}
+  const ok=()=>{b.textContent='Copied ✓';setTimeout(()=>{b.textContent='Copy my list'},2000)};
+  try{navigator.clipboard.writeText(t).then(ok,()=>{window.prompt('Copy this:',t)});return}catch(e){}
+  const ta=document.createElement('textarea');ta.value=t;document.body.appendChild(ta);ta.select();try{document.execCommand('copy');ok()}catch(e){window.prompt('Copy this:',t)}ta.remove()}
+function qrPaint(){const r=document.getElementById('qr-root');if(!r)return;qrMarks();
   {const h=document.getElementById('qr-hint');if(h)h.textContent=QS.lang==='fr'?'Showing the French only.':QS.lang==='en'?'Showing the English only.':QS.all?'Everything is showing.':QS.cover==='fr'?'The French is covered. Say it aloud, then tap the grey bar to check. Tap it again to cover it and have another go. Tap Cover French again to uncover everything.':QS.cover==='en'?'The English is covered. Tap a grey bar to check, and tap it again to cover it. Tap Cover English again to uncover everything.':'Everything is showing. Choose Cover French to test yourself.'}r.dataset.l=QS.lang;r.dataset.c=QS.cover;r.classList.toggle('all',QS.all);
   r.querySelectorAll('.qr-t.rev').forEach(e=>e.classList.remove('rev'));
   const on={both:QS.lang==='both'&&QS.cover==='none',fr:QS.lang==='fr',en:QS.lang==='en',cfr:QS.cover==='fr',cen:QS.cover==='en'};
   document.querySelectorAll('.qr-sw button').forEach(b=>{const m=b.dataset.m;if(m==='all'){b.classList.toggle('on',QS.all);b.textContent=QS.all?'Cover all':'Reveal all';b.style.display=QS.cover==='none'?'none':''}else b.classList.toggle('on',!!on[m])})}
 function qrLn(lang,t,a){t=kpPlain(t);if(!t)return '';const e=esc(t);
   return '<div class="qr-ln qr-'+lang+(a?' qr-a':'')+'"><span class="qr-t" onclick="qrTap(this)">'+e+'</span><button type="button" class="qr-sp" data-t="'+e+'" onclick="qrSay(this,\''+(lang==='fr'?'fr-FR':'en-GB')+'\')" aria-label="Listen">🔊 '+(lang==='fr'?'FR':'EN')+'</button></div>'}
-function qrRow(lab,cls,fr,en,a){if(!fr&&!en)return '';return '<div class="qr-r qr-c-'+cls+'"><div class="qr-lb">'+esc(lab)+'</div>'+qrLn('fr',fr,a)+qrLn('en',en,a)+'</div>'}
+const QTK=new Set();
+const QINS={h:'Say your answer to the question aloud, then tap the grey bar to check it. Cover it again and repeat until you can say it without looking.',x:'Look at the English and say it in French. Tap the grey bar to check, cover it again, and repeat until you get it right.'};
+function qrIns(sec){return '<div class="qr-ins" data-s="'+sec+'"><span>'+(sec==='h'?QINS.h:QINS.x)+'</span><b class="qr-sd"></b></div>'}
+function qrRow(lab,cls,fr,en,a,key,sec){if(!fr&&!en)return '';return '<div class="qr-r qr-c-'+cls+'"'+(key?' data-s="'+sec+'"':'')+'><div class="qr-lb"><span>'+esc(lab)+'</span>'+(key?'<button type="button" class="qr-tk" data-k="'+key+'" onclick="qrTk(this)"><i></i><span>I can say this</span></button>':'')+'</div>'+qrLn('fr',fr,a)+qrLn('en',en,a)+'</div>'}
 function qrCard(k,qi){
   let T=null;try{T=window.parent.apTopicOf&&window.parent.apTopicOf(k.n)}catch(e){}
   const I=k.ican||[],N=['Definition','Example','Analysis'],C=['d','e','a'];
   const dea=T?[[T.def_fr,T.def_en],[T.ex_fr,T.ex_en],[T.an_fr,T.an_en]]:[0,1,2].map(i=>I[i]?[I[i].fr,I[i].en||I[i].prompt]:['','']);
   const sb=SUBS.find(s=>s.ktrs.indexOf(k)>=0),pl=PAL[sb?sb.theme:1]||PAL[1];
-  let h='<div class="qr-card" style="--p:'+pl[0]+';--d:'+pl[1]+'"><div class="qr-term"><span class="qr-tn">KTR '+k.n+'</span><span class="qr-tt">'+esc(k.term)+'</span></div>';
-  if(k.hook)h+=qrRow('Hook question','q',k.hook.fr,k.hook.en,false);
-  if(k.answer)h+=qrRow('Hook answer','r',k.answer.fr,k.answer.en,true);
+  let h='<div class="qr-card" data-n="'+k.n+'" style="--p:'+pl[0]+';--d:'+pl[1]+'"><div class="qr-term"><span class="qr-tn">KTR '+k.n+'</span><span class="qr-tt">'+esc(k.term)+'</span></div>';
+  h+=qrIns('h');if(k.hook)h+=qrRow('Hook question','q',k.hook.fr,k.hook.en,false);
+  if(k.answer)h+=qrRow('Hook answer','r',k.answer.fr,k.answer.en,true,k.n+'|r','h');
   try{const t=AGX[k.n];if(t){const i=t.indexOf(':'),lead=i>0?t.slice(0,i):t,rest=i>0?t.slice(i+1):'';h+='<details class="agx qr-dlm"><summary><img class="agx-ic" src="'+AGIC+'" alt="">Dans le mille <small class="qr-dlm-h">(click here to see what a good answer should include)</small></summary><div class="agx-in">A good answer must explain <b>'+esc(lead)+'</b>'+(rest?':'+esc(rest):'')+'</div></details>'}}catch(e){}
-  dea.forEach((x,i)=>{h+=qrRow(N[i],C[i],x[0],x[1],true)});
-  const ide=(k.remember&&k.remember.ideas)||[];ide.forEach((x,i)=>{h+=qrRow('Idée clé'+(ide.length>1?' '+(i+1):''),'i',x.fr,x.en,true)});
+  if(dea.some(x=>x[0]||x[1]))h+=qrIns('c');dea.forEach((x,i)=>{h+=qrRow(N[i],C[i],x[0],x[1],true,k.n+'|'+C[i],'c')});
+  const ide=(k.remember&&k.remember.ideas)||[];if(ide.length)h+=qrIns('i');ide.forEach((x,i)=>{h+=qrRow('Idée clé'+(ide.length>1?' '+(i+1):''),'i',x.fr,x.en,true,k.n+'|i'+i,'i')});
   const rc=(k.picture||[]).filter(p=>p.recap_fr);
-  if(rc.length)h+='<details class="qr-rc" ontoggle="qrRec('+k.n+',this.open)"><summary>＋ Recap the story <small>('+rc.length+' parts)</small></summary>'+rc.map(p=>qrRow(p.label||'Partie','s',p.recap_fr,p.recap_en,true)).join('')+'</details>';
+  if(rc.length)h+='<details class="qr-rc" ontoggle="qrRec('+k.n+',this.open)"><summary>＋ Recap the story <small>('+rc.length+' parts)</small></summary>'+qrIns('s')+rc.map((p,i)=>qrRow(p.label||'Partie','s',p.recap_fr,p.recap_en,true,k.n+'|s'+i,'s')).join('')+'</details>';
   h+='<div class="qr-me" id="qr-me-'+qi+'">'+qrMeIn(qi)+'</div>';
   return h+'</div>'}
 function vQuick(){
@@ -17842,7 +17865,7 @@ function vQuick(){
    +'<details class="qr-how"><summary>ℹ️ How this works <small>(click here)</small></summary><div class="qr-how-in"><p><b>1. Learn.</b> Each KTR is on one page, with the minimum you need: the hook question and hook answer, Dans le mille (what a good answer should include), Definition, Example and Analysis, the key ideas, and the story recap (closed until you tap it).</p><p><b>2. Test yourself on the page.</b> The French starts covered. Say it aloud, tap the grey bar to check, and tap it again to cover it and have another go. Tap 🔊 FR or 🔊 EN on any line to hear it. <b>Show</b> and <b>Cover</b> change what you see, and <b>Reveal all</b> shows everything.</p><p><b>3. Practise.</b> The buttons at the top start straight away on these KTRs: <b>Drill it</b> (say each answer aloud, then check), <b>Speed Challenge</b> and <b>Spot Test</b> (on screen, or print it to write on paper). <b>More activities</b> opens all the usual choices.</p></div></details>'
    +'<div class="qr-sw"><span class="qr-st">Show</span>'+B('both','Both')+B('fr','French only')+B('en','English only')+'<span class="qr-st" style="margin-left:8px">Cover</span>'+B('cfr','French')+B('cen','English')+'<span class="qr-sp2"></span>'+B('all','Reveal all')+'</div><div class="qr-hint" id="qr-hint"></div>'
    +'<div id="qr-root" class="qr" data-t="a" data-l="'+QS.lang+'" data-c="'+QS.cover+'">'+ks.map((k,i)=>qrCard(k,i)).join('')+'</div>'
-   +'<div class="qr-end"><button type="button" class="qr-sg" onclick="window.ktrBack()">← Choose other KTRs</button></div>'}
+   +'<div class="qr-end"><button type="button" class="qr-sg" onclick="qrCopy(this)">Copy my list</button> <button type="button" class="qr-sg" onclick="window.ktrBack()">← Choose other KTRs</button></div>'}
 
 function vHome(){
   if(HM.pick===3)return vQrPick();
@@ -24988,4 +25011,4 @@ function deck(el,m,n,x,y,face,gap){clear(el);const cs=[];for(let i=0;i<n;i++){co
   if (document.readyState === 'complete') start(); else window.addEventListener('load', start);
 })();
 </script>
-<script id="ap-build">window.__apBuild="7bec29d157";window.__apVer=549;(function(){var N=window.__apVer;function put(){try{var h=document.querySelector('header.aph-header');if(!h||document.getElementById('ap-ver'))return;var s=document.createElement('span');s.id='ap-ver';s.textContent='v'+N;s.style.cssText='position:absolute;right:10px;bottom:4px;font:600 11px/1 system-ui,sans-serif;color:#c9a84c;opacity:.8;pointer-events:none;letter-spacing:.04em;z-index:2';if(getComputedStyle(h).position==='static')h.style.position='relative';h.appendChild(s)}catch(e){}}put();document.addEventListener('DOMContentLoaded',put);window.addEventListener('load',put);setInterval(put,2000)})();</script>
+<script id="ap-build">window.__apBuild="a8fc441bbf";window.__apVer=550;(function(){var N=window.__apVer;function put(){try{var h=document.querySelector('header.aph-header');if(!h||document.getElementById('ap-ver'))return;var s=document.createElement('span');s.id='ap-ver';s.textContent='v'+N;s.style.cssText='position:absolute;right:10px;bottom:4px;font:600 11px/1 system-ui,sans-serif;color:#c9a84c;opacity:.8;pointer-events:none;letter-spacing:.04em;z-index:2';if(getComputedStyle(h).position==='static')h.style.position='relative';h.appendChild(s)}catch(e){}}put();document.addEventListener('DOMContentLoaded',put);window.addEventListener('load',put);setInterval(put,2000)})();</script>
