@@ -1533,7 +1533,12 @@ function aphBack() {
   if (typeof vgHome === 'function') vgHome(); else if (typeof goHome === 'function') goHome();
 }
 
-(function(){var f=function(){try{var U=function(){switchMode('home')};aphBackInit(document.getElementById('drillContainer'),'.intro-card',{up:U,inner:function(){goHome()}});['translationContainer','grammarContainer','mlfContainer','grEwsContainer','sdContainer'].forEach(function(i){aphBackInit(document.getElementById(i),'.apbk-none',{up:U,inner:U,norestore:true})});}catch(e){}};if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',f);else f();})();
+(function(){var f=function(){try{var U=function(){switchMode('home')};aphBackInit(document.getElementById('drillContainer'),'.intro-card',{up:U,inner:function(){goHome()}});var $$=function(i){return document.getElementById(i)},q=function(i,s){var e=$$(i);return !!(e&&e.querySelector(s))};var IN={translationContainer:U,
+sdContainer:function(){if(q('sdContainer','[onclick^="sdSetMix"]'))U();else renderSD()},
+mlfContainer:function(){if(q('mlfContainer','[onclick^="apMlLang"]'))U();else renderMLF()},
+grEwsContainer:function(){if(q('grEwsContainer','[onclick="apGeAll()"]'))U();else renderGrEws()},
+grammarContainer:function(){if(q('grammarContainer','button[onclick^="startGrammarDrill"]'))renderGrammarMenu();else if(q('grammarContainer','[onclick="apGdAll()"]'))U();else if(grState&&grState.setId&&grState.setId!=='__multi__'&&GR_SETS.some(function(s){return s.id===grState.setId}))renderGrammarOptions(grState.setId);else renderGrammarMenu()}};
+Object.keys(IN).forEach(function(i){aphBackInit($$(i),'.apbk-none',{up:U,inner:IN[i],norestore:true})});}catch(e){}};if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',f);else f();})();
 /* ===== END AP HOUSE STYLE helpers ===== */
 </script>
 <style id="apmp-style">
@@ -50824,6 +50829,18 @@ function mlfLeisureStart(deck) {
   var DIR = { en: 'English', fr: 'French', es: 'Spanish', it: 'Italian' };
   function cnt(n, pool) { return n === -1 ? 'all ' + pool : Math.min(n, pool); }
   function sdOk(k) { return typeof k === 'string' && (Object.prototype.hasOwnProperty.call(SD_DATA, k) || /^VV([1-9]|1[0-2])_Entire$/.test(k)); }
+  // "Practise this set" links: scroll so that the 'NEXT: how do you want to practise it?' tiles are on screen (nothing to scroll or re-pick); stops if the boy touches the screen
+  function nextVis(cid) {
+    var stop = false, evs = ['wheel', 'touchstart', 'keydown', 'mousedown'];
+    function cancel() { stop = true; evs.forEach(function (n) { window.removeEventListener(n, cancel, true); }); }
+    evs.forEach(function (n) { window.addEventListener(n, cancel, { capture: true, passive: true }); });
+    [0, 150, 500, 1200, 2000].forEach(function (ms, i, a) {
+      setTimeout(function () {
+        if (!stop) { try { var c = $(cid), s = c && [].slice.call(c.querySelectorAll('.ms-step')).filter(function (e) { return /^\s*NEXT\s*How do you/i.test(e.textContent); })[0]; if (s) { s.scrollIntoView({ block: 'start' }); window.scrollBy(0, -10); } } catch (e) { } }
+        if (i === a.length - 1) cancel();
+      }, ms);
+    });
+  }
   function grMode() { return has('grammarContainer', 'button[onclick^="startGrammarDrill"]') ? 'one' : has('grammarContainer', 'button[onclick="startMultiGrammarDrill()"]') ? 'multi' : ''; }
   function grPool(ids) { var n = 0; ids.forEach(function (id) { var s = GR_SETS.filter(function (x) { return x.id === id; })[0]; if (s) n += grFilterSentences(s.sentences).length; }); return n; }
   function ewsKeys() { return Object.keys(GR_EWS_DATA).sort(function (a, b) { return keyNum(a) - keyNum(b); }); }
@@ -50892,7 +50909,7 @@ function mlfLeisureStart(deck) {
         if (c.x !== undefined && c.x !== 50 && c.x !== 70) return false;
         switchMode('vv'); fromLang = c.f; toLang = c.t; currentVV = c.s; _selectedCount = c.n; timerSeconds = c.tm; vvMix = mixOK(c.x);
         if (!getPool().length) return false;
-        if (c.su) { try { renderIntro(); } catch (e) { } return true; }   // "Practise this set": the boy picks the activity
+        if (c.su) { try { if (typeof window.vvIncDone === 'function') window.vvIncDone(); else renderIntro(); nextVis('drillContainer'); } catch (e) { } return true; }   // "Practise this set": the boy picks the activity
         startQuickDrill(_selectedCount); return true;
       }
       if (c.m === 'sd') {
@@ -50900,7 +50917,7 @@ function mlfLeisureStart(deck) {
         if (c.x !== undefined && c.x !== 50 && c.x !== 70) return false;
         switchMode('sd'); sdState.mix = mixOK(c.x); sdState.direction = c.d; sdState.currentSet = c.s; sdState.timerSecs = c.tm; sdState.leisure = !!c.lz; sdState.idx = 0; sdState.shuffled = [];
         if (!getSdPool().length) { sdState.leisure = false; return false; }
-        if (c.su) { try { renderSD(); } catch (e) { } return true; }   // "Practise this set": the boy picks the activity
+        if (c.su) { try { renderSD(); nextVis('sdContainer'); } catch (e) { } return true; }   // "Practise this set": the boy picks the activity
         startSD(); return true;
       }
       if (c.m === 'gr') {
@@ -50910,7 +50927,7 @@ function mlfLeisureStart(deck) {
         if (!(c.tp === 0 || c.tp === -1 || (int(c.tp, 1, 12) && GR_TOPIC_NAMES[c.tp])) || !int(c.n, 1, 5000) || !int(c.tm, 5, 60)) return false;
         switchMode('gr'); grTopicFilter = c.tp; grState.drillCount = c.n; grState.timerSecs = c.tm; grState.leisure = !!c.lz;
         if (!grPool(c.ids)) { grState.leisure = false; return false; }
-        if (c.su) { try { grSelected = new Set(c.ids); renderGrammarMenu(); } catch (e) { } return true; }   // "Practise this set": the boy picks the activity
+        if (c.su) { try { grSelected = new Set(c.ids); renderGrammarMenu(); nextVis('grammarContainer'); } catch (e) { } return true; }   // "Practise this set": the boy picks the activity
         if (c.ids.length === 1) startGrammarDrill(c.ids[0]);
         else { grSelected = new Set(c.ids); startMultiGrammarDrill(); }
         return true;
@@ -50921,7 +50938,7 @@ function mlfLeisureStart(deck) {
         switchMode('gr_ews'); grEwsTypeFilter = c.ty;
         var items = []; c.k.forEach(function (k) { items = items.concat(GR_EWS_DATA[k].items); });
         if (!grEwsApplyTypeFilter(items).length) return false;
-        if (c.su) { try { if (c.cmb) grEwsSelectedKeys = c.k.slice(); else { grEwsSelectedKeys = []; grEwsState.grKey = c.k[0]; } renderGrEws(); } catch (e) { } return true; }   // "Practise this set": the boy picks the activity
+        if (c.su) { try { if (c.cmb) grEwsSelectedKeys = c.k.slice(); else { grEwsSelectedKeys = []; grEwsState.grKey = c.k[0]; } renderGrEws(); nextVis('grEwsContainer'); } catch (e) { } return true; }   // "Practise this set": the boy picks the activity
         if (c.cmb) { grEwsSelectedKeys = c.k.slice(); startGrEwsDrillCombo(); }
         else { grEwsSelectedKeys = []; startGrEwsDrill(c.k[0]); }
         return true;
@@ -50935,7 +50952,7 @@ function mlfLeisureStart(deck) {
         if (!DIR[c.f] || !DIR[c.t] || c.f === c.t || !int(c.n, 1, 5000) || !int(c.tm, 5, 60)) return false;
         switchMode('mlf'); mlfState.fromLang = c.f; mlfState.toLang = c.t; mlfState.drillCount = c.n; mlfState.timerSecs = c.tm; mlfState.leisure = !!c.lz;
         if (!mlfGetPool().length) { mlfState.leisure = false; return false; }
-        if (c.su) { try { renderMLF(); } catch (e) { } return true; }   // "Practise this set": the boy picks the activity
+        if (c.su) { try { renderMLF(); nextVis('mlfContainer'); } catch (e) { } return true; }   // "Practise this set": the boy picks the activity
         startMLF(); return true;
       }
       return false;
@@ -60823,4 +60840,4 @@ function deck(el,m,n,x,y,face,gap){clear(el);const cs=[];for(let i=0;i<n;i++){co
   if (document.readyState === 'complete') start(); else window.addEventListener('load', start);
 })();
 </script>
-<script id="ap-build">window.__apBuild="33b96f210d";window.__apVer=207;(function(){var N=window.__apVer;function put(){try{var h=document.querySelector('header.aph-header');if(!h||document.getElementById('ap-ver'))return;var s=document.createElement('span');s.id='ap-ver';s.textContent='v'+N;s.style.cssText='position:absolute;right:10px;bottom:4px;font:600 11px/1 system-ui,sans-serif;color:#c9a84c;opacity:.8;pointer-events:none;letter-spacing:.04em;z-index:2';if(getComputedStyle(h).position==='static')h.style.position='relative';h.appendChild(s)}catch(e){}}put();document.addEventListener('DOMContentLoaded',put);window.addEventListener('load',put);setInterval(put,2000)})();</script>
+<script id="ap-build">window.__apBuild="bf18d79aa8";window.__apVer=208;(function(){var N=window.__apVer;function put(){try{var h=document.querySelector('header.aph-header');if(!h||document.getElementById('ap-ver'))return;var s=document.createElement('span');s.id='ap-ver';s.textContent='v'+N;s.style.cssText='position:absolute;right:10px;bottom:4px;font:600 11px/1 system-ui,sans-serif;color:#c9a84c;opacity:.8;pointer-events:none;letter-spacing:.04em;z-index:2';if(getComputedStyle(h).position==='static')h.style.position='relative';h.appendChild(s)}catch(e){}}put();document.addEventListener('DOMContentLoaded',put);window.addEventListener('load',put);setInterval(put,2000)})();</script>
