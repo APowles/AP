@@ -11677,6 +11677,16 @@ function apSpotPool(raw, o) {
   return pool;
 }
 // 'a connector: admittedly... but' → ask for the connector itself (the boys do not write the word 'connecteur'); descriptions with no connector in them are left out
+function apCoreSubj(k){var n=k.n,t=String(k.term||'').replace(/\s*\([^)]*\)\s*/g,' ').replace(/\s+/g,' ').trim();
+  if(n===15)t="l'initiative « Un jeune, une solution »";
+  else if(/^(Le|La|Les) /.test(t))t=t.charAt(0).toLowerCase()+t.slice(1);
+  else if(/^L'/.test(t))t="l'"+t.slice(2);
+  return t}
+function apCoreDe(s){var o=s.replace(/^le /,'du ').replace(/^les /,'des ').replace(/^la /,'de la ').replace(/^l'/,"de l'");if(o===s)o=(/^[aeiouyhéèêàâîôûAEIOUYHÉ]/.test(s)?"d'":'de ')+s;return o.replace(/ et le /g,' et du ').replace(/ et les /g,' et des ').replace(/ et la /g,' et de la ').replace(/ et l'/g," et de l'")}
+function apCoreFrQ(k,p,i){if(!k||k.__sub)return '';var kind=p.kind!=null?p.kind:(i<3?i:null);if(kind==null||kind<0||kind>2)return '';var s=apCoreSubj(k),N=k.n,NB=' ';
+  if(kind===0){if({36:1,37:1,47:1,56:1,70:1}[N])return "C'est qui,"+' '+s+NB+'?';if(N===40)return 'Qui sont '+s+NB+'?';if(N===65)return 'Qui étaient '+s+NB+'?';if(N===63)return "C'est qui,"+' Jean Moulin'+NB+'?';return "C'est quoi, "+s+NB+'?'}
+  if(kind===1)return 'Dites-moi un peu plus sur '+s+'.';
+  return "Quelle est l'importance "+apCoreDe(s)+NB+'?'}
 function apNoConn(en, fr) {
   en = String(en || ''); fr = String(fr || '');
   if (!/connector|connecteur/i.test(en + fr)) return [en, fr];
@@ -11759,7 +11769,7 @@ function apStudioAll() {
     us.forEach(function (u) { if (!u) return; (u.checklist || []).forEach(function (x) { var c = apNoConn(x.en, x.fr); if (c) add('stA', 'Use it', c[0], c[1]); }); add('stA', 'Use it', u.frame_en, u.frame_fr); if (u.cl_model && u.cl_model.en && u.cl_model.fr) { var _mo = { en: u.cl_model.en, fr: u.cl_model.fr, label: 'Use it', st: 'stA', task: 'part' }; L.stA.push(_mo); all.push(_mo); } else add('stA', 'Use it', u.model_en, u.model_fr); });
     (k.know || []).forEach(function (x) { if (x.q && x.a) { var o = { en: x.qf || x.q, qf: x.qf || '', fid: x.fid || '', fr: x.a, label: 'Know it', st: 'stK', know: true, task: 'know' }; L.stK.push(o); all.push(o); } });
     (sy.scramble || []).forEach(function (x) { if (x.fr && x.fr.split(/\s+/).length > 2) L.stO.push({ en: x.en || '', fr: x.fr, label: 'Put in order', st: 'stO', task: 'order' }); });
-    (k.ican || []).forEach(function (p, i) { if (p && p.prompt && p.fr) L.stI.push({ en: String(p.prompt), fr: String(p.fr), label: 'Now I can', st: 'stI', ix: i, task: 'ican' }); if (i < 3 && p && p.prompt && p.fr) L.stC.push({ en: String(p.prompt), fr: String(p.fr), label: 'Definition · Example · Analysis', st: 'stC', ix: i, task: 'ican' }); });
+    (k.ican || []).forEach(function (p, i) { var _q = (p && p.prompt && p.fr) ? apCoreFrQ(k, p, i) : ''; /* Definition / Example / Analysis questions are asked in French (13 Nov 2026) */ if (p && p.prompt && p.fr) L.stI.push({ en: _q || String(p.prompt), qf: _q, fr: String(p.fr), label: 'Now I can', st: 'stI', ix: i, task: 'ican' }); if (i < 3 && p && p.prompt && p.fr) L.stC.push({ en: _q || String(p.prompt), qf: _q, fr: String(p.fr), label: 'Definition · Example · Analysis', st: 'stC', ix: i, task: 'ican' }); });
     (sy.err || []).forEach(function (x) { if (x.wrong && x.right) L.stE.push({ en: x.wrong, fr: x.right, why: x.why || '', label: "Trouvez l'erreur", st: 'stE', task: 'err' }); });
     _stvK[k.n] = k; by[k.n] = L;
   }); });
@@ -25024,4 +25034,4 @@ function deck(el,m,n,x,y,face,gap){clear(el);const cs=[];for(let i=0;i<n;i++){co
   if (document.readyState === 'complete') start(); else window.addEventListener('load', start);
 })();
 </script>
-<script id="ap-build">window.__apBuild="34a27e0410";window.__apVer=555;(function(){var N=window.__apVer;function put(){try{var h=document.querySelector('header.aph-header');if(!h||document.getElementById('ap-ver'))return;var s=document.createElement('span');s.id='ap-ver';s.textContent='v'+N;s.style.cssText='position:absolute;right:10px;bottom:4px;font:600 11px/1 system-ui,sans-serif;color:#c9a84c;opacity:.8;pointer-events:none;letter-spacing:.04em;z-index:2';if(getComputedStyle(h).position==='static')h.style.position='relative';h.appendChild(s)}catch(e){}}put();document.addEventListener('DOMContentLoaded',put);window.addEventListener('load',put);setInterval(put,2000)})();</script>
+<script id="ap-build">window.__apBuild="c74cd30950";window.__apVer=556;(function(){var N=window.__apVer;function put(){try{var h=document.querySelector('header.aph-header');if(!h||document.getElementById('ap-ver'))return;var s=document.createElement('span');s.id='ap-ver';s.textContent='v'+N;s.style.cssText='position:absolute;right:10px;bottom:4px;font:600 11px/1 system-ui,sans-serif;color:#c9a84c;opacity:.8;pointer-events:none;letter-spacing:.04em;z-index:2';if(getComputedStyle(h).position==='static')h.style.position='relative';h.appendChild(s)}catch(e){}}put();document.addEventListener('DOMContentLoaded',put);window.addEventListener('load',put);setInterval(put,2000)})();</script>
