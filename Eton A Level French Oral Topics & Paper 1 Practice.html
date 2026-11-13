@@ -15217,13 +15217,14 @@ body.hm .bar{background:transparent;border-bottom-color:transparent}
 .hm-tile.hm-qr{border-color:#8fe0c4!important;color:#fff}.hm-tile.hm-qr .hm-tl{color:#fff}.hm-tile.hm-qr .hm-d{color:#cdeee2}
 .qr-bar{display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin:0 0 14px}
 .qr-go{font:inherit;font-weight:800;font-size:1.05rem;padding:13px 26px;border-radius:12px;border:0;background:#1a2744;color:#fff;cursor:pointer}.qr-go[disabled]{background:#c9cfdb;color:#fff;cursor:default}
+.qr-go0{display:inline-block;font-weight:700;font-size:1rem;padding:12px 20px;border-radius:12px;border:2px dashed #c9a84c;background:#fff8e1;color:#1a2744}
 .qr-sg{font:inherit;font-weight:700;padding:11px 18px;border-radius:12px;border:1.5px solid #c9cfdb;background:#fff;color:#1a2744;cursor:pointer}
-.qr-th{margin:0 0 16px;background:#fff;border:1px solid #e2e6f0;border-radius:14px;padding:6px 10px}
+.qr-th{margin:0 0 16px;background:var(--p,#fff);border:1.5px solid var(--d,#e2e6f0);border-radius:14px;padding:6px 10px 8px;overflow:hidden}
 .qr-thh,.qr-k{display:flex;align-items:center;gap:12px;width:100%;text-align:left;font:inherit;background:none;border:0;padding:12px 6px;cursor:pointer;color:#1a2744}
-.qr-thh{font-size:1.05rem;border-bottom:1px solid #eef0f6}.qr-thh small,.qr-sub summary small{margin-left:auto;color:#7a8899;font-size:.8rem}
+.qr-thh{font-size:1.05rem;background:var(--d,transparent);border-radius:10px;padding:12px 12px;margin:0 0 4px;width:100%}.qr-thh small,.qr-sub summary small{margin-left:auto;color:#7a8899;font-size:.8rem}
 .qr-sub summary{display:flex;align-items:center;gap:12px;padding:10px 6px;cursor:pointer;list-style:none;font-weight:600;color:#1a2744}.qr-sub summary::-webkit-details-marker{display:none}
 .qr-sub summary::after{content:'▾';color:#7a8899;margin-left:6px}.qr-sub[open] summary::after{content:'▴'}
-.qr-sc{display:inline-flex;padding:6px}.qr-ks{padding:0 0 8px 34px}.qr-k{padding:10px 6px;font-size:.95rem;border-radius:8px}.qr-k.on{background:#e8f6ef}
+.qr-sc{display:inline-flex;padding:6px}.qr-ks{padding:0 0 8px 34px}.qr-k{padding:10px 6px;font-size:.95rem;border-radius:8px}.qr-k.on{background:rgba(255,255,255,.8)}
 .qr-cb{flex:none;width:24px;height:24px;border-radius:7px;border:2px solid #9aa6bd;background:#fff;position:relative;display:inline-block}
 .qr-cb.on{background:#17614e;border-color:#17614e}.qr-cb.on::after{content:'✓';color:#fff;position:absolute;inset:0;text-align:center;line-height:20px;font-weight:800}
 .qr-cb.part{border-color:#17614e}.qr-cb.part::after{content:'';position:absolute;left:5px;right:5px;top:9px;height:4px;background:#17614e;border-radius:2px}
@@ -17736,9 +17737,10 @@ function qrOpen(sub,o){o?QR.open.add(sub):QR.open.delete(sub)}
 function qrBox(on,part){return '<span class="qr-cb'+(on?' on':part?' part':'')+'"></span>'}
 function vQrPick(){
   const n=qrNs().length,tot=SUBS.reduce((a,s)=>a+s.ktrs.length,0);
-  const goB='<button type="button" class="qr-go"'+(n?'':' disabled')+' onclick="qrGo()">'+(n?'Go · '+n+' KTR'+(n>1?'s':'')+' ›':'Tick the KTRs you want')+'</button>';
+  const goB=n?'<button type="button" class="qr-go" onclick="qrGo()">Go · '+n+' KTR'+(n>1?'s':'')+' ›</button>':'<span class="qr-go0">\uD83D\uDC47 Tick the KTRs you want, then press Go</span>';
+  const PAL={1:['#e3edfb','#b4cdf0'],2:['#fbe4ec','#f1b9cd'],3:['#e2f4e6','#b5ddbf'],4:['#ece6fa','#cbbff0']};
   const th=[1,2,3,4].map(t=>{const ss=SUBS.filter(s=>s.theme===t),ks=ss.flatMap(s=>s.ktrs),c=ks.filter(k=>QR.k.has(k.n)).length;
-    return '<div class="qr-th"><button type="button" class="qr-thh" onclick="qrTogT('+t+')">'+qrBox(c===ks.length,c>0)+'<span><b>Thème '+t+'</b> · '+esc(HMT[t])+'</span><small>'+c+' of '+ks.length+'</small></button>'
+    return '<div class="qr-th" style="--p:'+PAL[t][0]+';--d:'+PAL[t][1]+'"><button type="button" class="qr-thh" onclick="qrTogT('+t+')">'+qrBox(c===ks.length,c>0)+'<span><b>Thème '+t+'</b> · '+esc(HMT[t])+'</span><small>'+c+' of '+ks.length+'</small></button>'
       +ss.map(s=>{const c2=s.ktrs.filter(k=>QR.k.has(k.n)).length;
         return '<details class="qr-sub"'+(QR.open.has(s.subtheme)?' open':'')+' ontoggle="qrOpen('+s.subtheme+',this.open)"><summary><span class="qr-sc" onclick="event.preventDefault();event.stopPropagation();qrTogS('+s.subtheme+')">'+qrBox(c2===s.ktrs.length,c2>0)+'</span><span class="qr-sn">'+esc(s.name)+'</span><small>'+c2+' of '+s.ktrs.length+'</small></summary><div class="qr-ks">'
           +s.ktrs.map(k=>'<button type="button" class="qr-k'+(QR.k.has(k.n)?' on':'')+'" onclick="qrTogK('+k.n+')">'+qrBox(QR.k.has(k.n))+'<span>'+esc(k.term)+'</span></button>').join('')+'</div></details>'}).join('')+'</div>'}).join('');
@@ -24955,4 +24957,4 @@ function deck(el,m,n,x,y,face,gap){clear(el);const cs=[];for(let i=0;i<n;i++){co
   if (document.readyState === 'complete') start(); else window.addEventListener('load', start);
 })();
 </script>
-<script id="ap-build">window.__apBuild="d3173fc33a";window.__apVer=544;(function(){var N=window.__apVer;function put(){try{var h=document.querySelector('header.aph-header');if(!h||document.getElementById('ap-ver'))return;var s=document.createElement('span');s.id='ap-ver';s.textContent='v'+N;s.style.cssText='position:absolute;right:10px;bottom:4px;font:600 11px/1 system-ui,sans-serif;color:#c9a84c;opacity:.8;pointer-events:none;letter-spacing:.04em;z-index:2';if(getComputedStyle(h).position==='static')h.style.position='relative';h.appendChild(s)}catch(e){}}put();document.addEventListener('DOMContentLoaded',put);window.addEventListener('load',put);setInterval(put,2000)})();</script>
+<script id="ap-build">window.__apBuild="90482cbab7";window.__apVer=545;(function(){var N=window.__apVer;function put(){try{var h=document.querySelector('header.aph-header');if(!h||document.getElementById('ap-ver'))return;var s=document.createElement('span');s.id='ap-ver';s.textContent='v'+N;s.style.cssText='position:absolute;right:10px;bottom:4px;font:600 11px/1 system-ui,sans-serif;color:#c9a84c;opacity:.8;pointer-events:none;letter-spacing:.04em;z-index:2';if(getComputedStyle(h).position==='static')h.style.position='relative';h.appendChild(s)}catch(e){}}put();document.addEventListener('DOMContentLoaded',put);window.addEventListener('load',put);setInterval(put,2000)})();</script>
