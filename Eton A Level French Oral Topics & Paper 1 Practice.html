@@ -15290,7 +15290,7 @@ body.hm .bar{background:transparent;border-bottom-color:transparent}
 .qr-en .qr-t{font-size:1rem;line-height:1.4;font-style:normal;color:#33405c;margin-top:6px}
 .qr[data-c=fr]:not(.all) .qr-a.qr-fr .qr-t:not(.rev),.qr[data-c=en]:not(.all) .qr-a.qr-en .qr-t:not(.rev){background:rgba(26,39,68,.09);box-shadow:0 0 0 2px rgba(26,39,68,.12);min-height:1.6em}
 .qr-rc .qr-r{margin-bottom:12px}
-.qr-c-d .qr-lb,.qr-c-e .qr-lb,.qr-c-a .qr-lb{color:#2c4a82}.qr-c-i .qr-lb{color:#1f6b45}
+.qr-lq{font-style:normal;text-transform:none;letter-spacing:0;font-weight:700;font-size:1.12em}.qr-c-d .qr-lb,.qr-c-e .qr-lb,.qr-c-a .qr-lb{color:#2c4a82}.qr-c-i .qr-lb{color:#1f6b45}
 .qr-tn{display:inline-block;margin-right:10px;font:800 .72rem/1 inherit;letter-spacing:.08em;text-transform:uppercase;vertical-align:middle}
 /* KTR title options (data-t on #qr-root): a = navy banner, b = big serif with gold rule, c = theme-coloured ribbon */
 .qr[data-t=a] .qr-term{margin:-14px -16px 12px;padding:14px 16px;background:#1a2744;color:#fff;border-radius:14px 14px 0 0;font:700 1.45rem/1.2 'Playfair Display',Georgia,serif}.qr[data-t=a] .qr-tn{background:#c9a84c;color:#1a2744;padding:5px 9px;border-radius:7px}
@@ -17848,7 +17848,7 @@ function qrMarks(){document.querySelectorAll('.qr-tk').forEach(b=>{const on=QTK.
     const t=c.querySelector('.qr-term');if(t)t.classList.toggle('ok',all>0&&dn===all)})}
 function qrCopy(b){const cards=[...document.querySelectorAll('.qr-card')],done=[],part=[];
   cards.forEach(c=>{const nm='KTR '+c.dataset.n+' '+c.querySelector('.qr-tt').textContent,rows=c.querySelectorAll('.qr-r[data-s]'),d=[...c.querySelectorAll('.qr-r.qr-done[data-s]')];
-    if(rows.length&&d.length===rows.length)done.push(nm);else if(d.length)part.push(nm+' ('+d.map(r=>r.querySelector('.qr-lb span').textContent).join(', ')+')')});
+    if(rows.length&&d.length===rows.length)done.push(nm);else if(d.length)part.push(nm+' ('+d.map(r=>r.querySelector('.qr-lb span').firstChild.textContent).join(', ')+')')});
   const dt=new Date().toLocaleDateString('en-GB',{day:'numeric',month:'long'});
   let t='Quick revision, '+dt+'.\n';if(!done.length&&!part.length)t+='Nothing ticked yet.';else{if(done.length)t+='Completed: '+done.join('; ')+'.\n';if(part.length)t+='Part done: '+part.join('; ')+'.'}
   const ok=()=>{b.textContent='Copied ✓';setTimeout(()=>{b.textContent='Copy my list'},2000)};
@@ -17862,18 +17862,18 @@ function qrPaint(){const r=document.getElementById('qr-root');if(!r)return;qrMar
 function qrLn(lang,t,a){t=kpPlain(t);if(!t)return '';const e=esc(t);
   return '<div class="qr-ln qr-'+lang+(a?' qr-a':'')+'"><span class="qr-t" onclick="qrTap(this)">'+e+'</span><button type="button" class="qr-sp" data-t="'+e+'" onclick="qrSay(this,\''+(lang==='fr'?'fr-FR':'en-GB')+'\')" aria-label="Listen">🔊 '+(lang==='fr'?'FR':'EN')+'</button></div>'}
 const QTK=new Set();
-const QINS={h:'Say your answer to the question aloud, then tap the grey bar to check it. Cover it again and repeat until you can say it without looking.',x:'Look at the English and say it in French. Tap the grey bar to check, cover it again, and repeat until you get it right.'};
-function qrIns(sec){return '<div class="qr-ins" data-s="'+sec+'"><span>'+(sec==='h'?QINS.h:QINS.x)+'</span><b class="qr-sd"></b></div>'}
-function qrRow(lab,cls,fr,en,a,key,sec){if(!fr&&!en)return '';return '<div class="qr-r qr-c-'+cls+'"'+(key?' data-s="'+sec+'"':'')+'><div class="qr-lb"><span>'+esc(lab)+'</span>'+(key?'<button type="button" class="qr-tk" data-k="'+key+'" onclick="qrTk(this)"><i></i><span>I can say this</span></button>':'')+'</div>'+qrLn('fr',fr,a)+qrLn('en',en,a)+'</div>'}
+const QINS={c:'Read the question and answer it aloud in French, then tap the grey bar to check. Cover it again and repeat until you can say it without looking.',h:'Say your answer to the question aloud, then tap the grey bar to check it. Cover it again and repeat until you can say it without looking.',x:'Look at the English and say it in French. Tap the grey bar to check, cover it again, and repeat until you get it right.'};
+function qrIns(sec){return '<div class="qr-ins" data-s="'+sec+'"><span>'+(sec==='h'?QINS.h:sec==='c'?QINS.c:QINS.x)+'</span><b class="qr-sd"></b></div>'}
+function qrRow(lab,cls,fr,en,a,key,sec,lq){if(!fr&&!en)return '';return '<div class="qr-r qr-c-'+cls+'"'+(key?' data-s="'+sec+'"':'')+'><div class="qr-lb"><span>'+esc(lab)+(lq?'<em class="qr-lq"> : '+esc(lq)+'</em>':'')+'</span>'+(key?'<button type="button" class="qr-tk" data-k="'+key+'" onclick="qrTk(this)"><i></i><span>I can say this</span></button>':'')+'</div>'+qrLn('fr',fr,a)+qrLn('en',en,a)+'</div>'}
 function qrCard(k,qi){
   let T=null;try{T=window.parent.apTopicOf&&window.parent.apTopicOf(k.n)}catch(e){}
-  const I=k.ican||[],N=['Definition','Example','Analysis'],C=['d','e','a'];
+  const I=k.ican||[],N=['Définition','Exemple','Analyse'],C=['d','e','a'];
   const dea=T?[[T.def_fr,T.def_en],[T.ex_fr,T.ex_en],[T.an_fr,T.an_en]]:[0,1,2].map(i=>I[i]?[I[i].fr,I[i].en||I[i].prompt]:['','']);
   const sb=SUBS.find(s=>s.ktrs.indexOf(k)>=0),pl=PAL[sb?sb.theme:1]||PAL[1];
   let h='<div class="qr-card" data-n="'+k.n+'" style="--p:'+pl[0]+';--d:'+pl[1]+'"><div class="qr-term"><span class="qr-tn">KTR '+k.n+'</span><span class="qr-tt">'+esc(k.term)+'</span></div>';
   if(k.hook)h+=qrRow('Hook question','q',k.hook.fr,k.hook.en,false);
   try{const t=AGX[k.n];if(t){const i=t.indexOf(':'),lead=i>0?t.slice(0,i):t,rest=i>0?t.slice(i+1):'';h+='<details class="agx qr-dlm"><summary><img class="agx-ic" src="'+AGIC+'" alt="">Dans le mille <small class="qr-dlm-h">(click here to see what a good answer should include)</small></summary><div class="agx-in">A good answer must explain <b>'+esc(lead)+'</b>'+(rest?':'+esc(rest):'')+'</div></details>'}}catch(e){}
-  if(dea.some(x=>x[0]||x[1]))h+=qrIns('c');dea.forEach((x,i)=>{h+=qrRow(N[i],C[i],x[0],x[1],true,k.n+'|'+C[i],'c')});
+  if(dea.some(x=>x[0]||x[1]))h+=qrIns('c');dea.forEach((x,i)=>{let q='';try{q=kpFrQ(k,I[i]||{},i)}catch(e){}h+=qrRow(N[i],C[i],x[0],x[1],true,k.n+'|'+C[i],'c',q)});
   const ide=(k.remember&&k.remember.ideas)||[];if(ide.length)h+=qrIns('i');ide.forEach((x,i)=>{h+=qrRow('Idée clé'+(ide.length>1?' '+(i+1):''),'i',x.fr,x.en,true,k.n+'|i'+i,'i')});
   /* the hook answer comes last (before the optional recap), with the question repeated above it (13 Nov 2026) */
   if(k.answer){h+=qrIns('h');if(k.hook)h+=qrRow('Now say it aloud','q',k.hook.fr,k.hook.en,false);h+=qrRow('Hook answer','r',k.answer.fr,k.answer.en,true,k.n+'|r','h')}
@@ -25035,4 +25035,4 @@ function deck(el,m,n,x,y,face,gap){clear(el);const cs=[];for(let i=0;i<n;i++){co
   if (document.readyState === 'complete') start(); else window.addEventListener('load', start);
 })();
 </script>
-<script id="ap-build">window.__apBuild="db3ae2da00";window.__apVer=557;(function(){var N=window.__apVer;function put(){try{var h=document.querySelector('header.aph-header');if(!h||document.getElementById('ap-ver'))return;var s=document.createElement('span');s.id='ap-ver';s.textContent='v'+N;s.style.cssText='position:absolute;right:10px;bottom:4px;font:600 11px/1 system-ui,sans-serif;color:#c9a84c;opacity:.8;pointer-events:none;letter-spacing:.04em;z-index:2';if(getComputedStyle(h).position==='static')h.style.position='relative';h.appendChild(s)}catch(e){}}put();document.addEventListener('DOMContentLoaded',put);window.addEventListener('load',put);setInterval(put,2000)})();</script>
+<script id="ap-build">window.__apBuild="27e8c711cb";window.__apVer=558;(function(){var N=window.__apVer;function put(){try{var h=document.querySelector('header.aph-header');if(!h||document.getElementById('ap-ver'))return;var s=document.createElement('span');s.id='ap-ver';s.textContent='v'+N;s.style.cssText='position:absolute;right:10px;bottom:4px;font:600 11px/1 system-ui,sans-serif;color:#c9a84c;opacity:.8;pointer-events:none;letter-spacing:.04em;z-index:2';if(getComputedStyle(h).position==='static')h.style.position='relative';h.appendChild(s)}catch(e){}}put();document.addEventListener('DOMContentLoaded',put);window.addEventListener('load',put);setInterval(put,2000)})();</script>
