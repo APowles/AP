@@ -50691,10 +50691,10 @@ function mlfLeisureStart(deck) {
     d = document.createElement('div'); d.id = 'apdl-mk'; d.className = 'aptt-mkov';
     d.innerHTML = '<div class="aptt-mkbox" role="dialog" aria-modal="true"><div class="aptt-mkh">🎯 Set this drill as an EW</div>'
       + '<div class="aptt-mks">' + esc(info.title) + '</div>'
-      + ((AD.canSet) ? '<div class="aptt-mkhint" style="margin:0 0 6px">What happens when the boys open the link (or type the code on the AP Tests page)? Nothing is timed and nothing is logged either way.</div>'
+      + (((typeof AD.canSet === 'function' ? AD.canSet(info.cfg) : AD.canSet)) ? '<div class="aptt-mkhint" style="margin:0 0 6px">What happens when the boys open the link (or type the code on the AP Tests page)? Nothing is timed and nothing is logged either way.</div>'
         + '<label style="display:flex;gap:8px;align-items:flex-start;font-weight:600"><input type="radio" name="apdl-su" id="apdl-su1" checked style="margin-top:4px"><span><b>Practise this set</b>: the set and settings are locked in, and the boys choose any activity (Drill, Speed Challenge, Spell, Match, Leisure Mode, Test…).</span></label>'
         + '<label style="display:flex;gap:8px;align-items:flex-start;font-weight:600"><input type="radio" name="apdl-su" id="apdl-su0" style="margin-top:4px"><span><b>Straight into this drill</b>: exactly this drill starts at once.</span></label>'
-        : '<div class="aptt-mkhint" style="margin:0 0 6px">The boys open the link (or type the code on the AP Tests page) and go <b>straight into this drill</b> with exactly this selection. No timer is added and nothing is logged: it is the normal drill.</div>')
+        : '<div class="aptt-mkhint" style="margin:0 0 6px">The boys open the link (or type the code on the AP Tests page) and go <b>straight into ' + (info.cfg.m === 'tr' ? 'this passage' : 'this drill') + '</b> with exactly this selection. No timer is added and nothing is logged: it is the normal drill.</div>')
       + '<label>Name (for your list; the boys see it at the top)</label><input id="apdl-mk-n" type="text" value="' + esc(name) + '">'
       + '<label>Library heading</label><select id="apdl-mk-cat">' + (cats.indexOf(ct0) < 0 ? [ct0].concat(cats) : cats).map(function (x) { return '<option' + (x === ct0 ? ' selected' : '') + '>' + esc(x) + '</option>'; }).join('') + '</select>'
       + '<label>Folder inside it (optional: e.g. C Block Set 2, Autumn 2026)</label><input id="apdl-mk-f" type="text" list="apdl-mk-fl" maxlength="40" placeholder="none"><datalist id="apdl-mk-fl">' + ((APTT.folders && APTT.folders()) || []).map(function (x) { return '<option value="' + esc(x) + '">'; }).join('') + '</datalist>'
@@ -50780,6 +50780,8 @@ function mlfLeisureStart(deck) {
 /* ===== AP DRILL LINKS: A Level VVs, Gr EWs & Translation adapter (VVs drill, VVs sentence drill, Grammar drills, Gr EWs, Metalanguage) ===== */
 (function () {
   function $(i) { return document.getElementById(i); }
+  // Translation Practice: a passage is open on screen (attempt or reveal)
+  function trOpenNow() { try { return !!(shown('translationContainer') && typeof trState !== 'undefined' && trState.currentPassage && (trState.phase === 'attempt' || trState.phase === 'reveal')); } catch (e) { return false; } }
   function shown(id) { var e = $(id); return !!(e && e.style.display !== 'none' && e.offsetParent !== null); }
   function has(id, sel) { return shown(id) && !!$(id).querySelector(sel); }
   function int(v, lo, hi) { return typeof v === 'number' && isFinite(v) && Math.floor(v) === v && v >= lo && v <= hi; }
@@ -50791,7 +50793,7 @@ function mlfLeisureStart(deck) {
   function grPool(ids) { var n = 0; ids.forEach(function (id) { var s = GR_SETS.filter(function (x) { return x.id === id; })[0]; if (s) n += grFilterSentences(s.sentences).length; }); return n; }
   function ewsKeys() { return Object.keys(GR_EWS_DATA).sort(function (a, b) { return keyNum(a) - keyNum(b); }); }
   var AD = {
-    canSet: true,
+    canSet: function (cfg) { return !cfg || cfg.m !== 'tr'; },
     app: 'Eton A Level VVs, Gr EWs & Translation', lang: 'French', prefix: 'DRF', cat: 'A Level French ▸ Drills',
     ready: function () {
       return typeof VV_DATA !== 'undefined' && typeof SD_DATA !== 'undefined' && typeof GR_SETS !== 'undefined' && typeof GR_EWS_DATA !== 'undefined' && typeof MLF_DATA !== 'undefined' &&
@@ -50800,10 +50802,11 @@ function mlfLeisureStart(deck) {
     },
     visible: function () {
       return has('drillContainer', '.intro-card #intro-vv-select') || has('sdContainer', 'button[onclick="startSD()"]') || !!grMode() ||
-        has('grEwsContainer', 'button[onclick^="startGrEwsDrill"]') || has('mlfContainer', 'button[onclick="startMLF()"]');
+        has('grEwsContainer', 'button[onclick^="startGrEwsDrill"]') || has('mlfContainer', 'button[onclick="startMLF()"]') || trOpenNow();
     },
     capture: function () {
       var c, pool;
+      if (trOpenNow()) { var tp = trState.currentPassage; return { cfg: { m: 'tr', r: String(tp.ref || tp.id) }, title: 'Translation Practice: ' + (tp.ref || tp.id) + ' · ' + (tp.direction === 'en' ? 'into English' : 'into French') + (tp.label ? ' · ' + String(tp.label).replace(/<[^>]*>/g, '') : '') }; }
       if (has('drillContainer', '.intro-card #intro-vv-select')) {
         var sel = $('intro-vv-select'); if (sel) currentVV = sel.value;
         pool = getPool().length; if (!pool) return { why: 'That set has no phrases. Choose another set.' };
@@ -50887,6 +50890,11 @@ function mlfLeisureStart(deck) {
         if (c.cmb) { grEwsSelectedKeys = c.k.slice(); startGrEwsDrillCombo(); }
         else { grEwsSelectedKeys = []; startGrEwsDrill(c.k[0]); }
         return true;
+      }
+      if (c.m === 'tr') {   // one Translation Practice passage, opened for the boy (a fresh pad)
+        var ref = String(c.r || ''); if (!/^[A-Za-z]{1,4}\d{1,5}$/.test(ref) || typeof TR_PASSAGES === 'undefined') return false;
+        var tpp = TR_PASSAGES.filter(function (x) { return String(x.ref).toUpperCase() === ref.toUpperCase(); })[0]; if (!tpp) return false;
+        switchMode('tr'); trState.direction = tpp.direction; trState.includeAI = tpp.type === 'ai'; startTrPassage(tpp.id, true); return true;
       }
       if (c.m === 'mlf') {
         if (!DIR[c.f] || !DIR[c.t] || c.f === c.t || !int(c.n, 1, 5000) || !int(c.tm, 5, 60)) return false;
@@ -60780,4 +60788,4 @@ function deck(el,m,n,x,y,face,gap){clear(el);const cs=[];for(let i=0;i<n;i++){co
   if (document.readyState === 'complete') start(); else window.addEventListener('load', start);
 })();
 </script>
-<script id="ap-build">window.__apBuild="3abc9f907f";window.__apVer=204;(function(){var N=window.__apVer;function put(){try{var h=document.querySelector('header.aph-header');if(!h||document.getElementById('ap-ver'))return;var s=document.createElement('span');s.id='ap-ver';s.textContent='v'+N;s.style.cssText='position:absolute;right:10px;bottom:4px;font:600 11px/1 system-ui,sans-serif;color:#c9a84c;opacity:.8;pointer-events:none;letter-spacing:.04em;z-index:2';if(getComputedStyle(h).position==='static')h.style.position='relative';h.appendChild(s)}catch(e){}}put();document.addEventListener('DOMContentLoaded',put);window.addEventListener('load',put);setInterval(put,2000)})();</script>
+<script id="ap-build">window.__apBuild="8a33178c2b";window.__apVer=205;(function(){var N=window.__apVer;function put(){try{var h=document.querySelector('header.aph-header');if(!h||document.getElementById('ap-ver'))return;var s=document.createElement('span');s.id='ap-ver';s.textContent='v'+N;s.style.cssText='position:absolute;right:10px;bottom:4px;font:600 11px/1 system-ui,sans-serif;color:#c9a84c;opacity:.8;pointer-events:none;letter-spacing:.04em;z-index:2';if(getComputedStyle(h).position==='static')h.style.position='relative';h.appendChild(s)}catch(e){}}put();document.addEventListener('DOMContentLoaded',put);window.addEventListener('load',put);setInterval(put,2000)})();</script>
