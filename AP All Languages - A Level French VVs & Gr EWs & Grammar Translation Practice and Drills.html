@@ -37596,7 +37596,7 @@ function renderTrReveal() {
 
   el.innerHTML = `
     <div class="aph-wrap" style="max-width:720px">
-    <div class="aph-row" style="margin-bottom:12px"><button class="aph-btn aph-btn-sm" onclick="renderTrSelect()">&#8592; Back</button></div>
+    <div class="aph-row" style="margin-bottom:12px"><button class="aph-btn aph-btn-sm" onclick="trBackOne()">&#8592; Back</button></div>
 
     <div class="tr-passage-card" style="margin-bottom:0.75rem">
       <div class="tr-meta-row">
@@ -37719,6 +37719,23 @@ function revealAllChunks() {
 
 // ==================== ✍️ THE BOY'S TRANSLATION (AP PEN pad: ✍️ Handwrite / ⌨️ Type) ====================
 function trPenKey(p) { return 'tr:' + p.id; }
+// Back goes one stage: marked/revealed paper -> the passage with the boy's translation -> the list of passages -> (then Home)
+function trBackOne() {
+  try { if (typeof trStopTimer === 'function') trStopTimer(); } catch (e) { }
+  if (trState.phase === 'reveal' && trState.currentPassage) { trState.phase = 'attempt'; renderTrAttempt(); }
+  else renderTrSelect();
+  window.scrollTo(0, 0);
+}
+(function () {
+  var prev = window.aphBackHook;
+  window.aphBackHook = function () {
+    try {
+      var el = document.getElementById('translationContainer');
+      if (el && el.offsetParent !== null && (trState.phase === 'reveal' || trState.phase === 'attempt')) { trBackOne(); return true; }
+    } catch (e) { }
+    return typeof prev === 'function' ? prev.apply(this, arguments) : false;
+  };
+})();
 function trPenHtml(p, rev) {
   return `<div class="vv-tr-pen aph-card${rev ? ' locked' : ''}">
       <div class="vv-tr-pen-h">✍️ Your translation</div>
@@ -60806,4 +60823,4 @@ function deck(el,m,n,x,y,face,gap){clear(el);const cs=[];for(let i=0;i<n;i++){co
   if (document.readyState === 'complete') start(); else window.addEventListener('load', start);
 })();
 </script>
-<script id="ap-build">window.__apBuild="f57cf476be";window.__apVer=206;(function(){var N=window.__apVer;function put(){try{var h=document.querySelector('header.aph-header');if(!h||document.getElementById('ap-ver'))return;var s=document.createElement('span');s.id='ap-ver';s.textContent='v'+N;s.style.cssText='position:absolute;right:10px;bottom:4px;font:600 11px/1 system-ui,sans-serif;color:#c9a84c;opacity:.8;pointer-events:none;letter-spacing:.04em;z-index:2';if(getComputedStyle(h).position==='static')h.style.position='relative';h.appendChild(s)}catch(e){}}put();document.addEventListener('DOMContentLoaded',put);window.addEventListener('load',put);setInterval(put,2000)})();</script>
+<script id="ap-build">window.__apBuild="33b96f210d";window.__apVer=207;(function(){var N=window.__apVer;function put(){try{var h=document.querySelector('header.aph-header');if(!h||document.getElementById('ap-ver'))return;var s=document.createElement('span');s.id='ap-ver';s.textContent='v'+N;s.style.cssText='position:absolute;right:10px;bottom:4px;font:600 11px/1 system-ui,sans-serif;color:#c9a84c;opacity:.8;pointer-events:none;letter-spacing:.04em;z-index:2';if(getComputedStyle(h).position==='static')h.style.position='relative';h.appendChild(s)}catch(e){}}put();document.addEventListener('DOMContentLoaded',put);window.addEventListener('load',put);setInterval(put,2000)})();</script>
