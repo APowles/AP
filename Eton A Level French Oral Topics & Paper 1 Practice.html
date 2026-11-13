@@ -19492,7 +19492,7 @@ if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',
     d = document.createElement('div'); d.id = 'apdl-mk'; d.className = 'aptt-mkov';
     d.innerHTML = '<div class="aptt-mkbox" role="dialog" aria-modal="true"><div class="aptt-mkh">🎯 Set this drill as an EW</div>'
       + '<div class="aptt-mks">' + esc(info.title) + '</div>'
-      + (((typeof AD.canSet === 'function' ? AD.canSet(info.cfg) : AD.canSet)) ? '<div class="aptt-mkhint" style="margin:0 0 6px">What happens when the boys open the link (or type the code on the AP Tests page)? Nothing is timed and nothing is logged either way.</div>'
+      + (info.cfg.k === 's' ? '<div class="aptt-mkhint" style="margin:0 0 6px">The boys open the link (or type the code on the AP Tests page) and land on <b>Practise</b> with exactly these KTRs, and choose any activity (Drill, Speed Challenge, Spell, Match, Leisure Mode, Test…). Nothing is timed and nothing is logged.</div>' : ((typeof AD.canSet === 'function' ? AD.canSet(info.cfg) : AD.canSet)) ? '<div class="aptt-mkhint" style="margin:0 0 6px">What happens when the boys open the link (or type the code on the AP Tests page)? Nothing is timed and nothing is logged either way.</div>'
         + '<label style="display:flex;gap:8px;align-items:flex-start;font-weight:600"><input type="radio" name="apdl-su" id="apdl-su1" checked style="margin-top:4px"><span><b>Practise this set</b>: the topics, kind of question and settings are locked in, and the boys choose any activity (Drill, Speed Challenge, Spell, Match, Leisure Mode, Test…).</span></label>'
         + '<label style="display:flex;gap:8px;align-items:flex-start;font-weight:600"><input type="radio" name="apdl-su" id="apdl-su0" style="margin-top:4px"><span><b>Straight into this drill</b>: exactly this drill starts at once.</span></label>'
         : '<div class="aptt-mkhint" style="margin:0 0 6px">The boys open the link (or type the code on the AP Tests page) and go <b>straight into this drill</b> with exactly this selection. No timer is added and nothing is logged: it is the normal drill.</div>')
@@ -19511,7 +19511,7 @@ if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',
       if (!pageName()) { alert('This page has no file name, so a link cannot be made from it.'); return; }
       b.disabled = true; b.textContent = 'Making…';
       var made = new Date().toISOString().slice(0, 10);
-      var su1 = $('apdl-su1'), cfgO = (su1 && su1.checked) ? Object.assign({}, info.cfg, { su: 1 }) : info.cfg;
+      var su1 = $('apdl-su1'), cfgO = (info.cfg.k === 's' || (su1 && su1.checked)) ? Object.assign({}, info.cfg, { su: 1 }) : info.cfg;
       var o = { v: 1, kind: 'drill', n: nm, c: code, a: AD.app, t: info.title, l: AD.lang, p: pageName(), cfg: cfgO, s: 0, q: 'same', id: 'drill|' + pageName() + '|' + hash32(JSON.stringify(cfgO)), cat: ct, f: fol, made: made };
       APTT.pack(o).then(function (tok) {
         var link = APTT.linkFor(tok), line = (code || AD.prefix + '???') + ' | ' + nm.replace(/\|/g, '/') + ' | ' + ct + ' | ' + fol + ' | ' + tok;
@@ -19584,7 +19584,15 @@ if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',
   function inApp(i) { var e = $(i), a = $('app'); return !!(e && a && a.contains(e) && a.offsetParent !== null); }
   var KMODES = { def: 'Definition', ex: 'Example', an: 'Analysis', random: 'Random D/E/A', short: 'Short D/E/A', trlong: 'Translate: full', trshort: 'Translate: short', trtopic: 'Translate: topic sentences' };
   var LN = { en: 'English', fr: 'French' }, OKC = [10, 20, 30, 50, -1];
-  function screen() { return inApp('intro-theme-select') ? 'k' : (inApp('oral-topic-select') && inApp('oral-card-count-badge')) ? 'c' : ($('app') && $('app').offsetParent !== null && document.querySelector('#app .ot-secgrid') ? 'p' : ''); }
+  // KTR Studio (Learn a KTR / Quick revision picker): the themes, sub-themes and single KTRs the teacher has ticked
+  function studioSel() {
+    try {
+      var f = $('ktr-studio-frame'), W = f && f.contentWindow; if (!W || !W.document || W.document.readyState !== 'complete' || typeof W.go !== 'function') return null;
+      var r = JSON.parse(W.eval('JSON.stringify((function(){var ns=[].concat(hmNums("t"),hmNums("s"),Array.from(HMSEL.k));ns=ns.filter(function(n,i){return ns.indexOf(n)===i});var p=[];if(HMSEL.t.size)p.push(hmLabel("t",HMSEL.t));if(HMSEL.s.size)p.push(hmLabel("s",HMSEL.s));if(HMSEL.k.size)p.push(HMSEL.k.size+" single KTR"+(HMSEL.k.size>1?"s":""));return {ns:ns,lb:p.join(" + ")}})())'));
+      return r && r.ns && r.ns.length ? r : null;
+    } catch (e) { return null; }
+  }
+  function screen() { return studioSel() ? 's' : inApp('intro-theme-select') ? 'k' : (inApp('oral-topic-select') && inApp('oral-card-count-badge')) ? 'c' : ($('app') && $('app').offsetParent !== null && document.querySelector('#app .ot-secgrid') ? 'p' : ''); }
   function themes() { var o = {}; ALL_TOPICS.forEach(function (t) { o[t.theme] = 1; }); return o; }
   function themeOK(v) { return v === 'all' || !!THEME_GROUPS[v] || !!themes()[v]; }
   function themeLabel(v) { return v === 'all' ? 'All topics' : THEME_GROUPS[v] ? 'All of Theme ' + v.slice(5) : v; }
@@ -19606,6 +19614,11 @@ if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',
     visible: function () { return !!screen(); },
     capture: function () {
       var s = screen();
+      if (s === 's') {
+        var ss = studioSel(); if (!ss) return { why: 'Tick some themes, sub-themes or KTRs first.' };
+        LAST = 's';
+        return { cfg: { k: 's', ns: ss.ns, lb: String(ss.lb || '').slice(0, 200) }, title: 'KTR Studio practice set: ' + (ss.lb || ss.ns.length + ' KTRs') + ' · ' + ss.ns.length + ' KTRs' };
+      }
       if (s === 'k') {
         var f = getLangFrom(), t = getLangTo(), single = _singleKTR, th = $('theme-select').value;
         var pool = getFiltered().length * modeMult(currentMode);
@@ -19643,6 +19656,18 @@ if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',
     },
     apply: function (c) {
       if (!c) return false;
+      if (c.k === 's') {   // KTR Studio practice set: open the Studio on Practise with these KTRs; the boy picks the activity
+        if (!Array.isArray(c.ns) || !c.ns.length || c.ns.length > 150 || !c.ns.every(function (n) { return typeof n === 'number' && n === Math.round(n) && n > 0 && n < 1000; })) return false;
+        showKTRStudio();
+        var tries = 0, lab = String(c.lb || (c.ns.length + ' KTRs')).slice(0, 200);
+        (function w() {
+          var f = $('ktr-studio-frame'), W = null; try { W = f && f.contentWindow; } catch (e) { W = null; }
+          var ok = false; try { ok = !!(W && W.document && W.document.readyState === 'complete' && typeof W.go === 'function' && W.eval('typeof MIXS')==='object'); } catch (e) { ok = false; }
+          if (ok) { try { W.eval('MIXS.ns=' + JSON.stringify(c.ns) + ';MIXS.lab=' + JSON.stringify(lab) + ';go("mix")'); } catch (e) { } return; }
+          if (++tries < 80) setTimeout(w, 150);
+        })();
+        return true;
+      }
       if (c.k === 'k') {
         if (!LN[c.f] || !LN[c.t] || c.f === c.t || !KMODES[c.m] || OKC.indexOf(c.n) < 0 || !okTimer(c.tm)) return false;
         if (c.s !== null && !(typeof c.s === 'number' && ALL_TOPICS.some(function (x) { return x.n === c.s; }))) return false;
@@ -25063,4 +25088,4 @@ function deck(el,m,n,x,y,face,gap){clear(el);const cs=[];for(let i=0;i<n;i++){co
   if (document.readyState === 'complete') start(); else window.addEventListener('load', start);
 })();
 </script>
-<script id="ap-build">window.__apBuild="2f85a050ff";window.__apVer=561;(function(){var N=window.__apVer;function put(){try{var h=document.querySelector('header.aph-header');if(!h||document.getElementById('ap-ver'))return;var s=document.createElement('span');s.id='ap-ver';s.textContent='v'+N;s.style.cssText='position:absolute;right:10px;bottom:4px;font:600 11px/1 system-ui,sans-serif;color:#c9a84c;opacity:.8;pointer-events:none;letter-spacing:.04em;z-index:2';if(getComputedStyle(h).position==='static')h.style.position='relative';h.appendChild(s)}catch(e){}}put();document.addEventListener('DOMContentLoaded',put);window.addEventListener('load',put);setInterval(put,2000)})();</script>
+<script id="ap-build">window.__apBuild="8143827dea";window.__apVer=562;(function(){var N=window.__apVer;function put(){try{var h=document.querySelector('header.aph-header');if(!h||document.getElementById('ap-ver'))return;var s=document.createElement('span');s.id='ap-ver';s.textContent='v'+N;s.style.cssText='position:absolute;right:10px;bottom:4px;font:600 11px/1 system-ui,sans-serif;color:#c9a84c;opacity:.8;pointer-events:none;letter-spacing:.04em;z-index:2';if(getComputedStyle(h).position==='static')h.style.position='relative';h.appendChild(s)}catch(e){}}put();document.addEventListener('DOMContentLoaded',put);window.addEventListener('load',put);setInterval(put,2000)})();</script>
