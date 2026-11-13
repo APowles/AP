@@ -40776,7 +40776,7 @@ function renderGrammarMenu() {
         <span class="aph-note">Cards per session</span>
         ${(()=>{const tot=[...grSelected].reduce((n,id)=>{const s=GR_SETS.find(x=>x.id===id);return n+(s?grFilterSentences(s.sentences).length:0);},0);
         return [10,20].filter(n=>n<tot).map(n=>`<button class="aph-chip ${grState.drillCount===n?'on':''}" onclick="grSetCount(${n})">${n}</button>`).join('')
-        + `<button class="aph-chip ${(!grState.drillCount||grState.drillCount>=tot)?'on':''}" onclick="grSetCount(${tot})">All ${tot}</button>`
+        + `<button class="aph-chip ${(!grState.drillCount||grState.drillCount>=tot)?'on':''}" onclick="grSetCount(99999)">All ${tot}</button>`
         + (tot>20?`<input class="aph-input" type="number" min="1" max="${tot}" value="${Math.min(grState.drillCount||tot,tot)}" onchange="grSetCount(Math.min(${tot},Math.max(1,parseInt(this.value)||10)))" style="width:70px;text-align:center" placeholder="N">`:'');
         })()}
       </div>
@@ -40916,7 +40916,7 @@ function startMultiGrammarDrill() {
     revealed: false,
     timerSecs: grState.timerSecs || 15,
     leisure: grState.leisure || false,
-    drillCount: count,
+    drillCount: grState.drillCount,   // keep what was chosen: never store the clamped size of a small set (it stuck as the next default)
     timerVal: grState.timerSecs || 15,
     timerInterval: null,
     timerRunning: false
@@ -40984,7 +40984,7 @@ function renderGrammarOptions(setId) {
       </div>
       <div class="aph-row">
         ${[10,20].filter(n=>n<grFilterSentences(set.sentences).length).map(n=>`<button class="aph-chip ${grState.drillCount===n?'on':''}" onclick="grSetCount(${n})">${n}</button>`).join('')}
-        <button class="aph-chip ${(!grState.drillCount||grState.drillCount>=grFilterSentences(set.sentences).length)?'on':''}" onclick="grSetCount(${grFilterSentences(set.sentences).length})">All ${grFilterSentences(set.sentences).length}</button>
+        <button class="aph-chip ${(!grState.drillCount||grState.drillCount>=grFilterSentences(set.sentences).length)?'on':''}" onclick="grSetCount(99999)">All ${grFilterSentences(set.sentences).length}</button>
         ${grFilterSentences(set.sentences).length>20?`<input class="aph-input" type="number" min="1" max="${grFilterSentences(set.sentences).length}" value="${Math.min(grState.drillCount||grFilterSentences(set.sentences).length,grFilterSentences(set.sentences).length)}" onchange="grSetCount(Math.min(${grFilterSentences(set.sentences).length},Math.max(1,parseInt(this.value)||10)))" style="width:70px;text-align:center">`:''}
       </div>
       <div class="aph-label">Timer per card</div>
@@ -41158,7 +41158,7 @@ function startGrammarDrill(setId) {
     revealed: false,
     timerSecs: grState.timerSecs || 15,
     leisure: grState.leisure || false,
-    drillCount: count,
+    drillCount: grState.drillCount,   // keep what was chosen: never store the clamped size of a small set (it stuck as the next default)
     timerVal: grState.timerSecs || 15,
     timerInterval: null,
     timerRunning: false
@@ -48476,7 +48476,7 @@ function renderMLF() {
       <div class="aph-label">Cards per session</div>
       <div class="aph-row">
         ${[10,20].filter(n=>n<pool.length).map(n=>`<button class="aph-chip ${mlfState.drillCount===n?'on':''}" onclick="mlfSetCount(${n})">${n}</button>`).join('')}
-        <button class="aph-chip ${mlfState.drillCount>=pool.length?'on':''}" onclick="mlfSetCount(${pool.length})">All ${pool.length}</button>
+        <button class="aph-chip ${mlfState.drillCount>=pool.length?'on':''}" onclick="mlfSetCount(99999)">All ${pool.length}</button>
         <input class="aph-input" type="number" min="1" max="${pool.length}" value="${Math.min(mlfState.drillCount,pool.length)}" onchange="mlfSetCount(Math.min(${pool.length},Math.max(1,parseInt(this.value)||10)))" style="width:70px;text-align:center">
       </div>
       <div class="aph-label">Timer per card</div>
@@ -52044,7 +52044,7 @@ textarea.ms-in{min-height:7rem;resize:vertical}.ms-hint.ms-hint-sm{font-size:.78
   function gdSettingsInner() {
     var tot = GDs.chosen() ? GDs.pool().length : 0, n = grState.drillCount;
     var chips = [10, 20].filter(function (x) { return x < tot; }).map(function (x) { return '<button class="aph-chip ' + (n === x ? 'on' : '') + '" onclick="grSetCount(' + x + ')">' + x + '</button>'; }).join('')
-      + '<button class="aph-chip ' + ((!n || n >= tot) ? 'on' : '') + '" onclick="grSetCount(' + (tot || 99999) + ')">All' + (tot ? ' ' + tot : '') + '</button>';
+      + '<button class="aph-chip ' + ((!n || n >= tot) ? 'on' : '') + '" onclick="grSetCount(99999)">All' + (tot ? ' ' + tot : '') + '</button>';
     return '<div class="aph-label">Cards per session</div><div class="aph-row">' + chips + '</div>'
       + '<div class="aph-label">Timer per card</div><div class="aph-row">' + [10, 15, 20, 30].map(function (s) { return '<button class="aph-chip ' + ((grState.timerSecs || 15) === s ? 'on' : '') + '" onclick="apGdTimer(' + s + ')">' + s + 's</button>'; }).join('') + '</div>'
       + '<div class="aph-label">Leisure Mode pace</div>' + APLZ.ctrlHTML('gr', 'setup');
@@ -52073,7 +52073,7 @@ textarea.ms-in{min-height:7rem;resize:vertical}.ms-hint.ms-hint-sm{font-size:.78
     if (!deck.length) return;
     var setIds = []; deck.forEach(function (s) { if (s._setId && setIds.indexOf(s._setId) < 0) setIds.push(s._setId); });
     if (leis) { grLeisureStart(deck, '__multi__', setIds); return; }
-    grState = Object.assign({}, grState, { setId: '__multi__', multiIds: setIds, idx: 0, shuffled: deck, correct: 0, nearly: 0, errors: [], revealed: false, timerSecs: grState.timerSecs || 15, leisure: false, drillCount: cnt, timerVal: grState.timerSecs || 15, timerInterval: null, timerRunning: false });
+    grState = Object.assign({}, grState, { setId: '__multi__', multiIds: setIds, idx: 0, shuffled: deck, correct: 0, nearly: 0, errors: [], revealed: false, timerSecs: grState.timerSecs || 15, leisure: false, drillCount: grState.drillCount, timerVal: grState.timerSecs || 15, timerInterval: null, timerRunning: false });
     renderGrammarCard();
   };
   window.apGdTog = function (id) {
@@ -52148,7 +52148,7 @@ textarea.ms-in{min-height:7rem;resize:vertical}.ms-hint.ms-hint-sm{font-size:.78
   function mlSettingsInner() {
     var tot = ML.chosen() ? ML.pool().length : 0, n = mlfState.drillCount;
     var chips = [10, 20].filter(function (x) { return x < tot; }).map(function (x) { return '<button class="aph-chip ' + (n === x ? 'on' : '') + '" onclick="apMlCount(' + x + ')">' + x + '</button>'; }).join('')
-      + '<button class="aph-chip ' + (n >= tot ? 'on' : '') + '" onclick="apMlCount(' + (tot || 99999) + ')">All' + (tot ? ' ' + tot : '') + '</button>';
+      + '<button class="aph-chip ' + (n >= tot ? 'on' : '') + '" onclick="apMlCount(99999)">All' + (tot ? ' ' + tot : '') + '</button>';
     return '<div class="aph-label">Cards per session</div><div class="aph-row">' + chips + '</div>'
       + '<div class="aph-label">Timer per card</div><div class="aph-row">' + [10, 15, 20, 30].map(function (s) { return '<button class="aph-chip ' + (mlfState.timerSecs === s ? 'on' : '') + '" onclick="apMlTimer(' + s + ')">' + s + 's</button>'; }).join('') + '</div>'
       + '<div class="aph-label">Leisure Mode pace</div>' + APLZ.ctrlHTML('mlf', 'setup');
@@ -60780,4 +60780,4 @@ function deck(el,m,n,x,y,face,gap){clear(el);const cs=[];for(let i=0;i<n;i++){co
   if (document.readyState === 'complete') start(); else window.addEventListener('load', start);
 })();
 </script>
-<script id="ap-build">window.__apBuild="0b94c4dad1";window.__apVer=201;(function(){var N=window.__apVer;function put(){try{var h=document.querySelector('header.aph-header');if(!h||document.getElementById('ap-ver'))return;var s=document.createElement('span');s.id='ap-ver';s.textContent='v'+N;s.style.cssText='position:absolute;right:10px;bottom:4px;font:600 11px/1 system-ui,sans-serif;color:#c9a84c;opacity:.8;pointer-events:none;letter-spacing:.04em;z-index:2';if(getComputedStyle(h).position==='static')h.style.position='relative';h.appendChild(s)}catch(e){}}put();document.addEventListener('DOMContentLoaded',put);window.addEventListener('load',put);setInterval(put,2000)})();</script>
+<script id="ap-build">window.__apBuild="a4a28c1364";window.__apVer=202;(function(){var N=window.__apVer;function put(){try{var h=document.querySelector('header.aph-header');if(!h||document.getElementById('ap-ver'))return;var s=document.createElement('span');s.id='ap-ver';s.textContent='v'+N;s.style.cssText='position:absolute;right:10px;bottom:4px;font:600 11px/1 system-ui,sans-serif;color:#c9a84c;opacity:.8;pointer-events:none;letter-spacing:.04em;z-index:2';if(getComputedStyle(h).position==='static')h.style.position='relative';h.appendChild(s)}catch(e){}}put();document.addEventListener('DOMContentLoaded',put);window.addEventListener('load',put);setInterval(put,2000)})();</script>
