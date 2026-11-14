@@ -1678,10 +1678,10 @@ var APMP = (function () {
   // options: [{ l, t, chosen, correct, why }] ; marked = show which is right
   function opts(list, marked) {
     return '<div class="apmp-opts">' + list.map(function (x) {
-      var cls = x.chosen ? (marked ? (x.correct ? 'ok' : 'bad') : 'mine') : (marked && x.correct ? 'right' : '');
+      var cls = x.chosen ? (marked ? (x.correct ? 'ok' : 'bad') : 'mine') : '';
       var tag = x.chosen ? (marked ? (x.correct ? '<b class="apmp-tag ok">✓ your answer</b>' : '<b class="apmp-tag bad">✗ your answer</b>') : '<b class="apmp-tag mine">your answer</b>')
-        : (marked && x.correct ? '<b class="apmp-tag ok">✓ correct answer</b>' : '');
-      return '<div class="apmp-opt ' + cls + '"><span class="apmp-box">' + (x.chosen ? '✕' : '') + '</span><b class="apmp-l">' + x.l + '</b><span class="apmp-ot">' + x.t + tag + (x.why ? '<span class="apmp-why">' + x.why + '</span>' : '') + '</span></div>';
+        : '';
+      return '<div class="apmp-opt ' + cls + '"><span class="apmp-box">' + (x.chosen ? '✕' : '') + '</span><b class="apmp-l">' + x.l + '</b><span class="apmp-ot">' + x.t + tag + '' + '</span></div>';
     }).join('') + '</div>';
   }
   function answer(s) { s = String(s == null ? '' : s); return s.replace(/\s+/g, '') === '' ? '<span class="apmp-blank">(no answer)</span>' : '<span class="apmp-yours">' + esc(s).replace(/\n/g, '<br>') + '</span>'; }
@@ -37808,17 +37808,15 @@ function trSavePDF() {
     const rows = p.chunks.map((c, i) => {
       const m = marks[i];
       const mk = m === 'ok' ? '<td class="mk ok">✓ 1</td>' : m === 'miss' ? '<td class="mk bad">✗ 0</td>' : m === 'nearly' ? '<td class="mk" style="color:#8a5c00">~ 0</td>' : '<td class="mk none">not marked</td>';
-      return '<tr><td class="n">' + (i + 1) + '</td><td>' + c.en + '</td><td><b>' + c.main + '</b>'
-        + (c.alts.length ? '<div class="apmp-ok">' + c.alts.map(a => '✓ ' + a).join('<br>') + '</div>' : '') + '</td>'
-        + '<td>' + c.rejects.map(r => '<div class="apmp-bad">✗ ' + r + '</div>').join('') + c.notes.map(n => '<div class="apmp-tip">' + n + '</div>').join('') + '</td>' + mk + '</tr>';
+      return '<tr><td class="n">' + (i + 1) + '</td><td>' + c.en + '</td><td><b>' + c.main + '</b></td>' + mk + '</tr>';   // his mark and the model answer only: no accept / reject lists or notes
     }).join('');
     let body = APMP.sec(toFr ? 'Translation into French' : 'Translation into English', ok, partial ? marked : total, true);
     body += '<div class="apmp-info"><b>Passage</b> &middot; ' + p.label + ' &middot; Card ' + p.topic + ': ' + p.topicName + (p.type === 'ai' ? ' &middot; AI-generated' : '') + '</div>';
     body += '<div class="apmp-text">' + p.text + '</div>';
     const pen = APPEN.pdf(trPenKey(p));
     body += '<style>' + APPEN.PDF_CSS + '</style><div class="apmp-sub">Your translation</div>' + (pen ? '<div class="appen-pbox">' + pen + '</div>' : '<div class="apmp-info">Not written in the app (translation done on paper).</div>');
-    body += '<div class="apmp-info">' + (pen ? 'Self-marked chunk by chunk against the mark scheme (1 mark per chunk).' : 'Translation written on paper, then self-marked chunk by chunk against the mark scheme (1 mark per chunk).') + '</div>';
-    body += '<table class="apmp-t"><thead><tr><th>#</th><th>' + (toFr ? 'English' : 'French') + '</th><th>Model answer / also accepted</th><th>Reject &middot; notes</th><th>Your mark</th></tr></thead><tbody>' + rows + '</tbody></table>';
+    body += '<div class="apmp-info">' + (pen ? 'Self-marked chunk by chunk (1 mark per chunk).' : 'Translation written on paper, then self-marked chunk by chunk (1 mark per chunk).') + '</div>';
+    body += '<table class="apmp-t"><thead><tr><th>#</th><th>' + (toFr ? 'English' : 'French') + '</th><th>Model answer</th><th>Your mark</th></tr></thead><tbody>' + rows + '</tbody></table>';
     return {
       kicker: 'AP A Level &middot; VVs, Gr EWs &amp; Translation &middot; Translation',
       title: 'Translation Practice &mdash; <em>' + (p.ref || p.label) + '</em>',
@@ -60876,4 +60874,4 @@ function deck(el,m,n,x,y,face,gap){clear(el);const cs=[];for(let i=0;i<n;i++){co
   if (document.readyState === 'complete') start(); else window.addEventListener('load', start);
 })();
 </script>
-<script id="ap-build">window.__apBuild="3f81b146b7";window.__apVer=210;(function(){var N=window.__apVer;function put(){try{var h=document.querySelector('header.aph-header');if(!h||document.getElementById('ap-ver'))return;var s=document.createElement('span');s.id='ap-ver';s.textContent='v'+N;s.style.cssText='position:absolute;right:10px;bottom:4px;font:600 11px/1 system-ui,sans-serif;color:#c9a84c;opacity:.8;pointer-events:none;letter-spacing:.04em;z-index:2';if(getComputedStyle(h).position==='static')h.style.position='relative';h.appendChild(s)}catch(e){}}put();document.addEventListener('DOMContentLoaded',put);window.addEventListener('load',put);setInterval(put,2000)})();</script>
+<script id="ap-build">window.__apBuild="ff80a2abd1";window.__apVer=211;(function(){var N=window.__apVer;function put(){try{var h=document.querySelector('header.aph-header');if(!h||document.getElementById('ap-ver'))return;var s=document.createElement('span');s.id='ap-ver';s.textContent='v'+N;s.style.cssText='position:absolute;right:10px;bottom:4px;font:600 11px/1 system-ui,sans-serif;color:#c9a84c;opacity:.8;pointer-events:none;letter-spacing:.04em;z-index:2';if(getComputedStyle(h).position==='static')h.style.position='relative';h.appendChild(s)}catch(e){}}put();document.addEventListener('DOMContentLoaded',put);window.addEventListener('load',put);setInterval(put,2000)})();</script>
