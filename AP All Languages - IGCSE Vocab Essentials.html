@@ -3862,6 +3862,7 @@ function deck(el,m,n,x,y,face,gap){clear(el);const cs=[];for(let i=0;i<n;i++){co
     <div class="aph-card ve-setup">
       <h2 class="aph-h">Ready to practise?</h2>
       <button class="aph-banner" onclick="openVocabChallenge()"><span class="aph-banner-icon">⚡</span><span class="aph-banner-text"><b>Eton Speed Challenge</b><small>Race against the clock, solo or in teams</small></span><span class="aph-banner-play">&#9654; Play</span></button>
+      <button class="aph-banner" id="pv-banner" onclick="apPicDemo()" style="border-color:#b3302f"><span class="aph-banner-icon">🍎</span><span class="aph-banner-text"><b>TEST: Picture Vocab <span style="color:#b3302f">(AP only)</span></b><small>Pictures instead of English: Drill it and Speed Challenge, fruit and vegetables</small></span><span class="aph-banner-play">&#9654; Try</span></button>
 
       <div class="aph-label">Direction</div>
       <div class="aph-row">
@@ -14983,6 +14984,109 @@ textarea.ms-in{min-height:7rem;resize:vertical}.ms-hint.ms-hint-sm{font-size:.78
   scan();
 })();
 </script>
+
+<style id="pv-style">
+#pv-ov{position:fixed;inset:0;z-index:99990;background:#f4f1ea;overflow:auto;display:none;color:#1f2a44;font-family:Georgia,'Times New Roman',serif}
+#pv-ov header{background:#1f2a44;color:#fff;padding:12px 18px;display:flex;align-items:center;gap:14px}
+#pv-ov header h1{font-size:19px;margin:0;font-weight:600;flex:1}
+#pv-ov .pv-back{background:transparent;color:#fff;border:1px solid #8892ab;border-radius:8px;padding:7px 14px;font-size:15px;font-family:inherit}
+#pv-ov .wrap{max-width:1000px;margin:0 auto;padding:18px}
+#pv-ov .tiles{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-top:20px}
+#pv-ov .tile{background:#fff;border:2px solid #1f2a44;border-radius:16px;padding:22px;text-align:left;font-size:16px;color:#1f2a44;font-family:inherit}
+#pv-ov .tile b{display:block;font-size:22px;margin-bottom:6px}
+#pv-ov .btn{background:#1f2a44;color:#fff;border:0;border-radius:10px;padding:12px 22px;font-size:17px;font-family:inherit}
+#pv-ov .btn.alt{background:#fff;color:#1f2a44;border:2px solid #1f2a44}
+#pv-ov .card{background:#fff;border-radius:18px;padding:18px;text-align:center;box-shadow:0 2px 10px #0002}
+#pv-ov .card img{width:min(420px,70vw);height:min(420px,70vw);object-fit:contain;display:block;margin:0 auto}
+#pv-ov .clue{color:#a9a9a9;font-size:12px;margin-top:6px;min-height:18px}
+#pv-ov .ans{font-size:40px;margin:10px 0}
+#pv-ov .row{display:flex;gap:10px;justify-content:center;flex-wrap:wrap;margin-top:12px}
+#pv-ov .mk{border:0;border-radius:10px;padding:14px 22px;font-size:18px;color:#fff;font-family:inherit}
+#pv-ov .m1{background:#b3302f}#pv-ov .m2{background:#c98a0a}#pv-ov .m3{background:#2c7a4b}
+#pv-ov .small{color:#566;font-size:14px}
+#pv-ov .grid{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-top:10px}
+#pv-ov .grid button{background:#fff;border:3px solid #fff;border-radius:12px;padding:0;aspect-ratio:1/1;overflow:hidden}
+#pv-ov .grid img{width:100%;height:100%;object-fit:contain;display:block}
+#pv-ov .grid .ok{border-color:#2c7a4b;opacity:.35}#pv-ov .grid .bad{border-color:#b3302f}
+#pv-ov .prompt{font-size:44px;text-align:center;margin:6px 0 2px}
+#pv-ov .bar{display:flex;justify-content:space-between;align-items:center;font-size:18px}
+#pv-ov .sp{border:0;background:#eef;border-radius:50%;width:46px;height:46px;font-size:22px}
+</style>
+<script id="pv-script">
+/* TEST: Picture Vocab demo (AP only). 24 fruit and vegetable pictures in picvocab/. Self-contained; touches nothing else. */
+(function(){
+var ITEMS=[{"fr": "la pomme", "en": "apple", "img": "picvocab/01_pomme.webp"}, {"fr": "la poire", "en": "pear", "img": "picvocab/02_poire.webp"}, {"fr": "la banane", "en": "banana", "img": "picvocab/03_banane.webp"}, {"fr": "l'orange (f)", "en": "orange", "img": "picvocab/04_orange.webp"}, {"fr": "la fraise", "en": "strawberry", "img": "picvocab/05_fraise.webp"}, {"fr": "la cerise", "en": "cherry", "img": "picvocab/06_cerise.webp"}, {"fr": "le citron", "en": "lemon", "img": "picvocab/07_citron.webp"}, {"fr": "le raisin", "en": "grapes", "img": "picvocab/08_raisin.webp"}, {"fr": "l'ananas (m)", "en": "pineapple", "img": "picvocab/09_ananas.webp"}, {"fr": "la pêche", "en": "peach", "img": "picvocab/10_peche.webp"}, {"fr": "la framboise", "en": "raspberry", "img": "picvocab/11_framboise.webp"}, {"fr": "la pastèque", "en": "watermelon", "img": "picvocab/12_pasteque.webp"}, {"fr": "la tomate", "en": "tomato", "img": "picvocab/13_tomate.webp"}, {"fr": "la carotte", "en": "carrot", "img": "picvocab/14_carotte.webp"}, {"fr": "le champignon", "en": "mushroom", "img": "picvocab/15_champignon.webp"}, {"fr": "l'oignon (m)", "en": "onion", "img": "picvocab/16_oignon.webp"}, {"fr": "la pomme de terre", "en": "potato", "img": "picvocab/17_pomme_de_terre.webp"}, {"fr": "le poivron", "en": "(bell) pepper", "img": "picvocab/18_poivron.webp"}, {"fr": "le concombre", "en": "cucumber", "img": "picvocab/19_concombre.webp"}, {"fr": "l'aubergine (f)", "en": "aubergine", "img": "picvocab/20_aubergine.webp"}, {"fr": "le chou-fleur", "en": "cauliflower", "img": "picvocab/21_chou-fleur.webp"}, {"fr": "la laitue", "en": "lettuce", "img": "picvocab/22_laitue.webp"}, {"fr": "les haricots verts", "en": "green beans", "img": "picvocab/23_haricots_verts.webp"}, {"fr": "les petits pois", "en": "peas", "img": "picvocab/24_petits_pois.webp"}];
+var ov,app,backBtn,backFn=null,loaded=false;
+function preload(){ if(loaded) return; loaded=true; ITEMS.forEach(function(it){ var im=new Image(); im.src=it.img; }); }
+function shuf(a){a=a.slice();for(var i=a.length-1;i>0;i--){var j=Math.random()*(i+1)|0;var t=a[i];a[i]=a[j];a[j]=t}return a}
+function say(t){ try{ speechSynthesis.cancel(); var u=new SpeechSynthesisUtterance(t.replace(/\s*\(.\)/,'')); u.lang='fr-FR'; u.rate=.85; speechSynthesis.speak(u);}catch(e){} }
+function setBack(f){ backFn=f; }
+function build(){
+  if(ov) return;
+  ov=document.createElement('div'); ov.id='pv-ov';
+  ov.innerHTML='<header><button class="pv-back" id="pv-back">&larr; Back</button><h1>TEST: Picture Vocab (fruit and vegetables)</h1></header><div class="wrap" id="pv-app"></div>';
+  document.body.appendChild(ov); app=ov.querySelector('#pv-app'); backBtn=ov.querySelector('#pv-back');
+  backBtn.onclick=function(){ if(backFn) backFn(); else close(); };
+}
+function close(){ try{speechSynthesis.cancel()}catch(e){} ov.style.display='none'; document.body.style.overflow=''; }
+function home(){
+  setBack(null);
+  app.innerHTML='<p>Your 24 pictures, used the way they could work in the apps. No English is shown unless you tap the faint Clue.</p><div class="tiles"><button class="tile" id="pv-d"><b>Drill it</b>Oral drill: see the picture, say the French, reveal, mark yourself.</button><button class="tile" id="pv-s"><b>Speed Challenge</b>A French word, 16 pictures: tap the right one, fast.</button></div>';
+  app.querySelector('#pv-d').onclick=drill; app.querySelector('#pv-s').onclick=function(){speed(null)};
+}
+function drill(){
+  setBack(home);
+  var deck=shuf(ITEMS),i=0,res=[0,0,0],wrong=[];
+  function show(){
+    if(i>=deck.length){
+      app.innerHTML='<div class="card"><h2>Drill finished</h2><p>Got it: '+res[2]+' &nbsp; Nearly: '+res[1]+' &nbsp; Major error: '+res[0]+'</p><p class="small">'+(wrong.length?'To revisit: '+wrong.join(', '):'No errors.')+'</p><div class="row"><button class="btn" id="pv-ag">Drill again</button></div></div>';
+      app.querySelector('#pv-ag').onclick=drill; return; }
+    var it=deck[i];
+    app.innerHTML='<div class="bar"><span class="small">Card '+(i+1)+' of '+deck.length+'</span><button class="btn alt" id="pv-clue" style="padding:6px 12px;font-size:14px">Clue</button></div><div class="card"><img src="'+it.img+'" alt=""><div class="clue" id="pv-cl"></div><div id="pv-ans"><div class="row"><button class="btn" id="pv-rev">Show answer</button></div></div></div>';
+    app.querySelector('#pv-clue').onclick=function(){ app.querySelector('#pv-cl').textContent=it.en; };
+    app.querySelector('#pv-rev').onclick=function(){
+      app.querySelector('#pv-ans').innerHTML='<div class="ans">'+it.fr+' <button class="sp" id="pv-sp" title="Hear it">&#128266;</button></div><div class="row"><button class="mk m1" data-k="0">Major error</button><button class="mk m2" data-k="1">Nearly</button><button class="mk m3" data-k="2">Got it</button></div>';
+      app.querySelector('#pv-sp').onclick=function(){ say(it.fr); };
+      [].forEach.call(app.querySelectorAll('.mk'),function(b){ b.onclick=function(){ var k=+b.getAttribute('data-k'); res[k]++; if(k<2) wrong.push(it.fr); i++; show(); }; });
+    };
+  }
+  show();
+}
+var last=null;
+function speed(round){
+  setBack(home);
+  var tiles=round?round.tiles:shuf(ITEMS).slice(0,16), order=round?round.order:shuf(tiles);
+  last={tiles:tiles,order:order};
+  var q=0,errs=[],t0=Date.now(),done=[],timer;
+  app.innerHTML='<div class="bar"><span id="pv-qn" class="small"></span><span id="pv-tm">0.0 s</span><span id="pv-er" class="small"></span></div><div class="prompt" id="pv-pr"></div><div class="grid" id="pv-g"></div>';
+  var g=app.querySelector('#pv-g');
+  tiles.forEach(function(it){
+    var b=document.createElement('button'); b.innerHTML='<img src="'+it.img+'" alt="">';
+    b.onclick=function(){
+      if(done.indexOf(it)>-1) return;
+      if(it===order[q]){ done.push(it); b.classList.add('ok'); q++; next(); }
+      else{ errs.push(order[q].fr+' (tapped '+it.fr+')'); b.classList.add('bad'); setTimeout(function(){b.classList.remove('bad')},400); app.querySelector('#pv-er').textContent='Errors: '+errs.length; }
+    };
+    g.appendChild(b);
+  });
+  function next(){
+    if(q>=order.length){ clearInterval(timer); finish(); return; }
+    app.querySelector('#pv-qn').textContent='Tile '+(q+1)+' of '+order.length;
+    app.querySelector('#pv-pr').innerHTML=order[q].fr+' <button class="sp" id="pv-sp2">&#128266;</button>';
+    app.querySelector('#pv-sp2').onclick=function(){ say(order[q].fr); };
+  }
+  function finish(){
+    var s=((Date.now()-t0)/1000).toFixed(1);
+    app.innerHTML='<div class="card"><h2>Round finished: '+s+' s</h2><p>Errors: '+errs.length+'</p><p class="small">'+(errs.length?errs.join('; '):'Perfect round.')+'</p><div class="row"><button class="btn" id="pv-nr">New random round</button><button class="btn alt" id="pv-same">Exact same round again</button></div></div>';
+    app.querySelector('#pv-nr').onclick=function(){speed(null)};
+    app.querySelector('#pv-same').onclick=function(){speed({tiles:last.tiles,order:last.order})};
+  }
+  timer=setInterval(function(){ var e=app.querySelector('#pv-tm'); if(e) e.textContent=((Date.now()-t0)/1000).toFixed(1)+' s'; },100);
+  next();
+}
+window.apPicDemo=function(){ build(); preload(); ov.style.display='block'; document.body.style.overflow='hidden'; home(); };
+})();
+</script>
 </body></html>
 <script id="ap-voicespeed">
 /* AP VOICE SPEED: a 🔊 button in the navy drill banner slows every spoken voice (100%, 85%, 70%, 55%). Remembered on this device. */
@@ -15390,4 +15494,4 @@ textarea.ms-in{min-height:7rem;resize:vertical}.ms-hint.ms-hint-sm{font-size:.78
   if (document.readyState === 'complete') start(); else window.addEventListener('load', start);
 })();
 </script>
-<script id="ap-build">window.__apBuild="41f92b6b07";window.__apVer=198;(function(){var N=window.__apVer;function put(){try{var h=document.querySelector('header.aph-header');if(!h||document.getElementById('ap-ver'))return;var s=document.createElement('span');s.id='ap-ver';s.textContent='v'+N;s.style.cssText='position:absolute;right:10px;bottom:4px;font:600 11px/1 system-ui,sans-serif;color:#c9a84c;opacity:.8;pointer-events:none;letter-spacing:.04em;z-index:2';if(getComputedStyle(h).position==='static')h.style.position='relative';h.appendChild(s)}catch(e){}}put();document.addEventListener('DOMContentLoaded',put);window.addEventListener('load',put);setInterval(put,2000)})();</script>
+<script id="ap-build">window.__apBuild="ee9b52cf96";window.__apVer=199;(function(){var N=window.__apVer;function put(){try{var h=document.querySelector('header.aph-header');if(!h||document.getElementById('ap-ver'))return;var s=document.createElement('span');s.id='ap-ver';s.textContent='v'+N;s.style.cssText='position:absolute;right:10px;bottom:4px;font:600 11px/1 system-ui,sans-serif;color:#c9a84c;opacity:.8;pointer-events:none;letter-spacing:.04em;z-index:2';if(getComputedStyle(h).position==='static')h.style.position='relative';h.appendChild(s)}catch(e){}}put();document.addEventListener('DOMContentLoaded',put);window.addEventListener('load',put);setInterval(put,2000)})();</script>
