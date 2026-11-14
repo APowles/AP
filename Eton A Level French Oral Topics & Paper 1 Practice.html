@@ -13001,7 +13001,7 @@ function p1PdfOpen(b, it, id, key, label){
   var got = b.checked ? (b.self.hasOwnProperty(key) ? b.self[key] : null) : null;
   var typedAny = ans.join('').replace(/\s+/g,'')!=='';
   var rows=[['Your answer', APPEN.pdf(p1PenKey(b.q,key), typedAny ? yours : '') || APMP.answer(''), 'mine']];
-  if(b.checked) rows = rows.concat(p1MsRows(it));
+  if(b.checked && !P1S) rows = rows.concat(p1MsRows(it));   // a Timed Past Paper PDF shows the boy's answer and mark only, not the mark scheme
   return APMP.q({num:'('+esc(it.n)+')', text:label, got:got, max:m, v:APMP.verdict(got,m,b.checked), rows:rows, big:b.checked});
 }
 function p1PdfMCQ(b, it, id){
@@ -13010,9 +13010,9 @@ function p1PdfMCQ(b, it, id){
     return {l:L, t:esc(it.options[L]), chosen:L===v, correct:L===it.answer, why:b.checked&&why[L]?esc(why[L]):''};
   });
   var got = b.checked ? (v===it.answer?1:0) : null;
-  var rows=[['Your answer', (v ? '<span class="apmp-yours">'+v+'</span>' : '<span class="apmp-blank">(no answer)</span>') + (b.checked ? '<span class="apmp-sep">Correct answer</span><b>'+esc(it.answer)+'</b>' : ''), 'mine']];
+  var rows=[['Your answer', (v ? '<span class="apmp-yours">'+v+'</span>' : '<span class="apmp-blank">(no answer)</span>') + (b.checked && !P1S ? '<span class="apmp-sep">Correct answer</span><b>'+esc(it.answer)+'</b>' : ''), 'mine']];
   var tip = b.checked&&it.tip ? '<div class="apmp-row"><span class="apmp-lab">Tip</span><div class="apmp-val apmp-tip">'+esc(it.tip)+'</div></div>' : '';
-  return APMP.q({num:'('+esc(it.n)+')', text:esc(it.stem), got:got, max:1, v:APMP.verdict(got,1,b.checked), rows:rows, extra:APMP.opts(list, b.checked)+tip});
+  return APMP.q({num:'('+esc(it.n)+')', text:esc(it.stem), got:got, max:1, v:APMP.verdict(got,1,b.checked), rows:rows, extra:P1S ? '' : APMP.opts(list, b.checked)+tip});
 }
 function p1PdfTrans(q){
   var parts = q.type==='l4' ? [['Transcript 4(a)',q.partA.transcript],['Transcript 4(b)',q.partB.transcript]] : [['Transcript',q.transcript]];
@@ -13038,7 +13038,7 @@ function p1PdfBlock(b){
       if(q.type==='l1') q.items.forEach(function(it,i){ h += p1PdfMCQ(b, it, P+'m'+i); });
       else q.items.forEach(function(it,i){ h += p1PdfOpen(b, it, P+'o'+i, 'o'+i, esc(it.question)); });
     }
-    if(b.checked) h += p1PdfTrans(q);
+    if(b.checked && !P1S) h += p1PdfTrans(q);
   } else {
     h += '<div class="apmp-info"><b>'+esc(q.rubric)+'</b></div><div class="apmp-text">'+(q.textTitle?'<div class="ttl">'+esc(q.textTitle)+'</div>':'')+q.text+'</div>';
     if(q.type==='q5'){
@@ -13052,23 +13052,30 @@ function p1PdfBlock(b){
         var mk = !b.checked ? (on?'<td class="mk none">ticked</td>':'<td class="mk none"></td>')
           : on&&ok ? '<td class="mk ok">✓ 1</td>' : on&&!ok ? '<td class="mk bad">✗ 0</td>' : (!on&&ok ? '<td class="mk bad">missed</td>' : '<td class="mk none"></td>');
         rows += '<tr><td class="n">'+(on?'&#9746;':'&#9744;')+' '+L+'</td><td>'+esc(q.statements[L])
-          + (b.checked ? '<div class="apmp-tip"><b class="'+(ok?'apmp-ok':'apmp-bad')+'" style="font-style:normal">'+(ok?'TRUE':'FALSE')+'</b> '+esc(String(why[L]||'').replace(/^(True|False)\s*:\s*/i,''))+'</div>' : '')+'</td>'+mk+'</tr>';
+          + (b.checked && !P1S ? '<div class="apmp-tip"><b class="'+(ok?'apmp-ok':'apmp-bad')+'" style="font-style:normal">'+(ok?'TRUE':'FALSE')+'</b> '+esc(String(why[L]||'').replace(/^(True|False)\s*:\s*/i,''))+'</div>' : '')+'</td>'+mk+'</tr>';
       });
       var got = b.checked ? b.auto : null;
       h += APMP.q({num:'Q6', text:esc(q.instruction||'Cochez les quatre phrases correctes.'), got:got, max:4, v:APMP.verdict(got,4,b.checked), big:true,
-        rows:[['Your ticks', ticked.length ? '<span class="apmp-yours">'+ticked.join(', ')+'</span>' : '<span class="apmp-blank">(none ticked)</span>', 'mine'], b.checked ? ['Correct four', '<b>'+ans.join(', ')+'</b>', 'ok'] : null],
+        rows:[['Your ticks', ticked.length ? '<span class="apmp-yours">'+ticked.join(', ')+'</span>' : '<span class="apmp-blank">(none ticked)</span>', 'mine'], b.checked && !P1S ? ['Correct four', '<b>'+ans.join(', ')+'</b>', 'ok'] : null],
         extra:'<table class="apmp-t"><thead><tr><th>Box</th><th>Statement</th><th>Mark</th></tr></thead><tbody>'+rows+'</tbody></table>'});
     } else if(q.type==='q10'){
       var tr=p1Val(P+'tr'), got10=null, n10=0;
       if(b.checked){ got10=0; q.sections.forEach(function(s,i){ if(b.self.hasOwnProperty('s'+i)){ n10++; got10+=b.self['s'+i]; } }); if(!n10) got10=null; }
       var extra='';
       if(b.checked){
+        if(P1S){
+        extra += '<table class="apmp-t"><thead><tr><th>#</th><th>French</th><th>Your mark</th></tr></thead><tbody>'
+          + q.sections.map(function(s,i){ var k='s'+i, has=b.self.hasOwnProperty(k), v=b.self[k];
+              return '<tr><td class="n">'+s.n+'</td><td><i>'+esc(s.fr)+'</i></td>'+(has ? (v>0?'<td class="mk ok">✓ '+v+'</td>':'<td class="mk bad">✗ 0</td>') : '<td class="mk none">—</td>')+'</tr>'; }).join('')
+          + '</tbody></table>';
+        } else {
         extra += '<div class="apmp-row ms"><span class="apmp-lab">Model translation</span><div class="apmp-val">'+br(q.model)+'</div></div>';
         extra += '<table class="apmp-t"><thead><tr><th>#</th><th>French</th><th>Answer / Accept</th><th>Reject</th><th>Your mark</th></tr></thead><tbody>'
           + q.sections.map(function(s,i){ var k='s'+i, has=b.self.hasOwnProperty(k), v=b.self[k];
               return '<tr><td class="n">'+s.n+'</td><td><i>'+esc(s.fr)+'</i></td><td><b>'+br(s.answer)+'</b>'+(s.accept&&s.accept.length?'<div class="apmp-ok">'+s.accept.map(esc).join(' / ')+'</div>':'')+(s.tip?'<div class="apmp-tip">'+esc(s.tip)+'</div>':'')+'</td><td class="apmp-bad">'+(s.reject||[]).map(esc).join('<br>')+'</td>'
                 + (has ? (v>0?'<td class="mk ok">✓ '+v+'</td>':'<td class="mk bad">✗ 0</td>') : '<td class="mk none">—</td>')+'</tr>'; }).join('')
           + '</tbody></table>';
+        }
         if(n10 < q.sections.length) extra += '<div class="apmp-tip">'+(q.sections.length-n10)+' of '+q.sections.length+' sections not self-marked yet (they count 0).</div>';
       }
       h += APMP.q({num:'Q10', text:'Your translation', got:got10, max:T.marks, v:APMP.verdict(got10,T.marks,b.checked), big:true,
@@ -13078,7 +13085,7 @@ function p1PdfBlock(b){
       q.items.forEach(function(it,i){ h += p1PdfOpen(b, it, P+'o'+i, 'o'+i, esc(it.question)); });
     }
   }
-  if(b.checked && q.sourceNote) h += '<div class="apmp-tip">'+esc(q.sourceNote)+'</div>';
+  if(b.checked && !P1S && q.sourceNote) h += '<div class="apmp-tip">'+esc(q.sourceNote)+'</div>';
   return h;
 }
 window.p1SavePDF = function(){
@@ -25129,4 +25136,4 @@ function deck(el,m,n,x,y,face,gap){clear(el);const cs=[];for(let i=0;i<n;i++){co
   if (document.readyState === 'complete') start(); else window.addEventListener('load', start);
 })();
 </script>
-<script id="ap-build">window.__apBuild="3f018df04f";window.__apVer=565;(function(){var N=window.__apVer;function put(){try{var h=document.querySelector('header.aph-header');if(!h||document.getElementById('ap-ver'))return;var s=document.createElement('span');s.id='ap-ver';s.textContent='v'+N;s.style.cssText='position:absolute;right:10px;bottom:4px;font:600 11px/1 system-ui,sans-serif;color:#c9a84c;opacity:.8;pointer-events:none;letter-spacing:.04em;z-index:2';if(getComputedStyle(h).position==='static')h.style.position='relative';h.appendChild(s)}catch(e){}}put();document.addEventListener('DOMContentLoaded',put);window.addEventListener('load',put);setInterval(put,2000)})();</script>
+<script id="ap-build">window.__apBuild="121727e80b";window.__apVer=566;(function(){var N=window.__apVer;function put(){try{var h=document.querySelector('header.aph-header');if(!h||document.getElementById('ap-ver'))return;var s=document.createElement('span');s.id='ap-ver';s.textContent='v'+N;s.style.cssText='position:absolute;right:10px;bottom:4px;font:600 11px/1 system-ui,sans-serif;color:#c9a84c;opacity:.8;pointer-events:none;letter-spacing:.04em;z-index:2';if(getComputedStyle(h).position==='static')h.style.position='relative';h.appendChild(s)}catch(e){}}put();document.addEventListener('DOMContentLoaded',put);window.addEventListener('load',put);setInterval(put,2000)})();</script>
